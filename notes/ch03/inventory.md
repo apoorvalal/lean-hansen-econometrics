@@ -34,3 +34,11 @@
 
 ## Immediate target
 Start with Layer 1 in Lean. Those theorems are the most reusable and should not require importing too much specialized matrix infrastructure beyond basic finite-dimensional linear algebra.
+
+## Strategy note
+
+A desirable route for the FWL theorem is through projection geometry / Gram-Schmidt style decomposition:
+
+- interpret the column spaces of `X₁` and `[X₁ X₂]` as nested subspaces,
+- use annihilator/projection operators to partial out the `X₁` component,
+- then show the coefficient on `X₂` equals the OLS coefficient from the residualized regression.

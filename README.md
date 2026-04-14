@@ -100,6 +100,7 @@ Planned next within Chapter 2:
 
 See also:
 - `notes/ch02/theorem_inventory.md`
+- `notes/ch02/ch2_excerpt.txt`
 - `notes/ch03/inventory.md`
 
 ## Philosophy
