@@ -3,3 +3,4 @@ import HansenEconometrics.Basic
 import HansenEconometrics.Chapter2CondExp
 
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
+import HansenEconometrics.Chapter2Variance

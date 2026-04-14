@@ -50,7 +50,7 @@ Legend:
 |---:|---|---|---|
 | 01 | Introduction | not started | mostly exposition; probably little to formalize directly |
 | 02 | Conditional Expectation and Projection | partial | first conditional-expectation theorem layer completed |
-| 03 | The Algebra of Least Squares | in progress | scaffold created; next major algebra/projection target |
+| 03 | The Algebra of Least Squares | in progress | OLS closed form, normal equations, residual orthogonality landed |
 | 04 | Least Squares Regression | not started | finite-sample regression theory |
 | 05 | Normal Regression | not started | distributional finite-sample results |
 | 06 | A Review of Large Sample Asymptotics | not started | likely prerequisite for later asymptotics chapters |
