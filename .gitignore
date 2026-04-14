@@ -1,0 +1,9 @@
+.lake/
+.lean/
+build/
+.tmp/
+*.olean
+*.ilean
+*.trace
+*.out
+textextract/
