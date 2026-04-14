@@ -1,16 +1,18 @@
 # Hansen Chapter 2 formalization plan
 
-## Working scope (first pass)
+## Working scope
 
 Target chapter:
 - `chapters/02-conditional-expectation-and-projection.pdf`
 
-Initial formalization focus:
-- the first conditional-expectation backbone before projection geometry:
+Formalization focus so far:
+- the conditional-expectation backbone before projection geometry:
   1. simple law of iterated expectations
   2. tower property / nested conditional expectations
   3. conditioning theorem / pull-out property
   4. CEF error mean-zero facts and orthogonality
+  5. conditional-variance / total-variance identities
+  6. population-moment algebra for the best linear projection coefficient
 
 These are the cleanest early results to formalize because Mathlib already has strong conditional-expectation infrastructure.
 
@@ -40,14 +42,32 @@ Then prove:
 - **T2.4.2**: `E[e] = 0`
 - **T2.4.4**: for `g` measurable wrt `m`, `E[g e] = 0`
 
+### Level 3: variance package
+- **Definitions 2.1-2.2**:
+  expected conditional variance as expected squared CEF error
+- **T2.8**:
+  law of total variance, plus the rearranged decomposition
+- reusable consequence:
+  `Var[E[Y | m]] ≤ Var[Y]`
+
+### Level 4: linear projection package
+- **Definition 2.5 / T2.9 core**:
+  `β = QXX⁻¹ QXY`
+- population normal equations:
+  `QXX β = QXY`
+- population orthogonality:
+  `QXY - QXX β = 0`
+- uniqueness from the normal equations
+- quadratic criterion simplification at `β`
+
 ## Later chapter targets (not yet formalized)
-- variance decomposition
+- **T2.5** finite regression-error variance from `E[Y²] < ∞`
+- **T2.6** monotonic decrease of residual variance under larger conditioning sets
 - conditional expectation as best predictor
-- linear projection coefficient existence / orthogonality
+- full best-linear-predictor minimization statement
 - finite-second-moment consequences
 
 ## Files
 - `HansenEconometrics/Chapter2CondExp.lean` — first formalized theorem chain
-- later likely additions:
-  - `HansenEconometrics/Chapter2Variance.lean`
-  - `HansenEconometrics/Chapter2Projection.lean`
+- `HansenEconometrics/Chapter2Variance.lean` — conditional-variance / total-variance layer
+- `HansenEconometrics/Chapter2LinearProjection.lean` — population linear-projection algebra

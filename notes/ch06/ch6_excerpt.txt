@@ -1,0 +1,342 @@
+--- page 1 ---
+
+Chapter 6
+A Review of Large Sample Asymptotics
+6.1 Introduction
+The most widely-used tool in sampling theory is large sample asymptotics. By “asymptotics” we
+mean approximating a ﬁnite-sample sampling distribution by taking its limit as the sample size diverges
+to inﬁnity. In this chapter we provide a brief review of the main results of large sample asymptotics. It
+is meant as a reference, not as a teaching guide. Asymptotic theory is covered in detail in Chapters 7-9
+of Introduction to Econometrics. If you have not previous studied asymptotic theory in detail you should
+study these chapters before proceeding.
+6.2 Modes of Convergence
+Deﬁnition 6.1 A sequence of random vectors Zn ∈ Rk converges in probabil-
+ity to Z as n → ∞, denoted Zn − →p Z or alternatively plimn→∞ Zn = Z , if for all
+δ > 0,
+limn→∞ P[∥Zn − Z ∥ ≤ δ] = 1. (6.1)
+We call Z the probability limit (or plim) of Zn.
+The above deﬁnition treats random variables and random vectors simultaneously using the vector
+norm. It is useful to know that for a random vector, (6.1) holds if and only if each element in the vector
+converges in probability to its limit.
+Deﬁnition 6.2 Let Zn be a sequence of random vectors with distributions
+Fn(u) = P[Zn ≤ u]. We say that Zn converges in distribution to Z as n → ∞,
+denoted Zn − →
+d
+Z , if for all u at which F (u) = P[Z ≤ u] is continuous, Fn(u) →
+F (u) as n → ∞. We refer to Z and its distribution F (u) as the asymptotic dis-
+tribution, large sample distribution, or limit distribution of Zn.
+155
+
+
+--- page 2 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 156
+6.3 Weak Law of Large Numbers
+Theorem 6.1 Weak Law of Large Numbers (WLLN)
+If Yi ∈ Rk are i.i.d. and E ∥Y ∥ < ∞, then as n → ∞,
+Y = 1
+n
+n∑
+i =1
+Yi − →p E[Y ].
+The WLLN shows that the sample mean Y converges in probability to the true population expecta-
+tion µ. The result applies to any transformation of a random vector with a ﬁnite mean.
+Theorem 6.2 If Yi ∈ Rk are i.i.d., h(y) : Rk → Rq , and E ∥h (Y )∥ < ∞, then ˆµ =
+1
+n
+∑n
+i =1 h (Yi ) − →p µ = E[h (Y )] as n → ∞.
+An estimator which converges in probability to the population value is called consistent.
+Deﬁnition 6.3 An estimator ˆθ of θ is consistent if ˆθ − →p θ as n → ∞.
+6.4 Central Limit Theorem
+Theorem 6.3 Multivariate Lindeberg-Lévy Central Limit Theorem (CLT). If
+Yi ∈ Rk are i.i.d. and E ∥Y ∥2 < ∞, then as n → ∞
+p
+n
+(
+Y − µ
+)
+− →
+d
+N(0,V )
+where µ = E[Y ] and V = E
+[(
+Y − µ
+) (
+Y − µ
+)′]
+.
+The central limit theorem shows that the distribution of the sample mean is approximately normal
+in large samples. For some applications it may be useful to notice that Theorem 6.3 does not impose any
+restrictions on V other than that the elements are ﬁnite. Therefore this result allows for the possibility of
+singular V .
+The following two generalizations allow for heterogeneous random variables.
+
+
+--- page 3 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 157
+Theorem 6.4 Multivariate Lindeberg CLT. Suppose that for all n, Yni ∈ Rk, i =
+1, ...,rn, are independent but not necessarily identically distributed with expec-
+tations E[Yni ] = 0 and variance matrices V ni = E
+[
+Yni Y ′
+ni
+]
+. Set V n = ∑n
+i =1 V ni .
+Suppose ν2
+n = λmin(V n) > 0 and for all ϵ > 0
+limn→∞
+1
+ν2
+n
+rn∑
+i =1
+E
+[
+∥Yni ∥2 1
+{
+∥Yni ∥2 ≥ ϵν2
+n
+}]
+= 0. (6.2)
+Then as n → ∞
+V
+−1/2
+n
+rn∑
+i =1
+Yni − →
+d
+N(0, I k).
+Theorem 6.5 Suppose Yni ∈ Rk are independent but not necessarily identi-
+cally distributed with expectations E[Yni ] = 0 and variance matrices V ni =
+E
+[
+Yni Y ′
+ni
+]
+. Suppose
+1
+n
+n∑
+i =1
+V ni → V > 0
+and for some δ > 0
+sup
+n,i
+E ∥Yni ∥2+δ < ∞. (6.3)
+Then as n → ∞ p
+n Y − →
+d
+N(0,V ).
+6.5 Continuous Mapping Theorem and Delta Method
+Continuous functions are limit-preserving. There are two forms of the continuous mapping theorem,
+for convergence in probability and convergence in distribution.
+Theorem 6.6 Continuous Mapping Theorem (CMT). Let Zn ∈ Rk and g (u) :
+Rk → Rq . If Zn − →p c as n → ∞ and g (u) is continuous at c then g (Zn) − →p g (c)
+as n → ∞.
+Theorem 6.7 Continuous Mapping Theorem. If Zn − →
+d
+Z as n → ∞ and g :
+Rm → Rk has the set of discontinuity points Dg such that P
+[
+Z ∈ Dg
+]
+= 0, then
+g (Zn) − →
+d
+g (Z ) as n → ∞.
+
+
+--- page 4 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 158
+Differentiable functions of asymptotically normal random estimators are asymptotically normal.
+Theorem 6.8 Delta Method. Let µ ∈ Rk and g (u) : Rk → Rq . If pn
+(
+ˆµ − µ
+)
+− →
+d
+ξ,
+where g (u) is continuously differentiable in a neighborhood of µ, then as n →
+∞ p
+n
+(
+g
+(
+ˆµ
+)
+− g (µ)
+)
+− →
+d
+G ′ξ (6.4)
+where G(u) = ∂
+∂u g (u)′ and G = G(µ). In particular, if ξ ∼ N(0,V ) then as n → ∞
+p
+n
+(
+g
+(
+ˆµ
+)
+− g (µ)
+)
+− →
+d
+N
+(
+0,G ′V G
+)
+. (6.5)
+6.6 Smooth Function Model
+The smooth function model is θ = g
+(
+µ
+)
+where µ = E[h (Y )] and g
+(
+µ
+)
+is smooth in a suitable sense.
+The parameter θ = g
+(
+µ
+)
+is not a population moment so it does not have a direct moment esti-
+mator. Instead, it is common to use a plug-in estimator formed by replacing the unknown µ with its
+point estimator ˆµ and then “plugging” this into the expression for θ. The ﬁrst step is the sample mean
+ˆµ = n−1 ∑n
+i =1 h (Yi ). The second step is the transformation ˆθ = g
+(ˆθ
+)
+. The hat “^” indicates that ˆθ is a sam-
+ple estimator of θ. The smooth function model includes a broad class of estimators including sample
+variances and the least squares estimator.
+Theorem 6.9 If Yi ∈ Rm are i.i.d., h(u) : Rm → Rk, E ∥h (Y )∥ < ∞, and g (u) :
+Rk → Rq is continuous at µ, then ˆθ − →p θ as n → ∞.
+Theorem 6.10 If Yi ∈ Rm are i.i.d., h(u) : Rm → Rk, E ∥h (Y )∥2 < ∞, g (u) : Rk →
+Rq , and G (u) = ∂
+∂u g (u)′ is continuous in a neighborhood of µ, then as n → ∞
+p
+n
+(ˆθ − θ
+)
+− →
+d
+N(0,V θ)
+where V θ = G ′V G, V = E
+[(
+h (Y ) − µ
+) (
+h (Y ) − µ
+)′]
+, and G = G
+(
+µ
+)
+.
+Theorem 6.9 establishes the consistency of ˆθ for θ and Theorem 6.10 establishes its asymptotic nor-
+mality. It is instructive to compare the conditions. Consistency requires that h (Y ) has a ﬁnite expecta-
+tion; asymptotic normality requires that h (Y ) has a ﬁnite variance. Consistency requires that g (u) be
+continuous; asymptotic normality requires that g (u) is continuously differentiable.
+
+
+--- page 5 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 159
+6.7 Best Unbiased Estimation
+This section presents an efﬁciency bound for estimation of the mean. The result is are ﬁnite-sample
+rather than asymptotic, but is convenient to introduce at this point since the bound is identical to the
+asymptotic variance.
+Theorem 6.11 Suppose Yi are i.i.d., µ = E[h (Y )], and E ∥h (Y )∥2 < ∞. If ˜µ is
+unbiased for µ then var
+[
+˜µ
+]
+≥ n−1V where V = E
+[(
+h (Y ) − µ
+) (
+h (Y ) − µ
+)′]
+.
+For details and a proof see Section 11.6 ofIntroduction to Econometrics. Theorem 6.11 is an analog of
+the Cramér-Rao lower bound for semiparametric estimation. The result shows that the asymptotic vari-
+ance from Theorems 6.3 is the best possible in any ﬁnite sample among unbiased estimators. Theorem
+6.11 is sharp, since the sample mean has the ﬁnite sample variancen−1V .
+6.8 Stochastic Order Symbols
+It is convenient to have simple symbols for random variables and vectors which converge in prob-
+ability to zero or are stochastically bounded. In this section we introduce some of the most common
+notation.
+Let Zn and an, n = 1, 2, ... be sequences of random variables and constants. The notation
+Zn = op(1)
+(“small oh-P-one”) means that Zn − →p 0 as n → ∞. We also write
+Zn = op(an)
+if a−1
+n Zn = op(1).
+Similarly, the notation Zn = Op(1) (“big oh-P-one”) means that Zn is bounded in probability. Pre-
+cisely, for any ϵ > 0 there is a constant Mϵ < ∞ such that
+limsup
+n→∞
+P[|Zn|> Mϵ] ≤ ϵ.
+Furthermore, we write
+Zn = Op(an)
+if a−1
+n Zn = Op(1).
+Op(1) is weaker than op(1) in the sense that Zn = op(1) implies Zn = Op(1) but not the reverse. How-
+ever, if Zn = Op(an) then Zn = op(bn) for any bn such that an/bn → 0.
+A random sequence with a bounded moment is stochastically bounded.
+
+
+--- page 6 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 160
+Theorem 6.12 If Zn is a random vector which satisﬁes
+E ∥Zn∥δ = O (an)
+for some sequence an and δ > 0, then
+Zn = Op(a1/δ
+n ).
+Similarly, E ∥Zn∥δ = o (an) implies Zn = op(a1/δ
+n ).
+There are many simple rules for manipulating op(1) and Op(1) sequences which can be deduced
+from the continuous mapping theorem. For example,
+op(1) + op(1) = op(1)
+op(1) +Op(1) = Op(1)
+Op(1) +Op(1) = Op(1)
+op(1)op(1) = op(1)
+op(1)Op(1) = op(1)
+Op(1)Op(1) = Op(1).
+6.9 Convergence of Moments
+We give a sufﬁcient condition for the existence of the mean of the asymptotic distribution, deﬁne
+uniform integrability, provide a primitive condition for uniform integrability, and show that uniform
+integrability is the key condition under which E[Zn] converges to E[Z ].
+Theorem 6.13 If Zn − →
+d
+Z and E ∥Zn∥ ≤ C then E ∥Z ∥ ≤ C .
+Deﬁnition 6.4 The random vector Zn is uniformly integrable as n → ∞ if
+lim
+M →∞
+limsup
+n→∞
+E[∥Zn∥1{∥Zn∥ > M}] = 0.
+Theorem 6.14 If for some δ > 0, E ∥Zn∥1+δ ≤ C < ∞, then Zn is uniformly inte-
+grable.
+
+
+--- page 7 ---
+
+CHAPTER 6. A REVIEW OF LARGE SAMPLE ASYMPTOTICS 161
+Theorem 6.15 If Zn − →
+d
+Z and Zn is uniformly integrable then E[Zn] − →E[Z ].
+6.10 Uniform Stochastic Bounds
+Theorem 6.16 If |Yi |r is uniformly integrable, then as n → ∞
+n−1/r max
+1≤i ≤n
+|Yi |− →p 0. (6.6)
+Equation (6.6) implies that if Y has r ﬁnite moments then the largest observation will diverge at a
+rate slower than n1/r . The higher the moments, the slower the rate of divergence.

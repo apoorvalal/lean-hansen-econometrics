@@ -1,0 +1,1689 @@
+--- page 1 ---
+
+Chapter 25
+Binary Choice
+25.1 Introduction
+This and the next two chapters treat what are known as limited dependent variables. These are
+variables which have restricted support (a subset of the real line) and this restriction has consequences
+for econometric modeling. This chapter concerns the simplest case where Y is binary, meaning that it
+takes two values. Without loss of generality these are taken as zero and one, thus Y has support {0,1}. In
+econometrics we typically call this class of models binary choice.
+Examples of binary dependent variables include: Purchase of a single item; Market entry; Partici-
+pation; Approval of an application/patent/loan. The dependent variable may be recorded as Yes/No,
+True/False, or 1/− 1, but can always be written as 1/0.
+The goal in binary choice analysis is estimation of the conditional orresponse probabilityP[Y = 1 |X ]
+given a set of regressors X . We may be interested in the response probability or some transformation
+such as its derivative – the marginal effect. A traditional approach to binary choice modeling (and lim-
+ited dependent variable models in general) is parametric with estimation by maximum likelihood. There
+is also a substantial literature on semiparametric estimation. In recent years, applied practice has tilted
+towards linear probability models estimated by least squares.
+For more detailed treatments see Maddala (1983), Cameron and Trivedi (2005) and Wooldridge (2010).
+25.2 Binary Choice Models
+Let (Y , X ) be random with Y ∈ {0,1} and X ∈ Rk. The response probability of Y with respect to X is
+P(x) = P[Y = 1 |X = x] = E[Y |X = x].
+The response probability completely describes the conditional distribution. The marginal effect is
+∂
+∂x P(x) = ∂
+∂x P[Y = 1 |X = x] = ∂
+∂x E[Y |X = x].
+This equals the regression derivative. Economic applications often focus on the marginal effect.
+To illustrate, consider the probability of marriage given age. We use the cps09mar dataset, take the
+subset of men with a college degree (n = 6441), set Y = 1 if the individual is married or widowed but
+not separated or divorced 1 and set Y = 0 otherwise. The regressor is age which takes values in [19,80].
+In Figure 25.1(a) we plot two estimates of P(x). The ﬁlled circles are nonparametric estimates – the
+1marital equals 1, 2, 3, or 4.
+801
+
+
+--- page 2 ---
+
+CHAPTER 25. BINARY CHOICE 802
+empirical marriage frequency for each age – and the solid line is our preferred speciﬁcation (a probit
+spline model, described below). What seems apparant is that the probability of marriage is near zero
+for age = 19, increases linearly to 80% around age = 35, remains roughly ﬂat at 80% for ages 40-65, and
+increases for higher ages.
+Age
+20 30 40 50 60 70 80
+0.0 0.2 0.4 0.6 0.8 1.0
+Pr(Married|Age)
+(a) Response Probabilities
+Age
+20 30 40 50 60 70 80
+0.0 0.2 0.4 0.6 0.8 1.0 (b) Scatter Plot
+Age
+20 30 40 50 60 70 80
+−0.4 −0.2 0.0 0.2 0.4 0.6 0.8 1.0
+Linear
+Probit
+Linear Series
+Probit Series (c) Binary Choice Models
+Figure 25.1: Probability of Marriage Given Age for College Educated Men
+The variables satisfy the regression framework
+Y = P(X ) + e
+E[e |X ] = 0.
+The error e is not “classical” . It has the two-point conditional distribution
+e =
+{ 1 − P(X ), with probability P(X )
+P(X ), with probability 1 − P(X ). (25.1)
+It is also highly heteroskedastic with conditional variance
+var[e |X ] = P(X )(1 − P(X )). (25.2)
+Regression scatterplots are unusual. For example, in Figure 25.1(b) we plot a random subsample of 250
+observations from the CPS sample (marked by the ×’ s) along with the estimated response probability.
+Since all observations lie on the line y = 0 or on y = 1 the scatterplot has little interpretive value.
+25.3 Models for the Response Probability
+We now describe the most common models used for the response probabilityP(x).
+Linear Probability Model: P(x) = x′β where β is a coefﬁcient vector. In this model the response
+probability is a linear function of the regressors. The linear probability model has the advantage that it
+is simple to interpret. The coefﬁcients β equal the marginal effects (when X does not include nonlinear
+transformations). Since the response probability equals the conditional mean this model equals the lin-
+ear regression model. Linearity means that estimation is simple as least squares can be used to estimate
+the coefﬁcients. In more complicated settings (e.g. panel data with ﬁxed effects or endogenous variables
+with instruments) standard estimators can be employed.
+
+
+--- page 3 ---
+
+CHAPTER 25. BINARY CHOICE 803
+A disadvantage of the linear probability model is that it does not respect the [0,1] boundary. Fit-
+ted and predicted values from estimated linear probability models frequently violate these boundaries
+producing nonsense results.
+To illustrate, in Figure 25.1(c) we plot with the dotted line the linear probability model ﬁt to the ob-
+servations in the sample described in the previous section. The ﬁtted values are a poor approximation to
+the response probabilities. They also violate the [0,1] boundary for men above the age of 67. According
+to the model an 80-year-old is married with probability 113%!
+Overall, the linear probability model is a poor choice for calculation of probabilities.
+Index Models: P(x) = G(x′β) where G(u) is a link function and β is a coefﬁcient vector. This frame-
+work is also called a single index model where x′β is a linear index function. In binary choice models
+G(u) is distribution function which respects the probability bounds 0 ≤ G(u) ≤ 1. In economic applica-
+tions G(u) is typically the normal or logistic distribution function, both of which are symmetric about
+zero so that G(−u) = 1 − G(u). We assume throughout this chapter that this symmetry condition holds.
+Let g (u) = ∂
+∂u G(u) denote the density function of G(u). In an index model the marginal effect function is
+∂
+∂x P(x) = βg
+(
+x′β
+)
+.
+Index models are only slightly more complicated than the linear probability model but have the advan-
+tage of respecting the [0, 1] boundary. The two most common index models are the probit and logit.
+Probit Model: P(x) = Φ(x′β) where Φ(u) is the standard normal distribution function. This is a tra-
+ditional workhorse model for binary choice analysis. It is simple, easy to use, easy to interpret, and is
+based on the classical normal distribution.
+Logit Model: P(x) = Λ(x′β) where Λ(u) =
+(
+1 + exp(−u)
+)−1 is the logistic distribution function. This
+is an alternative workhorse model for binary choice analysis. The logistic and normal distribution func-
+tions (appropriately scaled) have similar shapes so the probit and logit models typically produce similar
+estimates for the response probabilities and marginal effects. One advantage of the logit model is that
+the distribution function is available in closed form which speeds computation.
+Linear Series Model: P(x) = x′
+K βK where xK = xK (x) is a vector of transformations of x and βK is a
+coefﬁcient vector. A series expansion has the ability to approximate any continuous function including
+the response probability P(x). The advantage of a linear series model is that its linear form allows the
+application of linear econometric methods. It is not guaranteed, however, to be boundary-respecting.
+Index Series Model: P(x) = G
+(
+x′
+K βK
+)
+where G(u) is a distribution function (either normal or logis-
+tic in practice), xK = xK (x) is a vector of transformations of x, and βK is a coefﬁcient vector. A series
+expansion has the ability to approximate any continuous function including the transformed response
+probability G −1 (
+p(x)
+)
+. This means that the index series model has the ability to approximate any con-
+tinuous response probability. In addition, the model is boundary-respecting.
+To illustrate the approximating capabilities of the models view Figure 25.1(c) which plots four esti-
+mated response probability functions: (1) Linear; (2) Probit; (3) Linear Series; (4) Probit Series. The ﬁrst
+two models are speciﬁed as linear inage. The two series models use a quadratic spline in age with kinks
+at 40 and 60.
+As discussed earlier, in this application the linear probability model is a particularly poor ﬁt. It over-
+predicts the probability for men under 30 and over 50, under-predicts the others, and violates the [0,1]
+
+
+--- page 4 ---
+
+CHAPTER 25. BINARY CHOICE 804
+boundary. The simple probit model is also quite poor. It produces an estimated response probability
+function which is similar to the linear probability model for ages up to 60. Its advantage is that for ages
+over 60 it does not violate the [0, 1] boundary. In contrast, the two series models produce excellent ﬁtted
+response probability functions. The two estimates are nearly identical for ages above 25. The main
+difference between the estimated functions is that the probit series model provides a globally excellent
+ﬁt, while the linear series model fails for ages less than 25, severely violating the [0, 1] boundary. The
+linear series model estimates that a 19-year-old is married with negative probability: −27%!
+To summarize, a probit series model has several excellent features. It is simple, based on a popu-
+lar link function, globally approximates any continuous response probability function, and respects the
+[0,1] boundary. A linear series model is also a reasonable candidate, but has the disadvantage of not
+necessarily respecting the [0,1] boundary.
+Probit and Logit
+The intruiging labels probit and logit have a long history in statisti-
+cal analysis. The term probit was coined by Chester Bliss in 1934 as a
+contraction of “probability unit” . The logistic function was introduced
+by Pierre Franï£¡ois Verhulst in 1938 as a modiﬁed exponential growth
+model. It is speculated that he used the term logistic as a contrast to log-
+arithmic. In 1944 Joseph Berkson proposed a binary choice model based
+on the logistic distribution function. He motivated the logistic as a con-
+venient computational approximation to the normal. As his model was
+an analog of the probit Berkson called his model the logit.
+25.4 Latent Variable Interpretation
+An index model can be interpreted as a latent variable model. Consider
+Y ∗ = X ′β + e
+e ∼ G (e)
+Y = 1
+{
+Y ∗ > 0
+}
+=
+{ 1 if Y ∗ > 0
+0 otherwise.
+In this model the observables are (Y , X ). The variable Y ∗ is latent, linear in X and an error e, with the
+latter drawn from a symmetric distribution G. The observed binary variable Y equals 1 if the latent
+variable Y ∗ exceeds zero and equals 0 otherwise.
+The event Y = 1 is the same as Y ∗ > 0, which is the same as
+X ′β + e > 0. (25.3)
+This means that the response probability is
+P(x) = P
+[
+e > −x′β
+]
+= 1 −G
+(
+−x′β
+)
+= G
+(
+x′β
+)
+.
+The ﬁnal equality uses the assumption thatG(u) is symmetric about zero. This shows that the response
+probability is P(x) = G(x′β) which is an index model with link function G(u).
+
+
+--- page 5 ---
+
+CHAPTER 25. BINARY CHOICE 805
+This latent variable model corresponds to a choice model where Y ∗ is an individual’ s relative utility
+(or proﬁt) of the options Y = 1 and Y = 0, and the individual selects the option with the higher utility.
+We see that this structural choice model is identical to an index model with link function equalling the
+distribution of the error. It is a probit model if the error e is standard normal and is a logit model if e is
+logistically distributed.
+You may have noticed that we have discussed cases where the error e is either standard normal or
+standard logistic, that is, their scale is ﬁxed. This is because the scale of the error distribution is not
+identiﬁed. To see this, suppose thate = σε where ε has a distribution G (u) with unit variance. Then the
+response probability is
+P[Y = 1 |X = x] = P
+[
+σe > −x′β
+]
+= G
+(x′β
+σ
+)
+= G
+(
+x′β∗)
+where β∗ = β/σ. This is an index model with coefﬁcient β∗. This means that β and σ are not separately
+identiﬁed; only the ratioβ∗ = β/σ is identiﬁed. The standard solution is to normalize σ to a convenient
+value. The probit and logit models use the normalizations σ = 1 and σ = π/
+p
+3 ≃ 1.8, respectively.
+Two consequences of the above analysis are that (1) interpretation of the coefﬁcient vectorβ cannot
+be separated from the scale of the error; and (2) the coefﬁcients of probit and logit models cannot be
+compared without rescaling. In general, it is best to interpret the coefﬁcient of a probit model as β/σ,
+the structural coefﬁcient scaled by the stuctural standard deviation, and to interpret the coefﬁcient of a
+logit model as β/v, the structural coefﬁcient scaled by the structural logistic scale parameterv = σ
+p
+3/π.
+For a rough comparison2 of probit and logit coefﬁcients multiply the probit coefﬁcients by 1.8 or divide
+the logit coefﬁcients by 1.8.
+While the coefﬁcientβ is not identiﬁed the following parameters are identiﬁed:
+1. Scaled coefﬁcients: β∗ = β/σ.
+2. Ratios of coefﬁcients: β1/β2 = β∗
+1 /β∗
+2 .
+3. Marginal effects: ∂
+∂x P(x) = β
+σ g
+(x′β
+σ
+)
+= β∗g
+(
+x′β∗)
+.
+These only depend on β∗ so are identiﬁed.
+Concerning identiﬁcation, if we take a broader nonparametric view the error distributionG(u) is not
+identiﬁed. To see this, write the structural equation nonparametrically as Y ∗ = m(X ) + e. The response
+probability is
+P(x) = 1 −G (−m(x)). (25.4)
+The joint distribution identiﬁes P(x). If G(e) and m(x) are nonparametric they cannot be separately
+identiﬁed from the response probability. Only the composite (25.4) is identiﬁed.
+An important implication is that there is no loss of generality in settingG(u) equal to a speciﬁc para-
+metric distribution such as the normal so long as the function m(x) is treated nonparametrically.
+25.5 Likelihood
+Probit and logit models are typically estimated by maximum likelihood. To construct the likelihood
+we need the distribution of an individual observation. Recall that ifY is Bernoulli, such that P[Y = 1] = p
+and P[Y = 0] = 1 − p, then Y has the probability mass function
+π(y) = p y (1 − p)1−y , y = 0, 1.
+2This produces only a rough comparison as this normalization only puts the coefﬁcients on the same scale. They are not
+equal since the models are different.
+
+
+--- page 6 ---
+
+CHAPTER 25. BINARY CHOICE 806
+In the index model P[Y = 1 |X ] = G
+(
+X ′β
+)
+, Y is conditionally Bernoulli, so its conditional probability
+mass function is
+π(Y |X ) = G
+(
+X ′β
+)Y (
+1 −G
+(
+X ′β
+))1−Y = G
+(
+X ′β
+)Y G
+(
+−X ′β
+)1−Y = G
+(
+Z ′β
+)
+(25.5)
+where
+Z =
+{ X if Y = 1
+−X if Y = 0.
+Taking logs and summing across observations we obtain the log-likelihood function:
+ℓn(β) =
+n∑
+i =1
+logG
+(
+Z ′
+i β
+)
+.
+For the probit and logit models this is
+ℓprobit
+n (β) =
+n∑
+i =1
+log Φ
+(
+Z ′
+i β
+)
+ℓlogit
+n (β) =
+n∑
+i =1
+log Λ
+(
+Z ′
+i β
+)
+.
+Deﬁne the ﬁrst and (negative) second derivatives of the log distribution function: h(x) = d
+d x logG(x)
+and H(x) = − d 2
+d x2 logG(x). For the logit model these equal (See Exercise 25.5)
+hlogit(x) = 1 − Λ(x)
+Hlogit(x) = Λ(x)(1 − Λ(x))
+and for the probit model (See Exercise 25.6)
+hprobit(x) = φ(x)
+Φ(x)
+def
+= λ(x)
+Hprobit(x) = λ(x)(x + λ(x)).
+The function λ(x) = φ(x)/Φ(x) is known as the inverse Mills ratio.
+Both the logit and probit have the property that H(x) > 0. This is easily seen for the logit case since
+it is the product of the distribution function and its complement, but less so for the probit case. Here we
+make use of a convenient property of log concave3 functions: if a density f (x) is log concave then the
+distribution function F (x) is log concave. The standard normal density φ(x) is log concave 4, implying
+that Φ(x) is log concave, implying Hprobit(x) > 0 as desired.
+The likelihood score and Hessian are
+Sn(β) = ∂
+∂β ℓn(β) =
+n∑
+i =1
+Zi h
+(
+Z ′
+i β
+)
+(25.6)
+Hn(β) = − ∂2
+∂β∂β′ ℓn(β) =
+n∑
+i =1
+Xi X ′
+i H
+(
+Z ′
+i β
+)
+. (25.7)
+Examining (25.7) we can see that H(x) > 0 implies that Hn(β) > 0 globally in β. This in turn implies that
+the log-likelihood ℓn(β) is globally concave. Since both Hlogit(x) > 0 and Hprobit(x) > 0 we deduce that
+the probit and logit log likelihood functions ℓprobit
+n (β) and ℓlogit
+n (β) are globally concave in β.
+3A function f (x) is log concave if log f (x) is concave.
+4log φ(x) = −log(2π) − x2/2 is concave.
+
+
+--- page 7 ---
+
+CHAPTER 25. BINARY CHOICE 807
+The MLE is the value which maximizes ℓn(β). We write this as
+ˆβprobit = argmax
+β
+ℓprobit
+n (β)
+ˆβlogit = argmax
+β
+ℓlogit
+n (β).
+Since the probit and logit log-likelihoods are globally concave ˆβprobit and ˆβlogit are unique. There is no
+explicit solution so they need to be found numerically. As the log likelihoods are smooth, concave, with
+known ﬁrst and second derivatives, numerical optimization is straightforward.
+In Stata, use the commands probit and logit to obtain the MLE. In R, use the commands
+glm(Y~X,family=binomial(link="probit"))
+glm(Y~X,family=binomial(link="logit")) .
+25.6 Pseudo-True Values
+The expected log mass function is
+ℓ(β) = E
+[
+logG
+(
+Z ′β
+)]
+.
+The model is correctly speciﬁedif there is a coefﬁcient β0 such that P[Y = 1 |X ] = G
+(
+X ′β0
+)
+. When this
+holds then β0 has the property that it maximizes ℓ(β) and thus satisﬁes
+β0 = argmax
+β
+ℓ(β). (25.8)
+We say that the model ismisspeciﬁedif there is no β such that P[Y = 1 |X ] = G
+(
+X ′β
+)
+. In this case we
+view the model G
+(
+X ′β
+)
+as an approximation to the response probability and deﬁne the pseudo-true co-
+efﬁcientβ0 as the value which satisﬁes (25.8). By construction, (25.8) equals the true coefﬁcient when the
+model is correctly speciﬁed and otherwise produces the best-ﬁtting model with respect to the expected
+log mass function.
+When the distribution function G(x) is log concave (as it is for the probit and logit models) then ℓ(β)
+is globally concave. To see this deﬁne
+Q(β) = − ∂2
+∂β∂β′ ℓ(β) = E
+[
+X X ′H
+(
+Z ′β
+)]
+and observe that H(x) > 0 (by log concavity), which implies Q(β) ≥ 0, which implies that ℓ(β) is globally
+concave. Furthermore, the minimizer (25.8) is unique under the full rank condition
+E
+[
+X X ′H
+(
+X ′β0
+)]
+> 0. (25.9)
+It is important to note that the concavity of ℓ(β) and uniqueness of the maximizer β0 are properties of
+the model G
+(
+X ′β
+)
+not the true distribution.
+For speciﬁcity, for the probit and logit models deﬁne the population criterions
+ℓprobit(β) = E
+[
+log Φ
+(
+Z ′β
+)]
+ℓlogit(β) = E
+[
+log Λ
+(
+Z ′β
+)]
+
+
+--- page 8 ---
+
+CHAPTER 25. BINARY CHOICE 808
+and the pseudo-true values
+βprobit = argmax
+β
+ℓprobit(β)
+βlogit = argmax
+β
+ℓlogit(β).
+We now describe the full rank condition (25.9) for the logit and probit models. For the probit model
+Hlogit(−x) = Hlogit(x) is symmetric about zero, so Hlogit
+(
+Z ′β
+)
+= Hlogit
+(
+X ′β
+)
+= Λ
+(
+X ′β
+) (
+1 − Λ
+(
+X ′β
+))
+. We
+deduce that (25.9) is the same as
+Qlogit
+def
+= E
+[
+X X ′Λ
+(
+X ′βlogit
+) (
+1 − Λ
+(
+X ′βlogit
+))]
+> 0. (25.10)
+For the probit model the condition (25.9) is
+Qprobit
+def
+= E
+[
+X X ′Hprobit
+(
+Z ′βprobit
+)]
+> 0. (25.11)
+When (25.10) and/or (25.11) hold the population minimizers βprobit and/or βlogit are unique.
+25.7 Asymptotic Distribution
+We ﬁrst provide conditions for consistent estimation. LetB be the parameter space for β.
+Theorem 25.1 Consistency of Logit Estimation. If (1) (Y i , Xi ) are i.i.d.; (2)
+E ∥X ∥ < ∞; (3) Qlogit > 0; and (4) B is bounded; then ˆβlogit − →p βlogit as n → ∞.
+Theorem 25.2 Consistency of Probit Estimation. If (1) (Y i , Xi ) are i.i.d.; (2)
+E ∥X ∥2 < ∞; (3) Qprobit > 0; and (4) B is bounded; then ˆβprobit − →p βprobit as
+n → ∞.
+The proofs are in Section 25.14. To derive the asymptotic distributions we appeal to Theorem 22.3
+for m-estimators which shows that the asymptotic distribution is normal with a covariance matrix V =
+Q −1ΩQ −1 where Q is deﬁned in (25.10) for the logit model and is deﬁned in (25.11) for the probit model.
+The variance of the score is Ω = E
+[
+X X ′h
+(
+Z ′β
+)2]
+. In the logit model we have the simpliﬁcation
+Ωlogit = E
+[
+X X ′
+(
+Y − Λ
+(
+X ′βlogit
+))2]
+(25.12)
+(explained below). We do not have a similar simpliﬁcation for the probit model (except under correct
+speciﬁcation, discussed below) and thus deﬁne
+Ωprobit = E
+[
+X X ′λ
+(
+Z ′βprobit
+)2]
+. (25.13)
+
+
+--- page 9 ---
+
+CHAPTER 25. BINARY CHOICE 809
+To see (25.12), with some algebra you can show that
+h
+(
+Z ′β
+)2 =
+g
+(
+X ′β
+)2
+G
+(
+X ′β
+)2 Y +
+g
+(
+X ′β
+)2
+(
+1 −G
+(
+X ′β
+))2 (1 − Y ) =
+g
+(
+X ′β
+)2 (
+Y −G
+(
+X ′β
+))2
+G
+(
+X ′β
+)2 (
+1 −G
+(
+X ′β
+))2 . (25.14)
+In the logit model the right side simpliﬁes to
+(
+Y − Λ
+(
+X ′β
+))2. This implies
+Ωlogit = E
+[
+X X ′hlogit
+(
+Z ′β
+)2]
+= E
+[
+X X ′
+(
+Y − Λ
+(
+X ′βlogit
+))2]
+as claimed.
+Theorem 25.3 If the conditions of Theorem 25.1 hold plus E ∥X ∥4 < ∞ and
+βlogit is in the interior of B; then as n → ∞
+p
+n
+(
+ˆβlogit − βlogit
+)
+− →
+d
+N
+(
+0,V logit
+)
+where V logit = Q −1
+logitΩlogitQ −1
+logit.
+Theorem 25.4 If the conditions of Theorem 25.2 hold plus E ∥X ∥4 < ∞ and
+βprobit is in the interior of B; then as n → ∞
+p
+n
+(
+ˆβprobit − βprobit
+)
+− →
+d
+N
+(
+0,V probit
+)
+where V probit = Q −1
+probitΩprobitQ −1
+probit.
+The proofs are in Section 25.14.
+Under correct speciﬁcation the information matrix equality implies the simpliﬁcationsV logit = Q −1
+logit
+and V probit = Q −1
+probit. We also have the simpliﬁcation
+Ωprobit = Qprobit = E
+[
+X X ′λ
+(
+X ′βprobit
+)
+λ
+(
+−X ′βprobit
+)]
+. (25.15)
+This follows from (25.14), which for the probit model can be written as
+λ
+(
+Z ′β
+)2 = λ
+(
+X ′β
+)
+λ
+(
+−X ′β
+)
+(
+Y − Φ
+(
+X ′β
+))2
+Φ
+(
+X ′β
+) (
+1 − Φ
+(
+X ′β
+)).
+Under correct speciﬁcation E[Y |X ] = Φ(X ′β) and E
+[(
+Y − Φ
+(
+X ′β
+))2 |X
+]
+= Φ(X ′β)
+(
+1 − Φ(X ′β)
+)
+. Taking
+expectations given X the above expression simpliﬁes to λ
+(
+X ′β
+)
+λ
+(
+−X ′β
+)
+. Inserted into (25.13) yields
+(25.15).
+
+
+--- page 10 ---
+
+CHAPTER 25. BINARY CHOICE 810
+25.8 Covariance Matrix Estimation
+For the logit model deﬁneˆΛi = Λ
+(
+X ′
+i
+ˆβlogit)
+and
+ˆQlogit = 1
+n
+n∑
+i =1
+Xi X ′
+i ˆΛi
+(
+1 − ˆΛi
+)
+ˆΩlogit = 1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+Yi − ˆΛi
+)2
+.
+The sandwich covariance matrix estimator for V logit is ˆV logit = ˆQ
+−1
+logit ˆΩlogit ˆQ
+−1
+logit. Under the assumption
+of correct speciﬁcation we may alternatively use ˆV
+0
+logit = ˆQ
+−1
+logit.
+For the probit model deﬁneˆµi = Z ′
+i
+ˆβprobit, ˆλi = λ
+(
+ˆµi
+)
+, and
+ˆQprobit = 1
+n
+n∑
+i =1
+Xi X ′
+i ˆλi
+(
+ˆµi + ˆλi
+)
+ˆΩprobit = 1
+n
+n∑
+i =1
+Xi X ′
+i ˆλ2
+i .
+The sandwich covariance matrix estimator for V probit is ˆV probit = ˆQ
+−1
+probit ˆΩprobit ˆQ
+−1
+probit. Under the as-
+sumption of correct speciﬁcation we may alternatively use
+ˆQ
+0
+probit = 1
+n
+n∑
+i =1
+Xi X ′
+i λ
+(
+X ′ ˆβprobit
+)
+λ
+(
+−X ′ ˆβprobit
+)
+and ˆV
+0
+probit =
+(
+ˆQ
+0)−1
+.
+In Stata and R the default covariance matrix and standard errors are calculated by ˆV
+0
+logit and ˆV
+0
+probit.
+For the robust covariance matrix estimation and standard errorsˆV logit and ˆV probit, in Stata use the option
+vce(robust) . In R use the package sandwich which has options for the HC0, HC1, and HC2 (and other)
+covariance matrix estimators.
+25.9 Marginal Effects
+As we mentioned before it is common to focus on marginal effects rather than coefﬁcients as the
+latter are difﬁcult to interpret. In this section we describe marginal effects in more detail and describe
+common estimators.
+Take the index model P[Y = 1 |X = x] = G
+(
+x′β
+)
+when x does not include nonlinear transformations.
+In this case the marginal effects are
+δ(x) = ∂
+∂x P(x) = βg
+(
+x′β
+)
+.
+This varies with x. For example, in Figure 25.1 we see that the marginal effect of age on marriage proba-
+bility is about 0.06 per year for ages between 20 and 30, but is close to zero for ages above 40.
+For reporting it is typical to calculate an “average” value. There are more than one way to do so. The
+most common is the average marginal effect
+AME = E[δ(X )] = βE
+[
+g (X ′β)
+]
+.
+
+
+--- page 11 ---
+
+CHAPTER 25. BINARY CHOICE 811
+An estimator of δ(x) is ˆδ(x) = ˆβg
+(
+x′ ˆβ
+)
+. An estimator of the AME is
+AME = 1
+n
+n∑
+i =1
+ˆδ(Xi ) = ˆβ 1
+n
+n∑
+i =1
+g
+(
+X ′
+i ˆβ
+)
+.
+When the vector X includes nonlinear transformations the marginal effects need to be carefully de-
+ﬁned. For example, in the modelP[Y = 1 |X = x] = G
+(
+β0 + β1x + · · · +βp x p )
+the marginal effect is
+δ(x) =
+(
+β1 + · · · +pβp x p−1)
+g
+(
+β0 + β1x + · · · +βp x p )
+.
+An estimator of δ(x) is
+ˆδ(x) =
+(ˆβ1 + · · · +p ˆβp x p−1)
+g
+(ˆβ0 + ˆβ1x + · · · +ˆβp x p )
+.
+An estimator of the AME is AME = 1
+n
+∑n
+i =1
+ˆδ(Xi ).
+In Stata, marginal effects can be estimated with margins,dydx(*) .
+25.10 Application
+We illustrate with an application to the probability of marriage using the cps09mar dataset. We use
+the subsample of men with ages up to 35 (n = 9137). We include as regressors an individual’ s age, edu-
+cation, and indicators for Black, Asian, Hispanic, and three regions. We estimate linear logit and linear
+probit models, calculate coefﬁcients and average marginal effects, and report robust standard errors.
+The results are reported in Table 25.1.
+Reading the tables you will see that the logit and probit coefﬁcient estimates all have the same signs
+but the logit coefﬁcients are larger in magnitude. We see that the probability of marriage is increasing in
+age, is lower for Black individuals, and varies across geographic regions. The coefﬁcients themselves are
+difﬁcult to intepret so it is better to focus on the estimated marginal effects. Doing so, we see that the
+logit and probit estimates are essentially identical. This is a common ﬁnding in empirical applications
+when both provide good approximations to the response probability. Examining the coefﬁcients further
+we see that the probability of marriage increases about 4.5% for each year of age. The point estimate
+of the impact of education is 0.3% per year of education, which is a small magnitude. Black men are
+married with a reduced probability of 15% relative to the omitted category (men who are not Black,
+Asian, nor Hispanic). The estimated marginal effects for Asian and Hispanic men are small (1% and−2%,
+respectively) relative to the omitted category. Comparing regions we see that marriage rates are about 6-
+8% higher in the Midwest, South, and West relative to the NorthEast (the omitted category). Equivalently,
+men in the NorthEast have a reduced probability of about 7% relative to the rest of the country.
+Two messages from this application are that the choice of logit versus probit is unimportant and that
+it is better to focus on marginal effects than coefﬁcients. A hidden message is that (as for all econometric
+applications) model speciﬁcation is critically important. The estimates in Table 25.1 are for men with
+ages 19-35. This choice was made so that the response probability would be well modeled with a single
+linear term in age. If instead the estimates were calculated on the full sample (and still using a linear
+speciﬁcation) then the estimated marginal effect of age would have been 1% per year rather than 4.5%, a
+large mis-estimate of the effect of age on marriage probability.
+25.11 Semiparametric Binary Choice
+The semiparametric binary choice model is
+P[Y = 1 |X ] = G
+(
+X ′β
+)
+
+
+--- page 12 ---
+
+CHAPTER 25. BINARY CHOICE 812
+Table 25.1: Binary Choice Regressions for Marriage
+Logit Probit
+Coefﬁcient AME Coefﬁcient AME
+age 0.217 0.044 0.132 0.045
+(0.006) (0.001) ( 0.003) ( 0.001)
+education 0.014 0.003 0.009 0.003
+(0.010) ( 0.002) ( 0.006) ( 0.002)
+Black −0.767 −0.156 −0.454 −0.153
+(0.092) (0.018) ( 0.054) ( 0.018)
+Asian 0.033 0.007 0.025 0.008
+(0.103) (0.021) ( 0.063) ( 0.021)
+Hispanic −0.084 −0.017 −0.048 −0.017
+(0.063) ( 0.013) ( 0.038) ( 0.013)
+MidWest 0.272 0.056 0.165 0.056
+(0.074) ( 0.011) ( 0.045) ( 0.015)
+South 0.338 0.069 0.203 0.069
+(0.070) ( 0.014) ( 0.043) ( 0.014)
+West 0.383 0.078 0.228 0.077
+(0.072) ( 0.015) ( 0.044) ( 0.015)
+Intercept −6.45 −3.93
+(0.21) (0.12)
+where G(x) is unknown. Interest typically focuses on the coefﬁcientsβ.
+In the latent variable framework G(x) is the distribution function of a latent error e. As it is not
+credible that the distribution G(x) is known, the semiparametric model treats G(x) as unknown. The
+goal is to estimate the coefﬁcientβ while agnostic about G(x).
+There are many contributions to this literature. Two of the most inﬂuential are Manski (1975) and
+Klein and Spady (1993). Both use the latent variable framework Y ∗ = X ′β + e.
+Manksi (1975) shows thatβ is identiﬁed up to scale if med[e |X ] = 0. He proposes a clever maximum
+score estimator is which is consistent for β up to scale under this weak condition. His method, however,
+does not permit estimation of the response probabilities nor marginal effects since his assumptions are
+insufﬁcient to identifyG(x).
+Klein and Spady (1993) add the assumption that e is independent of X which implies identiﬁcation
+of G(x). They propose simultaneous estimation of β and G(x) based on the following two properties:
+(1) If G(x) is known then β can be estimated by maximum likelihood; (2) If β is known then G(x) can
+be estimated by nonparametric regression of Y on X ′β. Combining these two properties into a nested
+criterion, they produce a consistent, asymptotically normal, and efﬁcient estimator ofβ.
+While the ideas of Manski and Klein-Spady are quite clever, the trouble is that model G(x′β) relies
+on the parametric linear index assumption. Suppose we relax the latter to a nonparametric function
+m(x) but assume that e is independent of X . Then the response probability is 1 − G(−m(x)). In this
+case neither G(x) nor m(x) is identifed; only the composite function G(−m(x)) is identiﬁed. This means
+that estimation of m(x) while agnostic about G(x) is impossible without a parametric assumption on
+m(x). Consequently, the modern view is to take P(x) = P[Y = 1 |X = x] as nonparametrically identiﬁed.
+Consistent estimation can be achieved through a series approximation, either using a linear, probit, or
+logit link. From this viewpoint there is no gain from the restriction to the function form G(x′β), and
+hence no gain from the semiparametric approach.
+
+
+--- page 13 ---
+
+CHAPTER 25. BINARY CHOICE 813
+25.12 IV Probit
+A latent variable structural equation model is
+Y ∗
+1 = X ′β1 + Y2β2 + e1
+Y2 = X ′γ1 + Z ′γ2 + e2
+Y1 = 1
+{
+Y ∗
+1 > 0
+}
+.
+In this model, Y2 is scalar, endogenous, and continuously distributed, X are included exogenous regres-
+sors, and Z are excluded exogenous instruments.
+The standard estimation method is maximum likelihood based on the assumption that the errors are
+jointly normal ( e1
+e2
+)⏐⏐
+⏐
+⏐(X , Z ) ∼ N
+(( 0
+0
+)
+,
+( 1 σ12
+σ21 σ2
+2
+))
+.
+The likelihood is derived as follows. The regression of e1 on e2 equals
+e1 = ρe2 + ε
+ρ = σ12
+σ2
+2
+ε ∼ N
+(
+0, σ2
+ε
+)
+σ2
+ε = 1 −
+σ2
+12
+σ2
+2
+.
+Using these relationships we can write the structural equation as
+Y ∗
+1 = µ(θ) + ε (25.16)
+µ(θ) = X ′β1 + Y2β2 + ρ
+(
+Y2 − X ′γ1 − Z ′γ2
+)
+.
+The error ε is independent of e2 and hence of Y2. Thus the conditional distribution of Y ∗
+1 is N
+(
+µ(θ), σ2
+ε
+)
+.
+It follows that the joint density for (Y1,Y2) is
+Φ
+(µ(θ)
+σε
+)Y1 (
+1 − Φ
+(µ(θ)
+σε
+))1−Y1 1
+σ2
+φ
+(Y2 − X ′γ1 − Z ′γ2
+σ2
+)
+.
+The parameter vector is θ =
+(
+β1, β2, γ1, γ2, ρ, σ2
+ε, σ2
+2
+)
+.
+The joint log-likelihood for a random sample {Y1i ,Y2i , Xi , Zi } is
+ℓn(θ) =
+n∑
+i =1
+[
+Y1i log Φ
+(µi (θ)
+σε
+)
++ (1 − Y1i )log
+(
+1 − Φ
+(µi (θ)
+σε
+))]
+− n
+2 log(2π) − n
+2 log σ2
+2 − 1
+2σ2
+2
+n∑
+i =1
+(
+Y2i − X ′
+i γ1 − Z ′
+i γ2
+)2 .
+The maximum likelihood estimator ˆθ is found by numerically maximizing ℓn(θ).
+The probit assumption (the treatment of (e1,e2) as jointly normal) is important for this derivation as it
+allows a simple factorization of the joint distribution into the conditional distribution of Y1 given Y2 and
+the marginal distribution of Y2. A similar factorization is not easily accomplished in a logit framework.
+In Stata this estimator can be implemented with the ivprobit command.
+
+
+--- page 14 ---
+
+CHAPTER 25. BINARY CHOICE 814
+25.13 Binary Panel Data
+A binary choice panel model is typically written as
+Y ∗
+i t = X ′
+i tβ + ui + ei t
+Yi t = 1
+{
+Y ∗
+i t > 0
+}
+.
+Here, the observations are (Yi t, Xi t) for i = 1, ...,n and t = 1, ...,T with Yi t binary. For example, Yi t could
+denote the decision of individual i to make a purchase in period t. The individual effect ui is intended
+to capture the feature that some individuals i make purchases more (or less) frequently than can be
+explained by the regressors.
+As in linear models there is a distinction between treating the individual effectui as random (mean-
+ing that it is independent of the regressors) or ﬁxed(meaning that it is correlated with the regressors).
+Under the random effects assumption the model can be estimated by maximum likelihood. This is
+called random effects probit or random effects logit depending on the error distribution.
+Allowing for ﬁxed effects is more complicated. The individual effect cannot be eliminated by a linear
+operation since Yi t is a nonlinear function of ui . For example, the transformation
+∆Yi t = 1
+{
+Y ∗
+i t > 0
+}
+− 1
+{
+Y ∗
+i ,t −1 > 0
+}
+does not eliminate ui .
+Consequently there is no ﬁxed effects estimator for the probit model. However, for the logit model
+Chamberlain (1980, 1984) developed a ﬁxed effects estimator based on a conditional likelihood. He
+showed that a feature of the logistic distribution is that the individual effect can be eliminated via odds
+ratios, allowing the calculation of the likelihood conditional on the sum of the dependent variable.
+We illustrate the construction of the likelihood for the case T = 2. Let Yi 1,Yi 2 denote the outcomes
+and Ni = Yi 1 + Yi 2 denote their sum. We calculate the conditional distribution of (Yi 1,Yi 2) given Ni . This
+is the distribution of the choices given the total number of choices.
+When Ni = 0 or Ni = 2 the likelihood is trivial. That is,
+P[Yi t = 0 |Ni = 0] = 0
+P[Yi t = 1 |Ni = 2] = 1.
+This does not depend on β, so does not affect estimation. Thus we focus exclusively on the case Ni = 1.
+The choice probabilities are
+P[Yi t = 0] =
+exp
+(
+−X ′
+i tβ − ui
+)
+1 + exp
+(
+−X ′
+i tβ − ui
+)
+P[Yi t = 1] = 1
+1 + exp
+(
+−X ′
+i tβ − ui
+).
+Their ratio is
+P[Yi t = 0]
+P[Yi t = 1] = exp
+(
+−X ′
+i tβ − ui
+)
+.
+Taking a further ratio for t = 1 and t = 2 we obtain
+P[Yi 1 = 0]
+P[Yi 1 = 1]
+P[Yi 2 = 1]
+P[Yi 2 = 0] =
+exp
+(
+−X ′
+1t β − ui
+)
+exp
+(
+−X ′
+2t β − ui
+) = exp
+(
+(X2t − X1t )′ β
+)
+.
+
+
+--- page 15 ---
+
+CHAPTER 25. BINARY CHOICE 815
+This does not depend on the ﬁxed effect ui . It is a function only of the change in the regressors ∆Xi =
+Xi 2 − Xi 1.
+This is effectively a nonlinear within transformation. This odds ratio eliminates dependence on the
+individual effect due to the exponential structure of the logistic distribution. This is special to the logit
+model and allows construction of a conditional likelihood function which is free of ui .
+Consider the choice probability for period 1 given Ni = 1. It is
+P[Yi 1 = 1 |Ni = 1] = P[Yi 1 = 1,Yi 2 = 0]
+P[Yi 1 = 1,Yi 2 = 0] + P[Yi 1 = 0,Yi 2 = 1]
+= P[Yi 1 = 1] P[Yi 2 = 0]
+P[Yi 1 = 1] P[Yi 2 = 0] + P[Yi 1 = 0] P[Yi 2 = 1]
+= 1
+1 + P[Yi 1=0]
+P[Yi 1=1]
+P[Yi 2=1]
+P[Yi 2=0]
+= 1
+1 + exp
+(
+∆X ′
+i β
+)
+= 1 − Λ
+(
+∆X ′
+i β
+)
+.
+Similarly P[Yi 1 = 0 |Ni = 1] = Λ
+(
+∆X ′
+i β
+)
+. Together the log-likelihood function is
+ℓn(β) =
+n∑
+i =1
+1{Ni = 1}
+[
+(1 − Yi 1)Y2i log Λ
+(
+∆X ′
+i β
+)
++ Yi 1 (1 − Yi 2)log
+(
+1 − Λ
+(
+∆X ′
+i tβ
+))]
+.
+This conditional likelihood is free of the individual effect. Since the conditional likelhood can be com-
+puted it can be maximized to obtain the conditional likelihood estimator.
+In order for the likelihood to be a non-degenerate function ofβ it is necessary for there to be individ-
+uals who are switchers (select Y = 0 in one period and Y = 1 in the other period) and that switchers have
+time-varying regressors. Coefﬁcients for time-invariant regressors are not identiﬁed.
+Our derivation focused on T = 2. The extension to T > 2 is similar but is algebraically complicated.
+In Stata, random effects probit is implemented withxtoprobit and random effects logit withxtologit.
+Fixed effects probit can be implemented with xtologit,fe or clogit .
+25.14 Technical Proofs*
+Proof of Theorem 25.1: The MLE ˆβlogit is an m-estimator so we appeal to Theorem 22.1, which shows
+that ˆβlogit is consistent if n−1ℓlogit
+n (β) is uniformly consistent for ℓlogit(β) and βlogit uniquely minimizes
+ℓlogit(β). The latter holds under the assumption Qlogit > 0 so we need to establish uniform consistency.
+To do so we appeal to Theorem 22.2 which holds under our assumptions if (a) −E
+[
+log Λ
+(
+Z ′β
+)]
+< ∞
+for all β; and (b) for some A < ∞, E
+⏐⏐log Λ
+(
+Z ′β1
+)
+− log Λ
+(
+Z ′β2
+)⏐
+⏐ ≤ A
+β1 − β2
+
+ for all β1, β2.
+First,
+−log Λ(t) = log
+(
+1 + exp(−t)
+)
+≤ log
+(
+1 + exp(|t |)
+)
+≤ log(2) + |t |.
+Thus
+−E
+[
+log Λ
+(
+Z ′β
+)]
+≤ log(2) + E
+⏐
+⏐X ′β
+⏐
+⏐ ≤ log(2) +
+
+β
+
+ E ∥X ∥ < ∞
+since E ∥X ∥ < ∞ by assumption. This is (a).
+Second, for (b) note that |h(t)|= 1 − Λ(t) ≤ 1. Then
+E
+[
+sup
+β
+
+
+
+∂
+∂β log Λ
+(
+Z ′β
+)
+
+
+]
+≤ E ∥X ∥sup
+t
+|h (t)|≤ E ∥X ∥ < ∞.
+
+
+--- page 16 ---
+
+CHAPTER 25. BINARY CHOICE 816
+Part (b) follows. This is sufﬁcient for Theorem 22.2 as needed. ■
+Proof of Theorem 25.2: Following the proof of Theorem 25.1, we need to show that (a)−E
+[
+log Φ
+(
+Z ′β
+)]
+<
+∞ for all β; and (b) for some A < ∞, E
+⏐⏐log Φ
+(
+Z ′β1
+)
+− log Φ
+(
+Z ′β2
+)⏐
+⏐ ≤ A
+
+β1 − β2
+
+ for all β1, β2.
+Theorem 5.7.6 of Introduction to Econometrics states that
+d
+d t log Φ(t) = λ(t) = φ(t)
+Φ(t) ≤ 1 + |t |. (25.17)
+This implies
+−log Φ(t) ≤ log
+(p
+2π
+)
++ t 2
+2 + log(1 + |t |).
+Using the Schwarz (B.12) and Jensen (B.27) inequalities,
+−E
+[
+log Φ
+(
+Z ′β
+)]
+≤ log
+(p
+2π
+)
++ E
+⏐⏐X ′β
+⏐
+⏐2 + E
+[
+log
+(
+1 +
+⏐
+⏐X ′β
+⏐
+⏐)]
+≤ 2 log
+(p
+2π
+)
++
+β
+
+2 E ∥X ∥2 + 2 log
+(
+1 +
+
+β
+
+ E ∥X ∥
+)
+< ∞.
+Thus part (a) holds.
+For (b), using (25.17)
+E
+[
+sup
+β
+
+
+
+∂
+∂β log Φ
+(
+Z ′β
+)
+
+
+
+]
+≤ E
+[
+∥X ∥sup
+β
+⏐
+⏐λ
+(
+Z ′β
+)⏐
+⏐
+]
+≤ E
+[
+∥X ∥
+(
+1 + sup
+β
+
+Z ′β
+⏐
+⏐
+)]
+≤ E ∥X ∥ +
+
+β
+
+ E ∥X ∥2 < ∞.
+This implies (b) as needed. ■
+Proof of Theorem 25.3: Since ˆβlogit is an m-estimator we verify the conditions for Theorem 22.3, which
+are (a) E
+
+Z hlogit
+(
+Z ′βlogit)
+2
+< ∞; (b) Qlogit(β) = E
+[
+X X ′Λ
+(
+X ′β
+) (
+1 − Λ
+(
+X ′β
+))]
+is continuous in a neigh-
+borhood of βlogit; (c) For some A < ∞ and α > 0, E
+
+Z hlogit
+(
+X ′β1
+)
+− Z hlogit
+(
+X ′β2
+)
+2 ≤ A
+
+β1 − β2
+
+α for all
+β1, β2 in a neighborhood of βlogit; (d) Qlogit > 0; (e) βlogit is in the interior of the parameter space. (d) and
+(e) hold by assumption, so we verify (a), (b) and (c).
+First, using
+⏐
+⏐hlogit(t)
+⏐
+⏐ ≤ 1, we see that E
+
+Z hlogit
+(
+Z ′βlogit)
+2
+≤ E ∥X ∥2 < ∞ and (a) holds. Second,
+Qlogit(β) is continuous in β since it is bounded and Λ(x) is continuous. Thus (b) holds. Third, as shown
+in Exercise 25.5(d),
+⏐
+⏐Hlogit(t)
+⏐
+⏐ ≤ 1. Then
+E
+[
+sup
+β
+
+
+
+
+∂
+∂β Z hlogit
+(
+X ′β
+)
+
+
+
+2]
+≤ E ∥X ∥4 sup
+t
+⏐
+⏐Hlogit (t)
+⏐
+⏐ < ∞
+which implies (c). This veriﬁes the conditions for Theorem 22.3 as needed. ■
+Proof of Theorem 25.4: The proof follows the same lines as Theorem 25.3. It is sufﬁcient to verity that (a)
+E
+Z λ
+(
+Z ′βprobit)
+2
+< ∞; (b) Qprobit
+(
+β
+)
+= E
+[
+X X ′Hprobit
+(
+Z ′β
+)]
+is continuous in a neighborhood of βprobit;
+(c) For some A < ∞ and α > 0, E
+Z λ
+(
+X ′β1
+)
+− Z λ
+(
+X ′β2
+)
+2 ≤ A
+
+β1 − β2
+
+α for all β1, β2 in a neighborhood
+of βprobit.
+First, using (25.17)
+E
+
+Z λ
+(
+Z ′βprobit
+)
+
+
+2
+≤ E
+(
+∥X ∥
+(
+1 +
+⏐
+⏐
+⏐X ′βprobit
+⏐
+⏐
+⏐
+))2
+≤ E ∥X ∥2 +
+
+
+βprobit
+
+
+
+2
+E ∥X ∥4 < ∞
+
+
+--- page 17 ---
+
+CHAPTER 25. BINARY CHOICE 817
+implying (a). Second, Qprobit(β) is continuous in β since it is bounded and Hprobit(x) is continuous. Thus
+(b) holds. Third, Theorem 5.7.7 of Introduction to Econometrics states that
+⏐⏐Hprobit(t)
+⏐
+⏐ ≤ 1. Thus by the
+same argument as in the proof of Theorem 25.3 we can verify (c). We have veriﬁed the conditions for
+Theorem 22.3 as needed. ■
+_____________________________________________________________________________________________
+25.15 Exercises
+Exercise 25.1 Emily estimates a probit regression setting her dependent variable to equal Y = 1 for a
+purchase and Y = 0 for no purchase. Using the same data and regressors, Jacob estimates a probit re-
+gression setting the dependent variable to equal Y = 1 if there is no purchase and Y = 0 for a purchase.
+What is the difference in their estimated slope coefﬁcients?
+Exercise 25.2 Jackson estimates a logit regression where the primary regressor is measured in dollars.
+Julie esitmates a logit regression with the same sample and dependent variable, but measures the pri-
+mary regressor in thousands of dollars. What is the difference in the estimated slope coefﬁcients?
+Exercise 25.3 Show (25.1) and (25.2).
+Exercise 25.4 Verify (25.5), that π(Y |X ) = G
+(
+Z ′β
+)
+.
+Exercise 25.5 For the logistic distribution Λ(x) =
+(
+1 + exp(−x)
+)−1 verify that
+(a) d
+d xΛ(x) = Λ(x)(1 − Λ(x)).
+(b) hlogit(x) = d
+d x log Λ(x) = 1 − Λ(x).
+(c) Hlogit(x) = − d 2
+d x2 log Λ(x) = Λ(x)(1 − Λ(x)).
+(d)
+⏐⏐Hlogit(x)
+⏐
+⏐ ≤ 1.
+Exercise 25.6 For the normal distribution Φ(x) verify that
+(a) hprobit(x) = d
+d x log Φ(x) = λ(x) where λ(x) = φ(x)/Φ(x).
+(b) Hprobit(x) = − d 2
+d x2 log Φ(x) = λ(x)(x + λ(x)).
+Exercise 25.7
+(a) Verify equations (25.6) and (25.7).
+(b) Verify the assertion that H(x) > 0 implies that Hn(β) > 0 globally in β.
+(c) Verify the assertion that part (b) implies that ℓn(β) is globally concave in β.
+Exercise 25.8 Find the ﬁrst-order condition forβ0 from the population maximization problem (25.8).
+Exercise 25.9 Find the ﬁrst-order condition for the logit MLE ˆβlogit.
+Exercise 25.10 Find the ﬁrst-order condition for the probit MLE ˆβprobit.
+
+
+--- page 18 ---
+
+CHAPTER 25. BINARY CHOICE 818
+Exercise 25.11 Show (25.14). In the logit model show that the right hand side of (25.14) simplies to(
+Y − Λ
+(
+X ′β
+))2.
+Exercise 25.12 Show how to use NLLS to estimate a probit model.
+Exercise 25.13 Take the endogenous probit model of Section 25.12.
+(a) Verify equation (25.16).
+(b) Explain why ε is independent of e2 and Y2.
+(c) Verify that the conditional distribution of Y ∗
+1 is N
+(
+µ(θ), σ2
+ε
+)
+.
+Exercise 25.14 Take the heteroskedastic nonparametric binary choice model
+Y ∗ = m (X ) + e
+e |X ∼ N
+(
+0, σ2 (X )
+)
+Y = Y ∗1
+{
+Y ∗ > 0
+}
+.
+The observables are {Yi , Xi : i = 1, ...,n}. The functions m(x) and σ2(x) are nonparametric.
+(a) Find a formula for the response probability .
+(b) Are m(x) and σ2(x) both identiﬁed? Explain.
+(c) Find a normalization which achieves identiﬁcation.
+(d) Given your answer to part (c), does it make sense to “allow for heteroskedasticity” in the binary
+choice model? Explain?
+Exercise 25.15 Use the cps09mar dataset and the subset of men. Set Y = 1 if the individual is a member
+of a labor union (union=1) and Y = 0 otherwise. Estimate a probit model as a linear function of age, edu-
+cation, and indicators for Black individuals and for Hispanic individuals. Report the coefﬁcient estimates
+and standard errors. Interpret the results.
+Exercise 25.16 Replicate the previous exercise but with the subset of women. Interpret the results.
+Exercise 25.17 Use the cps09mar dataset and the subset of women with a college degree. Set Y = 1 if
+marital equals 1, 2, or 3, and set Y = 0 otherwise. Estimate a binary choice model for Y as a possibly
+nonlinear function of age. Describe the motivation for the model you use. Plot the estimated response
+probability. How do the estimates compare with those for men from Figure 25.1?
+Exercise 25.18 Use the cps09mar dataset and the subset of men. Set Y as in the previous question.
+Estimate a binary choice model for Y as a possibly nonlinear function of age, a linear function of educa-
+tion, and including indicators for Black individuals and for Hispanic individuals. Report the coefﬁcient
+estimates and standard errors. Interpret the results.
+Exercise 25.19 Replicate the previous exercise but with the subset of women. Interpret the results.

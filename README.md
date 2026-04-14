@@ -11,7 +11,7 @@ Primary source text:
 
 Current emphasis:
 - Chapter 2 (`Conditional Expectation and Projection`)
-- Chapter 3 (`The Algebra of Least Squares`) scaffolded and ready for the next theorem pass
+- Chapter 3 (`The Algebra of Least Squares`) OLS / projection algebra and FWL scaffolding
 
 Longer-run goal:
 - formalize as much of the book as is realistic, starting from probability / conditional expectation / projection foundations and moving outward toward asymptotics, least squares, testing, IV, GMM, time series, panel data, and beyond.
@@ -48,39 +48,40 @@ Legend:
 
 | ch | title | status | notes |
 |---:|---|---|---|
-| 01 | Introduction | not started | mostly exposition; probably little to formalize directly |
-| 02 | Conditional Expectation and Projection | partial | conditional expectation core + variance layer completed |
-| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator matrix core landed |
-| 04 | Least Squares Regression | not started | finite-sample regression theory |
-| 05 | Normal Regression | not started | distributional finite-sample results |
-| 06 | A Review of Large Sample Asymptotics | not started | likely prerequisite for later asymptotics chapters |
-| 07 | Asymptotic Theory for Least Squares | not started | consistency / asymptotic normality targets |
-| 08 | Restricted Estimation | not started | constrained estimation / minimum distance |
-| 09 | Hypothesis Testing | not started | Wald / LM / LR style results |
-| 10 | Resampling Methods | not started | bootstrap / jackknife |
-| 11 | Multivariate Regression | not started | |
-| 12 | Instrumental Variables | not started | |
-| 13 | Generalized Method of Moments | not started | |
-| 14 | Time Series | not started | |
-| 15 | Multivariate Time Series | not started | |
-| 16 | Non-Stationary Time Series | not started | |
-| 17 | Panel Data | not started | |
-| 18 | Difference in Differences | not started | |
-| 19 | Nonparametric Regression | not started | |
-| 20 | Series Regression | not started | |
-| 21 | Regression Discontinuity | not started | |
-| 22 | M-Estimators | not started | |
-| 23 | Nonlinear Least Squares | not started | |
-| 24 | Quantile Regression | not started | |
-| 25 | Binary Choice | not started | |
-| 26 | Multiple Choice | not started | |
-| 27 | Censoring and Selection | not started | |
-| 28 | Model Selection, Stein Shrinkage, and Model Averaging | not started | |
-| 29 | Machine Learning | not started | |
+| 01 | Introduction | not started | text extracted and inventoried; mostly exposition |
+| 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, and linear projection algebra completed |
+| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator/FWL coefficient and residual core landed |
+| 04 | Least Squares Regression | partial | deterministic regression and variance-matrix algebra landed |
+| 05 | Normal Regression | inventoried | distributional finite-sample results |
+| 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
+| 07 | Asymptotic Theory for Least Squares | inventoried | consistency / asymptotic normality targets |
+| 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
+| 09 | Hypothesis Testing | inventoried | Wald / LM / LR style results |
+| 10 | Resampling Methods | inventoried | bootstrap / jackknife |
+| 11 | Multivariate Regression | inventoried | |
+| 12 | Instrumental Variables | inventoried | |
+| 13 | Generalized Method of Moments | inventoried | |
+| 14 | Time Series | inventoried | |
+| 15 | Multivariate Time Series | inventoried | |
+| 16 | Non-Stationary Time Series | inventoried | |
+| 17 | Panel Data | inventoried | |
+| 18 | Difference in Differences | inventoried | |
+| 19 | Nonparametric Regression | inventoried | |
+| 20 | Series Regression | inventoried | |
+| 21 | Regression Discontinuity | inventoried | |
+| 22 | M-Estimators | inventoried | |
+| 23 | Nonlinear Least Squares | inventoried | |
+| 24 | Quantile Regression | inventoried | |
+| 25 | Binary Choice | inventoried | |
+| 26 | Multiple Choice | inventoried | |
+| 27 | Censoring and Selection | inventoried | |
+| 28 | Model Selection, Stein Shrinkage, and Model Averaging | inventoried | |
+| 29 | Machine Learning | inventoried | |
 
 ## Current Chapter 2 progress
 
-Completed in `HansenEconometrics/Chapter2CondExp.lean` and `HansenEconometrics/Chapter2Variance.lean`:
+Completed in `HansenEconometrics/Chapter2CondExp.lean`,
+`HansenEconometrics/Chapter2Variance.lean`, and `HansenEconometrics/Chapter2LinearProjection.lean`:
 - simple law of iterated expectations
 - tower property for nested sigma-algebras
 - tower property in the `X₁, X₂` then `X₁` form
@@ -92,16 +93,60 @@ Completed in `HansenEconometrics/Chapter2CondExp.lean` and `HansenEconometrics/C
 - law of total variance
 - rearranged variance decomposition
 - variance of the conditional expectation bounded by total variance
+- Definition 2.5 / Theorem 2.9 linear projection coefficient algebra
+- population normal equations and orthogonality for the best linear projection
+- uniqueness from the population normal equations
+- quadratic projection criterion simplification at the projection coefficient
 
 Planned next within Chapter 2:
+- full Theorem 2.6 residual-variance monotonicity for nested conditioning sets
 - conditional expectation as best predictor
-- linear projection / best linear predictor
+- full best-linear-predictor minimization statement
 - later chapter 2 identification / existence statements where worthwhile
+
+## Current Chapter 3 progress
+
+Completed in `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`,
+`HansenEconometrics/Chapter3Projections.lean`, and `HansenEconometrics/Chapter3FWL.lean`:
+- SSE objective notation and its residual-sum-of-squares specialization at `β̂`
+- Theorem 3.2 matrix expressions: closed-form OLS, residuals, and normal equations
+- normal-equation uniqueness for closed-form OLS
+- residuals sum to zero when a constant is in the regressor column span
+- projection / hat matrix definition and `P X = X`
+- Theorem 3.3.1-3: `P` symmetric/idempotent and `tr(P) = k`
+- annihilator matrix definition, `M X = 0`, `M Y = ê`, `M` symmetric/idempotent, and `tr(M) = n-k`
+- range projection facts and `M P = P M = 0`
+- fitted/residual orthogonality and the dot-product Pythagorean decomposition
+- FWL: partitioned normal equations, residualized regressors `M₁ X₂`, the sequential residual-maker
+  identity, the coefficient identity, and residual equivalence
+
+Planned next within Chapter 3:
+- Theorem 3.4 partitioned coefficient formulae
+- rank/eigenvalue parts of Theorem 3.3
+- centered analysis-of-variance / `R²` identities
 
 See also:
 - `notes/ch02/theorem_inventory.md`
 - `notes/ch02/ch2_excerpt.txt`
 - `notes/ch03/inventory.md`
+- `notes/ch03/ch3_excerpt.txt`
+- `notes/ch04/inventory.md`
+- `notes/ch04/ch4_excerpt.txt`
+
+## Current Chapter 4 progress
+
+Completed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
+- Hansen equation (4.6): `β̂ = β + (Xᵀ X)⁻¹ Xᵀ e`
+- the orthogonal-error specialization `Xᵀ e = 0 -> β̂ = β`
+- fitted values as signal plus projected error
+- residuals as the annihilator applied to the model error
+- Theorem 4.2 matrix core: `Aᵀ D A = (Xᵀ X)⁻¹ Xᵀ D X (Xᵀ X)⁻¹`
+- homoskedastic simplification `D = σ² I -> σ² (Xᵀ X)⁻¹`
+
+Planned next within Chapter 4:
+- conditional-unbiasedness bridge for Theorem 4.1
+- stochastic conditional covariance bridge for Theorem 4.2
+- Gauss-Markov algebra once covariance matrices are in place
 
 ## Philosophy
 

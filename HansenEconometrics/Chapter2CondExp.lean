@@ -128,7 +128,7 @@ theorem integral_mul_cefError_zero
   rw [integral_congr_ae hmul]
   rw [integral_congr_ae (by
     filter_upwards [condExp_cefError_zero (m := m) (m₀ := m₀) (μ := μ) hm hY] with ω hω
-    show g ω * μ[cefError (μ := μ) Y m | m] ω = 0
+    change g ω * μ[cefError (μ := μ) Y m | m] ω = 0
     simp [hω])]
   simp
 

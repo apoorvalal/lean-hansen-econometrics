@@ -1,0 +1,4752 @@
+--- page 1 ---
+
+Chapter 14
+Time Series
+14.1 Introduction
+A time series Yt ∈ Rm is a process which is sequentially ordered over time. In this textbook we focus
+on discrete time series wheret is an integer, though there is also a considerable literature on continuous-
+time processes. To denote the time period it is typical to use the subscriptt. The time series is univariate
+if m = 1 and multivariate if m > 1. This chapter is primarily focused on univariate time series models,
+though we describe the concepts for the multivariate case when the added generality does not add extra
+complications.
+Most economic time series are recorded at discrete intervals such as annual, quarterly, monthly,
+weekly, or daily. The number of observations s per year is called the frequency. In most cases we will
+denote the observed sample by the periods t = 1, ...,n.
+Because of the sequential nature of time series we expect that observations close in calender time,
+e.g. Yt and its lagged value Yt −1, will be dependent. This type of dependence structure requires a differ-
+ent distributional theory than for cross-sectional and clustered observations since we cannot divide the
+sample into independent groups. Many of the issues which distinguish time series from cross-section
+econometrics concern the modeling of these dependence relationships.
+There are many excellent textbooks for time series analysis. The encyclopedic standard is Hamil-
+ton (1994). Others include Harvey (1990), Tong (1990), Brockwell and Davis (1991), Fan and Yao (2003),
+Lütkepohl (2005), Enders (2014), and Kilian and Lütkepohl (2017). For textbooks on the related subject
+of forecasting see Granger (1989), Granger and Newbold (1986), and Elliott and Timmermann (2016).
+14.2 Examples
+Many economic time series are macroeconomic variables. An excellent resource for U.S. macroeco-
+nomic data are the FRED-MD and FRED-QD databases which contain a wide set of monthly and quar-
+terly variables, assembled and maintained by the St. Louis Federal Reserve Bank. See McCracken and
+Ng (2015). The datasets FRED-MD and FRED-QD for 1959-2017 are posted on the textbook website.
+FRED-MD has 129 variables over 708 months. FRED-QD has 248 variables over 236 quarters.
+When working with time series data one of the ﬁrst tasks is to plot the series against time. In Figures
+14.1-14.4 we plot eight example time series from FRED-QD and FRED-MD. As is conventional in time
+series plots the x-axis displays calendar dates (in this case years) and the y-axis displays the level of the
+series. The series plotted are: (1a) Real U.S. GDP (gdpc1); (1b) U.S.-Canada exchange rate (excausx); (2a)
+Interest rate on U.S. 10-year Treasury bond (gs10 ); (2b) Real crude oil price ( oilpricex); (3a) U.S. unem-
+ployment rate (unrate); (3b) U.S. real non-durables consumption growth rate (growth rate ofpcndx); (4a)
+442
+
+
+--- page 2 ---
+
+CHAPTER 14. TIME SERIES 443
+Billions of Chained 2012 Dollars
+1960 1970 1980 1990 2000 2010 2020
+4000 7000 10000 13000 16000
+(a) U.S. Real GDP
+Canadian Dollar/U.S. Dollar
+1960 1970 1980 1990 2000 2010 2020
+1.0 1.1 1.2 1.3 1.4 1.5 1.6 (b) U.S.-Canada Exchange Rate
+Figure 14.1: U.S. GDP and Exchange Rate
+Percentage
+1960 1970 1980 1990 2000 2010 2020
+2 4 6 8 10 12 14
+(a) Interest Rate on 10-Year Treasury
+2012 Dollars per Barrel
+1960 1970 1980 1990 2000 2010 2020
+0 20 40 60 80 100 120 (b) Real Crude Oil Price
+Figure 14.2: Interest Rate and Crude Oil Price
+U.S. CPI inﬂation rate (growth rate of cpiaucsl); (4b) S&P 500 return (growth rate of sp500). (1a) and (3b)
+are quarterly series, the rest are monthly.
+Many of the plots are smooth, meaning that the neighboring values (in calendar time) are similar
+to one another and hence are serially correlated. Some of the plots are non-smooth, meaning that the
+neighboring values are not similar and hence less correlated. At least one plot (real GDP) displays an
+upward trend.
+
+
+--- page 3 ---
+
+CHAPTER 14. TIME SERIES 444
+Percentage
+1960 1970 1980 1990 2000 2010 2020
+4 5 6 7 8 9 10 11
+(a) U.S. Unemployment Rate
+Percentage
+1960 1970 1980 1990 2000 2010 2020
+−2 −1 0 1 2 3 (b) Consumption Growth Rate
+Figure 14.3: Unemployment Rate and Consumption Growth Rate
+Percentage
+1960 1970 1980 1990 2000 2010 2020
+−1.5 −1.0 −0.5 0.0 0.5 1.0 1.5
+(a) U.S. Inﬂation Rate
+Percentage
+1960 1970 1980 1990 2000 2010 2020
+−20 −15 −10 −5 0 5 10 (b) S&P 500 Return
+Figure 14.4: U.S. Inﬂation Rate and S&P 500 Return
+14.3 Differences and Growth Rates
+It is common to transform series by taking logarithms, differences and/or growth rates. Three of the
+series in Figures 14.3-14.4 (consumption growth, inﬂation [growth rate of CPI index], and S&P 500 return)
+are displayed as growth rates. This transformation may be done for a number of different reasons. The
+most credible is that this is the suitable variable for the desired analysis.
+Many aggregate series such as real GDP are transformed by taking natural logarithms. This ﬂattens
+the apparent exponential growth and makes ﬂuctuations proportionate.
+
+
+--- page 4 ---
+
+CHAPTER 14. TIME SERIES 445
+The ﬁrst difference of a seriesYt is
+∆Yt = Yt − Yt −1.
+The second difference is
+∆2Yt = ∆Yt − ∆Yt −1.
+Higher-order differences can be deﬁned similarly but are not used in practice.
+The annual, or year-on-year, change of a series Yt with frequency s is
+∆sYt = Yt − Yt −s.
+There are several methods to calculate growth rates. The one-period growth rate is the percentage
+change from period t − 1 to period t:
+Qt = 100
+( ∆Yt
+Yt −1
+)
+= 100
+( Yt
+Yt −1
+− 1
+)
+. (14.1)
+The multiplication by 100 is not essential but scales Qt so that it is a percentage. This is the transforma-
+tion used for the plots in Figures 14.3(b)-14.4(a)(b).
+For non-annual data the one-period growth rate (14.1) may be unappealing for interpretation. Con-
+sequently, statistical agencies commonly report “annualized” growth rates which is the annual growth
+which would occur if the one-period growth rate is compounded for a full year. For a series with fre-
+quency s the annualized growth rate is
+At = 100
+(( Yt
+Yt −1
+)s
+− 1
+)
+. (14.2)
+Notice that At is a nonlinear function of Qt .
+Year-on-year growth rates are
+Gt = 100
+(∆sYt
+Yt −s
+)
+= 100
+( Yt
+Yt −s
+− 1
+)
+.
+These do not need annualization.
+Growth rates are closely related to logarithmic transformations. For small growth rates, Qt , At and
+Gt are approximately ﬁrst differences in logarithms:
+Qt ≃ 100∆logYt
+At ≃ 400∆logYt
+Gt ≃ 100∆s logYt .
+For analysis using growth rates I recommend the one-period growth rates (14.1) or differenced log-
+arithms rather than the annualized growth rates (14.2). While annualized growth rates are preferred for
+reporting, they are a highly nonlinear transformation which is unnatural for statistical analysis. Dif-
+ferenced logarithms are the most common choice and are recommended for models which combine
+log-levels and growth rates for then the models are linear in all variables.
+14.4 Stationarity
+Recall that cross-sectional observations are conventionally treated as random draws from an under-
+lying population. This is not an appropriate model for time series processes due to serial dependence.
+
+
+--- page 5 ---
+
+CHAPTER 14. TIME SERIES 446
+Instead, we treat the observed sample {Y1, ...,Yn} as a realization of a dependent stochastic process. It is
+often useful to view {Y1,..., Yn} as a subset of an underlying doubly-inﬁnite sequence{...,Yt −1,Yt ,Yt +1,...}.
+A random vector Yt can be characterized by its distribution. A set such as (Y t ,Yt +1,..., Yt +ℓ) can be
+characterized by their joint distribution. Important features of these distributions are their means, vari-
+ances, and covariances. Since there is only one observed time series sample, in order to learn about these
+distributions there needs to be some sort of constancy. This may only hold after a suitable transforma-
+tion such as growth rates (as discussed in the previous section).
+The most commonly assumed form of constancy is stationarity. There are two deﬁnitions. The ﬁrst
+is sufﬁcient for construction of linear models.
+Deﬁnition 14.1 {Yt } is covariance or weakly stationary if the mean µ = E[Yt ]
+and covariance matrix Σ = var[Yt ] = E
+[(
+Yt − µ
+) (
+Yt − µ
+)′]
+are ﬁnite and are in-
+dependent of t, and the autocovariances
+Γ(k) = cov(Yt ,Yt −k) = E
+[(
+Yt − µ
+) (
+Yt −k − µ
+)′]
+are independent of t for all k.
+In the univariate case we typically write the variance as σ2 and autocovariances as γ(k).
+The mean µ and variance Σ are features of the marginal distribution of Yt (the distribution of Yt at
+a speciﬁc time period t). Their constancy as stated in the above deﬁnition means that these features of
+the distribution are stable over time.
+The autocovariances Γ(k) are features of the bivariate distributions of (Y t ,Yt −k). Their constancy as
+stated in the deﬁnition means that the correlation patterns between adjacentYt are stable over time and
+only depend on the number of time periods k separating the variables. By symmetry we have Γ(−k) =
+Γ(k)′. In the univariate case this simpliﬁes toγ(−k) = γ(k).
+The autocovariances summarize the linear dependence betweenYt and its lags. A scale-free measure
+of linear dependence in the univariate case are the autocorrelations
+ρ(k) = corr(Yt ,Yt −k) = cov(Yt ,Yt −k)pvar[Yt ]var[Yt −1]
+= γ(k)
+σ2 = γ(k)
+γ(0) .
+Notice by symmetry that ρ(−k) = ρ(k).
+The second deﬁnition of stationarity concerns the entire joint distribution.
+Deﬁnition 14.2 {Yt } is strictly stationary if the joint distribution of
+(Yt ,..., Yt +ℓ) is independent of t for all ℓ.
+This is the natural generalization of the cross-section deﬁnition of identical distributions. Strict sta-
+tionarity implies that the (marginal) distribution of Yt does not vary over time. It also implies that the
+bivariate distributions of (Y t ,Yt +1) and multivariate distributions of (Y t , ...,Yt +ℓ) are stable over time.
+Under the assumption of a bounded variance a strictly stationary process is covariance stationary1.
+1More generally, the two classes are non-nested since strictly stationary inﬁnite variance processes are not covariance sta-
+tionary.
+
+
+--- page 6 ---
+
+CHAPTER 14. TIME SERIES 447
+For formal statistical theory we will generally require the stronger assumption of strict stationarity.
+Therefore if we label a process as “stationary” you should interpret it as meaning “strictly stationary” .
+The core meaning of both weak and strict stationarity is the same – that the distribution ofYt is stable
+over time. To understand the concept it may be useful to review the plots in Figures 14.1-14.4. Are these
+stationary processes? If so, we would expect that the mean and variance to be stable over time. This
+seems unlikely to apply to the series in Figures 14.1 and 14.2, as in each case it is difﬁcult to describe
+what is the “typical” value of the series. Stationarity may be appropriate for the series in Figures 14.3 and
+14.4 as each oscillates with a fairly regular pattern. It is difﬁcult, however, to know whether or not a given
+time series is stationary simply by examining a time series plot.
+A straightforward but essential relationship is that an i.i.d. process is strictly stationary.
+Theorem 14.1 If Yt is i.i.d., then it strictly stationary.
+Here are some examples of strictly stationary scalar processes. In each, et is i.i.d. and E[et ] = 0.
+Example 14.1 Yt = et + θet −1.
+Example 14.2 Yt = Z for some random variable Z .
+Example 14.3 Yt = (−1)t Z for a random variable Z which is symmetrically distributed about 0.
+Example 14.4 Yt = Z cos(θt) for a random variable Z symmetrically distributed about 0.
+Here are some examples of processes which are not stationary.
+Example 14.5 Yt = t.
+Example 14.6 Yt = (−1)t .
+Example 14.7 Yt = cos(θt).
+Example 14.8 Yt =
+p
+t et .
+Example 14.9 Yt = et + t −1/2et −1.
+Example 14.10 Yt = Yt −1 + et with Y0 = 0.
+From the examples we can see that stationarity means that the distribution is constant over time. It
+does not mean, however, that the process has some sort of limited dependence, nor that there is an ab-
+sence of periodic patterns. These restrictions are associated with the concepts of ergodicity and mixing
+which we shall introduce in subsequent sections.
+
+
+--- page 7 ---
+
+CHAPTER 14. TIME SERIES 448
+14.5 Transformations of Stationary Processes
+One of the important properties of strict stationarity is that it is preserved by transformation. That is,
+transformations of strictly stationary processes are also strictly stationary. This includes transformations
+which include the full history of Yt .
+Theorem 14.2 If Yt is strictly stationary and Xt = φ(Yt ,Yt −1,Yt −2,...) ∈ Rq is a
+random vector then Xt is strictly stationary.
+Theorem 14.2 is extremely useful both for the study of stochastic processes which are constructed
+from underlying errors and for the study of sample statistics such as linear regression estimators which
+are functions of sample averages of squares and cross-products of the original data.
+We give the proof of Theorem 14.2 in Section 14.47.
+14.6 Convergent Series
+A transformation which includes the full past history is an inﬁnite-order moving average. For scalar
+Y and coefﬁcientsa j deﬁne the vector process
+Xt =
+∞∑
+j =0
+a j Yt −j . (14.3)
+Many time-series models involve representations and transformations of the form (14.3).
+The inﬁnite series (14.3) exists if it is convergent, meaning that the sequence∑N
+j =0 a j Yt −j has a ﬁnite
+limit as N → ∞. Since the inputs Yt are random we deﬁne this as a probability limit.
+Deﬁnition 14.3 The inﬁnite series (14.3) converges almost surely if∑N
+j =0 a j Yt −j has a ﬁnite limit as N → ∞ with probability one. In this case
+we describe Xt as convergent.
+Theorem 14.3 If Yt is strictly stationary, E |Y |< ∞, and ∑∞
+j =0
+⏐⏐a j
+⏐
+⏐ < ∞, then
+(14.3) converges almost surely. Furthermore, Xt is strictly stationary.The proof of Theorem 14.3 is provided in Section 14.47.
+
+
+--- page 8 ---
+
+CHAPTER 14. TIME SERIES 449
+14.7 Ergodicity
+Stationarity alone is not sufﬁcient for the weak law of large numbers as there are strictly stationary
+processes with no time series variation. As we described earlier, an example of a stationary process is
+Yt = Z for some random variable Z . This is random but constant over all time. An implication is that the
+sample mean of Yt = Z will be inconsistent for the population mean.
+What is a minimal assumption beyond stationarity so that the law of large numbers applies? This
+topic is called ergodicity. It is sufﬁciently important that it is treated as a separate area of study. We
+mention only a few highlights here. For a rigorous treatment see a standard textbook such as Walters
+(1982).
+A time series Yt is ergodic if all invariant events are trivial, meaning that any event which is unaf-
+fected by time-shifts has probability either zero or one. This deﬁnition is rather abstract and difﬁcult to
+grasp but fortunately it is not needed by most economists.
+A useful intuition is that ifYt is ergodic then its sample paths will pass through all parts of the sample
+space never getting “stuck” in a subregion.
+We will ﬁrst describe the properties of ergodic series which are relevant for our needs and follow with
+the more rigorous technical deﬁnitions. For proofs of the results see Section 14.47.
+First, many standard time series processes can be shown to be ergodic. A useful starting point is the
+observation that an i.i.d. sequence is ergodic.
+Theorem 14.4 If Yt ∈ Rm is i.i.d. then it strictly stationary and ergodic.
+Second, ergodicity, like stationarity, is preserved by transformation.
+Theorem 14.5 If Yt ∈ Rm is strictly stationary and ergodic and Xt =
+φ(Yt ,Yt −1,Yt −2, ...) is a random vector, thenXt is strictly stationary and ergodic.
+As an example, the inﬁnite-order moving average transformation (14.3) is ergodic if the input is er-
+godic and the coefﬁcients are absolutely convergent.
+Theorem 14.6 If Yt is strictly stationary, ergodic, E |Y |< ∞, and ∑∞
+j =0
+⏐⏐a j
+⏐
+⏐ < ∞
+then Xt = ∑∞
+j =0 a j Yt −j is strictly stationary and ergodic.We now present a useful property. It is that the Cesàro sum of the autocovariances limits to zero.
+Theorem 14.7 If Yt ∈ R is strictly stationary, ergodic, and E
+[
+Y 2]
+< ∞, then
+limn→∞
+1
+n
+n∑
+ℓ=1
+cov(Yt ,Yt +ℓ) = 0. (14.4)
+
+
+--- page 9 ---
+
+CHAPTER 14. TIME SERIES 450
+The result (14.4) can be interpreted as that the covariances “on average” tend to zero. Some authors
+have mis-stated ergodicity as implying that the covariances tend to zero but this is not correct, as (14.4)
+allows, for example, the non-convergent sequence cov(Yt ,Yt +ℓ) = (−1)ℓ. The reason why (14.4) is partic-
+ularly useful is because it is sufﬁcient for the WLLN as we discover later in Theorem 14.9.
+We now give the formal deﬁnition of ergodicity for interested readers. As the concepts will not be
+used again most readers can safely skip this discussion.
+As we stated above, by deﬁnition the series Yt ∈ Rm is ergodic if all invariant events are trivial. To
+understand this we introduce some technical deﬁnitions. First, we can write an event as A =
+{˜Yt ∈ G
+}
+where ˜Yt = (...,Yt −1,Yt ,Yt +1,...) is an inﬁnite history and G ⊂ Rm∞. Second, the ℓt h time-shift of ˜Yt is
+deﬁned as ˜Yt +ℓ = (...,Yt −1+ℓ,Yt +ℓ,Yt +1+ℓ,...). Thus ˜Yt +ℓ replaces each observation in ˜Yt by its ℓt h shifted
+value Yt +ℓ. A time-shift of the event A =
+{˜Yt ∈ G
+}
+is Aℓ =
+{˜Yt +ℓ ∈ G
+}
+. Third, an event A is called invariant
+if it is unaffected by a time-shift, so that Aℓ = A. Thus replacing any history ˜Yt with its shifted history
+˜Yt +ℓ doesn’t change the event. Invariant events are rather special. An example of an invariant event is
+A = {max−∞<t <∞ Yt ≤ 0}. Fourth, an event A is called trivial if either P[A] = 0 or P[A] = 1. You can think
+of trivial events as essentially non-random. Recall, by deﬁnition Yt is ergodic if all invariant events are
+trivial. This means that any event which is unaffected by a time shift is trivial – is essentially non-random.
+For example, again consider the invariant event A = {max−∞<t <∞ Yt ≤ 0}. If Yt = Z ∼ N(0,1) for all t then
+P[A] = P[Z ≤ 0] = 0.5. Since this does not equal 0 or 1 then Yt = Z is not ergodic. However, if Yt is i.i.d.
+N(0,1) then P[max−∞<t <∞ Yt ≤ 0] = 0. This is a trivial event. For Yt to be ergodic (it is in this case) all
+such invariant events must be trivial.
+An important technical result is that ergodicity is equivalent to the following property.
+Theorem 14.8 A stationary series Yt ∈ Rm is ergodic iff for all events A and B
+limn→∞
+1
+n
+n∑
+ℓ=1
+P[Aℓ ∩ B] = P[A] P[B]. (14.5)
+This result is rather deep so we do not prove it here. See Walters (1982), Corollary 1.14.2, or David-
+son (2020), Theorem 14.7. The limit in (14.5) is the Cesàro sum of P[Aℓ ∩ B]. The Theorem of Cesàro
+Means (Theorem A.4 of Introduction to Econometrics) shows that a sufﬁcient condition for (14.5) is that
+P[Aℓ ∩ B] → P[A] P[B] which is known as mixing. Thus mixing implies ergodicity. Mixing, roughly,
+means that separated events are asymptotically independent. Ergodicity is weaker, only requiring that
+the events are asymptotically independent “on average” . We discuss mixing in Section 14.12.
+14.8 Ergodic Theorem
+The ergodic theorem is one of the most famous results in time series theory. There are actually sev-
+eral forms of the theorem, most of which concern almost sure convergence. For simplicity we state the
+theorem in terms of convergence in probability.
+
+
+--- page 10 ---
+
+CHAPTER 14. TIME SERIES 451
+Theorem 14.9 Ergodic Theorem .
+If Yt ∈ Rm is strictly stationary, ergodic, and E ∥Y ∥ < ∞, then as n → ∞,
+E
+
+
+Y − µ
+ − →0 (14.6)
+and
+Y − →p µ (14.7)
+where µ = E[Y ].
+The ergodic theorem shows that ergodicity is sufﬁcient for consistent estimation. The moment con-
+dition E ∥Y ∥ < ∞ is the same as in the WLLN for i.i.d. observations.
+We now provide a proof of the ergodic theorem for the scalar case under the additional assumption
+that var[Y ] = σ2 < ∞. A proof which relaxes this assumption is provided in Section 14.47.
+By direct calculation
+var
+[
+Y
+]
+= 1
+n2
+n∑
+t =1
+n∑
+j =1
+γ
+(
+t − j
+)
+where γ(ℓ) = cov(Yt ,Yt +ℓ). The double sum is over all elements of an n × n matrix whose t j t h element
+is γ
+(
+t − j
+)
+. The diagonal elements are γ(0) = σ2, the ﬁrst off-diagonal elements are γ(1), the second off-
+diagonal elements are γ(2) and so on. This means that there are precisely n diagonal elements equalling
+σ2, 2(n − 1) equalling γ(1), etc. Thus the above equals
+var
+[
+Y
+]
+= 1
+n2
+(
+nσ2 + 2(n − 1) γ(1) + 2(n − 2) γ(2) + · · · +2γ(n − 1)
+)
+= σ2
+n + 2
+n
+n∑
+ℓ=1
+(
+1 − ℓ
+n
+)
+γ(ℓ). (14.8)
+This is a rather intruiging expression. It shows that the variance of the sample mean precisely equals
+σ2/n (which is the variance of the sample mean under i.i.d. sampling) plus a weighted Cesàro mean of
+the autocovariances. The latter is zero under i.i.d. sampling but is non-zero otherwise. Theorem 14.7
+shows that the Cesàro mean of the autocovariances converges to zero. Let wnℓ = 2(ℓ/n2), which satisfy
+the conditions of the Toeplitz Lemma (Theorem A.5 of Introduction to Econometrics). Then
+2
+n
+n∑
+ℓ=1
+(
+1 − ℓ
+n
+)
+γ(ℓ) = 2
+n2
+n−1∑
+ℓ=1
+ℓ∑
+j =1
+γ(j ) =
+n−1∑
+ℓ=1
+wnℓ
+(
+1
+ℓ
+ℓ∑
+j =1
+γ(j )
+)
+− →0. (14.9)
+Together, we have shown that (14.8) iso(1) under ergodicity. Hence var
+[
+Y
+]
+→ 0. Markov’ s inequality
+establishes that Y − →p µ.
+14.9 Conditioning on Information Sets
+In the past few sections we have introduced the concept of the inﬁnite histories. We now consider
+conditional expectations given inﬁnite histories.
+First, some basics. Recall from probability theory that an outcome is an element of a sample space.
+An event is a set of outcomes. A probability law is a rule which assigns non-negative real numbers to
+
+
+--- page 11 ---
+
+CHAPTER 14. TIME SERIES 452
+events. When outcomes are inﬁnite histories then events are collections of such histories and a proba-
+bility law is a rule which assigns numbers to collections of inﬁnite histories.
+Now we wish to deﬁne a conditional expectation given an inﬁnite past history. Speciﬁcally, we wish
+to deﬁne
+Et −1 [Yt ] = E[Yt |Yt −1,Yt −2, .. .] (14.10)
+the expected value of Yt given the history ˜Yt −1 = (Yt −1,Yt −2,. ..) up to time t. Intuitively, Et −1 [Yt ] is the
+mean of the conditional distribution, the latter reﬂecting the information in the history. Mathematically
+this cannot be deﬁned using (2.6) as the latter requires a joint density for (Yt ,Yt −1,Yt −2, .. .) which does
+not make much sense. Instead, we can appeal to Theorem 2.13 which states that the conditional ex-
+pectation (14.10) exists if E |Yt |< ∞ and the probabilities P
+[˜Yt −1 ∈ A
+]
+are deﬁned. The latter events are
+discussed in the previous paragraph. Thus the conditional expectation is well deﬁned.
+In this textbook we have avoided measure-theoretic terminology to keep the presentation accessible,
+and because it is my belief that measure theory is more distracting than helpful. However, it is standard in
+the time series literature to follow the measure-theoretic convention of writing (14.10) as the conditional
+expectation given a σ-ﬁeld. So at the risk of being overly-technical we will follow this convention and
+write the expectation (14.10) as E[Yt |Ft −1] where Ft −1 = σ
+(˜Yt −1
+)
+is the σ-ﬁeld generated by the history
+˜Yt −1. A σ-ﬁeld(also known as a σ-algebra) is a collection of sets satisfying certain regularity conditions2.
+See Introduction to Econometrics, Section 1.14. The σ-ﬁeld generated by a random variable Y is the
+collection of measurable events involving Y . Similarly, the σ-ﬁeld generated by an inﬁnite history is
+the collection of measurable events involving this history. Intuitively, Ft −1 contains all the information
+available in the history ˜Yt −1. Consequently, economists typically call Ft −1 an information set rather
+than a σ-ﬁeld. As I said, in this textbook we endeavor to avoid measure theoretic complications so will
+follow the economists’ label rather than the probabilists’ , but use the latter’ s notation as is conventional.
+To summarize, we will write Ft = σ(Yt ,Yt −1,. ..) to indicate the information set generated by an inﬁnite
+history (Yt ,Yt −1,. ..), and will write (14.10) as E[Yt |Ft −1].
+We now describe some properties about information sets Ft .
+First, they are nested: Ft −1 ⊂ Ft . This means that information accumulates over time. Information
+is not lost.
+Second, it is important to be precise about which variables are contained in the information set.
+Some economists are sloppy and refer to “the information set at time t” without specifying which vari-
+ables are in the information set. It is better to be speciﬁc. For example, the information sets F1t =
+σ(Yt ,Yt −1,. ..) and F2t = σ(Yt , Xt ,Yt −1, Xt −1 . ..) are distinct even though they are both dated at time t.
+Third, the conditional expectations (14.10) follow the law of iterated expectations and the condition-
+ing theorem, thus
+E[E[Yt |Ft −1] |Ft −2] = E[Yt |Ft −2]
+E[E[Yt |Ft −1]] = E[Yt ],
+and
+E[Yt −1Yt |Ft −1] = Yt −1E[Yt |Ft −1].
+14.10 Martingale Difference Sequences
+An important concept in economics is unforecastability, meaning that the conditional expectation is
+the unconditional expectation. This is similar to the properties of a regression error. An unforecastable
+process is called a martingale difference sequence (MDS).
+2A σ-ﬁeld contains the universal set, is closed under complementation, and closed under countable unions.
+
+
+--- page 12 ---
+
+CHAPTER 14. TIME SERIES 453
+A MDS et is deﬁned with respect to a speciﬁc sequence of information sets Ft . Most commonly
+the latter are the natural ﬁltration Ft = σ(et ,et −1,. ..) (the past history of et ) but it could be a larger
+information set. The only requirement is that et is adapted to Ft , meaning that E[et |Ft ] = et .
+Deﬁnition 14.4 The process (et , Ft ) is a Martingale Difference Sequence
+(MDS) if et is adapted to Ft , E |et |< ∞, and E[et |Ft −1] = 0.
+In words, a MDS et is unforecastable in the mean. It is useful to notice that if we apply iterated
+expectations E[et ] = E[E[et |Ft −1]] = 0. Thus a MDS is mean zero.
+The deﬁnition of a MDS requires the information sets Ft to contain the information in et , but is
+broader in the sense that it can contain more information. When no explicit deﬁnition is given it is stan-
+dard to assume that Ft is the natural ﬁltration. However, it is best to explicitly specify the information
+sets so there is no confusion.
+The term “martingale difference sequence” refers to the fact that the summed process St = ∑t
+j =1 e j
+is a martingale and et is its ﬁrst-difference. A martingale St is a process which has a ﬁnite mean and
+E[St |Ft −1] = St −1.
+If et is i.i.d. and mean zero it is a MDS but the reverse is not the case. To see this, ﬁrst suppose thatet
+is i.i.d. and mean zero. It is then independent of Ft −1 = σ(et −1,et −2,. ..) so E[et |Ft −1] = E[et ] = 0. Thus
+an i.i.d. shock is a MDS as claimed.
+To show that the reverse is not true letut be i.i.d. N(0, 1) and set
+et = ut ut −1. (14.11)
+By the conditioning theorem
+E[et |Ft −1] = ut −1E[ut |Ft −1] = 0
+so et is a MDS. The process (14.11) is not, however, i.i.d. One way to see this is to calculate the ﬁrst
+autocovariance of e2
+t , which is
+cov
+(
+e2
+t ,e2
+t −1
+)
+= E
+[
+e2
+t e2
+t −1
+]
+− E
+[
+e2
+t
+]
+E
+[
+e2
+t −1
+]
+= E
+[
+u2
+t
+]
+E
+[
+u4
+t −1
+]
+E
+[
+u2
+t −2
+]
+− 1
+= 2 ̸= 0.
+Since the covariance is non-zero, et is not an independent sequence. Thus et is a MDS but not i.i.d.
+An important property of a square integrable MDS is that it is serially uncorrelated. To see this, ob-
+serve that by iterated expectations, the conditioning theorem, and the deﬁnition of a MDS, fork > 0,
+cov(et ,et −k) = E[et et −k]
+= E[E[et et −k |Ft −1]]
+= E[E[et |Ft −1]et −k]
+= E[0et −k]
+= 0.
+Thus the autocovariances and autocorrelations are zero.
+
+
+--- page 13 ---
+
+CHAPTER 14. TIME SERIES 454
+A process that is serially uncorrelated, however, is not necessarily a MDS. Take the process et = ut +
+ut −1ut −2 with ut i.i.d. N(0, 1). The process et is not a MDS since E[et |Ft −1] = ut −1ut −2 ̸= 0. However,
+cov(et ,et −1) = E[et et −1]
+= E[(ut + ut −1ut −2)(ut −1 + ut −2ut −3)]
+= E
+[
+ut ut −1 + ut ut −2ut −3 + u2
+t −1ut −2 + ut −1u2
+t −2ut −3
+]
+= E[ut ] E[ut −1] + E[ut ] E[ut −2] E[ut −3]
++ E
+[
+u2
+t −1
+]
+E[ut −2] + E[ut −1] E
+[
+u2
+t −2
+]
+E[ut −3]
+= 0.
+Similarly, cov(et ,et −k) = 0 for k ̸= 0. Thus et is serially uncorrelated. We have proved the following.
+Theorem 14.10 If (et , Ft ) is a MDS and E
+[
+e2
+t
+]
+< ∞ then et is serially uncorre-
+lated.
+Another important special case is a homoskedastic martingale difference sequence.
+Deﬁnition 14.5 The MDS (et , Ft ) is a Homoskedastic Martingale Difference
+Sequence if E
+[
+e2
+t |Ft −1
+]
+= σ2.
+A homoskedastic MDS should more properly be called a conditionally homoskedastic MDS because
+the property concerns the conditional distribution rather than the unconditional. That is, any strictly
+stationary MDS satisﬁes a constant varianceE
+[
+e2
+t
+]
+but only a homoskedastic MDS has a constant condi-
+tional variance E
+[
+e2
+t |Ft −1
+]
+.
+A homoskedatic MDS is analogous to a conditionally homoskedastic regression error. It is intermedi-
+ate between a MDS and an i.i.d. sequence. Speciﬁcally, a square integrable and mean zero i.i.d. sequence
+is a homoskedastic MDS and the latter is a MDS.
+The reverse is not the case. First, a MDS is not necessarily conditionally homoskedastic. Consider the
+example et = ut ut −1 given previously which we showed is a MDS. It is not conditionally homoskedastic,
+however, since
+E
+[
+e2
+t |Ft −1
+]
+= u2
+t −1E
+[
+u2
+t |Ft −1
+]
+= u2
+t −1
+which is time-varying. Thus this MDSet is conditionally heteroskedastic. Second, a homoskedastic MDS
+is not necessarily i.i.d. Consider the following example. Set et =
+√
+1 − 2/ηt −1Tt , where Tt is distributed
+as student t with degree of freedom parameter ηt −1 = 2 + e2
+t −1. This is scaled so that E[et |Ft −1] = 0 and
+E
+[
+e2
+t |Ft −1
+]
+= 1, and is thus a homoskedastic MDS. The conditional distribution of et depends on et −1
+through the degree of freedom parameter. Hence et is not an independent sequence.
+One way to think about the difference between MDS and i.i.d. shocks is in terms of forecastability.
+An i.i.d. process is fully unforecastable in that no function of an i.i.d. process is forecastable. A MDS is
+unforecastable in the mean but other moments may be forecastable.
+
+
+--- page 14 ---
+
+CHAPTER 14. TIME SERIES 455
+14.11 CLT for Martingale Differences
+We are interested in an asymptotic approximation for the distribution of the normalized sample
+mean
+Sn = 1pn
+n∑
+t =1
+ut (14.12)
+where ut is mean zero with varianceE
+[
+ut u′
+t
+]
+= Σ < ∞. In this section we present a CLT for the case where
+ut is a martingale difference sequence.
+Theorem 14.11 MDS CLT If ut is a strictly stationary and ergodic martingale
+difference sequence and E
+[
+ut u′
+t
+]
+= Σ < ∞, then as n → ∞,
+Sn = 1pn
+n∑
+t =1
+ut − →
+d
+N(0, Σ).
+The conditions for Theorem 14.11 are similar to the Lindeberg-Lévy CLT . The only difference is that
+the i.i.d. assumption has been replaced by the assumption of a strictly stationarity and ergodic MDS.
+The proof of Theorem 14.11 is technically advanced so we do not present the full details, but instead
+refer readers to Theorem 3.2 of Hall and Heyde (1980) or Theorem 25.3 of Davidson (2020) (which are
+more general than Theorem 14.11, not requiring strict stationarity). To illustrate the role of the MDS
+assumption we give a sketch of the proof in Section 14.47.
+14.12 Mixing
+For many results, including a CLT for correlated (non-MDS) series, we need a stronger restriction on
+the dependence between observations than ergodicity.
+Recalling the property (14.5) of ergodic sequences we can measure the dependence between two
+events A and B by the discrepancy
+α(A,B) = |P[A ∩ B] − P[A] P[B]|. (14.13)
+This equals 0 when A and B are independent and is positive otherwise. In general, α(A,B) can be used
+to measure the degree of dependence between the events A and B.
+Now consider the two information sets (σ-ﬁelds)
+F t
+−∞ = σ(...,Yt −1,Yt )
+F ∞
+t = σ(Yt ,Yt +1,...).
+The ﬁrst is the history of the series up until period t and the second is the history of the series starting
+in period t and going forward. We then separate the information sets by ℓ periods, that is, take F t −ℓ
+−∞
+and F ∞
+t . We can measure the degree of dependence between the information sets by taking all events
+in each and then taking the largest discrepancy (14.13). This is
+α(ℓ) = sup
+A∈F t −ℓ
+−∞ ,B ∈F ∞
+t
+α(A,B).
+
+
+--- page 15 ---
+
+CHAPTER 14. TIME SERIES 456
+The constants α(ℓ) are known as the mixing coefﬁcients. We say thatYt is strong mixing if α(ℓ) → 0
+as ℓ → ∞. This means that as the time separation increases between the information sets, the degree of
+dependence decreases, eventually reaching independence.
+From the Theorem of Cesàro Means (Theorem A.4 of Introduction to Econometrics ), strong mixing
+implies (14.5) which is equivalent to ergodicity. Thus a mixing process is ergodic.
+An intuition concerning mixing can be colorfully illustrated by the following example due to Halmos
+(1956). A martini is a drink consisting of a large portion of gin and a small part of vermouth. Suppose that
+you pour a serving of gin into a martini glass, pour a small amount of vermouth on top, and then stir the
+drink with a swizzle stick. If your stirring process is mixing, with each turn of the stick the vermouth will
+become more evenly distributed throughout the gin, and asymptotically (as the number of stirs tends to
+inﬁnity) the vermouth and gin distributions will become independent3. If so, this is a mixing process.
+For applications mixing is often useful when we can characterize the rate at which the coefﬁcients
+α(ℓ) decline to zero. There are two types of conditions which are seen in asymptotic theory: rates and
+summation. Rate conditions take the form α(ℓ) = O(ℓ−r ) or α(ℓ) = o(ℓ−r ). Summation conditions take
+the form ∑∞
+ℓ=0 α(ℓ)r < ∞ or ∑∞
+ℓ=0 ℓsα(ℓ)r < ∞.
+There are alternative measures of dependence beyond (14.13) and many have been proposed. Strong
+mixing is one of the weakest (and thus embraces a wide set of time series processes) but is insufﬁciently
+strong for some applications. Another popular dependence measure is known as absolute regularity or
+β-mixing. The β-mixing coefﬁcients are
+β(ℓ) = sup
+A∈F ∞
+t
+E
+⏐⏐
+⏐P
+[
+A |F t −ℓ
+−∞
+]
+− P[A]
+⏐
+⏐
+⏐.
+Absolute regularity is stronger than strong mixing in the sense that β(ℓ) → ∞ implies α(ℓ) → 0, and rate
+conditions for the β-mixing coefﬁcients imply the same rates for the strong mixing coefﬁcients.
+One reason why mixing is useful for applications is that it is preserved by transformations.
+Theorem 14.12 If Yt has mixing coefﬁcients αY (ℓ) and Xt =
+φ(Yt ,Yt −1,Yt −2,..., Yt −q ) then Xt has mixing coefﬁcients αX (ℓ) ≤ αY (ℓ − q)
+(for ℓ ≥ q). The coefﬁcients αX (m) satisfy the same summation and rate
+conditions as αY (ℓ).
+A limitation of the above result is that it is conﬁned to a ﬁnite number of lags unlike the transforma-
+tion results for stationarity and ergodicity.
+Mixing can be a useful tool because of the following inequalities.
+3Of course, if you really make an asymptotic number of stirs you will never ﬁnish stirring and you won’t be able to enjoy the
+martini. Hence in practice it is advised to stop stirring before the number of stirs reaches inﬁnity.
+
+
+--- page 16 ---
+
+CHAPTER 14. TIME SERIES 457
+Theorem 14.13 Let F t
+−∞ and F ∞
+t be constructed from the pair (Xt , Zt ).
+1. If |Xt |≤ C1 and |Zt |≤ C2 then
+|cov(Xt −ℓ, Zt )|≤ 4C1C2α(ℓ).
+2. If E |Xt |r < ∞ and E |Zt |q < ∞ for 1/r + 1/q < 1 then
+|cov(Xt −ℓ, Zt )|≤ 8
+(
+E |Xt |r )1/r (
+E |Zt |q )1/q α(ℓ)1−1/r −1/q .
+3. If E[Zt ] = 0 and E |Zt |r < ∞ for r ≥ 1 then
+E
+⏐⏐
+⏐E
+[
+Zt
+⏐
+⏐
+⏐ F t −ℓ
+−∞
+]⏐
+⏐
+⏐ ≤ 6
+(
+E |Zt |r )1/r α(ℓ)1−1/r .
+The proof is given in Section 14.47. Our next result follows fairly directly from the deﬁnition of mixing.
+Theorem 14.14 If Yt is i.i.d. then it is strong mixing and ergodic.
+14.13 CLT for Correlated Observations
+In this section we develop a CLT for the normalized meanSn deﬁned in (14.12) allowing the variables
+ut to be serially correlated.
+In (14.8) we found that in the scalar case
+var[Sn] = σ2 + 2
+n∑
+ℓ=1
+(
+1 − ℓ
+n
+)
+γ(ℓ)
+where σ2 = var[ut ] and γ(ℓ) = cov(ut ,ut −ℓ). Since γ(−ℓ) = γ(ℓ) this can be written as
+var[Sn] =
+n∑
+ℓ=−n
+(
+1 − |ℓ|
+n
+)
+γ(ℓ). (14.14)
+In the vector case deﬁne the varianceΣ = E
+[
+ut u′
+t
+]
+and the matrix covariance Γ(ℓ) = E
+[
+ut u′
+t −ℓ
+]
+which
+satisﬁesΓ(−ℓ) = Γ(ℓ)′. We obtain by a calculation analogous to (14.14)
+var[Xn] = Σ +
+n∑
+ℓ=1
+(
+1 − ℓ
+n
+) (
+Γ(ℓ) + Γ(ℓ)′)
+=
+n∑
+ℓ=−n
+(
+1 − |ℓ|
+n
+)
+Γ(ℓ). (14.15)
+A necessary condition for Sn to converge to a normal distribution is that the variance (14.15) con-
+verges to a limit. Indeed,
+n∑
+ℓ=1
+(
+1 − ℓ
+n
+)
+Γ(ℓ) = 1
+n
+n−1∑
+ℓ=1
+ℓ∑
+j =1
+Γ(j ) →
+∞∑
+ℓ=0
+Γ(ℓ) (14.16)
+
+
+--- page 17 ---
+
+CHAPTER 14. TIME SERIES 458
+where the convergence holds by the Theorem of Cesàro Means if the limit in (14.16) is convergent. A nec-
+essary condition for this to hold is that the covariances Γ(ℓ) decline to zero as ℓ → ∞, which is stronger
+than ergodicity. A sufﬁcient condition is that the covariances are absolutely summable which can be
+veriﬁed using a mixing inequality. Using the triangle inequality (B.16) and Theorem 14.13.2, forr > 2
+∞∑
+ℓ=0
+∥Γ(ℓ)∥ ≤ 8
+(
+E ∥ut ∥r )2/r ∞∑
+ℓ=0
+α(ℓ)1−2/r .
+This implies that (14.15) converges if E ∥ut ∥r < ∞ and ∑∞
+ℓ=0 α(ℓ)1−2/r < ∞. We conclude that under these
+assumptions
+var[Sn] →
+∞∑
+ℓ=−∞
+Γ(ℓ)
+def
+= Ω. (14.17)
+The matrix Ω plays a special role in the inference theory for tme series. It is often called thelong-run
+variance of ut as it is the variance of sample means in large samples.
+It turns out that these conditions are sufﬁcient for the CLT .
+Theorem 14.15 If ut is strictly stationary with mixing coefﬁcientsα(ℓ), E[ut ] =
+0, for some r > 2, E ∥ut ∥r < ∞ and ∑∞
+ℓ=1 α(ℓ)1−2/r < ∞, then (14.17) is conver-
+gent and Sn = n−1/2 ∑n
+t =1 ut
+d
+− →N(0, Ω).
+The proof is in Section 14.47.
+The theorem requires r > 2 ﬁnite moments which is stronger than the MDS CLT . The summability
+condition on the mixing coefﬁcients in Theorem 14.15 is considerably stronger than ergodicity. There
+is a trade-off involving the choice of r . A larger r means more moments are required ﬁnite but a slower
+decay in the coefﬁcients α(ℓ) is allowed. Smaller r is less restrictive regarding moments but requires a
+faster decay rate in the mixing coefﬁcients.
+14.14 Linear Projection
+In Chapter 2 we extensively studied the properties of linear projection models. In the context of
+stationary time series we can use similar tools. An important extension is to allow for projections onto
+inﬁnite dimensional random vectors. For this analysis we assume thatYt is covariance stationary.
+Recall that when (Y , X ) have a joint distribution with bounded variances the linear projection of Y
+onto X (the best linear predictor) is the minimizer of S
+(
+β
+)
+= E
+[(
+Y − β′X
+)2]
+and has the solution
+P [Y |X ] = X ′ (
+E
+[
+X X ′])−1 E[X Y ].
+This projection is unique and has a unique projection error e = Y − P [Y |X ].
+This idea extends to any Hilbert space including the inﬁnite past history ˜Yt −1 = (...,Yt −2,Yt −1). From
+the projection theorem for Hilbert spaces (see Theorem 2.3.1 of Brockwell and Davis (1991)) the projec-
+tion P t −1 [Yt ] = P
+[
+Yt |˜Yt −1
+]
+of Yt onto ˜Yt −1 is unique and has a unique projection error
+et = Yt − P t −1 [Yt ]. (14.18)
+The projection error is mean zero, has ﬁnite variance σ2 = E
+[
+e2
+t
+]
+≤ E
+[
+Y 2
+t
+]
+< ∞, and is serially uncorre-
+lated. By Theorem 14.2, if Yt is strictly stationary then P t −1 [Yt ] and et are strictly stationary.
+Thus the projection errors are serially uncorrelated. We state these results formally.
+
+
+--- page 18 ---
+
+CHAPTER 14. TIME SERIES 459
+Theorem 14.16 If Yt ∈ R is covariance stationary it has the projection equation
+Yt = P t −1 [Yt ] + et .
+The projection error et satisﬁes
+E[et ] = 0
+E
+[
+et −j et
+]
+= 0 j ≥ 1
+and
+σ2 = E
+[
+e2
+t
+]
+≤ E
+[
+Y 2
+t
+]
+< ∞. (14.19)
+If Yt is strictly stationary then et is strictly stationary.
+14.15 White Noise
+The projection error et is mean zero, has a ﬁnite variance, and is serially uncorrelated. This describes
+what is known as a white noise process.
+Deﬁnition 14.6 The process et is white noise if E[et ] = 0, E
+[
+e2
+t
+]
+= σ2 < ∞, and
+cov(et ,et −k) = 0 for k ̸= 0.
+A MDS is white noise (Theorem 14.10) but the reverse is not true as shown by the example et =
+ut + ut −1ut −2 given in Section 14.10, which is white noise but not a MDS. Therefore, the following types
+of shocks are nested: i.i.d., MDS, and white noise, with i.i.d. being the most narrow class and white noise
+the broadest. It is helpful to observe that a white noise process can be conditionally heteroskedastic as
+the conditional variance is unrestricted.
+14.16 The Wold Decomposition
+In Section 14.14 we showed that a covariance stationary process has a white noise projection error.
+This result can be used to express the series as an inﬁnite linear function of the projection errors. This is
+a famous result known as the Wold decomposition.
+
+
+--- page 19 ---
+
+CHAPTER 14. TIME SERIES 460
+Theorem 14.17 The Wold Decomposition If Yt is covariance stationary and
+σ2 > 0 where σ2 is the projection error variance (14.19), then Yt has the linear
+representation
+Yt = µt +
+∞∑
+j =0
+b j et −j (14.20)
+where et are the white noise projection errors (14.18), b0 = 1,
+∞∑
+j =1
+b2
+j < ∞, (14.21)
+and
+µt = limm→∞ P t −m [Yt ]. (14.22)
+The Wold decomposition shows that Yt can be written as a linear function of the white noise projec-
+tion errors plus µt . The inﬁnite sum in (14.20) is also known as a linear process. The Wold decomposi-
+tion is a foundational result for linear time series analysis. Since any covariance stationary process can
+be written in this format this justiﬁes linear models as approximations.
+The series µt is the projection of Yt on the history from the inﬁnite past. It is the part of Yt which
+is perfectly predictable from its past values and is called the deterministic component. In most cases
+µt = µ, the unconditional mean of Yt . However, it is possible for stationary processes to have more
+substantive deterministic components. An example is
+µt =
+{ (−1)t with probability 1/2
+(−1)t +1 with probability 1/2.
+This series is strictly stationary, mean zero, and variance one. However, it is perfectly predictable given
+the previous history as it simply oscillates between −1 and 1.
+In practical applied time series analysis, deterministic components are typically excluded by as-
+sumption. We call a stationary time series non-deterministic4 if µt = µ, a constant. In this case the
+Wold decomposition has a simpler form.
+Theorem 14.18 If Yt is covariance stationary and non-deterministic then Yt
+has the linear representation
+Yt = µ +
+∞∑
+j =0
+b j et −j ,
+where b j satisfy (14.21) and et are the white noise projection errors (14.18).
+A limitation of the Wold decomposition is the restriction to linearity. Effectively, it says that there is a
+valid linear approximation within the class of linear models. It excludes alternative (nonlinear) models
+by assumption.
+For a proof of Theorem 14.17 see Section 14.47.
+4Most authors deﬁne purely non-deterministic as the caseµt = 0. We allow for a non-zero mean so to accomodate practical
+time series applications.
+
+
+--- page 20 ---
+
+CHAPTER 14. TIME SERIES 461
+14.17 Lag Operator
+An algebraic construct which is useful for the analysis of time series models is the lag operator.
+Deﬁnition 14.7 The lag operator L satisﬁes LYt = Yt −1.
+Deﬁning L2 = LL, we see that L2Yt = LYt −1 = Yt −2. In general, LkYt = Yt −k.
+Using the lag operator the Wold decomposition can be written in the format
+Yt = µ + b0et + b1Let + b2L2et + · · ·
+= µ +
+(
+b0 + b1L + b2L2 + · · ·
+)
+et
+= µ + b(L)et
+where b(z) = b0+b1z+b2z2+· · ·is an inﬁnite-order polynomial. The expressionYt = µ+b(L)et is compact
+way to write the Wold representation.
+14.18 Autoregressive Wold Representation
+From Theorem 14.16, Yt satisﬁes a projection onto its inﬁnite past. Theorem 14.18 shows that this
+projection equals a linear function of the lagged projection errors. An alternative is to write the projection
+as a linear function of the lagged Yt . It turns out that to obtain a unique and convergent representation
+we need a strengthening of the conditions.
+Theorem 14.19 If Yt is covariance stationary, non-deterministic, with Wold
+representation Yt = b(L)et , such that |b(z)|≥ δ > 0 for all complex |z|≤ 1, and
+for some integer s ≥ 0 the Wold coefﬁcients satisfy ∑∞
+j =0
+(∑∞
+k=0 k sb j +k
+)2 < ∞,
+then Yt has the representation
+Yt = µ +
+∞∑
+j =1
+a j Yt −j + et (14.23)
+for some coefﬁcients µ and a j . The coefﬁcients satisfy ∑∞
+k=0 k s |ak |< ∞ so
+(14.23) is convergent.
+Equation (14.23) is known as an inﬁnite-orderautoregressive representation with autoregressive co-
+efﬁcientsa j .
+A solution to the equation b(z) = 0 is a root of the polynomial b(z). The assumption |b(z)|> 0 for
+|z|≤ 1 means that the roots of b(z) lie outside the unit circle |z|= 1 (the circle in the complex plane with
+radius one). Theorem 14.19 makes the stronger restriction that |b(z)|is bounded away from 0 for z on
+or within the unit circle. The need for this strengthening is less intuitive but essentially excludes the
+possibility of an inﬁnite number of roots outside but arbitrarily close to the unit circle. The summability
+assumption on the Wold coefﬁcients ensures convergence of the autoregressive coefﬁcientsa j .
+
+
+--- page 21 ---
+
+CHAPTER 14. TIME SERIES 462
+To understand the restriction on the roots of b(z) consider the simple case b(z) = 1 − b1z. (Below we
+call this a MA(1) model.) The requirement|b(z)|≥ δ for |z|≤ 1 means |b1|≤ 1−δ. Thus the assumption in
+Theorem 14.19 bounds the coefﬁcient strictly below 1. Now consider an inﬁnite polynomial caseb(z) =
+∞∏
+j =1
+(
+1 − b j z
+)
+. The assumption in Theorem 14.19 requires supj
+⏐⏐b j
+⏐
+⏐ < 1.
+Theorem 14.19 is attributed to Wiener and Masani (1958). For a recent treatment and proof see Corol-
+lary 6.1.17 of Politis and McElroy (2020). These authors (as is common in the literature) state their as-
+sumptions differently than we do in Theorem 14.19. First, instead of the condition on b(z) they bound
+from below the spectral density function f (λ) of Yt . We do not deﬁne the spectral density in this text so
+we restate their condition in terms of the linear process polynomial b(z). Second, instead of the con-
+dition on the Wold coefﬁcients they require that the autocovariances satisfy ∑∞
+k=0 k s ⏐⏐γ(k)
+⏐
+⏐ < ∞. This is
+implied by out stated summability condition on the b j (using the expression for γ(k) in Section 14.21
+below and simplifying).
+14.19 Linear Models
+In the previous two sections we showed that any non-deterministic covariance stationary time series
+has the projection representation
+Yt = µ +
+∞∑
+j =0
+b j et −j
+and under invertibility conditions satisﬁes the autoregressive representation
+Yt = µ +
+∞∑
+j =1
+a j Yt −j + et
+where in both equations the errors et are white noise projection errors. These representations help us
+understand that linear models can be used as approximations for stationary time series.
+For the next several sections we reverse the analysis. We will assume a speciﬁc linear model and then
+study the properties of the resulting time series. In particular we will be seeking conditions under which
+the stated process is stationary. This helps us understand the properties of linear models. Throughout,
+we assume that the erroret is a strictly stationary and ergodic white noise process. This allows as a special
+case the stronger assumption that et is i.i.d. but is less restrictive. In particular, it allows for conditional
+heteroskedasticity.
+14.20 Moving Average Processes
+The ﬁrst-order moving average process, denoted MA(1), is
+Yt = µ + et + θet −1
+where et is a strictly stationary and ergodic white noise process. The model is called a “moving average”
+because Yt is a weighted average of the shocks et and et −1.
+
+
+--- page 22 ---
+
+CHAPTER 14. TIME SERIES 463
+It is straightforward to calculate that a MA(1) has the following moments.
+E[Yt ] = µ
+var[Yt ] =
+(
+1 + θ2)
+σ2
+γ(1) = θσ2
+ρ(1) = θ
+1 + θ2
+γ(k) = ρ(k) = 0, k ≥ 2.
+Thus the MA(1) process has a non-zero ﬁrst autocorrelation with the remainder zero.
+An MA(1) process with θ ̸= 0 is serially correlated with each pair of adjacent observations (Y t −1,Yt )
+correlated. If θ > 0 the pair are positively correlated, while if θ < 0 they are negatively correlated. The
+serial correlation is limited in that observations separated by multiple periods are mutually independent.
+The qt h-order moving average process, denoted MA(q), is
+Yt = µ + θ0et + θ1et −1 + θ2et −2 + · · · +θq et −q
+where θ0 = 1. It is straightforward to calculate that a MA(q) has the following moments.
+E[Yt ] = µ
+var[Yt ] =
+( q∑
+j =0
+θ2
+j
+)
+σ2
+γ(k) =
+(q−k∑
+j =0
+θj +k θj
+)
+σ2, k ≤ q
+ρ(k) =
+∑q−k
+j =0 θj +k θj
+∑q
+j =0 θ2
+j
+γ(k) = ρ(k) = 0, k > q.
+In particular, a MA(q) has q non-zero autocorrelations with the remainder zero.
+A MA(q) process Yt is strictly stationary and ergodic.
+A MA(q) process with moderately largeq can have considerably more complicated dependence rela-
+tions than an MA(1) process. One speciﬁc pattern which can be induced by a MA process is smoothing.
+Suppose that the coefﬁcientsθj all equal 1. Then Yt is a smoothed version of the shocks et .
+To illustrate, Figure 14.5(a) displays a plot of a simulated white noise (i.i.d. N(0,1)) process with
+n = 120 observations. Figure 14.5(b) displays a plot of an MA(8) process constructed with the same
+innovations, with θj = 1, j = 1, ...,8. You can see that the white noise has no predictable behavior while
+the MA(8) is smooth.
+14.21 Inﬁnite-Order Moving Average Process
+An inﬁnite-order moving average process, denotedMA(∞), also known as a linear process, is
+Yt = µ +
+∞∑
+j =0
+θj et −j (14.24)
+
+
+--- page 23 ---
+
+CHAPTER 14. TIME SERIES 464
+1985 1990 1995 2000 2005 2010 2015
+−2 −1 0 1 2
+(a) White Noise
+1990 1995 2000 2005 2010 2015
+−8 −6 −4 −2 0 2 4 6 (b) MA(8)
+Figure 14.5: White Noise and MA(8)
+where et is a strictly stationary and ergodic white noise process and ∑∞
+j =0
+⏐⏐θj
+⏐
+⏐ < ∞. From Theorem 14.6,
+Yt is strictly stationary and ergodic. A linear process has the following moments:
+E[Yt ] = µ
+var[Yt ] =
+(
+∞∑
+j =0
+θ2
+j
+)
+σ2
+γ(k) =
+(
+∞∑
+j =0
+θj +k θj
+)
+σ2
+ρ(k) =
+∑∞
+j =0 θj +k θj
+∑q
+j =0 θ2
+j
+.
+14.22 First-Order Autoregressive Process
+The ﬁrst-order autoregressive process, denoted AR(1), is
+Yt = α0 + α1Yt −1 + et (14.25)
+where et is a strictly stationary and ergodic white noise process. The AR(1) model is probably the single
+most important model in econometric time series analysis.
+As a simple motivating example let Yt be is the employment level (number of jobs) in an economy.
+Suppose that a ﬁxed fraction 1−α1 of employees lose their job and a random numberut of new employ-
+ees are hired each period. Setting α0 = E[ut ] and et = ut − α0, this implies the law of motion (14.25).
+To illustrate the behavior of the AR(1) process, Figure 14.6 plots two simulated AR(1) processes. Each
+is generated using the white noise process et displayed in Figure 14.5(a). The plot in Figure 14.6(a) sets
+α1 = 0.5 and the plot in Figure 14.6(b) sets α1 = 0.95. You can see how both are more smooth than the
+white noise process and that the smoothing increases with α.
+
+
+--- page 24 ---
+
+CHAPTER 14. TIME SERIES 465
+1985 1990 1995 2000 2005 2010 2015
+−3 −2 −1 0 1 2 3
+(a) AR(1) with α[1] = 0.5
+1985 1990 1995 2000 2005 2010 2015
+−6 −4 −2 0 2 4 (b) AR(1) with α = 0.95
+Figure 14.6: AR(1) Processes
+Our ﬁrst goal is to obtain conditions under which (14.25) is stationary. We can do so by showing that
+Yt can be written as a convergent linear process and then appealing to Theorem 14.5. To ﬁnd a linear
+process representation for Yt we can use backward recursion. Notice that Yt in (14.25) depends on its
+previous value Yt −1. If we take (14.25) and lag it one period we ﬁndYt −1 = α0 +α1Yt −2 +et −1. Substituting
+this into (14.25) we ﬁnd
+Yt = α0 + α1 (α0 + α1Yt −2 + et −1) + et
+= α0 + α1α0 + α2
+1Yt −2 + α1et −1 + et .
+Similarly we can lag (14.31) twice to ﬁndYt −2 = α0 +α1Yt −3 +et −2 and can be used to substitute outYt −2.
+Continuing recursively t times, we ﬁnd
+Yt = α0
+(
+1 + α1 + α2
+1 + · · · +αt −1
+1
+)
++ αt
+1Y0 + αt −1
+1 e1 + αt −2
+1 e2 + · · · +et
+= α0
+t −1∑
+j =0
+αj
+1 + αt
+1Y0 +
+t −1∑
+j =0
+αj
+1et −j . (14.26)
+Thus Yt equals an intercept plus the scaled initial condition αt
+1Y0 and the moving average ∑t −1
+j =0 αj
+1et −j .
+Now suppose we continue this recursion into the inﬁnite past. By Theorem 14.3 this converges if∑∞
+j =0 |α1|j < ∞. The limit is provided by the following well-known result.Theorem 14.20
+∞∑
+k=0
+βk = 1
+1 − β is absolutely convergent if
+⏐⏐β
+⏐
+⏐ < 1.The series converges by the ratio test (see Theorem A.3 of Introduction to Econometrics). To ﬁnd the
+limit,
+A =
+∞∑
+k=0
+βk = 1 +
+∞∑
+k=1
+βk = 1 + β
+∞∑
+k=0
+βk = 1 + βA.
+
+
+--- page 25 ---
+
+CHAPTER 14. TIME SERIES 466
+Solving, we ﬁndA = 1/(1 − β).
+Thus the intercept in (14.26) converges to α0/(1 − α1). We deduce the following:
+Theorem 14.21 If E |et |< ∞ and |α1|< 1 then the AR(1) process (14.25) has the
+convergent representation
+Yt = µ +
+∞∑
+j =0
+αj
+1et −j (14.27)
+where µ = α0/(1 − α1). The AR(1) process Yt is strictly stationary and ergodic.
+We can compute the moments of Yt from (14.27)
+E[Yt ] = µ +
+∞∑
+k=0
+αk
+1 E[et −k] = µ
+var[Yt ] =
+∞∑
+k=0
+α2k
+1 var[et −k] = σ2
+1 − α2
+1
+.
+An informal way to calculate the moments is as follows. Apply expectations to both sides of (14.25)
+E[Yt ] = α0 + α1E[Yt −1] + E[et ] = α0 + α1E[Yt −1].
+Stationarity implies E[Yt −1] = E[Yt ]. Solving we ﬁndE[Yt ] = α0/(1 − α1). Similarly,
+var[Yt ] = var[αYt −1 + et ] = α2
+1 var[Yt −1] + var[et ] = α2
+1 var[Yt −1] + σ2.
+Stationarity implies var [Yt −1] = var[Yt ]. Solving we ﬁnd var[Yt ] = σ2/(1 − α2
+1). This method is useful for
+calculation of autocovariances and autocorrelations. For simplicity set α0 = 1. We ﬁnd
+γ(1) = E[Yt −1Yt ] = E[Yt −1 (α1Yt −1 + et )] = α1 var[Yt ]
+so
+ρ(1) = γ(1)/var [Yt ] = α1.
+Furthermore,
+γ(k) = E[Yt −kYt ] = E[Yt −k (α1Yt −1 + et )] = α1γ(k − 1).
+By recursion we obtain
+γ(k) = αk
+1 var[Yt ]
+ρ(k) = αk
+1 .
+Thus the AR(1) process with α1 ̸= 0 has non-zero autocorrelations of all orders which decay to zero geo-
+metrically as k increases. For α1 > 0 the autocorrelations are all positive. For α1 < 0 the autocorrelations
+alternate in sign.
+We can also express the AR(1) process using the lag operator notation:
+(1 − α1L)Yt = α0 + et . (14.28)
+
+
+--- page 26 ---
+
+CHAPTER 14. TIME SERIES 467
+We can write this as α(L)Yt = α0 + et where α(L) = 1 − α1L. We call α(z) = 1 − α1z the autoregressive
+polynomial of Yt .
+This suggests an alternative way of obtaining the representation (14.27). We can invert the operator
+(1 − α1L) to write Yt as a function of lagged et . That is, suppose that the inverse operator (1 − α1L)−1
+exists. Then we can use this operator on (14.28) to ﬁnd
+Yt = (1 − α1L)−1 (1 − α1L)Yt = (1 − α1L)−1 (α0 + et ). (14.29)
+What is the operator (1 − α1L)−1? Recall from Theorem 14.20 that for |x|< 1,
+∞∑
+j =0
+x j = 1
+1 − x = (1 − x)−1 .
+Evaluate this expression at x = α1z. We ﬁnd
+(1 − α1z)−1 =
+∞∑
+j =0
+αj
+1z j . (14.30)
+Setting z = L this is
+(1 − α1L)−1 =
+∞∑
+j =0
+αj
+1Lj .
+Substituted into (14.29) we obtain
+Yt = (1 − α1L)−1 (α0 + et )
+=
+(
+∞∑
+j =0
+αj Lj
+)
+(α0 + et )
+=
+∞∑
+j =0
+αj
+1Lj (α0 + et )
+=
+∞∑
+j =0
+αj
+1
+(
+α0 + et −j
+)
+= α0
+1 − α1
++
+∞∑
+j =0
+αj
+1et −j
+which is (14.27). This is valid for |α1|< 1.
+This illustrates another important concept. We say that a polynomial α(z) is invertible if
+α(z)−1 =
+∞∑
+j =0
+a j z j
+is absolutely convergent. In particular, the AR(1) autoregressive polynomial α(z) = 1 − α1z is invertible if
+|α1|< 1. This is the same condition as for stationarity of the AR(1) process. Invertibility turns out to be a
+useful property.
+14.23 Unit Root and Explosive AR(1) Processes
+The AR(1) process (14.25) is stationary if |α|< 1. What happens otherwise?
+If α0 = 0 and α1 = 1 the model is known as a random walk.
+Yt = Yt −1 + et .
+
+
+--- page 27 ---
+
+CHAPTER 14. TIME SERIES 468
+This is also called a unit root process, a martingale, or an integrated process. By back-substitution
+Yt = Y0 +
+t∑
+j =1
+e j .
+Thus the initial condition does not disappear for large t. Consequently the series is non-stationary. The
+autoregressive polynomial α(z) = 1 − z is not invertible, meaning that Yt cannot be written as a conver-
+gent function of the inﬁnite past history ofet .
+The stochastic behavior of a random walk is noticably different from a stationary AR(1) process. It
+wanders up and down with equal likelihood and is not mean-reverting. While it has no tendency to re-
+turn to its previous values the wandering nature of a random walk can give the illusion of mean reversion.
+The difference is that a random walk will take a very large number of time periods to “revert” .
+1985 1990 1995 2000 2005 2010 2015
+−8 −6 −4 −2 0 2 4 6
+(a) Random Walk
+1985 1990 1995 2000 2005 2010 2015
+−30 −25 −20 −15 −10 −5 0 (b) Random Walk
+Figure 14.7: Random Walk Processes
+To illustrate, Figure 14.7 plots two independent random walk processes. The plot in panel (a) uses
+the innovations from Figure 14.5(a). The plot in panel (b) uses an independent set of i.i.d. N(0, 1) errors.
+You can see that the plot in panel (a) appears similar to the MA(8) and AR(1) plots in the sense that
+the series is smooth with long swings, but the difference is that the series does not return to a long-
+term mean. It appears to have drifted down over time. The plot in panel (b) appears to have quite
+different behavior, falling dramatically over a 5-year period, and then appearing to stabilize. These are
+both common behaviors of random walk processes.
+If α1 > 1 the process isexplosive. The model (14.25) with α1 > 1 exhibits exponential growth and high
+sensitivity to initial conditions. Explosive autoregressive processes do not seem to be good descriptions
+for most economic time series. While aggregate time series such as the GDP process displayed in Figure
+14.1(a) exhibit a similar exponential growth pattern, the exponential growth can typically be removed by
+taking logarithms.
+The case α1 < −1 induces explosive oscillating growth and does not appear to be empirically relevant
+for economic applications.
+
+
+--- page 28 ---
+
+CHAPTER 14. TIME SERIES 469
+14.24 Second-Order Autoregressive Process
+The second-order autoregressive process, denoted AR(2), is
+Yt = α0 + α1Yt −1 + α2Yt −2 + et (14.31)
+where et is a strictly stationary and ergodic white noise process. The dynamic patterns of an AR(2) pro-
+cess are more complicated than an AR(1) process.
+As a motivating example consider the multiplier-accelerator model of Samuelson (1939). It might
+be a bit dated as a model but it is simple so hopefully makes the point. Aggregate output (in an econ-
+omy with no trade) is deﬁned asYt =Consumptiont +Investmentt +Gov t . Suppose that individuals make
+their consumption decisions on the previous period’ s income Consumptiont = bY t −1, ﬁrms make their
+investment decisions on the change in consumption Investmentt = d ∆Ct , and government spending is
+random Govt = a + et . Then aggregate output follows
+Yt = a + b(1 + d)Yt −1 − bdY t −2 + et (14.32)
+which is an AR(2) process.
+Using the lag operator we can write (14.31) as
+Yt − α1LYt − α2L2Yt = α0 + et ,
+or α(L)Yt = α0 + et where α(L) = 1 − α1L − α2L2. We call α(z) the autoregressive polynomial of Yt .
+We would like to ﬁnd the conditions for the stationarity of Yt . It turns out that it is convenient to
+transform the process (14.31) into a VAR(1) process (to be studied in the next chapter). Set˜Yt = (Yt ,Yt −1)′,
+which is stationary if and only if Yt is stationary. Equation (14.31) implies that ˜Yt satisﬁes
+( Yt
+Yt −1
+)
+=
+( α1 α2
+1 0
+) ( Yt −1
+Yt −2
+)
++
+( a0 + et
+0
+)
+or
+˜Yt = A ˜Yt −1 + ˜et (14.33)
+where A =
+( α1 α2
+1 0
+)
+and ˜et = (a0 + et ,0) ′. Equation (14.33) falls in the class of VAR(1) models studied
+in Section 15.6. Theorem 15.6 shows that the VAR(1) process is strictly stationary and ergodic if the inno-
+vations satisfy E ∥˜et ∥ < ∞ and all eigenvalues λ of A are less than one in absolute value. The eigenvalues
+satisfy det(A − I 2λ) = 0, where
+det(A − I 2λ) = det
+( α1 − λ α 2
+1 −λ
+)
+= λ2 − λα1 − α2 = λ2α(1/λ)
+and α(z) = 1 − α1z − α2z2 is the autoregressive polynomial. Thus the eigenvalues satisfy α(1/λ) = 0.
+Factoring the autoregressive polynomial asα(z) = (1 − λ1z)(1 − λ2z) the solutions α(1/λ) = 0 must equal
+λ1 and λ2. The quadratic formula shows that these equal
+λj =
+α1 ±
+√
+α2
+1 + 4α2
+2 . (14.34)
+These eigenvalues are real if α2
+1 + 4α2 ≥ 0 and are complex conjugates otherwise. The AR(2) process is
+stationary if the solutions (14.34) satisfy
+⏐⏐λj
+⏐
+⏐ < 1.
+
+
+--- page 29 ---
+
+CHAPTER 14. TIME SERIES 470
+−2 −1 0 1 2
+−1.5 −1.0 −0.5 0.0 0.5 1.0
+α1
+α2
+Complex Factors
+Real Factors
+α2 − α1 = 1 α1 + α2 = 1
+α2 = −1
+Figure 14.8: Stationarity Region for AR(2)
+Using (14.34) to solve for the AR coefﬁcients in terms of the eigenvalues we ﬁnd α1 = λ1 + λ2 and
+α2 = −λ1λ2. With some algebra (the details are deferred to Section 14.47) we can show that |λ1|< 1 and
+|λ2|< 1 iff the following restrictions hold on the autoregressive coefﬁcients:
+α1 + α2 < 1 (14.35)
+α2 − α1 < 1 (14.36)
+α2 > −1. (14.37)
+These restrictions describe a triangle in (α1, α2) space which is shown in Figure 14.8. Coefﬁcients within
+this triangle correspond to a stationary AR(2) process.
+Furthermore, the triangle is divided into two regions as marked in Figure 14.8: the region above the
+parabola α2
+1 +4α2 = 0 producing real eigenvalues λj , and the region below the parabola producing com-
+plex eigenvalues λj . This is interesting because when the eigenvalues are complex the autocorrelations
+of Yt display damped oscillations. For this reason the dynamic patterns of an AR(2) can be much more
+complicated than those of an AR(1).
+Take the Samuelson multiplier-accelerator model (14.32). You can calculate that the model has com-
+plex eigenvalues (and thus oscillations) for certain values of b and d, including b ≤ 0.8 and d ≥ 0.4.
+Theorem 14.22 If E |et |< ∞ and
+⏐⏐λj
+⏐
+⏐ < 1 for λj deﬁned in (14.34), or equiva-
+lently if the inequalities (14.35)-(14.37) hold, then the AR(2) process (14.31) is
+absolutely convergent, strictly stationary, and ergodic.
+The proof is presented in Section 14.47.
+To illustrate, Figure 14.9 displays two simulated AR(2) processes. The plot in panel (a) sets α1 = α2 =
+0.4. These coefﬁcients produce real factors so the process displays behavior similar to that of the AR(1)
+processes. The plot in panel (b) sets α1 = 1.3 and α2 = −0.8. These coefﬁcients produce complex factors
+so the process displays oscillations.
+
+
+--- page 30 ---
+
+CHAPTER 14. TIME SERIES 471
+1985 1990 1995 2000 2005 2010 2015
+−4 −3 −2 −1 0 1 2 3
+(a) AR(2)
+1985 1990 1995 2000 2005 2010 2015
+−4 −2 0 2 4 (b) AR(2) with Complex Roots
+Figure 14.9: AR(2) Processes
+14.25 AR(p) Processes
+The pt h-order autoregressive process, denoted AR(p), is
+Yt = α0 + α1Yt −1 + α2Yt −2 + · · · +αpYt −p + et (14.38)
+where et is a strictly stationary and ergodic white noise process.
+Using the lag operator,
+Yt − α1LYt − α2L2
+t Y − · · · −αpLp
+t Y = α0 + et ,
+or α(L)Yt = α0 + et where
+α(L) = 1 − α1L − α2L2 − · · · −αpLp. (14.39)
+We call α(z) the autoregressive polynomial of Yt .
+We ﬁnd conditions for the stationarity ofYt by a technique similar to that used for the AR(2) process.
+Set ˜Yt = (Yt ,Yt −1, ...,Yt −p+1)′ and ˜et = (a0+et ,0,..., 0) ′. Equation (14.38) implies that ˜Yt satisﬁes the VAR(1)
+equation (14.33) with
+A =
+
+
+
+
+
+α1 α2 · · · αp−1 αp
+1 0 · · · 0 0
+0 1 · · · 0 0
+..
+. .
+.
+. ... .
+.
+. .
+.
+.
+0 0 · · · 1 0
+
+
+
+
+
+
+. (14.40)
+As shown in the proof of Theorem 14.23 below, the eigenvaluesλj of A are the reciprocals of the roots r j
+of the autoregressive polynomial (14.39). The roots r j are the solutions to α(r j ) = 0. Theorem 15.6 shows
+that stationarity of ˜Yt holds if the eigenvaluesλj are less than one in absolute value, or equivalently when
+the roots r j are greater than one in absolute value. For complex numbers the equation|z|= 1 deﬁnes the
+unit circle (the circle with radius of unity). We therefore say that “z lies outside the unit circle” if |z|> 1.
+
+
+--- page 31 ---
+
+CHAPTER 14. TIME SERIES 472
+Theorem 14.23 If E |et |< ∞ and all roots of α(z) lie outside the unit circle then
+the AR(p) process (14.38) is absolutely convergent, strictly stationary, and er-
+godic.
+When the roots of α(z) lie outside the unit circle then the polynomial α(z) is invertible. Inverting the
+autoregressive representationα(L)Yt = α0+et we obtain an inﬁnite-order moving average representation
+Yt = µ + b(L)et
+where
+b(z) = α(z)−1 =
+∞∑
+j =0
+b j z j (14.41)
+and µ = α(1)−1a0.
+We have the following characterization of the moving average coefﬁcients.
+Theorem 14.24 If all roots r j of the autoregressive polynomial α(z) satisfy⏐⏐r j
+⏐
+⏐ > 1 then (14.41) holds with
+⏐
+⏐b j
+⏐
+⏐ ≤
+(
+j + 1
+)p λj and ∑∞
+j =0
+⏐
+⏐b j
+⏐
+⏐ < ∞ where
+λ = maxj
+⏐
+⏐
+⏐r −1
+j
+⏐
+⏐
+⏐ < 1.
+The proof is presented in Section 14.47.
+14.26 Impulse Response Function
+The coefﬁcients of the moving average representation
+Yt = b(L)et
+=
+∞∑
+j =0
+b j et −j
+= b0et + b1et −1 + b2et −2 + · · ·
+are known among economists as the impulse response function (IRF) . Often the IRF is scaled by the
+standard deviation of et . We discuss this scaling at the end of the section. In linear models the impulse
+response function is deﬁned as the change inYt +j due to a shock at time t. This is
+∂
+∂et
+Yt +j = b j .
+This means that the coefﬁcient b j can be interpreted as the magnitude of the impact of a time t shock
+on the time t + j variable. Plots of b j can be used to assess the time-propagation of shocks. This is a
+standard method of analysis for multivariate time series.
+It is desirable to have a convenient method to calculate the impulse responses b j from the coefﬁ-
+cients of an autoregressive model (14.38). There are two methods which we now describe.
+
+
+--- page 32 ---
+
+CHAPTER 14. TIME SERIES 473
+The ﬁrst uses a simple recursion. In the linear AR(p) model, we can see that the coefﬁcient b j is the
+simple derivative
+b j = ∂
+∂et
+Yt +j = ∂
+∂e0
+Y j
+We can calculate b j by generating a history and perturbing the shock e0. Since this calculation is unaf-
+fected by all other shocks we can simply set et = 0 for t ̸= 0 and set e0 = 1. This implies the recursion
+b0 = 1
+b1 = α1b0
+b2 = α1b1 + α2b0
+..
+.
+b j = α1b j −1 + α2b j −2 + · · · +αpb j −p.
+This recursion is conveniently calculated by the following simulation. Set Yt = 0 for t ≤ 0. Set e0 = 1 and
+et = 0 for t > 1. Generate Yt for t ≥ 0 by Yt = α1Yt −1 + α2Yt −2 + · · · +αpYt −p + et . Then Y j = b j .
+A second method uses the vector representation (14.33) of the AR(p) model with coefﬁcient matrix
+(14.40). By recursion
+˜Yt =
+∞∑
+j =0
+A j ˜et −j .
+Here, A j = A · · ·A means the j t h matrix product of A with itself. Setting S = (1, 0, ...0)′ we ﬁnd
+Yt =
+∞∑
+j =0
+S′ A j Se t −j .
+By linearity
+b j = ∂
+∂et
+Yt +j = S′ A j S. (14.42)
+Thus the coefﬁcientb j can be calculated by forming the matrix A, its j -fold product A j , and then taking
+the upper-left element.
+As mentioned at the beginning of the section it is often desirable to scale the IRF so that it is the
+response to a one-deviation shock. Let σ2 = var[et ] and deﬁneεt = et /σ which has unit variance. Then
+the IRF at lag j is
+IRFj = ∂
+∂εt
+Yt +j = σb j .
+14.27 ARMA and ARIMA Processes
+The autoregressive-moving-average process, denoted ARMA(p,q), is
+Yt = α0 + α1Yt −1 + α2Yt −2 + · · · +αpYt −p + θ0et + θ1et −1 + θ2et −2 + · · · +θq et −q
+where et is a strictly stationary and erogodic white noise process. It can be written using lag operator
+notation as α(L)Yt = α0 + θ(L)et .
+
+
+--- page 33 ---
+
+CHAPTER 14. TIME SERIES 474
+Theorem 14.25 The ARMA(p,q) process (14.38) is strictly stationary and er-
+godic if all roots of α(z) lie outside the unit circle. In this case we can write
+Yt = µ + b(L)et
+where b j = O
+(
+j p βj )
+and ∑∞
+j =0
+⏐⏐b j
+⏐
+⏐ < ∞.The processYt follows anautoregressive-integrated moving-average process, denotedARIMA(p,d,q),
+if ∆d Yt is ARMA(p,q). It can be written using lag operator notation as α(L)(1 − L)d Yt = α0 + θ(L)et .
+14.28 Mixing Properties of Linear Processes
+There is a considerable probability literature investigating the mixing properties of time series pro-
+cesses. One challenge is that since autoregressive processes depend on the inﬁnite past sequence of
+innovations et it is not immediately obvious if they satisfy the mixing conditions.
+In fact, a simple AR(1) is not necessarily mixing. A counter-example was developed by Andrews
+(1984). He showed that if the error et has a two-point discrete distribution then an AR(1) Yt is not strong
+mixing. The reason is that a discrete innovation combined with the autoregressive structure means that
+by observing Yt you can deduce with near certainty the past history of the shockset . The example seems
+rather special but shows the need to be careful with the theory. The intuition stemming from Andrews’
+ﬁnding is that for an autoregressive process to be mixing it is necessary for the errorset to be continuous.
+A useful characterization was provided by Pham and Tran (1985).
+Theorem 14.26 Suppose that Yt = µ + ∑∞
+j =0 θj et −j satisﬁes the following con-
+ditions:
+1. et is i.i.d. with E |et |r < ∞ for some r > 0 and density f (x) which satisﬁes
+∫ ∞
+−∞
+⏐⏐f (x − u) − f (x)
+⏐⏐d x ≤ C |u| (14.43)
+for some C < ∞.
+2. All roots of θ(z) = 0 lie outside the unit circle and ∑∞
+j =0
+⏐
+⏐θj
+⏐
+⏐ < ∞.
+3. ∑∞
+k=1
+(∑∞
+j =k
+⏐⏐θj
+⏐
+⏐
+)r /(1+r )
+< ∞.
+Then for some B < ∞
+α(ℓ) ≤ 4β(ℓ) ≤ B
+∞∑
+k=ℓ
+(
+∞∑
+j =k
+⏐⏐θj
+⏐
+⏐
+)r /(1+r )
+and Yt is absolutely regular and strong mixing.
+The condition (14.43) is rather unusual, but speciﬁes thatet has a smooth density. This rules out the
+counter-example discovered by Andrews (1984).
+
+
+--- page 34 ---
+
+CHAPTER 14. TIME SERIES 475
+The summability condition on the coefﬁcients in part 3 involves a trade-off with the number of mo-
+ments r . If et has all moments ﬁnite (e.g. normal errors) then we can set r = ∞ and this condition
+simpliﬁes to∑∞
+k=1 k |θk |< ∞. For any r the summability condition holds if θj has geometric decay.
+It is instructive to deduce how the decay in the coefﬁcients θj affects the rate for the mixing co-
+efﬁcients α(ℓ). If
+⏐⏐θj
+⏐
+⏐ ≤ O
+(
+j −η)
+then ∑∞
+j =k
+⏐
+⏐θj
+⏐
+⏐ ≤ O
+(
+k−(η−1)
+)
+so the rate is α(ℓ) ≤ 4β(ℓ) ≤ O (ℓ−s) for
+s =
+(
+η − 1
+)
+r /(1 + r ) − 1. Mixing requires s > 0, which holds for sufﬁciently largeη. For example, if r = 4 it
+holds for η > 9/4.
+The primary message from this section is that linear processes, including autoregressive and ARMA
+processes, are mixing if the innovations satisfy suitable conditions. The mixing coefﬁcients decay at rates
+related to the decay rates of the moving average coefﬁcients.
+14.29 Identiﬁcation
+The parameters of a model are identiﬁed if the parameters are uniquely determined by the proba-
+bility distribution of the observations. In the case of linear time series analysis we typically focus on the
+second moments of the observations (means, variances, covariances). We therefore say that the coef-
+ﬁcients of a stationary MA, AR, or ARMA model are identiﬁed if they are uniquely determined by the
+autocorrelation function. That is, given the autocorrelation function ρ(k), are the coefﬁcients unique?
+It turns out that the answer is that MA and ARMA models are generally not identiﬁed. Identiﬁcation is
+achieved by restricting the class of polynomial operators. In contrast, AR models are generally identiﬁed.
+Let us start with the MA(1) model
+Yt = et + θet −1.
+It has ﬁrst-order autocorrelation
+ρ(1) = θ
+1 + θ2 .
+Set ω = 1/θ. Then
+ω
+1 + ω2 = 1/ω
+1 + (1/ω)2 = θ
+1 + θ2 = ρ(1).
+Thus the MA(1) model with coefﬁcientω = 1/θ produces the same autocorrelations as the MA(1) model
+with coefﬁcient θ. For example, θ = 1/2 and ω = 2 each yield ρ(1) = 2/5. There is no empirical way to
+distinguish between the modelsYt = et +θet −1 and Yt = et +ωet −1. Thus the coefﬁcientθ is not identiﬁed.
+The standard solution is to select the parameter which produces an invertible moving average poly-
+nomial. Since there is only one such choice this yields a unique solution. This may be sensible when
+there is reason to believe that shocks have their primary impact in the contemporaneous period and
+secondary (lesser) impact in the second period.
+Now consider the MA(2) model
+Yt = et + θ1et −1 + θ2et −2.
+The moving average polynomial can be factored as
+θ(z) =
+(
+1 − β1z
+) (
+1 − β2z
+)
+so that β1β2 = θ2 and β1 + β2 = −θ1. The process has ﬁrst- and second-order autocorrelations
+ρ(1) = θ1 + θ1θ2
+1 + θ2
+1 + θ2
+2
+=
+−β1 − β2 − β2
+1β2 − β1β2
+2
+1 + β2
+1 + β2
+2 + 2β1β2 + β2
+1β2
+2
+ρ(2) = θ2
+1 + θ2
+1 + θ2
+2
+= β1β2
+1 + β2
+1 + β2
+2 + 2β1β2 + β2
+1β2
+2
+.
+
+
+--- page 35 ---
+
+CHAPTER 14. TIME SERIES 476
+If we replace β1 with ω1 = 1/β1 we obtain
+ρ(1) =
+−1/β1 − β2 − β2/β2
+1 − β2
+2/β1
+1 + 1/β2
+1 + β2
+2 + 2β2/β1 + β2
+2/β2
+1
+=
+−β1 − β2β2
+1 − β2 − β2
+2β1
+β2
+1 + 1 + β2
+2β2
+1 + 2β2β1 + β2
+2
+ρ(2) = β2/β1
+1 + 1/β2
+1 + β2
+2 + 2β2/β1 + β2
+2/β2
+1
+= β1β2
+β2
+1 + 1 + β2
+1β2
+2 + 2β1β2 + β2
+2
+which is unchanged. Similarly if we replace β2 with ω2 = 1/β2 we obtain unchanged ﬁrst- and second-
+order autocorrelations. It follows that in the MA(2) model the factors β1 and β2 nor the coefﬁcients θ1
+and θ2 are identiﬁed. Consequently there are four distinct MA(2) models which are identiﬁably indistin-
+guishable.
+This analysis extends to the MA(q) model. The factors of the MA polynomial can be replaced by their
+inverses and consequently the coefﬁcients are not identiﬁed.
+The standard solution is to conﬁne attention to MA(q) models with invertible roots. This techni-
+cally solves the identiﬁcation dilemma. This solution corresponds to the Wold decomposition, since it is
+deﬁned in terms of the projection errors which correspond to the invertible representation.
+A deeper identiﬁcation failure occurs in ARMA models. Consider an ARMA(1,1) model
+Yt = αYt −1 + et + θet −1.
+Written in lag operator notation
+(1 − αL)Yt = (1 + θL)et .
+The identiﬁcation failure is that when α = −θ then the model simpliﬁes to Yt = et . This means that the
+continuum of models with α = −θ are all identical and the coefﬁcients are not identiﬁed.
+This extends to higher order ARMA models. Take the ARMA(2,2) model written in factored lag oper-
+ator notation
+(1 − α1L)(1 − α2L)Yt = (1 + θ1L)(1 + θ2L)et .
+The models with α1 = −θ1, α1 = −θ2, α2 = −θ1, or α2 = −θ2 all simplify to an ARMA(1,1). Thus all these
+models are identical and hence the coefﬁcients are not identiﬁed.
+The problem is called “cancelling roots” due to the fact that it arises when there are two identical lag
+polynomial factors in the AR and MA polynomials.
+The standard solution in the ARMA literature is to assume that there are no cancelling roots. The
+trouble with this solution is that this is an assumption about the true process which is unknown. Thus it
+is not really a solution to the identiﬁcation problem. One recommendation is to be careful when using
+ARMA models and be aware that highly parameterized models may not have unique coefﬁcients.
+Now consider the AR(p) model (14.38). It can be written as
+Yt = X ′
+t α + et (14.44)
+where α = (α0, α1, ...αp)′ and Xt = (1,Yt −1, ...,Yt −p)′. The MDS assumption implies that E[et ] = 0 and
+E[Xt et ] = 0. This means that the coefﬁcientα satisﬁes
+α =
+(
+E
+[
+Xt X ′
+t
+])−1 (E[Xt Yt ]). (14.45)
+This equation is unique if Q = E
+[
+Xt X ′
+t
+]
+is positive deﬁnite. It turns out that this is generically true soα is
+unique and identiﬁed.
+
+
+--- page 36 ---
+
+CHAPTER 14. TIME SERIES 477
+Theorem 14.27 In the AR(p) model (14.38), if 0 < σ2 < ∞ then Q > 0 and α is
+unique and identiﬁed.
+The assumption σ2 > 0 means that Yt is not purely deterministic.
+We can extend this result to approximating AR(p) models. That is, consider the equation (14.44)
+without the assumption that Yt is necessarily a true AR(p) with a MDS error. Instead, suppose that Yt
+is a non-deterministic stationary process. (Recall, non-deterministic means that σ2 > 0 where σ2 is the
+projection error variance (14.19).) We then deﬁne the coefﬁcientα as the best linear predictor, which is
+(14.45). The error et is deﬁned by the equation (14.44). This is a linear projection model.
+As in the case of any linear projection, the erroret satisﬁesE[Xt et ] = 0. This means that E[et ] = 0 and
+E
+[
+Yt −j et
+]
+= 0 for j = 1, ...,p. However, the error et is not necessarily a MDS nor white noise.
+The coefﬁcientα is identiﬁed ifQ > 0. The proof of Theorem 14.27 (presented in Section 14.47) does
+not make use of the assumption thatYt is an AR(p) with a MDS error. Rather, it only uses the assumption
+that σ2 > 0. This holds in the approximate AR(p) model as well under the assumption that Yt is non-
+deterministic. We conclude that any approximating AR(p) is identiﬁed.
+Theorem 14.28 If Yt is strictly stationary, not purely deterministic, and
+E
+[
+Y 2
+t
+]
+< ∞, then for any p, Q = E
+[
+Xt X ′
+t
+]
+> 0 and thus the coefﬁcient vector
+(14.45) is identiﬁed.
+14.30 Estimation of Autoregressive Models
+We consider estimation of an AR(p) model for stationary, ergodic, and non-deterministic Yt . The
+model is (14.44) where Xt = (1,Yt −1, ...,Yt −p)′. The coefﬁcient α is deﬁned by projection in (14.45). The
+error is deﬁned by (14.44) and has variance σ2 = E
+[
+e2
+t
+]
+. This allows Yt to follow a true AR(p) process but
+it is not necessary.
+The least squares estimator is
+ˆα =
+( n∑
+t =1
+Xt X ′
+t
+)−1 ( n∑
+t =1
+Xt Yt
+)
+.
+This notation presumes that there are n + p total observations on Yt from which the ﬁrst p are used
+as initial conditions so that X1 = (1,Y0,Y−1,..., Y−p+1) is deﬁned. Effectively, this redeﬁnes the sample
+period. (An alternative notational choice is to deﬁne the periods so the sums range from observations
+p + 1 to n.)
+The least squares residuals areˆet = Yt −X ′
+t ˆα. The error variance can be estimated by ˆσ2 = n−1 ∑n
+t =1 ˆe2
+t
+or s2 =
+(
+n − p − 1
+)−1 ∑n
+t =1 ˆe2
+t .
+If Yt is strictly stationary and ergodic then so areXt X ′
+t and Xt Yt . They have ﬁnite means ifE
+[
+Y 2
+t
+]
+< ∞.
+Under these assumptions the Ergodic Theorem implies that
+1
+n
+n∑
+t =1
+Xt Yt − →p E[Xt Yt ] (14.46)
+
+
+--- page 37 ---
+
+CHAPTER 14. TIME SERIES 478
+and
+1
+T
+T∑
+t =1
+Xt X ′
+t − →p E
+[
+Xt X ′
+t
+]
+= Q.
+Theorem 14.28 shows that Q > 0. Combined with the continuous mapping theorem we see that
+ˆα =
+(
+1
+T
+T∑
+t =1
+Xt X ′
+t
+)−1 (
+1
+T
+T∑
+t =1
+Xt Yt
+)
+− →p
+(
+E
+[
+Xt X ′
+t
+])−1 E[Xt Yt ] = α.
+It is straightforward to show that ˆσ2 is consistent as well.
+Theorem 14.29 If Yt is strictly stationary, ergodic, not purely deterministic,
+and E
+[
+Y 2
+t
+]
+< ∞, then for any p, ˆα − →p α and ˆσ2 − →p σ2 as n → ∞.
+This shows that under very mild conditions the coefﬁcients of an AR(p) model can be consistently es-
+timated by least squares. Once again, this does not require that the seriesYt is actually an AR(p) process.
+It holds for any stationary process with the coefﬁcient deﬁned by projection.
+14.31 Asymptotic Distribution of Least Squares Estimator
+The asymptotic distribution of the least squares estimator ˆα depends on the stochastic assumptions.
+In this section we derive the asymptotic distribution under the assumption of correct speciﬁcation.
+Speciﬁcally, we assume that the erroret is a MDS. An important implication of the MDS assumption
+is that since Xt = (1,Yt −1, ...,Yt −p)′ is part of the information set Ft −1, by the conditioning theorem,
+E[Xt et |Ft −1] = Xt E[et |Ft −1] = 0.
+Thus Xt et is a MDS. It has a ﬁnite variance if et has a ﬁnite fourth moment. To see this, by Theorem
+14.24, Yt = µ + ∑∞
+j =0 b j et −j with ∑∞
+j =0
+⏐⏐b j
+⏐
+⏐ < ∞. Using Minkowski’ s Inequality,
+(
+E |Yt |4)1/4
+≤
+∞∑
+j =0
+⏐
+⏐b j
+⏐
+⏐
+(
+E
+⏐
+⏐et −j
+⏐
+⏐4)1/4
+< ∞.
+Thus E
+[
+Y 4
+t
+]
+< ∞. The Cauchy-Schwarz inequality then shows that E ∥Xt et ∥2 < ∞. We can then apply the
+martingale difference CLT (Theorem 14.11) to see that
+1
+pn
+n∑
+t =1
+Xt et − →
+d
+N(0, Σ)
+where Σ = E
+[
+Xt X ′
+t e2
+t
+]
+.
+Theorem 14.30 If Yt follows the AR(p) model (14.38), all roots of a(z) lie out-
+side the unit circle, E[et |Ft −1] = 0, E
+[
+e4
+t
+]
+< ∞, and E
+[
+e2
+t
+]
+> 0, then as n → ∞,pn ( ˆα − α) − →
+d
+N(0,V ) where V = Q −1ΣQ −1.
+This is identical in form to the asymptotic distribution of least squares in cross-section regression.
+The implication is that asymptotic inference is the same. In particular, the asymptotic covariance matrix
+is estimated just as in the cross-section case.
+
+
+--- page 38 ---
+
+CHAPTER 14. TIME SERIES 479
+14.32 Distribution Under Homoskedasticity
+In cross-section regression we found that the covariance matrix simpliﬁes under the assumption of
+conditional homoskedasticity. The same occurs in the time series context. Assume that the error is a
+homoskedastic MDS:
+E[et |Ft −1] = 0
+E
+[
+e2
+t |Ft −1
+]
+= σ2.
+In this case
+Σ = E
+[
+Xt X ′
+t E
+[
+e2
+t |Ft −1
+]]
+= Qσ2
+and the asymptotic distribution simpliﬁes.
+Theorem 14.31 Under the assumptions of Theorem 14.30, if in addition
+E
+[
+e2
+t |Ft −1
+]
+= σ2, then as n → ∞, pn ( ˆα − α) − →
+d
+N
+(
+0,V 0)
+where V 0 = σ2Q −1.
+These results show that under correct speciﬁcation (a MDS error) the format of the asymptotic dis-
+tribution of the least squares estimator exactly parallels the cross-section case. In general the covariance
+matrix takes a sandwich form with components exactly equal to the cross-section case. Under condi-
+tional homoskedasticity the covariance matrix simplies exactly as in the cross-section case.
+A particularly useful insight which can be derived from Theorem 14.31 is to focus on the simple AR(1)
+with no intercept. In this case Q = E
+[
+Y 2
+t
+]
+= σ2/(1 − α2
+1) so the asymptotic distribution simpliﬁes to
+p
+n ( ˆα1 − α1) − →
+d
+N
+(
+0, 1− α2
+1
+)
+.
+Thus the asymptotic variance depends only onα1 and is decreasing withα2
+1. An intuition is that largerα2
+1
+means greater signal and hence greater estimation precision. This result also shows that the asymptotic
+distribution is non-similar: the variance is a function of the parameter of interest. This means that we
+can expect (from advanced statistical theory) asymptotic inference to be less accurate than indicated by
+nominal levels.
+In the context of cross-section data we argued that the homoskedasticity assumption was dubious ex-
+cept for occassional theoretical insight. For practical applications it is recommended to use heteroskedasticity-
+robust theory and methods when possible. The same argument applies to the time series case. While
+the distribution theory simpliﬁes under conditional homoskedasticity there is no reason to expect ho-
+moskedasticity to hold in practice. Therefore in applications it is better to use the heteroskedasticity-
+robust distributional theory when possible.
+Unfortunately, many existing time series textbooks report the distribution theory from (14.31). This
+has inﬂuenced computer software packages many of which also by default (or exclusively) use the ho-
+moskedastic distribution theory. This is unfortunate.
+14.33 Asymptotic Distribution Under General Dependence
+If the AR(p) model (14.38) holds with white noise errors or if the AR(p) is an approximation with α
+deﬁned as the best linear predictor then the MDS central limit theory does not apply. Instead, if Yt is
+strong mixing we can use the central limit theory for mixing processes (Theorem 14.15).
+
+
+--- page 39 ---
+
+CHAPTER 14. TIME SERIES 480
+Theorem 14.32 Assume that Yt is strictly stationary, ergodic, and for somer >
+4, E |Yt |r < ∞ and the mixing coefﬁcients satisfy ∑∞
+ℓ=1 α(ℓ)1−4/r < ∞. Let α be
+deﬁned as the best linear projection coefﬁcients (14.45) from an AR(p) model
+with projection errors et . Let ˆα be the least squares estimator of α. Then
+Ω =
+∞∑
+ℓ=−∞
+E
+[
+Xt −ℓX ′
+t et et −ℓ
+]
+is convergent and pn ( ˆα − α) − →
+d
+N(0,V ) as n → ∞, where V = Q −1ΩQ −1.
+This result is substantially different from the cross-section case. It shows that model misspeciﬁcation
+(including misspecifying the order of the autoregression) renders invalid the conventional “heteroskedasticity-
+robust” covariance matrix formula. Misspeciﬁed models do not have unforecastable (martingale differ-
+ence) errors so the regression scores Xt et are potentially serially correlated. The asymptotic variance
+takes a sandwich form with the central component Ω the long-run variance (recall Section 14.13) of the
+regression scores Xt et .
+14.34 Covariance Matrix Estimation
+Under the assumption of correct speciﬁcation covariance matrix estimation is identical to the cross-
+section case. The asymptotic covariance matrix estimator under homoskedasticity is
+ˆV
+0
+= ˆσ2 ˆQ
+−1
+ˆQ = 1
+n
+n∑
+t =1
+Xt X ′
+t
+The estimator s2 may be used instead of ˆσ2.
+The heteroskedasticity-robust asymptotic covariance matrix estimator is
+ˆV = ˆQ
+−1 ˆΣ ˆQ
+−1
+(14.47)
+where
+ˆΣ = 1
+n
+n∑
+t =1
+Xt X ′
+t ˆe2
+t .
+Degree-of-freedom adjustments may be made as in the cross-section case though a theoretical justiﬁca-
+tion has not been developed in the time series case.
+Standard errorss
+(
+ˆαj
+)
+for individual coefﬁcient estimates can be formed by taking the scaled diagonal
+elements of ˆV .
+Theorem 14.33 Under the assumptions of Theorem 14.32, as n → ∞, ˆV − →p V
+and
+(
+ˆαj − αj
+)
+/s( ˆαj ) − →
+d
+N(0, 1).
+Theorem 14.33 shows that standard covariance matrix estimation is consistent and the resulting t-
+ratios are asymptotically normal. This means that for stationary autoregressions, inference can proceed
+using conventional regression methods.
+
+
+--- page 40 ---
+
+CHAPTER 14. TIME SERIES 481
+14.35 Covariance Matrix Estimation Under General Dependence
+Under the assumptions of Theorem 14.32 the conventional covariance matrix estimators are incon-
+sistent as they do not capture the serial dependence in the regression scores Xt et . To consistently esti-
+mate the covariance matrix we need an estimator of the long-run variance Ω. The appropriate class of
+estimators are called Heteroskedasticity and Autocorrelation Consistent (HAC) or Heteroskedasticity
+and Autocorrelation Robust (HAR) covariance matrix estimators.
+To understand the methods it is helpful to deﬁne the vector series ut = Xt et and autocovariance
+matrices Γ(ℓ) = E
+[
+ut −ℓu′
+t
+]
+so that
+Ω =
+∞∑
+ℓ=−∞
+Γ(ℓ).
+Since this sum is convergent the autocovariance matrices converge to zero as ℓ → ∞. Therefore Ω can
+be approximated by taking a ﬁnite sum of autocovariances such as
+ΩM =
+M∑
+ℓ=−M
+Γ(ℓ).
+The number M is sometimes called the lag truncation number. Other authors call it the bandwidth. An
+estimator of Γ(ℓ) is
+ˆΓ(ℓ) = 1
+n
+∑
+1≤t −ℓ≤n
+ˆut −ℓ ˆu′
+t
+where ˆut = Xt ˆet . By the ergodic theorem we can show that for any ℓ, ˆΓ(ℓ) − →p Γ(ℓ). Thus for any ﬁxedM,
+the estimator
+ˆΩM =
+M∑
+ℓ=−M
+ˆΓ(ℓ) (14.48)
+is consistent for ΩM .
+If the serial correlation in Xt et is known to be zero after M lags, then ΩM = Ω and the estimator
+(14.48) is consistent for Ω. This estimator was proposed by L. Hansen and Hodrick (1980) in the context
+of multiperiod forecasts and by L. Hansen (1982) for the generalized method of moments.
+In the general case we can select M to increase with sample size n. If the rate at which M increases is
+sufﬁciently slow then ˆΩM will be consistent for Ω as ﬁrst shown by White and Domowitz (1984).
+Once we view the lag truncation number M as a choice the estimator (14.48) has two potential de-
+ﬁciencies. One is that ˆΩM can change non-smoothly with M which makes estimation results sensitive
+to the choice of M. The other is that ˆΩM may not be positive semi-deﬁnite and is therefore not a valid
+covariance matrix estimator. We can see this in the simple case of scalar ut and M = 1. In this case
+ˆΩ1 = ˆγ(0)
+(
+1 + 2 ˆρ(1)
+)
+which is negative when ˆρ(1) < −1/2. Thus if the data are strongly negatively autocor-
+related the variance estimator can be negative. A negative variance estimator means that standard errors
+are ill-deﬁned (a naïve computation will produce a complex standard error which makes no sense5).
+These two deﬁciencies can be resolved if we amend (14.48) by a weighted sum of autocovariances.
+Newey and West (1987b) proposed
+ˆΩnw =
+M∑
+ℓ=−M
+(
+1 − |ℓ|
+M + 1
+)
+ˆΓ(ℓ). (14.49)
+5A common computational mishap is a complex standard error. This occurs when a covariance matrix estimator has nega-
+tive elements on the diagonal.
+
+
+--- page 41 ---
+
+CHAPTER 14. TIME SERIES 482
+This is a weighted sum of the autocovariances. Other weight functions can be used; the one in (14.49)
+is known as the Bartlett kernel 6. Newey and West (1987b) showed that this estimator has the algebraic
+property that ˆΩnw ≥ 0 (it is positive semi-deﬁnite), solving the negative variance problem, and it is also a
+smooth function of M. Thus this estimator solves the two problems described above.
+For ˆΩnw to be consistent forΩ the lag trunction numberM must increase to inﬁnity withn. Sufﬁcient
+conditions were established by B. E. Hansen (1992).
+Theorem 14.34 Under the assumptions of Theorem 14.32 plus∑∞
+ℓ=1 α(ℓ)1/2−4/r < ∞, if M → ∞ yet M 3/n = O(1), then as n → ∞, ˆΩnw − →p Ω.
+The assumption M 3/n = O(1) technically means that M grows no faster than n1/3 but this does not
+have a practical counterpart other than the implication that “M should be much smaller than n” .
+A important practical issue is how to select M. One way to think about it is that M impacts the pre-
+cision of the estimator ˆΩnw through its bias and variance. Since ˆΓ(ℓ) is a sample average its variance is
+O (1/n) so we expect the variance of ˆΩM to be of order O (M/n). The bias of ˆΩnw for Ω is harder to cal-
+culate but depends on the rate at which the covariances Γ(ℓ) decay to zero. Andrews (1991b) found that
+the M which minimizes the mean squared error of ˆΩnw satisﬁes the rateM = C n1/3 where the constantC
+depends on the autocovariances. Practical rules to estimate and implement this optimal lag truncation
+parameter have been proposed by Andrews (1991b) and Newey and West (1994). Andrews’ rule for the
+Newey-West estimator (14.49) can be written as
+M =
+(
+6 ρ2
+(
+1 − ρ2)2
+)1/3
+n1/3 (14.50)
+where ρ is a serial correlation parameter. When ut is scalar ρ is the ﬁrst autocorrelation of ut . Andrews
+suggested using an estimator of ρ to plug into this formula to ﬁnd M. An alternative is to use a default
+value of ρ. For example, if we setρ = 0.25 or ρ = 0.5 then the Andrews rule isM = 0.75n1/3 or M = 1.4n1/3.
+14.36 Testing the Hypothesis of No Serial Correlation
+In some cases it may be of interest to test the hypothesis that the series Yt is serially uncorrelated
+against the alternative that it is serially correlated. There have been many proposed tests of this hypoth-
+esis. The most appropriate is based on the least squares regression of an AR(p) model. Take the model
+Yt = α0 + α1Yt −1 + α2Yt −2 + · · · +αpYt −p + et
+with et a MDS. In this model the series Yt is serially uncorrelated if the slope coefﬁcients are all zero.
+Thus the hypothesis of interest is
+H0 : α1 = · · · =αp = 0
+H1 : αj ̸= 0 for some j ≥ 1.
+6See Andrews (1991b) for a description of popular options. In practice, the choice of weight function is much less important
+than the choice of lag truncation number M.
+
+
+--- page 42 ---
+
+CHAPTER 14. TIME SERIES 483
+The test can be implemented by a Wald or F test. Estimate the AR(p) model by least squares. Form
+the Wald or F statistic using the variance estimator (14.47). (The Newey-West estimator should not be
+used as there is no serial correlation under the null hypothesis.) Accept the hypothesis if the test statistic
+is smaller than a conventional critical value (or if the p-value exceeds the signiﬁcance level) and reject
+the hypothesis otherwise.
+Implementation of this test requires a choice of autoregressive orderp. This choice affects the power
+of the test. A sufﬁcient number of lags should be included so to pick up potential serial correlation
+patterns but not so many that the power of the test is diluted. A reasonable choice in many applications
+is to set p to equals s, the seasonal periodicity. Thus include four lags for quarterly data or twelve lags for
+monthly data.
+14.37 Testing for Omitted Serial Correlation
+When using an AR(p) model it may be of interest to know if there is any remaining serial correlation.
+This can be expressed as a test for serial correlation in the error or equivalently as a test for a higher-order
+autogressive model.
+Take the AR(p) model
+Yt = α0 + α1Yt −1 + α2Yt −2 + · · · +αpYt −p + ut . (14.51)
+The null hypothesis is that ut is serially uncorrelated and the alternative hypothesis is that it is serially
+correlated. We can model the latter as a mean-zero autoregressive process
+ut = θ1ut −1 + · · · +θq ut −q + et . (14.52)
+The hypothesis is
+H0 : θ1 = · · · =θq = 0
+H1 : θj ̸= 0 for some j ≥ 1.
+A seemingly natural test for H0 uses a two-step method. First estimate (14.51) by least squares and
+obtain the residuals ˆut . Second, estimate (14.52) by least squares by regressing ˆut on its lagged values
+and obtain the Wald or F test for H0. This seems like a natural approach but it is muddled by the fact
+that the distribution of the Wald statistic is distorted by the two-step procedure. The Wald statistic is not
+asymptotically chi-square so it is inappropriate to make a decision based on the conventional critical
+values. One approach to obtain the correct asymptotic distribution is to use the generalized method of
+moments treating (14.51)-(14.52) as a two-equation just-identiﬁed system.
+An easier solution is to re-write (14.51)-(14.52) as a higher-order autoregression so that we can use a
+standard test statistic. To illustrate how this works take the case q = 1. Take (14.51) and lag the equation
+once:
+Yt −1 = α0 + α1Yt −2 + α2Yt −3 + · · · +αpYt −p−1 + ut −1.
+Multiply this by θ1 and subtract from (14.51) to ﬁnd
+Yt − θ1Yt −1 = α0 + α1Yt −1 + α2Yt −2 + · · · +αpYt −p + ut
+− θ1α0 − θ1α1Yt −2 − θ1α2Yt −3 − · · · −θ1αpYt −p−1 − θ1ut −1
+or
+Yt = α0(1 − θ1) + (α1 + θ1)Yt −1 + (α2 − θ1α1)Yt −2 + · · · −θ1αpYt −p−1 + et .
+
+
+--- page 43 ---
+
+CHAPTER 14. TIME SERIES 484
+This is an AR(p+1). It simpliﬁes to an AR(p) whenθ1 = 0. Thus H0 is equivalent to the restriction that the
+coefﬁcient onYt −p−1 is zero.
+Thus testing the null hypothesis of an AR(p) (14.51) against the alternative that the error is an AR(1)
+is equivalent to testing an AR(p) against an AR(p+1). The latter test is implemented as a Wald (or F) test
+on the coefﬁcient onYt −p−1.
+More generally, testing the null hypothesis of an AR(p) (14.51) against the alternative that the error is
+an AR(q) is equivalent to testing thatYt is an AR(p) against the alternative thatYt is an AR(p+q). The latter
+test is implemented as a Wald (or F) test on the coefﬁcients onYt −p−1,..., Yt −p−1. If the statistic is smaller
+than the critical values (or the p-value is larger than the signiﬁcance level) then we reject the hypothesis
+that the AR(p) is correctly speciﬁed in favor of the alternative that there is omitted serial correlation.
+Otherwise we accept the hypothesis that the AR(p) model is correctly speciﬁed.
+Another way of deriving the test is as follows. Write (14.51) and (14.52) using lag operator notation
+α(L)Yt = α0 +ut with θ(L)ut = et . Applying the operator θ(L) to the ﬁrst equation we obtainθ(L)α(L)Yt =
+α∗
+0 + et where α∗
+0 = θ(1)α0. The product θ(L)α(L) is a polynomial of order p + q so Yt is an AR(p+q).
+While this discussion is all good fun, it is unclear if there is good reason to use the test described
+in this section. Economic theory does not typically produce hypotheses concerning the autoregressive
+order. Consequently there is rarely a case where there is scientiﬁc interest in testing, say, the hypothesis
+that a series is an AR(4) or any other speciﬁc autoregressive order. Instead, practitioners tend to use
+hypothesis tests for another purpose – model selection. That is, in practice users want to know “What
+autoregressive model should be used” in a speciﬁc application and resort to hypothesis tests to aid in this
+decision. This is an inappropriate use of hypothesis tests because tests are designed to provide answers
+to scientiﬁc questions rather than being designed to select models with good approximation properties.
+Instead, model selection should be based on model selection tools. One is described in the following
+section.
+14.38 Model Selection
+What is an appropriate choice of autoregressive order p? This is the problem of model selection.
+A good choice is to minimize the Akaike information criterion (AIC)
+AIC(p) = n log ˆσ2(p) + 2p
+where ˆσ2(p) is the estimated residual variance from an AR(p). The AIC is a penalized version of the
+Gaussian log-likelihood function for the estimated regression model. It is an estimator of the divergence
+between the ﬁtted model and the true conditional density (see Section 28.4). By selecting the model with
+the smallest value of the AIC you select the model with the smallest estimated divergence – the highest
+estimated ﬁt between the estimated and true densities.
+The AIC is also a monotonic transformation of an estimator of the one-step-ahead forecast mean
+squared error. Thus selecting the model with the smallest value of the AIC you are selecting the model
+with the smallest estimated forecast error.
+One possible hiccup in computing the AIC criterion for multiple models is that the sample size avail-
+able for estimation changes as p changes. (If you increase p, you need more initial conditions.) This
+renders AIC comparisons inappropriate. The same sample – the same number of observations – should
+be used for estimation of all models. The appropriate remedy is to ﬁx a upper value
+p, and then reserve
+the ﬁrstp as initial conditions. Then estimate the models AR(1), AR(2), ..., AR(p) on this (uniﬁed) sample.
+The AIC of an estimated regression model can be displayed in Stata by using the estimates stats
+command.
+
+
+--- page 44 ---
+
+CHAPTER 14. TIME SERIES 485
+14.39 Illustrations
+We illustrate autoregressive estimation with three empirical examples using U.S. quarterly time series
+from the FRED-QD data ﬁle.
+Table 14.1: U.S. GDP AR Models
+AR(0) AR(1) AR(2) AR(3) AR(4)
+α0 0.65 0.40 0.34 0.34 0.34
+(0.06) (0.08) ( 0.10) ( 0.10) ( 0.11)
+[0.09] [0.08] [0.09] [0.09] [0.09]
+α1 0.39 0.34 0.33 0.34
+(0.09) ( 0.10) ( 0.10) ( 0.10)
+[0.10] [0.10] [0.10] [0.10]
+α2 0.14 0.13 0.13
+(0.11) (0.13) (0.14)
+[0.10] [0.10] [0.11]
+α3 0.02 0.03
+(0.11) (0.12)
+[0.07] [0.09]
+α4 −0.02
+(0.12)
+[0.13]
+AIC 329 306 305 307 309
+1. Standard errors robust to heteroskedasticity in parenthesis.
+2. Newey-West standard errors in square brackets, with M = 5.
+The ﬁrst example is real GDP growth rates (growth rate ofgdpc1). We estimate autoregressive models
+of order 0 through 4 using the sample from 1980-20177. This is a commonly estimated model in applied
+macroeconomic practice and is the empirical version of the Samuelson multiplier-accelerator model
+discussed in Section 14.24. The coefﬁcient estimates, conventional (heteroskedasticity-robust) standard
+errors, Newey-West (with M = 5) standard errors, and AIC, are displayed in Table 14.1. This sample has
+152 observations. The model selected by the AIC criterion is the AR(2). The estimated model has positive
+and small values for the ﬁrst two autoregressive coefﬁcients. This means that quarterly output growth
+rates are positively correlated from quarter to quarter, but only mildly so, and most of the correlation is
+captured by the ﬁrst lag. The coefﬁcients of this model are in the real section of Figure 14.8, meaning
+that the dynamics of the estimated model do not display oscillations. The coefﬁcients of the estimated
+AR(4) model are nearly identical to the AR(2) model. The conventional and Newey-West standard errors
+are somewhat different from one another for the AR(0) and AR(4) models, but are nearly identical to one
+another for the AR(1) and AR(2) models
+Our second example is real non-durables consumption growth rates (growth rate of pcndx). This is
+motivated by an inﬂuential paper by Robert Hall (1978) who argued that the permanent income hypoth-
+esis implies that changes in consumption should be unpredictable (martingale differences). To test this
+7This sub-sample was used for estimation as it has been argued that the growth rate of U.S. GDP slowed around this period.
+The goal was to estimate the model over a period of time when the series is plausibly stationary.
+
+
+--- page 45 ---
+
+CHAPTER 14. TIME SERIES 486
+model Hall (1978) estimated an AR(4) model. Our estimated regression using the full sample (n = 231)
+and heteroskedasticity-robust standard errors is reported in the following equation. Let Ct denote the
+consumption growth rate.
+ˆCt = 0.15
+(0.07)
+Ct −1 + 0.11
+(0.07)
+Ct −2 + 0.13
+(0.07)
+Ct −3 + 0.02
+(0.08)
+Ct −4 + 0.35
+(0.09)
+.
+Hall’ s hypothesis is that all autoregressive coefﬁcients should be zero. We test this joint hypothesis with
+an F statistic and ﬁnd F = 3.32 with a p-value of p = 0.012. This is signiﬁcant at the 5% level and close
+to the 1% level. The ﬁrst three autoregressive coefﬁcients appear to be positive, but small, indicat-
+ing positive serial correlation. This evidence is (mildly) inconsistent with Hall’ s hypothesis. We report
+heteroskedasticity-robust standard errors (not Newey-West standard errors) since the purpose was to
+test the hypothesis of no serial correlation.
+Table 14.2: U.S. Inﬂation AR Models
+AR(1) AR(2) AR(3) AR(4) AR(5)
+α0 0.004 0.003 0.003 0.003 0.003
+(0.034) (0.032) (0.032) (0.032) (0.032)
+[0.023] [0.028] [0.029] [0.031] [0.032]
+α1 −0.26 −0.36 −0.36 −0.36 −0.37
+(0.08) (0.07) (0.07) (0.07) (0.07)
+[0.05] [0.07] [0.07] [0.07] [0.07]
+α2 −0.36 −0.37 −0.42 −0.43
+(0.07) (0.06) (0.06) (0.06)
+[0.06] [0.05] [0.07] [0.07]
+α3 −0.00 −0.06 −0.08
+(0.09) (0.10) (0.11)
+[0.09] [0.12] [0.13]
+α4 −0.16 −0.18
+(0.08) (0.08)
+[0.09] [0.09]
+α5 −0.04
+(0.07)
+[0.06]
+AIC 342 312 314 310 312
+1. Standard errors robust to heteroskedasticity in parenthesis.
+2. Newey-West standard errors in square brackets, with M = 5.
+The third example is the ﬁrst difference of CPI inﬂation (ﬁrst difference of growth rate of cpiaucsl).
+This is motivated by Stock and Watson (2007) who examined forecasting models for inﬂation rates. We
+estimate autoregressive models of order 1 through 8 using the full sample (n = 226); we report models
+1 through 5 in Table 14.2. The model with the lowest AIC is the AR(4). All four estimated autoregressive
+coefﬁcients are negative, most particularly the ﬁrst two. The two sets of standard errors are quite similar
+for the AR(4) model. There are meaningful differences only for the lower order AR models.
+
+
+--- page 46 ---
+
+CHAPTER 14. TIME SERIES 487
+14.40 Time Series Regression Models
+Least squares regression methods can be used broadly with stationary time series. Interpretation and
+usefulness can depend, however, on constructive dynamic speciﬁcations. Furthermore, it is necessary to
+be aware of the serial correlation properties of the series involved, and to use the appropriate covariance
+matrix estimator when the dynamics have not been explicitly modeled.
+Let (Y t , Xt ) be paired observations with Yt the dependent variable and Xt a vector of regressors in-
+cluding an intercept. The regressors can contain laggedYt so this framework includes the autoregressive
+model as a special case. A linear regression model takes the form
+Yt = X ′
+t β + et . (14.53)
+The coefﬁcient vector is deﬁned by projection and therefore equals
+β =
+(
+E
+[
+Xt X ′
+t
+])−1 E[Xt Yt ]. (14.54)
+The error et is deﬁned by (14.53) and thus its properties are determined by that relationship. Implicitly
+the model assumes that the variables have ﬁnite second moments andE
+[
+Xt X ′
+t
+]
+> 0, otherwise the model
+is not uniquely deﬁned and a regressor could be eliminated. By the property of projection the error is
+uncorrelated with the regressors E[Xt et ] = 0.
+The least squares estimator of β is
+ˆβ =
+(
+T∑
+t =1
+Xt X ′
+t
+)−1 (
+T∑
+t =1
+Xt Yt
+)
+.
+Under the assumption that the joint series (Yt , Xt ) is strictly stationary and ergodic the estimator is con-
+sistent. Under the mixing and moment conditions of Theorem 14.32 the estimator is asymptotically
+normal with a general covariance matrix
+However, under the stronger assumption that the error is a MDS the asymptotic covariance matrix
+simpliﬁes. It is worthwhile investigating this condition further. The necessary condition isE[et |Ft −1] =
+0 where Ft −1 is an information set to which (e t −1, Xt ) is adapted. This notation may appear somewhat
+odd but recall in the autoregessive context that Xt = (1,Yt −1,..., Yt −p) contains variables dated time t − 1
+and previously, thus Xt in this context is a “time t − 1” variable. The reason why we need (e t −1, Xt ) to be
+adapted to Ft −1 is that for the regression function X ′
+t β to be the conditional mean of Yt given Ft −1, Xt
+must be part of the information set Ft −1. Under this assumption
+E[Xt et |Ft −1] = Xt E[et |Ft −1] = 0
+so (Xt et , Ft ) is a MDS. This means we can apply the MDS CLT to obtain the asymptotic distribution.
+We summarize this discussion with the following formal statement.
+
+
+--- page 47 ---
+
+CHAPTER 14. TIME SERIES 488
+Theorem 14.35 If (Yt , Xt ) is strictly stationary, ergodic, with ﬁnite second mo-
+ments, and Q = E
+[
+Xt X ′
+t
+]
+> 0, then β in (14.54) is uniquely deﬁned and the least
+squares estimator is consistent, ˆβ − →p β.
+If in addition, E[et |Ft −1] = 0, where Ft −1 is an information set to which
+(et −1, Xt ) is adapted, E |Yt |4 < ∞ , and E ∥Xt ∥4 < ∞, then
+p
+n
+(ˆβ − β
+)
+− →
+d
+N
+(
+0,Q −1ΩQ −1)
+(14.55)
+as n → ∞, where Ω = E
+[
+Xt X ′
+t e2
+t
+]
+.
+Alternatively, if for some r > 4, E |Yt |r < ∞ , E ∥Xt ∥r < ∞, and the mixing coefﬁ-
+cients for (Yt , Xt ) satisfy ∑∞
+ℓ=1 α(ℓ)1−4/r < ∞, then (14.55) holds with
+Ω =
+∞∑
+ℓ=−∞
+E
+[
+Xt −ℓX ′
+t et et −ℓ
+]
+.
+14.41 Static, Distributed Lag, and Autoregressive Distributed Lag Models
+In this section we describe standard linear time series regression models.
+Let (Yt , Zt ) be paired observations with Yt the dependent variable and Zt an observed regressor vec-
+tor which does not include lagged Yt .
+The simplest regression model is the static equation
+Yt = α + Z ′
+t β + et .
+This is (14.53) by setting Xt = (1, Z ′
+t )′. Static models are motivated to describe how Yt and Zt co-move.
+Their advantage is their simplicity. The disadvantage is that they are difﬁcult to interpret. The coefﬁcient
+is the best linear predictor (14.54) but almost certainly is dynamically misspeciﬁed. The regression of
+Yt on contemporeneous Zt is difﬁcult to interpret without a causal framework since the two may be
+simultaneous. If this regression is estimated it is important that the standard errors be calculated using
+the Newey-West method to account for serial correlation in the error.
+A model which allows the regressor to have impact over several periods is called a distributed lag
+(DL) model. It takes the form
+Yt = α + Z ′
+t −1β1 + Z ′
+t −2β2 + · · · +Z ′
+t −q βq + et .
+It is also possible to include the contemporenous regressor Zt . In this model the leading coefﬁcient β1
+represents the initial impact of Zt on Yt , β2 represents the impact in the second period, and so on. The
+cumulative impact is the sum of the coefﬁcientsβ1 + · · · +βq which is called the long-run multiplier.
+The distributed lag model falls in the class (14.53) by setting Xt = (1, Z ′
+t −1, Z ′
+t −2,. .. , Z ′
+t −q )′. While it
+allows for a lagged impact of Zt on Yt , the model does not incorporate serial correlation so the error
+et should be expected to be serially correlated. Thus the model is (typically) dynamically misspeciﬁed
+which can make interpretation difﬁcult. It is also necessary to use Newey-West standard errors to ac-
+count for the serial correlation.
+A more complete model combines autoregressive and distributed lags. It takes the form
+Yt = α0 + α1Yt −1 + · · · +αpYt −p + Z ′
+t −1β1 + · · · +Z ′
+t −q βq + et .
+
+
+--- page 48 ---
+
+CHAPTER 14. TIME SERIES 489
+This is called an autoregressive distributed lag (AR-DL) model. It nests both the autoregressive and
+distributed lag models thereby combining serial correlation and dynamic impact. The AR-DL model
+falls in the class (14.53) by setting Xt = (1,Yt −1, ...,Yt −p, Z ′
+t −1,. .. , Z ′
+t −q )′.
+If the lag orders p and q are selected sufﬁciently large the AR-DL model will have an error which is
+approximately white noise in which case the model can be interpreted as dynamically well-speciﬁed and
+conventional standard error methods can be used.
+In an AR-DL speciﬁcation the long-run multiplier is
+β1 + · · · +βq
+1 − α1 − · · · −αp
+which is a nonlinear function of the coefﬁcients.
+14.42 Time Trends
+Many economic time series have means which change over time. A useful way to think about this is
+the components model
+Yt = Tt + ut
+where Tt is the trend component and ut is the stochastic component. The latter can be modeled by a
+linear process or autoregression
+α(L)ut = et .
+The trend component is often modeled as a linear function in the time index
+Tt = β0 + β1t
+or a quadratic function in time
+Tt = β0 + β1t + β2t 2.
+These models are typically not thought of as being literally true but rather as useful approximations.
+When we write down time series models we write the index as t = 1, ...,n. But in practical applica-
+tions the time index corresponds to a date, e.g. t = 1960,1961,..., 2017. Furtheremore, if the data is at
+a higher frequency than annual then it is incremented in fractional units. This is not of fundamental
+importance; it merely changes the meaning of the interceptβ0 and slope β1. Consequently these should
+not be interpreted outside of how the time index is deﬁned.
+One traditional way of dealing with time trends is to “detrend” the data. This means using an es-
+timation method to estimate the trend and subtract it off. The simplest method is least squares linear
+detrending. Given the linear model
+Yt = β0 + β1t + ut (14.56)
+the coefﬁcients are estimated by least squares. The detrended series is the residual ˆut . More intricate
+methods can be used but they have a similar ﬂavor.
+To understand the properties of the detrending method we can apply an asymptotic approximation.
+A time trend is not a stationary process so we should be thoughtful before applying standard theory. We
+will study asymptotics for non-stationary processes in more detail in Chapter 16 so our treatment here
+will be brief. It turns out that most of our conventional procedures work just ﬁne with time trends (and
+quadratics in time) as regressors. The rates of convergence change but this does not affect anything of
+practical importance.
+
+
+--- page 49 ---
+
+CHAPTER 14. TIME SERIES 490
+Let us demonstrate that the least squares estimator of the coefﬁcients in (14.56) is consistent. We can
+write the estimator as ( ˆβ0 − β0
+ˆβ1 − β1
+)
+=
+( n ∑n
+t =1 t∑n
+t =1 t ∑n
+t =1 t 2
+)−1 ( ∑n
+t =1 ut∑n
+t =1 t ut
+)
+.
+We need to study the behavior of the sums in the design matrix. For this the following result is useful,
+which follows by taking the limit of the Riemann sum for the integral
+∫ 1
+0 xr d x = 1/(1 + r ).
+Theorem 14.36 For any r > 0, as n → ∞, n−1−r ∑n
+t =1 t r − →1/(1 + r ).
+Theorem 14.36 implies that
+1
+n2
+n∑
+t =1
+t → 1
+2
+and
+1
+n3
+n∑
+t =1
+t 2 → 1
+3 .
+What is interesting about these results is that the sums require normalizations other than n−1!
+To handle this in multiple regression it is convenient to deﬁne a scaling matrix which normalizes each
+element in the regression by its convergence rate. Deﬁne the matrix Dn =
+[ 1 0
+0 n
+]
+. The ﬁrst diagonal
+element is the intercept and second for the time trend. Then
+Dn
+( ˆβ0 − β0
+ˆβ1 − β1
+)
+= Dn
+( n ∑n
+t =1 t∑n
+t =1 t ∑n
+t =1 t 2
+)−1
+DnD −1
+n
+( ∑n
+t =1 ut∑n
+t =1 t ut
+)
+=
+(
+D −1
+n
+( n ∑n
+t =1 t∑n
+t =1 t ∑n
+t =1 t 2
+)
+D −1
+n
+)−1 ( ∑n
+t =1 ut
+1
+n
+∑n
+t =1 t ut
+)
+=
+( n 1
+n
+∑n
+t =1 t
+1
+n
+∑n
+t =1 t 1
+n2
+∑n
+t =1 t 2
+)−1 ( ∑n
+i =1 ut
+1
+n
+∑n
+i =1 t ut
+)
+.
+Multiplying by n1/2 we obtain
+( n1/2 (ˆβ0 − β0
+)
+n3/2 (ˆβ1 − β1
+)
+)
+=
+( 1 1
+n2
+∑n
+t =1 t
+1
+n2
+∑n
+t =1 t 1
+n3
+∑n
+t =1 t 2
+)−1 ( 1
+n1/2
+∑n
+t =1 ut
+1
+n3/2
+∑n
+t =1 t ut
+)
+.
+The denominator matrix satisﬁes
+( 1 1
+n2
+∑n
+t =1 t
+1
+n2
+∑n
+t =1 t 1
+n3
+∑n
+t =1 t 2
+)
+→
+( 1 1
+21
+2
+1
+3
+)
+which is invertible. Setting Xnt = (t/n, 1), the numerator vector can be written asn−1/2 ∑n
+t =1 Xnt ut . It has
+variance
+
+var
+[ 1
+n1/2
+n∑
+t =1
+Xnt ut
+]
+ =
+
+
+
+1
+n
+n∑
+t =1
+n∑
+j =1
+Xnt X ′
+n j E
+[
+ut u j
+]
+
+
+
+≤
+p
+2
+∞∑
+ℓ=−∞
+E
+[
+ut u j
+]
+ < ∞
+
+
+--- page 50 ---
+
+CHAPTER 14. TIME SERIES 491
+by Theorem 14.15 if ut satisﬁes the mixing and moment conditions for the central limit theorem. This
+means that the numerator vector isOp(1). (It is also asymptotically normal but we defer this demonstra-
+tion for now.) We conclude that ( n1/2 (ˆβ0 − β0
+)
+n3/2 (ˆβ1 − β1
+)
+)
+= Op(1).
+This shows that both coefﬁcients are consistent,ˆβ0 converges at the standardn1/2 rate, and ˆβ1 converges
+at the faster n3/2 rate. The consistency of the coefﬁcient estimators means that the detrending method
+is consistent.
+An alternative is to include a time trend in the estimated regression. If we have an autoregression, a
+distributed lag, or an AL-DL model, we add a time index to obtain a model of the form
+Yt = α0 + α1Yt −1 + · · · +αpYt −p + Z ′
+t −1β1 + · · · +Z ′
+t −q βq + γt + et .
+Estimation by least squares is equivalent to estimation after linear detrending by the FWL theorem.
+Inclusion of a linear (and possibly quadratic) time trend in a regression model is typically the easiest
+method to incorporate time trends.
+14.43 Illustration
+We illustrate the models described in the previous section using a classical Phillips curve for inﬂa-
+tion prediction. A. W . Phillips (1958) famously observed that the unemployment rate and the wage inﬂa-
+tion rate are negatively correlated over time. Equations relating the inﬂation rate, or the change in the
+inﬂation rate, to macroeconomic indicators such as the unemployment rate are typically described as
+“Phillips curves” . A simple Phillips curve takes the form
+∆πt = α + βUt + et (14.57)
+where πt is price inﬂation and Ut is the unemployment rate. This speciﬁcation relates the change in
+inﬂation in a given period to the level of the unemployment rate in the previous period.
+The least squares estimate of (14.57) using U.S. quarterly series from FRED-QD is reported in the
+ﬁrst column of Table 14.3. Both heteroskedasticity-robust and Newey-West standard errors are reported.
+The Newey-West standard errors are the appropriate choice since the estimated equation is static – no
+modeling of the serial correlation. In this example the measured impact of the unemployment rate on
+inﬂation appears minimal. The estimate is consistent with a small effect of the unemployment rate on
+the inﬂation rate but it is not precisely estimated.
+A distributed lag (DL) model takes the form
+∆πt = α + β1Ut −1 + β2Ut −2 + · · · +βqUt −q + et . (14.58)
+The least squares estimate of (14.58) is reported in the second column of Table 14.3. The estimates are
+quite different from the static model. We see large negative impacts in the ﬁrst and third periods, coun-
+tered by a large positive impact in the second period. The model suggests that the unemployment rate
+has a strong impact on the inﬂation rate but the long-run impact is mitigated. The long-run multiplier
+is reported at the bottom of the column. The point estimate of −0.022 is quite small and similar to the
+static estimate. It implies that an increase in the unemployment rate by 5 percentage points (a typical
+recession) decreases the long-run annual inﬂation rate by about a half of a percentage point.
+An AR-DL takes the form
+∆πt = α0 + α1∆πt −1 + · · · +αp ∆πt −p + β1Ut −1 + · · · +βqUt −q + et . (14.59)
+
+
+--- page 51 ---
+
+CHAPTER 14. TIME SERIES 492
+The least squares estimate of (14.59) is reported in the third column of Table 14.3. The coefﬁcient esti-
+mates are similar to those from the distributed lag model. The point estimate of the long-run multiplier
+is also nearly identical but with a smaller standard error.
+Table 14.3: Phillips Curve Regressions
+Static Model DL Model AR-DL Model
+Ut −0.023
+(0.025)
+[0.017]
+Ut −1 −0.59 −0.62
+(0.20) ( 0.16)
+[0.16] [0.12]
+Ut −2 1.14 0.88
+(0.29) ( 0.25)
+[0.28] [0.21]
+Ut −3 −0.68 −0.36
+(0.22) (0.25)
+[0.25] [0.24]
+Ut −4 0.12 0.05
+(0.11) ( 0.12)
+[0.11] [0.12]
+πt −1 −0.43
+(0.08)
+[0.08]
+πt −2 −0.47
+(0.10)
+[0.09]
+πt −3 −0.14
+(0.10)
+[0.11]
+πt −4 −0.19
+(0.08)
+[0.09]
+Multiplier −0.023 −0.022 −0.021
+[0.017] [0.012] [0.008]
+1. Standard errors robust to heteroskedasticity in parenthesis.
+2. Newey-West standard errors in square brackets with M = 5.
+14.44 Granger Causality
+In the AR-DL model (14.59) the unemployment rate has no predictive impact on the inﬂation rate
+under the coefﬁcient restrictionβ1 = · · · =βq = 0. This restriction is called Granger non-causality. When
+the coefﬁcients are non-zero we say that the unemployment rate “Granger causes” the inﬂation rate. This
+
+
+--- page 52 ---
+
+CHAPTER 14. TIME SERIES 493
+deﬁnition of causality was developed by Granger (1969) and Sims (1972).
+The reason why we call this “Granger causality” rather than “causality” is because this is not a struc-
+tural deﬁnition. An alternative label is “predictive causality” .
+To be precise, assume that we have two series (Yt , Zt ). Consider the projection of Yt onto the lagged
+history of both series
+Yt = P t −1(Yt ) + et
+= α0 +
+∞∑
+j =1
+αj Yt −j +
+∞∑
+j =1
+βj Zt −j + et .
+We say that Zt does not Granger-cause Yt if βj = 0 for all j . If βj ̸= 0 for some j then we say that Zt
+Granger-causes Yt .
+It is important that the deﬁnition includes the projection on the past history ofYt . Granger causality
+means that Zt helps to predict Yt even after the past history of Yt has been accounted for.
+The deﬁnition can alternatively be written in terms of conditional expectations rather than projec-
+tions. We can say that Zt does not Granger-cause Yt if
+E[Yt |Yt −1,Yt −2...; Zt −1, Zt −2, ...] = E[Yt |Yt −1,Yt −2,...].
+Granger causality can be tested in AR-DL models using a standard Wald or F test. In the context of
+model (14.59) we report the F statistic forβ1 = · · · =βq = 0. The test rejects the hypothesis (and thus ﬁnds
+evidence of Granger causality) if the statistic is larger than the critical value (if the p-value is small) and
+fails to reject the hypothesis (and thus ﬁnds no evidence of causality) if the statistic is smaller than the
+critical value.
+For example, in the results presented in Table 14.3 the F statistic for the hypothesis β1 = · · · =β4 = 0
+using the Newey-West covariance matrix is F = 6.98 with a p-value of 0.000. This is statistically signiﬁ-
+cant at any conventional level so we can conclude that the unemployment rate has a predictively causal
+impact on inﬂation.
+Granger causality should not be interpreted structurally outside the context of an economic model.
+For example consider the regression of GDP growth rates Yt on stock price growth rates Rt . We use the
+quarterly series from FRED-QD, estimating an AR-DL speciﬁcation with two lags
+Yt = 0.22
+(0.09)
+Yt −1 + 0.14
+(0.10)
+Yt −2 + 0.03
+(0.01)
+Rt −1 + 0.01
+(0.01)
+Rt −2.
+The coefﬁcients on the lagged stock price growth rates are small in magnitude but the ﬁrst lag appears
+statistically signiﬁcant. The F statistic for exclusion of (R t −1,Rt −2) is F = 9.3 with a p-value of 0.0002,
+which is highly signiﬁcant. We can therefore reject the hypothesis of no Granger causality and deduce
+that stock prices Granger-cause GDP growth. We should be wary of concluding that this is structurally
+causal – that stock market movements cause output ﬂuctuations. A more reasonable explanation from
+economic theory is that stock prices are forward-looking measures of expected future proﬁts. When
+corporate proﬁts are forecasted to rise the value of corporate stock rises, bidding up stock prices. Thus
+stock prices move in advance of actual economic activity but are not necessarily structurally causal.
+
+
+--- page 53 ---
+
+CHAPTER 14. TIME SERIES 494
+Clive W . J. Granger
+Clive Granger (1934-2009) of England was one of the leading ﬁgures in time-
+series econometrics, and co-winner of the 2003 Nobel Memorial Prize in Eco-
+nomic Sciences. In addition to formalizing the deﬁnition of causality known as
+Granger causality, he invented the concept of cointegration, introduced spec-
+tral methods into econometrics, and formalized methods for the combination
+of forecasts.
+14.45 Testing for Serial Correlation in Regression Models
+Consider the problem of testing for omitted serial correlation in an AR-DL model such as
+Yt = α0 + α1Yt −1 + · · · +αpYt −p + β1Zt −1 + · · · +βq Zt −q + ut . (14.60)
+The null hypothesis is that ut is serially uncorrelated and the alternative hypothesis is that it is serially
+correlated. We can model the latter as a mean-zero autoregressive process
+ut = θ1ut −1 + · · · +θr ut −r + et . (14.61)
+The hypothesis is
+H0 : θ1 = · · · =θr = 0
+H1 : θj ̸= 0 for some j ≥ 1.
+There are two ways to implement a test of H0 against H1. The ﬁrst is to estimate equations (14.60)-
+(14.61) sequentially by least squares and construct a test for H0 on the second equation. This test is
+complicated by the two-step estimation. Therefore this approach is not recommended.
+The second approach is to combine equations (14.60)-(14.61) into a single model and execute the test
+as a restriction within this model. One way to make this combination is by using lag operator notation.
+Write (14.60)-(14.61) as
+α(L)Yt = α0 + β(L)Zt −1 + ut
+θ(L)ut = et
+Applying the operator θ(L) to the ﬁrst equation we obtain
+θ(L)α(L)Yt = θ(L)α0 + θ(L)β(L)Zt −1 + θ(L)ut
+or
+α∗(L)Yt = α∗
+0 + β∗(L)Zt −1 + et
+where α∗(L) is a p + r order polynomial and β∗(L) is a q + r order polynomial. The restriction H0 is that
+these are p and q order polynomials. Thus we can implement a test of H0 against H1 by estimating an
+AR-DL model with p + r and q + r lags, and testing the exclusion of the ﬁnalr lags of Yt and Zt . This test
+has a conventional asymptotic distribution so is simple to implement.
+The basic message is that testing for omitted serial correlation can be implement in regression mod-
+els by estimating and contrasting different dynamic speciﬁcations.
+
+
+--- page 54 ---
+
+CHAPTER 14. TIME SERIES 495
+14.46 Bootstrap for Time Series
+Recall that the bootstrap approximates the sampling distribution of estimators and test statistics by
+the empirical distribution of the observations. The traditional non-parametric bootstrap is appropriate
+for independent observations. For dependent observations alternative methods should be used.
+Bootstrapping for time series is considerably more complicated than the cross section case. Many
+methods have been proposed. One of the challenges is that theoretical justiﬁcations are more difﬁcult to
+establish than in the independent observation case.
+In this section we describe the most popular methods to implement bootstrap resampling for time
+series data.
+Recursive Bootstrap
+1. Estimate a complete model such as an AR(p) producing coefﬁcient estimates ˆα and residuals ˆet .
+2. Fix the initial condition (Y −p+1,Y−p+2,..., Y0).
+3. Simulate i.i.d. draws e∗
+t from the empirical distribution of the residuals {ˆe1,..., ˆen}.
+4. Create the bootstrap series Y ∗
+t by the recursive formula
+Y ∗
+t = ˆα0 + ˆα1Y ∗
+t −1 + ˆα2Y ∗
+t −2 + · · · +ˆαpY ∗
+t −p + e∗
+t .
+This construction creates bootstrap samplesY ∗
+t with the stochastic properties of the estimated AR(p)
+model including the auxiliary assumption that the errors are i.i.d. This method can work well if the true
+process is an AR(p). One ﬂaw is that it imposes homoskedasticity on the errorse∗
+t which may be different
+than the properties of the actualet . Another limitation is that it is inappropriate for AR-DL models unless
+the conditioning variables are strictly exogenous.
+There are alternative versions of this basic method. First, instead of ﬁxing the initial conditions at
+the sample values a random block can be drawn from the sample. The difference is that this produces
+an unconditional distribution rather than a conditional one. Second, instead of drawing the errors from
+the residuals a parametric (typically normal) distribution can be used. This can improve precision when
+sample sizes are small but otherwise is not recommended.
+Pairwise Bootstrap
+1. Write the sample as { Yt , Xt } where Xt = (Yt −1, ...,Yt −p)′ contains the lagged values used in estima-
+tion.
+2. Apply the traditional nonparametric bootstrap which samples pairs (Y ∗
+t , X ∗
+t ) i.i.d. from {Y t , Xt }
+with replacement to create the bootstrap sample.
+3. Create the bootstrap estimates on this bootstrap sample, e.g. regress Y ∗
+t on X ∗
+t .
+This construction is essentially the traditional nonparametric bootstrap but applied to the paired
+sample {Y t , Xt }. It does not mimic the time series correlations across observations. However, it does
+produce bootstrap statistics with the correct ﬁrst-order asymptotic distribution under MDS errors. This
+method may be useful when we are interested in the distribution of nonlinear functions of the coefﬁcient
+estimates and therefore desire an improvement on the Delta Method approximation.
+Fixed Design Residual Bootstrap
+
+
+--- page 55 ---
+
+CHAPTER 14. TIME SERIES 496
+1. Write the sample as { Yt , Xt , ˆet } where Xt = (Yt −1,..., Yt −p)′ contains the lagged values used in esti-
+mation and ˆet are the residuals.
+2. Fix the regressors Xt at their sample values.
+3. Simulate i.i.d. draws e∗
+t from the empirical distribution of the residuals {ˆe1,..., ˆen}.
+4. Set Y ∗
+t = X ′
+t ˆβ + e∗
+t .
+This construction is similar to the pairwise bootstrap but imposes an i.i.d. error. It is therefore only
+valid when the errors are i.i.d. (and thus excludes heteroskedasticity).
+Fixed Design Wild Bootstrap
+1. Write the sample as { Yt , Xt , ˆet } where Xt = (Yt −1,..., Yt −p)′ contains the lagged values used in esti-
+mation and ˆet are the residuals.
+2. Fix the regressors Xt and residuals ˆet at their sample values.
+3. Simulate i.i.d. auxiliary random variables ξ∗
+t with mean zero and variance one. See Section 10.29
+for a discussion of choices.
+4. Set e∗
+t = ξ∗
+t ˆet and Y ∗
+t = X ′
+t ˆβ + e∗
+t .
+This construction is similar to the pairwise and ﬁxed design bootstrap combined with the wild boot-
+strap. This imposes the conditional mean assumption on the error but allows heteroskedasticity.
+Block Bootstrap
+1. Write the sample as { Yt , Xt } where Xt = (Yt −1, ...,Yt −p)′ contains the lagged values used in estima-
+tion.
+2. Divide the sample of paired observations {Y t , Xt } into n/m blocks of length m.
+3. Resample complete blocks. For each simulated sample draw n/m blocks.
+4. Paste the blocks together to create the bootstrap time series {Y ∗
+t , X ∗
+t }.
+This construction allows for arbitrary stationary serial correlation, heteroskedasticity, and model-
+misspeciﬁcation. One challenge is that the block bootstrap is sensitive to the block length and the way
+that the data are partitioned into blocks. The method may also work less well in small samples. Notice
+that the block bootstrap with m = 1 is equal to the pairwise bootstrap and the latter is the traditional
+nonparametric bootstrap. Thus the block bootstrap is a natural generalization of the nonparametric
+bootstrap.
+14.47 Technical Proofs*
+Proof of Theorem 14.2 Deﬁne ˜Yt = (Yt ,Yt −1,Yt −2, ...) ∈ Rm×∞ as the history of Yt up to time t. Write
+Xt = φ( ˜Yt ). Let B be the pre-image of {Xt ≤ x} (the vectors ˜Y ∈ Rm×∞ such that φ( ˜Y ) ≤ x). Then
+P[Xt ≤ x] = P
+[
+φ( ˜Yt ) ≤ x
+]
+= P
+[˜Yt ∈ B
+]
+.
+
+
+--- page 56 ---
+
+CHAPTER 14. TIME SERIES 497
+Since Yt is strictly stationary, P
+[˜Yt ∈ B
+]
+is independent 8 of t. This means that the distribution of Xt
+is independent of t. This argument can be extended to show that the distribution of ( Xt , ...,Xt +ℓ) is
+independent of t. This means that Xt is strictly stationary as claimed. ■
+Proof of Theorem 14.3 By the Cauchy criterion for convergence (see Theorem A.2 of Introduction to
+Econometrics), SN = ∑N
+j =0 a j Yt −j converges almost surely if for all ϵ > 0,
+inf
+N
+sup
+j >N
+⏐⏐SN +j − SN
+⏐
+⏐ ≤ ϵ.
+Let Aϵ be this event. Its complement is
+Ac
+ϵ =
+∞⋂
+N =1
+{
+sup
+j >N
+⏐⏐
+⏐
+⏐⏐
+N +j∑
+i =N +1
+ai Yt −i
+⏐⏐
+⏐
+⏐⏐ > ϵ
+}
+.
+This has probability
+P
+[
+Ac
+ϵ
+]
+≤ lim
+N →∞
+P
+[
+sup
+j >N
+⏐⏐
+⏐
+⏐⏐
+N +j∑
+i =N +1
+ai Yt −i
+⏐⏐
+⏐
+⏐⏐ > ϵ
+]
+≤ lim
+N →∞
+1
+ϵ E
+[
+sup
+j >N
+⏐⏐
+⏐
+⏐⏐
+N +j∑
+i =N +1
+ai Yt −i
+⏐⏐
+⏐
+⏐⏐
+]
+≤ 1
+ϵ lim
+N →∞
+∞∑
+i =N +1
+|ai |E |Yt −i |= 0.
+The second equality is Markov’ s inequality (B.36) and the following is the triangle inequality (B.1). The
+limit is zero since ∑∞
+i =0 |ai |< ∞ and E |Yt |< ∞. Hence for all ϵ > 0, P
+[
+Ac
+ϵ
+]
+= 0 and P[Aϵ] = 1. This means
+that SN converges with probability one, as claimed.
+Since Yt is strictly stationary then Xt is as well by Theorem 14.2. ■
+Proof of Theorem 14.4 See Theorem 14.14. ■
+Proof of Theorem 14.5 Strict stationarity follows from Theorem 14.2. Let ˜Yt and ˜Xt be the histories of Yt
+and Xt . Write Xt = φ
+(˜Yt
+)
+. Let A be an invariant event for Xt . We want to show P[A] = 0 or 1. The event A
+is a collection of ˜Xt histories, and occurs if and and only if an associated collection of ˜Yt histories occur.
+That is, for some sets G and H,
+A =
+{˜Xt ∈ G
+}
+=
+{
+φ
+(˜Yt
+)
+∈ G
+}
+=
+{˜Yt ∈ H
+}
+.
+The assumption that A is invariant means it is unaffected by the time shift, thus can be written as
+A =
+{˜Xt +ℓ ∈ G
+}
+=
+{˜Yt +ℓ ∈ H
+}
+.
+This means the event
+{˜Yt +ℓ ∈ H
+}
+is invariant. Since Yt is ergodic the event has probability 0 or 1. Hence
+P[A] = 0 or 1, as desired. ■
+Proof of Theorem 14.7 Suppose Yt is discrete with support on (τ1,..., τN ) and without loss of generality
+8An astute reader may notice that the independence of P
+[˜Yt ∈ B
+]
+from t does not follow directly from the deﬁnition of strict
+stationarity. Indeed, a full derivation requires a measure-theoretic treatment. See Section 1.2.B of Petersen (1983) or Section
+3.5 of Stout (1974).
+
+
+--- page 57 ---
+
+CHAPTER 14. TIME SERIES 498
+assume E[Yt ] = 0. Then by Theorem 14.8
+limn→∞
+1
+n
+n∑
+ℓ=1
+cov(Yt ,Yt +ℓ) = limn→∞
+1
+n
+n∑
+ℓ=1
+E[Yt Yt +ℓ]
+= limn→∞
+1
+n
+n∑
+ℓ=1
+N∑
+j =1
+N∑
+k=1
+τj τk P
+[
+Yt = τj ,Yt +ℓ = τk
+]
+=
+N∑
+j =1
+N∑
+k=1
+τj τk limn→∞
+1
+n
+n∑
+ℓ=1
+P
+[
+Yt = τj ,Yt +ℓ = τk
+]
+=
+N∑
+j =1
+N∑
+k=1
+τj τk P
+[
+yt = τj
+]
+P[Yt +ℓ = τk]
+= E[Yt ] E[Yt +ℓ]
+= 0.
+which is (14.4). This can be extended to the case of continuous distributions using the monotone con-
+vergence theorem. See Corollary 14.8 of Davidson (2020). ■
+Proof of Theorem 14.9 We show (14.6). (14.7) follows by Markov’ s inequality (B.36).
+Without loss of generality we focus on the scalar case and assume E[Yt ] = 0. Fix ϵ > 0. Pick B large
+enough such that
+E |Yt 1{|Yt |> B}|≤ ϵ
+4 (14.62)
+which is feasible since E |Yt |< ∞. Deﬁne
+Wt = Yt 1{|Yt |≤ B} − E[Yt 1{|Yt |≤ B}]
+Zt = Yt 1{|Yt |> B} − E[Yt 1{|Yt |> B}].
+Notice that Wt is a bounded transformation of the ergodic series Yt . Thus by (14.4) and (14.9) there is an
+n sufﬁciently large so that
+var[Wt ]
+n + 2
+n
+n∑
+m=1
+(
+1 − m
+n
+)
+cov
+(
+Wt ,W j
+)
+≤ ϵ2
+4 (14.63)
+By the triangle inequality (B.1)
+E
+⏐⏐
+⏐
+Y
+⏐
+⏐
+⏐ = E
+⏐
+⏐
+⏐
+W + Z
+⏐
+⏐
+⏐ ≤ E
+⏐
+⏐
+⏐
+W
+⏐
+⏐
+⏐ + E
+⏐
+⏐
+⏐
+Z
+⏐
+⏐
+⏐. (14.64)
+By another application of the triangle inequality and (14.62)
+E
+⏐
+⏐
+⏐
+Z
+⏐
+⏐
+⏐ ≤ E |Zt |≤ 2E |Yt 1(|Yt |> B)|≤ ϵ
+2 . (14.65)
+By Jensen’ s inequality (B.27), direct calculation, and (14.63)
+(
+E
+⏐
+⏐
+⏐
+W
+⏐
+⏐
+⏐
+)2
+≤ E
+[⏐
+⏐
+⏐
+W
+⏐
+⏐
+⏐
+2]
+= 1
+n2
+n∑
+t =1
+n∑
+j =1
+E
+[
+WtW j
+]
+= var[Wt ]
+n + 2
+n
+n∑
+m=1
+(
+1 − m
+n
+)
+cov
+(
+Wt ,W j
+)
+≤ ϵ2
+4 .
+
+
+--- page 58 ---
+
+CHAPTER 14. TIME SERIES 499
+Thus
+E
+⏐⏐
+⏐
+W
+⏐
+⏐
+⏐ ≤ ϵ
+2 . (14.66)
+Together, (14.64), (14.65) and (14.66) show that E
+⏐
+⏐
+⏐
+Y
+⏐
+⏐
+⏐ ≤ ϵ. Since ε is arbitrary, this establishes (14.6) as
+claimed. ■
+Proof of Theorem 14.11 (sketch) By the Cramér-Wold device (Theorem 8.4 from Introduction to Econo-
+metrics) it is sufﬁcient to establish the result for scalar ut . Let σ2 = E
+[
+u2
+t
+]
+. By a Taylor series expansion,
+for x small log(1 + x) ≃ x − x2/2. Taking exponentials and rearranging we obtain the approximation
+exp(x) ≃ (1 + x)exp
+(x2
+2
+)
+. (14.67)
+Fix λ. Deﬁne
+T j =
+j∏
+i =1
+(
+1 + λpn ut
+)
+Vn = 1
+n
+n∑
+t =1
+u2
+t .
+Since ut is strictly stationary and ergodic, Vn
+p
+− →σ2 by the Ergodic Theorem (Theorem 14.9). Since ut is
+a MDS
+E[Tn] = 1. (14.68)
+To see this, deﬁneFt = σ(...,ut −1,ut ). Note T j = T j −1
+(
+1 + λpn u j
+)
+. By iterated expectations
+E[Tn] = E[E[Tn |Fn−1]]
+= E
+[
+Tn−1E
+[
+1 + λpn un
+⏐
+⏐
+⏐
+⏐ Fn−1
+]]
+= E[Tn−1] = · · · =E[T1]
+= 1.
+This is (14.68).
+The moment generating function of Sn is
+E
+[
+exp
+( λ
+pn
+n∑
+t =1
+ut
+)]
+= E
+[
+n∏
+i =1
+exp
+( λpn ut
+)]
+≃ E
+[
+n∏
+i =1
+[
+1 + λpn ut
+]
+exp
+( λ2
+2n u2
+t
+)]
+(14.69)
+= E
+[
+Tn exp
+(λ2Vn
+2
+)]
+≃ E
+[
+Tn exp
+(λ2σ2
+2
+)]
+(14.70)
+= exp
+(λ2σ2
+2
+)
+.
+The approximation in (14.69) is (14.67). The approximation (14.70) is Vn − →p σ2. (A rigorous justiﬁcation
+which allows this substitution in the expectation is technical.) The ﬁnal equality is (14.68). This shows
+that the moment generating function of Sn is approximately that of N
+(
+0, σ2)
+, as claimed.
+
+
+--- page 59 ---
+
+CHAPTER 14. TIME SERIES 500
+The assumption that ut is a MDS is critical for (14.68). Tn is a nonlinear function of the errors ut so
+a white noise assumption cannot be used instead. The MDS assumption is exactly the minimal condi-
+tion needed to obtain (14.68). This is why the MDS assumption cannot be easily replaced by a milder
+assumption such as white noise. ■
+Proof of Theorem 14.13.1 Without loss of generality suppose E[Xt ] = 0 and E[Zt ] = 0. Set ηt −m =
+sgn
+(
+E
+[
+Zt |F t −m
+−∞
+])
+. By iterated expectations, |Xt |≤ C1,
+⏐⏐E
+[
+Zt |F t −m
+−∞
+]⏐
+⏐ = ηt −mE
+[
+Zt |F t −m
+−∞
+]
+, and again
+using iterated expectations
+|cov(Xt −m, Zt )|=
+⏐
+⏐E
+[
+E
+[
+Xt −m Zt |F t −m
+−∞
+]]⏐
+⏐
+=
+⏐
+⏐E
+(
+Xt −mE
+[
+Zt |F t −m
+−∞
+])⏐
+⏐
+≤ C1E
+⏐
+⏐E
+[
+Zt |F t −m
+−∞
+]⏐
+⏐
+= C1E
+[
+ηt −mE
+[
+Zt |F t −m
+−∞
+]]
+= C1E
+[
+E
+[
+ηt −m Zt |F t −m
+−∞
+]]
+= C1E
+[
+ηt −m Zt
+]
+= C1 cov
+(
+ηt −m , Zt
+)
+. (14.71)
+Setting ξt = sgn
+(
+E
+[
+Xt −m |F ∞
+t
+])
+, by a similar argument (14.71) is bounded by C1C2 cov
+(
+ηt −m, ξt
+)
+. Set
+A1 = 1
+{
+ηt −m = 1
+}
+, A2 = 1
+{
+ηt −m = −1
+}
+, B1 = 1{ξt = 1}, B2 = 1{ξt = −1}. We calculate
+⏐
+⏐cov
+(
+ηt −m, ξt
+)⏐
+⏐ = |P[A1 ∩ B1] + P[A2 ∩ B2] − P[A2 ∩ B1] − P[A1 ∩ B2]
+−P[A1] P[B1] − P[A2] P[B2] + P[A2] P[B1] + P[A1] P[B2]|
+≤ 4α(m).
+Together,|cov(Xt −m, zt )|≤ 4C1C2α(m) as claimed. ■
+Proof of Theorem 14.13.2 Assume E[Xt ] = 0 and E[Zt ] = 0. We ﬁrst show that if|Xt |≤ C then
+|cov(Xt −ℓ, Zt )|≤ 6C
+(
+E |Zt |r )1/r α(ℓ)1−1/r . (14.72)
+Indeed, if α(ℓ) = 0 the result is immediate so assumeα(ℓ) > 0. Set D = α(ℓ)−1/r (E |Zt |r )1/r , Vt = Zt 1{|Zt |≤ D}
+and Wt = Zt 1{|Zt |> D}. Using the triangle inequality (B.1) and then part 1, since |Xt |≤ C and |Vt |≤ D,
+|cov(Xt −ℓ, Zt )|≤ |cov(Xt −ℓ,Vt )|+ |cov(Xt −ℓ,Wt )|≤ 4C Dα(ℓ) + 2C E |wt |.
+Also,
+E |Wt |= E |Zt 1{|Zt |> D}|= E
+⏐
+⏐
+⏐⏐
+|Zt |r
+|Zt |r −1 1{|Zt |> D}
+⏐⏐
+⏐
+⏐ ≤ E |Zt |r
+Dr −1 = α(ℓ)(r −1)/r (
+E |Zt |r )1/r
+using the deﬁnition ofD. Together we have
+|cov(Xt −ℓ, Zt )|≤ 6C
+(
+E |Xt |r )1/r α(ℓ)1−1/r .
+which is (14.72) as claimed.
+Now set C = α(ℓ)−1/r (E |Xt |r )1/r , Vt = Xt 1{|Xt |≤ C } and Wt = Xt 1{|Xt |> C }. Using the triangle in-
+equality and (14.72)
+|cov(Xt −ℓ, Zt )|≤ |cov(Vt −ℓ, Zt )|+ |cov(Wt −ℓ, Zt )|.
+Since |Vt |≤ C , using (14.72) and the deﬁnition ofC
+|cov(Vt −ℓ, Zt )|≤ 6C
+(
+E |Zt |q )1/q α(ℓ)1−1/q = 6
+(
+E |Xt |r )1/r (
+E |Zt |q )1/q α(ℓ)1−1/q−1/r .
+
+
+--- page 60 ---
+
+CHAPTER 14. TIME SERIES 501
+Using Hölder’ s inequality (B.31) and the deﬁnition ofC
+|cov(Wt −ℓ, Zt )|≤ 2
+(
+E |Wt |q/(q−1))(q−1)/q (
+E |Zt |q )1/q
+= 2
+(
+E
+[
+|Xt |q/(q−1) 1{|Xt |> C }
+])(q−1)/q (
+E |Zt |q )1/q
+= 2
+(
+E
+[ |Xt |r
+|Xt |r −q/(q−1) 1{|Xt |> C }
+])(q−1)/q (
+E |Zt |q )1/q
+≤ 2
+C r (q−1)/q−1
+(
+E |Xt |r )(q−1)/q (
+E |Zt |q )1/q
+= 2
+(
+E |Xt |r )1/r (
+E |Zt |q )1/q α(ℓ)1−1/q−1/r .
+Together we have
+|cov(Xt −ℓ, Zt )|≤ 8
+(
+E |Xt |r )1/r (
+E |Zt |q )1/q α(ℓ)1−1/r −1/q
+as claimed. ■
+Proof of Theorem 14.13.3 Set ηt −ℓ = sgn
+(
+E
+[
+Zt
+⏐⏐ F t −ℓ
+−∞
+])
+which satisﬁes
+⏐
+⏐ηt −ℓ
+⏐
+⏐ ≤ 1. Since ηt −ℓ is F t −ℓ
+−∞ -
+measurable, iterated expectations, using (14.72) with C = 1, the conditional Jensen’ s inequality (B.28),
+and iterated expectations,
+E
+⏐
+⏐
+⏐E
+[
+Zt
+⏐
+⏐
+⏐ F t −ℓ
+−∞
+]⏐
+⏐
+⏐ = E
+[
+ηt −ℓE
+[
+Zt
+⏐
+⏐
+⏐ F t −ℓ
+−∞
+]]
+= E
+[
+E
+[
+ηt −ℓZt
+⏐
+⏐⏐ F t −ℓ
+−∞
+]]
+= E
+[
+ηt −ℓZt
+]
+≤ 6
+(
+E
+⏐
+⏐⏐E
+[
+Zt
+⏐⏐⏐ F t −ℓ
+−∞
+]⏐⏐⏐
+r )1/r
+α(ℓ)1−1/r
+≤ 6
+(
+E
+(
+E
+[
+|Zt |r
+⏐
+⏐
+⏐ F t −ℓ
+−∞
+]))1/r
+α(ℓ)1−1/r
+= 6
+(
+E |Zt |r |
+)1/r α(ℓ)1−1/r
+as claimed. ■
+Proof of Theorem 14.15 By the Cramér-Wold device (Theorem 8.4 of Introduction to Econometrics) it is
+sufﬁcient to prove the result for the scalar case. Our proof method is based on a MDS approximation.
+The trick is to establish the relationship
+ut = et + Zt − Zt +1 (14.73)
+where et is a strictly stationary and ergodic MDS withE
+[
+e2
+t
+]
+= Ω and E |Zt |< ∞. DeﬁningSe
+n = 1
+pn
+∑n
+t =1 et ,
+we have
+Sn = 1pn
+n∑
+t =1
+(et + Zt − Zt +1) = Se
+n + Z1
+pn − Zn+1
+pn . (14.74)
+The ﬁrst component on the right side is asymptotically N (0, Ω) by the MDS CLT (Theorem 14.11). The
+second and third terms are op(1) by Markov’ s inequality (B.36).
+The desired relationship (14.73) holds as follows. Set Ft = σ(...,ut −1,ut ),
+et =
+∞∑
+ℓ=0
+(E[ut +ℓ |Ft ] − E[ut +ℓ |Ft −1]) (14.75)
+
+
+--- page 61 ---
+
+CHAPTER 14. TIME SERIES 502
+and
+Zt =
+∞∑
+ℓ=0
+E[ut +ℓ |Ft −1].
+You can verify that these deﬁnitions satisfy (14.73) givenE[ut |Ft ] = ut . The variable Zt has a ﬁnite mean
+since by the triangle inequality (B.1), Theorem 14.13.3, and the assumptions
+E |Zt |= E
+⏐⏐⏐⏐
+⏐
+∞∑
+ℓ=0
+E[ut +ℓ |Ft −1]
+⏐
+⏐
+⏐⏐⏐ ≤ 6
+(
+E |ut |r )1/r ∞∑
+ℓ=0
+α(ℓ)1−1/r < ∞,
+the ﬁnal inequality since∑∞
+ℓ=0 α(ℓ)1−2/r < ∞ implies ∑∞
+ℓ=0 α(ℓ)1−1/r < ∞.
+The series et in (14.75) has a ﬁnite mean by the same calculation as for Zt . It is a MDS since by
+iterated expectations
+E[et |Ft −1] = E
+[
+∞∑
+ℓ=0
+(E[ut +ℓ |Ft ] − E[ut +ℓ |Ft −1]) |Ft −1
+]
+=
+∞∑
+ℓ=0
+(E[E[ut +ℓ |Ft ] |Ft −1] − E[E[ut +ℓ |Ft −1] |Ft −1])
+=
+∞∑
+ℓ=0
+(E[ut +ℓ |Ft −1] − E[ut +ℓ |Ft −1])
+= 0.
+It is strictly stationary and ergodic by Theorem 14.2 since it is a function of the history (...,ut −1,ut ).
+The proof is completed by showing that et has a ﬁnite variance which equals Ω. The trickiest step is
+to show that var[et ] < ∞. Since
+E |Sn|≤
+√
+var[Sn] →
+p
+Ω
+(as shown in (14.17)) it follows that E |Sn|≤ 2
+p
+Ω for n sufﬁciently large. Using (14.74) andE |Zt |< ∞, for
+n sufﬁciently large,
+E
+⏐⏐Se
+n
+⏐
+⏐ ≤ E |Sn|+ E |Z1|
+pn + E |Zn+1|pn ≤ 3
+p
+Ω. (14.76)
+Now deﬁne eB t = et 1{|et |≤ B} − E[et 1{|et |≤ B} |Ft −1] which is a bounded MDS. By Theorem 14.11,
+1pn
+∑n
+t =1 eB t
+d
+− →N
+(
+0, σ2
+B
+)
+where σ2
+B = E
+[
+e2
+B t
+]
+. Since the sequence is uniformly integrable this implies
+E
+⏐⏐
+⏐
+⏐
+1
+pn
+n∑
+t =1
+eB t
+⏐
+⏐
+⏐
+⏐ − →E
+⏐
+⏐N
+(
+0, σ2
+B
+)⏐⏐ =
+√
+2
+π σB (14.77)
+using E |N(0, 1)|= 2/π. We want to show that var[et ] < ∞. Suppose not. Then σB → ∞ as B → ∞, so there
+will be some B sufﬁciently large such that the right-side of (14.77) exceeds the right-side of (14.76). This
+is a contradiction. We deduce that var[et ] < ∞.
+Examining (14.74), we see that since var[Sn] → Ω < ∞ and var
+[
+Se
+n
+]
+= var[et ] < ∞ then var[Z1 − Zn+1]/n <
+∞. Since Zt is stationary, we deduce that var[Z1 − Zn+1] < ∞. Equation (14.74) implies var[et ] = var
+[
+Se
+n
+]
+=
+var[Sn] + o(1) → Ω. We deduce that var[et ] = Ω as claimed. ■
+Proof of Theorem 14.17 (Sketch) Consider the projection of Yt onto (..., et −1,et ). Since the projection
+errors et are uncorrelated, the coefﬁcients of this projection are the bivariate projection coefﬁcientsb j =
+E
+[
+Yt et −j
+]
+/E
+[
+e2
+t −j
+]
+. The leading coefﬁcient is
+b0 = E[Yt et ]
+σ2 =
+∑∞
+j =1 αj E
+[
+Yt −j et
+]
++ E
+[
+e2
+t
+]
+σ2 = 1
+
+
+--- page 62 ---
+
+CHAPTER 14. TIME SERIES 503
+using Theorem 14.16. By Bessel’ s Inequality (Brockwell and Davis, 1991, Corollary 2.4.1),
+∞∑
+j =1
+b2
+j = σ−4
+∞∑
+j =1
+(E[Yt et ])2 ≤ σ−4 (
+E
+[
+Y 2
+t
+])2
+< ∞
+since E
+[
+Y 2
+t
+]
+< ∞ by the assumption of covariance stationarity.
+The error from the projection of Yt onto (...,et −1,et ) is µt = Yt − ∑∞
+j =0 b j et −j . The fact that this can be
+written as (14.22) is technical. See Theorem 5.7.1 of Brockwell and Davis (1991). ■
+Proof of Theorem 14.22In the text we showed that
+⏐⏐λj
+⏐
+⏐ < 1 is sufﬁcient forYt to be strictly stationary and
+ergodic. We now verify that
+⏐⏐λj
+⏐
+⏐ < 1 is equivalent to (14.35)-(14.37). The roots λj are deﬁned in (14.34).
+Consider separately the cases of real roots and complex roots.
+Suppose that the roots are real, which occurs when α2
+1 + 4α2 ≥ 0. Then
+⏐⏐λj
+⏐
+⏐ < 1 iff |α1|< 2 and
+α1 +
+√
+α2
+1 + 4α2
+2 < 1 and − 1 <
+α1 −
+√
+α2
+1 + 4α2
+2 .
+Equivalently, this holds iff
+α2
+1 + 4α2 < (2 − α1)2 = 4 − 4α1 + α2
+1 and α2
+1 + 4α2 < (2 + α1)2 = 4 + 4α1 + α2
+1
+or equivalently iff
+α2 < 1 − α1 and α2 < 1 + α1
+which are (14.35) and (14.36). α2
+1 + 4α2 ≥ 0 and |α1|< 2 imply α2 ≥ −α2
+1/4 ≥ −1, which is (14.37).
+Now suppose the roots are complex, which occurs when α2
+1 + 4α2 < 0. The squared modulus of the
+roots λj =
+(
+α1 ±
+√
+α2
+1 + 4α2
+)
+/2 are
+⏐⏐λj
+⏐
+⏐2 =
+(α1
+2
+)2
+−
+
+
+√
+α2
+1 + 4α2
+2
+
+
+2
+= −α2.
+Thus the requirement
+⏐⏐λj
+⏐
+⏐ < 1 is satisﬁed iffα2 > −1, which is (14.37). α2
+1+4α2 < 0 and α2 > −1 imply α2
+1 <
+−4α2 < 4, so |α1|< 2. α2
+1 +4α2 < 0 and |α1|< 2 imply α1 +α2 < α1 −α2
+1/4 < 1 and α2 −α1 < −α2
+1/4−α1 < 1
+which are (14.35) and (14.36). ■
+Proof of Theorem 14.23 To complete the proof we need to establish that the eigenvaluesλj of A deﬁned
+in (14.40) equal the reciprocals of the roots r j of the autoregressive polynomial α(z) of (14.39). Our goal
+is therefore to show that if λ satisﬁes det
+(
+A − I p λ
+)
+= 0 then it satisﬁesα(1/λ) = 0.
+Notice that
+A − I p λ =
+( −λ + α1 ˜α′
+a B
+)
+where ˜α′ = (α2, ...,αp), a′ = (1, 0, ..., 0), andB is a lower-diagonal matrix with −λ on the diagonal and 1
+immediately below the diagonal. Notice that det(B) = (−λ)p−1 and by direct calculation
+B −1 = −
+
+
+
+
+λ−1 0 · · · 0 0
+λ−2 λ−1 · · · 0 0
+λ−3 λ−2 · · · 0 0
+..
+. .
+.
+. ... .
+.
+. .
+.
+.
+λ−p+1 λ−p+2 · · · λ−2 λ−1
+
+
+
+
+.
+
+
+--- page 63 ---
+
+CHAPTER 14. TIME SERIES 504
+Using the properties of the determinant (Theorem A.1.5)
+det
+(
+A − I p λ
+)
+= det
+( −λ + α1 ˜α′
+a B
+)
+= det(B)
+(
+−λ + α1 − ˜α′B −1a
+)
+= (−λ)p (
+1 − α1λ−1 − α2λ−2 − α3λ−3 − · · · −αp λ−p )
+= (−λ)p α(1/λ).
+Thus if λ satisﬁes det
+(
+A − I p λ
+)
+= 0 then α(1/λ) = 0 as required. ■
+Proof of Theorem 14.24 By the Fundamental Theorem of Algebra we can factor the autoregressive poly-
+nomial as α(z) = ∏p
+ℓ=1 (1 − λℓz) where λℓ = r −1
+ℓ . By assumption |λℓ|< 1. Inverting the autoregressive
+polynomial we obtain
+α(z)−1 =
+p∏
+ℓ=1
+(1 − λℓz)−1
+=
+p∏
+ℓ=1
+(
+∞∑
+j =0
+λj
+ℓz j
+)
+=
+∞∑
+j =0
+(
+∑
+i1+···+ip =j
+λi1
+1 · · ·λ
+ip
+p
+)
+z j
+=
+∞∑
+j =0
+b j z j
+with b j = ∑
+i1+···+ip =j λi1
+1 · · ·λ
+ip
+p .
+Using the triangle inequality and the stars and bars theorem (Theorem 1.10 ofIntroduction to Econo-
+metrics)
+⏐⏐b j
+⏐
+⏐ ≤
+∑
+i1+···+ip =j
+|λ1|i1 · · ·
+⏐
+⏐λp
+⏐
+⏐ip
+≤
+∑
+i1+···+ip =j
+λj
+≤
+(
+p + j − 1
+j
+)
+λj
+=
+(
+p + j − 1
+)
+!
+(
+p − 1
+)
+!j !
+λj
+≤
+(
+j + 1
+)p λj
+as claimed. We next verify the convergence of ∑∞
+j =0
+⏐
+⏐b j
+⏐
+⏐ ≤ ∑∞
+j =0
+(
+j + 1
+)p λj . Note that
+lim
+j →∞
+(
+j + 1
+)p λj
+(
+j
+)p λj −1 = λ < 1.
+By the ratio test (Theorem A.3.2 of Introduction to Econometrics) ∑∞
+j =0
+(
+j + 1
+)p λj is convergent. ■
+Proof of Theorem 14.27 If Q is singular then there is some γ such that γ′Qγ = 0. We can normalize γ to
+have a unit coefﬁcient on Yt −1 (or the ﬁrst non-zero coefﬁcient other than the intercept). We then have
+
+
+--- page 64 ---
+
+CHAPTER 14. TIME SERIES 505
+that E
+[(
+Yt −1 −
+(
+1,Yt −2, ...,Yt −p)
+)′ φ
+)2]
+= 0 for some φ, or equivalently E
+[(
+Yt −
+(
+1,Yt −1,..., Yt −p+1)
+)′ φ
+)2]
+=
+0. Setting β = (φ′,0) ′ this implies E
+[(
+Yt − β′Xt
+)2]
+= 0. Since α is the best linear predictor we must have
+β = α. This implies σ2 = E
+[(
+Yt − α′Xt
+)2]
+= 0. This contradicts the assumption σ2 > 0. We conclude that
+Q is not singular. ■
+_____________________________________________________________________________________________
+14.48 Exercises
+Exercise 14.1 For a scalar time series Yt deﬁne the sample autocovariance and autocorrelation
+ˆγ(k) = n−1
+n∑
+t =k+1
+(
+Yt − Y
+) (
+Yt −k − Y
+)
+ˆρ(k) = ˆγ(k)
+ˆγ(0) =
+∑n
+t =k+1
+(
+Yt − Y
+) (
+Yt −k − Y
+)
+∑n
+t =1
+(
+Yt − Y
+)2 .
+Assume the series is strictly stationary, ergodic, strictly stationary, and E
+[
+Y 2
+t
+]
+< ∞.
+Show that ˆγ(k) − →p γ(k) and ˆρ(k) − →p γ(k) as n → ∞. (Use the Ergodic Theorem.)
+Exercise 14.2 Show that if (et , Ft ) is a MDS and Xt is Ft -measurable then ut = Xt −1et is a MDS.
+Exercise 14.3 Let σ2
+t = E
+[
+e2
+t |Ft −1
+]
+. Show that ut = e2 − σ2
+t is a MDS.
+Exercise 14.4 Continuing the previous exercise, show that if E
+[
+e4
+t
+]
+< ∞ then
+n−1/2
+n∑
+t =1
+(
+e2
+t − σ2
+t
+)
+− →
+d
+N
+(
+0, v 2)
+.
+Express v 2 in terms of the moments of et .
+Exercise 14.5 A stochastic volatility model is
+Yt = σt et
+log σ2
+t = ω + βlog σ2
+t −1 + ut
+where et and ut are independent i.i.d. N (0, 1) shocks.
+(a) Write down an information set for which Yt is a MDS.
+(b) Show that if
+⏐⏐β
+⏐
+⏐ < 1 then Yt is strictly stationary and ergodic.
+Exercise 14.6 Verify the formula ρ(1) = θ/
+(
+1 + θ2)
+for a MA(1) process.
+Exercise 14.7 Verify the formula ρ(k) =
+(∑∞
+j =0 θj +k θj
+)
+/
+(∑q
+j =0 θ2
+j
+)
+for a MA(∞) process.
+Exercise 14.8 Suppose Yt = Yt −1 + et with et i.i.d. (0,1) and Y0 = 0. Find var [Yt ]. Is Yt stationary?
+Exercise 14.9 Take the AR(1) model with no interceptYt = α1Yt −1 + et .
+
+
+--- page 65 ---
+
+CHAPTER 14. TIME SERIES 506
+(a) Find the impulse response function b j = ∂
+∂et
+Yt +j .
+(b) Let ˆα1 be the least squares estimator of α1. Find an estimator of b j .
+(c) Let s ( ˆα1) be a standard error for ˆα1. Use the delta method to ﬁnd a 95% asymptotic conﬁdence
+interval for b j .
+Exercise 14.10 Take the AR(2) model Yt = α1Yt −1 + α2Yt −1 + et .
+(a) Find expressions for the impulse responses b1, b2, b3 and b4.
+(b) Let ( ˆα1, ˆα2) be the least squares estimator. Find an estimator of b2.
+(c) Let ˆV be the estimated covariance matrix for the coefﬁcients. Use the delta method to ﬁnd a 95%
+asymptotic conﬁdence interval forb2.
+Exercise 14.11 Show that the models
+α(L)Yt = α0 + et
+and
+α(L)Yt = µ + ut
+α(L)ut = et
+are identical. Find an expression for µ in terms of α0 and α(L).
+Exercise 14.12 Take the model
+α(L)Yt = ut
+β(L)ut = et
+where α(L) and β(L) are p and q order lag polynomials. Show that these equations imply that
+γ(L)Yt = et
+for some lag polynomial γ(L). What is the order of γ(L)?
+Exercise 14.13 Suppose that Yt = et + ut + θut −1 where ut and et are mutually independent i.i.d. (0,1)
+processes.
+(a) Show that Yt is a MA(1) process Yt = ηt + ψηt −1 for a white noise error ηt .
+Hint: Calculate the autocorrelation function of Yt .
+(b) Find an expression for ψ in terms of θ.
+(c) Suppose θ = 1. Find ψ.
+Exercise 14.14 Suppose that
+Yt = Xt + et
+Xt = αXt −1 + ut
+where the errors et and ut are mutually independent i.i.d. processes. Show that Yt is an ARMA(1,1)
+process.
+
+
+--- page 66 ---
+
+CHAPTER 14. TIME SERIES 507
+Exercise 14.15 A Gaussian AR model is an autoregression with i.i.d. N(0, σ2) errors. Consider the Gaus-
+sian AR(1) model
+Yt = α0 + α1Yt −1 + et
+et ∼ N
+(
+0, σ2)
+with |α1|< 1. Show that the marginal distribution of Yt is also normal:
+Yt ∼ N
+(
+α0
+1 − α1
+, σ2
+1 − α2
+1
+)
+.
+Hint: Use the MA representation of Yt .
+Exercise 14.16 Assume that Yt is a Gaussian AR(1) as in the previous exercise. Calculate the moments
+µ = E[Yt ]
+σ2
+Y = E
+[(
+Yt − µ
+)2]
+κ = E
+[(
+Yt − µ
+)4]
+A colleague suggests estimating the parameters ( α0, α1, σ2) of the Gaussian AR(1) model by GMM ap-
+plied to the corresponding sample moments. He points out that there are three moments and three
+parameters, so it should be identiﬁed. Can you ﬁnd a ﬂaw in his approach?
+Hint: This is subtle.
+Exercise 14.17 Take the nonlinear process
+Yt = Y α
+t −1u1−α
+t
+where ut is i.i.d. with strictly positive support.
+(a) Find the condition under which Yt is strictly stationary and ergodic.
+(b) Find an explicit expression for Yt as a function of (ut ,ut −1,...).
+Exercise 14.18 Take the quarterly seriespnﬁx(nonresidential real private ﬁxed investment) fromFRED-QD.
+(a) Transform the series into quarterly growth rates.
+(b) Estimate an AR(4) model. Report using heteroskedastic-consistent standard errors.
+(c) Repeat using the Newey-West standard errors, using M = 5.
+(d) Comment on the magnitude and interpretation of the coefﬁcients.
+(e) Calculate (numerically) the impulse responses for j = 1, ...,10.
+Exercise 14.19 Take the quarterly series oilpricex (real price of crude oil) from FRED-QD.
+(a) Transform the series by taking ﬁrst differences.
+(b) Estimate an AR(4) model. Report using heteroskedastic-consistent standard errors.
+
+
+--- page 67 ---
+
+CHAPTER 14. TIME SERIES 508
+(c) Test the hypothesis that the real oil prices is a random walk by testing that the four AR coefﬁcients
+jointly equal zero.
+(d) Interpret the coefﬁcient estimates and test result.
+Exercise 14.20 Take the monthly series unrate (unemployment rate) from FRED-MD.
+(a) Estimate AR(1) through AR(8) models, using the sample starting in 1960m1 so that all models use
+the same observations.
+(b) Compute the AIC for each AR model and report.
+(c) Which AR model has the lowest AIC?
+(d) Report the coefﬁcient estimates and standard errors for the selected model.
+Exercise 14.21 Take the quarterly series unrate (unemployment rate) and claimsx (initial claims) from
+FRED-QD. “Initial claims” are the number of individuals who ﬁle for unemployment insurance.
+(a) Estimate a distributed lag regression of the unemployment rate on initial claims. Use lags 1 through
+4. Which standard error method is appropriate?
+(b) Estimate an autoregressive distributed lag regression of the unemployment rate on initial claims.
+Use lags 1 through 4 for both variables.
+(c) Test the hypothesis that initial claims does not Granger cause the unemployment rate.
+(d) Interpret your results.
+Exercise 14.22 Take the quarterly series gdpc1 (real GDP) and houst (housing starts) from FRED-QD.
+“Housing starts” are the number of new houses on which construction is started.
+(a) Transform the real GDP series into its one quarter growth rate.
+(b) Estimate a distributed lag regression of GDP growth on housing starts. Use lags 1 through 4. Which
+standard error method is appropriate?
+(c) Estimate an autoregressive distributed lag regression of GDP growth on housing starts. Use lags 1
+through 2 for GDP growth and 1 through 4 for housing starts.
+(d) Test the hypothesis that housing starts does not Granger cause GDP growth.
+(e) Interpret your results.

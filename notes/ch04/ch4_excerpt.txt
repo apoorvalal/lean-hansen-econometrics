@@ -1,0 +1,3686 @@
+--- page 1 ---
+
+Chapter 4
+Least Squares Regression
+4.1 Introduction
+In this chapter we investigate some ﬁnite-sample properties of the least squares estimator in the
+linear regression model. In particular we calculate the ﬁnite-sample mean and covariance matrix and
+propose standard errors for the coefﬁcient estimators.
+4.2 Random Sampling
+Assumption 3.1 speciﬁed that the observations have identical distributions. To derive the ﬁnite-
+sample properties of the estimators we will need to additionally specify the dependence structure across
+the observations.
+The simplest context is when the observations are mutually independent in which case we say that
+they are independent and identically distributed or i.i.d. It is also common to describe i.i.d. observa-
+tions as a random sample. Traditionally, random sampling has been the default assumption in cross-
+section (e.g. survey) contexts. It is quite convenient as i.i.d. sampling leads to straightforward expres-
+sions for estimation variance. The assumption seems appropriate (meaning that it should be approx-
+imately valid) when samples are small and relatively dispersed. That is, if you randomly sample 1000
+people from a large country such as the United States it seems reasonable to model their responses as
+mutually independent.
+Assumption 4.1 The random variables {(Y 1, X1), ..., (Yi , Xi ),..., (Yn, Xn)} are inde-
+pendent and identically distributed.
+For most of this chapter we will use Assumption 4.1 to derive properties of the OLS estimator.
+Assumption 4.1 means that if you take any two individualsi ̸= j in a sample, the values (Yi , Xi ) are in-
+dependent of the values (Yj , X j ) yet have the same distribution. Independence means that the decisions
+and choices of individual i do not affect the decisions of individual j and conversely.
+This assumption may be violated if individuals in the sample are connected in some way, for example
+if they are neighbors, members of the same village, classmates at a school, or even ﬁrms within a spe-
+ciﬁc industry. In this case it seems plausible that decisions may be inter-connected and thus mutually
+dependent rather than independent. Allowing for such interactions complicates inference and requires
+specialized treatment. A currently popular approach which allows for mutual dependence is known as
+97
+
+
+--- page 2 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 98
+clustered dependence which assumes that that observations are grouped into “clusters” (for example,
+schools). We will discuss clustering in more detail in Section 4.23.
+4.3 Sample Mean
+We start with the simplest setting of the intercept-only model
+Y = µ + e
+E[e] = 0.
+which is equivalent to the regression model with k = 1 and Xi = 1. In the intercept model µ = E[Y ] is
+the expectation of Yi . (See Exercise 2.15.) The least squares estimator ˆµ = Y equals the sample mean as
+shown in equation (3.8).
+We now calculate the expectation and variance of the estimatorY . Since the sample mean is a linear
+function of the observations its expectation is simple to calculate
+E
+[
+Y
+]
+= E
+[
+1
+n
+n∑
+i =1
+Yi
+]
+= 1
+n
+n∑
+i =1
+E[Yi ] = µ.
+This shows that the expected value of the least squares estimator (the sample mean) equals the projec-
+tion coefﬁcient (the population expectation). An estimator with the property that its expectation equals
+the parameter it is estimating is called unbiased.
+Deﬁnition 4.1 An estimator ˆθ for θ is unbiased if E
+[ˆθ
+]
+= θ.
+We next calculate the variance of the estimator Y under Assumption 4.1. Making the substitution
+Yi = µ + ei we ﬁnd
+Y − µ = 1
+n
+n∑
+i =1
+ei .
+Then
+var
+[
+Y
+]
+= E
+[(
+Y − µ
+)2]
+= E
+[(
+1
+n
+n∑
+i =1
+ei
+) (
+1
+n
+n∑
+j =1
+e j
+)]
+= 1
+n2
+n∑
+i =1
+n∑
+j =1
+E
+[
+ei e j
+]
+= 1
+n2
+n∑
+i =1
+σ2
+= 1
+n σ2.
+The second-to-last inequality is because E
+[
+ei e j
+]
+= σ2 for i = j yet E
+[
+ei e j
+]
+= 0 for i ̸= j due to indepen-
+dence.
+We have shown that var
+[
+Y
+]
+= 1
+n σ2. This is the familiar formula for the variance of the sample mean.
+
+
+--- page 3 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 99
+4.4 Linear Regression Model
+We now consider the linear regression model. Throughout this chapter we maintain the following.
+Assumption 4.2 Linear Regression Model
+The variables (Y , X ) satisfy the linear regression equation
+Y = X ′β + e (4.1)
+E[e |X ] = 0. (4.2)
+The variables have ﬁnite second moments
+E
+[
+Y 2]
+< ∞,
+E ∥X ∥2 < ∞,
+and an invertible design matrix
+Q X X = E
+[
+X X ′]
+> 0.
+We will consider both the general case of heteroskedastic regression where the conditional variance
+E
+[
+e2 |X
+]
+= σ2(X ) is unrestricted, and the specialized case of homoskedastic regression where the condi-
+tional variance is constant. In the latter case we add the following assumption.
+Assumption 4.3 Homoskedastic Linear Regression Model
+In addition to Assumption 4.2
+E
+[
+e2 |X
+]
+= σ2(X ) = σ2 (4.3)
+is independent of X .
+4.5 Expectation of Least Squares Estimator
+In this section we show that the OLS estimator is unbiased in the linear regression model. This cal-
+culation can be done using either summation notation or matrix notation. We will use both.
+First take summation notation. Observe that under (4.1)-(4.2)
+E[Yi |X1,..., Xn] = E[Yi |Xi ] = X ′
+i β. (4.4)
+The ﬁrst equality states that the conditional expectation ofYi given {X1,..., Xn} only depends on Xi since
+the observations are independent across i . The second equality is the assumption of a linear conditional
+expectation.
+
+
+--- page 4 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 100
+Using deﬁnition (3.11), the conditioning theorem (Theorem 2.3), the linearity of expectations, (4.4),
+and properties of the matrix inverse,
+E
+[ˆβ |X1, ...,Xn
+]
+= E
+[ (
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)⏐⏐⏐⏐
+⏐ X1, ...,Xn
+]
+=
+(
+n∑
+i =1
+Xi X ′
+i
+)−1
+E
+[ (
+n∑
+i =1
+Xi Yi
+)⏐
+⏐
+⏐
+⏐⏐ X1, ...,Xn
+]
+=
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 n∑
+i =1
+E[Xi Yi |X1,..., Xn]
+=
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 n∑
+i =1
+Xi E[Yi |Xi ]
+=
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 n∑
+i =1
+Xi X ′
+i β
+= β.
+Now let’ s show the same result using matrix notation. (4.4) implies
+E[Y |X ] =
+
+
+..
+.
+E[Yi |X ]
+.
+.
+.
+
+ =
+
+
+..
+.
+X ′
+i β
+.
+.
+.
+
+ = X β. (4.5)
+Similarly
+E[e |X ] =
+
+
+...
+E[ei |X ]
+..
+.
+
+ =
+
+
+..
+.
+E[ei |Xi ]
+.
+.
+.
+
+ = 0.
+Using ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+, the conditioning theorem, the linearity of expectations, (4.5), and the prop-
+erties of the matrix inverse,
+E
+[ˆβ |X
+]
+= E
+[(
+X ′X
+)−1 X ′Y |X
+]
+=
+(
+X ′X
+)−1 X ′E[Y |X ]
+=
+(
+X ′X
+)−1 X ′X β
+= β.
+At the risk of belaboring the derivation, another way to calculate the same result is as follows. Insert
+Y = X β + e into the formula for ˆβ to obtain
+ˆβ =
+(
+X ′X
+)−1 (
+X ′ (
+X β + e
+))
+=
+(
+X ′X
+)−1 X ′X β +
+(
+X ′X
+)−1 (
+X ′e
+)
+= β +
+(
+X ′X
+)−1 X ′e. (4.6)
+This is a useful linear decomposition of the estimator ˆβ into the true parameter β and the stochastic
+component
+(
+X ′X
+)−1 X ′e. Once again, we can calculate that
+E
+[ˆβ − β |X
+]
+= E
+[(
+X ′X
+)−1 X ′e |X
+]
+=
+(
+X ′X
+)−1 X ′E[e |X ] = 0.
+
+
+--- page 5 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 101
+Regardless of the method we have shown that E
+[ˆβ |X
+]
+= β. We have shown the following theorem.
+Theorem 4.1 Expectation of Least Squares Estimator
+In the linear regression model (Assumption 4.2) with i.i.d. sampling
+(Assumption 4.1)
+E
+[ˆβ |X
+]
+= β. (4.7)
+Equation (4.7) says that the estimator ˆβ is unbiased for β, conditional on X . This means that the
+conditional distribution of ˆβ is centered at β. By “conditional on X ” this means that the distribution is
+unbiased (centered at β) for any realization of the regressor matrix X . In conditional models we simply
+refer to this as saying “ ˆβ is unbiased for β” .
+It is worth mentioning that Theorem 4.1, and all ﬁnite sample results in this chapter, make the im-
+plicit assumption that X ′X is full rank with probability one.
+4.6 Variance of Least Squares Estimator
+In this section we calculate the conditional variance of the OLS estimator.
+For any r × 1 random vector Z deﬁne ther × r covariance matrix
+var[Z ] = E
+[
+(Z − E[Z ]) (Z − E[Z ])′]
+= E
+[
+Z Z ′]
+− (E[Z ]) (E[Z ])′
+and for any pair (Z , X ) deﬁne the conditional covariance matrix
+var[Z |X ] = E
+[
+(Z − E[Z |X ]) (Z − E[Z |X ])′ |X
+]
+.
+We deﬁneV ˆβ
+def
+= var
+[ˆβ |X
+]
+as the conditional covariance matrix of the regression coefﬁcient estimators.
+We now derive its form.
+The conditional covariance matrix of the n × 1 regression error e is the n × n matrix
+var[e |X ] = E
+[
+ee ′ |X
+]def
+= D.
+The i t h diagonal element of D is
+E
+[
+e2
+i |X
+]
+= E
+[
+e2
+i |Xi
+]
+= σ2
+i
+while the i j t h off-diagonal element of D is
+E
+[
+ei e j |X
+]
+= E(ei |Xi ) E
+[
+e j |X j
+]
+= 0
+where the ﬁrst equality uses independence of the observations (Assumption 4.1) and the second is (4.2).
+Thus D is a diagonal matrix with i t h diagonal element σ2
+i :
+D = diag
+(
+σ2
+1,..., σ2
+n
+)
+=
+
+
+
+
+σ2
+1 0 · · · 0
+0 σ2
+2 · · · 0
+..
+. .
+.
+. ... .
+.
+.
+0 0 · · · σ2
+n
+
+
+
+
+. (4.8)
+
+
+--- page 6 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 102
+In the special case of the linear homoskedastic regression model (4.3), then E
+[
+e2
+i |Xi
+]
+= σ2
+i = σ2 and we
+have the simpliﬁcationD = I nσ2. In general, however, D need not necessarily take this simpliﬁed form.
+For any n × r matrix A = A(X ),
+var
+[
+A′Y |X
+]
+= var
+[
+A′e |X
+]
+= A′D A. (4.9)
+In particular, we can write ˆβ = A′Y where A = X
+(
+X ′X
+)−1 and thus
+V ˆβ = var
+[ˆβ |X
+]
+= A′D A =
+(
+X ′X
+)−1 X ′D X
+(
+X ′X
+)−1 .
+It is useful to note that
+X ′D X =
+n∑
+i =1
+Xi X ′
+i σ2
+i ,
+a weighted version of X ′X .
+In the special case of the linear homoskedastic regression model, D = I nσ2, so X ′D X = X ′X σ2, and
+the covariance matrix simpliﬁes toV ˆβ =
+(
+X ′X
+)−1 σ2.Theorem 4.2 Variance of Least Squares Estimator
+In the linear regression model (Assumption 4.2) with i.i.d. sampling (Assump-
+tion 4.1)
+V ˆβ = var
+[ˆβ |X
+]
+=
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 (4.10)
+where D is deﬁned in (4.8). If in addition the error is homoskedastic (Assump-
+tion 4.3) then (4.10) simpliﬁes toV ˆβ = σ2 (
+X ′X
+)−1.
+4.7 Unconditional Moments
+The previous sections derived the form of the conditional mean and variance of the least squares
+estimator where we conditioned on the regressor matrix X . What about the unconditional mean and
+variance?
+Indeed, it is not obvious if ˆβ has a ﬁnite mean or variance. Take the case of a single dummy variable
+regressor Di with no intercept. Assume P[Di = 1] = p < 1. Then
+ˆβ =
+∑n
+i =1 Di Yi
+∑n
+i =1 Di
+is well deﬁned if∑n
+i =1 Di > 0. However, P
+[∑n
+i =1 Di = 0
+]
+=
+(
+1 − p
+)n > 0. This means that with positive (but
+small) probability ˆβ does not exist. Consequently ˆβ has no ﬁnite moments! We ignore this complication
+in practice but it does pose a conundrum for theory. This existence problem arises whenever there are
+discrete regressors.
+This dilemma is avoided when the regressors have continuous distributions. A clean statement was
+obtained by Kinal (1980) under the assumption of normal regressors and errors.
+
+
+--- page 7 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 103
+Theorem 4.3 Kinal (1980)
+In the linear regression model with i.i.d. sampling, if in addition ( X ,e) have a
+joint normal distribution then for any r , E
+ ˆβ
+
+r
+< ∞ if and only if r < n − k + 1.This shows that when the errors and regressors are normally distributed that the least squares esti-
+mator possesses all moments up ton −k which includes all moments of practical interest. The normality
+assumption is not critical for this result. What is key is the assumption that the regressors are continu-
+ously distributed.
+The law of iterated expectations (Theorem 2.1) combined with Theorems 4.1 and 4.3 allow us to
+deduce that the least squares estimator is unconditionally unbiased. Under the normality assumption
+Theorem 4.3 allows us to apply the law of iterated expectations, and thus using Theorems 4.1 we deduce
+that if n > k
+E
+[ˆβ
+]
+= E
+[
+E
+[ˆβ |X
+]]
+= β.
+Hence ˆβ is unconditionally unbiased as asserted.
+Furthermore, if n − k > 1 then E
+ ˆβ
+
+2
+< ∞ and ˆβ has a ﬁnite unconditional variance. Using Theorem
+2.8 we can calculate explicitly that
+var
+[ˆβ
+]
+= E
+[
+var
+[ˆβ |X
+]]
++ var
+[
+E
+[ˆβ |X
+]]
+= E
+[(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1]
+the second equality since E
+[ˆβ |X
+]
+= β has zero variance. In the homoskedastic case this simpliﬁes to
+var
+[ˆβ
+]
+= σ2E
+[(
+X ′X
+)−1]
+.
+In both cases the expectation cannot pass through the matrix inverse since this is a nonlinear function.
+Thus there is not a simple expression for the unconditional variance, other than stating that is it the
+mean of the conditional variance.
+4.8 Gauss-Markov Theorem
+Consider the class of estimators of β which are linear functions of the vector Y and thus can be
+written as ˜β = A′Y where A is an n × k function of X . As noted before, the least squares estimator is
+the special case obtained by setting A = X (X ′X )−1. What is the best choice of A? The Gauss-Markov
+theorem1 which we now present says that the least squares estimator is the best choice among linear
+unbiased estimators when the errors are homoskedastic, in the sense that the least squares estimator
+has the smallest variance among all unbiased linear estimators.
+To see this, since E[Y |X ] = X β then for any linear estimator ˜β = A′Y we have
+E
+[˜β |X
+]
+= A′E[Y |X ] = A′X β,
+so ˜β is unbiased if (and only if) A′X = I k. Furthermore, we saw in (4.9) that
+var
+[˜β |X
+]
+= var
+[
+A′Y |X
+]
+= A′D A = A′ Aσ2
+the last equality using the homoskedasticity assumptionD = I nσ2 . The “best” unbiased linear estimator
+is obtained by ﬁnding the matrix A0 satisfying A′
+0X = I k such that A′
+0 A0 is minimized in the positive
+1Named after the mathematicians Carl Friedrich Gauss and Andrey Markov.
+
+
+--- page 8 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 104
+deﬁnite sense, which means that for any other matrix A satisfying A′X = I k then A′ A − A′
+0 A0 is positive
+semi-deﬁnite.
+Theorem 4.4 Gauss-Markov
+In the homoskedastic linear regression model (Assumption 4.3) with i.i.d. sam-
+pling (Assumption 4.1), if ˜β is a linear unbiased estimator of β then
+var
+[˜β |X
+]
+≥ σ2 (
+X ′X
+)−1 .
+The Gauss-Markov theorem provides a lower bound on the covariance matrix of unbiased linear es-
+timators under the assumption of homoskedasticity. It says that no unbiased linear estimator can have
+a variance matrix smaller (in the positive deﬁnite sense) than σ2 (
+X ′X
+)−1. Since the variance of the OLS
+estimator is exactly equal to this bound this means that the OLS estimator is efﬁcient in the class of
+linear unbiased estimators. This gives rise to the description of OLS as BLUE, standing for “best linear
+unbiased estimator” . This is an efﬁciency justiﬁcation for the least squares estimator. The justiﬁcation is
+limited because the class of models is restricted to homoskedastic regressions and the class of potential
+estimators is restricted to linear unbiased estimators. This latter restriction is particularly unsatisfactory
+as there is no sensible motivation for focusing on linear estimators.
+We complete this section with a proof of the Gauss-Markov theorem.
+Let A be any n × k function of X such that A′X = I k. The estimator A′Y is unbiased for β and has
+variance A′ Aσ2. Since the least squares estimator is unbiased and has variance
+(
+X ′X
+)−1 σ2, it is sufﬁcient
+to show that the difference in the two variance matrices is positive semi-deﬁnite, or
+C = A′ A −
+(
+X ′X
+)−1 ≥ 0. (4.11)
+Note that X ′C = 0. We calculate that
+A′ A −
+(
+X ′X
+)−1 =
+(
+C + X
+(
+X ′X
+)−1)′ (
+C + X
+(
+X ′X
+)−1)
+−
+(
+X ′X
+)−1
+= C ′C +C ′X
+(
+X ′X
+)−1 +
+(
+X ′X
+)−1 X ′C
++
+(
+X ′X
+)−1 X ′X
+(
+X ′X
+)−1 −
+(
+X ′X
+)−1
+= C ′C ≥ 0.
+The ﬁnal inequality states that the matrix C ′C is positive semi-deﬁnite which is a property of quadratic
+forms (see Appendix A.10). We have shown (4.11) as requred.
+4.9 Modern Gauss-Markov Theorem
+In this section we establish an improved version of the Gauss-Markov Theorem. What is important
+about this result is that it removes the restriction to linear estimators.
+Theorem 4.5 Modern Gauss-Markov
+In the linear regression model with i.i.d. sampling, if E
+[˜β |X
+]
+= β and Assump-
+tion 4.3 holds then var
+[˜β |X
+]
+≥ σ2 (
+X ′X
+)−1 .
+
+
+--- page 9 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 105
+The proof of Theorem 4.5 is technically advanced so we leave it to Section 4.26. It is a generalization of
+Theorem 11.1 from Introduction to Econometrics for the best unbiased estimation of the mean. Theorem
+4.5 is different from both classical Gauss-Markov and Cramér-Rao efﬁciency results in that it does not
+restrict attention to linear estimators (as in the Gauss-Markov Theorem) nor restrict sampling to normal
+variables (as in the Cramér-Rao Theorem). Theorem 4.7 dominates both these classical results as the
+latter hold as special cases.
+The interpretation of Theorem 4.5 is similar to Theorem 4.4. Theorem 4.5 shows that the covariance
+matrix σ2 (
+X ′X
+)−1 is the best possible among all unbiased estimators.
+4.10 Generalized Least Squares
+Take the linear regression model in matrix format
+Y = X β + e. (4.12)
+Consider a generalized situation where the observation errors are possibly correlated and/or heteroskedas-
+tic. Speciﬁcally, suppose that
+E[e |X ] = 0 (4.13)
+var[e |X ] = Ω (4.14)
+for some n × n covariance matrix Ω, possibly a function of X . This includes the i.i.d. sampling framework
+where Ω = D as deﬁned in (4.8) but allows for non-diagonal covariance matrices as well. As a covariance
+matrix, Ω is necessarily symmetric and positive semi-deﬁnite.
+Under these assumptions, by arguments similar to the previous sectiond we can calculate the mean
+and variance of the OLS estimator:
+E
+[ˆβ |X
+]
+= β (4.15)
+var
+[ˆβ |X
+]
+=
+(
+X ′X
+)−1 (
+X ′ΩX
+) (
+X ′X
+)−1 (4.16)
+(see Exercise 4.5).
+We have an analog of the Gauss-Markov Theorem.
+Theorem 4.6 Generalized Gauss-Markov
+In the linear regression model (Assumption 4.2) and Ω > 0, if ˜β is a linear unbi-
+ased estimator of β then
+var
+[˜β |X
+]
+≥
+(
+X ′Ω−1X
+)−1
+.
+We leave the proof for Exercise 4.6.
+The theorem provides a lower bound on the covariance matrix of unbiased linear estimators. The
+bound is different from the variance matrix of the OLS estimator as stated in (4.16) except when Ω =
+I nσ2. In the i.i.d. sampling case the variance lower bound is
+(
+X ′D −1X
+)−1 since Ω = D. The fact that the
+variance bound is different (and lower) than the least squares variance suggests that we can improve on
+the OLS estimator.
+This is indeed the case when Ω is known up to scale. That is, suppose that Ω = c2Σ where c2 > 0 is
+real and Σ is n × n and known. Take the linear model (4.12) and pre-multiply byΣ−1/2. This produces the
+
+
+--- page 10 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 106
+equation ˜Y = ˜X β + ˜e where ˜Y = Σ−1/2Y , ˜X = Σ−1/2X , and ˜e = Σ−1/2e. Consider OLS estimation of β in
+this equation.
+˜βgls =
+(
+˜X
+′ ˜X
+)−1
+˜X
+′ ˜Y
+=
+((
+Σ−1/2X
+)′ (
+Σ−1/2X
+))−1 (
+Σ−1/2X
+)′ (
+Σ−1/2Y
+)
+=
+(
+X ′Σ−1X
+)−1
+X ′Σ−1Y . (4.17)
+This is called the Generalized Least Squares (GLS) estimator of β and was introduced by Aitken (1935).
+You can calculate that
+E
+[˜βgls |X
+]
+= β (4.18)
+var
+[˜βgls |X
+]
+=
+(
+X ′Ω−1X
+)−1
+. (4.19)
+This shows that the GLS estimator is unbiased and has a covariance matrix which equals the lower bound
+from Theorem 4.6. This shows that the lower bound is sharp when Σ is known. GLS is thus efﬁcient in
+the class of linear unbiased estimators.
+In the linear regression model with independent observations and known conditional variances, so
+that Ω = Σ = D = diag
+(
+σ2
+1, ...,σ2
+n
+)
+, the GLS estimator takes the form
+˜βgls =
+(
+X ′D −1X
+)−1
+X ′D −1Y
+=
+(
+n∑
+i =1
+σ−2
+i Xi X ′
+i
+)−1 (
+n∑
+i =1
+σ−2
+i Xi Yi
+)
+.
+The assumption Ω > 0 in this case reduces to σ2
+i > 0 for i = 1, ...n.
+In practice, the covariance matrix Ω is unknown so the GLS estimator as presented here is not feasi-
+ble. However, the form of the GLS estimator motivates feasible versions, effectively by replacing Ω with
+an estimator. We do not pursue this here as it is not common in current applied econometric practice.
+4.11 Modern Generalized Gauss Markov Theorem
+In this section we establish a version of the Generalized Gauss-Markov Theorem which does not
+require linear estimators.
+Theorem 4.7 Modern Generalized Gauss-Markov
+In the linear regression model with i.i.d. sampling, if E
+[˜β |X
+]
+= β then
+var
+[˜β |X
+]
+≥
+(
+X ′D −1X
+)−1 .
+The proof of Theorem 4.7 is technically advanced so we leave it to Section 4.26.
+The interpretation of Theorem 4.7 is similar to Theorem 4.6 under i.i.d. sampling. Theorem 4.7 shows
+that the GLS covariance matrix
+(
+X ′D −1X
+)−1 is the best possible among all unbiased estimators.
+
+
+--- page 11 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 107
+4.12 Residuals
+What are some properties of the residuals ˆei = Yi − X ′
+i
+ˆβ and prediction errors ˜ei = Yi − X ′
+i
+ˆβ(−i ) in the
+context of the linear regression model?
+Recall from (3.24) that we can write the residuals in vector notation as ˆe = Me where M = I n −
+X
+(
+X ′X
+)−1 X ′ is the orthogonal projection matrix. Using the properties of conditional expectation
+E[ˆe |X ] = E[Me |X ] = ME[e |X ] = 0
+and
+var[ˆe |X ] = var[Me |X ] = M var[e |X ] M = MD M (4.20)
+where D is deﬁned in (4.8).
+We can simplify this expression under the assumption of conditional homoskedasticity
+E
+[
+e2 |X
+]
+= σ2.
+In this case (4.20) simpliﬁes to
+var[ˆe |X ] = Mσ2. (4.21)
+In particular, for a single observation i we can ﬁnd the variance of ˆei by taking the i t h diagonal element
+of (4.21). Since the i t h diagonal element of M is 1 − hi i as deﬁned in (3.40) we obtain
+var[ˆei |X ] = E
+[
+ˆe2
+i |X
+]
+= (1 − hi i) σ2. (4.22)
+As this variance is a function of hi i and hence Xi the residuals ˆei are heteroskedastic even if the errors ei
+are homoskedastic. Notice as well that (4.22) implies ˆe2
+i is a biased estimator of σ2.
+Similarly, recall from (3.45) that the prediction errors ˜ei = (1 − hi i)−1 ˆei can be written in vector nota-
+tion as ˜e = M ∗ˆe where M ∗ is a diagonal matrix with i t h diagonal element (1 − hi i)−1 . Thus ˜e = M ∗Me .
+We can calculate that
+E[˜e |X ] = M ∗ME[e |X ] = 0
+and
+var[˜e |X ] = M ∗M var[e |X ] M M∗ = M ∗MD M M∗
+which simpliﬁes under homoskedasticity to
+var[˜e |X ] = M ∗M M M∗σ2 = M ∗M M∗σ2.
+The variance of the i t h prediction error is then
+var[˜ei |X ] = E
+[
+˜e2
+i |X
+]
+= (1 − hi i)−1 (1 − hi i)(1 − hi i)−1 σ2
+= (1 − hi i)−1 σ2.
+A residual with constant conditional variance can be obtained by rescaling. The standardized resid-
+uals are
+ei = (1 − hi i)−1/2 ˆei , (4.23)
+and in vector notation
+e =
+(
+e1,..., en
+)′ = M ∗1/2Me . (4.24)
+
+
+--- page 12 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 108
+From the above calculations, under homoskedasticity,
+var
+[
+e |X
+]
+= M ∗1/2M M∗1/2σ2
+and
+var
+[
+ei |X
+]
+= E
+[
+e2
+i |X
+]
+= σ2
+and thus these standardized residuals have the same bias and variance as the original errors when the
+latter are homoskedastic.
+4.13 Estimation of Error Variance
+The error variance σ2 = E
+[
+e2]
+can be a parameter of interest even in a heteroskedastic regression or
+a projection model. σ2 measures the variation in the “unexplained” part of the regression. Its method of
+moments estimator (MME) is the sample average of the squared residuals:
+ˆσ2 = 1
+n
+n∑
+i =1
+ˆe2
+i .
+In the linear regression model we can calculate the mean of ˆσ2. From (3.28) and the properties of the
+trace operator observe that
+ˆσ2 = 1
+n e′Me = 1
+n tr
+(
+e′Me
+)
+= 1
+n tr
+(
+Mee ′)
+.
+Then
+E
+[
+ˆσ2 |X
+]
+= 1
+n tr
+(
+E
+[
+Mee ′ |X
+])
+= 1
+n tr
+(
+ME
+[
+ee ′ |X
+])
+= 1
+n tr(MD ) (4.25)
+= 1
+n
+n∑
+i =1
+(1 − hi i) σ2
+i .
+The ﬁnal equality holds since the trace is the sum of the diagonal elements ofMD , and since D is diago-
+nal the diagonal elements of MD are the product of the diagonal elements of M and D which are 1 − hi i
+and σ2
+i , respectively.
+Adding the assumption of conditional homoskedasticity E
+[
+e2 |X
+]
+= σ2 so that D = I nσ2, then (4.25)
+simpliﬁes to
+E
+[
+ˆσ2 |X
+]
+= 1
+n tr
+(
+Mσ2)
+= σ2
+(n − k
+n
+)
+the ﬁnal equality by (3.22). This calculation shows that ˆσ2 is biased towards zero. The order of the bias
+depends on k/n, the ratio of the number of estimated coefﬁcients to the sample size.
+Another way to see this is to use (4.22). Note that
+E
+[
+ˆσ2 |X
+]
+= 1
+n
+n∑
+i =1
+E
+[
+ˆe2
+i |X
+]
+= 1
+n
+n∑
+i =1
+(1 − hi i) σ2 =
+(n − k
+n
+)
+σ2
+the last equality using Theorem 3.6.
+
+
+--- page 13 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 109
+Since the bias takes a scale form a classic method to obtain an unbiased estimator is by rescaling.
+Deﬁne
+s2 = 1
+n − k
+n∑
+i =1
+ˆe2
+i . (4.26)
+By the above calculation E
+[
+s2 |X
+]
+= σ2 and E
+[
+s2]
+= σ2. Hence the estimator s2 is unbiased for σ2. Con-
+sequently, s2 is known as the “bias-corrected estimator” for σ2 and in empirical practice s2 is the most
+widely used estimator for σ2.
+Interestingly, this is not the only method to construct an unbiased estimator for σ2. An estimator
+constructed with the standardized residuals ei from (4.23) is
+σ2 = 1
+n
+n∑
+i =1
+e2
+i = 1
+n
+n∑
+i =1
+(1 − hi i)−1 ˆe2
+i .
+You can show (see Exercise 4.9) that
+E
+[
+σ2 |X
+]
+= σ2 (4.27)
+and thus σ2 is unbiased for σ2 (in the homoskedastic linear regression model).
+When k/n is small the estimators ˆσ2, s2 and σ2 are likely to be similar to one another. However, if
+k/n is large then s2 and σ2 are generally preferred to ˆσ2. Consequently it is best to use one of the bias-
+corrected variance estimators in applications.
+4.14 Mean-Square Forecast Error
+One use of an estimated regression is to predict out-of-sample. Consider an out-of-sample realiza-
+tion (Y n+1, Xn+1) where Xn+1 is observed but not Yn+1. Given the coefﬁcient estimator ˆβ the standard
+point estimator of E[Yn+1 |Xn+1] = X ′
+n+1β is ˜Yn+1 = X ′
+n+1 ˆβ. The forecast error is the difference between
+the actual value Yn+1 and the point forecast ˜Yn+1. This is the forecast error ˜en+1 = Yn+1− ˜Yn+1. The mean-
+squared forecast error (MSFE) is its expected squared value MSFE n = E
+[
+˜e2
+n+1
+]
+. In the linear regression
+model ˜en+1 = en+1 − X ′
+n+1
+(ˆβ − β
+)
+so
+MSFEn = E
+[
+e2
+n+1
+]
+− 2E
+[
+en+1X ′
+n+1
+(ˆβ − β
+)]
++ E
+[
+X ′
+n+1
+(ˆβ − β
+) (ˆβ − β
+)′
+Xn+1
+]
+. (4.28)
+The ﬁrst term in (4.28) isσ2. The second term in (4.28) is zero sinceen+1X ′
+n+1 is independent of ˆβ − β
+and both are mean zero. Using the properties of the trace operator the third term in (4.28) is
+tr
+(
+E
+[
+Xn+1X ′
+n+1
+]
+E
+[(ˆβ − β
+) (ˆβ − β
+)′])
+= tr
+(
+E
+[
+Xn+1X ′
+n+1
+]
+E
+[
+E
+[(ˆβ − β
+) (ˆβ − β
+)′
+|X
+]])
+= tr
+(
+E
+[
+Xn+1X ′
+n+1
+]
+E
+[
+V ˆβ
+])
+= E
+[
+tr
+((
+Xn+1X ′
+n+1
+)
+V ˆβ
+)]
+= E
+[
+X ′
+n+1V ˆβXn+1
+]
+(4.29)
+where we use the fact that Xn+1 is independent of ˆβ, the deﬁnitionV ˆβ = E
+[(ˆβ − β
+) (ˆβ − β
+)′
+|X
+]
+, and the
+fact that Xn+1 is independent of V ˆβ. Thus
+MSFEn = σ2 + E
+[
+X ′
+n+1V ˆβXn+1
+]
+.
+
+
+--- page 14 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 110
+Under conditional homoskedasticity this simpliﬁes to
+MSFEn = σ2
+(
+1 + E
+[
+X ′
+n+1
+(
+X ′X
+)−1 Xn+1
+])
+.
+A simple estimator for the MSFE is obtained by averaging the squared prediction errors (3.46)
+˜σ2 = 1
+n
+n∑
+i =1
+˜e2
+i
+where ˜ei = Yi − X ′
+i
+ˆβ(−i ) = ˆei (1 − hi i)−1. Indeed, we can calculate that
+E
+[
+˜σ2]
+= E
+[
+˜e2
+i
+]
+= E
+[(
+ei − X ′
+i
+(ˆβ(−i ) − β
+))2]
+= σ2 + E
+[
+X ′
+i
+(ˆβ(−i ) − β
+) (ˆβ(−i ) − β
+)′
+Xi
+]
+.
+By a similar calculation as in (4.29) we ﬁnd
+E
+[
+˜σ2]
+= σ2 + E
+[
+X ′
+i V ˆβ(−i )
+Xi
+]
+= MSFEn−1.
+This is the MSFE based on a sample of size n − 1 rather than size n. The difference arises because the
+in-sample prediction errors ˜ei for i ≤ n are calculated using an effective sample size of n − 1, while the
+out-of sample prediction error ˜en+1 is calculated from a sample with the full n observations. Unless n is
+very small we should expect MSFEn−1 (the MSFE based on n − 1 observations) to be close to MSFEn (the
+MSFE based on n observations). Thus ˜σ2 is a reasonable estimator for MSFEn.
+Theorem 4.8 MSFE
+In the linear regression model (Assumption 4.2) and i.i.d. sampling (Assump-
+tion 4.1)
+MSFEn = E
+[
+˜e2
+n+1
+]
+= σ2 + E
+[
+X ′
+n+1V ˆβXn+1
+]
+where V ˆβ = var
+[ˆβ |X
+]
+. Furthermore, ˜σ2 deﬁned in (3.46) is an unbiased esti-
+mator of MSFEn−1, since E
+[
+˜σ2]
+= MSFEn−1.
+4.15 Covariance Matrix Estimation Under Homoskedasticity
+For inference we need an estimator of the covariance matrixV ˆβ of the least squares estimator. In this
+section we consider the homoskedastic regression model (Assumption 4.3).
+Under homoskedasticity the covariance matrix takes the simple form
+V 0
+ˆβ =
+(
+X ′X
+)−1 σ2
+which is known up to the scale σ2. In Section 4.13 we discussed three estimators of σ2. The most com-
+monly used choice is s2 leading to the classic covariance matrix estimator
+ˆV
+0
+ˆβ =
+(
+X ′X
+)−1 s2. (4.30)
+
+
+--- page 15 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 111
+Since s2 is conditionally unbiased for σ2 it is simple to calculate that ˆV
+0
+ˆβ is conditionally unbiased for
+V ˆβ under the assumption of homoskedasticity:
+E
+[
+ˆV
+0
+ˆβ |X
+]
+=
+(
+X ′X
+)−1 E
+[
+s2 |X
+]
+=
+(
+X ′X
+)−1 σ2 = V ˆβ.
+This was the dominant covariance matrix estimator in applied econometrics for many years and
+is still the default method in most regression packages. For example, Stata uses the covariance matrix
+estimator (4.30) by default in linear regression unless an alternative is speciﬁed.
+If the estimator (4.30) is used but the regression error is heteroskedastic it is possible for ˆV
+0
+ˆβ to be
+quite biased for the correct covariance matrix V ˆβ =
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 . For example, suppose
+k = 1 and σ2
+i = X 2
+i with E[X ] = 0. The ratio of the true variance of the least squares estimator to the
+expectation of the variance estimator is
+V ˆβ
+E
+[
+ˆV
+0
+ˆβ |X
+] =
+∑n
+i =1 X 4
+i
+σ2 ∑n
+i =1 X 2
+i
+≃
+E
+[
+X 4]
+(
+E
+[
+X 2])2
+def
+= κ.
+(Notice that we use the fact thatσ2
+i = X 2
+i implies σ2 = E
+[
+σ2
+i
+]
+= E
+[
+X 2]
+.) The constant κ is the standardized
+fourth moment (or kurtosis) of the regressor X and can be any number greater than one. For example, if
+X ∼ N
+(
+0, σ2)
+then κ = 3, so the true variance V ˆβ is three times larger than the expected homoskedastic
+estimator ˆV
+0
+ˆβ. But κ can be much larger. Take, for example, the variable wage in the CPS data set. It
+satisﬁesκ = 30 so that if the conditional variance equals σ2
+i = X 2
+i then the true variance V ˆβ is 30 times
+larger than the expected homoskedastic estimator ˆV
+0
+ˆβ. While this is an extreme case the point is that the
+classic covariance matrix estimator (4.30) may be quite biased when the homoskedasticity assumption
+fails.
+4.16 Covariance Matrix Estimation Under Heteroskedasticity
+In the previous section we showed that that the classic covariance matrix estimator can be highly
+biased if homoskedasticity fails. In this section we show how to construct covariance matrix estimators
+which do not require homoskedasticity.
+Recall that the general form for the covariance matrix is
+V ˆβ =
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 .
+with D deﬁned in (4.8). This depends on the unknown matrixD which we can write as
+D = diag
+(
+σ2
+1, ...,σ2
+n
+)
+= E
+[
+ee ′ |X
+]
+= E
+[˜D |X
+]
+where ˜D = diag
+(
+e2
+1,..., e2
+n
+)
+. Thus ˜D is a conditionally unbiased estimator for D. If the squared errors e2
+i
+were observable, we could construct an unbiased estimator for V ˆβ as
+ˆV
+ideal
+ˆβ =
+(
+X ′X
+)−1 (
+X ′ ˜D X
+) (
+X ′X
+)−1
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i e2
+i
+)
+(
+X ′X
+)−1 .
+
+
+--- page 16 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 112
+Indeed,
+E
+[
+ˆV
+ideal
+ˆβ |X
+]
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i E
+[
+e2
+i |X
+]
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i σ2
+i
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 = V ˆβ
+verifying that ˆV
+ideal
+ˆβ is unbiased for V ˆβ.
+Since the errors e2
+i are unobserved ˆV
+ideal
+ˆβ is not a feasible estimator. However, we can replacee2
+i with
+the squared residuals ˆe2
+i . Making this substitution we obtain the estimator
+ˆV
+HC0
+ˆβ =
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1 . (4.31)
+The label “HC” refers to “heteroskedasticity-consistent” . The label “HC0” refers to this being the baseline
+heteroskedasticity-consistent covariance matrix estimator.
+We know, however, thatˆe2
+i is biased towards zero (recall equation (4.22)). To estimate the varianceσ2
+the unbiased estimator s2 scales the moment estimator ˆσ2 by n/(n − k) . Making the same adjustment
+we obtain the estimator
+ˆV
+HC1
+ˆβ =
+( n
+n − k
+)(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1 . (4.32)
+While the scaling by n/(n − k) is ad hoc, HC1 is often recommended over the unscaled HC0 estimator.
+Alternatively, we could use the standardized residuals ei or the prediction errors ˜ei , yielding the
+“HC2” and “HC3” estimators
+ˆV
+HC2
+ˆβ =
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i e2
+i
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+(1 − hi i)−1 Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1 (4.33)
+and
+ˆV
+HC3
+ˆβ =
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˜e2
+i
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+(1 − hi i)−2 Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1 . (4.34)
+The four estimators HC0, HC1, HC2 and HC3 are collectively called robust, heteroskedasticity-
+consistent, or heteroskedasticity-robust covariance matrix estimators. The HC0 estimator was ﬁrst
+developed by Eicker (1963) and introduced to econometrics by White (1980) and is sometimes called
+the Eicker-White or White covariance matrix estimator. The degree-of-freedom adjustment in HC1 was
+recommended by Hinkley (1977) and is the default robust covariance matrix estimator implemented in
+Stata. It is implement by the “, r” option. In current applied econometric practice this is the most pop-
+ular covariance matrix estimator. The HC2 estimator was introduced by Horn, Horn and Duncan (1975)
+and is implemented using the vce(hc2) option in Stata. The HC3 estimator was derived by MacKinnon
+
+
+--- page 17 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 113
+and White (1985) from the jackknife principle (see Section 10.3), and by Andrews (1991a) based on the
+principle of leave-one-out cross-validation, and is implemented using the vce(hc3) option in Stata.
+Since (1 − hi i)−2 > (1 − hi i)−1 > 1 it is straightforward to show that
+ˆV
+HC0
+ˆβ < ˆV
+HC2
+ˆβ < ˆV
+HC3
+ˆβ . (4.35)
+(See Exercise 4.10.) The inequality A < B when applied to matrices means that the matrixB −A is positive
+deﬁnite.
+In general, the bias of the covariance matrix estimators is complicated but simplify under the as-
+sumption of homoskedasticity (4.3). For example, using (4.22),
+E
+[
+ˆV
+HC0
+ˆβ |X
+]
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i E
+[
+ˆe2
+i |X
+]
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i (1 − hi i) σ2
+)
+(
+X ′X
+)−1
+=
+(
+X ′X
+)−1 σ2 −
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i hi i
+)
+(
+X ′X
+)−1 σ2
+<
+(
+X ′X
+)−1 σ2 = V ˆβ.
+This calculation shows that ˆV
+HC0
+ˆβ is biased towards zero.
+By a similar calculation (again under homoskedasticity) we can calculate that the HC2 estimator is
+unbiased
+E
+[
+ˆV
+HC2
+ˆβ |X
+]
+=
+(
+X ′X
+)−1 σ2. (4.36)
+(See Exercise 4.11.)
+It might seem rather odd to compare the bias of heteroskedasticity-robust estimators under the as-
+sumption of homoskedasticity but it does give us a baseline for comparison.
+Another interesting calculation shows that in general (that is, without assuming homoskedasticity)
+the HC3 estimator is biased away from zero. Indeed, using the deﬁnition of the prediction errors (3.44)
+˜ei = Yi − X ′
+i ˆβ(−i ) = ei − X ′
+i
+(ˆβ(−i ) − β
+)
+so
+˜e2
+i = e2
+i − 2X ′
+i
+(ˆβ(−i ) − β
+)
+ei +
+(
+X ′
+i
+(ˆβ(−i ) − β
+))2
+.
+Note that ei and ˆβ(−i ) are functions of non-overlapping observations and are thus independent. Hence
+E
+[(ˆβ(−i ) − β
+)
+ei |X
+]
+= 0 and
+E
+[
+˜e2
+i |X
+]
+= E
+[
+e2
+i |X
+]
+− 2X ′
+i E
+[(ˆβ(−i ) − β
+)
+ei |X
+]
++ E
+[(
+X ′
+i
+(ˆβ(−i ) − β
+))2
+|X
+]
+= σ2
+i + E
+[(
+X ′
+i
+(ˆβ(−i ) − β
+))2
+|X
+]
+≥ σ2
+i .
+It follows that
+E
+[
+ˆV
+HC3
+ˆβ |X
+]
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i E
+[
+˜e2
+i |X
+]
+)
+(
+X ′X
+)−1
+≥
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i σ2
+i
+)
+(
+X ′X
+)−1 = V ˆβ.
+
+
+--- page 18 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 114
+This means that the HC3 estimator is conservative in the sense that it is weakly larger (in expectation)
+than the correct variance for any realization of X .
+We have introduced ﬁve covariance matrix estimators, including the homoskedastic estimator ˆV
+0
+ˆβ
+and the four HC estimators. Which should you use? The classic estimator ˆV
+0
+ˆβ is typically a poor choice
+as it is only valid under the unlikely homoskedasticity restriction. For this reason it is not typically used
+in contemporary econometric research. Unfortunately, standard regression packages set their default
+choice as ˆV
+0
+ˆβ so users must intentionally select a robust covariance matrix estimator.
+Of the four robust estimators HC1 is the most commonly used as it is the default robust covariance
+matrix option in Stata. However, HC2 and HC3 are preferred. HC2 is unbiased (under homoskedasticity)
+and HC3 is conservative for any X . In most applications HC1, HC2 and HC3 will be similar so this choice
+will not matter. The context where the estimators can differ substantially is when the sample has a large
+leverage value hi i for at least one observation. You can see this by comparing the formulas (4.32), (4.33)
+and (4.34) and noting that the only difference is the scaling by the leverage values hi i. If there is an
+observation with hi i close to one, then (1 − hi i)−1 and (1 − hi i)−2 will be large, giving this observation
+much greater weight in the covariance matrix formula.
+Halbert L. White
+Hal White (1950-2012) of the United States was an inﬂuential econometrician of
+recent years. His 1980 paper on heteroskedasticity-consistent covariance matrix
+estimation is one of the most cited papers in economics. His research was cen-
+tral to the movement to view econometric models as approximations, and to the
+drive for increased mathematical rigor in the discipline. In addition to being a
+highly proliﬁc and inﬂuential scholar, he also co-founded the economic consult-
+ing ﬁrm Bates White.
+4.17 Standard Errors
+A variance estimator such as ˆV ˆβ is an estimator of the variance of the distribution of ˆβ. A more
+easily interpretable measure of spread is its square root – the standard deviation. This is so important
+when discussing the distribution of parameter estimators we have a special name for estimates of their
+standard deviation.
+Deﬁnition 4.2 A standard error s( ˆβ) for a real-valued estimator ˆβ is an esti-
+mator of the standard deviation of the distribution of ˆβ.
+When β is a vector with estimator ˆβ and covariance matrix estimator ˆV ˆβ, standard errors for individ-
+ual elements are the square roots of the diagonal elements of ˆV ˆβ. That is,
+s( ˆβj ) =
+√
+ˆV ˆβj
+=
+√[
+ˆV ˆβ
+]
+j j
+.
+
+
+--- page 19 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 115
+When the classical covariance matrix estimator (4.30) is used the standard error takes the simple form
+s( ˆβj ) = s
+√[(
+X ′X
+)−1]
+j j
+. (4.37)
+As we discussed in the previous section there are multiple possible covariance matrix estimators so
+standard errors are not unique. It is therefore important to understand what formula and method is used
+by an author when studying their work. It is also important to understand that a particular standard error
+may be relevant under one set of model assumptions but not under another set of assumptions.
+To illustrate, we return to the log wage regression (3.12) of Section 3.7. We calculate that s2 = 0.160.
+Therefore the homoskedastic covariance matrix estimate is
+ˆV
+0
+ˆβ =
+( 5010 314
+314 20
+)−1
+0.160 =
+( 0.002 −0.031
+−0.031 0.499
+)
+.
+We also calculate that
+n∑
+i =1
+(1 − hi i)−1 Xi X ′
+i ˆe2
+i =
+( 763.26 48.513
+48.513 3.1078
+)
+.
+Therefore the HC2 covariance matrix estimate is
+ˆV
+HC2
+ˆβ =
+( 5010 314
+314 20
+)−1 ( 763.26 48.513
+48.513 3.1078
+) ( 5010 314
+314 20
+)−1
+=
+( 0.001 −0.015
+−0.015 0.243
+)
+. (4.38)
+The standard errors are the square roots of the diagonal elements of these matrices. A conventional
+format to write the estimated equation with standard errors is
+álog(wage) = 0.155
+(0.031)
+education + 0.698
+(0.493)
+. (4.39)
+Alternatively, standard errors could be calculated using the other formulae. We report the different
+standard errors in the following table.
+Table 4.1: Standard Errors
+Education Intercept
+Homoskedastic (4.30) 0.045 0.707
+HC0 (4.31) 0.029 0.461
+HC1 (4.32) 0.030 0.486
+HC2 (4.33) 0.031 0.493
+HC3 (4.34) 0.033 0.527
+The homoskedastic standard errors are noticeably different (larger in this case) than the others. The
+robust standard errors are reasonably close to one another though the HC3 standard errors are larger
+than the others.
+
+
+--- page 20 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 116
+4.18 Estimation with Sparse Dummy Variables
+The heteroskedasticity-robust covariance matrix estimators can be quite imprecise in some contexts.
+One is in the presence of sparse dummy variables – when a dummy variable only takes the value 1 or 0
+for very few observations. In these contexts one component of the covariance matrix is estimated on just
+those few observations and will be imprecise. This is effectively hidden from the user.
+To see the problem, letD be a dummy variable (takes on the values 1 and 0) and consider the dummy
+variable regression
+Y = β1D + β2 + e. (4.40)
+The number of observations for which Di = 1 is n1 = ∑n
+i =1 Di . The number of observations for which
+Di = 0 is n2 = n − n1. We say the design is sparse if n1 or n2 is small.
+To simplify our analysis, we take the extreme case n1 = 1. The ideas extend to the case of n1 > 1 but
+small, though with less dramatic effects.
+In the regression model (4.40) we can calculate that the true covariance matrix of the least squares
+estimator for the coefﬁcients under the simplifying assumption of conditional homoskedasticity is
+V ˆβ = σ2 (
+X ′X
+)−1 = σ2
+( 1 1
+1 n
+)−1
+= σ2
+n − 1
+( n −1
+−1 1
+)
+.
+In particular, the variance of the estimator for the coefﬁcient on the dummy variable is
+V ˆβ1
+= σ2 n
+n − 1 .
+Essentially, the coefﬁcientβ1 is estimated from a single observation so its variance is roughly unaffected
+by sample size. An important message is that certain coefﬁcient estimators in the presence of sparse
+dummy variables will be imprecise, regardless of the sample size. A large sample alone is not sufﬁcient
+to ensure precise estimation.
+Now let’ s examine the standard HC1 covariance matrix estimator (4.32). The regression has perfect
+ﬁt for the observation for whichDi = 1 so the corresponding residual is ˆei = 0. It follows that Di ˆei = 0 for
+all i (either Di = 0 or ˆei = 0). Hence
+n∑
+i =1
+Xi X ′
+i ˆe2
+i =
+( 0 0
+0 ∑n
+i =1 ˆe2
+i
+)
+=
+( 0 0
+0 (n − 2)s2
+)
+where s2 = (n − 2)−1 ∑n
+i =1 ˆe2
+i is the bias-corrected estimator of σ2. Together we ﬁnd that
+ˆV
+HC1
+ˆβ =
+( n
+n − 2
+) 1
+(n − 1)2
+( n −1
+−1 1
+) ( 0 0
+0 (n − 2)s2
+) ( n −1
+−1 1
+)
+= s2 n
+(n − 1)2
+( 1 −1
+−1 1
+)
+.
+In particular, the estimator for V ˆβ1
+is
+ˆV HC1
+ˆβ1
+= s2 n
+(n − 1)2 .
+It has expectation
+E
+[
+ˆV HC1
+ˆβ1
+]
+= σ2 n
+(n − 1)2 =
+V ˆβ1
+n − 1 << V ˆβ1
+.
+
+
+--- page 21 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 117
+The variance estimator ˆV HC1
+ˆβ1
+is extremely biased for V ˆβ1
+. It is too small by a multiple of n! The reported
+variance – and standard error – is misleadingly small. The variance estimate erroneously mis-states the
+precision of ˆβ1.
+The fact that ˆV HC1
+ˆβ1
+is biased is unlikely to be noticed by an applied researcher. Nothing in the reported
+output will alert a researcher to the problem.
+Another way to see the issue is to consider the estimator ˆθ = ˆβ1 + ˆβ2 for the sum of the coefﬁcients
+θ = β1 + β2. This estimator has true variance σ2. The variance estimator, however is ˆV
+HC1
+ˆθ = 0! (It equals
+the sum of the four elements in ˆV
+HC1
+ˆβ ). Clearly, the estimator “0” is biased for the true value σ2.
+Another insight is to examine the leverage values. The (single) observation with Di = 1 has
+hi i = 1
+n − 1
+(
+1 1
+)( n −1
+−1 1
+) ( 1
+1
+)
+= 1.
+This is an extreme leverage value.
+A possible solution is to replace the biased covariance matrix estimator ˆV HC1
+ˆβ1
+with the unbiased esti-
+mator ˆV HC2
+ˆβ1
+(unbiased under homoskedasticity) or the conservative estimator ˆV HC3
+ˆβ1
+. Neither approach
+can be done in the extreme sparse case n1 = 1 (for ˆV HC2
+ˆβ1
+and ˆV HC3
+ˆβ1
+cannot be calculated if hi i = 1 for
+any observation) but applies otherwise. When hi i = 1 for an observation then ˆV HC2
+ˆβ1
+and ˆV HC3
+ˆβ1
+cannot be
+calculated. In this case unbiased covariance matrix estimation appears to be impossible.
+It is unclear if there is a best practice to avoid this situation. Once possibility is to calculate the
+maximum leverage value. If it is very large calculate the standard errors using several methods to see if
+variation occurs.
+4.19 Computation
+We illustrate methods to compute standard errors for equation (3.13) extending the code of Section
+3.25.
+Stata do File (continued)
+* Homoskedastic formula (4.30):
+reg wage education experience exp2 if (mnwf == 1)
+* HC1 formula (4.32):
+reg wage education experience exp2 if (mnwf == 1), r
+* HC2 formula (4.33):
+reg wage education experience exp2 if (mnwf == 1), vce(hc2)
+* HC3 formula (4.34):
+reg wage education experience exp2 if (mnwf == 1), vce(hc3)
+
+
+--- page 22 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 118
+R Program File (continued)
+n <- nrow(y)
+k <- ncol(x)
+a <- n/(n-k)
+sig2 <- (t(e) %*% e)/(n-k)
+u1 <- x*(e%*%matrix(1,1,k))
+u2 <- x*((e/sqrt(1-leverage))%*%matrix(1,1,k))
+u3 <- x*((e/(1-leverage))%*%matrix(1,1,k))
+xx <- solve(t(x)%*%x)
+v0 <- xx*sig2
+v1 <- xx %*% (t(u1)%*%u1) %*% xx
+v1a <- a * xx %*% (t(u1)%*%u1) %*% xx
+v2 <- xx %*% (t(u2)%*%u2) %*% xx
+v3 <- xx %*% (t(u3)%*%u3) %*% xx
+s0 <- sqrt(diag(v0)) # Homoskedastic formula
+s1 <- sqrt(diag(v1)) # HC0
+s1a <- sqrt(diag(v1a)) # HC1
+s2 <- sqrt(diag(v2)) # HC2
+s3 <- sqrt(diag(v3)) # HC3
+MATLAB Program File (continued)
+[n,k]=size(x);
+a=n/(n-k);
+sig2=(e’*e)/(n-k);
+u1=x.*(e*ones(1,k));u2=x.*((e./sqrt(1-leverage))*ones(1,k));u3=x.*((e./(1-
+leverage))*ones(1,k));xx=inv(x’*x);
+v0=xx*sig2;
+v1=xx*(u1’*u1)*xx;
+v1a=a*xx*(u1’*u1)*xx;
+v2=xx*(u2’*u2)*xx;
+v3=xx*(u3’*u3)*xx;
+s0=sqrt(diag(v0)); # Homoskedastic formula
+s1=sqrt(diag(v1)); # HC0 formula
+s1a=sqrt(diag(v1a)); # HC1 formula
+s2=sqrt(diag(v2)); # HC2 formula
+s3=sqrt(diag(v3)); # HC3 formula
+
+
+--- page 23 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 119
+4.20 Measures of Fit
+As we described in the previous chapter a commonly reported measure of regression ﬁt is the regres-
+sion R2 deﬁned as
+R2 = 1 −
+∑n
+i =1 ˆe2
+i
+∑n
+i =1
+(
+Yi −
+Y
+)2 = 1 − ˆσ2
+ˆσ2
+Y
+.
+where ˆσ2
+Y = n−1 ∑n
+i =1
+(
+Yi − Y
+)2
+. R2 is an estimator of the population parameter
+ρ2 =
+var
+[
+X ′β
+]
+var[Y ] = 1 − σ2
+σ2
+Y
+.
+However, ˆσ2 and ˆσ2
+Y are biased. Theil (1961) proposed replacing these by the unbiased versions s2
+and ˜σ2
+Y = (n − 1)−1 ∑n
+i =1
+(
+Yi − Y
+)2
+yielding what is known as R-bar-squared or adjusted R-squared:
+R
+2
+= 1 − s2
+˜σ2
+Y
+= 1 −
+(n − 1)−1 ∑n
+i =1 ˆe2
+i
+(n − k)−1 ∑n
+i =1
+(
+Yi −
+Y
+)2 .
+While R
+2
+is an improvement on R2 a much better improvement is
+˜R2 = 1 −
+∑n
+i =1 ˜e2
+i
+∑n
+i =1
+(
+Yi − Y
+)2 = 1 − ˜σ2
+ˆσ2
+Y
+where ˜ei are the prediction errors (3.44) and ˜σ2 is the MSPE from (3.46). As described in Section (4.14)
+˜σ2 is a good estimator of the out-of-sample mean-squared forecast error so ˜R2 is a good estimator of the
+percentage of the forecast variance which is explained by the regression forecast. In this sense ˜R2 is a
+good measure of ﬁt.
+One problem withR2 which is partially corrected byR
+2
+and fully corrected by ˜R2 is that R2 necessarily
+increases when regressors are added to a regression model. This occurs becauseR2 is a negative function
+of the sum of squared residuals which cannot increase when a regressor is added. In contrast, R
+2
+and
+˜R2 are non-monotonic in the number of regressors. ˜R2 can even be negative, which occurs when an
+estimated model predicts worse than a constant-only model.
+In the statistical literature the MSPE ˜σ2 is known as the leave-one-out cross validation criterion
+and is popular for model comparison and selection, especially in high-dimensional and non-parametric
+contexts. It is equivalent to use ˜R2 or ˜σ2 to compare and select models. Models with high ˜R2 (or low ˜σ2)
+are better models in terms of expected out of sample squared error. In contrast, R2 cannot be used for
+model selection as it necessarily increases when regressors are added to a regression model.R
+2
+is also an
+inappropriate choice for model selection (it tends to select models with too many parameters) though
+a justiﬁcation of this assertion requires a study of the theory of model selection. Unfortunately, R
+2
+is
+routinely used by some economists, possibly as a hold-over from previous generations.
+In summary, it is recommended to omit R2 and R
+2
+. If a measure of ﬁt is desired, report ˜R2 or ˜σ2.
+Henri Theil
+Henri Theil (1924-2000) of the Netherlands invented R
+2
+and two-stage least
+squares, both of which are routinely seen in applied econometrics. He also wrote
+an early inﬂuential advanced textbook on econometrics (Theil, 1971).
+
+
+--- page 24 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 120
+4.21 Empirical Example
+We again return to our wage equation but use a much larger sample of all individuals with at least 12
+years of education. For regressors we include years of education, potential work experience, experience
+squared, and dummy variable indicators for the following: female, female union member, male union
+member, married female 2, married male, formerly married female 3, formerly married male, Hispanic,
+Black, American Indian, Asian, and mixed race 4 . The available sample is 46,943 so the parameter esti-
+mates are quite precise and reported in Table 4.2. For standard errors we use the unbiased HC2 formula.
+Table 4.2 displays the parameter estimates in a standard tabular format. Parameter estimates and
+standard errors are reported for all coefﬁcients. In addition to the coefﬁcient estimates the table also
+reports the estimated error standard deviation and the sample size. These are useful summary measures
+of ﬁt which aid readers.
+Table 4.2: OLS Estimates of Linear Equation for log(wage)
+ˆβ s( ˆβ)
+Education 0.117 0.001
+Experience 0.033 0.001
+Experience2/100 -0.056 0.002
+Female -0.098 0.011
+Female Union Member 0.023 0.020
+Male Union Member 0.095 0.020
+Married Female 0.016 0.010
+Married Male 0.211 0.010
+Formerly Married Female -0.006 0.012
+Formerly Married Male 0.083 0.015
+Hispanic -0.108 0.008
+Black -0.096 0.008
+American Indian -0.137 0.027
+Asian -0.038 0.013
+Mixed Race -0.041 0.021
+Intercept 0.909 0.021
+ˆσ 0.565
+Sample Size 46,943
+Standard errors are heteroskedasticity-consistent (Horn-Horn-Duncan formula).
+As a general rule it is advisable to always report standard errors along with parameter estimates. This
+allows readers to assess the precision of the parameter estimates, and as we will discuss in later chapters,
+form conﬁdence intervals and t-tests for individual coefﬁcients if desired.
+The results in Table 4.2 conﬁrm our earlier ﬁndings that the return to a year of education is approxi-
+mately 12%, the return to experience is concave, single women earn approximately 10% less then single
+men, and Blacks earn about 10% less than whites. In addition, we see that Hispanics earn about 11% less
+than whites, American Indians 14% less, and Asians and Mixed races about 4% less. We also see there
+2Deﬁning “married” as marital code 1, 2, or 3.
+3Deﬁning “formerly married” as marital code 4, 5, or 6.
+4Race code 6 or higher.
+
+
+--- page 25 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 121
+are wage premiums for men who are members of a labor union (about 10%), married (about 21%) or
+formerly married (about 8%), but no similar premiums are apparent for women.
+4.22 Multicollinearity
+As discussed in Section 3.24, if X ′X is singular then
+(
+X ′X
+)−1 and ˆβ are not deﬁned. This situation
+is called strict multicollinearity as the columns of X are linearly dependent, i.e., there is some α ̸= 0
+such that X α = 0. Most commonly this arises when sets of regressors are included which are identically
+related. In Section 3.24 we discussed possible causes of strict multicollinearity and discussed the related
+problem of ill-conditioning which can cause numerical inaccuracies in severe cases.
+A related common situation is near multicollinearity which is often called “multicollinearity” for
+brevity. This is the situation when the regressors are highly correlated. An implication of near multi-
+collinearity is that individual coefﬁcient estimates will be imprecise. This is not necessarily a problem
+for econometric analysis if the reported standard errors are accurate. However, robust standard errors
+can be sensitive to large leverage values which can occur under near multicollinearity. This leads to the
+undesirable situation where the coefﬁcient estimates are imprecise yet the standard errors are mislead-
+ingly small.
+We can see the impact of near multicollinearity on precision in a simple homoskedastic linear regres-
+sion model with two regressors
+Y = X1β1 + X2β2 + e,
+and
+1
+n X ′X =
+( 1 ρ
+ρ 1
+)
+.
+In this case
+var
+[ˆβ |X
+]
+= σ2
+n
+( 1 ρ
+ρ 1
+)−1
+= σ2
+n
+(
+1 − ρ2)
+( 1 −ρ
+−ρ 1
+)
+.
+The correlation ρ indexes collinearity since as ρ approaches 1 the matrix becomes singular. We can see
+the effect of collinearity on precision by observing that the variance of a coefﬁcient estimateσ2 [
+n
+(
+1 − ρ2)]−1
+approaches inﬁnity asρ approaches 1. Thus the more “collinear” are the regressors the worse the preci-
+sion of the individual coefﬁcient estimates.
+Arthur S. Goldberger
+Art Goldberger (1930-2009) was one of the most distinguished members of the
+Department of Economics at the University of Wisconsin. His Ph.D. thesis devel-
+oped a pioneering macroeconometric forecasting model (the Klein-Goldberger
+model). Most of his remaining career focused on microeconometric issues. He
+was the leading pioneer of what has been called the Wisconsin Tradition of em-
+pirical work – a combination of formal econometric theory with a careful critical
+analysis of empirical work. Goldberger wrote a series of highly regarded and in-
+ﬂuential graduate econometric textbooks, including Econometric Theory (1964),
+Topics in Regression Analysis(1968), and A Course in Econometrics (1991).
+
+
+--- page 26 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 122
+What is happening is that when the regressors are highly dependent it is statistically difﬁcult to dis-
+entangle the impact of β1 from that of β2. As a consequence the precision of individual estimates are
+reduced.
+Many early-generation textbooks overemphasized multicollinearity. An amusing parody of these
+texts appeared in Chapter 23.3 of Goldberger’ sA Course in Econometrics(1991), part of which is reprinted
+below. To understand his basic point you should notice how the estimation varianceσ2 [
+n
+(
+1 − ρ2)]−1 de-
+pends equally and symmetrically on the correlation ρ and the sample size n. Goldberger was pointing
+out that the only statistical implication of multicollinearity in the homoskedastic model is a lack of preci-
+sion. Small sample sizes have the exact same implication. (What both Goldberger and these other early
+texts missed, however, is that multicollinearity increases the bias of robust standard errors as discussed
+in Section 4.18.)
+Micronumerosity by Arthur S. Goldberger
+A Course in Econometrics (1991), Chapter 23.3
+Econometrics texts devote many pages to the problem of multicollinearity in multiple regression,
+but they say little about the closely analogous problem of small sample size in estimating a univari-
+ate mean. Perhaps that imbalance is attributable to the lack of an exotic polysyllabic name for “small
+sample size.” If so, we can remove that impediment by introducing the termmicronumerosity.
+1. Micronumerosity
+The extreme case, “exact micronumerosity,” arises whenn = 0, in which case the sample estimate
+of µ is not unique. (Technically, there is a violation of the rank condition n > 0 : the matrix 0
+is singular.) The extreme case is easy enough to recognize. “Near micronumerosity” is more
+subtle, and yet very serious. It arises when the rank condition n > 0 is barely satisﬁed. Near
+micronumerosity is very prevalent in empirical economics.
+2. Consequences of micronumerosity
+The consequences of micronumerosity are serious. Precision of estimation is reduced. There are
+two aspects of this reduction: estimates of µ may have large errors, and not only that, but V ¯y will
+be large.
+Investigators will sometimes be led to accept the hypothesis µ = 0 because ¯y/ˆσ ¯y is small, even
+though the true situation may be not thatµ = 0 but simply that the sample data have not enabled
+us to pick µ up.
+3. Testing for micronumerosity
+Tests for the presence of micronumerosity require the judicious use of various ﬁngers. Some
+researchers prefer a single ﬁnger, others use their toes, still others let their thumbs rule.
+A generally reliable guide may be obtained by counting the number of observations. Most of the
+time in econometric analysis, when n is close to zero, it is also far from inﬁnity.
+4. Remedies for micronumerosity
+If micronumerosity proves serious in the sense that the estimate of µ has an unsatisfactorily low
+degree of precision, we are in the statistical position of not being able to make bricks without
+straw.
+
+
+--- page 27 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 123
+4.23 Clustered Sampling
+In Section 4.2 we brieﬂy mentioned clustered sampling as an alternative to the assumption of ran-
+dom sampling. We now introduce the framework in more detail and extend the primary results of this
+chapter to encompass clustered dependence.
+It might be easiest to understand the idea of clusters by considering a concrete example. Duﬂo,
+Dupas and Kremer (2011) investigate the impact of tracking (assigning students based on initial test
+score) on educational attainment in a randomized experiment. An extract of their data set is available
+on the textbook webpage in the ﬁleDDK2011.
+In 2005, 140 primary schools in Kenya received funding to hire an extra ﬁrst grade teacher to reduce
+class sizes. In half of the schools (selected randomly) students were assigned to classrooms based on
+an initial test score (“tracking”); in the remaining schools the students were randomly assigned to class-
+rooms. For their analysis the authors restricted attention to the 121 schools which initially had a single
+ﬁrst-grade class.
+The key regression5 in the paper is
+TestScorei g = −0.071 + 0.138Trackingg + ei g (4.41)
+where TestScorei g is the standardized test score (normalized to have mean 0 and variance 1) of student i
+in school g , and Trackingg is a dummy equal to 1 if school g was tracking. The OLS estimates indicate
+that schools which tracked the students had an overall increase in test scores by about 0.14 standard
+deviations, which is meaningful. More general versions of this regression are estimated, many of which
+take the form
+TestScorei g = α + γTrackingg + X ′
+i gβ + ei g (4.42)
+where Xi g is a set of controls speciﬁc to the student (including age, gender, and initial test score).
+A difﬁculty with applying the classical regression framework is that student achievement is likely
+correlated within a given school. Student achievement may be affected by local demographics, individ-
+ual teachers, and classmates, all of which imply dependence. These concerns, however, do not suggest
+that achievement will be correlated across schools, so it seems reasonable to model achievement across
+schools as mutually independent. We call such dependence clustered.
+In clustering contexts it is convenient to double index the observations as (Yi g, Xi g) where g = 1, ...,G
+indexes the cluster and i = 1, ...,ng indexes the individual within the g t h cluster. The number of ob-
+servations per cluster ng may vary across clusters. The number of clusters is G. The total number of
+observations is n = ∑G
+g =1 ng . In the Kenyan schooling example the number of clusters (schools) in the
+estimation sample is G = 121, the number of students per school varies from 19 to 62, and the total
+number of observations is n = 5795.
+While it is typical to write the observations using the double index notation (Yi g, Xi g) it is also useful
+to use cluster-level notation. Let Y g = (Y1g , ...,Yng g )′ and X g = (X1g ,..., Xng g )′ denote the ng × 1 vector of
+dependent variables and ng × k matrix of regressors for the g t h cluster. A linear regression model can be
+written by individual as
+Yi g = X ′
+i gβ + ei g
+and using cluster notation as
+Y g = X g β + e g (4.43)
+where e g = (e1g ,..., eng g )′ is a ng × 1 error vector. We can also stack the observations into full sample
+matrices and write the model as
+Y = X β + e.
+5Table 2, column (1). Duﬂo, Dupas and Kremer (2011) report a coefﬁcient estimate of 0.139, perhaps due to a slightly different
+calculation to standardize the test score.
+
+
+--- page 28 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 124
+Using this notation we can write the sums over the observations using the double sum ∑G
+g =1
+∑ng
+i =1.
+This is the sum across clusters of the sum across observations within each cluster. The OLS estimator
+can be written as
+ˆβ =
+(
+G∑
+g =1
+ng∑
+i =1
+Xi g X ′
+i g
+)−1 (
+G∑
+g =1
+ng∑
+i =1
+Xi gYi g
+)
+=
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g Y g
+)
+(4.44)
+=
+(
+X ′X
+)−1 (
+X ′Y
+)
+.
+The residuals are ˆei g = Yi g −X ′
+i g
+ˆβ in individual level notation andˆe g = Y g −X g ˆβ in cluster level notation.
+The standard clustering assumption is that the clusters are known to the researcher and that the
+observations are independent across clusters.
+Assumption 4.4 The clusters (Y g , X g ) are mutually independent across clusters g .
+In our example clusters are schools. In other common applications cluster dependence has been
+assumed within individual classrooms, families, villages, regions, and within larger units such as indus-
+tries and states. This choice is up to the researcher though the justiﬁcation will depend on the context,
+the nature of the data, and will reﬂect information and assumptions on the dependence structure across
+observations.
+The model is a linear regression under the assumption
+E
+[
+e g |X g
+]
+= 0. (4.45)
+This is the same as assuming that the individual errors are conditionally mean zero
+E
+[
+ei g |X g
+]
+= 0
+or that the conditional mean of Y g given X g is linear. As in the independent case equation (4.45) means
+that the linear regression model is correctly speciﬁed. In the clustered regression model this requires
+that all interaction effects within clusters have been accounted for in the speciﬁcation of the individual
+regressors Xi g.
+In the regression (4.41) the conditional mean is necessarily linear and satisﬁes (4.45) since the regres-
+sor Trackingg is a dummy variable at the cluster level. In the regression (4.42) with individual controls,
+(4.45) requires that the achievement of any student is unaffected by the individual controls (e.g. age,
+gender and initial test score) of other students within the same school.
+Given (4.45) we can calculate the mean of the OLS estimator. Substituting (4.43) into (4.44) we ﬁnd
+ˆβ − β =
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g e g
+)
+.
+
+
+--- page 29 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 125
+The mean of ˆβ − β conditioning on all the regressors is
+E
+[ˆβ − β |X
+]
+=
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g E
+[
+e g |X
+]
+)
+=
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g E
+[
+e g |X g
+]
+)
+= 0.
+The ﬁrst equality holds by linearity, the second by Assumption 4.4, and the third by (4.45).
+This shows that OLS is unbiased under clustering if the conditional mean is linear.
+Theorem 4.9 In the clustered linear regression model (Assumption 4.4
+and (4.45)) E
+[ˆβ |X
+]
+= β.
+Now consider the covariance matrix of ˆβ. Let Σg = E
+[
+e g e′
+g |X g
+]
+denote the ng × ng conditional co-
+variance matrix of the errors within the g t h cluster. Since the observations are independent across clus-
+ters,
+var
+[ (
+G∑
+g =1
+X ′
+g e g
+)⏐⏐
+⏐
+⏐⏐ X
+]
+=
+G∑
+g =1
+var
+[
+X ′
+g e g |X g
+]
+=
+G∑
+g =1
+X ′
+g E
+[
+e g e′
+g |X g
+]
+X g
+=
+G∑
+g =1
+X ′
+g Σg X g
+def
+= Ωn. (4.46)
+It follows that
+V ˆβ = var
+[ˆβ |X
+]
+=
+(
+X ′X
+)−1 Ωn
+(
+X ′X
+)−1 . (4.47)
+This differs from the formula in the independent case due to the correlation between observations
+within clusters. The magnitude of the difference depends on the degree of correlation between observa-
+tions within clusters and the number of observations within clusters. To see this, suppose that all clusters
+have the same number of observations ng = N , E
+[
+e2
+i g |X g
+]
+= σ2, E
+[
+ei geℓg |X g
+]
+= σ2ρ for i ̸= ℓ, and the
+regressors Xi g do not vary within a cluster. In this case the exact variance of the OLS estimator equals 6
+(after some calculations)
+V ˆβ =
+(
+X ′X
+)−1 σ2 (
+1 + ρ (N − 1)
+)
+. (4.48)
+If ρ > 0 the exact variance is appropriately a multiple ρN of the conventional formula. In the Kenyan
+school example the average cluster size is 48. If ρ = 0.25 this means the exact variance exceeds the con-
+ventional formula by a factor of about twelve. In this case the correct standard errors (the square root of
+the variance) are a multiple of about three times the conventional formula. This is a substantial differ-
+ence and should not be neglected.
+6This formula is due to Moulton (1990).
+
+
+--- page 30 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 126
+Arellano (1987) proposed a cluster-robust covariance matrix estimator which is an extension of the
+White estimator. Recall that the insight of the White covariance estimator is that the squared error
+e2
+i is unbiased for E
+[
+e2
+i |Xi
+]
+= σ2
+i . Similarly with cluster dependence the matrix e g e′
+g is unbiased for
+E
+[
+e g e′
+g |X g
+]
+= Σg . This means that an unbiased estimator for (4.46) is ˜Ωn = ∑G
+g =1 X ′
+g e g e′
+g X g . This is not
+feasible, but we can replace the unknown errors by the OLS residuals to obtain Arellano’ s estimator
+ˆΩn =
+G∑
+g =1
+X ′
+g ˆe g ˆe′
+g X g
+=
+G∑
+g =1
+ng∑
+i =1
+ng∑
+ℓ=1
+Xi g X ′
+ℓg ˆei g ˆeℓg
+=
+G∑
+g =1
+( ng∑
+i =1
+Xi g ˆei g
+) ( ng∑
+ℓ=1
+Xℓg ˆeℓg
+)′
+. (4.49)
+The three expressions in (4.49) give three equivalent formulae which could be used to calculate ˆΩn. The
+ﬁnal expression writes ˆΩn in terms of the cluster sums ∑ng
+ℓ=1 Xℓg ˆeℓg which is the basis for our example R
+and MATLAB codes shown below.
+Given the expressions (4.46)-(4.47) a natural cluster covariance matrix estimator takes the form
+ˆV ˆβ = an
+(
+X ′X
+)−1 ˆΩn
+(
+X ′X
+)−1 (4.50)
+where an is a possible ﬁnite-sample adjustment. The Statacluster command uses
+an =
+( n − 1
+n − k
+) ( G
+G − 1
+)
+. (4.51)
+The factor G/(G −1) was derived by Chris Hansen (2007) in the context of equal-sized clusters to improve
+performance when the number of clustersG is small. The factor (n−1)/(n−k) is an ad hoc generalization
+which nests the adjustment used in (4.32) since G = n implies the simpliﬁcationan = n/(n − k).
+Alternative cluster-robust covariance matrix estimators can be constructed using cluster-level pre-
+diction errors such as ˜e g = Y g − X g ˆβ(−g ) where ˆβ(−g ) is the least squares estimator omitting cluster g . As
+in Section 3.20, we can show that
+˜e g =
+(
+I ng − X g
+(
+X ′X
+)−1 X ′
+g
+)−1
+ˆe g (4.52)
+and
+ˆβ(−g ) = ˆβ −
+(
+X ′X
+)−1 X ′
+g ˜e g . (4.53)
+We then have the robust covariance matrix estimator
+ˆV
+CR3
+ˆβ =
+(
+X ′X
+)−1
+(
+G∑
+g =1
+X ′
+g ˜e g ˜e′
+g X g
+)
+(
+X ′X
+)−1 . (4.54)
+The label “CR” refers to “cluster-robust” and “CR3” refers to the analogous formula for the HC3 estimator.
+Similarly to the heteroskedastic-robust case you can show that CR3 is a conservative estimator for
+V ˆβ in the sense that the conditional expectation of ˆV
+CR3
+ˆβ exceeds V ˆβ. This covariance matrix estimator
+may be more cumbersome to implement, however, as the cluster-level prediction errors (4.52) cannot be
+calculated in a simple linear operation and appear to require a loop (across clusters) to calculate.
+To illustrate in the context of the Kenyan schooling example we present the regression of student test
+scores on the school-level tracking dummy with two standard errors displayed. The ﬁrst (in parenthesis)
+
+
+--- page 31 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 127
+is the conventional robust standard error. The second [in square brackets] is the clustered standard error
+from (4.50)-(4.4) where clustering is at the level of the school.
+TestScorei g = − 0.071
+(0.019)
+[0.054]
++ 0.138
+(0.026)
+[0.078]
+Trackingg + ei g. (4.55)
+We can see that the cluster-robust standard errors are roughly three times the conventional robust
+standard errors. Consequently, conﬁdence intervals for the coefﬁcients are greatly affected by the choice.
+For illustration, we list here the commands needed to produce the regression results with clustered
+standard errors in Stata, R, and MATLAB.
+Stata do File
+* Load data:
+use "DDK2011.dta"
+* Standard the test score variable to have mean zero and unit variance:
+egen testscore = std(totalscore)
+* Regression with standard errors clustered at the school level:
+reg testscore tracking, cluster(schoolid)
+You can see that clustered standard errors are simple to calculate in Stata.
+R Program File
+# Load the data and create variables
+data <- read.table("DDK2011.txt",header=TRUE,sep="\ t")
+y <- scale(as.matrix(data$totalscore))
+n <- nrow(y)
+x <- cbind(as.matrix(data$tracking),matrix(1,n,1))
+schoolid <- as.matrix(data$schoolid)
+k <- ncol(x)
+xx <- t(x)%*%x
+invx <- solve(xx)
+beta <- solve(xx,t(x)%*%y)
+xe <- x*rep(y-x%*%beta,times=k)
+# Clustered robust standard error
+xe_sum <- rowsum(xe,schoolid)
+G <- nrow(xe_sum)
+omega <- t(xe_sum)%*%xe_sum
+scale <- G/(G-1)*(n-1)/(n-k)
+V_clustered <- scale*invx%*%omega%*%invx
+se_clustered <- sqrt(diag(V_clustered))
+print(beta)
+print(se_clustered)
+
+
+--- page 32 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 128
+Programming clustered standard errors in R is also relatively easy due to the convenientrowsum com-
+mand which sums variables within clusters.
+MATLAB Program File
+% Load the data and create variables
+data = xlsread(’DDK2011.xlsx’);
+schoolid = data(:,2);
+tracking = data(:,7);
+totalscore = data(:,62);
+y = (totalscore - mean(totalscore))./std(totalscore);
+x = [tracking,ones(size(y,1),1)];
+[n,k] = size(x);
+xx = x’*x;
+invx = inv(xx);
+beta = xx\(x’*y)
+e = y - x*beta;
+% Clustered robust standard error
+[schools,~,schoolidx] = unique(schoolid);
+G = size(schools,1);
+cluster_sums = zeros(G,k);
+for j = 1:k
+cluster_sums(:,j) = accumarray(schoolidx,x(:,j).*e);
+end
+omega = cluster_sums’*cluster_sums;
+scale = G/(G-1)*(n-1)/(n-k);
+V_clustered = scale*invx*omega*invx;
+se_clustered = sqrt(diag(V_clustered));
+display(beta);
+display(se_clustered);
+Here we see that programming clustered standard errors in MATLAB is less convenient than the other
+packages but still can be executed with just a few lines of code. This example uses the accumarray
+command which is similar to the rowsum command in R but only can be applied to vectors (hence the
+loop across the regressors) and works best if the clusterid variable are indices (which is why the original
+schoolid variable is transformed into indices in schoolidx. Application of these commands requires care
+and attention.
+4.24 Inference with Clustered Samples
+In this section we give some cautionary remarks and general advice about cluster-robust inference
+in econometric practice. There has been remarkably little theoretical research about the properties of
+cluster-robust methods – until quite recently – so these remarks may become dated rather quickly.
+In many respects cluster-robust inference should be viewed similarly to heteroskedaticity-robust in-
+ference where a “cluster” in the cluster-robust case is interpreted similarly to an “observation” in the
+heteroskedasticity-robust case. In particular, the effective sample size should be viewed as the number
+
+
+--- page 33 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 129
+of clusters not the “sample size” n. This is because the cluster-robust covariance matrix estimator ef-
+fectively treats each cluster as a single observation and estimates the covariance matrix based on the
+variation across cluster means. Hence if there are only G = 50 clusters inference should be viewed as
+(at best) similar to heteroskedasticity-robust inference with n = 50 observations. This is a bit unsettling
+when the number of regressors is large (say k = 20) for then the covariance matrix will be estimated
+imprecisely.
+Furthermore, most cluster-robust theory (for example, the work of Chris Hansen (2007)) assumes
+that the clusters are homogeneous including the assumption that the cluster sizes are all identical. This
+turns out to be a very important simplication. When this is violated – when, for example, cluster sizes are
+highly heterogeneous – the regression should be viewed as roughly equivalent to the heteroskedastic case
+with an extremely high degree of heteroskedasticity. Cluster sums have variances which are proportional
+to the cluster sizes so if the latter is heterogeneous so will be the variances of the cluster sums. This
+also has a large effect on ﬁnite sample inference. When clusters are heterogeneous then cluster-robust
+inference is similar to heteroskedasticity-robust inference with highly heteroskedastic observations.
+Put together, if the number of clustersG is small and the number of observations per cluster is highly
+varied then we should interpret inferential statements with a great degree of caution. Unfortunately,
+small G with heterogeneous cluster sizes is commonplace. Many empirical studies on U.S. data cluster
+at the “state” level meaning that there are 50 or 51 clusters (the District of Columbia is typically treated
+as a state). The number of observations vary considerably across states since the populations are highly
+unequal. Thus when you read empirical papers with individual-level data but clustered at the “state”
+level you should be cautious and recognize that this is equivalent to inference with a small number of
+extremely heterogeneous observations.
+A further complication occurs when we are interested in treatment as in the tracking example given
+in the previous section. In many cases (including Duﬂo, Dupas and Kremer (2011)) the interest is in the
+effect of a treatment applied at the cluster level (e.g., schools). In many cases (not, however, Duﬂo, Dupas
+and Kremer (2011)), the number of treated clusters is small relative to the total number of clusters; in an
+extreme case there is just a single treated cluster. Based on the reasoning given above these applications
+should be interpreted as equivalent to heteroskedasticity-robust inference with a sparse dummy variable
+as discussed in Section 4.18. As discussed there, standard error estimates can be erroneously small.
+In the extreme of a single treated cluster (in the example, if only a single school was tracked) then the
+estimated coefﬁcient on tracking will be very imprecisely estimated yet will have a misleadingly small
+cluster standard error. In general, reported standard errors will greatly understate the imprecision of
+parameter estimates.
+4.25 At What Level to Cluster?
+A practical question which arises in the context of cluster-robust inference is “ At what level should
+we cluster?” In some examples you could cluster at a very ﬁne level, such as families or classrooms, or
+at higher levels of aggregation, such as neighborhoods, schools, towns, counties, or states. What is the
+correct level at which to cluster? Rules of thumb have been advocated by practitioners but at present
+there is little formal analysis to provide useful guidance. What do we know?
+First, suppose cluster dependence is ignored or imposed at too ﬁne a level (e.g. clustering by house-
+holds instead of villages). Then variance estimators will be biased as they will omit covariance terms. As
+correlation is typically positive, this suggests that standard errors will be too small giving rise to spurious
+indications of signiﬁcance and precision.
+Second, suppose cluster dependence is imposed at too aggregate a measure (e.g. clustering by states
+rather than villages). This does not cause bias. But the variance estimators will contain many extra
+
+
+--- page 34 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 130
+components so the precision of the covariance matrix estimator will be poor. This means that reported
+standard errors will be imprecise – more random – than if clustering had been less aggregate.
+These considerations show that there is a trade-off between bias and variance in the estimation of the
+covariance matrix by cluster-robust methods. It is not at all clear – based on current theory – what to do.
+I state this emphatically. We really do not know what is the “correct” level at which to do cluster-robust
+inference. This is a very interesting question and should certainly be explored by econometric research.
+One challenge is that in empirical practice many people have observed: “Clustering is important.
+Standard errors change a lot whether or not we cluster. Therefore we should only report clustered stan-
+dard errors.” The ﬂaw in this reasoning is that we do not know why in a speciﬁc empirical example the
+standard errors change under clustering. One possibility is that clustering reduces bias and thus is more
+accurate. The other possibility is that clustering adds sampling noise and is thus less accurate. In reality
+it is likely that both factors are present.
+In any event a researcher should be aware of the number of clusters used in the reported calculations
+and should treat the number of clusters as the effective sample size for assessing inference. If the number
+of clusters is, say,G = 20, this should be treated as a very small sample.
+To illustrate the thought experiment consider the empirical example of Duﬂo, Dupas and Kremer
+(2011). They reported standard errors clustered at the school level and the application uses 111 schools.
+Thus G = 111 is the effective sample size. The number of observations (students) ranges from 19 to 62,
+which is reasonably homogeneous. This seems like a well balanced application of clustered variance
+estimation. However, one could imagine clustering at a different level of aggregation. We might consider
+clustering at a less aggregate level such as the classroom level, but this cannot be done in this particular
+application as there was only one classroom per school. Clustering at a more aggregate level could be
+done in this application at the level of the “zone” . However, there are only 9 zones. Thus if we cluster by
+zone, G = 9 is the effective sample size which would lead to imprecise standard errors. In this particular
+example clustering at the school level (as done by the authors) is indeed the prudent choice.
+4.26 Technical Proofs*
+Proof of Theorems 4.5 and 4.7 Theorem 4.5 is a special case so we focus on Theorem 4.7.
+Let F be the class of distributions on (Y , X ) which satisfy the linear regression model with ﬁnite
+conditional variance. Let β0 be the true value of the regression coefﬁcient. Let f (e |x) denote the true
+conditional density (or probability mass function in the discrete case) of the regression errore = Y −X ′β0.
+For some 0 < c < ∞ deﬁne
+σ2
+c (x) = E
+[
+e21{|e|≤ c} |X = x
+]
+.
+Notice that as c → ∞, σ2
+c (x) → σ2(x). Pick c sufﬁciently large so that σ2
+c (Xi ) > 0 for all 1 ≤ i ≤ n which is
+feasible since σ2(Xi ) > 0 for all 1 ≤ i ≤ n. Set δ = min1≤i ≤n σ2
+c (Xi ) and M = max1≤i ≤n ∥Xi ∥.
+Deﬁne the function
+ψc(e) = e1{|e|≤ c} − E[e1{|e|≤ c} |X ]. (4.56)
+Notice that it satisﬁes
+⏐⏐ψc(e)
+⏐
+⏐ ≤ 2c, E
+[
+ψc(e) |X
+]
+= 0, and E
+[
+eψc(e) |X
+]
+= σ2(X ).
+Deﬁne the parametric conditional model fore
+fc
+(
+e |x, β
+)
+= f (e |x)
+(
+1 +
+(
+β − β0
+)′ xψc(e)
+σ2
+c (x)
+)
+where the parameter β takes values in the set
+Bc =
+{
+β ∈ Rm :
+β − β0
+
+ ≤ δ
+2cM
+}
+
+
+--- page 35 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 131
+and the regressor X takes values in the set {∥X ∥ ≤ M}. This model implies that Y has the parametric
+density fc
+(
+y − x′β0 |x, β
+)
+.
+The bounds imply that
+⏐⏐⏐⏐
+⏐
+(
+β − β0
+)′ X ψc(e)
+σ2
+c (X )
+⏐⏐
+⏐⏐⏐ ≤
+
+β − β0
+
+ ∥X ∥
+⏐
+⏐ψc(e)
+⏐
+⏐
+δ < 1.
+This implies that fc
+(
+e |x, β
+)
+has the same support as f (e |x) and satisﬁes the bounds 0 ≤ fc
+(
+e |x, β
+)
+≤
+2f (e |x). We calculate that
+∫
+fc
+(
+e |x, β
+)
+de =
+∫
+f (e |x)de +
+∫
+f (e |x)
+(
+β − β0
+)′ xψc(e)
+σ2
+c (x)
+de
+= 1 +
+(
+β − β0
+)′ x
+σ2
+c (x)
+E
+[
+ψc(e) |X = x
+]
+= 1 (4.57)
+the last equality sinceE
+[
+ψc(e) |X = x
+]
+= 0. Together, these facts imply thatfc
+(
+e |x, β
+)
+and fc
+(
+y − x′β0 |x, β
+)
+are valid conditional density functions.
+Let Ec [· |X = x] denote expectation under the conditional density fc
+(
+e |x, β
+)
+. The conditional ex-
+pectation of Y in this model is
+Ec [Y |X = x] =
+∫
+y fc
+(
+y − x′β0 |x, β
+)
+d y
+= x′β0 +
+∫
+e f (e |x)de +
+(
+β − β0
+)′ x
+σ2
+c (x)
+∫
+ψc(e)e f (e |x)de
+= x′β. (4.58)
+Thus the conditional mean is linear in x and β corresponds to the regression coefﬁcient.
+The bound fc
+(
+e |x, β
+)
+≤ 2f (e |x) means that any moment which is ﬁnite under f (e |x) is also ﬁnite
+under fc
+(
+e |x, β
+)
+. This implies that
+Ec
+[
+e2 |X = x
+]
+≤ 2E
+[
+e2 |X = x
+]
+= 2σ2(x) < ∞
+so the model fc
+(
+e |x, β
+)
+has a ﬁnite second conditional moment. We deduce that
+fc
+(
+y − x′β0 |x, β
+)
+∈ F .
+When β = β0, fc
+(
+y − x′β0 |x, β0
+)
+= f
+(
+y − x′β0 |x
+)
+equals the true conditional density of Y . Thus
+fc
+(
+y − x′β0 |x, β
+)
+is a correctly speciﬁed model with true parameter valueβ = β0.
+The score of the model at the true value β = β0 is
+S = ∂
+∂β log fc
+(
+y − x′β0 |x, β
+)⏐⏐
+⏐
+⏐
+β=β0
+= xψc(e)
+σ2
+c (x) +
+(
+β − β0
+)′ xψc(e)
+⏐⏐⏐⏐
+⏐
+β=β0
+= xψc(e)
+σ2
+c (x)
+.
+
+
+--- page 36 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 132
+The information matrix for the i t h observation is
+I (Xi ) = var[Si |Xi ] = var
+[ Xi ψc(ei )
+σ2
+c (Xi )
+⏐⏐⏐⏐ Xi
+]
+= Xi X ′
+i
+v 2
+c (Xi )
+σ4
+c (Xi )
+where
+v 2
+c (X ) = var
+[
+ψc(e)
+⏐⏐ X
+]
+≤ E
+[
+e21{|e|≤ c} |X
+]
+= σ2
+c (X ). (4.59)
+The information matrix for the full sample is
+Ic =
+n∑
+i =1
+I (Xi )
+=
+n∑
+i =1
+Xi X ′
+i
+v 2
+c (Xi )
+σ4
+c (Xi )
+≤
+n∑
+i =1
+Xi X ′
+i
+1
+σ2
+c (Xi )
+= X ′D −1
+c X (4.60)
+where the inequality is (4.59) and D c = diag
+{
+σ2
+c (X1), ...,σ2
+c (Xn)
+}
+.
+By assumption the estimator ˜β is unbiased for β for all F ∈ F . Since fc
+(
+y − x′β0 |x, β
+)
+∈ F this
+means that ˜β is unbiased for β in the model fc
+(
+y − x′β0 |x, β
+)
+. The model fc
+(
+y − x′β0 |x, β
+)
+is correctly-
+speciﬁed, the support ofY does not depend on β, Ic > 0, and the true value β0 lies in the interior of the
+parameter space Bc. The conditions for the Cramér-Rao Theorem (e.g. Theorem 10.6 of Introduction to
+Econometrics) are thus satisﬁed, which states that
+var
+[˜β |X
+]
+≥ I −1
+c ≥
+(
+X ′D −1
+c X
+)−1
+where the second inequality is (4.60). Since this holds for all c
+var
+[˜β |X
+]
+≥ limsup
+c→∞
+(
+X ′D −1
+c X
+)−1
+=
+(
+X ′D −1X
+)−1
+.
+This is the statement of Theorem 4.7. Theorem 4.5 obtains as the special case D = I nσ2 so the bound
+simpliﬁes toσ2 (
+X ′X
+)−1. ■
+_____________________________________________________________________________________________
+4.27 Exercises
+Exercise 4.1 For some integer k, set µk = E[Y k].
+(a) Construct an estimator ˆµk for µk.
+(b) Show that ˆµk is unbiased for µk.
+(c) Calculate the variance of ˆµk, say var
+[
+ˆµk
+]
+. What assumption is needed for var
+[
+ˆµk
+]
+to be ﬁnite?
+(d) Propose an estimator of var
+[
+ˆµk
+]
+.
+
+
+--- page 37 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 133
+Exercise 4.2 Calculate E
+[(
+Y − µ
+)3]
+, the skewness of Y . Under what condition is it zero?
+Exercise 4.3 Explain the difference between Y and µ. Explain the difference between n−1 ∑n
+i =1 Xi X ′
+i and
+E
+[
+Xi X ′
+i
+]
+.
+Exercise 4.4 True or False. If Y = X ′β + e, X ∈ R, E[e |X ] = 0, and ˆei is the OLS residual from the regres-
+sion of Yi on Xi , then ∑n
+i =1 X 2
+i ˆei = 0.
+Exercise 4.5 Prove (4.15) and (4.16)
+Exercise 4.6 Prove Theorem 4.6.
+Exercise 4.7 Let ˜β be the GLS estimator (4.17) under the assumptions (4.13) and (4.14). Assume that
+Ω = c2Σ with Σ known and c2 unknown. Deﬁne the residual vector˜e = Y − X ˜β, and an estimator for c2
+˜c2 = 1
+n − k ˜e′Σ−1˜e.
+(a) Show (4.18).
+(b) Show (4.19).
+(c) Prove that ˜e = M 1e, where M 1 = I − X
+(
+X ′Σ−1X
+)−1 X ′Σ−1.
+(d) Prove that M ′
+1Σ−1M 1 = Σ−1 − Σ−1X
+(
+X ′Σ−1X
+)−1 X ′Σ−1.
+(e) Find E
+[
+˜c2 |X
+]
+.
+(f) Is ˜c2 a reasonable estimator for c2?
+Exercise 4.8 Let (Yi , Xi ) be a random sample with E[Y |X ] = X ′β. Consider the Weighted Least Squares
+(WLS) estimator ˜βwls =
+(
+X ′W X
+)−1 (
+X ′W Y
+)
+where W = diag(w1,..., wn) and wi = X −2
+j i , where X j i is one
+of the Xi .
+(a) In which contexts would ˜βwls be a good estimator?
+(b) Using your intuition, in which situations do you expect ˜βwls to perform better than OLS?
+Exercise 4.9 Show (4.27) in the homoskedastic regression model.
+Exercise 4.10 Prove (4.35).
+Exercise 4.11 Show (4.36) in the homoskedastic regression model.
+Exercise 4.12 Let µ = E[Y ], σ2 = E
+[(
+Y − µ
+)2]
+and µ3 = E
+[(
+Y − µ
+)3]
+and consider the sample mean Y =
+1
+n
+∑n
+i =1 Yi . Find E
+[(
+Y − µ
+)3]
+as a function of µ, σ2, µ3 and n.
+Exercise 4.13 Take the simple regression model Y = X β + e, X ∈ R, E[e |X ] = 0. Deﬁne σ2
+i = E
+[
+e2
+i |Xi
+]
+and µ3i = E
+[
+e3
+i |Xi
+]
+and consider the OLS coefﬁcient ˆβ. Find E
+[(ˆβ − β
+)3
+|X
+]
+.
+
+
+--- page 38 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 134
+Exercise 4.14 Take a regression model Y = X β + e with E[e |X ] = 0 and i.i.d. observations (Y i , Xi ) and
+scalar X . The parameter of interest is θ = β2. Consider the OLS estimators ˆβ and ˆθ = ˆβ2.
+(a) Find E
+[ˆθ |X
+]
+using our knowledge of E
+[ˆβ |X
+]
+and V ˆβ = var
+[ˆβ |X
+]
+. Is ˆθ biased for θ?
+(b) Suggest an (approximate) biased-corrected estimator ˆθ∗ using an estimator ˆV ˆβ for V ˆβ.
+(c) For ˆθ∗ to be potentially unbiased, which estimator of V ˆβ is most appropriate?
+Under which conditions is ˆθ∗ unbiased?
+Exercise 4.15 Consider an i.i.d. sample {Yi , Xi } i = 1, ...,n where X is k × 1. Assume the linear conditional
+expectation model Y = X ′β + e with E[e |X ] = 0. Assume that n−1X ′X = I k (orthonormal regressors).
+Consider the OLS estimator ˆβ.
+(a) Find V ˆβ = var
+[ˆβ
+]
+(b) In general, are ˆβj and ˆβℓ for j ̸= ℓ correlated or uncorrelated?
+(c) Find a sufﬁcient condition so that ˆβj and ˆβℓ for j ̸= ℓ are uncorrelated.
+Exercise 4.16 Take the linear homoskedastic CEF
+Y ∗ = X ′β + e (4.61)
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2
+and suppose that Y ∗ is measured with error. Instead of Y ∗, we observe Y = Y ∗ + u where u is measure-
+ment error. Suppose that e and u are independent and
+E[u |X ] = 0
+E
+[
+u2 |X
+]
+= σ2
+u(X )
+(a) Derive an equation for Y as a function of X . Be explicit to write the error term as a function of the
+structural errors e and u. What is the effect of this measurement error on the model (4.61)?
+(b) Describe the effect of this measurement error on OLS estimation of β in the feasible regression of
+the observed Y on X .
+(c) Describe the effect (if any) of this measurement error on standard error calculation for ˆβ.
+Exercise 4.17 Suppose that for the random variables (Y , X ) with X > 0 an economic model implies
+E[Y |X ] =
+(
+γ + θX
+)1/2 . (4.62)
+A friend suggests that you estimate γ and θ by the linear regression of Y 2 on X , that is, to estimate the
+equation
+Y 2 = α + βX + e. (4.63)
+(a) Investigate your friend’ s suggestion. Deﬁne u = Y −
+(
+γ + θX
+)1/2 . Show that E[u |X ] = 0 is implied
+by (4.62).
+
+
+--- page 39 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 135
+(b) Use Y =
+(
+γ + θX
+)1/2 + u to calculate E
+[
+Y 2 |X
+]
+. What does this tell you about the implied equation
+(4.63)?
+(c) Can you recover either γ and/or θ from estimation of (4.63)? Are additional assumptions required?
+(d) Is this a reasonable suggestion?
+Exercise 4.18 Take the model
+Y = X ′
+1β1 + X ′
+2β2 + e
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2
+where X = (X1, X2), with X1 k1 × 1 and X2 k2 × 1. Consider the short regression Yi = X ′
+1i
+ˆβ1 + ˆei and deﬁne
+the error variance estimator s2 = (n − k1)−1 ∑n
+i =1 ˆe2
+i . Find E
+[
+s2 |X
+]
+.
+Exercise 4.19 Let Y be n × 1, X be n × k, and X ∗ = XC where C is k × k and full-rank. Let ˆβ be the least
+squares estimator from the regression of Y on X , and let ˆV be the estimate of its asymptotic covariance
+matrix. Let ˆβ∗ and ˆV
+∗
+be those from the regression ofY on X ∗. Derive an expression for ˆV
+∗
+as a function
+of ˆV .
+Exercise 4.20 Take the model in vector notation
+Y = X β + e
+E[e |X ] = 0
+E
+[
+ee ′ |X
+]
+= Ω.
+Assume for simplicity that Ω is known. Consider the OLS and GLS estimators ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+and
+˜β =
+(
+X ′Ω−1X
+)−1 (
+X ′Ω−1Y
+)
+. Compute the (conditional) covariance between ˆβ and ˜β :
+E
+[(ˆβ − β
+) (˜β − β
+)′
+|X
+]
+Find the (conditional) covariance matrix for ˆβ − ˜β :
+E
+[(ˆβ − ˜β
+) (ˆβ − β
+)′
+|X
+]
+.
+Exercise 4.21 The model is
+Yi = X ′
+i β + ei
+E[ei |Xi ] = 0
+E
+[
+e2
+i |Xi
+]
+= σ2
+i
+Ω = diag{σ2
+1,..., σ2
+n}.
+The parameter β is estimated by OLS ˆβ =
+(
+X ′X
+)−1 X ′Y and GLS ˜β =
+(
+X ′Ω−1X
+)−1 X ′Ω−1Y . Let ˆe = Y − X ˆβ
+and ˜e = Y − X ˜β denote the residuals. Let ˆR2 = 1 − ˆe′ˆe/(Y ∗′Y ∗) and ˜R2 = 1 − ˜e′˜e/(Y ∗′Y ∗) denote the
+equation R2 where Y ∗ = Y − Y . If the error ei is truly heteroskedastic will ˆR2 or ˜R2 be smaller?
+Exercise 4.22 An economist friend tells you that the assumption that the observations (Y i , Xi ) are i.i.d.
+implies that the regressionY = X ′β+e is homoskedastic. Do you agree with your friend? How would you
+explain your position?
+
+
+--- page 40 ---
+
+CHAPTER 4. LEAST SQUARES REGRESSION 136
+Exercise 4.23 Take the linear regression model withE[Y |X ] = X β. Deﬁne theridge regression estimator
+ˆβ =
+(
+X ′X + I k λ
+)−1 X ′Y
+where λ > 0 is a ﬁxed constant. FindE
+[ˆβ |X
+]
+. Is ˆβ biased for β?
+Exercise 4.24 Continue the empirical analysis in Exercise 3.24.
+(a) Calculate standard errors using the homoskedasticity formula and using the four covariance ma-
+trices from Section 4.16.
+(b) Repeat in your second programming language. Are they identical?
+Exercise 4.25 Continue the empirical analysis in Exercise 3.26. Calculate standard errors using the HC3
+method. Repeat in your second programming language. Are they identical?
+Exercise 4.26 Extend the empirical analysis reported in Section 4.23 using the DDK2011 dataset on the
+textbook website.. Do a regression of standardized test score (totalscore normalized to have zero mean
+and variance 1) on tracking, age, gender, being assigned to the contract teacher, and student’ s percentile
+in the initial distribution. (The sample size will be smaller as some observations have missing vari-
+ables.) Calculate standard errors using both the conventional robust formula, and clustering based on
+the school.
+(a) Compare the two sets of standard errors. Which standard error changes the most by clustering?
+Which changes the least?
+(b) How does the coefﬁcient on tracking change by inclusion of the individual controls (in compari-
+son to the results from (4.55))?

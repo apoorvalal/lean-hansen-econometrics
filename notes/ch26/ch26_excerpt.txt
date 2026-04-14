@@ -1,0 +1,1989 @@
+--- page 1 ---
+
+Chapter 26
+Multiple Choice
+26.1 Introduction
+This chapter surveys multinomial models. This includes multinomial response, multinomial logit,
+conditional logit, nested logit, mixed logit, multinomial probit, ordered response, count data, and the
+BLP demand model.
+For more detailed treatments see Maddala (1983), Cameron and Trivedi (1998), Cameron and Trivedi
+(2005), Train (2009), and Wooldridge (2010).
+26.2 Multinomial Response
+A multinomial random variable Y takes values in a ﬁnite set, typically written as Y ∈ {1, 2, ...,J}. The
+elements of the set are often called alternatives. In most applications the alternatives are categorical
+(car, bicycle, airplane, train) and unordered. When there are no regressors the model is fully described
+by the J probabilities P j = P
+[
+Y = j
+]
+.
+We typically describe the pair (Y , X ) as multinomial response when Y is multinomial and X ∈ Rk are
+regressors. The conditional distribution of Y given X is summarized by the response probability
+P j (x) = P
+[
+Y = j |X = x
+]
+= E
+[
+1
+{
+Y j = 1
+}
+|X = x
+]
+.
+The response probabilities are nonparametrically identiﬁed and can be arbitrary functions ofx.
+We illustrate by extending the marriage status example of the previous chapter. The CPS variable
+marital records seven categories. We partition these into four alternatives: “married” 1, “divorced” , “sep-
+arated” , and “never married” . LetX be age. P j (x) for j = 1, ...,4 is the probability of each marriage status
+as a function of age. For our illustration we take the population of college-educated women.
+Since the response probabilities P j (x) are nonparametrically identiﬁed a simple estimation method
+is binary response separately for each category. We plot in Figure 26.1(a) logit estimates using a quadratic
+spline in age and a single knot at age 40. The estimates show that the probability of “never married” de-
+creases monotonically with age, that for “married” increases until around 38 and then decreases slowly,
+the probability of “divorced” increases monotonically with age, and the probability of “separated” is low
+for all age groups.
+A defect of the estimates of Figure 26.1(a) is that the sum of the four estimated probabilities (dis-
+played with the dotted line) does not equal one. This shows that separate estimation of the response
+probabilities neglects system information.
+1marital =1,2,3,4, which includes widowed.
+819
+
+
+--- page 2 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 820
+Age
+20 30 40 50 60 70 80
+0.0 0.2 0.4 0.6 0.8 1.0
+Never Married
+Married
+Divorced
+Separated
+Total
+(a) Binary Response Estimates
+Age
+20 30 40 50 60 70 80
+0.0 0.2 0.4 0.6 0.8 1.0
+Never Married
+Married
+Divorced
+Separated (b) Multinomial Logit
+Figure 26.1: Probability of Marital Status Given Age for College Educated Women
+Multinomial response is typically motivated and derived from a model of latent utility. The utility of
+alternative j is assumed to equal
+U ∗
+j = X ′βj + εj (26.1)
+where βj are coefﬁcients and εj is an alternative-speciﬁc error. The coefﬁcients βj describe how the
+variable X affects an individual’ s utility of alternative j . The error εj is individual-speciﬁc and contains
+unobserved factors affecting an individual’ s utility. In the marriage status example (where X is age) the
+coefﬁcientsβj describe how the utility of each marriage status varies withage, while the errorεj contains
+the individual factors which are not captured by age.
+In the latent utility model an individual is assumed to select the alternative with the highest utility
+U ∗
+j . Thus Y = j if U ∗
+j ≥ U ∗
+ℓ for all ℓ. In model (26.1) this choice is unaltered if we add X ′γ to each
+utility. This means that the coefﬁcients βj are not separately identiﬁed, at best the differences between
+alternatives βj − βℓ are identiﬁed. Identiﬁcation is achieved by imposing a normalization; the standard
+choice is to set βj = 0 for a base alternative j , often taken as the last category J. Reported coefﬁcientsβj
+should be interpreted as differences relative to the base alternative.
+The choice is also unchanged if each utility (26.1) is multiplied by positive constant. This means that
+the scale of the coefﬁcientsβj is not identiﬁed. To achieve identiﬁcation it is typical to ﬁx the scale of the
+errors εj . Consequently the scale of the coefﬁcientsβj has no interpretive meaning.
+Two classical multinomial response models are logit and probit. We introduce multinomial logit in
+the next section and multinomial probit in Section 26.8.
+26.3 Multinomial Logit
+The simple multinomial logit model is
+P j (x) =
+exp
+(
+x′βj
+)
+J∑
+ℓ=1
+exp
+(
+x′βℓ
+)
+. (26.2)
+The model includes binary logit ( J = 2) as a special case. We call (26.2) the simple multinomial logit to
+distinguish it from the conditional logit model of the next section.
+The multinomial logit arises from the latent utility model (26.1) for the following error distributions.
+
+
+--- page 3 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 821
+Deﬁnition 26.1 The Type I Extreme Valuedistribution function is
+F (ε) = exp
+(
+−exp(−ε)
+)
+.
+Deﬁnition 26.2 The Generalized Extreme Value (GEV) joint distribution is
+F
+(
+ε1, ε2,..., εJ
+)
+= exp
+(
+−
+[
+J∑
+j =1
+exp
+(
+−
+εj
+τ
+)]τ)
+(26.3)
+for 0 < τ ≤ 1.
+For J = 1 the GEV distribution (26.3) equals the Type I extreme value. For J > 1 and τ = 1 the GEV
+distribution equals the product of independent Type I extreme value distributions. For J > 1 and τ < 1
+GEV random variables are dependent with correlation equal to 1 − τ2 (see Kotz and Nadarajah (2000)).
+The parameter τ is known as the dissimilarity parameter. The distribution (26.3) is a special case of the
+“GEV distribution” introduced by McFadden (1981). Furthermore, there is heterogeneity among authors
+regarding the choice of notation and labeling. The notation used above is consistent with the Stata man-
+ual. In contrast, McFadden (1978, 1981) used 1 − σ in place of τ and called σ the similarity parameter.
+Cameron and Trivedi (2005) used ρ instead of τ and called ρ the scale parameter.
+The following result is due to McFadden (1978, 1981).
+Theorem 26.1 Assume the utility of alternative j is U ∗
+j = X ′βj + εj and the er-
+ror vector (ε1, ...,εJ ) has GEV distribution (26.3). Then the response probabili-
+ties equal
+P j (X ) =
+exp
+(
+X ′βj /τ
+)
+J∑
+ℓ=1
+exp
+(
+X ′βℓ/τ
+)
+.
+The proof is in Section 26.13. The response probabilities in Theorem 26.1 are multinomial logit (26.2)
+with coefﬁcientsβ∗
+j = βj /τ. The dissimilarity parameter τ only affects the scale of the coefﬁcients, which
+is not identiﬁed. Thus GEV errors imply a multinomial logit model andτ is not identiﬁed.
+As discussed above, when τ = 1 the GEV distribution (26.3) specializes to i.i.d. Type I extreme value.
+Thus a special case of Theorem 26.1 is the following: If the errorsεj are i.i.d. Type I extreme value then the
+response probabilities are multinomial logit (26.2) with coefﬁcientsβj . This is the most commonly-used
+and commonly-stated implication of Theorem 26.1.
+In contemporary choice modelling a commonly-used assumption is that utility is extreme value dis-
+tributed. This is done so that Theorem 26.1 can be invoked to deduce that the choice probabilities are
+multinomial logit. A reasonable deduction is that this assumption is made for algebraic convenience,
+not because anyone believes that utility is actually extreme valued distributed.
+
+
+--- page 4 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 822
+The likelihood function given a random sample {Yi , Xi } is straightforward to construct. Write the
+response probabilities P j (X |β) as functions of the parameter vector β = (β1, ...,βJ ). The probability
+mass function for Y is
+π(Y |X , β) =
+J∏
+j =1
+P j (X |β)1{Y =j}.
+The log-likelihood function is
+ℓn
+(
+β
+)
+=
+n∑
+i =1
+J∑
+j =1
+1
+{
+Yi = j
+}
+logP j (Xi |β).
+The maximum likelihood estimator (MLE) is:
+ˆβ = argmax
+β
+ℓn(β).
+There is no algebraic solution so ˆβ needs to be found numerically. The log-likelihood function is globally
+concave so maximization is numerically straightforward.
+To illustrate, we estimate the marriage status example of the previous section using multinomial logit
+and display the estimated response probabilities in Figure 26.1(b). The estimates are similar to the binary
+choice estimates in panel (a) but by construction sum to one.
+The coefﬁcients of a multinomial choice model can be difﬁcult to interpret. Therefore in applications
+it may be useful to examine and report marginal effects. We can calculate2 that the marginal effects are
+δj (x) = ∂
+∂x P j (x) = P j (x)
+(
+βj −
+J∑
+ℓ=1
+βℓPℓ(x)
+)
+. (26.4)
+This is estimated by
+ˆδj (x) = ˆP j (x)
+(
+ˆβj −
+J∑
+ℓ=1
+ˆβℓ ˆPℓ(x)
+)
+.
+The average marginal effect AMEj = E
+[
+δj (X )
+]
+can be estimated by
+AMEj = 1
+n
+n∑
+i =1
+ˆδj (Xi ). (26.5)
+In Stata, multinomial logit can be implemented using the mlogit command. Probabilities can be
+calculated by predict and average marginal effects by margins,dydx. In R, multinomial logit can be
+implemented using the mlogit command.
+26.4 Conditional Logit
+In the simple multinomial logit model of the previous section the regressors X (e.g., age) are speciﬁc
+to the individual but not the alternative (they do not have a j subscript). In most applications, however,
+there are regressors which vary across alternatives. A typical example is the price or cost of an alterna-
+tive. In a latent utility model it is reasonable to assume that these alternative-speciﬁc regressors only
+affect an individual’ s utility if that speciﬁc alternative is selected. A choice model which allows for re-
+gressors which differ across alternatives was developed by McFadden in the 1970s, which he called the
+Conditional Logit model.
+2See Exercise 26.3.
+
+
+--- page 5 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 823
+An example will help illustrate the setting. Suppose you (a student) need to select a mode of travel
+from your apartment to the university. Travel alternatives may include: walk, bicycle, bus, train, or car.
+Which will you select? Your choice will undoubtedly depend on a number of factors, and of particular
+importance is the cost 3 of each alternative. We can model this by specifying that the utility Y ∗
+j (26.1) of
+alternative j is a function of its cost X j .
+As a concrete example consider the datasetKoppelman on the textbook webpage. This is an abridged
+version of the dataset ModeCanada distributed with the R package mlogit , and used in the papers Fori-
+nash and Koppelman (1993), Koppelman and Wen (2000), and Wen and Koppelman (2001). The data
+are responses to a survey 4 of Canadian business travelers concerning their actual travel choices in the
+Toronto-Montreal corridor. Each observation (n = 2779) is a speciﬁc individual making a speciﬁc trip.
+Four travel alternatives were considered: train, air, bus, and car. Available regressors include the cost of
+each alternative, the in-vehicle travel time (intime ) of each alternative, household income, and an indi-
+cator if one of the trip endpoints is an urban center.
+The conditional logit model posits that the utility of alternative j is a function of regressors X j which
+vary across alternative j :
+U ∗
+j = X ′
+j γ + εj . (26.6)
+Here, γ are coefﬁcients and εj is an alternative-speciﬁc error. Notice that in contrast to (26.1) that X j
+varies across j while the coefﬁcientsγ are common. For example, in theKoppelman data set the variables
+cost and intime are recorded for each individual/alternative pair. (For example, the ﬁrst observation in
+the sample is a traveler who could have selected train travel for $58.25 and a travel time of 215 minutes,
+air travel for $142.80 and 56 minutes, bus travel for $27.52 and 301 minutes, or car travel for $71.63 and
+262 minutes. This traveler selected to travel by air.)
+To understand the difference between the multinomial logit and the conditional logit models, (26.1)
+describes how the utility of a speciﬁc alternative (e.g. married or divorced) is affected by a variable such
+as age. This requires a separate coefﬁcient for each alternative to have an impact. In contrast, (26.6)
+describes how the utility of an alternative (e.g. train or car) is affected by factors such as cost and time.
+These variables have common meanings across alternatives so the restriction that the coefﬁcients are
+common appears reasonable.
+More generally the conditional logit model allows some regressors X j to vary across alternatives
+while other regressors W do not vary across j . This model is
+U ∗
+j = W ′βj + X ′
+j γ + εj . (26.7)
+For example, in the Koppelman dataset the variables cost and intime are components of X j while the
+variables income and urban are components of W .
+In model (26.7) the coefﬁcientsγ and coefﬁcient differencesβj − βℓ are identiﬁed up to scale. Iden-
+tiﬁcation is achieved by normalizing the scale ofεj and setting βJ = 0 for a base alternative J.
+The conditional logit model is (26.6) or (26.7) plus the assumption that the errors εj are distributed
+i.i.d. Type I extreme value5. From Theorem 26.1 we deduce that the probability response functions equal
+P j (w, z) =
+exp
+(
+w ′βj + x′
+j γ
+)
+J∑
+ℓ=1
+exp
+(
+w ′βℓ + x′
+ℓγ
+)
+. (26.8)
+3Cost can be multi-dimensional, for example including monetary cost and travel time.
+4The survey was conducted by the Canadian national rail carrier to assess the demand for high-speed rail.
+5The model is unaltered if the errors are jointly GEV with dissimilarity parameter τ. However, τ is not identiﬁed so without
+loss of generality it is assumed that τ = 1.
+
+
+--- page 6 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 824
+This is multinomial logit but with regressors and coefﬁcientsW ′βj + X ′
+j γ.
+Let θ =
+(
+β1,...β J , γ
+)
+. Given the observations {Y i ,Wi , Xi } where Xi = {X1i , ...,X Ji }, the log-likelihood
+function is
+ℓn (θ) =
+n∑
+i =1
+J∑
+j =1
+1
+{
+Yi = j
+}
+logP j (Wi , Xi |θ).
+The maximum likelihood estimator (MLE) ˆθ maximizes ℓn (θ). There is no algebraic solution so ˆθ needs
+to be found numerically.
+Using the Koppelman dataset we estimate a conditional logit model. Estimates are reported in Table
+26.1. Included as regressors are cost, intime, income and urban. The base alternative is travel by train.
+The ﬁrst two coefﬁcient estimates are negative, meaning that the probability of selecting any mode of
+transport is decreasing in the monetary and time cost of this mode of travel. The income and urban
+variables are not alternative-speciﬁc so have coefﬁcients which vary by alternative. The urban coefﬁcient
+for air is positive and that for car is negative, indicating that the probability of air travel is increased
+relative to train travel if an endpoint is urban, and conversely for car travel. The income coefﬁcient is
+positive for air travel and negative for bus travel, indicating that transportation choice is affected by a
+traveler’ s income in the expected way.
+As discussed previously, coefﬁcient estimates can be difﬁcult to interpret. It may be useful to calcu-
+late transformations such as average marginal effects. The average marginal effects with respect to the
+input W are estimated as in (26.5) with ˆPℓ(Xi ) replaced by ˆPℓ(Wi , Xi ). For the inputs X j we calculate6
+that
+δj j (w, x) = ∂
+∂x j
+P j (w, x) = γP j (w, x)
+(
+1 − P j (w, x)
+)
+(26.9)
+and for j ̸= ℓ
+δj ℓ(w, x) = ∂
+∂xℓ
+P j (w, x) = −γP j (w, x)Pℓ(w, x). (26.10)
+Note that these are double indexed ( j and ℓ). For example for X =cost, j =train and ℓ =air, δj ℓ is the
+marginal effect of a change in the cost of air travel on the probability of train travel. In the conditional
+logit model, calculation (26.10) implies the symmetric response δj ℓ(w, x) = δℓj (w, x). This means that
+the marginal effect of (for example) air cost on train travel equals the marginal effect of train cost on air
+travel7. The average marginal effects AMEj ℓ = E
+[
+δj ℓ(W, X )
+]
+can be estimated by the analogous sample
+averages as in (26.5). One useful implication of (26.9) and (26.10) is that the components of AME j j have
+the same signs as the components of γ and the components of AMEj ℓ have the opposite signs. Thus, for
+example, if the coefﬁcient γ on a cost variable is negative then the own-price effect is negative and the
+cross-price effects are positive.
+To illustrate, we report a set of estimated AME of cost and time factors on the probability of train
+travel in Table 26.2. We focus on train travel since the demand for high-speed rail was the focus of the
+original study. We calculate and report the AME of the monetary cost and travel time of train, air, and car
+travel. To convert the AME into approximate elasticities (which may be easier to interpret), divide each
+AME by the probability of train travel (0.17) and multiply by the sample mean of the factor, reported in
+the ﬁrst column. You can calculate that the estimated approximate elasticity of train travel with respect
+to train cost is −0.9, with respect to train travel time is −2.5, with respect to air cost is 1.0, with respect
+to air travel time is 0.25, with respect to car cost is 0.6, and with respect to car travel time is 1.5. These
+estimates indicate that train travel is sensitive to its travel time, is sensitive with respect to its monetary
+cost and that of airfare, and is sensitive to the travel time of car travel. We can use the estimated AME
+6See Exercise 26.5.
+7This symmetry breaks down if nonlinear transformations are included in the model.
+
+
+--- page 7 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 825
+Table 26.1: Multinomial Models for Transportation Choice
+Variable Cond. Logit Nested Logit Mixed Logit Simple Multi. Probit Multi. Probit
+Cost −0.022
+(0.003)
+−0.011
+(0.002)
+−0.023
+(0.004)
+−0.018
+(0.002)
+−0.005
+(0.002)
+Intime −0.015
+(0.001)
+−0.005
+(0.001)
+−0.014
+(0.001)
+−0.011
+(0.001)
+−0.005
+(0.001)
+σ(Intime) 0.0048
+(0.0011)
+Air Income 0.036
+(0.004)
+0.024
+(0.003)
+0.040
+(0.004)
+0.027
+(0.003)
+0.018
+(0.002)
+Urban 0.29
+(0.09)
+0.28
+(0.09)
+0.35
+(0.11)
+0.29
+(0.07)
+−0.38
+(0.07)
+Constant −2.15
+(0.45)
+−0.46
+(0.35)
+−2.72
+(0.53)
+−1.51
+(0.32)
+0.32
+(0.23)
+Bus Income −0.051
+(0.018)
+−0.049
+(0.018)
+−0.050
+(0.018)
+−0.019
+(0.008)
+−0.008
+(0.007)
+Urban −0.23
+(0.44)
+−0.21
+(0.45)
+−0.24
+(0.44)
+−0.13
+(0.21)
+−0.14
+(0.17)
+Constant −1.79
+(0.79)
+−1.55
+(0.77)
+−1.82
+(0.79)
+−1.45
+(0.40)
+−0.23
+(0.59)
+Car Income 0.008
+(0.003)
+0.017
+(0.003)
+0.008
+(0.003)
+0.006
+(0.002)
+0.013
+(0.003)
+Urban −0.99
+(0.09)
+−0.58
+(0.08)
+−1.01
+(0.09)
+−0.73
+(0.07)
+−0.79
+(0.10)
+Constant 1.86
+(0.19)
+1.19
+(0.17)
+1.89
+(0.19)
+1.44
+(0.14)
+1.51
+(0.20)
+τ(Car,Air) 0.24
+(0.05)
+τ(Train,Bus) 1.00
+(NA)
+Log likelihood −2100.6 −2044.4 −2095.5 −2109.3 −2017.4
+to calculate the rough effects of cost and travel time changes. For example, suppose high-speed rail
+reduces train travel time by 33% – an average reduction of 75 minutes – while price is unchanged. The
+estimates imply this will increase train travel probability by 0.14, that is, from 17% to 31%, which is close
+to a doubling of usage.
+In many cases it is natural to expect that the coefﬁcients γ will vary across individuals. We discuss
+models with random γ in Section 26.7. A simpler speciﬁcation is to allow γ to vary with the individual
+characteristic W . For example in the transportation application the opportunity cost of travel time is
+likely related to an individual’ s wage which can be proxied by household income. We can write this as
+γ = γ1 + γ2X . Substituted into (26.7) we obtain the model
+U ∗
+j = W βj + X j γ1 + X j W γ2 + εj
+where for simplicity we assume W and X j are scalar. This can be written in form (26.7) by redeﬁningX j
+as ( X j , X j W ) and the same estimation methods apply. In our application this model yields a negative
+estimate for γ2, indicating that the cost of travel time is indeed increasing in income.
+
+
+--- page 8 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 826
+Table 26.2: AME of Cost and Time on Train Travel
+Effect of Mean Cond. Logit Mixed Logit Simple Multi. Probit Multi. Probit
+Train Cost ($) 56 −0.27
+(0.04)
+−0.28
+(0.05)
+−0.32
+(0.04)
+−0.08
+(0.03)
+Train Time (min.) 224 −0.19
+(0.01)
+−0.20
+(0.01)
+−0.19
+(0.01)
+−0.09
+(0.01)
+Air Cost ($) 153 0.11
+(0.02)
+0.11
+(0.02)
+0.13
+(0.02)
+0.05
+(0.02)
+Air Time (min.) 54 0.08
+(0.01)
+0.08
+(0.01)
+0.08
+(0.01)
+0.06
+(0.01)
+Car Cost ($) 65 0.16
+(0.01)
+0.17
+(0.03)
+0.18
+(0.02)
+0.02
+(0.01)
+Car Time (min.) 232 0.11
+(0.01)
+0.12
+(0.01)
+0.11
+(0.01)
+0.02
+(0.01)
+Note: For ease of reading, the reported AME estimates have been multiplied by 100.
+In Stata, model (26.7) can be estimated using cmclogit. Probabilities can be calculated by predict,
+and marginal effects by margins. In R, use mlogit .
+26.5 Independence of Irrelevant Alternatives
+The multinomial logit model has an undesirable restriction. For ﬁxed parameters and regressors the
+ratio of the probability of two alternatives is
+P j (W, X |θ)
+Pℓ(W, X |θ) =
+exp
+(
+W ′βj + X ′
+j γ
+)
+exp
+(
+W ′βℓ + X ′
+ℓγ
+). (26.11)
+This odds ratio is a function only of the inputs X j and Xℓ, does not depend on any of the inputs speciﬁc
+to the other alternatives, and is unaltered by the presence of other alternatives. This property is called
+independence of irrelevant alternatives (IIA), meaning that the choice between option j and ℓ is inde-
+pendent of the other alternatives and hence the latter are irrelevant to the bivariate choice. This property
+is strongly tied to the multinomial logit model as the latter was derived axiomatically by Luce (1959) from
+an IIA assumption.
+To understand why IIA may be problematic it is helpful to think through speciﬁc examples. Take the
+transportation choice problem of the previous section. The IIA condition means that the ratio of the
+probability of selecting train to that of selecting car is unaffected by the price of an airplane ticket. This
+may make sense if individuals view the set of choices as similarly substitutable, but does not make sense
+if train and air are close substitutes. In this latter setting a low airplane ticket may make it highly unlikely
+that an individual will select train travel while unaffecting their likelihood of selecting car travel.
+A famous example of this problem is the following setting. Suppose the alternatives are car and bus
+and suppose that the probability of the alternatives is split 50%-50%. Now suppose that we can split
+the bus alternative into “red bus” and “blue bus” so there are a total of three alternatives. Suppose the
+blue bus and red bus are close equivalents: they have similar schedules, convenience, and cost. In this
+context most individuals would be near indifferent between the blue and red bus so these alternatives
+would receive similar probabilities. It would thus seem reasonable to expect that the probabilities of
+
+
+--- page 9 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 827
+these three choices would be close to 50%-25%-25%. The IIA condition, however, implies that the ratio
+of the ﬁrst two probabilities must remain 1, so this implies that the probabilities of the three choices
+would be 33%-33%-33%. We deduce that the multinomial logit model implies that adding “red bus” to
+the choice list results in the reduction of car usage from 50% to 33%. This doesn’t make sense; it is an
+unreasonable implication. This example is known as the “red bus/blue bus puzzle” .
+The source of the problem is that the IIA structure and multinomial logit model exclude differenti-
+ated substitutability among the alternatives. This may be appropriate when the alternatives (e.g. bus,
+train, and car) are clearly differentiated and have reasonably similar degrees of substitutability. It is not
+appropriate when a subset of alternatives (e.g. red bus and blue bus) are close substitutes.
+Part of the problem is due to the restrictive correlation pattern imposed on the errors by the gener-
+alized extreme value distribution. To allow for cases such as red bus/blue bus we require a more ﬂexible
+correlation structure which allows subsets of alternatives to have differential correlations.
+26.6 Nested Logit
+The nested logit model circumvents the IIA problem described in the previous section by separating
+the alternatives into groups. Alternatives within groups are allowed to be correlated but are assumed
+uncorrelated across groups.
+The model posits that there areJ groups each with K j alternatives. We use j to denote the group,k to
+denote the alternative within a group, and “j k” to denote a speciﬁc alternative. LetW denote individual-
+speciﬁc regressors andX j k denote regressors which vary by alternative. The utility of thej kt h alternative
+is a function of the regressors plus an error:
+U ∗
+j k = W ′βj k + X ′
+j kγ + εj k. (26.12)
+The model assumes that the individual selects the alternative j k with the highest utility U ∗
+j k.
+McFadden’ sNested Logit model assumes that the errors have the following GEV joint distribution
+F
+(
+ε11, ...,εJK J
+)
+= exp
+(
+−
+J∑
+j =1
+[ K j∑
+k=1
+exp
+(
+−
+εj k
+τj
+)]τj )
+. (26.13)
+This is a generalization of the GEV distribution (26.3). The distribution (26.13) is the product of J GEV
+distributions (26.3) each with dissimilarity parameter τj , which means that the errors within each group
+are GEV distributed with dissimilarity parameter τj . Across groups the errors are independent. When
+τj = 1 for all j the errors are mutually independent and the joint model equals conditional logit. When
+τj < 1 for some j the errors within group j are correlated but not with the other errors. If a group has a
+single alternative its dissimilarity parameter is not identiﬁed so should be set to one.
+The nested logit model (26.12)-(26.13) is structurally identical to the conditional logit model except
+that the error distribution is (26.13) instead of (26.3). The coefﬁcients βj k and γ have the same interpre-
+tation as in the conditional logit model.
+As written, (26.12) allows the coefﬁcients βj k to vary across alternatives j k while the coefﬁcients γ
+are common across j and k. Other speciﬁcations are possible. For example, the model can be altered to
+allow the coefﬁcientsβj and/or γj to vary across groups but not alternative. The degree of variability is a
+modeling choice with a ﬂexibility/parsimony trade-off. It is also possible (but less common in practice)
+to have variables W j which vary by group but not alternative. These can be included in the model with
+common coefﬁcients.
+The partition of alternatives into groups is a modeling decision. Alternatives with a high degree of
+substitutability should be placed in the same group. Alternatives with a low degree of substitutability
+should be placed in different groups.
+
+
+--- page 10 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 828
+To illustrate, consider a consumer choice of an automobile purchase. For simplicity suppose there
+are four choices: Honda Civic, Ford Fusion, Honda CR-V , and Ford Escape. The ﬁrst two are compact
+cars and the last two are sports utility vehicles (SUVs). Consequently it is reasonable to think of the ﬁrst
+two as substitutes and the last two as substitutes. We display this nesting as a tree diagram as in Figure
+26.2(a). This shows the division of the decision “Car” into “Compact” and “Sports Utility Vehicle” and the
+further division by model.
+Only the differences between the coefﬁcientsβj k are identiﬁed. Identiﬁcation is achieved by setting
+one alternative j k as the base alternative. If the coefﬁcients βj are constrained to vary by by group then
+identiﬁcation is achieved by setting a base group. The scale of the coefﬁcients is not identiﬁed separately
+from the scaling of the errors implicit in the GEV distribution (26.13).
+Some authors interpret model (26.12) as a nested sequential choice. An individual ﬁrst selects a
+group and second selects the best option within the group. For example, in the car choice example you
+could imagine ﬁrst deciding on the style of car (compact or SUV) and then deciding on the speciﬁc car
+within each category (e.g. Civic vs. Fusion or CR-V vs. Escape). The sequential choice interpretation
+may help structure the groupings. However, sequential choice should be used cautiously as it is not
+technically correct. The correct interpretation is degree of substitutability not the timing of decisions.
+If the coefﬁcientsβj on W are constrained to only vary across groups (this, for example, is the default
+in Stata) then the effectW ′βj in (26.12) shifts the utilities of all alternatives within a group, and thus does
+not affect the choice of an alternative within a group. In this case the variable W can be described as
+“affecting the choice of group” .
+We now describe the nested logit response probabilities.
+Theorem 26.2 Assume the utility of alternative j k is U ∗
+j k = µj k + εj k and the
+error vector has distribution function (26.13). Then the response probabilities
+equal P j k = Pk|j P j where
+Pk|j =
+exp
+(
+µj k/τj
+)
+K j∑
+m=1
+exp
+(
+µj m/τj
+)
+and
+P j =
+( K j∑
+m=1
+exp
+(
+µj m/τj
+)
+)τj
+J∑
+ℓ=1
+( K j∑
+m=1
+exp
+(
+µℓm/τℓ
+)
+)τℓ .
+Theorem 26.2 shows that the response probabilities equal the product of two terms: Pk|j and P j .
+The ﬁrst, Pk|j , is the conditional probability of alternative k given the group j and takes the standard
+conditional logit form. The second, P j , is the probability of group j .
+Let θ be the parameters. The log-likelihood function is
+ℓn (θ) =
+n∑
+i =1
+J∑
+j =1
+K j∑
+k=1
+1
+{
+Yi = j k
+} (
+logPk|j (Wi , Xi |θ) + logP j (Wi , Xi |θ)
+)
+.
+The MLE ˆθ maximizes ℓn (θ). There is no algebraic solution so ˆθ needs to be found numerically.
+
+
+--- page 11 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 829
+Because the probability structure of a nested logit model is more complicated than the conditional
+logit model it may be difﬁcult to interpret the coefﬁcient estimates. Marginal effects can (in principle) be
+calculated but these are complicated functions of the coefﬁcients.
+To illustrate, we estimate a nested logit model of transportation choice using theKoppelman dataset.
+To facilitate comparisons we estimate the same speciﬁcation as for conditional logit. The difference is
+that we use the GEV distribution (26.13) with the groupings {car, air} and {train, bus}. This adds two
+dissimilarity parameters. The results are reported in the second column of Table 26.1.
+The dissimilarity parameter estimate for {car, air} is 0.24 which is small. It implies a correlation of 0.94
+between the car and air utility shocks. This suggests that the conditional logit model – which assumes
+the utility errors are independent – is misspeciﬁed. The dissimilarity parameter estimate for {train, bus}
+is on the boundary8 1.00 so has no standard error.
+Nested logit modeling is limited by the necessity of selecting the groupings. Typically there is not a
+unique obvious structure; consequently any proposed grouping is subject to misspeciﬁcation.
+In this section we described the nested logit model with one nested layer. The model extends to
+multiple nesting layers. The difference is that the joint distribution (26.13) is modiﬁed to allow higher
+levels of interactions with additional dissimilarity parameters. An applied example is Goldberg (1995)
+who used a ﬁve-level nested logit model to estimate the demand for automobilies. The levels used in her
+analysis were (1) Buy/Not Buy; (2) New/Used; (3) Car Class; (4) Foreign/Domestic; and (5) Car Model.
+In Stata, nested logit models can be estimated by nlogit .
+
+
+`
+Car
+Compact  Sports Utility Vehicle
+Ford
+Fusion
+Honda
+Civic
+Ford
+Escape
+
+Honda
+CR-V
+(a) Nested Choice
+α1 α2 α3 α4 U*
+P[Y=1]
+P[Y=2]
+P[Y=3]
+P[Y=4]
+P[Y=5] (b) Ordered Choice
+Figure 26.2: Nested Choice and Ordered Choice
+26.7 Mixed Logit
+A generalization of the conditional logit model which allows the coefﬁcients γ on the alternative-
+varying regressors to be random across individuals is known as mixed logit. The model is also known as
+conditional mixed logit and random parameters logit.
+8The uncontrained maximizer exceeds one which violates the parameter space so the the model is effectively estimated
+constraining this dissimilarity parameter to equal one.
+
+
+--- page 12 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 830
+Recall that the conditional logit model is U ∗
+j = W ′βj + X ′
+j γ + εj with εj i.i.d. extreme value. Now
+replace γ with an individual-speciﬁc random variable η with distribution F (η |α) and parameters α.
+This model is
+U ∗
+j = W ′βj + X ′
+j η + εj
+η ∼ F
+(
+η |α
+)
+.
+For example, in our transportation choice application the variables X j are the cost and travel time of
+each alternative. The above model allows the effect of cost and time on utility to be heterogeneous across
+individuals.
+The most common distributional assumption for η is N
+(
+γ,D
+)
+with diagonal covariance matrix D.
+Other common speciﬁcations include N
+(
+γ, Σ
+)
+with unconstrained covariance matrixΣ, and log-normally-
+distributed η to enforce η ≥ 0. (A constraint η ≤ 0 can be imposed by ﬁrst multiplying the relevant regres-
+sor X j by −1.) It is also common to partition X j so that some variables have random coefﬁcients and
+others have ﬁxed coefﬁcients. The reason why these constraints may be desirable is parsimony and sim-
+pler computation.
+Under the normality speciﬁcations η ∼ N
+(
+γ,D
+)
+and η ∼ N
+(
+γ, Σ
+)
+the mean γ equals the average ran-
+dom coefﬁcient in the population and has a similar interpretation to the coefﬁcientγ in the conditional
+logit model. The variances in D or Σ control the dispersion of the distribution of η in the population.
+Smaller variances mean that η is mildly dispersed; larger variances mean high dispersion and hetero-
+geneity.
+A useful feature of the mixed logit model is that the random coefﬁcients induce correlation among
+the alternatives. To see this, write γ = E
+[
+η
+]
+and V j = X ′
+j (η − γ) + εj . Then the model can be written as
+Y ∗
+j = W ′βj + X ′
+j γ +V j
+which is the conventional random utility framework but with errors V j instead of εj . An important dif-
+ference is that these errors are conditionally heteroskedastic and correlated across alternatives:
+E
+[
+V j Vℓ |X j , Xℓ
+]
+= X ′
+j var
+[
+η
+]
+Xℓ.
+This non-zero correlation means that the IIA property is partially broken, giving the mixed logit model
+more ﬂexibility than the conditional logit model to capture choice behavior.
+Conditional on η the response probabilities follow from (26.8)
+P j (w, x |η) =
+exp
+(
+w ′βj + x′
+j η
+)
+J∑
+ℓ=1
+exp
+(
+w ′βℓ + x′
+ℓη
+)
+.
+The unconditional response probabilities are found by integration.
+P j (w, x) =
+∫
+P j (w, x |η)dF (η |α). (26.14)
+The log-likelihood function is
+ℓn (θ) =
+n∑
+i =1
+J∑
+j =1
+1
+{
+Yi = j
+}
+logP j (Wi , Xi |θ) (26.15)
+where θ is the list of all parameters including η.
+
+
+--- page 13 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 831
+The integral in (26.14) is not available in closed form. A standard numerical implementation 9 is
+Monte Carlo integration (estimation by simulation). This technique works as follows.Let {η 1, ...,ηG} be a
+set of i.i.d. pseudo-random draws from F (η |α). The simulation estimator of (26.14) is
+˜P j (w, x) = 1
+G
+G∑
+g =1
+P j (w, x |ηg ).
+As G increases this converges in probability to (26.14). Monte Carlo integration is computationally more
+efﬁcient than numerical integration when the dimension ofη is three or larger, but is considerably more
+computationally intensive than non-random conditional logit.
+To illustrate, we estimate a mixed logit model for the transportation application treating the coefﬁ-
+cient on travel time as a normal random variable. The coefﬁcient estimates are reported in Table 26.1
+with estimated marginal effects in Table 26.2. The results are similar to the conditional logit model. The
+coefﬁcient on travel time has a mean −0.014 which is nearly identical to the conditional logit estimate
+and a standard deviation of 0.005 which is about one-third of the value of the mean. This suggests that
+the coefﬁcient is mildly heterogenous among travelers. An interpretation of this random coefﬁcient is
+that travelers have heterogeneous costs associated with travel time.
+In Stata, mixed logit can be estimated by cmmixlogit .
+26.8 Simple Multinomial Probit
+The simple multinomial probit and simple conditional multinomial probit models combine the
+latent utility model
+U ∗
+j = W ′βj + εj (26.16)
+or
+U ∗
+j = W ′βj + X ′
+j γ + εj (26.17)
+with the assumption that εj is i.i.d. N(0, 1). These are identical to the simple multinomial logit model of
+Section 26.3 and the conditional logit model of Section 26.4 except that the error distribution is normal
+instead of extreme value.
+Simple multinomial probit does not precisely satisfy IIA but its properties are similar to IIA. The
+model assumes that the errors are independent and thus does not allow two alternatives, e.g. “red bus”
+and “blue bus” , to be close substitutes. This means that in practice the simple multinomial probit will
+produce results which are similar to simple multinomial logit.
+Identiﬁcation is identical to multinomial logit. The coefﬁcients βj and γ are only identiﬁed up to
+scale and the coefﬁcientsβj are only identiﬁed relative to a base alternative.
+The response probability P j (W, X ) is not available in closed form. However, it can be expressed as a
+one-dimensional integral, as we now show.
+Theorem 26.3 In the simple multinomial probit and simple conditional multi-
+nomial probit models the response probabilities equal
+P j (W, X ) =
+∫ ∞
+−∞
+∏
+ℓ̸=j
+Φ
+(
+W ′ (
+βj − βℓ
+)
++
+(
+X j − Xℓ
+)′ γ + v
+)
+φ(v)d v (26.18)
+where Φ(v) and φ(v) are the normal distribution and density functions.
+9If the random coefﬁcientη is scalar a computationally more efﬁcient method is integration by quadrature.
+
+
+--- page 14 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 832
+The proof is presented in Section 26.13. Theorem 26.3 shows that the response probability is a one-
+dimensional normal integral over the J − 1-fold product of normal distribution functions. This integral
+(26.18) is straightforward to numerically evaluate by quadrature methods.
+Let θ =
+(
+β1,...β J , γ
+)
+denote the parameters. Given the sample {Yi ,Wi , Xi } the log-likelihood is
+ℓn (θ) =
+n∑
+i =1
+J∑
+j =1
+1
+{
+Yi = j
+}
+logP j (Wi , Xi |θ).
+The maximum likelihood estimator (MLE) ˆθ maximizes ℓn (θ).
+To illustrate, we estimate a simple conditional multinomial probit model for transportation choice
+using the same speciﬁcation as before. The results are reported in the third column of Table 26.1. We
+report average marginal effects in Table 26.2. We see that the estimated AME are very close to those of
+the conditional logit model.
+In Stata, simple multivariate probit can be estimated bymprobit. The response probabilities and log-
+likelihood are calculated by applying quadrature to the integral (26.18). Simple conditional multinomial
+probit can be estimated by cmmprobit. The latter uses the method of simulated maximum likelihood
+(discussed in the next section) even though numerical calculation could be implemented efﬁciently us-
+ing the one-dimensional integral (26.18).
+26.9 General Multinomial Probit
+A model which avoids the correlation constraints of multinomial and nested logit is general multi-
+nomial probit, which is (26.17) with the error vector ε ∼ N(0, Σ) and unconstrained Σ.
+Identiﬁcation of the coefﬁcients is the same as multinomial logit. The coefﬁcientsβj and γ are only
+identiﬁed up to scale, and the coefﬁcientsβj are only identiﬁed relative to a base alternativeJ.
+Identiﬁcation of the covariance matrixΣ requires more attention. It turns out to be useful to rewrite
+the model in terms of differenced utility, where differences are taken with respect to the base alternative
+J. The differenced utilities are
+U ∗
+j −U ∗
+J = W ′ (
+βj − βJ
+)
++
+(
+X j − X J
+)′ γ + εj J (26.19)
+where εj J = εj − εJ . Let ΣJ be the covariance matrix of εj J for j = 1, ...,J − 1. For example, suppose that
+the errors εj are i.i.d. N(0,1). In this case ΣJ equals
+ΣJ =
+
+
+
+
+2 1 · · · 1
+1 2 · · · 1
+..
+. .
+.
+. ... .
+.
+.
+1 1 · · · 2
+
+
+
+
+. (26.20)
+The scale of (26.19) is not identiﬁed so ΣJ is normalizing by ﬁxing one diagonal element of ΣJ . In Stata,
+for example, cmmprobit normalizes the variance of one element – the “scale alternative” – to 2, in order
+to match the case (26.20). Consequently, ΣJ has (J − 1)J/2 − 1 free covariance parameters.
+Multinomial probit with a general covariance matrix ΣJ is more ﬂexible than conditional logit and
+nested logit. This ﬂexibility allows general multinomial probit to escape the IIA restrictions.
+The response probabilities do not have a closed-form expressions but can be written as J − 1 dimen-
+sional integrals. Numerical evaluation of integrals in dimensions three and greater is computationally
+prohibitive. A feasible alternative is numerical simulation. The idea, roughly, is to simulate a large num-
+ber of random draws from the model and count the frequency which satisfy the desired inequality. This
+
+
+--- page 15 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 833
+gives a simulation estimate of the response probability. Brute force implementation of this idea can be
+inefﬁcient, so clever tricks have been introduced to produce computationally efﬁcient estimates. The
+standard implementation was developed in a series of papers by Geweke, Hajivassiliou, and Keane, and
+is known as the GHK simulator. See Train (2009) for a description and references. The GHK simulator
+provides a feasible method to estimate the likelihood function and is known as simulated maximum
+likelihood. While feasible, simulated maximum likelihood is computationally intensive so optimizat-
+ing the likelihood to ﬁnd the MLE is computationally slow. Furthermore the likelihood is not concave
+in the parameters so convergence can be difﬁcult to obtain in some applications. Consequently it may
+be prudent to use simpler methods such as conditional and nested logit for exploratory analysis and
+multinomial probit for ﬁnal-stage estimation.
+To illustrate, we estimate the general multinomial probit model for the transportation application.
+We set the base alternative to train and the scale alternative to air. The coefﬁcient estimates are reported
+in Table 26.1 and marginal effects in Table 26.2. We see that the estimated marginal effects with respect to
+cost and travel time are considerably smaller than in the conditional logit model. This indicates greatly
+reduced price elasticity (−0.3) and travel time elasticity (−1.1). Suppose (as we considered in Section
+26.4) that high-speed rail reduces train travel time by 33%. The multinomial probit estimates imply that
+this increases train travel from 17% to 24% – about a 40% increase. This is substantial but one-half of the
+increase estimated by conditional logit.
+A multinomial probit model with four alternatives has ﬁve covariance parameters. The estimates for
+the transportation application are reported in the following 3 × 3 table. The diagonal elements are the
+variance estimates, the off-diagonal elements are the correlation estimates. One interesting ﬁnding is
+that the estimated correlation between air and car travel is 0.99, which is similar to the estimate from
+the nested logit model. In both frameworks the estimates indicate a high correlation between air and car
+travel, implying that speciﬁcations with independent errors are misspeciﬁed.
+
+
+ˆσ2
+Air = 2
+ˆρAir,Bus = 0.60 ˆσ2
+Bus = 0.41
+ˆρAir,Car = 0.99 ˆρCar,Bus = 0.60 ˆσ2
+Car = 3.8
+
+
+In Stata, multivariate probit can be estimated by cmmprobit. It uses GHK simulated maximum like-
+lihood as described above.
+26.10 Ordered Response
+A multinomial Y is ordered if the alternatives have ordinal (ordered) interpretation. For example, a
+student may be asked to “rate your [econometrics] professor” with possible responses: poor, fair, average,
+good, or excellent, coded as {1,2,3,4,5}. These responses are categorical but are also ordinally related. We
+could use standard multinomial methods (e.g. multinomial logit or probit) but this ignores the ordinal
+structure and is therefore inefﬁcient.
+The standard approach to ordered response is based on the latent variable framework
+U ∗ = X ′β + ε
+ε ∼ G
+where X does not include an intercept. The model speciﬁes that the response Y is determined by U ∗
+
+
+--- page 16 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 834
+crossing a series of ordered thresholds α1 < α2 < · · · <αJ −1. Thus
+Y = 1 if U ∗ ≤ α1
+Y = 2 if α1 < U ∗ ≤ α2
+..
+. .
+.
+. .
+.
+.
+Y = J − 1 if αJ −2 < U ∗ ≤ αJ −1
+Y = J if αJ −1 < U ∗.
+Writing α0 = −∞ and αJ = ∞ we can write these J equations more compactly as Y = j if αj −1 < U ∗ ≤ αj .
+When J = 2 this model specializes to binary choice.
+The standard interpretation is thatU ∗ is a latent continuous response and Y is a discretized version.
+Consider again the example of “rate your professor” . In the model, U ∗ is a student’ s true assessment.
+The response Y is a discretized version. The threshold crossing model postulates that responses are
+increasing in the latent variable and are determined by the thresholds.
+In the standard ordered response framework the distributionG(x) of the errorε is assumed known; in
+practice either the normal or logistic distribution is used. When ε is normal the model is called ordered
+probit. When ε is logistic the model is called ordered logit. The coefﬁcients and thresholds are only
+identiﬁed up to scale; the standard normalization is to ﬁx the scale of the distribution ofε.
+The response probabilities are
+P j (x) = P
+[
+Y = j |X = x
+]
+= P
+[
+αj −1 < U ∗ ≤ αj |X = x
+]
+= P
+[
+αj −1 − X ′β < e ≤ αj − X ′β |X = x
+]
+= G
+(
+αj − x′β
+)
+−G
+(
+αj −1 − x′β
+)
+.
+It may be easier to interpret the cumulative response probabilities
+P
+[
+Y ≤ j |X = x
+]
+= G
+(
+αj − x′β
+)
+.
+The marginal effects are
+∂
+∂x P j (x) = β
+(
+g
+(
+αj −1 − x′β
+)
+− g
+(
+αj − x′β
+))
+and marginal cumulative effects are
+∂
+∂x P
+[
+Y ≤ j |X = x
+]
+= −βg
+(
+αj − x′β
+)
+.
+To illustrate, Figure 26.2(b) displays how the response probabilities are determined. The ﬁgure plots
+the distribution function of latent utility U ∗ with four thresholds α1, α2, α3 and α4 displayed on the x-
+axis. The response Y is determined by U ∗ crossing each threshold. Each threshold is mapped to a point
+on the y-axis. The probability of each outcome is marked on the y-axis as the difference between each
+probability crossing.
+The parameters are θ = (β, α1,...α J −1). Given the sample {Yi , Xi } the log-likelihood is
+ℓn (θ) =
+n∑
+i =1
+J∑
+j =1
+1
+{
+Yi = j
+}
+logP j (Xi |θ).
+The maximum likelihood estimator (MLE) ˆθ maximizes ℓn (θ).
+In Stata, ordered probit and logit can be estimated byoprobit and ologit .
+
+
+--- page 17 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 835
+26.11 Count Data
+Count data refers to situations where the dependent variable is the number of “events” recorded as
+positive integers Y ∈ {0,1,2, ...}. Examples include the number of doctor visits, the number of accidents,
+the number of patent registrations, the number of absences, or the number of bank failures. Count data
+models are typically employed in contexts where the counts are small integers.
+A count data model speciﬁes the response probabilitiesP j (x) = P
+[
+Y = j |x
+]
+for j = 0, 1, 2, ..., with the
+property ∑∞
+j =0 P j (x) = 1.
+The baseline model is Poisson regression. This model speciﬁes that Y is conditionally Poisson dis-
+tributed with a Poisson parameter λ written as an exponential link of a linear function of the regressors.
+The exponential link is used to ensure that the Poisson parameter is strictly positive. This model is
+P j (x) = exp(−λ(x)) λ(x)j
+j !
+λ(x) = exp(x′β).
+The Poisson distribution has the property that its mean and variance equal the Poisson parameter λ.
+Thus
+E[Y |X ] = exp(X ′β)
+var[Y |X ] = exp(X ′β).
+The ﬁrst equation shows that the conditional mean (e.g., the regression function) equals exp(X ′β). This
+is why the model is called Poisson regression.
+The log-likelihood function is
+ℓn(β) =
+n∑
+i =1
+logPYi
+(
+Xi |β
+)
+=
+n∑
+i =1
+(
+−exp(X ′
+i β) + Yi X ′
+i β − log(Yi !)
+)
+.
+The MLE ˆβ is the value β which maximizes ℓn(β). Its ﬁrst and second derivatives are
+∂
+∂β ℓn(β) =
+n∑
+i =1
+Xi
+(
+Yi − exp(X ′
+i β)
+)
+∂2
+∂β∂β′ ℓn(β) = −
+n∑
+i =1
+Xi X ′
+i exp(X ′
+i β).
+Since the second derivative is globally negative deﬁnite the log-likelihood function is globally concave.
+Hence numerical optimization to ﬁnd the MLE is computationally straightforward.
+In general there is no reason to expect the Poisson model to be correctly speciﬁed. Hence we should
+view the parameter β as the best-ﬁtting pseudo-true value. From the ﬁrst-order condition for maximiza-
+tion we ﬁnd that this value satisﬁes
+E
+[
+X
+(
+Y − exp(X ′β)
+)]
+= 0.
+This holds under the conditional mean assumption E[Y |X ] = exp(X ′β). If the latter is correctly speci-
+ﬁed, Poisson regression correctly identiﬁes the coefﬁicentβ, the MLE is consistent for this value, and the
+estimated response probabilities are consistent for the true response probabilities.
+To explore this concept further, suppose the true conditional mean is nonparametric. Since it is
+non-negative we can write it using an exponential link 10 as E[Y |X ] = exp(m(x)). The function m(x) is
+10Or, equivalently,m(x) = log(E[Y |X ]).
+
+
+--- page 18 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 836
+nonparametrically identiﬁed and can be approximated by a series x′
+K βK . Thus E[Y |X ] ≃ exp
+(
+X ′
+K βK
+)
+.
+What this shows is that if Poisson regression is implemented using a ﬂexible set of regressors (as in series
+regression) the model will approximate the true conditional mean and hence will consistently estimate
+the true response probabilities. This is a broad justiﬁcation for Poisson regression in count data applica-
+tions if suitable attention is paid to the functional form for the included regressors.
+Since the model is an approximation, however, the conventional covariance matrix estimator will be
+inconsistent. Consequently it is advised to use the robust formula for covariance matrix and standard
+error estimation.
+For a greater degree of ﬂexibility the Poisson model can be generalized. One approach, similar to
+mixed logit, is to treat the parameters as random variables, thereby obtaining a mixed probit model.
+One particular mixed model of importance is the negative binomial model which can be obtained as
+a mixed model as follows. Specify the Poisson parameter as λ(X ) = V exp(X ′β) where V is a random
+variable with a Gamma distribution. This is equivalent to treating the regression intercept as random
+with a log-Gamma distribution. Integrating outV , the resulting conditional distribution forY is Negative
+Binomial. The Negative Binomial is a popular model for count data regression and has the advantage that
+the conditional mean and variance are separately varying.
+For more detail see the excellent monograph on count data models by Cameron and Trivedi (1998).
+In Stata, Poisson and Negative Binomial regression can be estimated bypoisson and nbreg. Gener-
+alizations to allow truncation, ﬁxed effects, and random effects are also available.
+26.12 BLP Demand Model
+A major development in the 1990s was the extension of conditional logit to models of aggregate mar-
+ket demand. Many of the ideas were developed in the seminal papers of Berry (1994) and Berry, Levin-
+sohn, and Pakes (1995). For a review see Ackerberg, Benkard, Berry, and Pakes (2007). This model –
+widely known as the BLP model – has become popular in applied industrial organization. To discuss
+implementation we use as examples the applications in Berry, Levinsohn, and Pakes (1995) and Nevo
+(2001).
+The context is market-level observations. A “market” is typically a time period matched with a loca-
+tion. For example, a market in Berry, Levinsohn, and Pakes (1995) is the United States for one calendar
+year. A market in Nevo (2001) is one of 65 U.S. cities for one quarter of a year. An observation contains
+a set of J goods. In Berry, Levinsohn, and Pakes (1995) the goods are 997 distinct automobile models. In
+Nevo (2001) the goods are 25 ready-to-eat breakfast cereals. Observations typically include the price and
+sale quantities of each good, a set of characteristics of each good, and possibly information on demo-
+graphic characteristics of the market population.
+The model is derived from a conditional logit speciﬁcation of individual behavior. The standard as-
+sumption is that each individual in the market purchases one of the J goods or makes no purchase (the
+latter is called the outside alternative). This requires taking a stand on the number of individuals in the
+market. For example, in Berry, Levinsohn, and Pakes (1995) the number of individuals is the entire U.S.
+population. Their assumption is that each individual makes at most one automobile purchase during
+each calendar year. In Nevo (2001) the population is the number of individuals in each city. He assumes
+that each individual purchases a one-quarter (91-day) supply of one brand of breakfast cereal, or pur-
+chases no breakfast cereal (the outside alternative). By explicitly including the outside option as a choice
+these authors model aggregate demand. Alternatively, they could have excluded the outside option and
+examined choice among the J goods. This would have modelled market shares (percentages of total pur-
+chases) but not aggregate demand. The trade-off is the need to take a stand on the number of individuals
+in the market.
+
+
+--- page 19 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 837
+The model is that each individual purchases one of a set of J goods indexed j = 1, ...,J or an unob-
+served outside good. The utility from good j takes a mixed logit form:
+U ∗
+j = X ′
+j η + ξj + εj (26.21)
+where X j includes the price and characteristics of good j . The coefﬁcient η is random (speciﬁc to an
+individual) as in the mixed logit model. The variables ξj and εj are unobserved errors. ξj is market-level
+and εj is speciﬁc to the individual.
+The market errorξj may contain unobserved product characteristics so is likely correlated with prod-
+uct price. Identiﬁcation requires a vector of instrumentsZ j which satisfy
+E
+[
+Z j ξj
+]
+= 0. (26.22)
+Berry, Levinsohn, and Pakes (1995) recommend as instruments the non-price characteristics in X j , the
+sum of characteristics of goods sold by the same ﬁrm, and the sum of characteristics of goods sold by
+other ﬁrms. Nevo (2001) also included the prices of goods in other markets which is valid if demand
+shocks are uncorrelated across markets. There is considerable attention in the literature given to the
+choice and construction of instruments.
+Write γ = E
+[
+η
+]
+, V = η − γ, and assume that V has distribution F (V |α) with parameters α (typically
+N(0, Σ)). Set
+δj = X ′
+j γ + ξj . (26.23)
+Since the model is mixed logit, (26.14) shows that the response probabilities given δ = (δ1, ...,δJ ) are
+P j (δ, α) =
+∫ exp
+(
+δj + X ′
+j V
+)
+J∑
+ℓ=1
+exp
+(
+δℓ + X ′
+ℓV
+)
+dF (V |α)dV .
+As discussed in Section 26.7 the integral in (26.14) is typically evaluated by numerical simulation. Let
+{V1, ...,VG} be i.i.d. pseudo-random draws from F (V |α). The simulation estimator is
+˜P j (δ, α) = 1
+G
+G∑
+g =1
+exp
+(
+δj + X ′
+j Vg
+)
+J∑
+ℓ=1
+exp
+(
+δℓ + X ′
+ℓVg
+)
+. (26.24)
+In each market we observe the quantity purchasedQ j of each good and we are assumed to know the
+number of individuals M. The market share of good j is deﬁned asS j = Q j /M which is a direct estimate
+of the probability P j . If the number of individuals M is large then S j approximately equals P j by the
+WLLN. The BLP approach assumes that M is large enough that we can treat these two as equal. This
+implies the set of J equalities
+S j = ˜P j (δ, α) (26.25)
+where S = (S1,..., S J ). The left side of (26.25) is the observed market share of good j (that is, the ratio of
+sales to individuals in the market). The right side is the estimated probability that the good is selected
+given the market attributes and parameters. As there are J elements in each of δ and S (and ˜P j (δ, α) is
+monotonically increasing in each element of δ) there is a one-to-one and invertible mapping between
+δ and S. Thus given the market shares S and parameters α we can numerically calculate the elements
+δ which solve the J equations (26.25). Berry, Levinsohn, and Pakes (1995) show that the solution can be
+obtained by iterating on
+δi
+j = δi −1
+j + logS j − log ˜P j
+(
+δi −1, α
+)
+. (26.26)
+
+
+--- page 20 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 838
+The solution is an implicit set of J equations δj = δj (S, α).
+We combine δj = δj (S, α) with (26.23) to obtain the regression-like expression δj (S, α) = X ′
+j γ + ξj .
+Combined with (26.22) we obtain the moment equations
+E
+[
+Z j
+(
+δj (S, α) − X ′
+j γ
+)]
+= 0
+for j = 1, ...,J.
+Estimation is by nonlinear GMM. The observations are markets indexed t = 1, ...,T , including quan-
+tities Q j t, prices and characteristics X j t, and instruments Z j t. Market shares are S j t = Q j t/Mt , where
+Mt is the number of individuals in the market. Let St = (S1t ,..., S J t). The moment equation is
+g (γ, α) = 1
+T J
+T∑
+t =1
+J∑
+j =1
+Z j t
+(
+δj t (St , α) − X ′
+j tγ
+)
+.
+The GMM estimator
+(
+ˆγ, ˆα
+)
+minimizes the criterion g (γ, α)′W g (γ, α) for a weight matrix W .
+We mentioned earlier that observations may include demographic information. This can be incor-
+porated as follows. We can add individual characteristics (e.g. income) to the utility model (26.21) as
+interactions with the product characteristics X j . Since individual characteristics are unobserved they
+can be treated as random but with a known distribution (taken from the known market-level demo-
+graphic data). For example, Berry, Levinsohn, and Pakes (1995) treat individual income as log-normally
+distributed. These random variables are then treated jointly with the random coefﬁcients with no effec-
+tive change in the estimation method.
+An asymptotic theory developed by Berry, Linton, and Pakes (2004) shows that this GMM estima-
+tor is consistent and asymptotically normal as J → ∞ under certain assumptions. This means that the
+estimator can be applied in contexts with small T and large J, as well as in contexts with large T .
+To estimate a BLP model in Stata there is an add-on commandblp. In R there is a package BLPestimatoR.
+In Python there is a package PyBLP.
+26.13 Technical Proofs*
+Proof of Theorem 26.1: Deﬁneµj ℓ = X ′ (
+βj − βℓ
+)
+. It will useful to observe that
+P j (X ) =
+exp
+(
+X ′βj /τ
+)
+J∑
+ℓ=1
+exp
+(
+X ′βℓ/τ
+)
+=
+(
+J∑
+ℓ=1
+exp
+(
+−
+µj ℓ
+τ
+))−1
+.
+Deﬁne
+F j
+(
+ε1,..., εJ
+)
+= ∂
+∂εj
+F
+(
+ε1, ...,εJ
+)
+= exp
+(
+−
+[
+J∑
+ℓ=1
+exp
+(
+− εℓ
+τ
+)]τ) [
+J∑
+ℓ=1
+exp
+(
+− εℓ
+τ
+)]τ−1
+exp
+(
+−
+εj
+τ
+)
+.
+The event Y = j occurs ifU ∗
+j ≥ U ∗
+ℓ for all ℓ, which occurs whenεℓ ≤ εj +µj ℓ. The probability P
+[
+Y = j
+]
+is the integral of the joint density f
+(
+ε1, ...,εJ
+)
+over the region εℓ ≤ εj + µj ℓ. This is
+P
+[
+Y = j
+]
+= P
+[
+εℓ ≤ εj + µj ℓ, all ℓ
+]
+=
+∫ ∞
+−∞
+[∫ εj +µj 1
+−∞
+· · ·
+∫ εJ +µj J
+−∞
+f
+(
+ε1, ...,εJ
+)
+d ε1d ε2 · · ·d εJ
+]
+d εj
+
+
+--- page 21 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 839
+where the outer integral is over εj . The J − 1 inner set of integrals equals F j
+(
+εj + µj 1,..., εj + µj J
+)
+. Thus
+P
+[
+Y = j
+]
+=
+∫ ∞
+−∞
+F j
+(
+εj + µj 1, ...,εj + µj J
+)
+d εj . (26.27)
+Next, we substute the above expression for F j and collect terms to ﬁnd that (26.27) equals
+∫ ∞
+−∞
+exp
+(
+−
+[
+J∑
+ℓ=1
+exp
+(
+−
+εℓ + µj ℓ
+τ
+)]τ) [
+J∑
+ℓ=1
+exp
+(
+−
+εℓ + µj ℓ
+τ
+)]τ−1
+exp
+(
+−
+εj
+τ
+)
+d εj
+=
+∫ ∞
+−∞
+exp
+(
+−exp
+(
+−εj
+)
+P j (X )−τ)
+P j (X )1−τ exp
+(
+−
+εj
+τ
+)τ−1
+exp
+(
+−
+εj
+τ
+)
+d εj
+=
+∫ ∞
+−∞
+exp
+(
+−exp
+(
+−εj − logP j (X )τ))
+P j (X )1−τ exp
+(
+−εj
+)
+d εj
+= P j (X )1−τ
+∫ ∞
+−∞
+exp
+(
+−exp
+(
+−εj − logP j (X )τ))
+exp
+(
+−εj
+)
+d εj
+= P j (X )
+∫ ∞
+−∞
+exp
+(
+−exp(−u)
+)
+exp(−u)du
+= P j (X ).
+The second-to-last equality makes the change of variables u = εj + logP j (X )τ. The ﬁnal uses the fact
+that exp
+(
+−exp(−u)
+)
+exp(−u) is the Type I extreme value density which integrates to one. This shows
+P
+[
+Y = j
+]
+= P j (X ), as claimed. ■
+Proof of Theorem 26.2: The proof method is similar to that of Theorem 26.1. The joint distribution of
+the errors is
+F
+(
+ε11, ...,εJK J
+)
+= exp
+(
+−
+J∑
+ℓ=1
+[ Kℓ∑
+m=1
+exp
+(
+− εℓm
+τℓ
+)]τℓ)
+.
+The derivative with respect to εj k is
+F j k
+(
+ε11, ...,εJK J
+)
+= ∂
+∂εj k
+F
+(
+ε11, ...,εJK J
+)
+= exp
+(
+−
+J∑
+ℓ=1
+[ Kℓ∑
+m=1
+exp
+(
+− εℓm
+τℓ
+)]τℓ) [ K j∑
+m=1
+exp
+(
+−
+εj m
+τj
+)]τj −1
+exp
+(
+−
+εj k
+τj
+)
+.
+The event Y j k = 1 occurs if U ∗
+j k ≥ U ∗
+ℓm for all ℓ and m, which occurs when εℓm ≤ εj k + µj k − µl m. Setting
+I j =
+K j∑
+m=1
+exp
+(
+µj m/τj
+)
+and I = ∑J
+ℓ=1 I τℓ
+ℓ we ﬁnd that
+P
+[
+Y j k = 1
+]
+=
+∫ ∞
+−∞
+F j k
+(
+v + µj k − µ11,..., v + µj k − µJK J
+)
+d v
+=
+∫ ∞
+−∞
+exp
+(
+−
+J∑
+ℓ=1
+[ Kℓ∑
+m=1
+exp
+(
+−
+v + µj k − µℓm
+τℓ
+)]τℓ) [ K j∑
+m=1
+exp
+(
+−
+v + µj k − µj m
+τj
+)]τj −1
+exp
+(
+− v
+τj
+)
+d v
+= I
+τj −1
+j
+(
+exp
+(
+−µj k
+))
+τj −1
+τj
+∫ ∞
+−∞
+exp
+(
+−exp
+(
+−v − µj k
+) J∑
+ℓ=1
+I τℓ
+ℓ
+)
+exp(−v)d v
+=
+exp
+(
+µj k/τj
+)
+I
+τj −1
+j
+I
+∫ ∞
+−∞
+exp
+(
+−exp
+(
+−v − µj k + log I
+))
+exp
+(
+−v − µj k + log I
+)
+d v
+=
+exp
+(
+µj k/τj
+)
+I
+τj −1
+j
+I = Pk|j P j
+
+
+--- page 22 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 840
+as claimed. ■
+Proof of Theorem 26.3: We follow the proof of Theorem 26.1 through (26.27), where in this case µj ℓ =
+X ′ (
+βj − βℓ
+)
++
+(
+Z j − Zℓ
+)′ γ and
+F j
+(
+ε1, ...,εJ
+)
+= ∂
+∂εj
+F
+(
+ε1,..., εJ
+)
+=
+∏
+ℓ̸=j
+Φ
+(
+µj ℓ + εj
+)
+φ(εj )
+Thus
+P
+[
+Y = j
+]
+=
+∫ ∞
+−∞
+∏
+ℓ̸=j
+Φ
+(
+µj ℓ + v
+)
+φ(v)d v
+as claimed. ■
+_____________________________________________________________________________________________
+26.14 Exercises
+Exercise 26.1 For the multinomial logit model (26.2) show that 0 ≤ P j (x) ≤ 1 and ∑J
+j =1 P j (x) = 1.
+Exercise 26.2 Show that P j (x) in the multinomial logit model (26.2) only depends on the coefﬁcient
+differences βj − βJ .
+Exercise 26.3 For the multinomial logit model (26.2) show that the marginal effects equal (26.4).
+Exercise 26.4 Show that (26.8) holds for the conditional logit model.
+Exercise 26.5 For the conditional logit model (26.8) show that the marginal effects are (26.9) and (26.10).
+Exercise 26.6 Show that P j (w, x) in the conditional logit model (26.8) only depends on the coefﬁcient
+differences βj − βJ and variable differences x j − xJ .
+Exercise 26.7 In the conditional logit model ﬁnd an estimator for AMEj j .
+Exercise 26.8 Show (26.11).
+Exercise 26.9 In the conditional logit model with no alternative-invariant regressorsW show that (26.11)
+implies P j (x)/Pℓ(x) = exp
+((
+x j − xℓ
+)′ γ
+)
+.
+Exercise 26.10 Take the nested logit model. If k and ℓ are alternatives in the same group j , show that
+the ratio P j k/P j ℓ is independent of variables in the other groups. What does this mean?
+Exercise 26.11 Take the nested logit model. For groupsj and ℓ, show that the ratioP j /Pℓ is independent
+of variables in the other groups. What does this mean?
+Exercise 26.12 Use the cps09mar dataset and the subset of men. Estimate a multinomial logit model for
+marriage status similar to Figure 26.1 as a function of age. How do your ﬁndings compare with those for
+women?
+Exercise 26.13 Use the cps09mar dataset and the subset of women with ages up to 35. Estimate a multi-
+nomial logit model for marriage status as linear functions of age and education. Interpret your results.
+
+
+--- page 23 ---
+
+CHAPTER 26. MUL TIPLE CHOICE 841
+Exercise 26.14 Use the cps09mar dataset and the subset of women. Estimate a nested logit model for
+marriage status as a function of age. Describe how you decide on the grouping of alternatives.
+Exercise 26.15 Use the Koppelman dataset. Estimate conditional logit models similar to those reported
+in Table 26.1 but with the following modiﬁcations. For each case report the estimated coefﬁcients and
+standard errors for the cost and time variables, the log-likelihood, and describe how the results change.
+(a) Replicate the results of Table 26.1 for conditional logit with the same variables. Note: the regressors
+used in Table 26.1 arecost, intime, income, and urban.
+(b) Add the variable outtime, which is out-of-vehicle time.
+(c) Replace intime with time=intime+outtime.
+(d) Replace cost and intime with log(cost) and log(intime).
+Exercise 26.16 Use the Koppelman dataset. Estimate a nested logit model similar to those reported in
+Table 26.1 but with the following modiﬁcations. For each case report the estimated coefﬁcients and
+standard errors for the cost and time variables, the log-likelihood, and describe how the results change.
+(a) Replicate the results of Table 26.1 for nested logit with the same variables. Note: You will need to
+constrain the dissimilarity parameter for {train, bus}.
+(b) Replace cost and intime with log(cost) and log(intime).
+(c) Use the groupings {car} and {train, bus, air}. Why (or why not) might this nesting make sense?
+(d) Use the groupings {air} and {train, bus, car}.Why (or why not) might this nesting make sense?
+Exercise 26.17 Use the Koppelman dataset. Estimate a mixed logit model similar to that reported in
+Table 26.1 but with the following modiﬁcations. For each case report the estimated coefﬁcients and
+standard errors for the cost and time variables, the log-likelihood, and describe how the results change.
+(a) Replicate the results of Table 26.1 for mixed logit with the same variables.
+(b) Replace intime with time=intime+outtime.
+(c) Treat the coefﬁcient on intime as the negative of a lognormal random variable. (Replace intime
+with nintime=-intime and treat the coefﬁcient as lognormally distributed.) How do you compare
+the results of the estimated models?
+Exercise 26.18 Use the Koppelman dataset. Estimate a general multinomial probit model similar to that
+reported in Table 26.1 but with the following modiﬁcations. For each case report the estimated coef-
+ﬁcients and standard errors for the cost and time variables, the log-likelihood, and describe how the
+results change.
+(a) Replicate the results of Table 26.1 for multinomial probit with the same variables.
+(b) Replace cost and intime with log(cost) and log(intime).

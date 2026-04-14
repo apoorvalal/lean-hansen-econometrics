@@ -1,0 +1,2632 @@
+--- page 1 ---
+
+Chapter 13
+Generalized Method of Moments
+13.1 Introduction
+One of the most popular estimation methods in applied econometrics is the Generalized Method
+of Moments (GMM). GMM generalizes classical method of moments by allowing for more equations
+than unknown parameters (so are overidentiﬁed) and by allowing general nonlinear functions of the
+observations and parameters. Together this allows for a fairly rich and ﬂexible estimation framework.
+GMM includes as special cases OLS, IV , multivariate regression, and 2SLS. It includes both linear and
+nonlinear models. In this chapter we focus primarily on linear models.
+The GMM label and methods were introduced to econometrics in a seminal paper by Lars Hansen
+(1982). The ideas and methods build on the work of Amemiya (1974, 1977), Gallant (1977), and Gal-
+lant and Jorgenson (1979). The ideas are closely related to the contemporeneous work of Halbert White
+(1980, 1982) and White and Domowitz (1984). The methods are also related to what are calledestimating
+equations in the statistics literature. For a review of the latter see Godambe (1991).
+13.2 Moment Equation Models
+All of the models that have been introduced so far can be written asmoment equation models where
+the population parameters solve a system of moment equations. Moment equation models are broader
+than the models so far considered and understanding their common structure opens up straightforward
+techniques to handle new econometric models.
+Moment equation models take the following form. Let gi (β) be a known ℓ × 1 function of the i t h ob-
+servation and a k × 1 parameter β. A moment equation model is summarized by the moment equations
+E
+[
+gi (β)
+]
+= 0 (13.1)
+and a parameter space β ∈ B. For example, in the instrumental variables model gi
+(
+β
+)
+= Zi
+(
+Yi − X ′
+i β
+)
+.
+In general, we say that a parameter β is identiﬁedif there is a unique mapping from the data distri-
+bution to β. In the context of the model (13.1) this means that there is a unique β satisfying (13.1). Since
+(13.1) is a system of ℓ equations with k unknowns, then it is necessary that ℓ ≥ k for there to be a unique
+solution. If ℓ = k we say that the model is just identiﬁed, meaning that there is just enough information
+to identify the parameters. If ℓ > k we say that the model is overidentiﬁed, meaning that there is excess
+information. If ℓ < k we say that the model is underidentiﬁed, meaning that there is insufﬁcient infor-
+mation to identify the parameters. In general, we assume that ℓ ≥ k so the model is either just identiﬁed
+or overidentiﬁed.
+412
+
+
+--- page 2 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 413
+13.3 Method of Moments Estimators
+In this section we consider the just-identiﬁed caseℓ = k.
+Deﬁne the sample analog of (13.5)
+g n(β) = 1
+n
+n∑
+i =1
+gi (β). (13.2)
+The method of moments estimator (MME) ˆβmm is the parameter value which sets g n(β) = 0. Thus
+g n( ˆβmm) = 1
+n
+n∑
+i =1
+gi ( ˆβmm) = 0. (13.3)
+The equations (13.3) are known as the estimating equations as they are the equations which determine
+the estimator ˆβmm.
+In some contexts (such as those discussed in the examples below) there is an explicit solution for
+ˆβmm. In other cases the solution must be found numerically.
+We now show how most of the estimators discussed so far in the textbook can be written as method
+of moments estimators.
+Mean: Set gi
+(
+µ
+)
+= Yi − µ. The MME is ˆµ = 1
+n
+∑n
+i =1 Yi .
+Mean and Variance: Set
+gi
+(
+µ, σ2)
+=
+(
+Yi − µ(
+Yi − µ
+)2 − σ2
+)
+.
+The MME are ˆµ = 1
+n
+∑n
+i =1 Yi and ˆσ2 = 1
+n
+∑n
+i =1
+(
+Yi − ˆµ
+)2 .
+OLS: Set gi
+(
+β
+)
+= Xi
+(
+Yi − X ′
+i β
+)
+. The MME is ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+.
+OLS and Variance: Set
+gi
+(
+β, σ2)
+=
+(
+Xi
+(
+Yi − X ′
+i β
+)
+(
+Yi − X ′
+i β
+)2 − σ2
+)
+.
+The MME is ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+and ˆσ2 = 1
+n
+∑n
+i =1
+(
+Yi − X ′
+i
+ˆβ
+)2
+.
+Multivariate Least Squares, vector form: Set gi
+(
+β
+)
+=
+X
+′
+i
+(
+Yi − X i β
+)
+. The MME is ˆβ =
+(∑n
+i =1 X
+′
+i X i
+)−1 (∑n
+i =1 X i Yi
+)
+which is (11.4).
+Multivariate Least Squares, matrix form: Setgi (B) = vec
+(
+Xi
+(
+Y ′
+i − X ′
+i B
+))
+. The MME is ˆB =
+(∑n
+i =1 Xi X ′
+i
+)−1 (∑n
+i =1 Xi Y ′
+i
+)
+which is (11.6).
+Seemingly Unrelated Regression: Set
+gi
+(
+β, Σ
+)
+=
+
+
+X i Σ−1
+(
+Yi − X
+′
+i β
+)
+vec
+(
+Σ −
+(
+Yi − X
+′
+i β
+) (
+Yi − X
+′
+i β
+)′)
+
+.
+The MME is ˆβ =
+(∑n
+i =1
+X i ˆΣ−1X
+′
+i
+)−1 (∑n
+i =1 X i ˆΣ−1Yi
+)
+and ˆΣ = n−1 ∑n
+i =1
+(
+Yi −
+X
+′
+i ˆβ
+) (
+Yi − X
+′
+i ˆβ
+)′
+.
+IV: Set gi
+(
+β
+)
+= Zi
+(
+Yi − X ′
+i β
+)
+. The MME is ˆβ =
+(
+Z ′X
+)−1 (
+Z ′Y
+)
+.
+
+
+--- page 3 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 414
+Generated Regressors: Set
+gi
+(
+β, A
+)
+=
+( A′Zi
+(
+Yi − Z ′
+i Aβ
+)
+vec
+(
+Zi
+(
+X ′
+i − Z ′
+i A
+))
+)
+.
+The MME is ˆA =
+(∑n
+i =1 Zi Z ′
+i
+)−1 (∑n
+i =1 Zi X ′
+i
+)
+and ˆβ =
+(
+ˆA
+′
+Z ′Z ˆA
+)−1 (
+ˆA
+′
+Z ′Y
+)
+.
+A common feature of these examples is that the estimator can be written as the solution to a set of
+estimating equations (13.3). This provides a common framework which enables a convenient develop-
+ment of a uniﬁed distribution theory.
+13.4 Overidentiﬁed Moment Equations
+In the instrumental variables model gi (β) = Zi
+(
+Yi − X ′
+i β
+)
+. Thus (13.2) is
+g n(β) = 1
+n
+n∑
+i =1
+gi (β) = 1
+n
+n∑
+i =1
+Zi
+(
+Yi − X ′
+i β
+)
+= 1
+n
+(
+Z ′Y − Z ′X β
+)
+. (13.4)
+We have deﬁned the method of moments estimator for β as the parameter value which sets g n(β) =
+0. However, when the model is overidentiﬁed (if ℓ > k) this is generally impossible as there are more
+equations than free parameters. Equivalently, there is no choice of β which sets (13.4) to zero. Thus the
+method of moments estimator is not deﬁned for the overidentiﬁed case.
+While we cannot ﬁnd an estimator which sets g n(β) equal to zero we can try to ﬁnd an estimator
+which makes g n(β) as close to zero as possible.
+One way to think about this is to deﬁne the vector µ = Z ′Y , the matrix G = Z ′X and the “error”
+η = µ − Gβ. Then we can write (13.4) as β = Gβ + η. This looks like a regression equation with the ℓ × 1
+dependent variable µ, the ℓ × k regressor matrix G, and the ℓ × 1 error vector η. The goal is to make the
+error vector η as small as possible. Recalling our knowledge about least squares we deduct that a simple
+method is to regress µ on G, obtaining ˆβ =
+(
+G ′G
+)−1 (
+G ′µ
+)
+. This minimizes the sum-of-squares η′η. This
+is certainly one way to make η “small” .
+More generally we know that when errors are non-homogeneous it can be more efﬁcient to estimate
+by weighted least squares. Thus for some weight matrix W consider the estimator
+ˆβ =
+(
+G ′W G
+)−1 (
+G ′W µ
+)
+=
+(
+X ′Z W Z ′X
+)−1 (
+X ′Z W Z ′Y
+)
+.
+This minimizes the weighted sum of squares η′W η. This solution is known as the generalized method
+of moments (GMM).
+The estimator is typically deﬁned as follows. Given a set of moment equations (13.2) and an ℓ × ℓ
+weight matrix W > 0 the GMM criterion function is deﬁned as
+J(β) = n g n(β)′W g n(β).
+The factor “ n” is not important for the deﬁnition of the estimator but is convenient for the distribution
+theory. The criterion J(β) is the weighted sum of squared moment equation errors. When W = I ℓ then
+J(β) = n g n(β)′g n(β) = n
+g n(β)
+
+2 , the square of the Euclidean length. Since we restrict attention to
+positive deﬁnite weight matricesW the criterion J(β) is non-negative.
+Deﬁnition 13.1 The Generalized Method of Moments (GMM) estimator is
+ˆβgmm = argmin
+β
+J
+(
+β
+)
+.
+
+
+--- page 4 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 415
+Recall that in the just-identiﬁed casek = ℓ the method of moments estimator ˆβmm solves g n( ˆβmm) =
+0. Hence in this case J
+(ˆβmm
+)
+= 0 which means that ˆβmm minimizes J
+(
+β
+)
+and equals ˆβgmm = ˆβmm. This
+means that GMM includes MME as a special case. This implies that all of our results for GMM apply to
+any method of moments estimator.
+In the over-identiﬁed case the GMM estimator depends on the choice of weight matrixW and so this
+is an important focus of the theory. In the just-identiﬁed case the GMM estimator simpliﬁes to the MME
+which does not depend on W .
+The method and theory of the generalized method of moments was developed in an inﬂuential paper
+by Lars Hansen (1982). This paper introduced the method, its asymptotic distribution, the form of the
+efﬁcient weight matrix, and tests for overidentiﬁcation.
+13.5 Linear Moment Models
+One of the great advantages of the moment equation framework is that it allows both linear and non-
+linear models. However, when the moment equations are linear in the parameters then we have explicit
+solutions for the estimates and a straightforward asymptotic distribution theory. Hence we start by con-
+ﬁning attention to linear moment equations and return to nonlinear moment equations later. In the
+examples listed earlier the estimators which have linear moment equations include the sample mean,
+OLS, multivariate least squares, IV , and 2SLS. The estimates which have nonlinear moment equations
+include the sample variance, SUR, and generated regressors.
+In particular, we focus on the overidentiﬁed IV model with moment equations
+gi (β) = Zi (Yi − X ′
+i β) (13.5)
+where Zi is ℓ × 1 and Xi is k × 1.
+13.6 GMM Estimator
+Given (13.5) the sample moment equations are (13.4). The GMM criterion can be written as
+J(β) = n
+(
+Z ′Y − Z ′X β
+)′ W
+(
+Z ′Y − Z ′X β
+)
+.
+The GMM estimator minimizes J(β). The ﬁrst order conditions are
+0 = ∂
+∂β J( ˆβ)
+= 2 ∂
+∂β g n( ˆβ)′W g n( ˆβ)
+= −2
+( 1
+n X ′Z
+)
+W
+( 1
+n Z ′ (
+Y − X ˆβ
+))
+.
+The solution is given as follows.
+Theorem 13.1 For the overidentiﬁed IV model
+ˆβgmm =
+(
+X ′Z W Z ′X
+)−1 (
+X ′Z W Z ′Y
+)
+. (13.6)
+
+
+--- page 5 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 416
+While the estimator depends on W the dependence is only up to scale. This is because if W is re-
+placed by cW for some c > 0, ˆβgmm does not change. WhenW is ﬁxed by the user we callˆβgmm a one-step
+GMM estimator. The formula (13.6) applies for the over-identiﬁed (ℓ> k) and the just-identiﬁed (ℓ= k)
+case. When the model is just-identiﬁed thenX ′Z is k × k so expression (13.6) simpliﬁes to
+ˆβgmm =
+(
+Z ′X
+)−1 W −1 (
+X ′Z
+)−1 (
+X ′Z W Z ′Y
+)
+=
+(
+Z ′X
+)−1 (
+Z ′Y
+)
+= ˆβiv
+the IV estimator.
+The GMM estimator (13.6) resembles the 2SLS estimator (12.29). In fact they are equal when W =(
+Z ′Z
+)−1. This means that the 2SLS estimator is a one-step GMM estimator for the linear model.
+Theorem 13.2 If W =
+(
+Z ′Z
+)−1 then ˆβgmm = ˆβ2sls. Furthermore, if k = ℓ then
+ˆβgmm = ˆβiv.
+13.7 Distribution of GMM Estimator
+Let Q = E
+[
+Z X ′]
+and Ω = E
+[
+Z Z ′e2]
+. Then
+( 1
+n X ′Z
+)
+W
+( 1
+n Z ′X
+)
+− →p Q ′W Q
+and ( 1
+n X ′Z
+)
+W
+( 1pn Z ′e
+)
+− →
+d
+Q ′W N(0, Ω).
+We conclude:
+Theorem 13.3 Asymptotic Distribution of GMM Estimator. Under Assump-
+tion 12.2, as n → ∞, pn
+(ˆβgmm − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where
+V β =
+(
+Q ′W Q
+)−1 (
+Q ′W ΩW Q
+) (
+Q ′W Q
+)−1 . (13.7)
+The GMM estimator is asymptotically normal with a “sandwich form” asymptotic variance.
+Our derivation treated the weight matrix W as if it is non-random but Theorem 13.3 applies to the
+random weight matrix case so long as ˆW converges in probability to a positive deﬁnite limit W . This
+may require scaling the weight matrix, for example replacing ˆW =
+(
+Z ′Z
+)−1 with ˆW =
+(
+n−1Z ′Z
+)−1. Since
+rescaling the weight matrix does not affect the estimator this is ignored in implementation.
+
+
+--- page 6 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 417
+13.8 Efﬁcient GMM
+The asymptotic distribution of the GMM estimator ˆβgmm depends on the weight matrix W through
+the asymptotic variance V β. The asymptotically optimal weight matrix W 0 is that which minimizes V β.
+This turns out to be W 0 = Ω−1. The proof is left to Exercise 13.4.
+When the GMM estimator ˆβ is constructed with W = W 0 = Ω−1 (or a weight matrix which is a con-
+sistent estimator of W 0) we call it the Efﬁcient GMMestimator:
+ˆβgmm =
+(
+X ′Z Ω−1Z ′X
+)−1 (
+X ′Z Ω−1Z ′Y
+)
+.
+Its asymptotic distribution takes a simpler form than in Theorem 13.3. By substituting W = W 0 = Ω−1
+into (13.7) we ﬁnd
+V β =
+(
+Q ′Ω−1Q
+)−1 (
+Q ′Ω−1ΩΩ−1Q
+) (
+Q ′Ω−1Q
+)−1
+=
+(
+Q ′Ω−1Q
+)−1
+.
+This is the asymptotic variance of the efﬁcient GMM estimator.
+Theorem 13.4 Asymptotic Distribution of GMM with Efﬁcient Weight Ma-
+trix. Under Assumption 12.2 and W = Ω−1, as n → ∞, pn
+(ˆβgmm − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where V β =
+(
+Q ′Ω−1Q
+)−1.
+Theorem 13.5 Efﬁcient GMM. Under Assumption 12.2, for any W > 0,
+(
+Q ′W Q
+)−1 (
+Q ′W ΩW Q
+) (
+Q ′W Q
+)−1 −
+(
+Q ′Ω−1Q
+)−1
+≥ 0.
+The inequality “ ≥” can be replaced with “>” if W ̸= Ω−1. Thus if ˆβgmm is the
+efﬁcient GMM estimator and ˜βgmm is another GMM estimator, then
+avar
+[ˆβgmm
+]
+≤ avar
+[˜βgmm
+]
+.
+For a proof see Exercise 13.4.
+This means that the smallest possible GMM covariance matrix (in the positive deﬁnite sense) is
+achieved by the efﬁcient GMM weight matrix.
+W 0 = Ω−1 is not known in practice but it can be estimated consistently as we discuss in Section 13.10.
+For any ˆW − →p W 0 the asymptotic distribution in Theorem 13.4 is unaffected. Consequently we call any
+ˆβgmm constructed with an estimate of the efﬁcient weight matrix an efﬁcient GMM estimator.
+By “efﬁcient” we mean that this estimator has the smallest asymptotic variance in the class of GMM
+estimators with this set of moment conditions. This is a weak concept of optimality as we are only con-
+sidering alternative weight matrices ˆW . However, it turns out that the GMM estimator is semiparamet-
+rically efﬁcient as shown by Gary Chamberlain (1987). If it is known that E
+[
+gi (β)
+]
+= 0 and this is all that
+is known this is a semi-parametric problem as the distribution of the data is unknown. Chamberlain
+showed that in this context no semiparametric estimator (one which is consistent globally for the class
+
+
+--- page 7 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 418
+of models considered) can have a smaller asymptotic variance than
+(
+G ′Ω−1G
+)−1 where G = E
+[
+∂
+∂β′ gi (β)
+]
+.
+Since the GMM estimator has this asymptotic variance it is semiparametrically efﬁcient.
+The results in this section show that in the linear model no estimator has better asymptotic efﬁciency
+than the efﬁcient linear GMM estimator. No estimator can do better (in this ﬁrst-order asymptotic sense)
+without imposing additional assumptions.
+13.9 Efﬁcient GMM versus 2SLS
+For the linear model we introduced 2SLS as a standard estimator for β. Now we have introduced
+GMM which includes 2SLS as a special case. Is there a context where 2SLS is efﬁcient?
+To answer this question recall that 2SLS is GMM given the weight matrix ˆW =
+(
+Z ′Z
+)−1 or equiv-
+alently ˆW =
+(
+n−1Z ′Z
+)−1 since scaling doesn’t matter. Since ˆW − →p
+(
+E
+[
+Z Z ′])−1 this is asymptotically
+equivalent to the weight matrix W =
+(
+E
+[
+Z Z ′])−1. In contrast, the efﬁcient weight matrix takes the form(
+E
+[
+Z Z ′e2])−1. Now suppose that the structural equation error e is conditionally homoskedastic in the
+sense that E
+[
+e2 |Z
+]
+= σ2. Then the efﬁcient weight matrix equals W =
+(
+E
+[
+Z Z ′])−1 σ−2 or equivalently
+W =
+(
+E
+[
+Z Z ′])−1 since scaling doesn’t matter. The latter weight matrix is the same as the 2SLS asymptotic
+weight matrix. This shows that the 2SLS weight matrix is the efﬁcient weight matrix under conditional
+homoskedasticity.
+Theorem 13.6 Under Assumption 12.2 and E
+[
+e2 |Z
+]
+= σ2, ˆβ2sls is efﬁcient
+GMM.
+This shows that 2SLS is efﬁcient under homoskedasticity. When homoskedasticity holds there is no
+reason to use efﬁcient GMM over 2SLS. More broadly, when homoskedasticity is a reasonable approxi-
+mation then 2SLS will be a reasonable estimator. However, this result also shows that in the general case
+where the error is conditionally heteroskedastic, 2SLS is inefﬁcient relative to efﬁcient GMM.
+13.10 Estimation of the Efﬁcient Weight Matrix
+To construct the efﬁcient GMM estimator we need a consistent estimator ˆW of W 0 = Ω−1. The con-
+vention is to form an estimator ˆΩ of Ω and then set ˆW = ˆΩ−1.
+The two-step GMM estimator proceeds by using a one-step consistent estimator of β to construct
+the weight matrix estimator ˆW . In the linear model the natural one-step estimator for β is 2SLS. Set
+˜ei = Yi − X ′
+i
+ˆβ2sls, ˜gi = gi ( ˜β) = Zi ˜ei , and
+g n = n−1 ∑n
+i =1 ˜gi . Two moment estimators of Ω are
+ˆΩ = 1
+n
+n∑
+i =1
+˜gi ˜g ′
+i (13.8)
+and
+ˆΩ∗ = 1
+n
+n∑
+i =1
+(
+˜gi − g n
+) (
+˜gi − g n
+)′ . (13.9)
+The estimator (13.8) is an uncentered covariance matrix estimator while the estimator (13.9) is a
+centered version. Either is consistent when E[Z e] = 0 which holds under correct speciﬁcation. However
+under misspeciﬁcation we may haveE[Z e] ̸= 0. In the latter context ˆΩ∗ remains an estimator of var[Z e]
+
+
+--- page 8 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 419
+while ˆΩ is an estimator of E
+[
+Z Z ′e2]
+. In this sense ˆΩ∗ is a robust variance estimator. For some testing
+problems it turns out to be preferable to use a covariance matrix estimator which is robust to the alter-
+native hypothesis. For these reasons estimator (13.9) is generally preferred. The uncentered estimator
+(13.8) is more commonly seen in practice since it is the default choice by most packages. It is also worth
+observing that when the model is just identiﬁed then g n = 0 so the two are algebraically identical. The
+choice of weight matrix may also impact covariance matrix estimation as discussed in Section 13.12.
+Given the choice of covariance matrix estimator we set ˆW = ˆΩ−1 or ˆW = ˆΩ∗−1. Given this weight
+matrix we construct the two-step GMM estimator as (13.6) using the weight matrix ˆW .
+Since the 2SLS estimator is consistent for β, by arguments nearly identical to those used for covari-
+ance matrix estimation we can show that ˆΩ and ˆΩ∗ are consistent for Ω and thus ˆW is consistent for Ω−1.
+See Exercise 13.3.
+This also means that the two-step GMM estimator satisﬁes the conditions for Theorem 13.4.
+Theorem 13.7 Under Assumption 12.2 and Ω > 0, if ˆW = ˆΩ−1 or ˆW =
+ˆΩ∗−1 where the latter are deﬁned in (13.8) and (13.9) then as n → ∞ ,pn
+(ˆβgmm − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where V β =
+(
+Q ′Ω−1Q
+)−1.
+This shows that the two-step GMM estimator is asymptotically efﬁcient.
+The two-step GMM estimator of the IV regression equation can be computed in Stata using the
+ivregress gmm command. By default it uses formula (13.8). The centered version (13.9) may be se-
+lected using the center option.
+13.11 Iterated GMM
+The asymptotic distribution of the two-step GMM estimator does not depend on the choice of the
+preliminary one-step estimator. However, the actual value of the estimator depends on this choice and so
+will the ﬁnite sample distribution. This is undesirable and likely inefﬁcient. To remove this dependence
+we can iterate the estimation sequence. Speciﬁcally, given ˆβgmm we can construct an updated weight
+matrix estimate ˆW and then re-estimate ˆβgmm. This updating can be iterated until convergence 1. The
+result is called the iterated GMM estimator and is a common implementation of efﬁcient GMM.
+Interestingly, B. E. Hansen and Lee (2020) show that the iterated GMM estimator is unaffected if the
+weight matrix is computed with or without centering. Standard errors and test statistics, however, will
+be affected by the choice.
+The iterated GMM estimator of the IV regression equation can be computed in Stata using theivregress
+gmm command using the igmm option.
+13.12 Covariance Matrix Estimation
+An estimator of the asymptotic variance of ˆβgmm can be obtained by replacing the matrices in the
+asymptotic variance formula by consistent estimators.
+1In practice, “convergence” obtains when the difference between the estimates at subsequent steps is smaller than a pre-
+speciﬁed tolerance. A sufﬁcient condition for convergence is that the sequence is a contraction mapping. Indeed, B. Hansen
+and Lee (2020) have shown that the iterated GMM estimator generally satisﬁes this condition in large samples.
+
+
+--- page 9 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 420
+For the one-step or two-step GMM estimator the covariance matrix estimator is
+ˆV β =
+(
+ˆQ
+′ˆW ˆQ
+)−1 (
+ˆQ
+′ˆW ˆΩˆW ˆQ
+) (
+ˆQ
+′ˆW ˆQ
+)−1
+(13.10)
+where ˆQ = 1
+n
+∑n
+i =1 Zi X ′
+i . The weight matrix is constructed using either the uncentered estimator (13.8) or
+centered estimator (13.9) with the residuals ˆei = Yi − X ′
+i
+ˆβgmm.
+For the efﬁcient iterated GMM estimator the covariance matrix estimator is
+ˆV β =
+(
+ˆQ
+′ ˆΩ−1 ˆQ
+)−1
+=
+((1
+n X ′Z
+)
+ˆΩ−1
+( 1
+n Z ′X
+))−1
+. (13.11)
+ˆΩ can be computed using either the uncentered estimator (13.8) or centered estimator (13.9). Based on
+the asymptotic approximation the estimator (13.11) can be used as well for the two-step estimator but
+should use the ﬁnal residualsˆei = Yi − X ′
+i
+ˆβgmm.
+Asymptotic standard errors are given by the square roots of the diagonal elements of n−1 ˆV β.
+It is unclear if it is preferred to use the covariance matrix estimator based on the centered or uncen-
+tered estimator of Ω to construct the covariance matrix estimator. Using the centered estimator results
+in a smaller covariance matrix and standard errors and thus more “signiﬁcant” tests based on asymptotic
+critical values. In contrast the uncentered estimator ofΩ will result in larger standard errors and will thus
+be more “conservative” .
+In Stata, the default covariance matrix estimation method is determined by the choice of weight
+matrix. Thus if the centered estimator (13.9) is used for the weight matrix it is also used for the covariance
+matrix estimator.
+13.13 Clustered Dependence
+In Section 4.23 we introduced clustered dependence and in Section 12.25 described covariance ma-
+trix estimation for 2SLS. The methods extend naturally to GMM but with the additional complication of
+potentially altering weight matrix calculation.
+The structural equation for the g t h cluster can be written as the matrix system Y g = X g β + e g . Using
+this notation the centered GMM estimator with weight matrix W can be written as
+ˆβgmm − β =
+(
+X ′Z W Z ′X
+)−1 X ′Z W
+(
+G∑
+g =1
+Z ′
+g e g
+)
+.
+The cluster-robust covariance matrix estimator for ˆβgmm is
+ˆV β =
+(
+X ′Z W Z ′X
+)−1 X ′Z W ˆSW Z ′X
+(
+X ′Z W Z ′X
+)−1 (13.12)
+with
+ˆS =
+G∑
+g =1
+Z ′
+g ˆe g ˆe′
+g Z g (13.13)
+and the clustered residuals
+ˆe g = Y g − X g ˆβgmm. (13.14)
+The cluster-robust estimator (13.12) is appropriate for the one-step or two-step GMM estimator. It is
+also appropriate for the iterated estimator when the latter uses a conventional (non-clustered) efﬁcient
+weight matrix. However in the clustering context it is more natural to use a cluster-robust weight matrix
+
+
+--- page 10 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 421
+such as W = ˆS
+−1
+where ˆS is a cluster-robust covariance estimator as in (13.13) based on a one-step or
+iterated residual. This gives rise to the cluster-robust GMM estimator
+ˆβgmm =
+(
+X ′Z ˆS
+−1
+Z ′X
+)−1
+X ′Z ˆS
+−1
+Z ′Y . (13.15)
+An appropriate cluster-robust covariance matrix estimator is
+ˆV β =
+(
+X ′Z ˆS
+−1
+Z ′X
+)−1
+where ˆS is calculated using the ﬁnal residuals.
+To implement a cluster-robust weight matrix use the 2SLS estimator for ﬁrst step. Compute the clus-
+ter residuals (13.14) and covariance matrix (13.13). Then (13.15) is the two-step GMM estimator. Iterating
+the residuals and covariance matrix until convergence we obtain the iterated GMM estimator.
+In Stata, using the ivregress gmm command with the cluster option implements the two-step
+GMM estimator using the cluster-robust weight matrix and cluster-robust covariance matrix estimator.
+To use the centered covariance matrix use the center option and to implement the iterated GMM esti-
+mator use the igmm option. Alternatively, you can use the wmatrix and vce options to separately specify
+the weight matrix and covariance matrix estimation methods.
+13.14 Wald Test
+For a given function r
+(
+β
+)
+: Rk → Θ ⊂ Rq we deﬁne the parameter θ = r
+(
+β
+)
+. The GMM estimator
+of θ is ˆθgmm = r
+(ˆβgmm
+)
+. By the delta method it is asymptotically normal with covariance matrix V θ =
+R ′V βR where R = ∂
+∂β r (β)′. An estimator of the asymptotic covariance matrix is ˆV θ = ˆR
+′ ˆV β ˆR where
+ˆR = ∂
+∂β r ( ˆβgmm)′. When θ is scalar then an asymptotic standard error for ˆθgmm is formed as
+√
+n−1 ˆV θ.
+A standard test of the hypothesis H0 : θ = θ0 against H1 : θ ̸= θ0 is based on the Wald statistic
+W = n
+(ˆθ − θ0
+)′ ˆV
+−1
+ˆθ
+(ˆθ − θ0
+)
+.
+Let Gq (u) denote the χ2
+q distribution function.
+Theorem 13.8 Under Assumption 12.2, Assumption 7.3, and H0, as n → ∞ ,
+W − →
+d
+χ2
+q . For c satisfying α = 1 −Gq (c), P[W > c |H0] − →α so the test “Reject
+H0 if W > c” has asymptotic size α.
+For a proof see Exercise 13.5.
+In Stata, the commands test and testparm can be used after ivregress gmm to implement Wald
+tests of linear hypotheses. The commands nlcom and testnl can be used after ivregress gmm to im-
+plement Wald tests of nonlinear hypotheses.
+
+
+--- page 11 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 422
+13.15 Restricted GMM
+It is often desirable to impose restrictions on the coefﬁcients. In this section we consider estimation
+subject to the linear constraints R ′β = c. In the following section we consider nonlinear constraints.
+The constrained GMM estimator minimizes the GMM criterion subject to the constraint. It is
+ˆβcgmm = argmin
+R ′β=c
+J(β).
+This is the parameter vector which makes the estimating equations as close to zero as possible with
+respect to the weighted quadratic distance while imposing the restriction on the parameters.
+Suppose the weight matrix W is ﬁxed. Using the methods of Chapter 8 it is straightforward to derive
+that the constrained GMM estimator is
+ˆβcgmm = ˆβgmm −
+(
+X ′Z W Z ′X
+)−1 R
+(
+R ′ (
+X ′Z W Z ′X
+)−1 R
+)−1 (
+R ′ ˆβgmm − c
+)
+. (13.16)
+(For details, see Exercise 13.6.)
+We derive the asymptotic distribution under the assumption that the restriction is true. Make the
+substitution c = R ′β in (13.16) and reorganize to ﬁnd
+p
+n
+(ˆβcgmm − β
+)
+=
+(
+I k −
+(
+X ′Z W Z ′X
+)−1 R
+(
+R ′ (
+X ′Z W Z ′X
+)−1 R
+)−1
+R ′
+) p
+n
+(ˆβgmm − β
+)
+. (13.17)
+This is a linear function of pn
+(ˆβgmm − β
+)
+. Since the asymptotic distribution of the latter is known the
+asymptotic distribution of pn
+(ˆβcgmm − β
+)
+is a linear function of the former.
+Theorem 13.9 Under Assumptions 12.2 and 8.3, for the constrained GMM es-
+timator (13.16), pn
+(ˆβcgmm − β
+)
+− →
+d
+N
+(
+0,V cgmm
+)
+as n → ∞, where
+V cgmm = V β −
+(
+Q ′W Q
+)−1 R
+(
+R ′ (
+Q ′W Q
+)−1 R
+)−1
+R ′V β (13.18)
+− V βR
+(
+R ′ (
+Q ′W Q
+)−1 R
+)−1
+R ′ (
+Q ′W Q
+)−1
++
+(
+Q ′W Q
+)−1 R
+(
+R ′ (
+Q ′W Q
+)−1 R
+)−1
+R ′V βR
+(
+R ′ (
+Q ′W Q
+)−1 R
+)−1
+R ′ (
+Q ′W Q
+)−1 .
+For a proof, see Exercise 13.8. Unfortunately the asymptotic covariance matrix formula (13.18) is
+quite tedious!
+Now suppose that the the weight matrix is set as W = ˆΩ−1, the efﬁcient weight matrix from uncon-
+strained estimation. In this case the constrained GMM estimator can be written as
+ˆβcgmm = ˆβgmm − ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβgmm − c
+)
+(13.19)
+which is the same formula (8.25) as efﬁcient minimum distance. (For details, see Exercise 13.7.) We ﬁnd
+that the asymptotic covariance matrix simpliﬁes considerably.
+
+
+--- page 12 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 423
+Theorem 13.10 Under Assumptions 12.2 and 8.3, for the efﬁcient constrained
+GMM estimator (13.19), pn
+(ˆβcgmm − β
+)
+− →
+d
+N
+(
+0,V cgmm
+)
+as n → ∞, where
+V cgmm = V β − V βR
+(
+R ′V βR
+)−1 R ′V β. (13.20)
+For a proof, see Exercise 13.9.
+The asymptotic covariance matrix (13.20) can be estimated by
+ˆV cgmm = ˜V β − ˜V βR
+(
+R ′ ˜V βR
+)−1
+R ′ ˜V β. (13.21)
+˜V β =
+(
+ˆQ
+′ ˜Ω−1 ˆQ
+)−1
+˜Ω = 1
+n
+n∑
+i =1
+Zi Z ′
+i ˜e2
+i (13.22)
+˜ei = Yi − X ′
+i ˆβcgmm.
+The covariance matrix (13.18) can be estimated similarly, though using (13.10) to estimate V β. The co-
+variance matrix estimator ˜Ω can also be replaced with a centered version.
+A constrained iterated GMM estimator can be implemented by setting W = ˜Ω−1 where ˜Ω is deﬁned
+in (13.22) and then iterating until convergence. This is a natural estimator as it is the appropriate imple-
+mentation of iterated GMM.
+Since both ˆΩ and ˜Ω converge to the same limit Ω under the assumption that the constraint is true
+the constrained iterated GMM estimator has the asymptotic distribution given in Theorem 13.10.
+13.16 Nonlinear Restricted GMM
+Nonlinear constraints on the parameters can be written as r
+(
+β
+)
+= 0 for some function r : Rk → Rq .
+The constraint is nonlinear if r
+(
+β
+)
+cannot be written as a linear function of β. Least squares estima-
+tion subject to nonlinear constraints was explored in Section 8.14. In this section we introduce GMM
+estimation subject to nonlinear constraints.
+The constrained GMM estimator minimizes the GMM criterion subject to the constraint. It is
+ˆβcgmm = argmin
+r(β)=0
+J(β). (13.23)
+This is the parameter vector which makes the estimating equations as close to zero as possible with
+respect to the weighted quadratic distance while imposing the restriction on the parameters.
+In general there is no explicit solution for ˆβcgmm. Instead the solution is found numerically. Fortu-
+nately there are excellent nonlinear constrained optimization solvers implemented in standard software
+packages.
+For the asymptotic distribution assume that the restriction r
+(
+β
+)
+= 0 is true. Using the same methods
+as in the proof of Theorem 8.10 we can show that (13.17) approximately holds in the sense that
+p
+n
+(ˆβcgmm − β
+)
+=
+(
+I k −
+(
+X ′Z W Z ′X
+)−1 R
+(
+R ′ (
+X ′Z W Z ′X
+)−1 R
+)−1
+R ′
+) p
+n
+(ˆβgmm − β
+)
++ op(1)
+where R = ∂
+∂β r
+(
+β
+)′. Thus the asymptotic distribution of the constrained estimator takes the same form
+as in the linear case.
+
+
+--- page 13 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 424
+Theorem 13.11 Under Assumptions 12.2 and 8.3, for the constrained GMM
+estimator (13.23), pn
+(ˆβcgmm − β
+)
+− →
+d
+N
+(
+0,V cgmm
+)
+as n → ∞ , where V cgmm
+equals (13.18). If W = ˆΩ−1, then V cgmm equals (13.20).
+The asymptotic covariance matrix in the efﬁcient case is estimated by (13.21) with R replaced with
+ˆR = ∂
+∂β r
+(ˆβcgmm
+)′
+. The asymptotic covariance matrix (13.18) in the general case is estimated similarly.
+To implement an iterated restricted GMM estimator the weight matrix may be set asW = ˜Ω−1 where
+˜Ω is deﬁned in (13.22), and then iterated until convergence.
+13.17 Constrained Regression
+Take the conventional projection modelY = X ′β + e with E[X e] = 0. This is a special case of GMM as
+it is model (13.5) with Z = X . The just-identiﬁed GMM estimator equals least squares ˆβgmm = ˆβols.
+In Chapter 8 we discussed estimation of the projection model subject to linear constraints R ′β = c,
+which includes exclusion restrictions. Since the projection model is a special case of GMM the con-
+strained projection model is also constrained GMM. From the results of Section 13.15 we ﬁnd that the
+efﬁcient constrained GMM estimator is
+ˆβcgmm = ˆβols − ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβols − c
+)
+= ˆβemd,
+the efﬁcient minimum distance estimator. Thus for linear constraints on the linear projection model
+efﬁcient GMM equals efﬁcient minimum distance. Thus one convenient method to implement efﬁcient
+minimum distance is GMM.
+13.18 Multivariate Regression
+GMM methods can simplify estimation and inference for multivariate regressions such as those in-
+troduced in Chapter 11.
+The general multivariate regression (projection) model is
+Y j = X ′
+j βj + e j
+E
+[
+X j e j
+]
+= 0
+for j = 1, ...,m. Using the notation from Section 11.2 the equations can be written jointly as Y = X β + e
+and for the full sample as Y = X β + e. The k moment conditions are
+E
+[
+X
+′ (
+Y − X β
+)]
+= 0. (13.24)
+Given a k × k weight matrix W the GMM criterion is
+J(β) = n
+(
+Y − X β
+)′
+X W X
+′ (
+Y − X β
+)
+.
+The GMM estimator ˆβgmm minimizes J(β). Since this is a just-identiﬁed model the estimator solves
+the sample equations
+X
+′ (
+Y − X ˆβgmm
+)
+= 0.
+
+
+--- page 14 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 425
+The solution is
+ˆβgmm =
+(
+n∑
+i =1
+X
+′
+i X i
+)−1 (
+n∑
+i =1
+X
+′
+i Yi
+)
+=
+(
+X
+′
+X
+)−1 (
+X
+′
+Y
+)
+= ˆβols,
+the multivariate least squares estimator.
+Thus the unconstrained GMM estimator of the multivariate regression model is least squares. The
+estimator does not depend on the weight matrix since the model is just-identiﬁed.
+A important advantage of the GMM framework is the ability to incorporate cross-equation con-
+straints. Consider the class of restrictions R ′β = c. Minimization of the GMM criterion subject to this
+restrition has solutions as described in (13.15). The restricted GMM estimator is
+ˆβgmm = ˆβols −
+(
+X
+′
+X W X
+′
+X
+)−1
+R
+(
+R ′
+(
+X
+′
+X W X
+′
+X
+)−1
+R
+)−1 (
+R ′ ˆβols − c
+)
+.
+This estimator depends on the weight matrix because it is over-identiﬁed.
+A simple choice for weight matrix is W = X
+′
+X . This leads to the one-step estimator
+ˆβ1 = ˆβols −
+(
+X
+′
+X
+)−1
+R
+(
+R ′
+(
+X
+′
+X
+)−1
+R
+)−1 (
+R ′ ˆβols − c
+)
+.
+The asymptotically efﬁcient choice setsW = ˆΩ−1 where ˆΩ = n−1 ∑n
+i =1 X
+′
+i ˆei ˆe′
+i X i and ˆei = Yi − X i ˆβ1. This
+leads to the two-step estimator
+ˆβ2 = ˆβols −
+(
+X
+′
+X ˆΩ−1X
+′
+X
+)−1
+R
+(
+R ′
+(
+X
+′
+X ˆΩ−1X
+′
+X
+)−1
+R
+)−1 (
+R ′ ˆβols − c
+)
+.
+When the regressors X are common across all equations the multivariate regression model can be
+written conveniently as in (11.3): Y = B ′X + e with E
+[
+X e′]
+= 0. The moment restrictions can be written
+as the matrix system E
+[
+X
+(
+Y ′ − X ′B
+)]
+= 0. Written as a vector system this is (13.24) and leads to the same
+restricted GMM estimators.
+These are general formula for imposing restrictions. In speciﬁc cases (such as an exclusion restric-
+tion) direct methods may be more convenient. In all cases the solution is found by minimization of the
+GMM criterion J(β) subject to the restriction.
+13.19 Distance Test
+In Section 13.14 we introduced Wald tests of the hypothesis H0 : θ = θ0 where θ = r
+(
+β
+)
+for a given
+function r
+(
+β
+)
+: Rk → Θ ⊂ Rq . When r
+(
+β
+)
+is nonlinear an alternative is to use a criterion-based statistic.
+This is sometimes called the GMM Distance statistic and sometimes called a LR-like statistic (the LR is
+for likelihood-ratio). The idea was ﬁrst put forward by Newey and West (1987a).
+The idea is to compare the unrestricted and restricted estimators by contrasting the criterion func-
+tions. The unrestricted estimator takes the form
+ˆβgmm = argmin
+β
+ˆJ(β)
+where
+ˆJ(β) = n
+g n(β)′ ˆΩ−1g n(β)
+is the unrestricted GMM criterion with an efﬁcient weight matrix estimate ˆΩ. The minimized value of
+the criterion is ˆJ = ˆJ( ˆβgmm).
+
+
+--- page 15 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 426
+As in Section 13.15, the estimator subject to r
+(
+β
+)
+= θ0 is
+ˆβcgmm = argmin
+r(β)=θ0
+˜J(β)
+where
+˜J(β) = n g n(β)′ ˜Ω−1 g n(β)
+which depends on an efﬁcient weight matrix estimator, eitherˆΩ (the same as the unrestricted estimator)
+or ˜Ω (the iterated weight matrix from constrained estimation). The minimized value of the criterion is
+˜J = ˜J
+(ˆβcgmm
+)
+.
+The GMM distance (or LR-like) statistic is the difference in the criterion functions: D = ˜J − ˆJ. The
+distance test shares the useful feature of LR tests in that it is a natural by-product of the computation of
+alternative models.
+The test has the following large sample distribution.
+Theorem 13.12 Under Assumption 12.2, Assumption 7.3, and H0, then as n →
+∞, D − →
+d
+χ2
+q . For c satisfying α = 1 −Gq (c), P[D > c |H0] − →α. The test “Reject
+H0 if D > c” has asymptotic size α.
+The proof is given in Section 13.28.
+Theorem 13.12 shows that the distance statistic has the same asymptotic distribution as Wald and
+likelihood ratio statistics and can be interpreted similarly. Small values of D mean that imposing the
+restriction does not result in a large value of the moment equations. Hence the restriction appears to be
+compatible with the data. On the other hand, large values ofD mean that imposing the restriction results
+in a much larger value of the moment equations, implying that the restriction is not compatible with the
+data. The ﬁnding that the asymptotic distribution is chi-squared allows the calculation of asymptotic
+critical values and p-values.
+We now discuss the choice of weight matrix. As mentioned above one simple choice is to set ˜Ω = ˆΩ.
+In this case we have the following result.
+Theorem 13.13 If ˜Ω = ˆΩ then D ≥ 0. Furthermore, if r is linear in β then D
+equals the Wald statistic.
+The statement that ˜Ω = ˆΩ implies D ≥ 0 follows from the fact that in this case the criterion functions
+ˆJ(β) = ˜J(β) are identical so the constrained minimum cannot be smaller than the unconstrained. The
+statement that linear hypotheses and ˜Ω = ˆΩ implies D = W follows from applying the expression for the
+constrained GMM estimator (13.19) and using the covariance matrix formula (13.11).
+The fact that D ≥ 0 when ˜Ω = ˆΩ motivated Newey and West (1987a) to recommend this choice. How-
+ever, this is necessary. Setting ˜Ω to be the constrained efﬁcient weight matrix is natural for efﬁcient
+estimation of ˆβcgmm. In the event that D < 0 the test simply fails to reject H0 at any signiﬁcance level.
+As discussed in Section 9.17 for tests of nonlinear hypotheses the Wald statistic can work quite poorly.
+In particular, the Wald statistic is affected by how the hypothesis r
+(
+β
+)
+is formulated. In contrast, the
+distance statistic D is not affected by the algebraic formulation of the hypothesis. Current evidence
+
+
+--- page 16 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 427
+suggests that the D statistic appears to have good sampling properties, and is a preferred test statistic
+relative to the Wald statistic for nonlinear hypotheses. (See B. E. Hansen (2006).)
+In Stata the command estat overid after ivregress gmm can be used to report the value of the
+GMM criterion J. By estimating the two nested GMM regressions the values ˆJ and ˜J can be obtained
+and D computed.
+13.20 Continuously-Updated GMM
+An alternative to the two-step GMM estimator can be constructed by letting the weight matrix be an
+explicit function of β. These leads to the criterion function
+J(β) = n g n(β)′
+(
+1
+n
+n∑
+i =1
+gi (β)gi (β)′
+)−1
+g n(β).
+The ˆβ which minimizes this function is called the continuously-updated GMM (CU-GMM) estimator
+and was introduced by L. Hansen, Heaton and Yaron (1996).
+A complication is that the continuously-updated criterion J(β) is not quadratic in β. This means that
+minimization requires numerical methods. It may appear that the CU-GMM estimator is the same as
+the iterated GMM estimator but this is not the case at all. They solve distinct ﬁrst-order conditions and
+can be quite different in applications.
+Relative to traditional GMM the CU-GMM estimator has lower bias but thicker distributional tails.
+While it has received considerable theoretical attention it is not used commonly in applications.
+13.21 OverIdentiﬁcation Test
+In Section 12.31 we introduced the Sargan (1958) overidentiﬁcation test for the 2SLS estimator under
+the assumption of homoskedasticity. L. Hansen (1982) generalized the test to cover the GMM estimator
+allowing for general heteroskedasticity.
+Recall, overidentiﬁed models (ℓ> k) are special in the sense that there may not be a parameter value
+β such that the moment conditionH0 : E[Z e] = 0 holds. Thus the model – the overidentifying restrictions
+– are testable.
+For example, take the linear model Y = β′
+1X1 + β′
+2X2 + e with E[X1e] = 0 and E[X2e] = 0. It is pos-
+sible that β2 = 0 so that the linear equation may be written as Y = β′
+1X1 + e. However, it is possible
+that β2 ̸= 0. In this case it is impossible to ﬁnd a value of β1 such that both E
+[
+X1
+(
+Y − X ′
+1β1
+)]
+= 0 and
+E
+[
+X2
+(
+Y − X ′
+1β1
+)]
+= 0 hold simultaneously. In this sense an exclusion restriction can be seen as an overi-
+dentifying restriction.
+Note that
+g n − →p E[Z e] and thus g n can be used to assess the hypothesis E[Z e] = 0. Assuming that
+an efﬁcient weight matrix estimator is used the criterion function at the parameter estimator is J =
+J( ˆβgmm) = n g ′
+n ˆΩ−1g n. This is a quadratic form in g n and is thus a natural test statistic for H0 : E[Z e] = 0.
+Note that we assume that the criterion function is constructed with an efﬁcient weight matrix estimator.
+This is important for the distribution theory.
+Theorem 13.14 Under Assumption 12.2 then asn → ∞, J = J
+(ˆβgmm
+)
+− →
+d
+χ2
+ℓ−k.
+For c satisfying α = 1−Gℓ−k(c), P[J > c |H0] − →α so the test “Reject H0 if J > c”
+has asymptotic size α.
+
+
+--- page 17 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 428
+The proof of the theorem is left to Exercise 13.13.
+The degrees of freedom of the asymptotic distribution are the number of overidentifying restrictions.
+If the statistic J exceeds the chi-square critical value we can reject the model. Based on this information
+alone it is unclear what is wrong but it is typically cause for concern. The GMM overidentiﬁcation test is
+a useful by-product of the GMM methodology and it is advisable to report the statisticJ whenever GMM
+is the estimation method. When over-identiﬁed models are estimated by GMM it is customary to report
+the J statistic as a general test of model adequacy.
+In Stata the command estat overid afer ivregress gmm can be used to implement the overiden-
+tiﬁcation test. The GMM criterion J and its asymptotic p-value using the χ2
+ℓ−k distribution are reported.
+13.22 Subset OverIdentiﬁcation Tests
+In Section 12.32 we introduced subset overidentiﬁcation tests for the 2SLS estimator under the as-
+sumption of homoskedasticity. In this section we describe how to construct analogous tests for the GMM
+estimator under general heteroskedasticity.
+Recall, subset overidentiﬁcation tests are used when it is desired to focus attention on a subset of
+instruments whose validity is questioned. Partition Z = (Za, Zb) with dimensions ℓa and ℓb, respectively,
+where Za contains the instruments which are believed to be uncorrelated with e and Zb contains the
+instruments which may be correlated with e. It is necessary to select this partition so that ℓa > k, so that
+the instruments Za alone identify the parameters.
+Given this partition the maintained hypothesis is E[Zae] = 0. The null and alternative hypotheses
+are H0 : E[Zbe] = 0 and H1 : E[Zbe] ̸= 0. The GMM test is constructed as follows. First, estimate the
+model by efﬁcient GMM with only the smaller set Za of instruments. Let ˜J denote the resulting GMM
+criterion. Second, estimate the model by efﬁcient GMM with the full set Z = (Za, Zb) of instruments.
+Let ˆJ denote the resulting GMM criterion. The test statistic is the difference in the criterion functions:
+C = ˆJ − ˜J. This is similar to the GMM distance statistic presented in Section 13.19. The difference is
+that the distance statistic compares models which differ based on the parameter restrictions while theC
+statistic compares models based on different instrument sets.
+Typically C ≥ 0. However, this is not necessary and C < 0 can arise. If this occurs it leads to a non-
+rejection of H0.
+If the smaller instrument set Za is just-identiﬁed so that ℓa = k then ˜J = 0 so C = ˆJ is simply the
+standard overidentiﬁcation test. This is why we have restricted attention to the caseℓa > k.
+The test has the following large sample distribution.
+Theorem 13.15 Under Assumption 12.2 and E
+[
+Za X ′]
+has full rank k, then as
+n → ∞, C − →
+d
+χ2
+ℓb
+. For c satisfying α = 1 − Gℓb (c), P[C > c |H0] − →α. The test
+“Reject H0 if C > c” has asymptotic size α.
+The proof of Theorem 13.15 is presented in Section 13.28.
+In Stata the command estat overid zb afer ivregress gmm can be used to implement a subset
+overidentiﬁcation test where zb is the name(s) of the instruments(s) tested for validity. The statistic C
+and its asymptotic p-value using the χ2
+ℓ2
+distribution are reported.
+
+
+--- page 18 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 429
+13.23 Endogeneity Test
+In Section 12.29 we introduced tests for endogeneity in the context of 2SLS estimation. Endogeneity
+tests are simple to implement in the GMM framework as a subset overidentiﬁcation test. The model is
+Y = Z ′
+1β1+Y ′
+2β2+e where the maintained assumption is that the regressorsZ1 and excluded instruments
+Z2 are exogenous so that E[Z1e] = 0 and E[Z2e] = 0. The question is whether or not Y2 is endogenous.
+The null hypothesis is H0 : E[Y2e] = 0 with the alternative H1 : E[Y2e] ̸= 0.
+The GMM test is constructed as follows. First, estimate the model by efﬁcient GMM using (Z1, Z2)
+as instruments for (Z1,Y2). Let ˜J denote the resulting GMM criterion. Second, estimate the model by
+efﬁcient GMM2 using (Z1, Z2,Y2) as instruments for (Z1,Y2). Let ˆJ denote the resulting GMM criterion.
+The test statistic is the difference in the criterion functions: C = ˆJ − ˜J.
+The distribution theory for the test is a special case of overidentiﬁcation testing.
+Theorem 13.16 Under Assumption 12.2 and E
+[
+Z2Y ′
+2
+]
+has full rank k2, then as
+n → ∞, C − →
+d
+χ2
+k2
+. For c satisfying α = 1 − Gk2(c), P[C > c |H0] → α. The test
+“Reject H0 if C > c” has asymptotic size α.
+In Stata the command estat endogenous afer ivregress gmm can be used to implement the test
+for endogeneity. The statistic C and its asymptotic p-value using the χ2
+k2
+distribution are reported.
+13.24 Subset Endogeneity Test
+In Section 12.30 we introduced subset endogeneity tests for 2SLS estimation. GMM tests are simple
+to implement as subset overidentiﬁcation tests. The model is Y = Z ′
+1β1 + Y ′
+2β2 + Y ′
+3β3 + e with E[Z e] = 0
+where the instrument vector is Z = (Z1, Z2). The k3 × 1 variables Y3 are treated as endogenous and the
+k2 × 1 variables Y2 are treated as potentially endogenous. The hypothesis to test is that Y2 is exogenous,
+or H0 : E[Y2e] = 0 against H1 : E[Y2e] ̸= 0. The test requires that ℓ2 ≥ (k2 + k3) so that the model can be
+estimated under H1.
+The GMM test is constructed as follows. First, estimate the model by efﬁcient GMM using (Z1, Z2)
+as instruments for (Z1,Y2,Y3). Let ˜J denote the resulting GMM criterion. Second, estimate the model by
+efﬁcient GMM using(Z1, Z2,Y2) as instruments for (Z1,Y2,Y3). Let ˆJ denote the resulting GMM criterion.
+The test statistic is the difference in the criterion functions: C = ˆJ − ˜J.
+The distribution theory for the test is a special case of the theory of overidentiﬁcation testing.
+Theorem 13.17 Under Assumption 12.2 andE
+[
+Z2
+(
+Y ′
+2,Y ′
+3
+)]
+has full rankk2+k3,
+then as n → ∞, C − →
+d
+χ2
+k2
+. For c satisfying α = 1 − Gk2(c), P[C > c |H0] − →α.
+The test “Reject H0 if C > c” has asymptotic size α.
+In Stata, the command estat endogenous x2 afer ivregress gmm can be used to implement the
+test for endogeneity where x2 is the name(s) of the variable(s) tested for endogeneity. The statisticC and
+its asymptotic p-value using the χ2
+k2
+distribution are reported.
+2If the homoskedastic weight matrix is used this GMM estimator equals least squares, but when the weight matrix allows for
+heteroskedasticity the efﬁcient GMM estimator does not equal least squares as the model is overidentiﬁed.
+
+
+--- page 19 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 430
+13.25 Nonlinear GMM
+GMM applies whenever an economic or statistical model implies the ℓ × 1 moment condition
+E
+[
+gi (β)
+]
+= 0.
+where gi (β) is a possibly nonlinear function of the parameters β. Often, this is all that is known. Identi-
+ﬁcation requiresℓ ≥ k = dim(β). The GMM estimator minimizes
+J(β) = n g n(β)′ˆW g n(β)
+for some weight matrix ˆW where
+g n(β) = 1
+n
+n∑
+i =1
+gi (β).
+The efﬁcient GMM estimator can be constructed by setting
+ˆW =
+(
+1
+n
+n∑
+i =1
+ˆgi ˆg ′
+i − g n g ′
+n
+)−1
+,
+with ˆgi = gi ( ˜β) constructed using a preliminary consistent estimator ˜β, perhaps obtained with ˆW = I ℓ.
+As in the case of the linear model the weight matrix can be iterated until convergence to obtain the
+iterated GMM estimator.
+Proposition 13.1 Distribution of Nonlinear GMM Estimator
+Under general regularity conditions, p
+n
+(ˆβgmm − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where
+V β =
+(
+Q ′W Q
+)−1 (
+Q ′W ΩW Q
+) (
+Q ′W Q
+)−1
+with Ω = E
+[
+gi g ′
+i
+]
+and
+Q = E
+[ ∂
+∂β′ gi (β)
+]
+.
+If the efﬁcient weight matrix is used thenV β =
+(
+Q ′Ω−1Q
+)−1.
+The proof of this result is omitted as it uses more advanced techniques.
+The asymptotic covariance matrices can be estimated by sample counterparts of the population ma-
+trices. For the case of a general weight matrix,
+ˆV β =
+(
+ˆQ
+′ˆW ˆQ
+)−1 (
+ˆQ
+′ˆW ˆΩˆW ˆQ
+) (
+ˆQ
+′ˆW ˆQ
+)−1
+where
+ˆΩ = 1
+n
+n∑
+i =1
+(
+gi ( ˆβ) − g
+) (
+gi ( ˆβ) − g
+)′
+g = n−1
+n∑
+i =1
+gi ( ˆβ)
+
+
+--- page 20 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 431
+and
+ˆQ = 1
+n
+n∑
+i =1
+∂
+∂β′ gi ( ˆβ).
+For the case of the iterated efﬁcient weight matrix,
+ˆV β =
+(
+ˆQ
+′ ˆΩ−1 ˆQ
+)−1
+.
+All of the methods discussed in this chapter – Wald tests, constrained estimation, distance tests,
+overidentiﬁcation tests, endogeneity tests – apply similarly to the nonlinear GMM estimator.
+13.26 Bootstrap for GMM
+The bootstrap for 2SLS (Section 12.23) can be used for GMM estimation. The standard bootstrap
+algorithm generates bootstrap samples by sampling the triplets (Y ∗
+i , X ∗
+i , Z ∗
+i ) independently and with
+replacement from the original sample. The GMM estimator is applied to the bootstrap sample to obtain
+the bootstrap estimates ˆβ∗
+gmm. This is repeated B times to create a sample of B bootstrap draws. Given
+these draws, bootstrap conﬁdence intervals, including percentile, BC percentile, BC a and percentile-t,
+are calculated conventionally.
+For variance and standard error estimation the same cautions apply as for 2SLS. It is difﬁcult to know
+if the GMM estimator has a ﬁnite variance in a given application. It is best to avoid using the bootstrap to
+calculate standard errors. Instead, use the bootstrap for percentile and percentile-t conﬁdence intervals.
+When the model is overidentiﬁed, as discussed for 2SLS, bootstrap GMM inference will not achieve
+an asymptotic reﬁnement unless the bootstrap estimator is recentered to satisfy the orthogonality con-
+dition. We now describe the recentering recommended by Hall and Horowitz (1996).
+For linear GMM wth weight matrix W the recentered GMM bootstrap estimator is
+ˆβ∗∗
+gmm =
+(
+X ∗′Z ∗W ∗Z ∗′X ∗)−1 (
+X ∗′Z ∗W ∗ (
+Z ∗′Y ∗ − Z ′ˆe
+))
+where W ∗ is the bootstrap version of W and ˆe = Y − X ˆβgmm. For efﬁcient GMM,
+W ∗ =
+(
+1
+n
+n∑
+i =1
+Z ∗
+i Z ∗′
+i
+(
+Y ∗
+i − X ∗′
+i ˜β∗)2
+)−1
+for preliminary estimator ˜β∗.
+For nonlinear GMM (Section 13.25) the bootstrap criterion function is modiﬁed. The recentered
+bootstrap criterion is
+J ∗∗(β) = n
+(
+g ∗
+n(β) − g n( ˆβgmm)
+)′
+W ∗ (
+g ∗
+n(β) −
+g n( ˆβgmm)
+)
+g ∗
+n(β) = 1
+n
+n∑
+i =1
+g ∗
+i (β)
+where g n( ˆβgmm) is from the sample not from the bootstrap data. The bootstrap estimator is
+ˆβ∗∗
+gmm = argmin J ∗∗(β).
+The bootstrap can be used to calculate the p-value of the GMM overidentiﬁcation test. For the GMM
+estimator with an efﬁcient weight matrix the standard overidentiﬁcation test is the HansenJ statistic
+J = n g n( ˆβgmm)′ ˆΩ−1g n( ˆβgmm).
+
+
+--- page 21 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 432
+The recentered bootstrap analog is
+J ∗∗ = n
+(
+g ∗
+n( ˆβ∗∗
+gmm) − g n( ˆβgmm)
+)′
+ˆΩ∗−1
+(
+g ∗
+n( ˆβ∗∗
+gmm) − g n( ˆβgmm)
+)
+.
+On each bootstrap sample J ∗∗(b) is calculated and stored. The bootstrap p-value is
+p ∗ = 1
+B
+B∑
+b=1
+1
+{
+J ∗∗(b) > S
+}
+.
+This bootstrap p-value is asymptotically valid since J ∗∗ satisﬁes the overidentiﬁed moment conditions.
+13.27 Conditional Moment Equation Models
+In many contexts, an economic model implies conditional moment restriction of the form
+E
+[
+ei (β) |Zi
+]
+= 0
+where ei (β) is some s × 1 function of the observation and the parameters. In many cases s = 1. It turns
+out that this conditional moment restriction is more powerful than the unconditional moment equation
+model discussed throughout this chapter.
+For example, the linear model Y = X ′β + e with instruments Z falls into this class under the assump-
+tion E[e |Z ] = 0. In this case ei (β) = Yi − X ′
+i β.
+It is also helpful to realize that conventional regression models also fall into this class except that
+in this case X = Z . For example, in linear regression ei (β) = Yi − X ′
+i β, while in a nonlinear regression
+model ei (β) = Yi − m(Xi , β). In a joint model of the conditional mean E[Y |X = x] = x′β and variance
+var[Y |X = x] = f (x)′ γ, then
+ei
+(
+β, γ
+)
+=
+
+
+
+Yi − X ′
+i β
+(
+Yi − X ′
+i β
+)2 − f (Xi )′ γ
+.
+Here s = 2.
+Given a conditional moment restriction an unconditional moment restriction can always be con-
+structed. That is for any ℓ× 1 function φ
+(
+Z , β
+)
+we can set gi (β) = φ
+(
+Zi , β
+)
+ei (β) which satisﬁesE
+[
+gi (β)
+]
+=
+0 and hence deﬁnes an unconditional moment equation model. The obvious problem is that the class of
+functions φ is inﬁnite. Which should be selected?
+This is equivalent to the problem of selection of the best instruments. If Z ∈ R is a valid instrument
+satisfying E[e |Z ] = 0, then Z , Z 2, Z 3, ..., etc., are all valid instruments. Which should be used?
+One solution is to construct an inﬁnite list of potent instruments and then use the ﬁrstk instruments.
+How is k to be determined? This is an area of theory still under development. One study of this problem
+is Donald and Newey (2001).
+Another approach is to construct theoptimal instrument which minimizes the asymptotic variance.
+The form was uncovered by Chamberlain (1987). Take the case s = 1. Let
+Ri = E
+[ ∂
+∂β ei (β)
+⏐⏐
+⏐
+⏐ Zi
+]
+and σ2
+i = E
+[
+ei (β)2 |Zi
+]
+. Then the optimal instrument is Ai = −σ−2
+i Ri . The optimal moment is gi (β) =
+Ai ei (β). Setting gi (β) to be this choice (which isk × 1, so is just-identiﬁed) yields the GMM estimator with
+lowest asymptotic variance. In practice Ai is unknown, but its form helps us think about construction of
+good instruments.
+
+
+--- page 22 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 433
+In the linear model ei (β) = Yi − X ′
+i β note that Ri = −E [Xi |Zi ] and σ2
+i = E
+[
+e2
+i |Zi
+]
+. This means the
+optimal instrument is Ai = σ−2
+i E[Xi |Zi ]. In the case of linear regression Xi = Zi so Ai = σ−2
+i Zi . Hence
+efﬁcient GMM is equivalent to GLS!
+In the case of endogenous variables note that the efﬁcient instrument Ai involves the estimation of
+the conditional mean of X given Z . In other words, to get the best instrument for X we need the best
+conditional mean model for X given Z not just an arbitrary linear projection. The efﬁcient instrument is
+also inversely proportional to the conditional variance ofe. This is the same as the GLS estimator; namely
+that improved efﬁciency can be obtained if the observations are weighted inversely to the conditional
+variance of the errors.
+13.28 Technical Proofs*
+Proof of Theorem 13.12Set ˜ei = Yi −X ′
+i
+ˆβcgmm and ˆei = Yi −X ′
+i
+ˆβgmm. By standard covariance matrix anal-
+ysis ˆΩ − →p Ω and ˜Ω − →p Ω. Thus we can replace ˆΩ and ˜Ω in the criteria without affecting the asymptotic
+distribution. In particular
+˜J( ˆβcgmm) = 1
+n ˜e′Z ˜Ω−1Z ′˜e
+= 1
+n ˜e′Z ˆΩ−1Z ′˜e + op(1). (13.25)
+Now observe that
+Z ′˜e = Z ′ˆe − Z ′X
+(ˆβcgmm − ˆβgmm
+)
+.
+Thus
+1
+n ˜e′Z ˆΩ−1Z ′˜e = 1
+n ˆe′Z ˆΩ−1Z ′ˆe − 2
+n
+(ˆβcgmm − ˆβgmm
+)′
+X ′Z ˆΩ−1Z ′ˆe
++ 1
+n
+(ˆβcgmm − ˆβgmm
+)′
+X ′Z ˆΩ−1Z ′X
+(ˆβcgmm − ˆβgmm
+)
+= ˆJ( ˆβgmm) + 1
+n
+(ˆβcgmm − ˆβgmm
+)′
+X ′Z ˆΩ−1Z ′X
+(ˆβcgmm − ˆβgmm
+)
+(13.26)
+where the second equality holds since X ′Z ˆΩ−1Z ′ˆe = 0 is the ﬁrst-order condition for ˆβgmm. By (13.16)
+and Theorem 13.4, under H0
+p
+n
+(ˆβcgmm − ˆβgmm
+)
+= −
+(
+X ′Z Ω−1Z ′X
+)−1
+R
+(
+R ′ (
+X ′Z Ω−1Z ′X
+)−1
+R
+)−1
+R ′p
+n
+(ˆβgmm − β
+)
++ op(1)
+− →
+d
+(
+Q ′Ω−1Q
+)−1
+R Z (13.27)
+where
+Z ∼ N(0,V R ) (13.28)
+V R =
+(
+RV ′ (
+Q ′Ω−1Q
+)−1
+R
+)−1
+.
+Putting together (13.25), (13.26), (13.27) and (13.28),
+D = ˜J( ˆβcgmm) − ˆJ( ˆβgmm)
+=
+p
+n
+(ˆβcgmm − ˆβgmm
+)′ 1
+n X ′Z ˆΩ−1 1
+n Z ′X
+p
+n
+(ˆβcgmm − ˆβgmm
+)
+− →
+d
+Z ′V −1
+R Z ∼ χ2
+q
+
+
+--- page 23 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 434
+since V R > 0 and Z is q × 1. ■
+Proof of Theorem 13.15 Let ˜β denote the GMM estimator obtained with the instrument set Za and let ˆβ
+denote the GMM estimator obtained with the instrument set Z . Set ˜ei = Yi − X ′
+i
+˜β, ˆei = Yi − X ′
+i
+ˆβ,
+˜Ω = n−1
+n∑
+i =1
+Zai Z ′
+ai ˜e2
+i
+ˆΩ = n−1
+n∑
+i =1
+Zi Z ′
+i ˆe2
+i .
+Let R be the ℓ × ℓa selector matrix so that Za = R ′Z . Note that
+˜Ω = R ′n−1
+n∑
+i =1
+Zi Z ′
+i ˜e2
+i R.
+By standard covariance matrix analysis, ˆΩ − →p Ω and ˜Ω − →p R ′ΩR. Also, 1
+n Z ′X − →p Q, say. By the CLT ,
+n−1/2Z ′e − →
+d
+Z where Z ∼ N(0, Ω). Then
+n−1/2Z ′ˆe =
+(
+I ℓ −
+( 1
+n Z ′X
+) (1
+n X ′Z ˆΩ−1 1
+n Z ′X
+)−1 ( 1
+n X ′Z
+)
+ˆΩ−1
+)
+n−1/2Z ′e
+− →
+d
+(
+I ℓ −Q
+(
+Q ′Ω−1Q
+)−1
+Q ′Ω−1
+)
+Z
+and
+n−1/2Z ′
+a˜e = R ′
+(
+I ℓ −
+( 1
+n Z ′X
+) (1
+n X ′Z R ˜Ω−1R ′ 1
+n Z ′X
+)−1 ( 1
+n X ′Z
+)
+R ˜Ω−1R ′
+)
+n−1/2Z ′e
+− →
+d
+R ′
+(
+I ℓ −Q
+(
+Q ′R
+(
+R ′ΩR
+)−1 R ′Q
+)−1
+Q ′R
+(
+R ′ΩR
+)−1 R ′
+)
+Z
+jointly.
+By linear rotations ofZ and R we can setΩ = I ℓ to simplify the notation. Thus settingP Q = Q
+(
+Q ′Q
+)−1 Q ′,
+P R = R
+(
+R ′R
+)−1 R ′ and Z ∼ N(0, I ℓ) we have
+ˆJ − →
+d
+Z′ (
+I ℓ − P Q
+)
+Z
+and
+˜J − →
+d
+Z ′
+(
+P R − P RQ
+(
+Q ′P RQ
+)−1 Q ′P R
+)
+Z .
+It follows that
+C = ˆJ − ˜J − →
+d
+Z′ AZ
+where
+A =
+(
+I ℓ − P Q − P R + P RQ
+(
+Q ′P RQ
+)−1 Q ′P R
+)
+.
+This is a quadratic form in a standard normal vector and the matrix A is idempotent (this is straightfor-
+ward to check). Z ′ AZ is thus distributed χ2
+d with degrees of freedom d equal to
+rank(A) = tr
+(
+I ℓ − P Q − P R + P RQ
+(
+Q ′P RQ
+)−1 Q ′P R
+)
+= ℓ − k − ℓa + k = ℓb.
+Thus the asymptotic distribution of C is χ2
+ℓb
+as claimed. ■
+_____________________________________________________________________________________________
+
+
+--- page 24 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 435
+13.29 Exercises
+Exercise 13.1 Take the model
+Y = X ′β + e
+E[X e] = 0
+e2 = Z ′γ + η
+E
+[
+Z η
+]
+= 0.
+Find the method of moments estimators
+(ˆβ, ˆγ
+)
+for
+(
+β, γ
+)
+.
+Exercise 13.2 Take the model Y = X ′β + e with E[e |Z ] = 0. Let ˆβgmm be the GMM estimator using the
+weight matrix W n =
+(
+Z ′Z
+)−1 . Under the assumption E
+[
+e2 |Z
+]
+= σ2 show that
+p
+n
+(ˆβ − β
+)
+− →
+d
+N
+(
+0, σ2 (
+Q ′M −1Q
+)−1)
+where Q = E
+[
+Z X ′]
+and M = E
+[
+Z Z ′]
+.
+Exercise 13.3 Take the model Y = X ′β + e with E[Z e] = 0. Let ˜ei = Yi − X ′
+i
+˜β where ˜β is consistent for β
+(e.g. a GMM estimator with some weight matrix). An estimator of the optimal GMM weight matrix is
+ˆW =
+(
+1
+n
+n∑
+i =1
+Zi Z ′
+i ˜e2
+i
+)−1
+.
+Show that ˆW − →p Ω−1 where Ω = E
+[
+Z Z ′e2]
+.
+Exercise 13.4 In the linear model estimated by GMM with general weight matrixW the asymptotic vari-
+ance of ˆβgmm is
+V =
+(
+Q ′W Q
+)−1 Q ′W ΩW Q
+(
+Q ′W Q
+)−1 .
+(a) Let V 0 be this matrix when W = Ω−1. Show that V 0 =
+(
+Q ′Ω−1Q
+)−1 .
+(b) We want to show that for any W , V −V 0 is positive semi-deﬁnite (for thenV 0 is the smaller possible
+covariance matrix and W = Ω−1 is the efﬁcient weight matrix). To do this start by ﬁnding matrices
+A and B such that V = A′ΩA and V 0 = B ′ΩB.
+(c) Show that B ′ΩA = B ′ΩB and therefore that B ′Ω(A − B) = 0.
+(d) Use the expressions V = A′ΩA, A = B + (A − B), and B ′Ω(A − B) = 0 to show that V ≥ V 0.
+Exercise 13.5 Prove Theorem 13.8.
+Exercise 13.6 Derive the constrained GMM estimator (13.16).
+Exercise 13.7 Show that the constrained GMM estimator (13.16) with the efﬁcient weight matrix is (13.19).
+Exercise 13.8 Prove Theorem 13.9.
+Exercise 13.9 Prove Theorem 13.10.
+
+
+--- page 25 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 436
+Exercise 13.10 The equation of interest isY = m(X , β)+e with E[Z e] = 0 where m(x, β) is a known func-
+tion, β is k × 1 and Z is ℓ × 1. Show how to construct an efﬁcient GMM estimator forβ.
+Exercise 13.11 As a continuation of Exercise 12.7 derive the efﬁcient GMM estimator using the instru-
+ment Z = (X X 2)′. Does this differ from 2SLS and/or OLS?
+Exercise 13.12 In the linear model Y = X ′β + e with E[X e] = 0 the GMM criterion function for β is
+J(β) = 1
+n
+(
+Y − X β
+)′ X ˆΩ−1X ′ (
+Y − X β
+)
+(13.29)
+where ˆΩ = n−1 ∑n
+i =1 Xi X ′
+i ˆe2
+i , ˆei = Yi − X ′
+i
+ˆβ are the OLS residuals, and ˆβ =
+(
+X ′X
+)−1 X ′Y is least squares.
+The GMM estimator of β subject to the restriction r (β) = 0 is
+˜β = argmin
+r (β)=0
+Jn(β).
+The GMM test statistic (the distance statistic) of the hypothesis r (β) = 0 is
+D = J( ˜β) = min
+r (β)=0
+J(β). (13.30)
+(a) Show that you can rewrite J(β) in (13.29) as
+J(β) = n
+(
+β − ˆβ
+)′ ˆV
+−1
+β
+(
+β − ˆβ
+)
+and thus ˜β is the same as the minimum distance estimator.
+(b) Show that under linear hypotheses the distance statistic D in (13.30) equals the Wald statistic.
+Exercise 13.13 Take the linear model Y = X ′β + e with E[Z e] = 0. Consider the GMM estimator ˆβ of β.
+Let J = n g n( ˆβ)′ ˆΩ−1g n( ˆβ) denote the test of overidentifying restrictions. Show that J − →
+d
+χ2
+ℓ−k as n → ∞
+by demonstrating each of the following.
+(a) Since Ω > 0, we can write Ω−1 = CC ′ and Ω = C ′−1C −1 for some matrix C .
+(b) J = n
+(
+C ′g n( ˆβ)
+)′ (
+C ′ ˆΩC
+)−1
+C ′g n( ˆβ).
+(c) C ′g n( ˆβ) = D nC ′g n(β) where g n(β) = 1
+n Z ′e and
+D n = I ℓ −C ′
+( 1
+n Z ′X
+) ((1
+n X ′Z
+)
+ˆΩ−1
+( 1
+n Z ′X
+))−1 ( 1
+n X ′Z
+)
+ˆΩ−1C ′−1.
+(d) D n − →p I ℓ − R
+(
+R ′R
+)−1 R ′ where R = C ′E
+[
+Z X ′]
+.
+(e) n1/2C ′g n(β) − →
+d
+u ∼ N(0, I ℓ).
+(f) J − →
+d
+u′
+(
+I ℓ − R
+(
+R ′R
+)−1 R ′
+)
+u.
+(g) u′
+(
+I ℓ − R
+(
+R ′R
+)−1 R ′
+)
+u ∼ χ2
+ℓ−k.
+Hint: I ℓ − R
+(
+R ′R
+)−1 R ′ is a projection matrix.
+
+
+--- page 26 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 437
+Exercise 13.14 Take the model Y = X ′β + e with E[Z e] = 0, Y ∈ R, X ∈ Rk, Z ∈ Rℓ, ℓ ≥ k. Consider the
+statistic
+J(β) = nmn(β)′W mn(β)
+mn(β) = 1
+n
+n∑
+i =1
+Zi
+(
+Yi − X ′
+i β
+)
+for some weight matrix W > 0.
+(a) Take the hypothesis H0 : β = β0. Derive the asymptotic distribution of J(β0) under H0 as n → ∞.
+(b) What choice for W yields a known asymptotic distribution in part (a)? (Be speciﬁc about degrees
+of freedom.)
+(c) Write down an appropriate estimator ˆW for W which takes advantage of H0. (You do not need to
+demonstrate consistency or unbiasedness.)
+(d) Describe an asymptotic test of H0 against H1 : β ̸= β0 based on this statistic.
+(e) Use the result in part (d) to construct a conﬁdence region for β. What can you say about the form
+of this region? For example, does the conﬁdence region take the form of an ellipse, similar to
+conventional conﬁdence regions?
+Exercise 13.15 Consider the model Y = X ′β + e with E[Z e] = 0 and
+R ′β = 0 (13.31)
+with Y ∈ R, X ∈ Rk, Z ∈ Rℓ, ℓ > k. The matrix R is k × q with 1 ≤ q < k. You have a random sample
+(Yi , Xi , Zi : i = 1, ...,n).
+For simplicity, assume the efﬁcient weight matrixW =
+(
+E
+[
+Z Z ′e2])−1 is known.
+(a) Write out the GMM estimator ˆβ ignoring constraint (13.31).
+(b) Write out the GMM estimator ˜β adding the constraint (13.31).
+(c) Find the asymptotic distribution of pn
+(˜β − β
+)
+as n → ∞ under Assumption (13.31).
+Exercise 13.16 The observed data is {Y i , Xi , Zi } ∈ R × Rk × Rℓ, k > 1 and ℓ > k > 1, i = 1, ...,n. The model
+is Y = X ′β + e with E[Z e] = 0.
+(a) Given a weight matrix W > 0 write down the GMM estimator ˆβ for β.
+(b) Suppose the model is misspeciﬁed. Speciﬁcally, assume that for someδ ̸= 0,
+e = δn−1/2 + u (13.32)
+E[u |Z ] = 0
+with µZ = E[Z ] ̸= 0. Show that (13.32) implies that E[Z e] ̸= 0.
+(c) Express pn
+(ˆβ − β
+)
+as a function of W , n, δ, and the variables (Xi , Zi , ui ).
+(d) Find the asymptotic distribution of pn
+(ˆβ − β
+)
+under Assumption (13.32).
+
+
+--- page 27 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 438
+Exercise 13.17 The model is Y = Z β + X γ + e with E[e |Z ] = 0, X ∈ R and Z ∈ R. X is potentially en-
+dogenous and Z is exogenous. Someone suggests estimating (β , γ) by GMM using the pair ( Z , Z 2) as
+instruments. Is this feasible? Under what conditions is this a valid estimator?
+Exercise 13.18 The observations are i.i.d., (Y i , Xi ,Qi : i = 1, ...,n), where X is k × 1 and Q is m × 1. The
+model is Y = X ′β + e with E[X e] = 0 and E[Qe ] = 0. Find the efﬁcient GMM estimator forβ.
+Exercise 13.19 You want to estimate µ = E[Y ] under the assumption that E[X ] = 0, where Y and X are
+scalar and observed from a random sample. Find an efﬁcient GMM estimator forµ.
+Exercise 13.20 Consider the model Y = X ′β +e given E[Z e] = 0 and R ′β = 0. The dimensions are X ∈ Rk
+and Z ∈ R ℓ with ℓ > k. The matrix R is k × q, 1 ≤ q < k. Derive an efﬁcient GMM estimator forβ.
+Exercise 13.21 Take the linear equation Y = X ′β + e and consider the following estimators of β.
+1. ˆβ : 2SLS using the instruments Z1.
+2. ˜β : 2SLS using the instruments Z2.
+3. β : GMM using the instruments Z = (Z1, Z2) and the weight matrix
+W =
+( (
+Z ′
+1Z 1
+)−1 λ 0
+0
+(
+Z ′
+2Z 2
+)−1 (1 − λ)
+)
+for λ ∈ (0, 1).
+Find an expression for
+β which shows that it is a speciﬁc weighted average of ˆβ and ˜β.
+Exercise 13.22 Consider the just-identiﬁed model Y = X ′
+1β1 + X ′
+2β2 + e with E[Z e] = 0 where X = (X ′
+1
+X ′
+2)′ ∈ Rk and Z ∈ Rk. We want to test H0 : β1 = 0. Three econometricians are called for advice.
+• Econometrician 1 proposes testing H0 by a Wald statistic.
+• Econometrician 2 suggests testing H0 by the GMM Distance Statistic.
+• Econometrician 3 suggests testing H0 using the test of overidentifying restrictions.
+You are asked to settle this dispute. Explain the advantages and/or disadvantages of the different
+procedures in this speciﬁc context.
+Exercise 13.23 Take the model Y = X ′β + e with E[X e] = 0 and β = Qθ, where β is k × 1, Q is k × m with
+m < k, Q is known, and θ is m × 1. The observations (Y i , Xi ) are i.i.d. across i = 1, ...,n.
+Under these assumptions what is the efﬁcient estimator ofθ?
+Exercise 13.24 Take the model Y = θ + e with E[X e] = 0, Y ∈ R, X ∈ Rk and (Yi , Xi ) a random sample.
+(a) Find the efﬁcient GMM estimator of θ.
+(b) Is this model over-identiﬁed or just-identiﬁed?
+(c) Find the GMM test statistic for over-identiﬁcation.
+
+
+--- page 28 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 439
+Exercise 13.25 Take the modelY = X ′β + e with E[X e] = 0 where X contains an intercept so E[e] = 0. An
+enterprising econometrician notices that this implies the n moment conditions
+E[ei ] = 0, i = 1, ...,n.
+Given an n × n weight matrix W , this implies a GMM criterion
+J(β) =
+(
+Y − X β
+)′ W
+(
+Y − X β
+)
+.
+(a) Under i.i.d. sampling, show that the efﬁcient weight matrix is W = σ−2I n where σ2 = E
+[
+e2]
+.
+(b) Using the weight matrix W = σ−2I n ﬁnd the GMM estimator ˆβ that minimizes J(β).
+(c) Find a simple expression for the minimized criteria J( ˆβ).
+(d) Theorem 13.14 says that criterion such as J( ˆβ) are asymptotically χ2
+ℓ−k where ℓ is the number of
+moments. While the assumptions of Theorem 13.14 do not apply to this context, what is ℓ here?
+That is, which χ2 distribution is the asserted asymptotic distribution?
+(e) Does the answer in (d) make sense? Explain your reasoning.
+Exercise 13.26 Take the modelY = X ′β+e with E[e |X ] = 0 and E
+[
+e2 |X
+]
+= σ2. An econometrician more
+enterprising than the one in previous question notices that this implies the nk moment conditions
+E[Xi ei ] = 0, i = 1, ...,n.
+We can write the moments using matrix notation as E
+[
+X
+′ (
+Y − X β
+)]
+where
+X =
+
+
+
+X ′
+1 0 · · · 0
+0 X ′
+2 0
+..
+. .
+.
+. .
+.
+.
+0 0 · · · X ′
+n
+
+
+
+
+.
+Given an nk × nk weight matrix W this implies a GMM criterion
+J(β) =
+(
+Y − X β
+)′
+X W X
+′ (
+Y − X β
+)
+.
+(a) Calculate Ω = E
+[
+X
+′
+ee ′X
+]
+.
+(b) The econometrician decides to set W = Ω−, the Moore-Penrose generalized inverse of Ω. (See
+Section A.6.) Note: A useful fact is that for a vector a,
+(
+aa ′)− = aa ′ (
+a′a
+)−2 .
+(c) Find the GMM estimator ˆβ that minimizes J(β).
+(d) Find a simple expression for the minimized criterion J( ˆβ).
+(e) Comment on whether the χ2 approximation from Theorem 13.14 is appropriate for J( ˆβ).
+Exercise 13.27 Continuation of Exercise 12.23, based on the empirical work reported in Acemoglu, John-
+son and Robinson (2001).
+(a) Re-estimate the model estimated in part (j) by efﬁcient GMM. Use the 2SLS estimates as the ﬁrst-
+step for the weight matrix and then calculate the GMM estimator using this weight matrix without
+further iteration. Report the estimates and standard errors.
+
+
+--- page 29 ---
+
+CHAPTER 13. GENERALIZED METHOD OF MOMENTS 440
+(b) Calculate and report the J statistic for overidentiﬁcation.
+(c) Compare the GMM and 2SLS estimates. Discuss your ﬁndings.
+Exercise 13.28 Continuation of Exercise 12.25, which involved estimation of a wage equation by 2SLS.
+(a) Re-estimate the model in part (a) by efﬁcient GMM. Do the results change meaningfully?
+(b) Re-estimate the model in part (d) by efﬁcient GMM. Do the results change meaningfully?
+(c) Report the J statistic for overidentiﬁcation.
+
+
+--- page 30 ---
+
+Part IV
+Dependent and Panel Data
+441

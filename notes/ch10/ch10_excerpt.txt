@@ -1,0 +1,4602 @@
+--- page 1 ---
+
+Chapter 10
+Resampling Methods
+10.1 Introduction
+So far in this textbook we have discussed two approaches to inference: exact and asymptotic. Both
+have their strengths and weaknesses. Exact theory provides a useful benchmark but is based on the
+unrealistic and stringent assumption of the homoskedastic normal regression model. Asymptotic theory
+provides a more ﬂexible distribution theory but is explicitly an approximation with uncertain accuracy
+in practice.
+In this chapter we introduce a set of alternative inference methods which are based around the con-
+cept of resampling – which means using sampling information extracted from the empirical distribution
+of the data. These are powerful methods, widely applicable, and often more accurate than exact meth-
+ods and asymptotic approximations. Two disadvantages, however, are (1) resampling methods typically
+require more computation power; and (2) the theory is considerably more challenging. A consequence
+of the computation requirement is that most empirical researchers use asymptotic approximations for
+routine calculations while resampling approximations are used for ﬁnal reporting.
+We will discuss two categories of resampling methods used in statistical and econometric practice:
+jackknife and bootstrap. Most of our attention will be given to the bootstrap as it is the most commonly
+used resampling method in econometric practice.
+The jackknife is the distribution obtained from the n leave-one-out estimators (see Section 3.20).
+The jackknife is most commonly used for variance estimation.
+The bootstrap is the distribution obtained by estimation on samples created by i.i.d. sampling with
+replacement from the dataset. (There are other variants of bootstrap sampling, including parametric
+sampling and residual sampling.) The bootstrap is commonly used for variance estimation, conﬁdence
+interval construction, and hypothesis testing.
+There is a third category of resampling methods known as sub-sampling which we will not cover in
+this textbook. Sub-sampling is the distribution obtained by estimation on sub-samples (sampling with-
+out replacement) of the dataset. Sub-sampling can be used for most of same purposes as the bootstrap.
+See the excellent monograph by Politis, Romano and Wolf (1999).
+10.2 Example
+To motivate our discussion we focus on the application presented in Section 3.7, which is a bivariate
+regression applied to the CPS subsample of married Black female wage earners with 12 years potential
+work experience and displayed in Table 3.1. The regression equation is
+log(wage) = β1education + β2 + e.
+257
+
+
+--- page 2 ---
+
+CHAPTER 10. RESAMPLING METHODS 258
+The estimates as reported in (4.39) are
+log(wage) = 0.155
+(0.031)
+education + 0.698
+(0.493)
++ ˆe
+ˆσ2 = 0.144
+(0.043)
+n = 20.
+We focus on four estimates constructed from this regression. The ﬁrst two are the coefﬁcient esti-
+mates ˆβ1 and ˆβ2. The third is the variance estimate ˆσ2. The fourth is an estimate of the expected level of
+wages for an individual with 16 years of education (a college graduate), which turns out to be a nonlinear
+function of the parameters. Under the simplifying assumption that the errore is independent of the level
+of education and normally distributed we ﬁnd that the expected level of wages is
+µ = E
+[
+wage |education = 16
+]
+= E
+[
+exp
+(
+16β1 + β2 + e
+)]
+= exp
+(
+16β1 + β2
+)
+E
+[
+exp(e)
+]
+= exp
+(
+16β1 + β2 + σ2/2
+)
+.
+The ﬁnal equality isE
+[
+exp(e)
+]
+= exp
+(
+σ2/2
+)
+which can be obtained from the normal moment generating
+function. The parameter µ is a nonlinear function of the coefﬁcients. The natural estimator ofµ replaces
+the unknowns by the point estimators. Thus
+ˆµ = exp
+(
+16 ˆβ1 + ˆβ2 + ˆσ2/2
+)
+= 25.80
+(2.29)
+The standard error for ˆµ can be found by extending Exercise 7.8 to ﬁnd the joint asymptotic distribution
+of ˆσ2 and the slope estimates, and then applying the delta method.
+We are interested in calculating standard errors and conﬁdence intervals for the four estimates de-
+scribed above.
+10.3 Jackknife Estimation of Variance
+The jackknife estimates moments of estimators using the distribution of the leave-one-out estima-
+tors. The jackknife estimators of bias and variance were introduced by Quenouille (1949) and Tukey
+(1958), respectively. The idea was expanded further in the monographs of Efron (1982) and Shao and Tu
+(1995).
+Let ˆθ be any estimator of a vector-valued parameter θ which is a function of a random sample of size
+n. Let V ˆθ = var
+[ˆθ
+]
+be the variance of ˆθ. Deﬁne the leave-one-out estimators ˆθ(−i ) which are computed
+using the formula for ˆθ except that observation i is deleted. Tukey’ s jackknife estimator forV ˆθ is deﬁned
+as a scale of the sample variance of the leave-one-out estimators:
+ˆV
+jack
+ˆθ = n − 1
+n
+n∑
+i =1
+(
+ˆθ(−i ) − θ
+) (
+ˆθ(−i ) − θ
+)′
+(10.1)
+
+
+--- page 3 ---
+
+CHAPTER 10. RESAMPLING METHODS 259
+where θ is the sample mean of the leave-one-out estimators θ = n−1 ∑n
+i =1
+ˆθ(−i ). For scalar estimators ˆθ
+the jackknife standard error is the square root of (10.1): sjack
+ˆθ =
+√
+ˆV
+jack
+ˆθ .
+A convenient feature of the jackknife estimator ˆV
+jack
+ˆθ is that the formula (10.1) is quite general and
+does not require any technical (exact or asymptotic) calculations. A downside is that can requiren sepa-
+rate estimations, which in some cases can be computationally costly.
+In most cases ˆV
+jack
+ˆθ will be similar to a robust asymptotic covariance matrix estimator. The main at-
+tractions of the jackknife estimator are that it can be used when an explicit asymptotic variance formula
+is not available and that it can be used as a check on the reliability of an asymptotic formula.
+The formula (10.1) is not immediately intuitive so may beneﬁt from some motivation. We start by
+examining the sample mean Y = 1
+n
+∑n
+i =1 Yi for Y ∈ Rm. The leave-one-out estimator is
+Y (−i ) = 1
+n − 1
+∑
+j ̸=i
+Y j = n
+n − 1 Y − 1
+n − 1 Yi . (10.2)
+The sample mean of the leave-one-out estimators is
+1
+n
+n∑
+i =1
+Y (−i ) = n
+n − 1 Y − 1
+n − 1 Y = Y .
+The difference is
+Y (−i ) − Y = 1
+n − 1
+(
+Y − Yi
+)
+.
+The jackknife estimate of variance (10.1) is then
+ˆV
+jack
+Y = n − 1
+n
+n∑
+i =1
+( 1
+n − 1
+)2 (
+Y − Yi
+) (
+Y − Yi
+)′
+= 1
+n
+( 1
+n − 1
+) n∑
+i =1
+(
+Y − Yi
+) (
+Y − Yi
+)′
+. (10.3)
+This is identical to the conventional estimator for the variance ofY . Indeed, Tukey proposed the (n−1)/n
+scaling in (10.1) so that ˆV
+jack
+Y precisely equals the conventional estimator.
+We next examine the case of least squares regression coefﬁcient estimator. Recall from (3.43) that the
+leave-one-out OLS estimator equals
+ˆβ(−i ) = ˆβ −
+(
+X ′X
+)−1 Xi ˜ei (10.4)
+where ˜ei = (1 − hi i)−1 ˆei and hi i = X ′
+i
+(
+X ′X
+)−1 Xi . The sample mean of the leave-one-out estimators is
+β = ˆβ −
+(
+X ′X
+)−1 ˜µ where ˜µ = n−1 ∑n
+i =1 Xi ˜ei . Thus ˆβ(−i ) −
+β = −
+(
+X ′X
+)−1 (
+Xi ˜ei − ˜µ
+)
+. The jackknife estimate
+of variance for ˆβ is
+ˆV
+jack
+ˆβ = n − 1
+n
+n∑
+i =1
+(
+ˆβ(−i ) − β
+) (
+ˆβ(−i ) − β
+)′
+= n − 1
+n
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˜e2
+i − n ˜µ˜µ′
+)
+(
+X ′X
+)−1
+= n − 1
+n
+ˆV
+HC3
+ˆβ − (n − 1)
+(
+X ′X
+)−1 ˜µ˜µ′ (
+X ′X
+)−1 (10.5)
+
+
+--- page 4 ---
+
+CHAPTER 10. RESAMPLING METHODS 260
+where ˆV
+HC3
+ˆβ is the HC3 covariance estimator (4.34) based on prediction errors. The second term in (10.5)
+is typically quite small since ˜µ is typically small in magnitude. Thus ˆV
+jack
+ˆβ ≃ ˆV
+HC3
+ˆβ . Indeed the HC3
+estimator was originally motivated as a simpliﬁcation of the jackknife estimator. This shows that for
+regression coefﬁcients the jackknife estimator of variance is similar to a conventional robust estimator.
+This is accomplished without the user “knowing” the form of the asymptotic covariance matrix. This is
+further conﬁrmation that the jackknife is making a reasonable calculation.
+Third, we examine the jackknife estimator for a function ˆθ = r ( ˆβ) of a least squares estimator. The
+leave-one-out estimator of θ is
+ˆθ(−i ) = r ( ˆβ(−i ))
+= r
+(
+ˆβ −
+(
+X ′X
+)−1 Xi ˜ei
+)
+≃ ˆθ − ˆR
+′ (
+X ′X
+)−1 Xi ˜ei .
+The second equality is (10.4). The ﬁnal approximation is obtained by a mean-value expansion, using
+r ( ˆβ) = ˆθ and setting ˆR =
+(
+∂/∂β
+)
+r ( ˆβ)′. This approximation holds in large samples sinceˆβ(−i ) are uniformly
+consistent for β. The jackknife variance estimator for ˆθ thus equals
+ˆV
+jack
+ˆθ = n − 1
+n
+n∑
+i =1
+(
+ˆθ(−i ) − θ
+) (
+ˆθ(−i ) − θ
+)′
+≃ n − 1
+n
+ˆR
+′ (
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˜e2
+i − n ˜µ˜µ′
+)
+(
+X ′X
+)−1 ˆR
+= ˆR
+′ ˆV
+jack
+ˆβ
+ˆR
+≃ ˆR
+′ ˜V ˆβ ˆR.
+The ﬁnal line equals a delta-method estimator for the variance of ˆθ constructed with the covariance
+estimator (4.34). This shows that the jackknife estimator of variance forˆθ is approximately an asymptotic
+delta-method estimator. While this is an asymptotic approximation, it again shows that the jackknife
+produces an estimator which is asymptotically similar to one produced by asymptotic methods. This
+is despite the fact that the jackknife estimator is calculated without reference to asymptotic theory and
+does not require calculation of the derivatives of r (β).
+This argument extends directly to any “smooth function” estimator. Most of the estimators discussed
+so far in this textbook take the form ˆθ = g
+(
+W
+)
+where W = n−1 ∑n
+i =1 Wi and Wi is some vector-valued
+function of the data. For any such estimator ˆθ the leave-one-out estimator equals ˆθ(−i ) = g
+(
+W (−i )
+)
+and
+its jackknife estimator of variance is (10.1). Using (10.2) and a mean-value expansion we have the large-
+sample approximation
+ˆθ(−i ) = g
+(
+W (−i )
+)
+= g
+( n
+n − 1W − 1
+n − 1Wi
+)
+≃ g
+(
+W
+)
+− 1
+n − 1G
+(
+W
+)′
+Wi
+where G (x) = (∂/∂x) g (x)′. Thus
+ˆθ(−i ) − θ ≃ − 1
+n − 1G
+(
+W
+)′ (
+Wi −W
+)
+
+
+--- page 5 ---
+
+CHAPTER 10. RESAMPLING METHODS 261
+and the jackknife estimator of the variance of ˆθ approximately equals
+ˆV
+jack
+ˆθ = n − 1
+n
+n∑
+i =1
+(ˆθ(−i ) − ˆθ(·)
+) (ˆθ(−i ) − ˆθ(·)
+)′
+≃ n − 1
+n G
+(
+W
+)′
+(
+1
+(n − 1)2
+n∑
+i =1
+(
+Wi −W
+) (
+Wi −W
+)′
+)
+G
+(
+W
+)
+= G
+(
+W
+)′
+ˆV
+jack
+W G
+(
+W
+)
+where ˆV
+jack
+W as deﬁned in (10.3) is the conventional (and jackknife) estimator for the variance ofW . Thus
+ˆV
+jack
+ˆθ is approximately the delta-method estimator. Once again, we see that the jackknife estimator au-
+tomatically calculates what is effectively the delta-method variance estimator, but without requiring the
+user to explicitly calculate the derivative of g (x).
+10.4 Example
+We illustrate by reporting the asymptotic and jackknife standard errors for the four parameter esti-
+mates given earlier. In Table 10.1 we report the actual values of the leave-one-out estimates for each of
+the twenty observations in the sample. The jackknife standard errors are calculated as the scaled square
+roots of the sample variances of these leave-one-out estimates and are reported in the second-to-last
+row. For comparison the asymptotic standard errors are reported in the ﬁnal row.
+For all estimates the jackknife and asymptotic standard errors are quite similar. This reinforces the
+credibility of both standard error estimates. The largest differences arise for ˆβ2 and ˆµ, whose jackknife
+standard errors are about 5% larger than the asymptotic standard errors.
+The take-away from our presentation is that the jackknife is a simple and ﬂexible method for vari-
+ance and standard error calculation. Circumventing technical asymptotic and exact calculations, the
+jackknife produces estimates which in many cases are similar to asymptotic delta-method counterparts.
+The jackknife is especially appealing in cases where asymptotic standard errors are not available or are
+difﬁcult to calculate. They can also be used as a double-check on the reasonability of asymptotic delta-
+method calculations.
+In Stata, jackknife standard errors for coefﬁcient estimates in many models are simply obtained
+by the vce(jackknife) option. For nonlinear functions of the coefﬁcients or other estimators the
+jackknife command can be combined with any other command to obtain jackknife standard errors.
+To illustrate, below we list the Stata commands which will calculate the jackknife standard errors
+listed above. The ﬁrst line is least squares estimation with standard errors calculated by the jackknife.
+The second line calculates the error variance estimate ˆσ2 with a jackknife standard error. The third line
+does the same for the estimate ˆµ.
+Stata Commands
+reg wage education if mbf12 == 1, vce(jackknife)
+jackknife (e(rss)/e(N)): reg wage education if mbf12 == 1
+jackknife exp(16*_b[education]+_b[_cons]+e(rss)/e(N)/2): ///
+reg wage education if mbf12 == 1
+
+
+--- page 6 ---
+
+CHAPTER 10. RESAMPLING METHODS 262
+Table 10.1: Leave-one-out Estimators and Jackknife Standard Errors
+Observation ˆβ1(−i ) ˆβ2(−i ) ˆσ2
+(−i ) ˆµ(−i )
+1 0.150 0.764 0.150 25.63
+2 0.148 0.798 0.149 25.48
+3 0.153 0.739 0.151 25.97
+4 0.156 0.695 0.144 26.31
+5 0.154 0.701 0.146 25.38
+6 0.158 0.655 0.151 26.05
+7 0.152 0.705 0.114 24.32
+8 0.146 0.822 0.147 25.37
+9 0.162 0.588 0.151 25.75
+10 0.157 0.693 0.139 26.40
+11 0.168 0.510 0.141 26.40
+12 0.158 0.691 0.118 26.48
+13 0.139 0.974 0.141 26.56
+14 0.169 0.451 0.131 26.26
+15 0.146 0.852 0.150 24.93
+16 0.156 0.696 0.148 26.06
+17 0.165 0.513 0.140 25.22
+18 0.155 0.698 0.151 25.90
+19 0.152 0.742 0.151 25.73
+20 0.155 0.697 0.151 25.95
+sjack 0.032 0.514 0.046 2.39
+sasy 0.031 0.493 0.043 2.29
+10.5 Jackknife for Clustered Observations
+In Section 4.23 we introduced the clustered regression model, cluster-robust variance estimators,
+and cluster-robust standard errors. Jackknife variance estimation can also be used for clustered samples
+but with some natural modiﬁcations. Recall that the least squares estimator in the clustered sample
+context can be written as
+ˆβ =
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g Y g
+)
+where g = 1, ...,G indexes the cluster. Instead of leave-one-out estimators, it is natural to use delete-
+cluster estimators, which delete one cluster at a time. They take the form (4.53):
+ˆβ(−g ) = ˆβ −
+(
+X ′X
+)−1 X ′
+g ˜e g
+where
+˜e g =
+(
+I ng − X g
+(
+X ′X
+)−1 X ′
+g
+)−1
+ˆe g
+ˆe g = Y g − X g ˆβ.
+
+
+--- page 7 ---
+
+CHAPTER 10. RESAMPLING METHODS 263
+The delete-cluster jackknife estimator of the variance of ˆβ is
+ˆV
+jack
+ˆβ = G − 1
+G
+G∑
+g =1
+(
+ˆβ(−g ) − β
+) (
+ˆβ(−g ) − β
+)′
+β = 1
+G
+G∑
+g =1
+ˆβ(−g ).
+We can also call ˆV
+jack
+ˆβ a cluster-robust jackknife estimator of variance.
+Using the same approximations as the previous section we can show that the delete-cluster jackknife
+estimator is asymptotically equivalent to the cluster-robust covariance matrix estimator (4.54) calculated
+with the delete-cluster prediction errors. This veriﬁes that the delete-cluster jackknife is the appropriate
+jackknife approach for clustered dependence.
+For parameters which are functions ˆθ = r ( ˆβ) of the least squares estimator, the delete-cluster jack-
+knife estimator of the variance of ˆθ is
+ˆV
+jack
+ˆθ = G − 1
+G
+G∑
+g =1
+(
+ˆθ(−g ) − θ
+) (
+ˆθ(−g ) − θ
+)′
+ˆθ(−i ) = r ( ˆβ(−g ))
+θ = 1
+G
+G∑
+g =1
+ˆθ(−g ).
+Using a mean-value expansion we can show that this estimator is asymptotically equivalent to the delta-
+method cluster-robust covariance matrix estimator for ˆθ. This shows that the jackknife estimator is ap-
+propriate for covariance matrix estimation.
+As in the context of i.i.d. samples, one advantage of the jackknife covariance matrix estimators is that
+they do not require the user to make a technical calculation of the asymptotic distribution. A downside
+is an increase in computation cost, as G separate regressions are effectively estimated.
+In Stata, jackknife standard errors for coefﬁcient estimates with clustered observations are obtained
+by using the options cluster(id) vce(jackknife) where id denotes the cluster variable.
+10.6 The Bootstrap Algorithm
+The bootstrap is a powerful approach to inference and is due to the pioneering work of Efron (1979).
+There are many textbook and monograph treatments of the bootstrap, including Efron (1982), Hall (1992),
+Efron and Tibshirani (1993), Shao and Tu (1995), and Davison and Hinkley (1997). Reviews for econome-
+tricians are provided by Hall (1994) and Horowitz (2001)
+There are several ways to describe or deﬁne the bootstrap and there are several forms of the boot-
+strap. We start in this section by describing the basic nonparametric bootstrap algorithm. In subsequent
+sections we give more formal deﬁnitions of the bootstrap as well as theoretical justiﬁcations.
+Brieﬂy, the bootstrap distribution is obtained by estimation on independent samples created by i.i.d.
+sampling (sampling with replacement) from the original dataset.
+To understand this it is useful to start with the concept of sampling with replacement from the
+dataset. To continue the empirical example used earlier in the chapter we focus on the dataset dis-
+played in Table 3.1, which has n = 20 observations. Sampling from this distribution means randomly
+selecting one row from this table. Mathematically this is the same as randomly selecting an integer from
+the set {1,2,...,20}. To illustrate, MATLAB has a random integer generator (the function randi). Using
+
+
+--- page 8 ---
+
+CHAPTER 10. RESAMPLING METHODS 264
+the random number seed of 13 (an arbitrary choice) we obtain the random draw 16. This means that we
+draw observation number 16 from Table 3.1. Examining the table we can see that this is an individual
+with wage $18.75 and education of 16 years. We repeat by drawing another random integer on the set
+{1,2,...,20} and this time obtain 5. This means we take observation 5 from Table 3.1, which is an indi-
+vidual with wage $33.17 and education of 16 years. We continue until we have n = 20 such draws. This
+random set of observations are {16, 5, 17, 20, 20, 10, 13, 16, 13, 15, 1, 6, 2, 18, 8, 14, 6, 7, 1, 8}. We call this
+the bootstrap sample.
+Notice that the observations 1, 6, 8, 13, 16, 20 each appear twice in the bootstrap sample, and the
+observations 3, 4, 9, 11, 12, 19 do not appear at all. That is okay. In fact, it is necessary for the bootstrap to
+work. This is because we aredrawing with replacement. (If we instead made draws without replacement
+then the constructed dataset would have exactly the same observations as in Table 3.1, only in different
+order.) We can also ask the question “What is the probability that an individual observation will appear
+at least once in the bootstrap sample?” The answer is
+P
+[
+Observation in Bootstrap Sample
+]
+= 1 −
+(
+1 − 1
+n
+)n
+(10.6)
+→ 1 − e−1 ≃ 0.632.
+The limit holds as n → ∞. The approximation 0.632 is excellent even for small n. For example, when
+n = 20 the probability (10.6) is 0.641. These calculations show that an individual observation is in the
+bootstrap sample with probability near 2/3.
+Once again, the bootstrap sample is the constructed dataset with the 20 observations drawn ran-
+domly from the original sample. Notationally, we write thei t h bootstrap observation as
+(
+Y ∗
+i , X ∗
+i
+)
+and the
+bootstrap sample as {
+(
+Y ∗
+1 , X ∗
+1
+)
+,...,
+(
+Y ∗
+n , X ∗
+n
+)
+}. In our present example with Y denoting the log wage the
+bootstrap sample is
+{
+(
+Y ∗
+1 , X ∗
+1
+)
+,...,
+(
+Y ∗
+n , X ∗
+n
+)
+} = {(2.93, 16),(3.50, 16)...,(3.76,18)}.
+The bootstrap estimate ˆβ∗ is obtained by applying the least squares estimation formula to the boot-
+strap sample. Thus we regress Y ∗ on X ∗. The other bootstrap estimates, in our example ˆσ2∗ and
+ˆµ∗, are obtained by applying their estimation formulae to the bootstrap sample as well. Writing ˆθ∗ =(ˆβ∗
+1 , ˆβ∗
+2 , ˆσ∗2, ˆµ∗)′
+we have the bootstrap estimate of the parameter vector θ =
+(
+β1, β2, σ2, µ
+)′. In our ex-
+ample (the bootstrap sample described above) ˆθ∗ = (0.195,0.113, 0.107,26.7)′. This is one draw from the
+bootstrap distribution of the estimates.
+The estimate ˆθ∗ as described is one random draw from the distribution of estimates obtained by
+i.i.d. sampling from the original data. With one draw we can say relatively little. But we can repeat this
+exercise to obtain multiple draws from this bootstrap distribution. To distinguish between these draws
+we index the bootstrap samples by b = 1, ...,B, and write the bootstrap estimates as ˆθ∗
+b or ˆθ∗(b).
+To continue our illustration we draw 20 more random integers {19, 5, 7, 19, 1, 2, 13, 18, 1, 15, 17, 2,
+14, 11, 10, 20, 1, 5, 15, 7} and construct a second bootstrap sample. On this sample we again estimate the
+parameters and obtain ˆθ∗(2) = (0.175,0.52,0.124, 29.3)′. This is a second random draw from the distribu-
+tion of ˆθ∗. We repeat this B times, storing the parameter estimates ˆθ∗(b). We have thus created a new
+dataset of bootstrap draws
+{ˆθ∗(b) : b = 1, ...,B
+}
+. By construction the draws are independent across b and
+identically distributed.
+The number of bootstrap draws, B, is often called the “number of bootstrap replications” . Typical
+choices for B are 1000, 5000, and 10,000. We discuss selecting B later, but roughly speaking, larger B
+results in a more precise estimate at an increased computation cost. For our application we set B =
+10,000.
+
+
+--- page 9 ---
+
+CHAPTER 10. RESAMPLING METHODS 265
+To illustrate, Figure 13.1 displays the densities of the distributions of the bootstrap estimates ˆβ∗
+1 and
+ˆµ∗ across 10,000 draws. The dashed lines show the point estimate. You can notice that the density for ˆβ∗
+1
+is slightly skewed to the left.
+0.00 0.05 0.10 0.15 0.20 0.25 0.300 2 4 6 8 10 12 14
+Return to Education
+Bootstrap Density
+15 20 25 30 35
+0.00 0.05 0.10 0.15
+Mean Wage of College Graduates
+Bootstrap Density
+Figure 10.1: Bootstrap Distributions of ˆβ∗
+1 and ˆµ∗
+10.7 Bootstrap Variance and Standard Errors
+Given the bootstrap draws we can estimate features of the bootstrap distribution. The bootstrap
+estimator of varianceof an estimator ˆθ is the sample variance across the bootstrap drawsˆθ∗(b). It equals
+ˆV
+boot
+ˆθ = 1
+B − 1
+B∑
+b=1
+(
+ˆθ∗(b) − θ
+∗) (
+ˆθ∗(b) − θ
+∗)′
+(10.7)
+θ
+∗
+= 1
+B
+B∑
+b=1
+ˆθ∗(b).
+For a scalar estimator ˆθ the bootstrap standard error is the square root of the bootstrap estimator of
+variance:
+sboot
+ˆθ =
+√
+ˆV
+boot
+ˆθ .
+This is a very simple statistic to calculate and is the most common use of the bootstrap in applied econo-
+metric practice. A caveat (discussed in more detail in Section 10.15) is that in many cases it is better to
+use a trimmed estimator.
+Standard errors are conventionally reported to convey the precision of the estimator. They are also
+commonly used to construct conﬁdence intervals. Bootstrap standard errors can be used for this pur-
+pose. The normal-approximation bootstrap conﬁdence intervalis
+C nb =
+[
+ˆθ − z1−α/2sboot
+ˆθ , ˆθ + z1−α/2sboot
+ˆθ
+]
+where z1−α/2 is the 1 − α/2 quantile of the N (0, 1) distribution. This interval C nb is identical in format
+to an asymptotic conﬁdence interval, but with the bootstrap standard error replacing the asymptotic
+
+
+--- page 10 ---
+
+CHAPTER 10. RESAMPLING METHODS 266
+standard error.C nb is the default conﬁdence interval reported by Stata when the bootstrap has been used
+to calculate standard errors. However, the normal-approximation interval is in general a poor choice for
+conﬁdence interval construction as it relies on the normal approximation to the t-ratio which can be
+inaccurate in ﬁnite samples. There are other methods – such as the bias-corrected percentile method
+to be discussed in Section 10.17 – which are just as simple to compute but have better performance.
+In general, bootstrap standard errors should be used as estimates of precision rather than as tools to
+construct conﬁdence intervals.
+Since B is ﬁnite, all bootstrap statistics, such asˆV
+boot
+ˆθ , are estimates and hence random. Their values
+will vary across different choices for B and simulation runs (depending on how the simulation seed is
+set). Thus you should not expect to obtain the exact same bootstrap standard errors as other researchers
+when replicating their results. They should be similar (up to simulation sampling error) but not precisely
+the same.
+In Table 10.2 we report the four parameter estimates introduced in Section 10.2 along with asymp-
+totic, jackknife and bootstrap standard errors. We also report four bootstrap conﬁdence intervals which
+will be introduced in subsequent sections.
+For these four estimators we can see that the bootstrap standard errors are quite similar to the asymp-
+totic and jackknife standard errors. The most noticable difference arises for ˆβ2, where the bootstrap
+standard error is about 10% larger than the asymptotic standard error.
+Table 10.2: Comparison of Methods
+ˆβ1 ˆβ2 ˆσ2 ˆµ
+Estimate 0.155 0.698 0.144 25.80
+Asymptotic s.e. (0.031) (0.493) (0.043) (2.29)
+Jackknife s.e. (0.032) (0.514) (0.046) (2.39)
+Bootstrap s.e. (0.034) (0.548) (0.041) (2.38)
+95% Percentile Interval [0.08, 0.21] [−0.27, 1.91] [0.06, 0.22] [21.4, 30.7]
+95% BC Percentile Interval [0.08, 0.21] [−0.25, 1.93] [0.09, 0.28] [22.0, 31.5]
+95% BCa Percentile Interval [0.08, 0.21] [ −0.25, 1.93] [0.09, 0.28] [22.0, 31.5]
+95% Percentile-t Interval [0.09, 0.21] [−0.20, 1.81] [0.08, 0.34] [21.6, 32.2]
+In Stata, bootstrap standard errors for coefﬁcient estimates in many models are obtained by the
+vce(bootstrap, reps(#)) option, where # is the number of bootstrap replications. For nonlinear
+functions of the coefﬁcients or other estimators the bootstrap command can be combined with any
+other command to obtain bootstrap standard errors. Synonyms for bootstrap are bstrap and bs .
+To illustrate, below we list the Stata commands which will calculate 1 the bootstrap standard errors
+listed above.
+Stata Commands
+reg wage education if mbf12 == 1, vce(bootstrap, reps(10000))
+bs (e(rss)/e(N)), reps(10000): reg wage education if mbf12 == 1
+bs (exp(16*_b[education]+_b[_cons]+e(rss)/e(N)/2)), reps(10000): ///
+reg wage education if mbf12 == 1
+1They will not precisely replicate the standard errors since those in Table 10.2 were produced in Matlab which uses a different
+random number sequence.
+
+
+--- page 11 ---
+
+CHAPTER 10. RESAMPLING METHODS 267
+10.8 Percentile Interval
+The second most common use of bootstrap methods is for conﬁdence intervals. There are multiple
+bootstrap methods to form conﬁdence intervals. A popular and simple method is called the percentile
+interval. It is based on the quantiles of the bootstrap distribution.
+In Section 10.6 we described the bootstrap algorithm which creates an i.i.d. sample of bootstrap
+estimates
+{ˆθ∗
+1 , ˆθ∗
+2 , ...,ˆθ∗
+B
+}
+corresponding to an estimator ˆθ of a parameter θ. We focus on the case of a
+scalar parameter θ.
+For any 0 < α < 1 we can calculate the empirical quantile q ∗
+α of these bootstrap estimates. This is the
+number such that nα bootstrap estimates are smaller than q ∗
+α, and is typically calculated by taking the
+nαt h order statistic of the ˆθ∗
+b . See Section 11.13 of Introduction to Econometrics for a precise discussion
+of empirical quantiles and common quantile estimators.
+The percentile bootstrap 100(1 − α)% conﬁdence interval is
+C pc =
+[
+q ∗
+α/2, q ∗
+1−α/2
+]
+. (10.8)
+For example, if B = 1000, α = 0.05, and the empirical quantile estimator is used, then C pc =
+[
+ˆθ∗
+(25), ˆθ∗
+(975)
+]
+.
+To illustrate, the 0.025 and 0.975 quantiles of the bootstrap distributions of ˆβ∗
+1 and ˆµ∗ are indicated
+in Figure 13.1 by the arrows. The intervals between the arrows are the 95% percentile intervals.
+The percentile interval has the convenience that it does not require calculation of a standard error.
+This is particularly convenient in contexts where asymptotic standard error calculation is complicated,
+burdensome, or unknown. C pc is a simple by-product of the bootstrap algorithm and does not require
+meaningful computational cost above that required to calculate the bootstrap standard error.
+The percentile interval has the useful property that it is transformation-respecting. Take a mono-
+tone parameter transformation m(θ). The percentile interval for m(θ) is simply the percentile interval
+for θ mapped by m(θ). That is, if
+[
+q ∗
+α/2, q ∗
+1−α/2
+]
+is the percentile interval for θ, then
+[
+m
+(
+q ∗
+α/2
+)
+,m
+(
+q ∗
+1−α/2
+)]
+is the percentile interval for m(θ). This property follows directly from the equivariance property of sam-
+ple quantiles. Many conﬁdence-interval methods, such as the delta-method asymptotic interval and the
+normal-approximation interval C nb, do not share this property.
+To illustrate the usefulness of the transformation-respecting property consider the variance σ2. In
+some cases it is useful to report the variance σ2 and in other cases it is useful to report the standard
+deviation σ. Thus we may be interested in conﬁdence intervals for σ2 or σ. To illustrate, the asymp-
+totic 95% normal conﬁdence interval for σ2 which we calculate from Table 13.2 is [0.060,0.228]. Taking
+square roots we obtain an interval for σ of [0.244, 0.477]. Alternatively, the delta method standard error
+for ˆσ = 0.379 is 0.057, leading to an asymptotic 95% conﬁdence interval for σ of [0.265, 0.493] which is
+different. This shows that the delta method is not transformation-respecting. In contrast, the 95% per-
+centile interval for σ2 is [0.062, 0.220] and that for σ is [0.249, 0.469] which is identical to the square roots
+of the interval for σ2.
+The bootstrap percentile intervals for the four estimators are reported in Table 13.2.
+In Stata, percentile conﬁdence intervals can be obtained by using the commandestat bootstrap,
+percentile or the command estat bootstrap, all after an estimation command which calculates
+standard errors via the bootstrap.
+10.9 The Bootstrap Distribution
+For applications it is often sufﬁcient if one understands the bootstrap as an algorithm. However, for
+theory it is more useful to view the bootstrap as a speciﬁc estimator of the sampling distribution. For this
+it is useful to introduce some additional notation.
+
+
+--- page 12 ---
+
+CHAPTER 10. RESAMPLING METHODS 268
+The key is that the distribution of any estimator or statistic is determined by the distribution of the
+data. While the latter is unknown it can be estimated by the empirical distribution of the data. This is
+what the bootstrap does.
+To ﬁx notation, letF denote the distribution of an individual observation W . (In regression, W is the
+pair (Y , X ).) Let Gn(u,F ) denote the distribution of an estimator ˆθ. That is,
+Gn(u,F ) = P
+[ˆθ ≤ u |F
+]
+.
+We write the distribution Gn as a function of n and F since they (generally) affect the distribution of
+ˆθ. We are interested in the distribution Gn. For example, we want to know its variance to calculate a
+standard error or its quantiles to calculate a percentile interval.
+In principle, if we knew the distribution F we should be able to determine the distribution Gn. In
+practice there are two barriers to implementation. The ﬁrst barrier is that the calculation of Gn(u,F )
+is generally infeasible except in certain special cases such as the normal regression model. The second
+barrier is that in general we do not know F .
+The bootstrap simultaneously circumvents these two barriers by two clever ideas. First, the bootstrap
+proposes estimation ofF by the empirical distribution function (EDF)Fn, which is the simplest nonpara-
+metric estimator of the joint distribution of the observations. The EDF isFn(x) = n−1 ∑n
+i =1 1{Xi ≤ x}. (See
+Section 11.2 of Introduction to Econometrics for details and properties.) Replacing F with Fn we obtain
+the idealized bootstrap estimator of the distribution of ˆθ
+G ∗
+n(u) = Gn(u,Fn). (10.9)
+The bootstrap’ s second clever idea is to estimate G ∗
+n by simulation. This is the bootstrap algorithm de-
+scribed in the previous sections. The essential idea is that simulation from Fn is sampling with replace-
+ment from the original data, which is computationally simple. Applying the estimation formula for ˆθ
+we obtain i.i.d. draws from the distribution G ∗
+n(u). By making a large number B of such draws we can
+estimate any feature of G ∗
+n of interest. The bootstrap combines these two ideas: (1) estimate Gn(u,F ) by
+Gn(u,Fn); (2) estimate Gn(u,Fn) by simulation. These ideas are intertwined. Only by considering these
+steps together do we obtain a feasible method.
+The way to think about the connection between Gn and G ∗
+n is as follows. Gn is the distribution of the
+estimator ˆθ obtained when the observations are sampled i.i.d. from the population distribution F . G ∗
+n
+is the distribution of the same statistic, denoted ˆθ∗, obtained when the observations are sampled i.i.d.
+from the empirical distributionFn. It is useful to conceptualize the “universe” which separately generates
+the dataset and the bootstrap sample. The “sampling universe” is the population distribution F . In this
+universe the true parameter isθ. The “bootstrap universe” is the empircal distributionFn. When drawing
+from the bootstrap universe we are treatingFn as if it is the true distribution. Thus anything which is true
+about Fn should be treated as true in the bootstrap universe. In the bootstrap universe the “true” value
+of the parameter θ is the value determined by the EDF Fn. In most cases this is the estimate ˆθ. It is the
+true value of the coefﬁcient when the true distribution isFn.
+We now carefully explain the connection with the bootstrap algorithm as previously described.
+First, observe that sampling with replacement from the sample {Y 1,..., Yn} is identical to sampling
+from the EDF Fn. This is because the EDF is the probability distribution which puts probability mass
+1/n on each observation. Thus sampling from Fn means sampling an observation with probability 1/n ,
+which is sampling with replacement.
+Second, observe that the bootstrap estimator ˆθ∗ described here is identical to the bootstrap algo-
+rithm described in Section 10.6. That is, ˆθ∗ is the random vector generated by applying the estimator
+formula ˆθ to samples obtained by random sampling from Fn.
+
+
+--- page 13 ---
+
+CHAPTER 10. RESAMPLING METHODS 269
+Third, observe that the distribution of these bootstrap estimators is the bootstrap distribution (10.9).
+This is a precise equality. That is, the bootstrap algorithm generates i.i.d. samples fromFn, and when the
+estimators are applied we obtain random variables ˆθ∗ with the distribution G ∗
+n.
+Fourth, observe that the bootstrap statistics described earlier – bootstrap variance, standard error,
+and quantiles – are estimators of the corresponding features of the bootstrap distributionG ∗
+n.
+This discussion is meant to carefully describe why the notationG ∗
+n(u) is useful to help understand the
+properties of the bootstrap algorithm. Since Fn is the natural nonparametric estimator of the unknown
+distribution F , G ∗
+n(u) = Gn(u,Fn) is the natural plug-in estimator of the unknownGn(u,F ). Furthermore,
+since Fn is uniformly consistent for F by the Glivenko-Cantelli Lemma (Theorem 18.8 in Introduction to
+Econometrics) we also can expect G ∗
+n(u) to be consistent for Gn(u). Making this precise is a bit challeng-
+ing since Fn and Gn are functions. In the next several sections we develop an asymptotic distribution
+theory for the bootstrap distribution based on extending asymptotic theory to the case of conditional
+distributions.
+10.10 The Distribution of the Bootstrap Observations
+Let Y ∗ be a random draw from the sample {Y1, ...,Yn}. What is the distribution of Y ∗?
+Since we are ﬁxing the observations, the correct question is: What is the conditional distribution of
+Y ∗, conditional on the observed data? The empirical distribution function Fn summarizes the informa-
+tion in the sample, so equivalently we are talking about the distribution conditional onFn. Consequently
+we will write the bootstrap probability function and expectation as
+P∗ [
+Y ∗ ≤ x
+]
+= P
+[
+Y ∗ ≤ x |Fn
+]
+E∗ [
+Y ∗]
+= E
+[
+Y ∗ |Fn
+]
+.
+Notationally, the starred distribution and expectation are conditional given the data.
+The (conditional) distribution of Y ∗ is the empirical distribution function Fn, which is a discrete
+distribution with mass points 1/n on each observation Yi . Thus even if the original data come from a
+continuous distribution, the bootstrap data distribution is discrete.
+The (conditional) mean and variance of Y ∗ are calculated from the EDF , and equal the sample mean
+and variance of the data. The mean is
+E∗ [
+Y ∗]
+=
+n∑
+i =1
+Yi P∗ [
+Y ∗ = Yi
+]
+=
+n∑
+i =1
+Yi
+1
+n = Y (10.10)
+and the variance is
+var∗ [
+Y ∗]
+= E∗ [
+Y ∗Y ∗′]
+−
+(
+E∗ [
+Y ∗]) (
+E∗ [
+Y ∗])′
+=
+n∑
+i =1
+Yi Y ′
+i P∗ [
+Y ∗ = Yi
+]
+− Y Y
+′
+=
+n∑
+i =1
+Yi Y ′
+i
+1
+n − Y Y
+′
+= ˆΣ. (10.11)
+To summarize, the conditional distribution ofY ∗, given Fn, is the discrete distribution on {Y1, ...,Yn} with
+mean Y and covariance matrix ˆΣ.
+We can extend this analysis to any integer moment r . Assume Y is scalar. The r t h moment of Y ∗ is
+µ∗′
+r = E∗ [
+Y ∗r ]
+=
+n∑
+i =1
+Y r
+i P∗ [
+Y ∗ = Yi
+]
+= 1
+n
+n∑
+i =1
+Y r
+i = ˆµ′
+r ,
+
+
+--- page 14 ---
+
+CHAPTER 10. RESAMPLING METHODS 270
+the r t h sample moment. The r t h central moment of Y ∗ is
+µ∗
+r = E∗
+[(
+Y ∗ − Y
+)r ]
+= 1
+n
+n∑
+i =1
+(
+Yi − Y
+)r
+= ˆµr ,
+the r t h central sample moment. Similarly, the r t h cumulant of Y ∗ is κ∗
+r = ˆκr , the r t h sample cumulant.
+10.11 The Distribution of the Bootstrap Sample Mean
+The bootstrap sample mean is
+Y
+∗
+= 1
+n
+n∑
+i =1
+Y ∗
+i .
+We can calculate its (conditional) mean and variance. The mean is
+E∗
+[
+Y
+∗]
+= E∗
+[
+1
+n
+n∑
+i =1
+Y ∗
+i
+]
+= 1
+n
+n∑
+i =1
+E∗ [
+Y ∗
+i
+]
+= 1
+n
+n∑
+i =1
+Y = Y . (10.12)
+using (10.10). Thus the bootstrap sample mean Y
+∗
+has a distribution centered at the sample mean Y .
+This is because the bootstrap observations Y ∗
+i are drawn from the bootstrap universe, which treats the
+EDF as the truth, and the mean of the latter distribution is Y .
+The (conditional) variance of the bootstrap sample mean is
+var∗
+[
+Y
+∗]
+= var∗
+[
+1
+n
+n∑
+i =1
+Y ∗
+i
+]
+= 1
+n2
+n∑
+i =1
+var∗ [
+Y ∗
+i
+]
+= 1
+n2
+n∑
+i =1
+ˆΣ = 1
+n
+ˆΣ (10.13)
+using (10.11). In the scalar case, var ∗
+[
+Y
+∗]
+= ˆσ2/n. This shows that the bootstrap variance of Y
+∗
+is pre-
+cisely described by the sample variance of the original observations. Again, this is because the bootstrap
+observations Y ∗
+i are drawn from the bootstrap universe.
+We can extend this to any integer moment r . Assume Y is scalar. Deﬁne the normalized bootstrap
+sample mean Z ∗
+n = pn
+(
+Y
+∗
+− Y
+)
+. Using expressions from Section 6.17 of Introduction to Econometrics,
+the 3r d through 6t h conditional moments of Z ∗
+n are
+E∗ [
+Z ∗3
+n
+]
+= ˆκ3/n1/2
+E∗ [
+Z ∗4
+n
+]
+= ˆκ4/n + 3ˆκ2
+2 (10.14)
+E∗ [
+Z ∗5
+n
+]
+= ˆκ5/n3/2 + 10ˆκ3ˆκ2/n1/2
+E∗ [
+Z ∗6
+n
+]
+= ˆκ6/n2 +
+(
+15ˆκ4κ2 + 10ˆκ2
+3
+)
+/n + 15ˆκ3
+2
+where ˆκr is the r t h sample cumulant. Similar expressions can be derived for higher moments. The
+moments (10.14) are exact, not approximations.
+10.12 Bootstrap Asymptotics
+The bootstrap mean
+Y
+∗
+is a sample average over n i.i.d. random variables, so we might expect it to
+converge in probability to its expectation. Indeed, this is the case, but we have to be a bit careful since
+the bootstrap mean has a conditional distribution (given the data) so we need to deﬁne convergence in
+probability for conditional distributions.
+
+
+--- page 15 ---
+
+CHAPTER 10. RESAMPLING METHODS 271
+Deﬁnition 10.1 We say that a random vectorZ ∗
+n converges in bootstrap prob-
+ability to Z as n → ∞, denoted Z ∗
+n − →
+p ∗ Z , if for all ϵ > 0
+P∗ [Z ∗
+n − Z
+
+ > ϵ
+]
+− →p 0.To understand this deﬁnition recall that conventional convergence in probability Zn − →p Z means
+that for a sufﬁciently large sample size n, the probability is high that Zn is arbitrarily close to its limit
+Z . In contrast, Deﬁnition 10.1 says Z ∗
+n − →
+p ∗ Z means that for a sufﬁciently largen, the probability is high
+that the conditional probability that Z ∗
+n is close to its limit Z is high. Note that there are two uses of
+probability – both unconditional and conditional.
+Our label “convergence in bootstrap probability” is a bit unusual. The label used in much of the
+statistical literature is “convergence in probability, in probability” but that seems like a mouthful. That
+literature more often focuses on the related concept of “convergence in probability, almost surely” which
+holds if we replace the “ − →p ” convergence with almost sure convergence. We do not use this concept in
+this chapter as it is an unnecessary complication.
+While we have stated Deﬁnition 10.1 for the speciﬁc conditional probability distributionP∗, the idea
+is more general and can be used for any conditional distribution and any sequence of random vectors.
+The following may seem obvious but it is useful to state for clarity. Its proof is given in Section 10.31.
+Theorem 10.1 If Zn − →p Z as n → ∞ then Zn − →
+p ∗ Z .
+Given Deﬁnition 10.1, we can establish a law of large numbers for the bootstrap sample mean.
+Theorem 10.2 Bootstrap WLLN. If Yi are independent and uniformly inte-
+grable then Y
+∗
+− Y − →
+p ∗ 0 and Y
+∗
+− →
+p ∗ µ = E[Y ] as n → ∞.
+The proof (presented in Section 10.31) is somewhat different from the classical case as it is based on
+the Marcinkiewicz WLLN (Theorem 10.20, presented in Section 10.31).
+Notice that the conditions for the bootstrap WLLN are the same for the conventional WLLN. Notice
+as well that we state two related but slightly different results. The ﬁrst is that the difference between the
+bootstrap sample mean Y
+∗
+and the sample mean Y diminishes as the sample size diverges. The second
+result is that the bootstrap sample mean converges to the population meanµ. The latter is not surprising
+(since the sample mean Y converges in probability to µ) but it is constructive to be precise since we are
+dealing with a new convergence concept.
+Theorem 10.3 Bootstrap Continuous Mapping Theorem . If Z ∗
+n − →
+p ∗ c as n →
+∞ and g (·) is continuous at c, then g (Z ∗
+n ) − →
+p ∗ g (c) as n → ∞.
+
+
+--- page 16 ---
+
+CHAPTER 10. RESAMPLING METHODS 272
+The proof is essentially identical to that of Theorem 6.6 so is omitted.
+We next would like to show that the bootstrap sample mean is asymptotically normally distributed,
+but for that we need a deﬁnition of convergence for conditional distributions.
+Deﬁnition 10.2 Let Z ∗
+n be a sequence of random vectors with conditional dis-
+tributions G ∗
+n(x) = P∗ [
+Z ∗
+n ≤ x
+]
+. We say that Z ∗
+n converges in bootstrap distri-
+bution to Z as n → ∞, denoted Z ∗
+n − →
+d ∗
+Z , if for all x at which G(x) = P[Z ≤ x]
+is continuous, G ∗
+n(x) − →p G(x) as n → ∞.
+The difference with the conventional deﬁnition is that Deﬁnition 10.2 treats the conditional distribu-
+tion as random. An alternative label for Deﬁnition 10.2 is “convergence in distribution, in probability” .
+We now state a CLT for the bootstrap sample mean, with a proof given in Section 10.31.
+Theorem 10.4 Bootstrap CLT. If Yi are i.i.d., E ∥Y ∥2 < ∞, and Σ = var[Y ] > 0,
+then as n → ∞, pn
+(
+Y
+∗
+− Y
+)
+− →
+d ∗
+N(0, Σ).
+Theorem 10.4 shows that the normalized bootstrap sample mean has the same asymptotic distribu-
+tion as the sample mean. Thus the bootstrap distribution is asymptotically the same as the sampling
+distribution. A notable difference, however, is that the bootstrap sample mean is normalized by center-
+ing at the sample mean, not at the population mean. This is because
+Y is the true mean in the bootstrap
+universe.
+We next state the distributional form of the continuous mapping theorem for bootstrap distributions
+and the Bootstrap Delta Method.
+Theorem 10.5 Bootstrap Continuous Mapping Theorem
+If Z ∗
+n − →
+d ∗
+Z as n → ∞ and g : Rm → Rk has the set of discontinuity points Dg
+such that P∗ [
+Z ∗ ∈ Dg
+]
+= 0, then g (Z ∗
+n ) − →
+d ∗
+g (Z ) as n → ∞.
+Theorem 10.6 Bootstrap Delta Method:
+If ˆµ − →p µ, p
+n
+(
+ˆµ∗ − ˆµ
+)
+− →
+d ∗
+ξ, and g (u) is continuously differentiable in a neigh-
+borhood of µ, then as n → ∞
+p
+n
+(
+g
+(
+ˆµ∗)
+− g (ˆµ)
+)
+− →
+d ∗
+G ′ξ
+where G(x) = ∂
+∂x g (x)′ and G = G(µ). In particular, if ξ ∼ N(0,V ) then as n → ∞
+p
+n
+(
+g
+(
+ˆµ∗)
+− g (ˆµ)
+)
+− →
+d ∗
+N
+(
+0,G ′V G
+)
+.
+
+
+--- page 17 ---
+
+CHAPTER 10. RESAMPLING METHODS 273
+For a proof, see Exercise 10.7.
+We state an analog of Theorem 6.10, which presented the asymptotic distribution for general smooth
+functions of sample means, which covers most econometric estimators.
+Theorem 10.7 Under the assumptions of Theorem 6.10, that is, if Yi is i.i.d.,
+µ = E[h (Y )], θ = g
+(
+µ
+)
+, E ∥h (Y )∥2 < ∞, and G (x) = ∂
+∂x g (x)′ is continuous in
+a neighborhood of µ, for ˆθ = g
+(
+ˆµ
+)
+with ˆµ = 1
+n
+∑n
+i =1 h (Yi ) and ˆθ∗ = g
+(
+ˆµ∗)
+with
+ˆµ∗ = 1
+n
+∑n
+i =1 h
+(
+Y ∗
+i
+)
+, as n → ∞
+p
+n
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+N(0,V θ)
+where V θ = G ′V G , V = E
+[(
+h (Y ) − µ
+) (
+h (Y ) − µ
+)′]
+and G = G
+(
+µ
+)
+.
+For a proof, see Exercise 10.8.
+Theorem 10.7 shows that the asymptotic distribution of the bootstrap estimator ˆθ∗ is identical to
+that of the sample estimator ˆθ. This means that we can learn the distribution of ˆθ from the bootstrap
+distribution, and hence perform asymptotically correct inference.
+For some bootstrap applications we use bootstrap estimates of variance. The plug-in estimator ofV θ
+is ˆV θ = ˆG
+′ ˆV ˆG where ˆG = G
+(
+ˆµ
+)
+and
+ˆV = 1
+n
+n∑
+i =1
+(
+h (Yi ) − ˆµ
+) (
+h (Yi ) − ˆµ
+)′ .
+The bootstrap version is
+ˆV
+∗
+θ = ˆG
+∗′ ˆV
+∗ ˆG
+∗
+ˆG
+∗
+= G
+(
+ˆµ∗)
+ˆV
+∗
+= 1
+n
+n∑
+i =1
+(
+h
+(
+Y ∗
+i
+)
+− ˆµ∗) (
+h
+(
+Y ∗
+i
+)
+− ˆµ∗)′ .
+Application of the bootstrap WLLN and bootstrap CMT show that ˆV
+∗
+θ is consistent for V θ.
+Theorem 10.8 Under the assumptions of Theorem 10.7, ˆV
+∗
+θ − →
+p ∗ V θ as n → ∞.For a proof, see Exercise 10.9.
+10.13 Consistency of the Bootstrap Estimate of Variance
+Recall the deﬁnition (10.7) of the bootstrap estimator of variance ˆV
+boot
+ˆθ of an estimator ˆθ. In this
+section we explore conditions under which ˆV
+boot
+ˆθ is consistent for the asymptotic variance of ˆθ.
+
+
+--- page 18 ---
+
+CHAPTER 10. RESAMPLING METHODS 274
+To do so it is useful to focus on a normalized version of the estimator so that the asymptotic variance
+is not degenerate. Suppose that for some sequence an we have
+Zn = an
+(ˆθ − θ
+)
+− →
+d
+ξ (10.15)
+and
+Z ∗
+n = an
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+ξ (10.16)
+for some limit distribution ξ. That is, for some normalization, both ˆθ and ˆθ∗ have the same asymptotic
+distribution. This is quite general as it includes the smooth function model. The conventional boot-
+strap estimator of the variance of Zn is the sample variance of the bootstrap draws
+{
+Z ∗
+n (b) : b = 1, ...,B
+}
+.
+This equals the estimator (10.7) multiplied by a2
+n. Thus it is equivalent (up to scale) whether we discuss
+estimating the variance of ˆθ or Zn.
+The bootstrap estimator of variance of Zn is
+ˆV
+boot,B
+θ = 1
+B − 1
+B∑
+b=1
+(
+Z ∗
+n (b) − Z ∗
+n
+) (
+Z ∗
+n (b) − Z ∗
+n
+)′
+Z
+∗
+n = 1
+B
+B∑
+b=1
+Z ∗
+n (b).
+Notice that we index the estimator by the number of bootstrap replications B.
+Since Z ∗
+n converges in bootstrap distribution to the same asymptotic distribution asZn, it seems rea-
+sonable to guess that the variance of Z ∗
+n will converge to that of ξ. However, convergence in distribution
+is not sufﬁcient for convergence in moments. For the variance to converge it is also necessary for the
+sequence Z ∗
+n to be uniformly square integrable.
+Theorem 10.9 If (10.15) and (10.16) hold for some sequence an and
+Z ∗
+n
+
+2 is
+uniformly integrable, then as B → ∞
+ˆV
+boot,B
+θ − →
+p ∗
+ˆV
+boot
+θ = var
+[
+Z ∗
+n
+]
+,
+and as n → ∞
+ˆV
+boot
+θ − →
+p ∗ V θ = var[ξ].This raises the question: Is the normalized sequence Zn uniformly integrable? We spend the remain-
+der of this section exploring this question and turn in the next section to trimmed variance estimators
+which do not require uniform integrability.
+This condition is reasonably straightforward to verify for the case of a scalar sample mean with a
+ﬁnite variance. That is, suppose Z ∗
+n = pn
+(
+Y
+∗
+− Y
+)
+and E
+[
+Y 2]
+< ∞. In (10.14) we calculated the exact
+fourth central moment of Z ∗
+n :
+E∗ [
+Z ∗4
+n
+]
+= ˆκ4
+n + 3ˆσ4 = ˆµ4 − 3ˆσ4
+n + 3ˆσ4
+
+
+--- page 19 ---
+
+CHAPTER 10. RESAMPLING METHODS 275
+where ˆσ2 = n−1 ∑n
+i =1
+(
+Yi − Y
+)2
+and ˆµ4 = n−1 ∑n
+i =1
+(
+Yi −
+Y
+)4
+. The assumption E
+[
+Y 2]
+< ∞ implies that
+E
+[
+ˆσ2]
+= O(1) so ˆσ2 = Op(1). Furthermore, n−1 ˆµ4 = n−2 ∑n
+i =1
+(
+Yi − Y
+)4
+= op(1) by the Marcinkiewicz
+WLLN (Theorem 10.20). It follows that
+E∗ [
+Z ∗4
+n
+]
+= n2E∗
+[(
+Y
+∗
+− Y
+)4]
+= Op(1). (10.17)
+Theorem 6.14 shows that this implies that Z ∗2
+n is uniformly integrable. Thus if Y has a ﬁnite variance
+the normalized bootstrap sample mean is uniformly square integrable and the bootstrap estimate of
+variance is consistent by Theorem 10.9.
+Now consider the smooth function model of Theorem 10.7. We can establish the following result.
+Theorem 10.10 In the smooth function model of Theorem 10.7, if for some
+p ≥ 1 the p t h-order derivatives of g (x) are bounded, then Z ∗
+n = pn
+(ˆθ∗ − ˆθ
+)
+is
+uniformly square integrable and the bootstrap estimator of variance is consis-
+tent as in Theorem 10.9.
+For a proof see Section 10.31.
+This shows that the bootstrap estimate of variance is consistent for a reasonably broad class of esti-
+mators. The class of functions g (x) covered by this result includes all p t h-order polynomials.
+10.14 Trimmed Estimator of Bootstrap Variance
+Theorem 10.10 showed that the bootstrap estimator of variance is consistent for smooth functions
+with a bounded p t h order derivative. This is a fairly broad class but excludes many important applica-
+tions. An example is θ = µ1/µ2 where µ1 = E[Y1] and µ2 = E[Y2]. This function does not have a bounded
+derivative (unless µ2 is bounded away from zero) so is not covered by Theorem 10.10.
+This is more than a technical issue. When ( Y1,Y2) are jointly normally distributed then it is known
+that ˆθ =
+Y 1/Y 2 does not possess a ﬁnite variance. Consequently we cannot expect the bootstrap estima-
+tor of variance to perform well. (It is attempting to estimate the variance of ˆθ, which is inﬁnity.)
+In these cases it is preferred to use a trimmed estimator of bootstrap variance. Let τn → ∞ be a
+sequence of positive trimming numbers satisfying τn = O
+(
+en/8)
+. Deﬁne the trimmed statistic
+Z ∗∗
+n = Z ∗
+n 1
+{Z ∗
+n
+
+ ≤ τn
+}
+.
+The trimmed bootstrap estimator of variance is
+ˆV
+boot,B,τ
+θ = 1
+B − 1
+B∑
+b=1
+(
+Z ∗∗
+n (b) − Z ∗∗
+n
+) (
+Z ∗∗
+n (b) − Z ∗∗
+n
+)′
+Z ∗∗
+n = 1
+B
+B∑
+b=1
+Z ∗∗
+n (b).
+We ﬁrst examine the behavior of ˆV
+boot,B
+θ as the number of bootstrap replications B grows to inﬁnity.
+It is a sample variance of independent bounded random vectors. Thus by the bootstrap WLLN (Theorem
+10.2) ˆV
+boot,B,τ
+θ converges in bootstrap probability to the variance of Z ∗∗
+n .
+
+
+--- page 20 ---
+
+CHAPTER 10. RESAMPLING METHODS 276
+Theorem 10.11 As B → ∞, ˆV
+boot,B,τ
+θ − →
+p ∗
+ˆV
+boot,τ
+θ = var
+[
+Z ∗∗
+n
+]
+.
+We next examine the behavior of the bootstrap estimator ˆV
+boot,τ
+θ as n grows to inﬁnity. We focus
+on the smooth function model of Theorem 10.7, which showed that Z ∗
+n = p
+n
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+Z ∼ N(0,V θ).
+Since the trimming is asymptotically negligible, it follows that Z ∗∗
+n − →
+d ∗
+Z . If we can show that Z ∗∗
+n is
+uniformly square integrable, Theorem 10.9 will show that var
+[
+Z ∗∗
+n
+]
+→ var[Z ] = V θ as n → ∞. This is
+shown in the following result, whose proof is presented in Section 10.31.
+Theorem 10.12 Under the assumptions of Theorem 10.7, ˆV
+boot,τ
+θ − →
+p ∗ V θ.Theorems 10.11 and 10.12 show that the trimmed bootstrap estimator of variance is consistent for
+the asymptotic variance in the smooth function model, which includes most econometric estimators.
+This justiﬁes bootstrap standard errors as consistent estimators for the asymptotic distribution.
+An important caveat is that these results critically rely on the trimmed variance estimator. This is a
+critical caveat as conventional statistical packages (e.g. Stata) calculate bootstrap standard errors using
+the untrimmed estimator (10.7). Thus there is no guarantee that the reported standard errors are con-
+sistent. The untrimmed variance estimator works in the context of Theorem 10.10 and whenever the
+bootstrap statistic is uniformly square integrable, but not necessarily in general applications.
+In practice, it may be difﬁcult to know how to select the trimming sequenceτn. The rule τn = O
+(
+en/8)
+does not provide practical guidance. Instead, it may be useful to think about trimming in terms of per-
+centages of the bootstrap draws. Thus we can set τn so that a given small percentage γn is trimmed. For
+theoretical interpretation we would set γn → 0 as n → ∞. In practice we might set γn = 1%.
+10.15 Unreliability of Untrimmed Bootstrap Standard Errors
+In the previous section we presented a trimmed bootstrap variance estimator which should be used
+to form bootstrap standard errors for nonlinear estimators. Otherwise, the untrimmed estimator is po-
+tentially unreliable.
+This is an unfortunate situation, because reporting of bootstrap standard errors is commonplace in
+contemporary applied econometric practice, and standard applications (including Stata) use the untrimmed
+estimator.
+To illustrate the seriousness of the problem we use the simple wage regression (7.31) which we repeat
+here. This is the subsample of married Black women with 982 observations. The point estimates and
+standard errors are
+álog(wage) = 0.118
+(0.008)
+education + 0.016
+(0.006)
+experience − 0.022
+(0.012)
+experience2/100 + 0.947
+(0.157)
+.
+We are interested in the experience level which maximizes expected log wagesθ3 = −50β2/β3. The point
+estimate and standard errors calculated with different methods are reported in Table 10.3 below.
+
+
+--- page 21 ---
+
+CHAPTER 10. RESAMPLING METHODS 277
+The point estimate of the experience level with maximum earnings is ˆθ3 = 35. The asymptotic and
+jackknife standard errors are about 7. The bootstrap standard error, however, is 825! Confused by this
+unusual value we rerun the bootstrap and obtain a standard error of 544. Each was computed with 10,000
+bootstrap replications. The fact that the two bootstrap standard errors are considerably different when
+recomputed (with different starting seeds) is indicative of moment failure. When there is an enormous
+discrepancy like this between the asymptotic and bootstrap standard error, and between bootstrap runs,
+it is a signal that there may be moment failure and consequently bootstrap standard errors are unreliable.
+A trimmed bootstrap with τ = 25 (set to slightly exceed three asymptotic standard errors) produces a
+more reasonable standard error of 10.
+One message from this application is that when different methods produce very different standard
+errors we should be cautious about trusting any single method. The large discrepancies indicate poor
+asymptotic approximations, rendering all methods inaccurate. Another message is to be cautious about
+reporting conventional bootstrap standard errors. Trimmed versions are preferred, especially for non-
+linear functions of estimated coefﬁcients.
+Table 10.3: Experience Level Which Maximizes Expected log Wages
+Estimate 35.2
+Asymptotic s.e. (7.0)
+Jackknife s.e. (7.0)
+Bootstrap s.e. (standard) (825)
+Bootstrap s.e. (repeat) (544)
+Bootstrap s.e. (trimmed) (10.1)
+10.16 Consistency of the Percentile Interval
+Recall the percentile interval (10.8). We now provide conditions under which it has asymptotically
+correct coverage.
+Theorem 10.13 Assume that for some sequence an
+an
+(ˆθ − θ
+)
+− →
+d
+ξ (10.18)
+and
+an
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+ξ (10.19)
+where ξ is continuously distributed and symmetric about zero. Then
+P
+[
+θ ∈ C pc]
+→ 1 − α as n → ∞.
+The assumptions (10.18)-(10.19) hold for the smooth function model of Theorem 10.7, so this result
+incorporates many applications. The beauty of Theorem 10.13 is that the simple conﬁdence interval
+C pc – which does not require technical calculation of asymptotic standard errors – has asymptotically
+valid coverage for any estimator which falls in the smooth function class, as well as any other estimator
+satisfying the convergence results (10.18)-(10.19) with ξ symmetrically distributed. The conditions are
+weaker than those required for consistent bootstrap variance estimation (and normal-approximation
+
+
+--- page 22 ---
+
+CHAPTER 10. RESAMPLING METHODS 278
+conﬁdence intervals) because it is not necessary to verify that ˆθ∗ is uniformly integrable, nor necessary
+to employ trimming.
+The proof of Theorem 10.7 is not difﬁcult. The convergence assumption (10.19) implies that the αt h
+quantile of an
+(ˆθ∗ − ˆθ
+)
+, which is an
+(
+q ∗
+α − ˆθ
+)
+by quantile equivariance, converges in probability to the αt h
+quantile of ξ, which we can denote as q α. Thus
+an
+(
+q ∗
+α − ˆθ
+)
+− →p q α. (10.20)
+Let H(x) = P[ξ ≤ x] be the distribution function of ξ. The assumption of symmetry implies H(−x) =
+1 − H(x). Then the percentile interval has coverage
+P
+[
+θ ∈ C pc]
+= P
+[
+q ∗
+α/2 ≤ θ ≤ q ∗
+1−α/2
+]
+= P
+[
+−an
+(
+q ∗
+α/2 − ˆθ
+)
+≥ an
+(ˆθ − θ
+)
+≥ −an
+(
+q ∗
+1−α/2 − ˆθ
+)]
+→ P
+[
+−q α/2 ≥ ξ ≥ −q1−α/2
+]
+= H
+(
+−q α/2
+)
+− H
+(
+−q1−α/2
+)
+= H
+(
+q1−α/2
+)
+− H
+(
+q α/2
+)
+= 1 − α.
+The convergence holds by (10.18) and (10.20). The following equality uses the deﬁnition of H, the next-
+to-last is the symmetry of H, and the ﬁnal equality is the deﬁnition of q α. This establishes Theorem
+10.13.
+Theorem 10.13 seems quite general, but it critically rests on the assumption that the asymptotic
+distribution ξ is symmetrically distributed about zero. This may seem innocuous since conventional
+asymptotic distributions are normal and hence symmetric, but it deserves further scrutiny. It is not
+merely a technical assumption – an examination of the steps in the preceeding argument isolate quite
+clearly that if the symmetry assumption is violated then the asymptotic coverage will not be 1− α. While
+Theorem 10.13 does show that the percentile interval is asymptotically valid for a conventional asymp-
+totically normal estimator, the reliance on symmetry in the argument suggests that the percentile method
+will work poorly when the ﬁnite sample distribution is asymmetric. This turns out to be the case and
+leads us to consider alternative methods in the following sections.
+It is also worthwhile to investigate a ﬁnite sample justiﬁcation for the percentile interval based on a
+heuristic analogy due to Efron.
+Assume that there exists an unknown but strictly increasing transformation ψ(θ) such that ψ(ˆθ) −
+ψ(θ) has a pivotal distribution H(u) (does not vary with θ) which is symmetric about zero. For example,
+if ˆθ ∼ N(θ, σ2) we can set ψ(θ) = θ/σ. Alternatively, if ˆθ = exp
+(
+ˆµ
+)
+and ˆµ ∼ N(µ, σ2) then we can set ψ(θ) =
+log(θ)/σ.
+To assess the coverage of the percentile interval, observe that since the distribution H is pivotal the
+bootstrap distribution ψ(ˆθ∗) − ψ(ˆθ) also has distribution H(u). Let
+q α be the αt h quantile of the distri-
+bution H. Since q ∗
+α is the αt h quantile of the distribution of ˆθ∗ and ψ(ˆθ∗) − ψ(ˆθ) is a monotonic transfor-
+mation of ˆθ∗, by the quantile equivariance property we deduce that q α + ψ(ˆθ) = ψ(q ∗
+α). The percentile
+
+
+--- page 23 ---
+
+CHAPTER 10. RESAMPLING METHODS 279
+interval has coverage
+P
+[
+θ ∈ C pc]
+= P
+[
+q ∗
+α/2 ≤ θ ≤ q ∗
+1−α/2
+]
+= P
+[
+ψ(q ∗
+α/2) ≤ ψ(θ) ≤ ψ(q ∗
+1−α/2)
+]
+= P
+[
+ψ(ˆθ) − ψ(q ∗
+α/2) ≥ ψ(ˆθ) − ψ(θ) ≥ ψ
+(ˆθ
+)
+− ψ(q ∗
+1−α/2)
+]
+= P
+[
+−q α/2 ≥ ψ(ˆθ) − ψ(θ) ≥ −q1−α/2
+]
+= H
+(
+−q α/2
+)
+− H
+(
+−q1−α/2
+)
+= H
+(
+q1−α/2
+)
+− H
+(
+q α/2
+)
+= 1 − α.
+The second equality applies the monotonic transformation ψ(u) to all elements. The fourth uses the
+relationship q α + ψ(ˆθ) = ψ(q ∗
+α). The ﬁfth uses the deﬁntion ofH. The sixth uses the symmetry property
+of H, and the ﬁnal is by the deﬁnition ofq α as the αt h quantile of H.
+This calculation shows that under these assumptions the percentile interval has exact coverage 1−α.
+The nice thing about this argument is the introduction of the unknown transformation ψ(u) for which
+the percentile interval automatically adapts. The unpleasant feature is the assumption of symmetry.
+Similar to the asymptotic argument the calculation strongly relies on the symmetry of the distribution
+H(x). Without symmetry the coverage will be incorrect.
+Intuitively, we expect that when the assumptions are approximately true then the percentile interval
+will have approximately correct coverage. Thus so long as there is a transformationψ(u) such that ψ(ˆθ)−
+ψ(θ) is approximately pivotal and symmetric about zero, then the percentile interval should work well.
+This argument has the following application. Suppose that the parameter of interest is θ = exp(µ)
+where µ = E[Y ] and suppose Y has a pivotal symmetric distribution about µ. Then even though ˆθ =
+exp(Y ) does not have a symmetric distribution, the percentile interval applied to ˆθ will have the correct
+coverage, because the monotonic transformation log
+(ˆθ
+)
+has a pivotal symmetric distribution.
+10.17 Bias-Corrected Percentile Interval
+The accuracy of the percentile interval depends critically upon the assumption that the sampling
+distribution is approximately symmetrically distributed. This excludes ﬁnite sample bias, for an esti-
+mator which is biased cannot be symmetrically distributed. Many contexts in which we want to apply
+bootstrap methods (rather than asymptotic) are when the parameter of interest is a nonlinear function
+of the model parameters, and nonlinearity typically induces estimation bias. Consequently it is difﬁcult
+to expect the percentile method to generally have accurate coverage.
+To reduce the bias problem Efron (1982) introduced the bias-corrected (BC) percentile interval .
+The justiﬁcation is heuristic but there is considerable evidence that the bias-corrected method is an
+important improvement on the percentile interval.
+The construction is based on the assumption is that there is a an unknown but strictly increasing
+transformation ψ(θ) and unknown constant z0 such that
+Z = ψ(ˆθ) − ψ(θ) + z0 ∼ N(0,1). (10.21)
+(The assumption that Z is normal is not critical. It could be replaced by any known symmetric and
+invertible distribution.) Let Φ(x) denote the normal distribution function, Φ−1(p) its quantile function,
+and zα = Φ−1(α) the normal critical values. Then the BC interval can be constructed from the bootstrap
+estimators ˆθ∗
+b and bootstrap quantiles q ∗
+α as follows. Set
+p ∗ = 1
+B
+B∑
+b=1
+1
+{ˆθ∗
+b ≤ ˆθ
+}
+(10.22)
+
+
+--- page 24 ---
+
+CHAPTER 10. RESAMPLING METHODS 280
+and
+z∗
+0 = Φ−1(p ∗). (10.23)
+p ∗ is a measure of median bias, and z0 is p ∗ transformed into normal units. If the bias of ˆθ is zero then
+p ∗ = 0.5 and z∗
+0 = 0. If ˆθ is upwards biased then p ∗ < 0.5 and z∗
+0 < 0. Conversely if ˆθ is dowward biased
+then p ∗ > 0.5 and z∗
+0 > 0. Deﬁne for anyα an adjusted version
+x(α) = Φ(zα + 2z0). (10.24)
+If z0 = 0 then x(α) = α. If z0 > 0 then x(α) > α, and conversely when x(α) < 0. The BC interval is
+C bc =
+[
+q ∗
+x(α/2), q ∗
+x(1−α/2)
+]
+. (10.25)
+Essentially, rather than going from the 2.5% to 97.5% quantile, the BC interval uses adjusted quantiles,
+with the degree of adjustment depending on the extent of the bias.
+The construction of the BC interval is not intuitive. We now show that assumption (10.21) implies
+that the BC interval has exact coverage. (10.21) implies that
+P
+[
+ψ(ˆθ) − ψ(θ) + z0 ≤ x
+]
+= Φ(x).
+Since the distribution is pivotal the result carries over to the bootstrap distribution
+P∗ [
+ψ(ˆθ∗) − ψ(ˆθ) + z0 ≤ x
+]
+= Φ(x). (10.26)
+Evaluating (10.26) at x = z0 we ﬁndP∗ [
+ψ(ˆθ∗) − ψ(ˆθ) ≤ 0
+]
+= Φ(z0) which implies P∗ [ˆθ∗ ≤ ˆθ
+]
+= Φ(z0). In-
+verting, we obtain
+z0 = Φ−1 (
+P∗ [ˆθ∗ ≤ ˆθ
+])
+(10.27)
+which is the probability limit of (10.23) as B → ∞. Thus the unknown z0 is recoved by (10.23), and we
+can treat z0 as if it were known.
+From (10.26) we deduce that
+x(α) = Φ(zα + 2z0)
+= P∗ [
+ψ(ˆθ∗) − ψ(ˆθ) ≤ zα + z0)
+]
+= P∗ [ˆθ∗ ≤ ψ−1 (
+ψ(ˆθ) + z0 + zα
+)]
+.
+This equation shows that ψ−1 (
+ψ(ˆθ) + z0 + zα
+)
+equals the x(α)t h bootstrap quantile. That is, q ∗
+x(α) =
+ψ−1 (
+ψ(ˆθ) + z0 + zα
+)
+. Hence we can write (10.25) as
+C bc =
+[
+ψ−1 (
+ψ(ˆθ) + z0 + zα/2
+)
+, ψ−1 (
+ψ(ˆθ) + z0 + z1−α/2
+)]
+.
+It has coverage probability
+P
+[
+θ ∈ C bc
+]
+= P
+[
+ψ−1 (
+ψ(ˆθ) + z0 + zα/2
+)
+≤ θ ≤ ψ−1 (
+ψ(ˆθ) + z0 + z1−α/2
+)]
+= P
+[
+ψ(ˆθ) + z0 + zα/2 ≤ ψ(θ) ≤ ψ(ˆθ) + z0 + z1−α/2
+]
+= P
+[
+−zα/2 ≥ ψ(ˆθ) − ψ(θ) + z0 ≥ −z1−α/2
+]
+= P[z1−α/2 ≥ Z ≥ zα/2]
+= Φ(z1−α/2) − Φ(zα/2)
+= 1 − α.
+
+
+--- page 25 ---
+
+CHAPTER 10. RESAMPLING METHODS 281
+The second equality applies the transformation ψ(θ). The fourth equality uses the model (10.21) and the
+fact zα = −z1−α. This shows that the BC interval (10.25) has exact coverage under the assumption (10.21).
+Furthermore, under the assumptions of Theorem 10.13, the BC interval has asymptotic coverage
+probability 1 − α, since the bias correction is asymptotically negligible.
+An important property of the BC percentile interval is that it is transformation-respecting (like the
+percentile interval). To see this, observe that p ∗ is invariant to transformations since it is a probability,
+and thus z∗
+0 and x(α) are invariant. Since the interval is constructed from the x(α/2) and x(1 − α/2)
+quantiles, the quantile equivariance property shows that the interval is transformation-respecting.
+The bootstrap BC percentile intervals for the four estimators are reported in Table 13.2. They are
+generally similar to the percentile intervals, though the intervals for σ2 and µ are somewhat shifted to
+the right.
+In Stata, BC percentile conﬁdence intervals can be obtained by using the commandestat bootstrap
+after an estimation command which calculates standard errors via the bootstrap.
+10.18 BC a Percentile Interval
+A further improvement on the BC interval was made by Efron (1987) to account for the skewness in
+the sampling distribution, which can be modeled by specifying that the variance of the estimator de-
+pends on the parameter. The resulting bootstrap accelerated bias-corrected percentile interval (BCa)
+has improved performance on the BC interval, but requires a bit more computation and is less intuitive
+to understand.
+The construction is a generalization of that for the BC intervals. The assumption is that there is an
+unknown but strictly increasing transformation ψ(θ) and unknown constants a and z0 such that
+Z = ψ(ˆθ) − ψ(θ)
+1 + aψ(θ) + z0 ∼ N(0,1). (10.28)
+(As before, the assumption that Z is normal could be replaced by any known symmetric and invertible
+distribution.)
+The constant z0 is estimated by (10.23) just as for the BC interval. There are several possible estima-
+tors of a. Efron’ s suggestion is a scaled jackknife estimator of the skewness ofˆθ:
+ˆa =
+∑n
+i =1
+(
+θ − ˆθ(−i )
+)3
+6
+(∑n
+i =1
+(
+θ − ˆθ(−i )
+)2)3/2
+θ = 1
+n
+n∑
+i =1
+ˆθ(−i ).
+The jackknife estimator of ˆa makes the BCa interval more computationally costly than other intervals.
+Deﬁne for anyα the adjusted version
+x(α) = Φ
+(
+z0 + zα + z0
+1 − a (zα + z0)
+)
+.
+The BCa percentile interval is
+C bca =
+[
+q ∗
+x(α/2), q ∗
+x(1−α/2)
+]
+.
+Note that x(α) simpliﬁes to (10.24) and C bca simplies to C bc when a = 0. While C bc improves on C pc by
+correcting the median bias, C bca makes a further correction for skewness.
+
+
+--- page 26 ---
+
+CHAPTER 10. RESAMPLING METHODS 282
+The BC a interval is only well-deﬁned for values of α such that a (zα + z0) < 1. (Or equivalently, if
+α < Φ
+(
+a−1 − z0
+)
+for a > 0 and α > Φ
+(
+a−1 − z0
+)
+for a < 0.)
+The BCa interval, like the BC and percentile intervals, is transformation-respecting. Thus if
+[
+q ∗
+x(α/2), q ∗
+x(1−α/2)
+]
+is the BC a interval for θ, then
+[
+m
+(
+q ∗
+x(α/2)
+)
+,m
+(
+q ∗
+x(1−α/2)
+)]
+is the BC α interval for φ = m(θ) when m(θ) is
+monotone.
+We now give a justiﬁcation for the BCa interval. The most difﬁcult feature to understand is the esti-
+mator ˆa for a. This involves higher-order approximations which are too advanced for our treatment, so
+we instead refer readers to Chapter 4.1.4 of Shao and Tu (1995) and simply assume thata is known.
+We now show that assumption (10.28) with a known implies that C bca has exact coverage. The argu-
+ment is essentially the same as that given in the previous section. Assumption (10.28) implies that the
+bootstrap distribution satisﬁes
+P∗
+[
+ψ(ˆθ∗) − ψ(ˆθ)
+1 + aψ(ˆθ)
++ z0 ≤ x
+]
+= Φ(x). (10.29)
+Evaluating at x = z0 and inverting we obtain (10.27) which is the same as for the BC interval. Thus the
+estimator (10.23) is consistent as B → ∞ and we can treat z0 as if it were known.
+From (10.29) we deduce that
+x(α) = P∗
+[
+ψ(ˆθ∗) − ψ(ˆθ)
+1 + aψ(ˆθ)
+≤ zα + z0
+1 − a (zα + z0)
+]
+= P∗
+[
+ˆθ∗ ≤ ψ−1
+(
+ψ(ˆθ) + zα + z0
+1 − a (zα + z0)
+)]
+.
+This shows that ψ−1
+(ψ(ˆθ)+zα+z0
+1−a(zα+z0)
+)
+equals the x(α)t h bootstrap quantile. Hence we can write C bca as
+C bca =
+[
+ψ−1
+(
+ψ(ˆθ) + zα/2 + z0
+1 − a (zα/2 + z0)
+)
+, ψ−1
+(
+ψ(ˆθ) + z1−α/2 + z0
+1 − a (z1−α/2 + z0)
+)]
+.
+It has coverage probability
+P
+[
+θ ∈ C bca
+]
+= P
+[
+ψ−1
+(
+ψ(ˆθ) + zα/2 + z0
+1 − a (zα/2 + z0)
+)
+≤ θ ≤ ψ−1
+(
+ψ(ˆθ) + z1−α/2 + z0
+1 − a (z1−α/2 + z0)
+)]
+= P
+[
+ψ(ˆθ) + zα/2 + z0
+1 − a (zα/2 + z0) ≤ ψ(θ) ≤ ψ(ˆθ) + z1−α/2 + z0
+1 − a (z1−α/2 + z0)
+]
+= P
+[
+−zα/2 ≥ ψ(ˆθ) − ψ(θ)
+1 + aψ(θ) + z0 ≥ −z1−α/2
+]
+= P[z1−α/2 ≥ Z ≥ zα/2]
+= 1 − α.
+The second equality applies the transformation ψ(θ). The fourth equality uses the model (10.28) and the
+fact zα = −z1−α. This shows that the BC a interval C bca has exact coverage under the assumption (10.28)
+with a known.
+The bootstrap BC a percentile intervals for the four estimators are reported in Table 13.2. They are
+generally similar to the BC intervals, though the intervals for σ2 and µ are slightly shifted to the right.
+In Stata, BCa intervals can be obtained by using the command estat bootstrap, bca or the com-
+mand estat bootstrap, all after an estimation command which calculates standard errors via the
+bootstrap using the bca option.
+
+
+--- page 27 ---
+
+CHAPTER 10. RESAMPLING METHODS 283
+10.19 Percentile-t Interval
+In many cases we can obtain improvement in accuracy by bootstrapping a studentized statistic such
+as a t-ratio. Let ˆθ be an estimator of a scalar parameter θ and s(ˆθ) a standard error. The sample t-ratio is
+T =
+ˆθ − θ
+s(ˆθ)
+.
+The bootstrap t-ratio is
+T ∗ =
+ˆθ∗ − ˆθ
+s(ˆθ∗)
+where s(ˆθ∗) is the standard error calculated on the bootstrap sample. Notice that the bootstrap t-ratio is
+centered at the parameter estimator ˆθ. This is because ˆθ is the “true value” in the bootstrap universe.
+The percentile-t interval is formed using the distribution of T ∗. This can be calculated via the boot-
+strap algorithm. On each bootstrap sample the estimator ˆθ∗ and its standard error s(ˆθ∗) are calculated,
+and the t-ratio T ∗ =
+(ˆθ∗ − ˆθ
+)
+/s(ˆθ∗) calculated and stored. This is repeated B times. The αt h quantile q ∗
+α
+is estimated by the αt h empirical quantile (or any quantile estimator) from the B bootstrap draws of T ∗.
+The bootstrap percentile-t conﬁdence interval is deﬁned as
+C pt =
+[ˆθ − s(ˆθ)q ∗
+1−α/2, ˆθ − s(ˆθ)q ∗
+α/2
+]
+.
+The form may appear unusual when compared with the percentile interval. The left endpoint is deter-
+mined by the upper quantile of the distribution ofT ∗, and the right endpoint is determined by the lower
+quantile. As we show below, this construction is important for the interval to have correct coverage when
+the distribution is not symmetric.
+When the estimator is asymptotically normal and the standard error a reliable estimator of the stan-
+dard deviation of the distribution we would expect the t-ratio T to be roughly approximated by the nor-
+mal distribution. In this case we would expect q ∗
+0.975 ≈ −q ∗
+0.025 ≈ 2. Departures from this baseline occur
+as the distribution becomes skewed or fat-tailed. If the bootstrap quantiles depart substantially from
+this baseline it is evidence of substantial departure from normality. (It may also indicate a programming
+error, so in these cases it is wise to triple-check!)
+The percentile-t has the following advantages. First, when the standard error s(ˆθ) is reasonably reli-
+able, the percentile-t bootstrap makes use of the information in the standard error, thereby reducing the
+role of the bootstrap. This can improve the precision of the method relative to other methods. Second, as
+we show later, the percentile-t intervals achieve higher-order accuracy than the percentile and BC per-
+centile intervals. Third, the percentile-t intervals correspond to the set of parameter values “not rejected”
+by one-sided t-tests using bootstrap critical values (bootstrap tests are presented in Section 10.21).
+The percentile-t interval has the following disadvantages. First, they may be infeasible when stan-
+dard error formula are unknown. Second, they may be practically infeasible when standard error calcu-
+lations are computationally costly (since the standard error calculation needs to be performed on each
+bootstrap sample). Third, the percentile-t may be unreliable if the standard errorss(ˆθ) are unreliable and
+thus add more noise than clarity. Fourth, the percentile-t interval is not translation preserving, unlike the
+percentile, BC percentile, and BCa percentile intervals.
+It is typical to calculate percentile-t intervals with t-ratios constructed with conventional asymptotic
+standard errors. But this is not the only possible implementation. The percentile-t interval can be con-
+structed with any data-dependent measure of scale. For example, if ˆθ is a two-step estimator for which it
+is unclear how to construct a correct asymptotic standard error, but we know how to calculate a standard
+error s(ˆθ) appropriate for the second step alone, then s(ˆθ) can be used for a percentile-t-type interval as
+
+
+--- page 28 ---
+
+CHAPTER 10. RESAMPLING METHODS 284
+described above. It will not possess the higher-order accuracy properties of the following section, but it
+will satisfy the conditions for ﬁrst-order validity.
+Furthermore, percentile-t intervals can be constructed using bootstrap standard errors. That is, the
+statistics T and T ∗ can be computed using bootstrap standard errorssboot
+ˆθ . This is computationally costly
+as it requires what we call a “nested bootstrap” . Speciﬁcally, for each bootstrap replication, a random
+sample is drawn, the bootstrap estimate ˆθ∗ computed, and then B additional bootstrap sub-samples
+drawn from the bootstrap sample to compute the bootstrap standard error for the bootstrap estimate
+ˆθ∗. Effectively B 2 bootstrap samples are drawn and estimated, which increases the computational re-
+quirement by an order of magnitude.
+We now describe the distribution theory for ﬁrst-order validity of the percentile-t bootstrap.
+First, consider the smooth function model, where ˆθ = g
+(
+ˆµ
+)
+and s(ˆθ) =
+√
+1
+n ˆG
+′ ˆV ˆG with bootstrap
+analogs ˆθ∗ = g
+(
+ˆµ∗)
+and s(ˆθ∗) =
+√
+1
+n ˆG
+∗′ ˆV
+∗ ˆG
+∗
+. From Theorems 6.10, 10.7, and 10.8
+T =
+pn
+(ˆθ − θ
+)
+√
+ˆG
+′ ˆV ˆG
+− →
+d
+Z
+and
+T ∗ =
+pn
+(ˆθ∗ − ˆθ
+)
+√
+ˆG
+∗′ ˆV
+∗ ˆG
+∗ − →
+d ∗
+Z
+where Z ∼ N(0,1). This shows that the sample and bootstrap t-ratios have the same asymptotic distribu-
+tion.
+This motivates considering the broader situation where the sample and bootstrap t-ratios have the
+same asymptotic distribution but not necessarily normal. Thus assume that
+T − →
+d
+ξ (10.30)
+T ∗ − →
+d ∗
+ξ (10.31)
+for some continuous distribution ξ. (10.31) implies that the quantiles of T ∗ converge in probability to
+those of ξ, that is q ∗
+α − →p qα where qα is the αt h quantile of ξ. This and (10.30) imply
+P
+[
+θ ∈ C pt]
+= P
+[ˆθ − s(ˆθ)q ∗
+1−α/2 ≤ θ ≤ ˆθ − s(ˆθ)q ∗
+α/2
+]
+= P
+[
+q ∗
+α/2 ≤ T ≤ q ∗
+1−α/2
+]
+→ P
+[
+qα/2 ≤ ξ ≤ q1−α/2
+]
+= 1 − α.
+Thus the percentile-t is asymptotically valid.
+Theorem 10.14 If (10.30) and (10.31) hold whereξ is continuously distributed,
+then P
+[
+θ ∈ C pt]
+→ 1 − α as n → ∞.
+The bootstrap percentile-t intervals for the four estimators are reported in Table 13.2. They are simi-
+lar but somewhat different from the percentile-type intervals, and generally wider. The largest difference
+arises with the interval for σ2 which is noticably wider than the other intervals.
+
+
+--- page 29 ---
+
+CHAPTER 10. RESAMPLING METHODS 285
+10.20 Percentile-t Asymptotic Reﬁnement
+This section uses the theory of Edgeworth and Cornish-Fisher expansions introduced in Chapter
+9.8-9.10 of Introduction to Econometrics. This theory will not be familiar to most students. If you are
+interested the following reﬁnement theory it is advisable to start by reading these sections ofIntroduction
+to Econometrics.
+The percentile-t interval can be viewed as the intersection of two one-sided conﬁdence intervals.
+In our discussion of Edgeworth expansions for the coverage probability of one-sided asymptotic conﬁ-
+dence intervals (following Theorem 7.15 in the context of functions of regression coefﬁcients) we found
+that one-sided asymptotic conﬁdence intervals have accuracy to orderO
+(
+n−1/2)
+. We now show that the
+percentile-t interval has improved accuracy.
+Theorem 9.13 of Introduction to Econometrics showed that the Cornish-Fisher expansion for the
+quantile qα of a t-ratio T in the smooth function model takes the form
+qα = zα + n−1/2p11(zα) +O
+(
+n−1)
+where p11 (x) is an even polynomial of order 2 with coefﬁcients depending on the moments up to order
+8. The bootstrap quantile q ∗
+α has a similar Cornish-Fisher expansion
+q ∗
+α = zα + n−1/2p ∗
+11(zα) +Op
+(
+n−1)
+where p ∗
+11 (x) is the same as p11(x) except that the population moments are replaced by the correspond-
+ing sample moments. Sample moments are estimated at the rate n−1/2. Thus we can replace p ∗
+11 with
+p11 without affecting the order of this expansion:
+q ∗
+α = zα + n−1/2p11(zα) +Op
+(
+n−1)
+= qα +Op
+(
+n−1)
+.
+This shows that the bootstrap quantiles q ∗
+α of the studentized t-ratio are within Op
+(
+n−1)
+of the exact
+quantiles qα.
+By the Edgeworth expansion Delta method (Theorem 9.12 of Introduction to Econometrics ), T and
+T + (qα − q ∗
+α) = T +Op
+(
+n−1)
+have the same Edgeworth expansion to order O(n−1). Thus
+P
+[
+T ≤ q ∗
+α
+]
+= P
+[
+T + (qα − q ∗
+α) ≤ qα
+]
+= P
+[
+T ≤ qα
+]
++O(n−1)
+= α +O(n−1).
+Thus the coverage of the percentile-t interval is
+P
+[
+θ ∈ C pt]
+= P
+[
+q ∗
+α/2 ≤ T ≤ q ∗
+1−α/2
+]
+= P
+[
+qα/2 ≤ T ≤ q1−α/2
+]
++O(n−1)
+= 1 − α +O(n−1).
+This is an improved rate of convergence relative to the one-sided asymptotic conﬁdence interval.
+Theorem 10.15 Under the assumptions of Theorem 9.11 of Introduction to
+Econometrics, P
+[
+θ ∈ C pt]
+= 1 − α +O(n−1).
+
+
+--- page 30 ---
+
+CHAPTER 10. RESAMPLING METHODS 286
+The following deﬁnition of the accuracy of a conﬁdence interval is useful.
+Deﬁnition 10.3 A conﬁdence setC for θ is k t h-order accurate if
+P[θ ∈ C ] = 1 − α +O
+(
+n−k/2
+)
+.
+Examining our results we ﬁnd that one-sided asymptotic conﬁdence intervals are ﬁrst-order accu-
+rate but percentile-t intervals are second-order accurate. When a bootstrap conﬁdence interval (or test)
+achieves high-order accuracy than the analogous asymptotic interval (or test), we say that the bootstrap
+method achieves an asymptotic reﬁnement. Here, we have shown that the percentile-t interval achieves
+an asymptotic reﬁnement.
+In order to achieve this asymptotic reﬁnement it is important that the t-ratio T (and its bootstrap
+counter-part T ∗) are constructed with asymptotically valid standard errors. This is because the ﬁrst
+term in the Edgeworth expansion is the standard normal distribution and this requires that the t-ratio
+is asymptotically normal. This also has the practical ﬁnite-sample implication that the accuracy of the
+percentile-t interval in practice depends on the accuracy of the standard errors used to construct the
+t-ratio.
+We do not go through the details, but normal-approximation bootstrap intervals, percentile boot-
+strap intervals, and bias-corrected percentile bootstrap intervals are all ﬁrst-order accurate and do not
+achieve an asymptotic reﬁnement.
+The BCa interval, however, can be shown to be asymptotically equivalent to the percentile-t interval,
+and thus achieves an asymptotic reﬁnement. We do not make this demonstration here as it is advanced.
+See Section 3.10.4 of Hall (1992).
+Peter Hall
+Peter Gavin Hall (1951-2016) of Australia was one of the most inﬂuential and
+proliﬁc theoretical statisticians in history. He made wide-ranging contributions.
+Some of the most relevant for econometrics are theoretical investigations of
+bootstrap methods and nonparametric kernel methods.
+10.21 Bootstrap Hypothesis Tests
+To test the hypothesis H0 : θ = θ0 against H1 : θ ̸= θ0 the most common approach is a t-test. We reject
+H0 in favor of H1 for large absolute values of the t-statistic T =
+(ˆθ − θ0
+)
+/s(ˆθ) where ˆθ is an estimator of
+θ and s(ˆθ) is a standard error for ˆθ. For a bootstrap test we use the bootstrap algorithm to calculate the
+critical value.
+The bootstrap algorithm samples with replacement from the dataset. Given a bootstrap sample
+the bootstrap estimator ˆθ∗ and standard error s(ˆθ∗) are calculated. Given these values the bootstrap
+t-statistic is T ∗ =
+(ˆθ∗ − ˆθ
+)
+/s(ˆθ∗). There are two important features about the bootstrap t-statistic. First,
+T ∗ is centered at the sample estimate ˆθ, not at the hypothesized value θ0. This is done because ˆθ is the
+
+
+--- page 31 ---
+
+CHAPTER 10. RESAMPLING METHODS 287
+true value in the bootstrap universe, and the distribution of the t-statistic must be centered at the true
+value within the bootstrap sampling framework. Second, T ∗ is calculated using the bootstrap standard
+error s(ˆθ∗). This allows the bootstrap to incorporate the randomness in standard error estimation.
+The failure to properly center the bootstrap statistic at ˆθ is a common error in applications. Often
+this is because the hypothesis to be tested is H0 : θ = 0, so the test statistic is T = ˆθ/s(ˆθ). This intuitively
+suggests the bootstrap statistic T ∗ = ˆθ∗/s(ˆθ∗), but this is wrong. The correct bootstrap statistic is T ∗ =(ˆθ∗ − ˆθ
+)
+/s(ˆθ∗).
+The bootstrap algorithm creates B draws T ∗(b) =
+(ˆθ∗(b) − ˆθ
+)
+/s(ˆθ∗(b)), b = 1, ...,B. The bootstrap
+100α% critical value is q ∗
+1−α, where q ∗
+α is the αt h quantile of the absolute values of the bootstrap t-ratios
+|T ∗(b)|. For a 100 α% test we reject H0 : θ = θ0 in favor of H1 : θ ̸= θ0 if |T |> q ∗
+1−α and fail to reject if
+|T |≤ q ∗
+1−α.
+It is generally better to report p-values rather than critical values. Recall that a p-value is p = 1 −
+Gn(|T |) where Gn(u) is the null distribution of the statistic |T |. The bootstrap p-value is deﬁned as
+p ∗ = 1 −G ∗
+n(|T |), where G ∗
+n(u) is the bootstrap distribution of |T ∗|. This is estimated from the bootstrap
+algorithm as
+p ∗ = 1
+B
+B∑
+b=1
+1
+{⏐⏐T ∗(b)
+⏐
+⏐ > |T |
+}
+,
+the percentage of bootstrap t-statistics that are larger than the observed t-statistic. Intuitively, we want to
+know how “unusual” is the observed statisticT when the null hypothesis is true. The bootstrap algorithm
+generates a large number of independent draws from the distribution T ∗ (which is an approximation to
+the unknown distribution of T ). If the percentage of the |T ∗|that exceed |T |is very small (say 1%) this
+tells us that |T |is an unusually large value. However, if the percentage is larger, say 15%, then we cannot
+interpret |T |as unusually large.
+If desired, the bootstrap test can be implemented as a one-sided test. In this case the statistic is
+the signed version of the t-ratio, and bootstrap critical values are calculated from the upper tail of the
+distribution for the alternative H1 : θ > θ0, and from the lower tail for the alternative H1 : θ < θ0. There is
+a connection between the one-sided tests and the percentile-t conﬁdence interval. The latter is the set
+of parameter values θ which are not rejected by either one-sided 100α/2% bootstrap t-test.
+Bootstrap tests can also be conducted with other statistics. When standard errors are not available or
+are not reliable we can use the non-studentized statistic T = ˆθ − θ0. The bootstrap version is T ∗ = ˆθ∗ − ˆθ.
+Let q ∗
+α be the αt h quantile of the bootstrap statistics
+⏐⏐ˆθ∗(b) − ˆθ
+⏐
+⏐. A bootstrap 100α% test rejectsH0 : θ = θ0
+if
+⏐
+⏐ˆθ − θ0
+⏐⏐ > q ∗
+1−α. The bootstrap p-value is
+p ∗ = 1
+B
+B∑
+b=1
+1
+{⏐⏐ˆθ∗(b) − ˆθ
+⏐
+⏐ >
+⏐
+⏐ˆθ − θ0
+⏐
+⏐}
+.
+Theorem 10.16 If (10.30) and (10.31) hold whereξ is continuously distributed,
+then the bootstrap critical value satisﬁesq ∗
+1−α − →p q1−α where q1−α is the 1−αt h
+quantile of |ξ|. The bootstrap test “Reject H0 in favor of H1 if |T |> q ∗
+1−α” has
+asymptotic size α: P
+[
+|T |> q ∗
+1−α |H0
+]
+− →α as n → ∞.
+In the smooth function model the t-test (with correct standard errors) has the following performance.
+
+
+--- page 32 ---
+
+CHAPTER 10. RESAMPLING METHODS 288
+Theorem 10.17 Under the assumptions of Theorem 9.11 of Introduction to
+Econometrics,
+q ∗
+1−α = z1−α + op
+(
+n−1)
+where zα = Φ−1 ((1 + α)/2) is the αt h quantile of |Z |. The asymptotic test “Reject
+H0 in favor of H1 if |T |> z1−α” has accuracy
+P
+[
+|T |> z1−α |H0
+]
+= 1 − α +O
+(
+n−1)
+and the bootstrap test “Reject H0 in favor of H1 if |T |> q ∗
+1−α” has accuracy
+P
+[
+|T |> q ∗
+1−α |H0
+]
+= 1 − α + o
+(
+n−1)
+.
+This shows that the bootstrap test achieves a reﬁnement relative to the asymptotic test.
+The reasoning is as follows. We have shown that the Edgeworth expansion for the absolute t-ratio
+takes the form
+P[|T |≤ x] = 2Φ(x) − 1 + n−12p2(x) + o(n−1).
+This means the asymptotic test has accuracy of order O(n−1).
+Given the Edgeworth expansion, the Cornish-Fisher expansion for the αt h quantile qα of the distri-
+bution of |T |takes the form
+qα = zα + n−1p21(zα) + o
+(
+n−1)
+.
+The bootstrap quantile q ∗
+α has the Cornish-Fisher expansion
+q ∗
+α = zα + n−1p ∗
+21(zα) + o
+(
+n−1)
+= zα + n−1p21(zα) + op
+(
+n−1)
+= qα + op
+(
+n−1)
+where p ∗
+21 (x) is the same as p21(x) except that the population moments are replaced by the correspond-
+ing sample moments. The bootstrap test has rejection probability, using the Edgeworth expansion Delta
+method (Theorem 11.12 of of Introduction to Econometrics)
+P
+[
+|T |> q ∗
+1−α|H0
+]
+= P
+[
+|T |+ (q1−α − q ∗
+1−α) > q1−α
+]
+= P
+[
+|T |> q1−α
+]
++ o(n−1)
+= 1 − α + o(n−1)
+as claimed.
+10.22 Wald-Type Bootstrap Tests
+If θ is a vector then to test H0 : θ = θ0 against H1 : θ ̸= θ0 at size α, a common test is based on the Wald
+statistic W =
+(ˆθ − θ0
+)′ ˆV
+−1
+ˆθ
+(ˆθ − θ0
+)
+where ˆθ is an estimator of θ and ˆV ˆθ is a covariance matrix estimator.
+For a bootstrap test we use the bootstrap algorithm to calculate the critical value.
+The bootstrap algorithm samples with replacement from the dataset. Given a bootstrap sample the
+bootstrap estimator ˆθ∗ and covariance matrix estimator ˆV
+∗
+ˆθ are calculated. Given these values the boot-
+strap Wald statistic is
+W ∗ =
+(ˆθ∗ − ˆθ
+)′ ˆV
+∗−1
+ˆθ
+(ˆθ∗ − ˆθ
+)
+.
+
+
+--- page 33 ---
+
+CHAPTER 10. RESAMPLING METHODS 289
+As for the t-test it is essential that the bootstrap Wald statistic W ∗ is centered at the sample estimator ˆθ
+instead of the hypothesized value θ0. This is because ˆθ is the true value in the bootstrap universe.
+Based on B bootstrap replications we calculate the αt h quantile q ∗
+α of the distribution of the boot-
+strap Wald statistics W ∗. The bootstrap test rejects H0 in favor of H1 if W > q ∗
+1−α. More commonly, we
+calculate a bootstrap p-value. This is
+p ∗ = 1
+B
+B∑
+b=1
+1
+{
+W ∗(b) > W
+}
+.
+The asymptotic performance of the Wald test mimics that of the t-test. In general, the bootstrap
+Wald test is ﬁrst-order correct (achieves the correct size asymptotically) and under conditions for which
+an Edgeworth expansion exists, has accuracy
+P
+[
+W > q ∗
+1−α |H0
+]
+= 1 − α + o(n−1)
+and thus achieves a reﬁnement relative to the asymptotic Wald test.
+If a reliable covariance matrix estimator ˆV ˆθ is not available a Wald-type test can be implemented
+with any positive-deﬁnite weight matrix instead of ˆV ˆθ. This includes simple choices such as the identity
+matrix. The bootstrap algorithm can be used to calculate critical values and p-values for the test. So
+long as the estimator ˆθ has an asymptotic distribution this bootstrap test will be asymptotically ﬁrst-
+order valid. The test will not achieve an asymptotic reﬁnement but provides a simple method to test
+hypotheses when covariance matrix estimates are not available.
+10.23 Criterion-Based Bootstrap Tests
+A criterion-based estimator takes the form
+ˆβ = argmin
+β
+J
+(
+β
+)
+for some criterion function J
+(
+β
+)
+. This includes least squares, maximum likelihood, and minimum dis-
+tance. Given a hypothesis H0 : θ = θ0 where θ = r
+(
+β
+)
+, the restricted estimator which satisﬁesH0 is
+˜β = argmin
+r(β)=θ0
+J
+(
+β
+)
+.
+A criterion-based statistic to test H0 is
+J = min
+r(β)=θ0
+J
+(
+β
+)
+− min
+β
+J
+(
+β
+)
+= J( ˜β) − J( ˆβ).
+A criterion-based test rejects H0 for large values of J. A bootstrap test uses the bootstrap algorithm to
+calculate the critical value.
+In this context we need to be a bit thoughtful about how to construct bootstrap versions ofJ. It might
+seem natural to construct the exact same statistic on the bootstrap samples as on the original sample,
+but this is incorrect. It makes the same error as calculating a t-ratio or Wald statistic centered at the
+hypothesized value. In the bootstrap universe, the true value of θ is not θ0, rather it is ˆθ = r
+(ˆβ
+)
+. Thus
+when using the nonparametric bootstrap, we want to impose the constraint r
+(
+β
+)
+= r
+(ˆβ
+)
+= ˆθ to obtain
+the bootstrap version of J.
+Thus, the correct way to calculate a bootstrap version of J is as follows. Generate a bootstrap sample
+by random sampling from the dataset. Let J ∗ (
+β
+)
+be the the bootstrap version of the criterion. On a
+
+
+--- page 34 ---
+
+CHAPTER 10. RESAMPLING METHODS 290
+bootstrap sample calculate the unrestricted estimator ˆβ∗ = argmin
+β
+J ∗ (
+β
+)
+and the restricted version ˜β∗ =
+argmin
+r(β)=ˆθ
+J ∗ (
+β
+)
+where ˆθ = r
+(ˆβ
+)
+. The bootstrap statistic is
+J ∗ = min
+r(β)=ˆθ
+J ∗ (
+β
+)
+− min
+β
+J ∗ (
+β
+)
+= J ∗( ˜β∗) − J ∗( ˆβ∗).
+Calculate J ∗ on each bootstrap sample. Take the 1 − αt h quantile q ∗
+1−α. The bootstrap test rejects H0
+in favor of H1 if J > q ∗
+1−α. The bootstrap p-value is
+p ∗ = 1
+B
+B∑
+b=1
+1
+{
+J ∗(b) > J
+}
+.
+Special cases of criterion-based tests are minimum distance tests, F tests, and likelihood ratio tests.
+Take the F test for a linear hypothesis R ′β = θ0. The F statistic is
+F =
+(
+˜σ2 − ˆσ2)
+/q
+ˆσ2/(n − k)
+where ˆσ2 is the unrestricted estimator of the error variance,˜σ2 is the restricted estimator,q is the number
+of restrictions and k is the number of estimated coefﬁcients. The bootstrap version of theF statistic is
+F∗ =
+(
+˜σ∗2 − ˆσ∗2)
+/q
+ˆσ∗2/(n − k)
+where ˆσ∗2 is the unrestricted estimator on the bootstrap sample, and ˜σ∗2 is the restricted estimator
+which imposes the restriction ˆθ = R ′ ˆβ.
+Take the likelihood ratio (LR) test for the hypothesisr
+(
+β
+)
+= θ0. The LR test statistic is
+LR = 2
+(
+ℓn
+(ˆβ
+)
+− ℓn
+(˜β
+))
+where ˆβ is the unrestricted MLE and ˜β is the restricted MLE (imposing r
+(
+β
+)
+= θ0). The bootstrap version
+is
+LR∗ = 2
+(
+ℓ∗
+n
+(ˆβ∗)
+− ℓ∗
+n
+(˜β∗))
+where ℓ∗
+n(β) is the log-likelihood function calculated on the bootstrap sample, ˆβ∗ is the unrestricted
+maximizer, and ˜β∗ is the restricted maximizer imposing the restriction r
+(
+β
+)
+= r
+(ˆβ
+)
+.
+10.24 Parametric Bootstrap
+Throughout this chapter we have described the most popular form of the bootstrap known as the
+nonparametric bootstrap. However there are other forms of the bootstrap algorithm including the para-
+metric bootstrap. This is appropriate when there is a full parametric model for the distribution as in
+likelihood estimation.
+First, consider the context where the model speciﬁes the full distribution of the random vector Y ,
+e.g. Y ∼ F (y |β) where the distribution function F is known but the parameterβ is unknown. Let ˆβ be an
+estimator of β such as the maximum likelihood estimator. The parametric bootstrap algorithm generates
+bootstrap observations Y ∗
+i by drawing random vectors from the distribution functionF (y |ˆβ). When this
+is done, the true value of β in the bootstrap universe is ˆβ. Everything which has been discussed in the
+chapter can be applied using this bootstrap algorithm.
+
+
+--- page 35 ---
+
+CHAPTER 10. RESAMPLING METHODS 291
+Second, consider the context where the model speciﬁes the conditional distribution of the random
+vector Y given the random vector X , e.g. Y |X = x ∼ F (y |x, β). An example is the normal linear re-
+gression model, where Y |X = x ∼ N
+(
+x′β, σ2)
+. In this context we can hold the regressors Xi ﬁxed and
+then draw the bootstrap observationsY ∗
+i from the conditional distributionF (y |Xi , ˆβ). In the example of
+the normal regression model this is equivalent to drawing a normal error e∗
+i ∼ N
+(
+0, ˆσ2)
+and then setting
+Y ∗
+i = X ′
+i
+ˆβ + e∗
+i . Again, in this algorithm the true value of β is ˆβ and everything which is discussed in this
+chapter can be applied as before.
+Third, consider tests of the hypothesis r
+(
+β
+)
+= θ0. In this context we can also construct a restricted
+estimator ˜β (for example the restricted MLE) which satisﬁes the hypothesisr
+(˜β
+)
+= θ0. Then we can gen-
+erate bootstrap samples by simulating from the distribution Y ∗
+i ∼ F (y |˜β), or in the conditional context
+from Y ∗
+i ∼ F (y |Xi , ˜β). When this is done the true value of β in the bootstrap is ˜β which satisﬁes the
+hypothesis. So in this context the correct values of the bootstrap statistics are
+T ∗ =
+ˆθ∗ − θ0
+s(ˆθ∗)
+W ∗ =
+(ˆθ∗ − θ0
+)′ ˆV
+∗−1
+ˆθ
+(ˆθ∗ − θ0
+)
+J ∗ = min
+r(β)=θ0
+J ∗ (
+β
+)
+− min
+β
+J ∗ (
+β
+)
+LR∗ = 2
+(
+max
+β
+ℓ∗
+n
+(
+β
+)
+− max
+r(β)=θ0
+ℓ∗
+n
+(
+β
+))
+and
+F∗ =
+(
+˜σ∗2 − ˆσ∗2)
+/q
+ˆσ∗2/(n − k)
+where ˆσ∗2 is the unrestricted estimator on the bootstrap sample and˜σ∗2 is the restricted estimator which
+imposes the restriction R ′β = θ0.
+The primary advantage of the parametric bootstrap (relative to the nonparametric bootstrap) is that
+it will be more accurate when the parametric model is correct. This may be quite important in small
+samples. The primary disadvantage of the parametric bootstrap is that it can be inaccurate when the
+parametric model is incorrect.
+10.25 How Many Bootstrap Replications?
+How many bootstrap replications should be used? There is no universally correct answer as there is a
+trade-off between accuracy and computation cost. Computation cost is essentially linear in B. Accuracy
+(either standard errors or p-values) is proportional to B −1/2. Improved accuracy can be obtained but
+only at a higher computational cost.
+In most empirical research, most calculations are quick and investigatory, not requiring full accu-
+racy. But ﬁnal results (those going into the ﬁnal version of the paper) should be accurate. Thus it seems
+reasonable to use asymptotic and/or bootstrap methods with a modest number of replications for daily
+calculations, but use a much larger B for the ﬁnal version.
+In particular, for ﬁnal calculations,B = 10,000 is desired, with B = 1000 a minimal choice. In contrast,
+for daily quick calculations values as low as B = 100 may be sufﬁcient for rough estimates.
+A useful way to think about the accuracy of bootstrap methods stems from the calculation of p-
+values. The bootstrap p-value p ∗ is an average of B Bernoulli draws. The variance of the simulation
+estimator of p ∗ is p ∗(1 − p ∗)/B, which is bounded above by 1/4 B. To calculate the p-value within, say,
+
+
+--- page 36 ---
+
+CHAPTER 10. RESAMPLING METHODS 292
+0.01 of the true value with 95% probability requires a standard error below 0.005. This is ensured if
+B ≥ 10,000.
+Stata by default sets B = 50. This is useful for veriﬁcation that a program runs but is a poor choice for
+empirical reporting. Make sure that you set B to the value you want.
+10.26 Setting the Bootstrap Seed
+Computers do not generate true random numbers but rather pseudo-random numbers generated by
+a deterministic algorithm. The algorithms generate sequences which are indistinguishable from random
+sequences so this is not a worry for bootstrap applications.
+The methods, however, necessarily require a starting value known as a “seed” . Some packages (in-
+cluding Stata and MATLAB) implement this with a default seed which is reset each time the statistical
+package is started. This means if you start the package fresh, run a bootstrap program (e.g. a “do” ﬁle
+in Stata), exit the package, restart the package and then rerun the bootstrap program, you should ob-
+tain exactly the same results. If you instead run the bootstrap program (e.g. “do” ﬁle) twice sequentially
+without restarting the package, the seed is not reset so a different set of pseudo-random numbers will be
+generated and the results from the two runs will be different.
+The R package has a different implementation. When R is loaded the random number seed is gener-
+ated based on the computer’ s clock (which results in an essentially random starting seed). Therefore if
+you run a bootstrap program in R, exit, restart, and rerun, you will obtain a different set of random draws
+and therefore a different bootstrap result.
+Packages allow users to set their own seed. (In Stata, the command is set seed #. In MATLAB the
+command is rng(#) . In R the command is set.seed(#) .) If the seed is set to a speciﬁc number at the
+start of a ﬁle then the exact same pseudo-random numbers will be generated each time the program is
+run. If this is the case, the results of a bootstrap calculation (standard error or test) will be identical across
+computer runs.
+The fact that the bootstrap results can be ﬁxed by setting the seed in the replication ﬁle has motivated
+many researchers to follow this choice. They set the seed at the start of the replication ﬁle so that repeated
+executions result in the same numerical ﬁndings.
+Fixing seeds, however, should be done cautiously. It may be a wise choice for a ﬁnal calculation
+(when a paper is ﬁnished) but is an unwise choice for daily calculations. If you use a small number of
+replications in your preliminary work, say B = 100, the bootstrap calculations will be inaccurate. But as
+you run your results again and again (as is typical in empirical projects) you will obtain the same numeri-
+cal standard errors and test results, giving you a false sense of stability and accuracy. If instead a different
+seed is used each time the program is run then the bootstrap results will vary across runs, and you will
+observe that the results vary across these runs, giving you important and meaningful information about
+the (lack of) accuracy in your results. One way to ensure this is to set the seed according to the current
+clock. In MATLAB use the command rng(`shuffle') . In R use set.seed(seed=NULL). Stata does not
+have this option.
+These considerations lead to a recommended hybrid approach. For daily empirical investigations do
+not ﬁx the bootstrap seed in your program unless you have it set by the clock. For your ﬁnal calculations
+set the seed to a speciﬁc arbitrary choice, and setB = 10,000 so that the results are insensitive to the seed.
+10.27 Bootstrap Regression
+A major focus of this textbook has been on the least squares estimatorˆβ in the projection model. The
+bootstrap can be used to calculate standard errors and conﬁdence intervals for smooth functions of the
+
+
+--- page 37 ---
+
+CHAPTER 10. RESAMPLING METHODS 293
+coefﬁcient estimates.
+The nonparametric bootstrap algorithm, as described before, samples observations randomly with
+replacement from the dataset, creating the bootstrap sample {
+(
+Y ∗
+1 , X ∗
+1
+)
+,...,
+(
+Y ∗
+n , X ∗
+n
+)
+}, or in matrix nota-
+tion (Y ∗, X ∗) It is important to recognize that entire observations (pairs of Yi and Xi ) are sampled. This
+is often called the pairs bootstrap.
+Given this bootstrap sample, we calculate the regression estimator
+ˆβ∗ =
+(
+X ∗′X ∗)−1 (
+X ∗′Y ∗)
+. (10.32)
+This is repeated B times. The bootstrap standard errors are the standard deviations across the draws and
+conﬁdence intervals are constructed from the empirical quantiles across the draws.
+What is the nature of the bootstrap distribution of ˆβ∗? It is useful to start with the distribution of
+the bootstrap observations
+(
+Y ∗
+i , X ∗
+i
+)
+, which is the discrete distribution which puts mass 1/ n on each
+observation pair (Yi , Xi ). The bootstrap universe can be thought of as the empirical scatter plot of the
+observations. The true value of the projection coefﬁcient in this bootstrap universe is
+(
+E∗ [
+X ∗
+i X ∗′
+i
+])−1 (
+E∗ [
+X ∗
+i Y ∗
+i
+])
+=
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+1
+n
+n∑
+i =1
+Xi Yi
+)
+= ˆβ.
+We see that the true value in the bootstrap distribution is the least squares estimator ˆβ.
+The bootstrap observations satisfy the projection equation
+Y ∗
+i = X ∗′
+i ˆβ + e∗
+i (10.33)
+E∗ [
+X ∗
+i e∗
+i
+]
+= 0.
+For each bootstrap pair
+(
+Y ∗
+i , X ∗
+i
+)
+=
+(
+Y j , X j
+)
+the true error e∗
+i = ˆe j equals the least squares residual from
+the original dataset. This is because each bootstrap pair corresponds to an actual observation.
+A technical problem (which is typically ignored) is that it is possible forX ∗′X ∗ to be singular in a sim-
+ulated bootstrap sample, in which case the least squares estimator ˆβ∗ is not uniquely deﬁned. Indeed,
+the probability is positive that X ∗′X ∗ is singular. For example, the probability that a bootstrap sample
+consists entirely of one observation repeatedn times is n−(n−1). This is a small probability, but positive. A
+more signiﬁcant example is sparse dummy variable designs where it is possible to draw an entire sample
+with only one observed value for the dummy variable. For example, if a sample has n = 20 observations
+with a dummy variable with treatment (equals 1) for only three of the 20 observations, the probability is
+4% that a bootstrap sample contains entirely non-treated values (all 0’ s). 4% is quite high!
+The standard approach to circumvent this problem is to compute ˆβ∗ only if X ∗′X ∗ is non-singular
+as deﬁned by a conventional numerical tolerance and treat it as missing otherwise. A better solution is
+to deﬁne a tolerance which bounds X ∗′X ∗ away from non-singularity. Deﬁne the ratio of the smallest
+eigenvalue of the bootstrap design matrix to that of the data design matrix
+λ∗ =
+λmin
+(
+X ∗′X ∗)
+λmin
+(
+X ′X
+) .
+If, in a given bootstrap replication, λ∗ < τ is smaller than a given tolerance (Shao and Tu (1995, p. 291)
+recommend τ = 1/2) then the estimator can be treated as missing, or we can deﬁne the trimming rule
+ˆβ∗ =
+
+
+
+ˆβ∗ if λ∗ ≥ τ
+ˆβ if λ∗ < τ.
+(10.34)
+This ensures that the bootstrap estimator ˆβ∗ will be well behaved.
+
+
+--- page 38 ---
+
+CHAPTER 10. RESAMPLING METHODS 294
+10.28 Bootstrap Regression Asymptotic Theory
+Deﬁne the least squares estimator ˆβ, its bootstrap version ˆβ∗ as in (10.32), and the transformations
+ˆθ = g ( ˆβ) and ˆθ∗ = r ( ˆβ∗) for some smooth transformation r . Let ˆV β and ˆV θ denote heteroskedasticity-
+robust covariance matrix estimators for ˆβ and ˆθ, and let ˆV
+∗
+β and ˆV
+∗
+θ be their bootstrap versions. When
+θ is scalar deﬁne the standard errors s(ˆθ) =
+√
+n−1 ˆV θ and s(ˆθ∗) =
+√
+n−1 ˆV θ∗ . Deﬁne the t-ratios T =(ˆθ − θ
+)
+/s(ˆθ) and bootstrap version T ∗ =
+(ˆθ∗ − ˆθ
+)
+/s(ˆθ∗). We are interested in the asymptotic distributions
+of ˆβ∗, ˆθ∗ and T ∗.
+Since the bootstrap observations satisfy the model (10.33), we see by standard calculations that
+p
+n
+(ˆβ∗ − ˆβ
+)
+=
+(
+1
+n
+n∑
+i =1
+X ∗
+i X ∗′
+i
+)−1 (
+1pn
+n∑
+i =1
+X ∗
+i e∗
+i
+)
+.
+By the bootstrap WLLN
+1
+n
+n∑
+i =1
+X ∗
+i X ∗′
+i − →
+p ∗ E
+[
+Xi X ′
+i
+]
+= Q
+and by the bootstrap CLT
+1pn
+n∑
+i =1
+X ∗
+i e∗
+i − →
+d ∗
+N(0, Ω)
+where Ω = E
+[
+X X ′e2]
+. Again applying the bootstrap WLLN we obtain
+ˆV β − →
+p ∗ V β = Q −1ΩQ −1
+and
+ˆV θ − →
+p ∗ V θ = R ′V βR
+where R = R
+(
+β
+)
+.
+Combining with the bootstrap CMT and delta method we establish the asymptotic distribution of
+the bootstrap regression estimator.
+Theorem 10.18 Under Assumption 7.2, as n → ∞
+p
+n
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+N
+(
+0,V β
+)
+.
+If Assumption 7.3 also holds then
+p
+n
+(ˆθ∗ − ˆθ
+)
+− →
+d ∗
+N(0,V θ).
+If Assumption 7.4 also holds then
+T ∗ − →
+d ∗
+N(0, 1).
+This means that the bootstrap conﬁdence interval and testing methods all apply for inference on β
+and θ. This includes the percentile, BC percentile, BC a, and percentile-t intervals, and hypothesis tests
+based on t-tests, Wald tests, MD tests, LR tests and F tests.
+
+
+--- page 39 ---
+
+CHAPTER 10. RESAMPLING METHODS 295
+To justify bootstrap standard errors we also need to verify the uniform square integrability of ˆβ∗ and
+ˆθ∗. This is technically challenging because the least squares estimator involves matrix inversion which
+is not globally continuous. A partial solution is to use the trimmed estimator (10.34). This bounds the
+moments of ˆβ∗ by those of n−1 ∑n
+i =1 X ∗
+i e∗
+i . Since this is a sample mean, Theorem 10.10 applies and ˆV
+∗
+β
+is bootstrap consistent for V β. However, this does not ensure that ˆV
+∗
+θ will be consistent for ˆV θ unless
+the function r (x) satisﬁes the conditions of Theorem 10.10. For general applications use a trimmed
+estimator for the bootstrap variance. For some τn = O
+(
+en/8)
+deﬁne
+Z ∗
+n =
+p
+n
+(ˆθ∗ − ˆθ
+)
+Z ∗∗ = z∗1
+{Z ∗
+n
+
+ ≤ τn
+}
+Z ∗∗ = 1
+B
+B∑
+b=1
+Z ∗∗(b)
+ˆV
+boot,τ
+θ = 1
+B − 1
+B∑
+b=1
+(
+Z ∗∗(b) − Z ∗∗) (
+Z ∗∗(b) − Z ∗∗)′ .
+The matrix ˆV
+boot
+θ is a trimmed bootstrap estimator of the variance of Zn = pn
+(ˆθ − θ
+)
+. The associated
+bootstrap standard error for ˆθ (in the scalar case) is s(ˆθ) =
+√
+n−1 ˆV
+boot
+θ .
+By an application of Theorems 10.11 and 10.12, we ﬁnd that this estimatorˆV
+boot
+θ is consistent for the
+asymptotic variance.
+Theorem 10.19 Under Assumption 7.2 and 7.3, as n → ∞, ˆV
+boot,τ
+θ − →
+p ∗ V θ.
+Programs such as Stata use the untrimmed estimatorˆV
+boot
+θ rather than the trimmed estimatorˆV
+boot,τ
+θ .
+This means that we should be cautious about interpreting reported bootstrap standard errors especially
+for nonlinear functions such as ratios.
+10.29 Wild Bootstrap
+Take the linear regression model
+Y = X ′β + e
+E[e |X ] = 0.
+What is special about this model is the conditional mean restriction. The nonparametric bootstrap
+(which samples the pairs
+(
+Y ∗
+i , X ∗
+i
+)
+i.i.d. from the original observations) does not make use of this re-
+striction. Consequently the bootstrap distribution for (Y ∗, X ∗) does not satisfy the conditional mean re-
+striction and therefore does not satisfy the linear regression assumption. To improve precision it seems
+reasonable to impose the conditional mean restriction on the bootstrap distribution.
+A natural approach is to hold the regressors Xi ﬁxed and then draw the errorse∗
+i in some way which
+imposes a conditional mean of zero. The simplest approach is to draw the errors independent from
+the regressors, perhaps from the empirical distribution of the residuals. This procedure is known as
+the residual bootstrap. However, this imposes independence of the errors from the regressors which is
+much stronger than the conditional mean assumption. This is generally undesirable.
+
+
+--- page 40 ---
+
+CHAPTER 10. RESAMPLING METHODS 296
+A method which imposes the conditional mean restriction while allowing general heteroskedasticity
+is the wild bootstrap. It was proposed by Liu (1988) and extended by Mammon (1993). The method uses
+auxiliary random variables ξ∗ which are i.i.d., mean zero, and variance 1. The bootstrap observations are
+then generated as Y ∗
+i = X ′
+i
+ˆβ + e∗
+i with e∗
+i = ˆei ξ∗
+i , where the regressors Xi are held ﬁxed at their sample
+values, ˆβ is the sample least squares estimator, and ˆei are the least squares residuals, which are also held
+ﬁxed at their sample values.
+This algorithm generates bootstrap errors e∗
+i which are conditionally mean zero. Thus the bootstrap
+pairs
+(
+Y ∗
+i , Xi
+)
+satisfy a linear regression with the “true” coefﬁcient of ˆβ. The conditional variance of the
+wild bootstrap errors e∗
+i are E∗ [
+e∗2
+i |Xi
+]
+= ˆe2
+i . This means that the conditional variance of the bootstrap
+estimator ˆβ∗ is
+E∗
+[(ˆβ∗ − ˆβ
+) (ˆβ∗ − ˆβ
+)′
+|X
+]
+=
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1
+which is the White estimator of the variance of ˆβ. Thus the wild bootstrap replicates the appropriate ﬁrst
+and second moments of the distribution.
+Two distributions have been proposed for the auxilary variables ξ∗
+i both of which are two-point dis-
+crete distributions. The ﬁrst areRademacher random variables which satisfyP[ξ∗ = 1] = 1
+2 and P[ξ∗ = −1] =
+1
+2 . The second is the Mammen (1993) two-point distribution
+P
+[
+ξ∗ = 1 +
+p
+5
+2
+]
+=
+p
+5 − 1
+2
+p
+5
+P
+[
+ξ∗ = 1 −
+p
+5
+2
+]
+=
+p
+5 + 1
+2
+p
+5
+.
+The reasoning behind the Mammen distribution is that this choice impliesE
+[
+ξ∗3]
+= 1, which implies
+that the third central moment of ˆβ∗ matches the natural nonparametric estimator of the third central
+moment of ˆβ. Since the wild bootstrap matches the ﬁrst three moments, the percentile-t interval and
+one-sided t-tests can be shown to achieve asymptotic reﬁnements.
+The reasoning behind the Rademacher distribution is that this choice implies E
+[
+ξ∗4]
+= 1, which im-
+plies that the fourth central moment of ˆβ∗ matches the natural nonparametric estimator of the fourth
+central moment of ˆβ. If the regression errors e are symmetrically distributed (so the third moment
+is zero) then the ﬁrst four moments are matched. In this case the wild bootstrap should have even
+better performance, and additionally two-sided t-tests can be shown to achieve an asymptotic reﬁne-
+ment. When the regression error is not symmetrically distributed these asymptotic reﬁnements are not
+achieved. Limited simulation evidence for one-sided t-tests presented in Davidson and Flachaire (2008)
+suggests that the Rademacher distribution (used with the restricted wild bootstrap) has better perfor-
+mance and is their recommendation.
+For hypothesis testing improved precision can be obtained by the restricted wild bootstrap. Con-
+sider tests of the hypothesis H0 : r
+(
+β
+)
+= 0. Let ˜β be a CLS or EMD estimator of β subject to the restriction
+r
+(˜β
+)
+= 0. Let ˜ei = Yi − X ′
+i
+˜β be the constrained residuals. The restricted wild bootstrap algorithm gen-
+erates observations as Y ∗
+i = X ′
+i
+˜β + e∗
+i with e∗
+i = ˜ei ξ∗
+i . With this modiﬁcation ˜β is the true value in the
+bootstrap universe so the null hypothesis H0 holds. Thus bootstrap tests are constructed the same as for
+the parametric bootstrap using a restricted parameter estimator.
+10.30 Bootstrap for Clustered Observations
+Bootstrap methods can also be applied in to clustered samples though the methodological literature
+is relatively thin. Here we review methods discussed in Cameron, Gelbach and Miller (2008).
+
+
+--- page 41 ---
+
+CHAPTER 10. RESAMPLING METHODS 297
+Let Y g = (Y1g ,..., Yng g )′ and X g = (X1g , ...,Xng g )′ denote the ng × 1 vector of dependent variables and
+ng × k matrix of regressors for the g t h cluster. A linear regression model using cluster notation is Y g =
+X g β + e g where e g = (e1g , ...,eng g )′ is an ng × 1 error vector. The sample has G cluster pairs (Y g , X g ).
+The pairs cluster bootstrap samples G cluster pairs (Y g , X g ) to create the bootstrap sample. Least
+squares is applied to the bootstrap sample to obtain the coefﬁcient estimators. By repeating B times
+bootstrap standard errors for coefﬁcients estimates, or functions of the coefﬁcient estimates, can be
+calculated. Percentile, BC percentile, and BCa conﬁdence intervals can be calculated.
+The BCa interval requires an estimator of the acceleration coefﬁcient a which is a scaled jackknife
+estimate of the third moment of the estimator. In the context of clustered observations the delete-cluster
+jackknife should be used for estimation of a.
+Furthermore, on each bootstrap sample the cluster-robust standard errors can be calculated and
+used to compute bootstrap t-ratios, from which percentile-t conﬁdence intervals can be calculated.
+The wild cluster bootstrap ﬁxes the clusters and regressors, and generates the bootstrap observa-
+tions as
+Y ∗
+g = X g ˆβ + e∗
+g
+e∗
+g = ˆei ξ∗
+g
+where ξ∗
+g is a scalar auxilary random variable as described in the previous section. Notice that ξ∗
+g is
+interacted with the entire vector of residuals from cluster g . Cameron, Gelbach and Miller (2008) follow
+the recommendation of Davidson and Flachaire (2008) and use Rademacher random variables for ξ∗
+g .
+For hypothesis testing, Cameron, Gelbach and Miller (2008) recommend the restricted wild cluster
+bootstrap. For tests of H0 : r
+(
+β
+)
+= 0 let ˜β be a CLS or EMD estimator of β subject to the restriction r
+(˜β
+)
+=
+0. Let ˜e g = Y g − X g ˜β be the constrained cluster-level residuals. The restricted wild cluster bootstrap
+algorithm generates observations as
+Y ∗
+g = X g ˜β + e∗
+g
+e∗
+g = ˜ei ξ∗
+g .
+On each bootstrap sample the test statistic for H0 (t-ratio, Wald, LR, or F) is applied. Since the bootstrap
+algorithm satisﬁesH0 these statistics are centered at the hypothesized value. p-values are then calculated
+conventionally and used to assess the signiﬁcance of the test statistic.
+There are several reasons why conventional asymptotic approximations may work poorly with clus-
+tered observations. First, while the sample size n may be large, the effective sample size is the number
+of clusters G. This is because when the dependence structure within each cluster is unconstrained the
+central limit theorem effectively treats each cluster as a single observation. Thus, if G is small we should
+treat inference as a small sample problem. Second, cluster-robust covariance matrix estimation explic-
+itly treats each cluster as a single observation. Consequently the accuracy of normal approximations to t-
+ratios and Wald statistics is more accurately viewed as a small sample distribution problem. Third, when
+cluster sizes ng are heterogeneous this means that the estimation problems just described also involve
+heterogeneous variances. Speciﬁcally, heterogeneous cluster sizes induces a high degree of effective het-
+eroskedasticity (since the variance of a within-cluster sum is proportional to ng ). When G is small this
+means that cluster-robust inference is similar to ﬁnite-sample inference with a small heteroskedastic
+sample. Fourth, interest often concerns treatment which is applied at the level of a cluster (such as the
+effect of tracking discussed in Section 4.23). If the number of treated clusters is small this is equivalent to
+estimation with a highly sparse dummy variable design in which case cluster-robust covariance matrix
+estimation can be unreliable.
+
+
+--- page 42 ---
+
+CHAPTER 10. RESAMPLING METHODS 298
+These concerns suggest that conventional normal approximations may be poor in the context of
+clustered observations with a small number of groupsG, motivating the use of bootstrap methods. How-
+ever, these concerns also can cause challenges with the accuracy of bootstrap approximations. When the
+number of clustersG is small, the cluster sizesng heterogeneous, or the number of treated clusters small,
+bootstrap methods may be inaccurate. In such cases inference should proceed cautiously.
+To illustrate the use of the pairs cluster bootstrap, Table 10.4 reports the estimates of the example
+from Section 4.23 of the effect of tracking on testscores from Duﬂo, Dupas and Kremer (2011). In addition
+to the asymptotic cluster standard error we report the cluster jackknife and cluster bootstrap standard
+errors as well as three percentile-type conﬁdence intervals. We use 10,000 bootstrap replications. In this
+example the asymptotic, jackknife, and cluster bootstrap standard errors are identical, which reﬂects the
+good balance of this particular regression design.
+Table 10.4: Comparison of Methods for Estimate of Effect of Tracking
+Coefﬁcient onTracking 0.138
+Asymptotic cluster s.e. (0.078)
+Jackknife cluster s.e. (0.078)
+Cluster Bootstrap s.e. (0.078)
+95% Percentile Interval [−0.013, 0.291]
+95% BC Percentile Interval [−0.015, 0.289]
+95% BCa Percentile Interval [−0.018, 0.286]
+In Stata, to obtain cluster bootstrap standard errors and conﬁdence intervals use the optionscluster(id)
+vce(bootstrap, reps(#)), where id is the cluster variable and # is the number of replications.
+10.31 Technical Proofs*
+Some of the asymptotic results are facilitated by the following convergence result.
+Theorem 10.20 Marcinkiewicz WLLN If ui are independent and uniformly integrable, then for any r >
+1, as n → ∞, n−r ∑n
+i =1 |ui |r − →p 0.
+Proof of Theorem 10.20
+n−r
+n∑
+i =1
+|ui |r ≤
+(
+n−1 max
+1≤i ≤n
+|ui |
+)r −1 1
+n
+n∑
+i =1
+|ui |− →p 0
+by the WLLN, Theorem 6.16, and r > 1.
+Proof of Theorem 10.1 Fix ϵ > 0. Since Zn − →p Z there is an n sufﬁciently large such that
+P[∥Zn − Z ∥ > ϵ] < ϵ.
+Since the event ∥Zn − Z ∥ > ϵ is non-random under the conditional probability P∗, for such n,
+P∗ [∥Zn − Z ∥ > ϵ] =
+{ 0 with probability exceeding 1 − ϵ
+1 with probability less than ϵ.
+Since ε is arbitrary we conclude P∗ [∥Zn − Z ∥ > ϵ] − →p 0 as required. ■
+
+
+--- page 43 ---
+
+CHAPTER 10. RESAMPLING METHODS 299
+Proof of Theorem 10.2 Fix ϵ > 0. By Markov’ s inequality (B.36), the facts (10.12) and (10.13), and ﬁnally
+the Marcinkiewicz WLLN (Theorem 10.20) with r = 2 and ui = ∥Yi ∥,
+P∗
+[
+
+Y
+∗
+− Y
+
+
+ > ϵ
+]
+≤ ϵ−2E∗
+
+
+
+Y
+∗
+− Y
+
+
+
+2
+= ϵ−2 tr
+(
+var∗
+[
+Y
+∗])
+= ϵ−2 tr
+( 1
+n
+ˆΣ
+)
+≤ ϵ−2n−2
+n∑
+i =1
+Y ′
+i Yi
+− →p 0.
+This establishes that Y
+∗
+− Y − →
+p ∗ 0.
+Since Y −µ − →p 0 by the WLLN,Y −µ − →
+p ∗ 0 by Theorem 10.1. SinceY
+∗
+−µ = Y
+∗
+−Y +Y −µ, we deduce
+that Y
+∗
+− µ − →
+p ∗ 0. ■
+Proof of Theorem 10.4 We verify conditions for the multivariate Lindeberg CLT (Theorem 6.4). (We
+cannot use the Lindeberg–Lévy CLT since the conditional distribution depends on n.) Conditional on
+Fn, the bootstrap draws Y ∗
+i − Y are i.i.d. with mean 0 and covariance matrix ˆΣ. Set ν2
+n = λmin(ˆΣ). Note
+that by the WLLN, ν2
+n − →p ν2 = λmin(Σ) > 0. Thus for n sufﬁciently large,ν2
+n > 0 with high probability. Fix
+ϵ > 0. Equation (6.2) equals
+1
+nν2
+n
+n∑
+i =1
+E∗
+[Y ∗
+i − Y
+
+2
+1
+{
+Y ∗
+i −
+Y
+
+
+2
+≥ ϵnν2
+n
+}]
+= 1
+ν2
+n
+E∗
+[Y ∗
+i − Y
+
+2
+1
+{
+Y ∗
+i −
+Y
+
+
+2
+≥ ϵnν2
+n
+}]
+≤ 1
+ϵnν4
+n
+E∗
+
+Y ∗
+i −
+Y
+
+
+
+4
+≤ 24
+ϵnν4
+n
+E∗ Y ∗
+i
+
+4
+= 24
+ϵn2ν4
+n
+n∑
+i =1
+∥Yi ∥4
+− →p 0.
+The second inequality uses Minkowski’ s inequality (B.34), Liapunov’ s inequality (B.35), and the cr in-
+equality (B.6). The following equality is E∗ Y ∗
+i
+4 = n−1 ∑n
+i =1 ∥Yi ∥4, which is similar to (10.10). The ﬁnal
+convergence holds by the Marcinkiewicz WLLN (Theorem 10.20) with r = 2 and ui = ∥Yi ∥2. The condi-
+tions for Theorem 6.4 hold and we conclude
+ˆΣ−1/2p
+n
+(
+Y
+∗
+− Y
+)
+− →
+d ∗
+N(0, I ).
+Since ˆΣ − →
+p ∗ Σ we deduce that pn
+(
+Y
+∗
+− Y
+)
+− →
+d ∗
+N(0, Σ) as claimed. ■
+Proof of Theorem 10.10For notational simplicity assumeθ and µ are scalar. Set hi = h(Yi ). The assump-
+tion that the p t h derivative of g (u) is bounded implies
+⏐⏐g (p) (u)
+⏐
+⏐ ≤ C for some C < ∞. Taking a p t h order
+Taylor series expansion
+
+
+--- page 44 ---
+
+CHAPTER 10. RESAMPLING METHODS 300
+ˆθ∗ − ˆθ = g (h
+∗
+) − g (h) =
+p−1∑
+j =1
+g (j )
+(
+h
+)
+j !
+(
+h
+∗
+− h
+)j
++
+g (p) (
+ζ∗
+n
+)
+p!
+(
+h
+∗
+− h
+)p
+where ζ∗
+n lies between
+h
+∗
+and h. This implies
+⏐⏐z∗
+n
+⏐
+⏐ =
+p
+n
+⏐
+⏐ˆθ∗ − ˆθ
+⏐
+⏐ ≤
+p
+n
+p∑
+j =1
+c j
+⏐
+⏐
+⏐
+h
+∗
+− h
+⏐
+⏐
+⏐
+j
+where c j =
+⏐
+⏐
+⏐g (j )
+(
+h
+)⏐
+⏐
+⏐/j ! for j < p and cp = C /p!. We ﬁnd that the fourth central moment of the normalized
+bootstrap estimator Z ∗
+n = p
+n
+(ˆθ∗ − ˆθ
+)
+satisﬁes the bound
+E∗ [
+Z ∗4
+n
+]
+≤
+4p∑
+r =4
+ar n2E∗
+⏐
+⏐
+⏐
+h
+∗
+− h
+⏐
+⏐
+⏐
+r
+(10.35)
+where the coefﬁcientsar are products of the coefﬁcientsc j and hence eachOp(1). We see that E∗ [
+Z ∗4
+n
+]
+=
+Op(1) if n2E∗
+⏐
+⏐
+⏐
+h
+∗
+− h
+⏐
+⏐
+⏐
+r
+= Op(1) for r = 4, ...,4p.
+We show this holds for anyr ≥ 4 using Rosenthal’ s inequality (B.50), which states that for eachr there
+is a constant Rr < ∞ such that
+n2E∗
+⏐
+⏐
+⏐
+h
+∗
+− h
+⏐
+⏐
+⏐
+r
+= n2−r E∗
+⏐
+⏐
+⏐
+⏐⏐
+n∑
+i =1
+(
+h∗
+i −
+h
+)⏐⏐
+⏐
+⏐⏐
+r
+≤ n2−r Rr
+{ (
+nE∗
+(
+h∗
+i −
+h
+)2)r /2
++ nE∗
+⏐⏐
+⏐h∗
+i −
+h
+⏐
+⏐
+⏐
+r
+}
+= Rr
+{
+n2−r /2 ˆσr + 1
+nr −2
+n∑
+i =1
+⏐⏐⏐hi − h
+⏐⏐⏐
+r
+}
+. (10.36)
+Since E
+[
+h2
+i
+]
+< ∞, ˆσ2 = Op(1), so the ﬁrst term in (10.36) is Op(1). Also, by the Marcinkiewicz WLLN
+(Theorem 10.20), n−r /2 ∑n
+i =1
+⏐⏐⏐hi − h
+⏐
+⏐⏐
+r
+= op(1) for any r ≥ 1, so the second term in (10.36) is op(1) for
+r ≥ 4. Thus for all r ≥ 4, (10.36) is Op(1) and thus (10.35) is Op(1). We deduce that Z ∗
+n is uniformly square
+integrable, and the bootstrap estimate of variance is consistent.
+This argument can be extended to vector-valued means and estimates. ■
+Proof of Theorem 10.12 We show that E∗ Z ∗∗
+n
+
+4 = Op(1). Theorem 6.14 shows that Z ∗∗
+n is uniformly
+square integrable. Since Z ∗∗
+n − →
+d ∗
+Z , Theorem 6.15 implies that var
+[
+Z ∗∗
+n
+]
+→ var[Z ] = V β as stated.
+Set hi = h (Yi ). Since G (x) = ∂
+∂x g (x)′ is continuous in a neighborhood of µ, there exists η > 0 and
+M < ∞ such that
+x − µ
+
+ ≤ 2η implies tr
+(
+G (x)′ G (x)
+)
+≤ M. By the WLLN and bootstrap WLLN there is an
+n sufﬁciently large such that
+
+
+
+hn − µ
+
+
+ ≤ η and
+
+
+
+h
+∗
+n − hn
+
+ ≤ η with probability exceeding 1 − η. On this
+event,
+
+
+x −
+hn
+
+
+ ≤ η implies tr
+(
+G (x)′ G (x)
+)
+≤ M. Using the mean-value theorem at a point ζ∗
+n intermedi-
+ate between
+h
+∗
+n and hn
+Z ∗∗
+n
+
+4 1
+{
+
+
+h
+∗
+n − hn
+
+ ≤ η
+}
+≤ n2
+
+
+g
+(
+h
+∗
+n
+)
+− g
+(
+hn
+)
+
+4
+1
+{
+
+
+h
+∗
+n − hn
+
+ ≤ η
+}
+≤ n2
+
+
+G
+(
+ζ∗
+n
+)′ (
+h
+∗
+n − hn
+)
+
+4
+≤ M 2n2
+
+
+
+h
+∗
+n − hn
+
+
+4
+.
+
+
+--- page 45 ---
+
+CHAPTER 10. RESAMPLING METHODS 301
+Then
+E∗ Z ∗∗
+n
+
+4 ≤ E∗
+[
+Z ∗∗
+n
+
+4 1
+{
+
+
+h
+∗
+n − hn
+
+ ≤ η
+}]
++ τ4
+nE∗
+[
+1
+{
+
+h
+∗
+n − hn
+
+ > η
+}]
+≤ M 2n2E∗
+
+
+
+h
+∗
+n − hn
+
+
+4
++ τ4
+nP∗
+(
+
+h
+∗
+n − hn
+
+ > η
+)
+. (10.37)
+In (10.17) we showed that the ﬁrst term in (10.37) is Op(1) in the scalar case. The vector case follows
+by element-by-element expansion.
+Now take the second term in (10.37). We apply Bernstein’ s inequality for vectors (B.41). Note that
+h
+∗
+n − hn = n−1 ∑n
+i =1 u∗
+i with u∗
+i = h∗
+i − hn and j t h element u∗
+j i = h∗
+j i − h j n. The u∗
+i are i.i.d., mean zero,
+E∗
+[
+u∗2
+j i
+]
+= ˆσ2
+j = Op(1), and satisfy the bound
+⏐⏐
+⏐u∗
+j i
+⏐
+⏐
+⏐ ≤ 2 maxi ,j
+⏐
+⏐h j i
+⏐
+⏐ = Bn, say. Bernstein’ s inequality states
+that
+P∗
+[
+h
+∗
+n − hn
+ > η
+]
+≤ 2m exp
+(
+−n1/2 η2
+2m2n−1/2 maxj ˆσ2
+j + 2mn −1/2Bnη/3
+)
+. (10.38)
+Theorem 6.16 shows that n−1/2Bn = op(1). Thus the expression in the denominator of the parentheses
+in (10.38) is op(1) as n → ∞, . It follows that for n sufﬁciently large (10.38) isOp
+(
+exp
+(
+−n1/2))
+. Hence the
+second term in (10.37) is Op
+(
+exp
+(
+−n1/2))
+op
+(
+exp
+(
+−n1/2))
+= op (1) by the assumption on τn.
+We have shown that the two terms in (10.37) are eachOp(1). This completes the proof. ■
+_____________________________________________________________________________________________
+10.32 Exercises
+Exercise 10.1 Find the jackknife estimator of variance of the estimator ˆµr = n−1 ∑n
+i =1 Y r
+i for µr = E
+[
+Y r
+i
+]
+.
+Exercise 10.2 Show that if the jackknife estimator of variance of ˆβ is ˆV
+jack
+ˆβ , then the jackknife estimator
+of variance of ˆθ = a +C ˆβ is ˆV
+jack
+ˆθ = C ˆV
+jack
+ˆβ C ′.
+Exercise 10.3 A two-step estimator such as (12.49) is ˆβ =
+(∑n
+i =1 ˆWi ˆW ′
+i
+)−1 (∑n
+i =1 ˆWi Yi
+)
+where ˆWi = ˆA
+′
+Zi
+and ˆA =
+(
+Z ′Z
+)−1 Z ′X . Describe how to construct the jackknife estimator of variance of ˆβ.
+Exercise 10.4 Show that if the bootstrap estimator of variance ofˆβ is ˆV
+boot
+ˆβ , then the bootstrap estimator
+of variance of ˆθ = a +C ˆβ is ˆV
+boot
+ˆθ = C ˆV
+boot
+ˆβ C ′.
+Exercise 10.5 Show that if the percentile interval for β is [L,U ] then the percentile interval for a + cβ is
+[a + cL , a + cU ].
+Exercise 10.6 Consider the following bootstrap procedure. Using the non-parametric bootstrap, gener-
+ate bootstrap samples, calculate the estimate ˆθ∗ on these samples and then calculate
+T ∗ = (ˆθ∗ − ˆθ)/s(ˆθ),
+where s(ˆθ) is the standard error in the original data. Let q ∗
+α/2 and q ∗
+1−α/2 denote the α/2t h and 1 − α/2t h
+quantiles of T ∗, and deﬁne the bootstrap conﬁdence interval
+C =
+[ˆθ + s(ˆθ)q ∗
+α/2, ˆθ + s(ˆθ)q ∗
+1−α/2
+]
+.
+Show that C exactly equals the percentile interval.
+
+
+--- page 46 ---
+
+CHAPTER 10. RESAMPLING METHODS 302
+Exercise 10.7 Prove Theorem 10.6.
+Exercise 10.8 Prove Theorem 10.7.
+Exercise 10.9 Prove Theorem 10.8.
+Exercise 10.10 Let Yi be i.i.d., µ = E[Y ] > 0, and θ = µ−1. Let ˆµ = Y n be the sample mean and ˆθ = ˆµ−1.
+(a) Is ˆθ unbiased for θ?
+(b) If ˆθ is biased, can you determine the direction of the bias E
+[ˆθ − θ
+]
+(up or down)?
+(c) Is the percentile interval appropriate in this context for conﬁdence interval construction?
+Exercise 10.11 Consider the following bootstrap procedure for a regression of Y on X . Let ˆβ denote the
+OLS estimator and ˆei = Yi − X ′
+i
+ˆβ the OLS residuals.
+(a) Draw a random vector ( X ∗,e∗) from the pair {(Xi , ˆei ) : i = 1, ...,n}. That is, draw a random integeri ′
+from [1,2,..., n], and set X ∗ = Xi ′ and e∗ = ˆei ′. Set Y ∗ = X ∗′ ˆβ + e∗. Draw (with replacement) n such
+vectors, creating a random bootstrap data set (Y ∗, X ∗).
+(b) Regress Y ∗ on X ∗, yielding OLS estimator ˆβ∗ and any other statistic of interest.
+Show that this bootstrap procedure is (numerically) identical to the non-parametric bootstrap.
+Exercise 10.12 Take p ∗ as deﬁned in (10.22) for the BC percentile interval. Show that it is invariant to
+replacing θ with g (θ) for any strictly monotonically increasing transformation g (θ). Does this extend to
+z∗
+0 as deﬁned in (10.23)?
+Exercise 10.13 Show that if the percentile-t interval forβ is [L,U ] then the percentile-t interval fora +cβ
+is [a + bL, a + bU ].
+Exercise 10.14 You want to test H0 : θ = 0 against H1 : θ > 0. The test for H0 is to reject if Tn = ˆθ/s(ˆθ) > c
+where c is picked so that Type I error is α. You do this as follows. Using the nonparametric bootstrap,
+you generate bootstrap samples, calculate the estimates ˆθ∗ on these samples and then calculate T ∗ =
+ˆθ∗/s(ˆθ∗). Let q ∗
+1−α denote the 1 − αt h quantile of T ∗. You replace c with q ∗
+1−α, and thus reject H0 if
+Tn = ˆθ/s(ˆθ) > q ∗
+1−α. What is wrong with this procedure?
+Exercise 10.15 Suppose that in an application, ˆθ = 1.2 and s(ˆθ) = 0.2. Using the nonparametric boot-
+strap, 1000 samples are generated from the bootstrap distribution, and ˆθ∗ is calculated on each sample.
+The ˆθ∗ are sorted, and the 0.025t h and 0.975t h quantiles of the ˆθ∗ are .75 and 1.3, respectively.
+(a) Report the 95% percentile interval for θ.
+(c) With the given information, can you calculate the 95% BC percentile interval or percentile-t inter-
+val for θ?
+Exercise 10.16 Take the normal regression model Y = X ′β + e with e |X ∼ N(0, σ2) where we know the
+MLE equals the least squares estimators ˆβ and ˆσ2.
+(a) Describe the parametric regression bootstrap for this model. Show that the conditional distribu-
+tion of the bootstrap observations is Y ∗
+i |Fn ∼ N
+(
+X ′
+i
+ˆβ, ˆσ2)
+.
+
+
+--- page 47 ---
+
+CHAPTER 10. RESAMPLING METHODS 303
+(b) Show that the distribution of the bootstrap least squares estimator is ˆβ∗ |Fn ∼ N
+(
+ˆβ,
+(
+X ′X
+)−1 ˆσ2
+)
+.
+(c) Show that the distribution of the bootstrap t-ratio with a homoskedastic standard error is T ∗ ∼
+tn−k.
+Exercise 10.17 Consider the model Y = X ′β + e with E[e |X ] = 0, Y scalar, and X a k vector. You have
+a random sample (Y i , Xi : i = 1, ...,n). You are interested in estimating the regression function m(x) =
+E[Y |X = x] at a ﬁxed vectorx and constructing a 95% conﬁdence interval.
+(a) Write down the standard estimator and asymptotic conﬁdence interval for m(x).
+(b) Describe the percentile bootstrap conﬁdence interval for m(x).
+(c) Describe the percentile-t bootstrap conﬁdence interval for m(x).
+Exercise 10.18 The observed data is { Yi , Xi } ∈ R × Rk, k > 1, i = 1, ...,n. Take the model Y = X ′β + e with
+E[X e] = 0 .
+(a) Write down an estimator for µ3 = E
+[
+e3]
+.
+(b) Explain how to use the percentile method to construct a 90% conﬁdence interval for µ3 in this
+speciﬁc model.
+Exercise 10.19 Take the modelY = X ′β+e with E[X e] = 0. Describe the bootstrap percentile conﬁdence
+interval for σ2 = E
+[
+e2]
+.
+Exercise 10.20 The model is Y = X ′
+1β1 + X ′
+2β2 + e with E[X e] = 0 and X2 scalar. Describe how to test
+H0 : β2 = 0 against H1 : β2 ̸= 0 using the nonparametric bootstrap.
+Exercise 10.21 The model is Y = X ′
+1β1 +X ′
+2β2 +e with E[X e] = 0, and both X1 and X2 k × 1. Describe how
+to test H0 : β1 = β2 against H1 : β1 ̸= β2 using the nonparametric bootstrap.
+Exercise 10.22 Suppose a Ph.D. student has a sample (Y i , Xi , Zi : i = 1, ...,n) and estimates by OLS the
+equation Y = Z α + X ′β + e where α is the coefﬁcient of interest. She is interested in testing H0 : α = 0
+against H1 : α ̸= 0. She obtains ˆα = 2.0 with standard error s( ˆα) = 1.0 so the value of the t-ratio for H0 is
+T = ˆα/s( ˆα) = 2.0. To assess signiﬁcance, the student decides to use the bootstrap. She uses the following
+algorithm
+1. Samples (Y ∗
+i , X ∗
+i , Z ∗
+i ) randomly from the observations. (Random sampling with replacement).
+Creates a random sample with n observations.
+2. On this pseudo-sample, estimates the equation Y ∗
+i = Z ∗
+i α + X ∗′
+i β + e∗
+i by OLS and computes stan-
+dard errors, including s( ˆα∗). The t-ratio for H0, T ∗ = ˆα∗/s( ˆα∗) is computed and stored.
+3. This is repeated B = 10,000 times.
+4. The 0.95 t h empirical quantile q ∗
+.95 = 3.5 of the bootstrap absolute t-ratios |T ∗|is computed.
+5. The student notes that while |T |= 2 > 1.96 (and thus an asymptotic 5% size test rejects H0), |T |=
+2 < q ∗
+.95 = 3.5 and thus the bootstrap test does not reject H0. As the bootstrap is more reliable, the
+student concludes that H0 cannot be rejected in favor of H1.
+
+
+--- page 48 ---
+
+CHAPTER 10. RESAMPLING METHODS 304
+Question: Do you agree with the student’ s method and reasoning? Do you see an error in her method?
+Exercise 10.23 Take the model Y = X1β1 + X2β2 + e with E[X e] = 0 and scalar X1 and X2. The param-
+eter of interest is θ = β1β2. Show how to construct a conﬁdence interval for θ using the following three
+methods.
+(a) Asymptotic Theory.
+(b) Percentile Bootstrap.
+(c) Percentile-t Bootstrap.
+Your answer should be speciﬁc to this problem, not general.
+Exercise 10.24 Take the model Y = X1β1 + X2β2 + e with i.i.d observations, E[X e] = 0 and scalar X1 and
+X2. Describe how you would construct the percentile-t bootstrap conﬁdence interval forθ = β1/β2.
+Exercise 10.25 The model is i.i.d. data, i = 1, ...,n, Y = X ′β + e and E[e |X ] = 0. Does the presence of
+conditional heteroskedasticity invalidate the application of the nonparametric bootstrap? Explain.
+Exercise 10.26 The RESET speciﬁcation test for nonlinearity in a random sample (due to Ramsey (1969))
+is the following. The null hypothesis is a linear regressionY = X ′β+e with E[e |X ] = 0. The parameter β is
+estimated by OLS yielding predicted values ˆYi . Then a second-stage least squares regression is estimated
+including both Xi and ˆYi
+Yi = X ′
+i ˜β +
+(ˆYi
+)2 ˜γ + ˜ei
+The RESET test statistic R is the squared t-ratio on ˜γ.
+A colleague suggests obtaining the critical value for the test using the bootstrap. He proposes the
+following bootstrap implementation.
+• Draw n observations (Y ∗
+i , X ∗
+i ) randomly from the observed sample pairs (Y i , Xi ) to create a boot-
+strap sample.
+• Compute the statistic R ∗ on this bootstrap sample as described above.
+• Repeat this B times. Sort the bootstrap statistics R ∗, take the 0.95 t h quantile and use this as the
+critical value.
+• Reject the null hypothesis if R exceeds this critical value, otherwise do not reject.
+Is this procedure a correct implementation of the bootstrap in this context? If not, propose a modiﬁ-
+cation.
+Exercise 10.27 The model is Y = X ′β+e with E[X e] ̸= 0. We know that in this case, the least squares esti-
+mator may be biased for the parameter β. We also know that the nonparametric BC percentile interval is
+(generally) a good method for conﬁdence interval construction in the presence of bias. Explain whether
+or not you expect the BC percentile interval applied to the least squares estimator will have accurate
+coverage in this context.
+Exercise 10.28 In Exercise 9.26 you estimated a cost function for 145 electric companies and tested the
+restriction θ = β3 + β4 + β5 = 1.
+
+
+--- page 49 ---
+
+CHAPTER 10. RESAMPLING METHODS 305
+(a) Estimate the regression by unrestricted least squares and report standard errors calculated by
+asymptotic, jackknife and the bootstrap.
+(b) Estimate θ = β3 + β4 + β5 and report standard errors calculated by asymptotic, jackknife and the
+bootstrap.
+(c) Report conﬁdence intervals for θ using the percentile and BCa methods.
+Exercise 10.29 In Exercise 9.27 you estimated the Mankiw, Romer, and Weil (1992) unrestricted regres-
+sion. Let θ be the sum of the second, third, and fourth coefﬁcients.
+(a) Estimate the regression by unrestricted least squares and report standard errors calculated by
+asymptotic, jackknife and the bootstrap.
+(b) Estimate θ and report standard errors calculated by asymptotic, jackknife and the bootstrap.
+(c) Report conﬁdence intervals for θ using the percentile and BC methods.
+Exercise 10.30 In Exercise 7.28 you estimated a wage regression with thecps09mar dataset and the sub-
+sample of white Male Hispanics. Further restrict the sample to those never-married and live in the Mid-
+west region. (This sample has 99 observations.) As in subquestion (b) let θ be the ratio of the return to
+one year of education to the return of one year of experience.
+(a) Estimate θ and report standard errors calculated by asymptotic, jackknife and the bootstrap.
+(b) Explain the discrepancy between the standard errors.
+(c) Report conﬁdence intervals for θ using the BC percentile method.
+Exercise 10.31 In Exercise 4.26 you extended the work from Duﬂo, Dupas and Kremer (2011). Repeat
+that regression, now calculating the standard error by cluster bootstrap. Report a BCa conﬁdence interval
+for each coefﬁcient.
+
+
+--- page 50 ---
+
+Part III
+Multiple Equation Models
+306

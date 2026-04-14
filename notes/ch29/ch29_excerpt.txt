@@ -1,0 +1,3075 @@
+--- page 1 ---
+
+Chapter 29
+Machine Learning
+29.1 Introduction
+This chapter reviews machine learning methods for econometrics. This is a large and growing topic
+so our treatment is selective. This chapter brieﬂy covers ridge regression, Lasso, elastic net, regression
+trees, bagging, random forests, ensembling, Lasso IV , double-selection/post-regularization, and dou-
+ble/debiased machine learning.
+A classic reference is Hastie, Tibshirani, and Friedman (2008). Introductory textbooks include James,
+Witten, Hastie, and Tibshirani (2013) and Efron and Hastie (2017). For a theoretical treatment see Bühlmann
+and van der Geer (2011). For reviews of machine learning in econometrics see Belloni, Chernozhukov
+and Hansen (2014a), Mullainathan and Spiess (2017), Athey and Imbens (2019), and Belloni, Chernozhukov,
+Chetverikov, Hansen, and Kato (2021).
+29.2 Big Data, High Dimensionality, and Machine Learning
+Three inter-related concepts are “big data” , “high dimensionality” , and “machine learning” .
+Big data is typically used to describe datasets which are unusually large and/or complex relative to
+traditional applications. The deﬁnition of “large” varies across discipline and time, but typically refers
+to datasets with millions of observations. These datasets can arise in economics from household census
+data, government administrative records, and supermarket scanner data. Some challenges associated
+with big data are storage, transmission, and computation.
+High Dimensional is typically used to describe datasets with an unusually large number of variables.
+Again the deﬁnition of “large” varies across applications, but typically refers to hundreds or thousands
+of variables. In the theoretical literature “high dimensionality” is used speciﬁcally for the context where
+p >> n, meaning that the number of variables p greatly exceeds the number of observations n.
+Machine Learning is typically used to describe a set of algorithmic approaches to statistical learn-
+ing. The methods are primarily focused on point prediction in settings with unknown structure. Machine
+learning methods generally allow for large sample sizes, large number of variables, and unknown struc-
+tural form. The early literature was algorithmic with no associated statistical theory. This was followed by
+a statistical literature examining the properties of machine learning methods, mostly providing conver-
+gence rates under sparsity assumptions. Only recently has the literature expanded to include inference.
+Machine learning embraces a large and diverse set of tools for a variety of settings, including su-
+pervised learning (prediction rules for Y given high-dimensional X ), unsupervised learning (uncov-
+ering structure amongst high-dimensional X ), and classiﬁcation (discrete choice analysis with high-
+dimensional predictors). In this chapter we focus on supervised learning as it is a natural extension of
+910
+
+
+--- page 2 ---
+
+CHAPTER 29. MACHINE LEARNING 911
+linear regression.
+Machine learning arose from the computer science literature and thereby adopted a distinct set of
+labels to describe familar concepts. For example, it speaks of “training” rather than “estimation” and
+“features” rather than “regressors” . In this chapter, however, we will use standard econometric language
+and terminology.
+For econometrics, machine learning can be thought of as “highly nonparametric” . Suppose we are
+interested in estimating the conditional mean m(X ) = E[Y |X ] when the shape of m(x) is unknown. A
+nonparametric analysis typically assumes that X is low-dimensional. In contrast, a machine learning
+analysis may allow for hundreds or even thousands of regressors in X , and does not require prior infor-
+mation about which regressors are most relevant.
+Connections between nonparametric estimation, model selection, and machine learning methods
+arise in tuning parameter selection by cross-validation and evaluation by out-of-sample prediction ac-
+curacy. These issues are taken seriously in machine learning applications; frequently with multiple levels
+of hold-out samples.
+29.3 High Dimensional Regression
+We are familiar with the linear regression model Y = X ′β + e where X and β are p × 1 vectors1. In
+conventional regression models we are accustomed to thinking of the number of variables p as small
+relative to the sample size n. Traditional parametric asymptotic theory assumes that p is ﬁxed asn → ∞
+which is typically interpreted as implying that p is much smaller than n. Nonparametric regression the-
+ory assumes that p → ∞ but at a much slower rate thann. This is interpreted as p being moderately large
+but still much smaller than n. High-dimensional regression is used to describe the context where p is
+very large, including the case where p is larger than n. It even includes the case where p is exponentially
+larger than n.
+It may seem shocking to contemplate an application with more regressors than observations. But
+the situation arises in a number of contexts. First, in our discussion of series regression (Chapter 20) we
+described how a regression function can be approximated by an inﬁnite series expansion in basis trans-
+formations of the underlying regressors. Expressed as a linear model this implies a regression model
+with an inﬁnite number of regressors. Practical models (as discussed in that chapter) use a moderate
+number of regressors in estimated regressions because this provides a balance between bias and vari-
+ance. This latter models, however, are not the true conditional mean (which has an inﬁnite number of
+regressors) but rather a low-dimensional best linear approximation. Second, many economic applica-
+tions involve a large number of binary, discrete, and categorical variables. A saturated regression model
+converts all discrete and categorical variables into binary variables and includes all interactions. Such
+manipulations can result in thousands of regressors. For example, ten binary variables fully interacted
+yields 1024 regressors. Twenty binary variables fully interacted yields over one million regressors. Third,
+many contemporary “big” datasets contain thousands of potential regressors. Many of the variables may
+be low-information but it is difﬁcult to knowa priori which are relevant and which irrelevant.
+When p > n the least squares estimator ˆβols is not uniquely deﬁned since X ′X has deﬁcient rank.
+Furthermore, for p < n but “large” the matrix X ′X can be near-singular or ill-conditioned so the least
+squares estimator can be numerically unstable and high variance. Consequently we turn to estimation
+methods other than least squares. In this chapter we discuss several alternative estimation methods,
+including ridge regression, Lasso, elastic net, regression trees, and random forests.
+1In most of this textbook we have denoted the dimension of X as k. In this chapter we will instead denote the dimension of
+X as p as this is the custom in the machine learning literature.
+
+
+--- page 3 ---
+
+CHAPTER 29. MACHINE LEARNING 912
+29.4 p-norms
+For discussion of ridge and Lasso regression we will be making extensive use of the 1-norm and 2-
+norm, so it is useful to review the deﬁnition of the general p-norm. For a vector a = (a1, ...,ak)′ the
+p-norm (p ≥ 1) is
+∥a∥p =
+(
+k∑
+j =1
+⏐⏐a j
+⏐
+⏐p
+)1/p
+.
+Important special cases include the 1-norm
+∥a∥1 =
+k∑
+j =1
+⏐
+⏐a j
+⏐
+⏐,
+the 2-norm
+∥a∥2 =
+(
+k∑
+j =1
+a2
+j
+)1/2
+,
+and the sup-norm
+∥a∥∞ = max
+1≤j ≤k
+⏐⏐a j
+⏐
+⏐.
+We also deﬁne the “0-norm”
+∥a∥0 =
+k∑
+j =1
+1
+{
+a j ̸= 0
+}
+,
+the number of non-zero elements. This is only heuristically labeled as a “norm” .
+The p-norm satisﬁes the following additivity property. Ifa = (a0, a1) then
+∥a∥p
+p = ∥a0∥p
+p + ∥a1∥p
+p .
+The following inequalities are useful. The Hölder inequality for 1/p + 1/q = 1 is
+⏐⏐a′b
+⏐
+⏐ ≤ ∥a∥p ∥b∥q . (29.1)
+The case p = 1 and q = ∞ is ⏐⏐a′b
+⏐⏐ ≤ ∥a∥1 ∥b∥∞ . (29.2)
+The Minkowski inequality for p ≥ 1 is
+∥a + b∥p ≤ ∥a∥p + ∥b∥p . (29.3)
+The p-norms for p ≥ 1 satisfy norm monotonicity. In particular
+∥a∥1 ≥ ∥a∥2 ≥ ∥a∥∞ .
+Applying Hölder’ s (29.1) we also have the inequality
+∥a∥1 =
+k∑
+j =1
+⏐
+⏐a j
+⏐
+⏐1
+{
+a j ̸= 0
+}
+≤ ∥a∥2 ∥a∥1/2
+0 . (29.4)
+
+
+--- page 4 ---
+
+CHAPTER 29. MACHINE LEARNING 913
+29.5 Ridge Regression
+Ridge regression is a shrinkage-type estimator with similar but distinct properties from the James-
+Stein estimator (see Section 28.20). There are two competing motivations for ridge regression. The tra-
+ditional motivation is to reduce the degree of collinearity among the regressors. The modern motivation
+(though in mathematics it pre-dates the “traditional” motivation) is regularization of high-dimensional
+and ill-posed inverse problems. We discuss both in turn.
+As discussed in the previous section, when p is large the least squares coefﬁcient estimate can be
+numerically unreliable due to an ill-conditioned X ′X . As a numerical improvement Hoerl and Kennard
+(1970) proposed the ridge regression estimator
+ˆβridge =
+(
+X ′X + λI p
+)−1 X ′Y
+where λ > 0 is a shrinkage parameter. This estimator has the property that it is well-deﬁned and does not
+suffer from multicollinearity or ill-conditioning. This even holds if p > n! That is, the ridge regression
+estimator is well-deﬁned even when the number of regressors exceeds the sample size.
+The constant λ is a tuning parameter. We discuss how to select λ below.
+To see how λ > 0 ensures that the inverse problem is solved, use the spectral decomposition to write
+X ′X = H ′D H where H is orthonormal and D = diag{r1,..., rp} is a diagonal matrix with the eigenvalues
+r j of X ′X on the diagonal. Set Λ = λI p. We can write
+X ′X + λI p = H ′D H + λH ′H = H ′ (D + Λ) H
+which has strictly positive eigenvalues r j + λ > 0. Thus all eigenvalues are bounded away from zero so
+X ′X + λI p is full rank and well-conditioned.
+The second motivation is based on penalization. When X ′X is ill-conditioned its inverse is ill-posed.
+Techniques to deal with ill-posed estimators are calledregularization and date back to Tikhonov (1943).
+A leading method is penalization. Consider the sum of squared errors penalized by the squared 2-norm
+of the coefﬁcient vector
+SSE2
+(
+β, λ
+)
+=
+(
+Y − X β
+)′ (
+Y − X β
+)
++ λβ′β =
+Y − X β
+
+2
+2 + λ
+β
+
+2
+2 .
+The minimizer of SSE2
+(
+β, λ
+)
+is a regularized least squares estimator.
+The ﬁrst order condition for minimization of SSE2
+(
+β, λ
+)
+over β is
+−2X ′ (
+Y − X β
+)
++ 2λβ = 0. (29.5)
+The solution is ˆβridge. Thus the regularized (penalized) least squares estimator equals ridge regression.
+This shows that the ridge regression estimator minimizes the sum of squared errors subject to a penalty
+on the squared 2-norm of the regression coefﬁcient. Penalizing large coefﬁcient vectors keeps the latter
+from being too large and erratic. Hence one interpretation of λ is as a penalty on the magnitude of the
+coefﬁcient vector.
+Minimization subject to a penalty has a dual representation as constrained minimization. The latter
+is
+min
+β′β≤τ
+(
+Y − X β
+)′ (
+Y − X β
+)
+for some τ > 0. To see the connection, the Lagrangian for the constrained problem is
+min
+β
+(
+Y − X β
+)′ (
+Y − X β
+)
++ λ
+(
+β′β − τ
+)
+
+
+--- page 5 ---
+
+CHAPTER 29. MACHINE LEARNING 914
+where λ is a Lagrange multiplier. The ﬁrst order condition is (29.5) which is the ﬁrst order condition for
+the penalization problem. This shows that they have the same solution.
+The practical difference between the penalization and constraint problems is that in the ﬁrst you
+specify the ridge parameter λ while in the second you specify the constraint τ. They are connected since
+the values of λ and τ satisfy the relationship
+Y ′X
+(
+X ′X + λI p
+)−1 (
+X ′X + λI p
+)−1 X ′Y = τ.
+To ﬁndλ given τ it is sufﬁcient to (numerically) solve this equation.
+β1
+β2
+●OLS
+●
+Ridge
+β1
+2 + β2
+2
+≤ τ
+Ridge Path
+●
+Figure 29.1: Ridge Regression Dual Minimization Solution
+To visualize the constraint problem see Figure 29.1 which plots an example in R2. The constraint set
+β′β ≤ τ is displayed as the ball about the origin and the contour sets of the sum of squared errors are
+displayed as ellipses. The least squares estimator is the center of the ellipses, while the ridge regression
+estimator is the point on the circle where the contour is tangent. This shrinks the least squares coefﬁcient
+towards the zero vector. Unlike the Stein estimator, however, it does not shrink along the line segment
+connecting least squares with the origin, rather it shrinks along a trajectory determined by the degree of
+correlation between the variables. This trajectory is displayed with the dashed lines, marked as “Ridge
+path” . This is the sequence of ridge regression coefﬁcients obtained as λ is varied from 0 to ∞. When
+λ = 0 the ridge estimator equals least squares. For small λ the ridge estimator moves slightly towards the
+origin by sliding along the ridge of the contour set. As λ increases the ridge estimator takes a more direct
+path towards the origin. This is unlike the Stein estimator which shrinks the least squares estimator
+towards the origin along the connecting line segment.
+It is straightforward to generalize ridge regression to allow different penalties on different groups of
+regressors. Take the model
+Y = X ′
+1β1 + · · · +X ′
+G βG + e
+and minimize the SSE subject to the penalty
+λ1β′
+1β1 + · · · +λG β′
+G βG.
+The solution is
+ˆβridge =
+(
+X ′X + Λ
+)−1 X ′Y
+where
+Λ = diag
+{
+λ1I p1,..., λG I pG
+}
+.
+This allows some coefﬁcients to be penalized more (or less) than other coefﬁcients. This added ﬂexibility
+comes at the cost of selecting the ridge parameters λ = (λ1,..., λG). One important special case is λ1 = 0,
+
+
+--- page 6 ---
+
+CHAPTER 29. MACHINE LEARNING 915
+thus one group of coefﬁcients are not penalized. With G = 2 this partitions the coefﬁcients into two
+groups: penalized and non-penalized.
+The most popular method to select the ridge parameterλ is cross validation. The leave-one-out ridge
+regression estimator, prediction errors, and CV criterion are
+ˆβ−i (λ) =
+(
+∑
+j ̸=i
+X j X ′
+j + Λ
+)−1 (
+∑
+j ̸=i
+X j Yi
+)
+˜ei (λ) = Yi − X ′
+i ˆβ−i (λ)
+CV(λ) =
+n∑
+i =1
+˜ei (λ)2.
+The CV-selected ridge parameter ˆλ minimizes CV(λ). The cross-validation ridge estimator is calculated
+using ˆλ.
+In practice it may be tricky to minimize CV(λ). The minimum may occur at λ = 0 (ridge equals least
+squares), at λ = ∞ (full shrinkage), or there may be multiple local minima. The scale of the minimizingλ
+depends on the scaling of the regressors and in particular the singular values ofX ′X . It can be important
+to explore CV(λ) for very small values of λ.
+As for least squares there is a simple formula to calculate the CV criterion for ridge regression which
+greatly speeds computation.
+Theorem 29.1 The leave-one-out ridge regression prediction errors are
+˜ei (λ) =
+(
+1 − X ′
+i
+(
+X ′X + Λ
+)−1 Xi
+)−1
+ˆei (λ) (29.6)
+where ˆei (λ) = Yi − X ′
+i
+ˆβridge(λ) are the ridge regression residuals.
+For a proof see Exercise 29.1
+An alternative method for selection of λ is to minimize the Mallows criterion which equals
+C (λ) =
+n∑
+i =1
+ˆei (λ)2 + 2ˆσ2 tr
+((
+X ′X + Λ
+)−1 (
+X ′X
+))
+. (29.7)
+where ˆσ2 is the variance estimator from least squares estimation. For a derivation of (29.7) see Exercise
+29.2. The Mallows-selected ridge parameter ˆλ minimizes C (λ). The Mallows-selected ridge estimator
+is calculated using ˆλ. Li (1986) showed that in the normal regression model the ridge estimator with
+the Mallows-selected ridge parameter is asymptotically equivalent to the infeasible best ridge parameter
+in terms of regression ﬁt. I am unaware of a similar optimality result for cross-validated-selected ridge
+estimation.
+An important caveat is that the ridge regression estimator is not invariant to rescaling the regres-
+sors nor other linear transformations. Therefore it is common to apply ridge regression after applying
+standardizing transformations to the regressors.
+Ridge regression can be implemented in R with the glmnet command. In Stata, ridge regression is
+available in the downloadable package lassopack.
+
+
+--- page 7 ---
+
+CHAPTER 29. MACHINE LEARNING 916
+29.6 Statistical Properties of Ridge Regression
+Under the assumptions of the linear regression model it is straightforward to calculate the exact bias
+and variance of the ridge regression estimator. Take the linear regression model
+Y = X ′β + e
+E[e |X ] = 0.
+The bias of the ridge estimator is
+bias
+[ˆβridge |X
+]
+= −λ
+(
+X ′X + λI p
+)−1 β. (29.8)
+Under random sampling its covariance matrix is
+var
+[ˆβridge |X
+]
+=
+(
+X ′X + λI p
+)−1 (
+X ′D X
+) (
+X ′X + λI p
+)−1 (29.9)
+where D = diag
+{
+σ2(X1),..., σ2(Xn)
+}
+and σ2(x) = E
+[
+e2 |X = x
+]
+. For a derivation of (29.8) and (29.9) see
+Exercise 29.3. Under cluster or serial dependence the central component modiﬁes in the standard way.
+We can measure estimation efﬁciency by the mean squared error (MSE) matrix
+mse
+[ˆβ |X
+]
+= E
+[(ˆβ − β
+) (ˆβ − β
+)′
+|X
+]
+.
+Deﬁneσ2 = minx∈X σ2(x) where X is the support of X .
+Theorem 29.2 In the linear regression model, if 0 < λ < 2σ2/β′β,
+mse
+[ˆβridge |X
+]
+< mse
+[ˆβols |X
+]
+.
+For a proof see Section 29.23.
+Theorem 29.2 shows that the ridge estimator dominates the least squares estimator forλ satisfying a
+range of values. This holds regardless of the dimension ofβ. Since the upper bound 2σ2/β′β is unknown,
+however, it is unclear if feasible ridge regression dominates least squares. The upper bound does not give
+practical guidance for selection of λ.
+Given (29.9) it is straightforward to construct estimators of V ˆβ = var
+[ˆβridge |X
+]
+. I suggest the HC3
+analog
+˜V ˆβ =
+(
+X ′X + λI p
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˜ei (λ)2
+)
+(
+X ′X + λI p
+)−1 (29.10)
+where ˜ei (λ) are the ridge regression prediction errors (29.6). Alternatively the ridge regression residuals
+ˆei (λ) can be used but it is unclear how to make an appropriate degree-of-freedom correction. Under
+clustering or serial dependence the central component of ˜V ˆβ can be modiﬁed as usual. If the regressors
+are highly sparse (as in a sparse dummy variable regression) it may be prudent to use the homoskedastic
+estimator
+˜V 0
+ˆβ = ˜σ2(λ)
+(
+X ′X + λI p
+)−1 (
+X ′X
+) (
+X ′X + λI p
+)−1
+with ˜σ2(λ) = n−1 ∑n
+i =1 ˜ei (λ)2.
+Given that the ridge estimator is explicitly biased there are natural concerns about how to interpret
+standard errors calculated from these covariance matrix estimators. Conﬁdence intervals calculated the
+
+
+--- page 8 ---
+
+CHAPTER 29. MACHINE LEARNING 917
+usual way will have deﬁcient coverage due to the bias. One answer is to interpret the ridge estimator
+ˆβridge and its standard errors similarly to those obtained in nonparametric regression. The estimators
+and conﬁdence intervals are valid for the pseudo-true projections, e.g. β∗ =
+(
+X ′X + λI p
+)−1 X ′X β, not
+the coefﬁcients β themselves. This is the same interpretation as we use for the projection model and
+for nonparametric regression. For asymptotically accurate inference on the true coefﬁcients β the ridge
+parameter λ could be selected to satisfy λ = o
+(pn
+)
+analogously to an undersmoothing bandwidth in
+nonparametric regression.
+29.7 Illustrating Ridge Regression
+0 10 20 30 40 50 60
+λ
+CV
+443.0 443.5 444.0 444.5
+(a) Cross-Validation Function
+0 10 20 30 40
+2.8 3.0 3.2 3.4 3.6
+Experience
+log(wage)
+Least Squares
+Ridge Regression (b) Estimates of Return to Experience
+Figure 29.2: Least Squares and Ridge Regression Estimates of the Return to Experience
+To illustrate ridge regression we use the CPS dataset with the sample of Asian men with a college
+education (16 years of education or more) to estimate the experience proﬁle. We consider a ﬁfth-order
+polynomial in experience for the conditional mean of log wages. We start by standardizing the regressors.
+We ﬁrst center experience at its mean, create powers up to order ﬁve, and then standardized each to
+have mean zero and variance one. We estimate the polynomial regression by least squares and by ridge
+regression, the latter shrinking the ﬁve coefﬁcients on experience but not the intercept.
+We calculate the ridge parameter by cross-validation. The cross-validation function is displayed in
+Figure 29.2(a) over the interval [0, 60]. Since we have standardized the regressors to have zero mean and
+unit variance the ridge parameter is scaled comparably with sample size, which in this application is
+n = 875. The cross-validation function is uniquely minimized at λ = 19. I use this value of λ for the
+following ridge regression estimation.
+Figure 29.2(b) displays the estimated experience proﬁles. Least squares is displayed by dashes and
+ridge regression by the solid line. The ridge regression estimate is smoother and more compelling. The
+grey shaded region are 95% normal conﬁdence bands centered at the ridge regression estimate, calcu-
+lated using the HC3 covariance matrix estimator (29.10).
+
+
+--- page 9 ---
+
+CHAPTER 29. MACHINE LEARNING 918
+29.8 Lasso
+In the previous section we learned that ridge regression minimizes the sum of squared errors plus a
+2-norm penalty on the coefﬁcient vector. Model selection (e.g. Mallows) minimizes the sum of squared
+errors plus the 0-norm penalty (the number of non-zero coefﬁcients). An intermediate case uses the
+1-norm penalty. This was proposed by Tibshirani (1996) and is known as the Lasso (for Least Absolute
+Shrinkage and Selection Operator). The least squares criterion with a 1-norm penalty is
+SSE1
+(
+β, λ
+)
+=
+(
+Y − X β
+)′ (
+Y − X β
+)
++ λ
+p∑
+j =1
+⏐⏐βj
+⏐
+⏐ =
+
+Y − X β
+
+2
+2 + λ
+β
+
+
+1 .
+The Lasso estimator is its minimizer
+ˆβLasso = argmin
+β
+SSE1
+(
+β, λ
+)
+.
+Except for special cases the solution must be found numerically. Fortunately, computational algorithms
+are surprisingly simple and fast. An important property is that when λ > 0 the Lasso estimator is well-
+deﬁned even ifp > n.
+The Lasso minimization problem has the dual constrained minimization problem
+ˆβLasso = argmin
+∥β∥1≤τ
+SSE1
+(
+β
+)
+.
+To see that the two problems are the same observe that the constrained minimization problem has the
+Lagrangian
+min
+β
+(
+Y − X β
+)′ (
+Y − X β
+)
++ λ
+( p∑
+j =1
+⏐⏐βj
+⏐
+⏐ − τ
+)
+which has ﬁrst order conditions
+−2X ′
+j
+(
+Y − X β
+)
++ λsgn
+(
+βj
+)
+= 0.
+This is the same as those for minimization of the penalized criterion. Thus the solutions are identical.
+β1
+β2
+OLS
+ β1 +  β2 ≤ τ
+Lasso
+Lasso Path
+Figure 29.3: Lasso Dual Minimization Solution
+The constraint set
+{β
+
+
+1 ≤ τ
+}
+for the dual problem is a cross-polytope resembling a multi-faceted
+diamond. The minimization problem in R2 is illustrated in Figure 29.3. The sum of squared error con-
+tour sets are the ellipses with the least squares solution at the center. The constraint set is the shaded
+polytope. The Lasso estimator is the intersection point between the constraint set and the largest ellipse
+
+
+--- page 10 ---
+
+CHAPTER 29. MACHINE LEARNING 919
+drawn. In this example it hits a vertex of the constraint set and so the constrained estimator sets ˆβ1 = 0.
+This is a typical outcome in Lasso estimation. Since we are minimizing a quadratic subject to a polytope
+the solution tends to be at vertices. This eliminates a subset of the coefﬁcients.
+The Lasso path is drawn with the dashed line. This is the sequence of solutions obtained as the
+constraint set is varied. The solution path has the property that it is a straight line from the least squares
+estimator to the y-axis (in this example), at which point β2 is set to zero, and then the solution path
+follows the y-axis to the origin. In general, the solution path is linear on segments until a coefﬁcient hits
+zero, at which point that coefﬁcient is eliminated. In this particular example the solution path shows β2
+increasing while β1 decreases. Thus while Lasso is a shrinkage estimator it does not shrink individual
+coefﬁcients monotonically.
+It is instructive to compare Figures 29.1 and 29.3 which have the same sum of squares contours. The
+ridge estimator is generically an interior solution with no individual coefﬁcient set to zero, while the
+Lasso estimator typically sets some coefﬁcients equal to zero. However both estimators follow similar
+solution paths, following the ridge of the SSE criterion rather than taking a direct path towards the origin.
+One case where we can explicitly calculate the Lasso estimates is when the regressors are orthogonal.
+Suppose that X ′X = I p. Then the ﬁrst order condition for minimization simpliﬁes to
+−2
+(ˆβols,j − ˆβLasso,j
+)
++ λsgn
+(ˆβLasso,j
+)
+= 0
+which has the explicit solution
+ˆβLasso,j =
+
+
+
+ˆβols,j − λ/2 ˆβols,j > λ/2
+0
+⏐⏐ ˆβols,j
+⏐
+⏐ ≤ λ/2
+ˆβols,j + λ/2 ˆβols,j < −λ/2.
+This Lasso estimate is a continuous transformation of the least squares estimate. For small values of the
+least squares estimate the Lasso estimate is set to zero. For all other values the Lasso estimate moves the
+least squares estimate towards zero by λ/2.
+β^
+ols
+β^
+select
+(a) Selection
+β^
+ols
+β^
+ridge (b) Ridge
+β^
+ols
+β^
+Lasso (c) Lasso
+Figure 29.4: Transformations of least squares estimates by Selection, Ridge, and Lasso
+It is constructive to contrast this behavior with ridge regression and selection estimation. When
+X ′X = I k the ridge estimator equals ˆβridge = (1 + λ)−1 ˆβols so shrinks the coefﬁcients towards zero by a
+common multiple. A selection estimator (for simplicity consider selection based on a homoskedastic
+t-test with ˆσ2 = 1 and critical value c) equals ˆβselect = 1
+{⏐⏐ ˆβols,j
+⏐
+⏐ > c
+} ˆβols,j . Thus the Lasso, ridge, and
+
+
+--- page 11 ---
+
+CHAPTER 29. MACHINE LEARNING 920
+selection estimates are all transformations of the least squares coefﬁcient estimate. We illustrate these
+transformations in Figure 29.4. Panel (a) displays the selection transformation, panel (b) displays the
+ridge transformation, and panel (c) displays the Lasso transformation.
+The Lasso and ridge estimators are continuous functions while the selection estimator is a discontin-
+uous function. The Lasso and selection estimators are thresholding functions, meaning that the function
+equals zero for a region about the origin. Thresholding estimators are selection estimators since they
+equal zero when the least squares estimator is sufﬁciently small. The Lasso function is a “soft threshold-
+ing” rule as it is a continuous function with bounded ﬁrst derivative. The selection estimator is a “hard
+thresholding” rule as it is discontinuous. Hard thresholding rules tend to have high variance due to the
+discontinuous transformation. Consequently, we expect the Lasso to have reduced variance relative to
+selection estimators, permitting overall lower MSE.
+As for ridge regression, Lasso is not invariant to the scaling of the regressors. If you rescale a re-
+gressor then the penalty has a different meaning. Consequently, it is important to scale the regressors
+appropriately before applying Lasso. It is conventional to scale all the variables to have mean zero and
+unit variance.
+Lasso is also not invariant to rotations of the regressors. For example, Lasso on (X 1, X 2) is not the
+same as Lasso on (X 1 − X 2, X 2) despite having identical least squares solutions. This is troubling as typi-
+cally there is no default speciﬁcation.
+Applications of Lasso estimation in economics are growing. Belloni, Chernozhukov and Hansen
+(2014) illustrate the method using three application: (1) the effect of eminent domain on housing prices
+in an instrumental variables framework, (2) a re-examination of the effect of abortion on crime using the
+framework of Donohue and Levitt (2001), (3) a re-examination of the the effect of democracy on growth
+using the framework of Acemoglu, Johnson and Robinson (2001). Mullainathan and Spiess (2017) illus-
+trate machine learning using a prediction model for housing prices using characteristics. Oster (2018)
+uses household scanner data to measure the effect of a diabetes diagnosis on food purchases.
+29.9 Lasso Penalty Selection
+Critically important for Lasso estimation is the penalty λ. For λ close to zero the estimates are close
+to least squares. As λ increases the number of selected variables falls. Picking λ induces a trade-off
+between complexity and parsimony.
+It is common in the statistics literature to see coefﬁcients plotted as a function of λ. This can be
+used to visualize the trade-off between parsimony and variable inclusion. It does not, however, provide
+a statistical rule for selection.
+The most common selection method is minimization of K-fold cross validation (see Section 28.9).
+Leave-one-out CV is not typically used as it is computationally expensive. Many programs set the default
+number of folds as K = 10, though some authors use K = 5, while others recommend K = 20.
+K-fold cross validation is an estimator of out-of-sample mean squared forecast error. Therefore
+penalty selection by minimization of the K-fold criterion is aimed to select models with good forecast
+accuracy, but not necessarily for other purposes such as accurate inference.
+Conventionally, the value ofλ selected by CV is the value which minimizes the CV criterion. Another
+popular choice is called the “1se” rule, which is the λ which yields the most parsimonious model for
+λ values within one standard error of the minimum. The idea is to select a model similar but more
+parsimonious than the CV-minimizing choice.
+K-fold cross validation is implemented by ﬁrst randomly dividing the observations into K groups.
+Consequently the CV criterion is sensitive to the random sorting. It is therefore prudent to set the random
+number seed for replicability and to assess sensitivity across initial seeds. In general, selecting a larger
+
+
+--- page 12 ---
+
+CHAPTER 29. MACHINE LEARNING 921
+value for K reduces this sensitivity.
+Asymptotic consistency of CV selection for Lasso estimation has been demonstrated by Chetverikov,
+Liao, and Chernozhukov (2020).
+29.10 Lasso Computation
+The constraint representation of Lasso is minimization of a quadratic subject to linear inequality
+constraints. This can be implemented by standard quadratic programming which is computationally
+simple. For evaluation of the cross-validation function, however, it is useful to compute the entire Lasso
+path. For this a computationally appropriate method is the modiﬁed LARS algorithm. (LARS stands for
+least angle regression.)
+The LARS algorithm produces a path of coefﬁcients starting at the origin and ending at least squares.
+The sequence corresponds to the sequence of constraintsτ which can be calculated by the absolute sum
+of the coefﬁcients, but neither these values (norλ) are used by the algorithm. The steps are as follows.
+1. Start with all coefﬁcients equal to zero.
+2. Find X j most correlated with Y .
+3. Increase βj in the direction of correlation.
+(a) Compute residuals along the way.
+(b) Stop when some other Xℓ has the same correlation with the residual as X j .
+(c) If a non-zero coefﬁcient hits zero, drop from the active set of variables and recompute the
+joint least squares direction.
+4. Increase (β j , βℓ) in their joint least squares direction until some otherXm has the same correlation
+with the residual.
+5. Repeat until all predictors are in model.
+This algorithm produces the Lasso path. The equality between the two is not immediately apparent
+but the demonstration is tedious so is not shown here.
+The most popular computational implementation for Lasso is the Rglmnet command in the glmnet
+package. Penalty selection by K-fold cross validation is implmented by the cv.glmnet command. The
+latter by default reports the penalty selected by the “1se” rule, and reports the minimizingλ as lambda.min .
+The default number of folds is K = 10.
+In Stata, Lasso is available with the command lasso. By default it selects the penalty by minimizing
+the K-fold cross validation criterion withK = 10 folds. Many options are available, including constraining
+the estimator to penalize only a subset of the coefﬁcients. An alternative downloadable package with
+many options is lassopack.
+29.11 Asymptotic Theory for the Lasso
+The current distribution theory of Lasso estimation is challenging and mostly focused on conver-
+gence rates. The results are derived under sparsity or approximate sparsity conditions, the former re-
+stricting the number of non-zero coefﬁcients, and the second restricting how a sparse model can ap-
+proximate a general parameterization. In this section we provide a basic convergence rate for the Lasso
+estimator ˆβLasso under a mild moment bound on the errors and a sparsity assumption on the coefﬁcients.
+
+
+--- page 13 ---
+
+CHAPTER 29. MACHINE LEARNING 922
+The model is the high-dimensional projection framework:
+Y = X ′β + e
+E[X e] = 0 (29.11)
+where X is p × 1 with p >> n. The true coefﬁcient vectorβ is assumed to be sparse in the sense that only
+a subset of the elements of β are non-zero.
+For some λ let ˆβLasso be the Lasso estimator which minimizes SSE 1
+(
+β, λ
+)
+. Deﬁne the scaled design
+matrix Qn = n−1X ′X and the regression ﬁt
+(ˆβLasso − β
+)′
+Qn
+(ˆβLasso − β
+)
+= 1
+n
+n∑
+i =1
+(
+X ′
+i
+(ˆβLasso − β
+))2
+. (29.12)
+We provide a bound on the regression ﬁt (29.12), the 1-norm ﬁt
+ ˆβ − β
+
+
+1 and the 2-norm ﬁt
+
+ ˆβ − β
+
+
+2.
+The regression ﬁt (29.12) is similar to measures of ﬁt we have used before, including the integrated
+squared error (20.22) in series regression and the regression ﬁtRn(K ) (equation (28.17)) for evaluation of
+model selection optimality.
+When p > n the matrixQn is singular. The theory, however, requires that it not be “too singular” . What
+is required is non-singularity of all sub-matrices of Qn corresponding to the non-zero coefﬁcients and
+not “too many” of the zero coefﬁcients. The speciﬁc requirement is rather technical. Partitionβ = (β0, β1)
+where the elements of β0 are all 0 and the elements of β1 are non-zero. (This partition is a theoretical
+device and unknown to the econometrician.) Let b = (b0,b1) ∈ Rp be partitioned conformably. Deﬁne
+the cone B =
+{
+b ∈ Rp : ∥b0∥1 ≤ 3 ∥b1∥1
+}
+. This is the set of vectors b such that the sub-vector b0 is not “too
+large” relative to the sub-vector b1.
+Assumption 29.1 Restricted Eigenvalue Condition (REC)
+min
+b∈B
+b′Qnb
+b′b ≥ c2 > 0. (29.13)
+To gain some understanding of what the REC means, notice that if the minimum (29.13) is taken
+without restriction over Rp it equals the smallest eigenvalue of Qn. Thus when p < n a sufﬁcient condi-
+tion for the REC is λmin
+(
+Qn
+)
+≥ c2 > 0. Instead, the minimum in (29.13) is calculated only over the cone
+B. In this sense this calculation is similar to a “restricted eigenvalue” which is the source of its name.
+The REC takes a variety of forms in the theoretical literautre; Assumption 29.1 is not the weakest but is
+the most intuitive. Assumption 29.1 has been shown to hold under primitive conditions on X , including
+normality and boundedness. See Lemmas 1 and 2 of Belloni and Chernozhukov (2011).
+
+
+--- page 14 ---
+
+CHAPTER 29. MACHINE LEARNING 923
+Theorem 29.3 Suppose model (29.11) holds, ω = max1≤j ≤p E
+[
+X 2
+j e2
+]
+< ∞, and
+Assumption 29.1 holds. Take any α > 0, and for some C ≥ 16ω/α set
+λ = C
+√
+n log p. (29.14)
+Then there is D < ∞ such that with probability exceeding 1 − α,
+(ˆβLasso − β
+)′
+Qn
+(ˆβLasso − β
+)
+≤ D
+β
+
+
+0
+log p
+n , (29.15)
+ ˆβLasso − β
+
+
+1 ≤ D
+
+β
+
+
+0
+√
+log p
+n , (29.16)
+and
+ ˆβLasso − β
+
+
+2 ≤ D
+
+β
+
+1/2
+0
+√
+log p
+n . (29.17)
+For a proof see Section 29.23.
+Theorem 29.3 presents three convergence rates for the Lasso coefﬁcient estimator ˆβLasso , for the
+regression ﬁt (29.12), the 1-norm, and the 2-norm. These rates depend on the number of non-zero co-
+efﬁcients
+β
+
+
+0, the number of variables p, and the sample size n. Suppose that
+
+β
+
+
+0 is ﬁxed. Then the
+bounds (29.15)-(29.17) are o(1) if logp = o (n). This shows that Lasso estimation is consistent even for an
+exponentially large number of variables. The rates, however, allow the number of non-zero coefﬁcientsβ
+
+
+0 to increase with n at the cost of slowing the allowable rate of increase of p.
+We stated earlier in this section that we had assumed that the coefﬁcient vectorβ is sparse, meaning
+that only a subset of the elements of β are non-zero. This appears in the theory through the 0-norm
+β
+
+
+0, the number of non-zero coefﬁcients. If all elements of β are non-zero then
+
+β
+
+
+0 = p and the
+bound (29.15) is O
+(
+p log p/n
+)
+, which is similar to the bound for series regression obtained in Theorem
+20.7, equation (20.24). Instead, the assumption of sparsity enables the Lasso estimator to achieve a much
+improved rate of convergence.
+The key to establishing rates such as Theorem 29.3 are maximal inequalities applied to 1
+n X ′e. Our
+proof uses the maximal Marcinkiewicz-Zygmund inequality (B.47).
+An important limitation of theory such as Theorem 29.3 is the sparsity assumption. It is untestable
+and counter-intuitive. Researchers in this ﬁeld frequently use the phrase “imposing sparsity” as if it
+is something under the control of the theorist – but sparsity is only a property of the true coefﬁcients.
+Fortunately there are alternatives to the sparsity assumption as we discuss in the following section.
+29.12 Approximate Sparsity
+The theory of the previous section used the strong assumption that the true regression is sparse: only
+a subset of the coefﬁcients are non-zero, and the convergence rate depends on the cardinality of the non-
+zero coefﬁcients. As shown by Belloni and Chernozhukov (2011) and Belloni, Chernozhukov, and Hansen
+(2013), strict sparsity is not required. Instead, similar convergence rates hold under the assumption of
+approximate sparsity.
+Once again take the high-dimensional regression model (29.11) but do not assume thatβ necessarily
+has a sparse structure. Instead, view sparse models as approximations. For each integer K > 0 let BK =
+
+
+--- page 15 ---
+
+CHAPTER 29. MACHINE LEARNING 924
+{
+b ∈ Rp : ∥b∥0 = K
+}
+be the set of vectors withK non-zero elements. Deﬁne the best sparse approximation
+βK = argmin
+b∈BK
+Qn
+(
+β − b
+)
+
+∞
+with associated approximation error
+rK =
+
+Qn
+(
+β − βK
+)
+
+∞ .
+Assumption 29.2 Approximate Sparsity. For some s > 1, rK = O (K −s).
+Assumption 29.2 states that the approximation error of the sparse approximation decreases at a
+power law rate. In Section 20.8 and Theorem 20.1 we learned that approximations similar to Assump-
+tion 29.2 hold for polynomial and spline series regressions with bounded regressors if the true regression
+function has a uniform st h derivative. The primary difference is that series regression requires that the
+econometrician knows how to order the regressors while Assumption 29.2 does not impose a speciﬁc
+ordering. In this sense Assumption 29.2 is weaker than the approximation conditions of Section 20.8.
+We need to modify the restricted eigenvalue condition to be satisﬁed along this sequence of approx-
+imations. Let BK =
+{
+b = (b0,b1) ∈ Rp : ∥b∥0 = K , b0 = 0, ∥b0∥1 ≤ 3 ∥b1∥1
+}
+. This is the analog of the cone B
+as deﬁned for Assumption 29.1, but for theK t h sparse approximation.
+Examining the proof of Theorem 29.3, replacingβ with βK (which satisﬁes
+βK
+
+
+0 = K ), and replacing
+e with e + X ′ (
+β − βK
+)
+, we see that the only substantive difference is the need to verify rK ≤ λ/4n, which
+holds for λ satisfying (29.14) and K = A
+(
+n/log p
+)1/2s under Assumption 29.2. Inserting these values into
+Theorem 29.3 we obtain the following rates.
+Theorem 29.4 Suppose model (29.11) holds, Assumption 29.2 holds, and
+ω = max1≤j ≤p E
+[
+X 2
+j e2
+]
+< ∞. Take any α > 0, set λ as (29.14), and K =
+A
+(
+n/log p
+)1/2s for A sufﬁciently large. Suppose that for this sequence
+min
+b∈BK
+b′Qnb
+b′b ≥ c2 > 0.
+Then there is D < ∞ such that with probability exceeding 1 − α,
+(ˆβLasso − βK
+)′
+Qn
+(ˆβLasso − βK
+)
+≤ D
+(log p
+n
+)1− 1
+2s
+,
+ ˆβLasso − βK
+
+
+1 ≤ D
+(log p
+n
+) 1
+2 − 1
+2s
+,
+and
+ ˆβLasso − βK
+
+
+2 ≤ D
+(log p
+n
+) 1
+2 − 1
+4s
+.
+Theorem 29.4 provides a rate of convergence for the approximate sparse projection model. The rate
+of convergence is increasing in s. This is because as s increases the regression function can be approxi-
+mated with a smaller number K of non-zero coefﬁcients. Theorem 29.4 shows that exact sparsity is not
+
+
+--- page 16 ---
+
+CHAPTER 29. MACHINE LEARNING 925
+required for Lasso estimation, rather what is needed is approximation properties similar to those used
+in series regression theory.
+The approximate sparsity condition fails when the regressors cannot be easily ordered. Suppose, for
+example, that Qn = I p and all elements of β have common value δ. In this case rK = δ which does not
+decrease with K . In this context Assumption 29.2 does not hold and Theorem 29.4 does not apply.
+29.13 Elastic Net
+The difference between Lasso and ridge regression is that the Lasso uses the 1-norm penalty while
+ridge uses the 2-norm penalty. Since both procedures have advantages it seems reasonable that further
+improvements may be obtained by a compromise. Taking a weighted average of the penalties we obtain
+the Elastic Net criterion
+SSE
+(
+β, λ, α
+)
+=
+(
+Y − X β
+)′ (
+Y − X β
+)
++ λ
+(
+α
+β
+
+2
+2 + (1 − α)
+β
+
+
+1
+)
+with weight 0 ≤ α ≤ 1. This includes Lasso (α = 0) and ridge regression (α = 1) as special cases. For small
+but positive α the constraint sets are similar to “rounded” versions of the Lasso constraint sets.
+Typically the parameters (α, λ) are selected by joint minimization of the K-fold cross-validation cri-
+terion. Since the elastic net penalty is linear-quadratic the solution is computationally similar to Lasso.
+Elastic net can be implemented in R with the glmnet command. In Stata use elasticnet or the
+downloadable package lassopack.
+29.14 Post-Lasso
+The Lasso estimator ˆβLasso simultaneously selects variables and shrinks coefﬁcients. Shrinkage in-
+troduces bias into estimation. This bias can be reduced by applying least squares after Lasso selection.
+This is known as the Post-Lasso estimator.
+The procedure takes two steps. First, estimate the model Y = X ′β + e by Lasso. Let XS denote the
+variables in X which have non-zero coefﬁcients in ˆβLasso. Let βS denote the corresponding coefﬁcients
+in β. Second, the coefﬁcient βS is estimated by least squares, thus ˆβS =
+(
+X ′
+S X S
+)−1 (
+X ′
+SY
+)
+. This is the
+Post-Lasso least squares estimator. Belloni and Chernozhukov (2013) provide conditions under which
+the post-Lasso estimator has the same convergence rates as the Lasso estimator.
+The post-Lasso is a hard thresholding or post-model-selection estimator. Indeed, when the regres-
+sors are orthogonal the post-Lasso estimator precisely equals a selection estimator, transforming the
+least squares coefﬁcient estimates using the hard threshold function displayed in Figure 29.4(a). Conse-
+quently, the post-Lasso estimator inherits the statistical properties of PMS estimators (see Sections 28.16
+and 28.17), including high variance and non-standard distributions.
+29.15 Regression Trees
+Regression trees were introduced by Breiman, Friedman, Olshen, and Stone (1984), and are also
+known by the acronym CART forClassiﬁcation and Regression Trees. A regression tree is a nonparamet-
+ric regression using a large number of step functions. The idea is that with a sufﬁciently large number
+of split points, a step function can approximate any function. Regression trees may be especially useful
+when there are a combination of continuous and discrete regressors so that traditional kernel and series
+methods are challenging to implement.
+
+
+--- page 17 ---
+
+CHAPTER 29. MACHINE LEARNING 926
+Regression trees can be thought of as a 0 t h-order spline with free knots. They are also similar to
+threshold regression with intercepts only (no slope coefﬁcients) and a very large number of thresholds.
+The goal is to estimate m(x) = E[Y |X = x] for scalar Y and vector X . The elements of X can be
+continuous, binary, or ordinal. If a regressor is categorical is should be ﬁrst transformed to a set of binary
+variables.
+The literature on regression trees has developed some colorful language to describe the tools based
+on the metaphor of a living tree.
+1. A subsample is a branch.
+2. Terminal branches are nodes or leaves.
+3. Increasing the number of branches is growing a tree.
+4. Decreasing the number of branches is pruning a tree.
+The basic algorithm starts with a single branch. Grow a large tree by sequentially splitting the branches.
+Then prune back using an information criterion. The goal of the growth stage is to develop a rich data-
+determined tree which has small estimation bias. Pruning back is an application of backward stepwise
+regression with the goal of reducing over-parameterization and estimation variance.
+The regression tree algorithm makes extensive use of the regression sample split algorithm. This is
+a simpliﬁed version of threshold regression (Section 23.7). The method uses NLLS to estimate the model
+Y = µ11
+{
+Xd ≤ γ
+}
++ µ21
+{
+Xd > γ
+}
++ e
+E[e |X ] = 0
+with the indexd and parameter γ as free parameters2. The NLLS criterion is minimized over (d, γ) by grid
+search. The estimates produce a sample split. The regression tree algorithm applies sequential sample
+splitting to make a large number of splits, each on a sub-sample of observations.
+The basic growth algorithm is as follows. The observations are {Yi , X1i , ...,Xki : i = 1, ...,n}.
+1. Select a minimum node size Nmin (say 5). This is the minimal number of observations on each leaf.
+2. Sequentially apply regression sample splits.
+(a) Apply the regression sample split algorithm to split each branch into two sub-branches, each
+with size at least Nmin.
+(b) On each sub-branch b:
+i. Take the sample mean ˆµb of Yi for observations on the sub-branch.
+ii. This is the estimator of the regression function on this sub-branch.
+iii. The residuals on the sub-branch are ˆei = Yi − ˆµb.
+(c) Select the branch whose split most reduces the sum of squared errors.
+(d) Split this branch into two branches. Make no other split.
+(e) Repeat (a)-(d) until each branch cannot be further split. The terminal (unsplit) branches are
+the leaves.
+2If Xd ∈ {0,1} is binary then γ = 0 is ﬁxed.
+
+
+--- page 18 ---
+
+CHAPTER 29. MACHINE LEARNING 927
+After the growth algorithm has been run, the estimated regression is a multi-dimensional step func-
+tion with a large number of branches and leaves.
+The basic pruning algorithm is as follows.
+1. Deﬁne the Mallows-type information criterion
+C =
+n∑
+i =1
+ˆe2
+i + αN
+where N is the number of leaves and α is a penalty parameter.
+2. Compute the criterion C for the current tree.
+3. Use backward stepwise regression to reduce the number of leaves:
+(a) Identify the leaf whose removal most decreases C .
+(b) Prune (remove) this leaf.
+(c) If there is no leaf whose removal decreases C then stop pruning.
+(d) Otherwise, repeat (a)-(c).
+The penalty parameter α is typically selected by K-fold cross-validation. The Mallows-type criterion
+is used because of its simplicity, but to my knowledge does not have a theoretical foundation for regres-
+sion tree penalty selection.
+The advantage of regression trees is that they provide a highly ﬂexible nonparametric approxima-
+tion. Their main use is prediction. One disadvantage of regression trees is that the results are difﬁcult to
+interpret as there are no regression coefﬁcients. Another disadvantage is that the ﬁtted regression ˆm(x)
+is a discrete step function, which may be a crude approximation when m(x) is continuous and smooth.
+To obtain a good approximation a regression tree may require a high number of leaves which can result
+in a non-parsimonious model with high estimation variance.
+The sampling distribution of regression trees is difﬁcult to derive, in part because of the strong cor-
+relation between the placement of the sample splits and the estimated means. This is similar to the
+problems associated with post-model-selection. (See Sections 28.16 and 28.17.) A method which breaks
+this dependence is the honest tree proposal of Wager and Ather (2018). Split the sample into two halves
+A and B. Use the A sample to place the splits and the B sample to do within-leaf estimation. While re-
+ducing estimation efﬁciency (the sample is effectively halved) the estimated conditional mean will not
+be distorted by the correlation between the estimated splits and means.
+Regression trees algorithms are implemented in the R package rpart.
+29.16 Bagging
+Bagging (bootstrap aggregating) was introduced by Breiman (1996) as a method to reduce the vari-
+ance of a predictor. We focus here on its use for estimation of a conditional mean. The basic idea is
+simple. You generate a large number B of bootstrap samples, estimate your regression model on each
+bootstrap sample, and take the average of the bootstrap regression estimates. The mean of the bootstrap
+estimates is the bagging estimator of the conditional mean.
+Bagging is believed to be useful when the conditional mean estimator has low bias but high variance.
+This occurs for hard thresholding estimators such as regression trees, model selection, and post-Lasso.
+Bagging is a smoothing operation which reduces variance. The resulting bagging estimator can have
+
+
+--- page 19 ---
+
+CHAPTER 29. MACHINE LEARNING 928
+lower MSE as a result. Bagging is believed to be less useful for estimators with high bias, as bagging may
+exaggerate the bias.
+We ﬁrst describe the estimation algorithm. Let m(x) = E[Y |X = x] be the conditional mean and
+ˆm(x) an estimator such as a regression tree. Let ˆm∗
+b (x) be the same estimator constructed on a bootstrap
+sample. The bagging estimator of m(x) is
+ˆmbag(x) = 1
+B
+b∑
+B =1
+ˆm∗
+b (x).
+As B increases this converges in bootstrap probability to the ideal bagging estimator E∗ [ ˆm∗(x)].
+To understand the bagging process we use an example from Bühlmann and Yu (2002). As in Section
+28.16 suppose that ˆθ ∼ N(θ,1) and consider a selection estimator based on a 5% test,ˆθpms = ˆθ1
+{ˆθ2 ≥ c
+}
+=
+h(ˆθ) where c = 3.84 and h(t) = t1
+{
+t 2 ≥ c
+}
+. Applying Theorem 28.17, equation (28.38), we can calculate
+that E
+[ˆθpms
+]
+= g (θ) where g (t) = t
+(
+1 − F3
+(
+c, t 2))
+and Fr (x, λ) is the non-central chi-square distribution
+function3. This representation is not intuitive so it is better to visualize its graph. The functions h(t) and
+g (t) are plotted in Figure 29.5(a). The selection functionh(t) is identical to the plot in Figure 29.4(a). The
+function g (t) is a smoothed version of h(t), everywhere continuous and differentiable.
+Suppose that the bagging estimator is constructed using the parametric bootstrap ˆθ∗ ∼ N(ˆθ, 1). The
+bootstrap selection estimator is ˆθ∗
+pms = h
+(ˆθ∗)
+. It follows that the bagging estimator is ˆθbag = E∗
+[
+ˆθ∗
+pms
+]
+=
+E∗ [
+h
+(ˆθ∗)]
+= g (ˆθ). Thus while the selection estimator ˆθpms = h(ˆθ) is the hard threshold transformation
+h(t) applied to ˆθ, the bagging estimator ˆθbag = g (ˆθ) is the smoothed transformation g (t) applied to ˆθ.
+Thus Figure 29.5(a) displays how ˆθpms and ˆθbag are transformations of ˆθ, with the bagging estimator a
+smooth transformation rather than a hard threshold transformation.
+θ^
+pms
+θ^
+h(t)
+g(t)
+(a) Selection and Bagging Transformations
+0.0 0.5 1.0 1.5 2.0 2.5
+θ
+0 1 2 3 4 5
+MSE(θ^
+pms)
+MSE(θ^
+bag) (b) MSE of Selection and Bagging Estimators
+Figure 29.5: Bagging and Selection
+Bühlmann and Yu (2002) argue that smooth transformations generally have lower variances than
+hard threshold transformations, and thus argue that ˆθbag will generally have lower variance than ˆθpms.
+This is difﬁcult to demonstrate as a general principle but seems satisﬁed in speciﬁc examples. For our
+3Bühlmann and Yu (2002), Proposition 2.2, provide an alternative representation using the normal cdf and pdf functions.
+
+
+--- page 20 ---
+
+CHAPTER 29. MACHINE LEARNING 929
+example we display4 in Figure 29.5(b) the MSE of the selection estimator ˆθpms and its bagged verion ˆθbag
+as functions of θ. As we learned in Section 28.16, the MSE of the selection estimator ˆθpms is a hump-
+shaped function of θ. In Figure 29.5(b) we can see that the MSE of the bagged estimator is considerably
+reduced relative to the selection estimator for most values of θ. The reduction in MSE is greatest in the
+region where the MSE of ˆθpms is greatest. Bühlmann and Yu (2002) also calculate that most of this MSE
+reduction is due to a reduction in the variance of the bagged estimator.
+The most common application of bagging is to regression trees. Trees have a similar structure to our
+example selection estimator ˆθpms and are therefore expected to have a similar reduction in estimation
+variance and MSE relative to regression tree estimation.
+One convenient by-product of bagging is a CV proxy called the out-of-bag (OOB) prediction error. A
+typical nonparametric bootstrap sample contains about 63% of the original observations, meaning that
+about 37% of the observations are not present in that bootstrap sample. Therefore a bootstrap estimate
+of the regression function m(x) constructed on this bootstrap sample has “left out” about 37% of the
+observations, meaning that valid prediction errors can be calculated on these “left out” observations.
+Alternatively, for any given observation i , out of the B bootstrap samples about 0.63 × B samples will
+contain this observation and about 0.37× B samples will not include this observation. The bagging “leave
+i out” estimator ˆm−i (x) of m(x) is obtained by averaging just this second set (the 37% which exclude the
+observation). The out-of-bag error is ˜ei = Yi − ˆm−i (Xi ). The out-of-bag CV criterion is ∑n
+i =1 ˜e2
+i . This can
+be used as an estimator of out-of-sample MSFE and can be used to compare and select models.
+Wager, Hastie, and Efron (2014) propose estimators ofVn(x) = var
+[
+ˆmbag(x)
+]
+. Let Ni b denote the num-
+ber of times observation i appears in the bootstrap sample b and Ni = B −1 ∑B
+b=1 Ni b. The inﬁnitesimal
+jackknife estimator of Vn is
+ˆVn(x) =
+n∑
+i =1
+cov∗ (
+Ni , ˆmbag(x)
+)2 =
+n∑
+i =1
+(
+1
+B
+B∑
+b=1
+(Ni b − Ni )
+(
+ˆm∗
+b (x) − ˆmbag(x)
+)
+)2
+. (29.18)
+This variance estimator is based on Efron (2014).
+While Breiman’ s proposal and most applications of bagging are implemented using the nonparamet-
+ric bootstrap, an alternative is to use subsampling. A subsampling estimator is based on sampling with-
+out replacement rather than with replacement as done in the conventional bootstrap. Samples of size
+s < n are drawn from the original sample and used to construct the estimator ˆm∗
+b (x). Otherwise the
+methods are identical. It turns out that it is somewhat easier to develop a distribution theory for bagging
+under subsampling, so a subsampling assumption is frequently employed in theoretical treatments.
+29.17 Random Forests
+Random forests, introduced by Breiman (2001), are a modiﬁcation of bagged regression trees. The
+modiﬁcation is designed to reduce estimation variance. Random forests are popular in machine learning
+applications and have effectively displaced simple regression trees.
+Consider the procedure of applying bagging to regression trees. Since bootstrap samples are similar
+to one another the estimated bootstrap regression trees will also be similar to one another, particularly
+in the sense that they tend to have the splits based on the same variables. This means that conditional
+on the sample the bootstrap regression trees are positively correlated. This correlation means that the
+variance of the bootstrap average remains high even when the number of bootstrap replications B is
+large. The modiﬁcation proposed by random forests is to decorrelate the bootstrap regression trees by
+4For ˆθpms the MSE is calculated using Theorem 28.10. For ˆθbag the MSE is calculated by numerical integration.
+
+
+--- page 21 ---
+
+CHAPTER 29. MACHINE LEARNING 930
+introducing extra randomness. This decorrelation reduces the variance of the bootstrap average, thereby
+reducing its MSE.
+The basic random forest algorithm is as follows. The recommended defaults are taken from the de-
+scription in Hastie, Tibshirani, and Friedman (2008).
+1. Pick a minimum leaf size Nmin (default = 5), a minimal split fraction α ∈ [0,1), and a sampling
+number m < p (default = p/3).
+2. For b = 1, ...,B:
+(a) Draw a nonparametric bootstrap sample.
+(b) Grow a regression tree on the bootstrap sample using the following steps:
+i. Select m variables at random from the p regressors.
+ii. Among these m variables, pick the one which produces the best regression split, where
+each split subsample has at least Nmin observations and at least a fraction α of the ob-
+servations in the branch.
+iii. Split the bootstrap sample accordingly.
+(c) Stop when each leaf has between Nmin and 2Nmin − 1 observations.
+(d) Set ˆmb(x) as the sample mean of Y on each leaf of the bootstrap tree.
+3. ˆmrf(x) = B −1 ∑b
+B =1 ˆmb(x).
+Using randomization to reduce the number of variables fromp to m at each step alters the tree struc-
+ture and thereby reduces the correlation between the bootstrapped regression trees. This reduces the
+variance of the bootstrap average.
+The inﬁnitesimal jackknife (29.18) can be used for variance and standard error estimation, as dis-
+cussed in Wager, Hastie, and Efron (2014).
+While random forests are popular in applications, a distributional theory has been slow to develop.
+Some of the more recent results have made progress by focusing on random forests generated by sub-
+sampling rather than bootstrap (see the discussion at the end of the previous section).
+A variant proposed by Wager and Athey (2018) is to usehonest trees (see the discussion at the end of
+Section 29.15) to remove the dependence between the sample splits and the sample means.
+Consistency and asymptotic normality has been established by Wager and Athey (2018). They as-
+sume that the conditional mean and variance are Lipschitz-continuous inx, X ∼ U [0,1] p, and p is ﬁxed5.
+They assume that the random forest is created by subsampling, estimated by honest trees, and that the
+minimal split fraction satisﬁes 0< α ≤ 0.2. Under these conditions they establish that pointwise in x
+ˆmrf(x) − m(x)
+pVn(x)
+− →
+d
+N(0, 1)
+for some variance sequenceVn(x) → 0. These results justify inference for random forest estimation of the
+regression function and standard error calculation. The asymptotic distribution does not contain a bias
+component, indicating that the estimator is undersmoothed. The Wager-Athey conditions for asymp-
+totic normality are surprisingly weak. The theory does not give insight, however, into the convergence
+rate of the estimator. The essential idea of the result is as follows. The splitting algorithm and restric-
+tions ensure that the regressor space is (in a rough sense) evenly split into N ∼ nγ leaves which grows
+5The authors claim that the uniform distribution assumption on X can be replaced by the condition that the joint density is
+bounded away from 0 and inﬁnity.
+
+
+--- page 22 ---
+
+CHAPTER 29. MACHINE LEARNING 931
+at a power rate. This ensures that the estimator is asymptotically unbiased and with suitable control
+over γ the squared bias can be made smaller than the variance. The assumption that α > 0 ensures that
+the number of observations per leaf increases with n which combined with the honest tree construction
+ensures asymptotic normality of the estimator.
+Furthermore, Wager and Athey (2018) assert (but do not provide a proof) that the varianceVn(x) can
+be consistently estimated by the inﬁnitesimal jackknife (29.18), in the sense that ˆVn(x)/Vn(x) − →p 1.
+The standard computational implementation of random forests is the R randomForest command.
+29.18 Ensembling
+Ensembling is the term used in machine learning for model averaging across machine learning algo-
+rithms. Ensembling is popular in applied machine learning.
+Suppose you have a set of estimators (e.g., CV selection, James-Stein shrinkage, JMA, SBIC, PCA,
+kernel regression, series regression, ridge regression, Lasso, regression tree, bagged regression tree, and
+random forest). Which should you use? It is reasonable to expect that one method may work well with
+some types of data and other methods may work well with other types of data. The principle of model
+averaging suggests that you can do better by taking a weighted average rather than just selecting one.
+We discussed model averaging models in Sections 28.26-28.31. Ensembling for machine learning
+can use many of the same methods. One popular method known as stacking is the same as Jackknife
+Model Averaging discussed in Section 28.29. This selects the model averaging weights by minimizing a
+cross-validation criterion, subject to the constraint that the weights are non-negative and sum to one.
+Unfortunately, the theoretical literature concerning ensembling is thin. Much of the advice concern-
+ing speciﬁc methods is based on empirical performance.
+29.19 Lasso IV
+Belloni, Chen, Chernozhukov, and Hansen (2012) propose Lasso for estimation of the reduced form
+of an instrumental variables regression.
+The model is linear IV
+Y = X ′β + e
+E[e |Z ] = 0
+X = Γ′Z +U
+E[U |Z ] = 0
+where β is k × 1 (ﬁxed) and Γ is p × n with p large. If p > n the 2SLS estimator equals least squares. If
+p < n but large the 2SLS estimator suffers from the “many instruments” problem. The authors’ recom-
+mendation is to estimate Γ by Lasso or post-Lasso6.
+The reduced form equations for the endogenous regressors are X j = γ′
+j Z + U j . Each is estimated
+separately by Lasso yielding coefﬁcient estimatesˆγj which are stacked into the matrix ˆΓLasso and used to
+form the predicted values ˆX Lasso = Z ˆΓLasso. The Lasso IV estimator is
+ˆβLasso−IV =
+(
+ˆX
+′
+LassoX
+)−1 (
+ˆX
+′
+LassoY
+)
+.
+6As they discuss, any machine learning estimator can be used, though the speciﬁc assumptions listed in their paper are for
+Lasso estimation.
+
+
+--- page 23 ---
+
+CHAPTER 29. MACHINE LEARNING 932
+The paper discusses alternative formulations. One is obtained by split-sample estimation as in An-
+grist and Krueger (1995) (see Section 12.14). Divide the sample randomly into two independent halves
+A and B. Use A to estimate the reduce form equations by Lasso. Then use B to estimate the structural
+coefﬁcientβ. Speciﬁcally, using sampleA construct the Lasso coefﬁcient estimate matrixˆΓLasso,A. Com-
+bine this with sample B to create the predicted values ˆX Lasso,B = Z B ˆΓLasso,A. Finally, using B construct
+the estimator
+ˆβLasso,B =
+(
+ˆX
+′
+Lasso,B X B
+)−1 (
+ˆX
+′
+Lasso,B Y B
+)
+.
+We can reverse the procedure. Use B to estimate the reduced form coefﬁcient matrix ˆΓLasso,B by Lasso
+and use A to estimate the structural coefﬁcient, thus ˆX Lasso,A = Z A ˆΓLasso,B . The moments are averaged
+to obtain the Lasso SSIV estimator
+ˆβLasso−SSIV =
+(
+ˆX
+′
+Lasso,B X B + ˆX
+′
+Lasso,A X A
+)−1 (
+ˆX
+′
+Lasso,B Y B + ˆX
+′
+Lasso,AY A
+)
+.
+In later work (see Section 29.22) the authors describe ˆβLasso,B as a “sample split” and ˆβLasso−SSIV as a
+“cross-ﬁt” estimator.
+Using the asymptotic theory for Lasso estimation the authors show that these estimators are equiva-
+lent to estimation using the infeasible instrument W = Γ′Z .
+Theorem 29.5 Under the Assumptions listed in Theorem 3 of Belloni, Chen,
+Chernozhukov, and Hansen (2012), including
+∥Γ∥0
+log ppn → 0, (29.19)
+then (
+Q −1ΩQ −1)p
+n
+(ˆβLasso−IV − β
+)
+− →
+d
+N(0, I k) (29.20)
+where Q = E
+[
+W W ′]
+, Ω = E
+[
+W W ′e2]
+, and W = Γ′Z . Furthermore, the standard
+covariance matrix estimators are consistent for the asymptotic covariance ma-
+trix. The same distribution result holds for ˆβLasso−SSIV under the assumptions
+listed in their Theorem 7. In particular, (29.19) is replaced by
+∥Γ∥0
+log p
+n → 0. (29.21)
+For a sketch of the proof see Section 29.23.
+Equation (29.19) requires that the reduced form coefﬁcient Γ is sparse in the sense that the number
+of non-zero reduced form coefﬁcients∥Γ∥0 grows more slowly than p
+n. This allows for p to grow expo-
+nentially with n but at a somewhat slower rate than allowed by Theorem 29.3. Condition (29.19) is one
+of the key assumptions needed for the distribution result (29.20).
+For Lasso SSIV , equation (29.21) replaces (29.19). This rate condition is weaker, allowingp to grow at
+the same rate as for regression estimation. The difference is due to the split-sample estimation, which
+breaks the dependence between the reduced form coefﬁcient estimates and the second-stage structural
+estimates. There are two interpretable implications of the difference between (29.19) and (29.21). First,
+a direct implication is that Lasso SSIV allows for larger number of variablesp. Second, an indirect impli-
+cation is that for any set of variables, Lasso SSIV will have reduced bias relative to Lasso IV . Both inter-
+pretations suggest that Lasso SSIV is the preferred estimator.
+
+
+--- page 24 ---
+
+CHAPTER 29. MACHINE LEARNING 933
+Belloni, Chen, Chernozhukov, and Hansen (2012) extend Theorem 29.5 to allow for approximate
+sparsity as in Section 29.12 at the cost of more restrictive rate conditions.
+An important disadvantage of the split-sample and cross-ﬁt estimators is that they depend on the
+random sorting of the observations into the samples A and B. Consequently, two researchers will obtain
+two different estimators. Furthermore, the split-sample estimators use n/2 observations rather than n,
+which may impact ﬁnite-sample performance. A deduction is that the split-sample estimators are not
+appropriate when n is small.
+IV Lasso can be implemented in Stata using the downloadable package ivlasso.
+29.20 Double Selection Lasso
+Post-estimation inference is difﬁcult with most machine learning estimators. For example, consider
+the post-Lasso estimator (least squares applied to the regressors selected by the Lasso). This is a post-
+model-selection (PMS) estimator, as discussed in Sections 28.16 and 28.17. As shown in Section 28.17,
+the coverage probability of standard conﬁdence intervals applied to PMS estimators can be far from
+the nominal level. Belloni, Chernozhukov, and Hansen (2014b) proposed an alternative estimation and
+inference method which achives better coverage rates.
+Consider the linear model
+Y = Dθ + X ′β + e (29.22)
+E[e |D, X ] = 0
+where Y and D are scalar and X is p × 1. The variable D is the main focus of the regression; the variable
+X are controls. The goal is inference on θ.
+Suppose you estimate model (29.22) by group post-Lasso, only penalizingβ. This performs selection
+on the variables X , resulting in a least squares regression of Y on D and the selected variables in X . This
+is identical to the model studied in Section 28.17 (except that in that analysis selection was performed
+by testing), where Figure 28.2(c) shows that the coverage probabilities for θ are downward biased, and
+the distortions are serious. The distortions are primarily affected by (and increasing in) the correlation
+between D and X .
+Belloni, Chernozhukov, and Hansen (2014b) deduce that improved coverage accuracy can be achieved
+if the variable X is included in the regression (29.22) whenever X and D are correlated. This gives rise to
+the practical suggestion to perform what they call double-selection. We start by specifying an auxiliary
+equation for D:
+D = X ′γ +V (29.23)
+E[V |X ] = 0.
+Substituting (29.23) into (29.22) we obtain a reduced form for Y :
+Y = X ′η +U (29.24)
+E[U |X ] = 0
+where η = β+γθ and U = e +V θ. The proposed double-selection algorithm applies model selection (e.g.,
+Lasso selection) separately to equations (29.23) and (29.24), takes the union of the selected regressors,
+and then estimates (29.22) by least squares using the selected regressors. This method ensures that a
+variable X is included if it is relevant for the regression (29.22) or if it is correlated with D.
+The double-selection estimator as recommended by Belloni, Chernozhukov, and Hansen (2014b) is:
+
+
+--- page 25 ---
+
+CHAPTER 29. MACHINE LEARNING 934
+1. Estimate (29.23) by Lasso. Let X1 be the selected variables from X .
+2. Estimate (29.24) by Lasso. Let X2 be the selected variables from X .
+3. Let ˜X = X1 ∪ X2 be the union of the variables in X1 and X2.
+4. Regress Y on (D, ˜X ) to obtain the double-selection coefﬁcient estimateˆθDS.
+5. Calculate a conventional (heteroskedastic) standard error for ˆθDS.
+Belloni, Chernozhukov, and Hansen (2014b) show that when both (29.22) and (29.23) satisfy an ap-
+proximate sparsity structure (so that the regressions are well approximated by a ﬁnite set of regressors)
+then the double-selection estimator ˆθDS and its t-ratio are asymptotically normal so conventional infer-
+ernce methods are valid. Their proof is technically tedious so not repeated here. The essential idea is
+that since ˜X includes the variables in X2, the estimator ˆθDS is asymptotically equivalent to the regression
+where D is replaced with the error V from (29.23). Since V is uncorrelated with the regressors X the
+estimator and t-ratio satisfy the conventional non-selection asymptotic distribution.
+It should be emphasized that this distributional claim is asymptotic; ﬁnite sample inferences remain
+distorted from nominal levels. Furthermore, the result rests on the adequacy of the approximate sparsity
+assumption for both the structural equation (29.22) and the auxillary regression (29.23).
+The primary advantage of the double-selection estimator is its simplicity and clear intuitive struc-
+ture.
+In Stata, the double-selection Lasso estimator can be computed by thedsregress command or with
+the pdslasso add-on package. Double-selection is available in R with the hdm package.
+29.21 Post-Regularization Lasso
+A potential improvement on double-selection Lasso is the post-regularization Lasso estimator of
+Chernozhukov, Hansen, and Spindler (2015), which is labeled as partialing-out Lasso in the Stata man-
+ual. The estimator is essentially the same as Robinson (1988) for the partially linear model (see Section
+19.24) but estimated by Lasso rather than kernel regression.
+We ﬁrst transform the structural equation (29.22) to eliminate the high-dimensional component.
+Take the expected value of (29.22) conditional onX , and subtract from each side. This leads to the equa-
+tion
+Y − E[Y |X ] = (D − E[D |X ]) θ + e.
+Notice that this elminates the regressor X and the high-dimensional coefﬁcient β. The models (29.23)-
+(29.24) specify E[Y |X ] and E[D |X ] as linear functions of X . Substituting these expressions we obtain
+Y − X ′η =
+(
+D − X ′γ
+)
+θ + e. (29.25)
+If η and γ were known the coefﬁcientθ could be estimated by least squares. Asη and γ are unknown they
+need to be estimated. Chernozhukov, Hansen, and Spindler (2015) recommend estimation by Lasso or
+post-Lasso, separately for Y and D.
+The estimator recommended by Chernozhukov, Hansen, and Spindler (2015) is:
+1. Estimate (29.23) by Lasso or post-Lasso. Let ˆγ be the coefﬁcient estimator and ˆVi = Di − X ′
+i ˆγ the
+residual.
+2. Estimate (29.24) by Lasso or post-Lasso. Let ˆη be the coefﬁcient estimator and ˆUi = Yi − X ′
+i ˆη the
+residual.
+
+
+--- page 26 ---
+
+CHAPTER 29. MACHINE LEARNING 935
+3. Let ˆθPR be the OLS coefﬁcient from the regression of ˆU on ˆV .
+4. Calculate a conventional (heteroskedastic) standard error for ˆθPR.
+Chernozhukov, Hansen, and Spindler (2015) introduce the following insight to understand why ˆθPR
+may be relatively insensitive to post-model-selection. The reason why model selection invalidates infer-
+ence is because when the variables D and X are correlated the moment condition for θ is sensitive to β.
+Speciﬁcally, the moment condition forθ based on (29.22) is
+m(θ, β) = E
+[
+D
+(
+Y − Dθ − X ′β
+)]
+= 0.
+Its sensitivity with respect to β is its derivative evaluated at the true coefﬁcients
+∂
+∂β m(θ, β) = −E
+[
+D X′]
+which is non-zero when D and X are correlated. This means that inclusion/exclusion of the variable X
+has an impact on the moment condition for θ and hence its solution.
+In contrast, the moment condition for θ based on (29.25) is
+mPR(θ, β) = E
+[(
+D − X ′γ
+) (
+Y − X ′η −
+(
+D − X ′γ
+)
+θ
+)]
+= E
+[(
+D − X ′γ
+) (
+Y − Dθ − X ′β
+)]
+.
+Its sensitivity with respect to β is
+∂
+∂β mPR(θ, β) = −E
+[(
+D − X ′γ
+)
+X ′]
+= −E
+[
+V X ′]
+= 0.
+This equals zero because V is a regression error as speciﬁed in (29.23) and thus uncorrelated with X .
+Since the sensitivity of mPR(θ, β) with respect to β is zero, inclusion/exclusion of the variable X has only
+a mild impact on the moment condition for θ and its estimator.
+These insights are formalized in the following distribution theory.
+Theorem 29.6 Suppose model (29.22)-(29.23) holds, max
+1≤j ≤p
+E
+[
+X 4
+j
+]
+< ∞, E
+[
+e4]
+<
+∞, E
+[
+V 4]
+< ∞, Assumption 29.1 holds for both β and γ, the Lasso parameter
+satisﬁesλ = C
+√
+n log p for C sufﬁciently large, and
+(β
+
+
+0 +
+
+γ
+
+
+0
+) log p
+pn = o(1). (29.26)
+Then
+p
+n
+(ˆθPR − θ
+)
+− →
+d
+N
+(
+0,
+E
+[
+V 2e2]
+(
+E
+[
+V 2])2
+)
+.
+Furthermore, the standard variance estimator for ˆθPR is consistent for the
+asymptotic variance.
+For a proof see Section 29.23.
+
+
+--- page 27 ---
+
+CHAPTER 29. MACHINE LEARNING 936
+Theorem 29.6 shows that the post-regularization (partialing-out) Lasso estimator has a conventional
+asymptotic distribution, allowing conventional inference for the coefﬁcient θ. The key rate condition is
+(29.26), which is stronger than required for Lasso estimation, and identical to (29.19) used for Lasso IV .
+(29.26) requires that both β and γ are sparse. The condition (29.26) can be relaxed to allow approximate
+sparsity as in Theorem 29.4 at the cost of a more restrictive rate condition.
+The advantage of the post-regularization estimator ˆθPR over the double-selection estimator ˆθDS is
+efﬁciency. The post-regularization estimator uses only the relevant components of X to separately de-
+mean Y and D, leading to greater parsimony. Different components of X may be relevant to D and Y .
+The post-regularization estimator allows such distinctions and estimates each separately. In contrast,
+the double-selection estimator uses the union of the two regressor sets for estimation of θ, leading to
+a less parsimonious speciﬁcation. As a consequence, an advantage of the double-selection estimator
+is reduced bias and robustness. Regarding the theory, the derivation of the asymptotic theory for the
+post-regularization estimator is considerably easier than that for the double-selection estimator, as it
+only involves the manipulation of rates of convergence, while the double-selection estimator requires a
+careful attention to the handling of the union of the regressor sets.
+The partialing-out Lasso estimator is available with theporegress command in Stata (implemented
+with post-Lasso estimation only), or with thepdslasso add-on package. Partialing-out Lasso is available
+in R with the hdm package.
+29.22 Double/Debiased Machine Learning
+The most recent contribution to inference methods for model (29.22) is the Double/Debiased ma-
+chine learning (DML) estimator of Chernozhukov, Chetverikov, Demirer, Duﬂo, Hansen, Newey, and
+Robins (2018). Our description will focus on linear regression estimated by Lasso, though their treat-
+ment is considerably more general. This estimation method has received considerable attention among
+econometricians in recent years and is considered the state-of-the-art estimation method.
+The DML estimator extends the post-regularization estimator of the previous section by adding sample-
+splitting similarly to the split-sample IV estimator (see Section 29.19). The authors argue that this reduces
+the dependence between the estimation stages and can improve performance.
+As presented in the previous section, the post-regularization estimator ﬁrst estimates the coefﬁcients
+γ and η in the models (29.23) and (29.24) and then estimates the coefﬁcientθ. The split-sample estimator
+performs these estimation steps using separate samples. The DML estimator takes this a step further by
+using K-fold partitioning. The estimation algorithm is as follows.
+1. Randomly partition the sample into K independent folds Ak, k = 1, ...,K , of roughly equal sizen/K .
+2. Write the data matrices for each fold as (Y k, D k, X k).
+3. For k = 1, ...,K
+(a) Use all observations except for fold k to estimate the coefﬁcientsγ and η in (29.23) and (29.24)
+by Lasso or post-Lasso.
+(b) Write these leave-fold-out estimators as ˆγ−k and ˆη−k.
+(c) Set ˆV k = D k − X k ˆγ−k and ˆU k = Y k − X k ˆη−k. These are the estimated values of V and U for
+observations in the k t h fold using the leave-fold-out estimators.
+4. Set ˆθDML =
+(∑K
+k=1 ˆV
+′
+k ˆV k
+)−1 (∑K
+k=1 ˆV
+′
+k ˆU k
+)
+. Equivalently, stack ˆV k and ˆU k into n × 1 vectors ˆV and ˆU
+and set ˆθDML =
+(
+ˆV
+′ ˆV
+)−1 (
+ˆV
+′ ˆU
+)
+.
+
+
+--- page 28 ---
+
+CHAPTER 29. MACHINE LEARNING 937
+5. Construct a conventional (heteroskedastic) standard error for ˆθDML.
+The authors call ˆθDML a cross-ﬁtestimator as in the K = 2 case it performs sample splitting in both
+directions and is therefore fully asymptotically efﬁcient. The estimator as described above is labeled the
+“DML2” estimator by the authors. An alternative they label “DML1” is ˆθDML1 = ∑K
+k=1
+(
+ˆV
+′
+k ˆV k
+)−1 (
+ˆV
+′
+k ˆU k
+)
+.
+They are asymptotically equivalent but DML2 is preferred.
+The estimator requires the selection of the number of folds K . Similarly to K-fold CV the authors
+recommend K = 10. Computational cost is roughly proportional to K .
+Theorem 29.7 Under the assumptions of Theorem 29.6,
+p
+n
+(ˆθDML − θ
+)
+− →
+d
+N
+(
+0,
+E
+[
+V 2e2]
+(
+E
+[
+V 2])2
+)
+.
+Furthermore, the standard variance estimator for ˆθDML is consistent for the
+asymptotic variance.
+Theorem 29.7 shows that the DML estimator achieves a standard asymptotic distribution. The proof
+is a straightforward extension of that for Theorem 29.6 so is omitted.
+The authors argue that the DML estimator has improved sampling performance due to an improved
+rate of convergence of certain error terms. If we examine the proof of Theorem 29.6, one of the error
+bounds is (29.42), which shows that
+⏐⏐⏐⏐
+(
+ˆγ−k − γ
+)′ 1pn X ′
+k ek
+⏐⏐⏐⏐ ≤ Op
+(γ
+
+
+0
+log p
+pn
+)
+= op(1). (29.27)
+Under sample splitting, however, we have an improved rate of convergence. The components ˆγ−k and
+X ′
+k ek are independent. Thus the left side of (29.27), conditional on ˆγ−k and X k, is mean zero and has
+conditional variance bounded by σ2 (
+ˆγ−k − γ
+)′ 1
+n X ′
+k X k
+(
+ˆγ−k − γ
+)
+where
+σ2 = supx E
+[
+e2 |X = x
+]
+. This is
+Op
+(γ
+
+
+0
+log p
+n
+)
+by Theorem 29.3. Hence (29.27) is Op
+(√
+γ
+
+
+0
+log p
+n
+)
+, which is of smaller order. This im-
+provement suggests that the deviations from the asymptotic approximation should be smaller under
+sample splitting and the DML estimator. The improvements, however, do not lead to a relaxation of the
+regularity conditions. The proof requires bounding the terms (29.40)-(29.41) and these are not improved
+by sample splititng. Consequently it is unclear if the distributional impact of sample splitting is large or
+small.
+The advantage of the DML estimator over the post-regularization estimator is that the sample split-
+ting eliminates the dependence between the two estimation steps, thereby reducing post-model-selection
+bias. The procedure has several disadvantages, however. First, the estimator is random due to the sam-
+ple splitting. Two researchers with the same data set but making different random splits will obtain two
+distinct estimators. This arbitrariness is unsettling. This randomness can be reduced by using a larger
+value of K , but this increases computation cost. Another disadvantage of sample-splitting is that esti-
+mation of γ and η is performed using smaller samples which reduces estimation efﬁciency, though this
+effect is minor if K ≥ 10. Regardless, these considerations suggest that DML may be most appropriate for
+settings with large n and K ≥ 10.
+
+
+--- page 29 ---
+
+CHAPTER 29. MACHINE LEARNING 938
+At the beginning of this section the DML estimator was described as the “state-of-the-art” . This ﬁeld
+is rapidly developing so this speciﬁc estimator may be soon eclipsed by a further iteration.
+In Stata, the DML estimator is available with the xporegress command. By default it implements
+the DML2 estimator with K = 10 folds. The coefﬁcientsγ and η are estimated by post-Lasso.
+29.23 Technical Proofs*
+Proof of Theorem 29.2 Combining (29.8) and (29.9) we ﬁnd that
+mse
+[ˆβridge |X
+]
+= var
+[ˆβridge |X
+]
++ bias
+[ˆβridge |X
+]
+bias
+[ˆβridge |X
+]′
+=
+(
+X ′X + λI p
+)−1 (
+X ′D X + λ2ββ′) (
+X ′X + λI p
+)−1 .
+The MSE of the least squares estimator is
+mse
+[ˆβols |X
+]
+=
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1
+=
+(
+X ′X + λI p
+)−1 (
+X ′X + λI p
+) (
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 (
+X ′X + λI p
+) (
+X ′X + λI p
+)−1
+=
+(
+X ′X + λI p
+)−1 (
+X ′D X + λ
+(
+X ′X
+)−1 (
+X ′D X
+)
++ λ
+(
+X ′D X
+) (
+X ′X
+)−1
++λ2 (
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1)(
+X ′X + λI p
+)−1
+≥
+(
+X ′X + λI p
+)−1 (
+X ′D X + λ
+(
+X ′X
+)−1 (
+X ′D X
+)
++ λ
+(
+X ′D X
+) (
+X ′X
+)−1)(
+X ′X + λI p
+)−1 .
+Their difference is
+mse
+[ˆβols |X
+]
+− mse
+[ˆβridge |X
+]
+≥ λ
+(
+X ′X + λI p
+)−1 A
+(
+X ′X + λI p
+)−1 (29.28)
+where
+A =
+(
+X ′X
+)−1 (
+X ′D X
+)
++
+(
+X ′D X
+) (
+X ′X
+)−1 − λββ′.
+The right-hand-side of (29.28) is positive deﬁnite ifA > 0. Its smallest eigenvalue satisﬁes
+λmin (A) = 2 min
+α′α=1
+α′ (
+X ′X
+)−1/2 (
+X ′D X
+) (
+X ′X
+)−1/2 α − λβ′β ≥ 2 min
+h′h=1
+h′Dh − λβ′β = 2σ2 − λβ′β
+which is strictly positive when 0 < λ < 2σ2/β′β as assumed. This shows that (29.28) is positive deﬁnite.
+■
+Proof of Theorem 29.3 The key is the following maximal inequality. By Markov’ s inequality, the maximal
+Marcinkiewicz-Zygmund inequality (B.47), Jensen’ s inequality, and (29.14),
+P
+[
+
+1
+n X ′e
+
+∞
+> λ
+4n
+]
+≤ 4
+λ E
+[
+max
+1≤j ≤p
+⏐
+⏐
+⏐⏐⏐
+n∑
+i =1
+X j iei
+⏐
+⏐
+⏐
+⏐⏐
+]
+≤ 16
+√
+log p
+λ max
+1≤j ≤p
+E
+[(
+n∑
+i =1
+X 2
+j ie2
+i
+)1/2]
+≤ 16
+√
+log p
+λ
+p
+nω
+= 16ω
+C
+≤ α
+
+
+--- page 30 ---
+
+CHAPTER 29. MACHINE LEARNING 939
+the ﬁnal inequality sinceC ≥ 16ω/α. This shows that
+
+
+
+1
+n X ′e
+
+
+
+
+∞
+≤ λ
+4n (29.29)
+holds with probability exceeding 1 − α. The remainder of the proof is algebraic, based on manipulations
+of the estimation criterion function, conditional on the event (29.29).
+Since ˆβ minimizes SSE1
+(
+β, λ
+)
+it satisﬁes SSE1
+(ˆβ, λ
+)
+≤ SSE1
+(
+β, λ
+)
+or
+(
+Y − X ˆβ
+)′ (
+Y − X ˆβ
+)
++ λ
+
+ ˆβ
+
+
+1 ≤ e′e + λ
+
+β
+
+
+1 .
+Writing out the left side, dividing byn, and re-arranging and deﬁningRn =
+(ˆβ − β
+)′
+Qn
+(ˆβ − β
+)
+, this implies
+Rn + λ
+n
+
+ ˆβ
+
+
+1 ≤ 2
+n e′X
+(ˆβ − β
+)
++ λ
+n
+
+β
+
+
+1
+≤ 2
+
+
+1
+n X ′e
+
+
+∞
+ ˆβ − β
+
+
+1 + λ
+n
+
+β
+
+
+1
+≤ λ
+2n
+
+ ˆβ − β
+
+
+1 + λ
+n
+
+β
+
+
+1 .
+The second inequality is Hölder’ s (29.2) and the third holds by (29.29).
+Partition ˆβ =
+(ˆβ0, ˆβ1
+)
+conformably with β =
+(
+β0, β1
+)
+. Using the additivity property of the 1-norm and
+the fact β0 = 0, the above expression implies
+Rn + λ
+2n
+ ˆβ0 − β0
+
+
+1 ≤ λ
+2n
+
+ ˆβ1 − β1
+
+
+1 + λ
+n
+(
+β1
+
+
+1 −
+
+ ˆβ1
+
+
+1
+)
+≤ 3λ
+2n
+
+ ˆβ1 − β1
+
+
+1 (29.30)
+the second inequality using the fact
+
+β
+
+
+1 ≤
+
+ ˆβ1 − β1
+
+
+1 +
+
+ ˆβ1
+
+
+1 which follows from (29.3).
+An implication of (29.30) is
+
+ ˆβ0 − β0
+
+
+1 ≤ 3
+
+ ˆβ1 − β1
+
+
+1. Thus ˆβ − β ∈ B. A consequence is that we can
+apply Assumption 29.1 to obtain
+Rn =
+(ˆβ − β
+)′
+Qn
+(ˆβ − β
+)
+≥ c2 
+ ˆβ − β
+
+2
+2 . (29.31)
+This is the only (but key) point in the proof where Assumption 29.1 is used.
+Together with (29.30), (29.31) implies
+c2  ˆβ − β
+
+2
+2 ≤ 3λ
+2n
+ ˆβ1 − β1
+
+
+1
+≤ 3λ
+2n
+
+ ˆβ1 − β1
+
+
+2
+
+ ˆβ1 − β1
+
+1/2
+0
+≤ 3λ
+2n
+ ˆβ − β
+
+
+2
+
+β
+
+1/2
+0 .
+The second inequality is (29.4). The third is
+ ˆβ1 − β1
+
+
+2 ≤
+ ˆβ − β
+
+
+2 and
+
+ ˆβ1 − β1
+
+
+0 =
+
+β1
+
+
+0 =
+
+β
+
+
+0. Rear-
+ranging and using (29.14) we obtain
+
+ ˆβ − β
+
+
+2 ≤ 3λ
+2c2n
+
+β
+
+1/2
+0 = 3C
+2c2
+β
+
+1/2
+0
+√
+log p
+n
+which is (29.17) with D = 3C /2c2.
+
+
+--- page 31 ---
+
+CHAPTER 29. MACHINE LEARNING 940
+(29.30), (29.4), (29.17) and (29.14) imply
+Rn + λ
+2n
+ ˆβ0 − β0
+
+
+1 ≤ 3λ
+2n
+
+ ˆβ1 − β1
+
+
+2
+
+ ˆβ1 − β1
+
+1/2
+0
+≤ 3λ
+2n
+ ˆβ − β
+
+
+2
+
+β
+
+1/2
+0
+≤ 9C
+4c2
+λ
+n
+β
+
+
+0
+√
+log p
+n (29.32)
+= 9C 2
+4c2
+
+β
+
+
+0
+log p
+n .
+This implies (29.15) with D = 9C 2/4c2.
+Equation (29.32) also implies
+
+ ˆβ0 − β0
+
+
+1 ≤ 9C
+2c2
+
+β
+
+
+0
+√
+log p
+n .
+Using (29.4) and (29.17)
+
+ ˆβ1 − β1
+
+
+1 ≤
+
+ ˆβ1 − β1
+
+
+2
+
+ ˆβ1 − β1
+
+1/2
+0 ≤
+ ˆβ − β
+
+
+2
+
+β
+
+1/2
+0 ≤ 3C
+2c2
+β
+
+
+0
+√
+log p
+n .
+Hence
+
+ ˆβ − β
+
+
+1 =
+
+ ˆβ0 − β0
+
+
+1 +
+
+ ˆβ1 − β1
+
+
+1 ≤ 6C
+c2
+
+β
+
+
+0
+√
+log p
+n
+which is (29.16) with D = 6C /c2. ■
+Proof of Theorem 29.5 We provide a sketch of the proof. We start with Lasso IV . First, consider the ideal-
+ized estimator ˆβ =
+(
+W ′X
+)−1 (
+W ′Y
+)
+where W = Z Γ. If the distribution ofW does not change withn (which
+holds when the non-zero coefﬁcients inΓ do not change with n) then ˆβ has the asymptotic distribution
+(29.20) under standard assumptions. To allow the non-zero coefﬁcients in Γ to change with n, Belloni,
+Chen, Chernozhukov, and Hansen (2012) use a triangular array central limit theory which requires some
+additional technical conditions. Given this, (29.20) holds if W can be replaced by the predicted values
+ˆX Lasso without changing (29.20). This holds if
+1
+n
+(ˆX Lasso − W
+)′
+X − →p 0 (29.33)
+1pn
+(ˆX Lasso − W
+)′
+e − →p 0. (29.34)
+For simplicity assume that k = 1. Theorem 29.3 shows that under the regularity conditions for the Lasso
+applied to the reduced form,
+⏐⏐
+⏐
+⏐
+1
+n
+(ˆX Lasso − W
+)′ (ˆX Lasso − W
+)⏐
+⏐
+⏐
+⏐ =
+(ˆΓ − Γ
+)′
+( 1
+n Z ′Z
+) (ˆΓ − Γ
+)
+≤ Op
+(
+∥Γ∥0
+log p
+n
+)
+(29.35)
+and
+
+ˆΓ − Γ
+
+
+1 ≤ Op
+
+∥Γ∥0
+√
+log p
+n
+
+. (29.36)
+
+
+--- page 32 ---
+
+CHAPTER 29. MACHINE LEARNING 941
+By the Maximal Marchinkiewicz-Zygmund inequality (B.47), if maxj E
+[
+Z 2
+j e2
+]
+≤ ω < ∞, then
+
+
+1
+pn Z ′e
+
+
+∞
+= Op
+(√
+log p
+)
+. (29.37)
+By the Schwarz inequality and (29.35)
+⏐
+⏐
+⏐⏐
+1
+n
+(ˆX Lasso − W
+)′
+X
+⏐⏐
+⏐⏐ ≤
+⏐⏐
+⏐⏐
+1
+n
+(ˆX Lasso − W
+)′ (ˆX Lasso − W
+)⏐⏐
+⏐⏐
+1/2 ⏐⏐
+⏐⏐
+1
+n X ′X
+⏐⏐
+⏐⏐
+1/2
+≤ Op
+(
+∥Γ∥0
+log p
+n
+)1/2
+≤ op(1)
+the ﬁnal inequality under (29.19). This establishes (29.33).
+By the Hölder inequality (29.2), (29.36), and (29.37),
+⏐⏐
+⏐
+⏐
+1
+pn
+(ˆX Lasso − W
+)′
+e
+⏐
+⏐
+⏐
+⏐ =
+⏐
+⏐
+⏐
+⏐
+(ˆΓ − Γ
+)′ 1
+pn Z ′e
+⏐
+⏐
+⏐
+⏐
+≤
+
+ˆΓ − Γ
+
+
+1
+
+
+
+
+1
+pn Z ′e
+
+
+
+
+∞
+≤ Op
+
+∥Γ∥0
+√
+log p
+n
+
+Op
+(√
+log p
+)
+= Op
+(
+∥Γ∥0
+log ppn
+)
+≤ op(1) (29.38)
+the ﬁnal inequality under (29.19). This establishes (29.34).
+Now consider Lasso SSIV . The steps are essentially the same except for (29.38). For this we use the
+fact that ˆΓLasso,A is independent of Z ′
+B eB . Let D B = diag
+(
+E
+[
+e2
+i |Zi
+])
+for sample B and assume E
+[
+e2 |Z
+]
+≤
+σ2 < ∞. Conditionally on A and Z B
+var
+[ 1pn
+(
+ˆX
+′
+Lasso,B − W B
+)′
+eB
+⏐⏐
+⏐
+⏐ A, Z B
+]
+= var
+[ (ˆΓLasso,A − Γ
+)′ 1
+pn Z ′
+B eB
+⏐⏐
+⏐
+⏐ A, Z B
+]
+=
+(ˆΓLasso,A − Γ
+)′ 1
+n Z ′
+B D ZB
+(ˆΓLasso,A − Γ
+)
+≤ σ2 (ˆΓLasso,A − Γ
+)′ 1
+n Z ′
+B Z B
+(ˆΓLasso,A − Γ
+)
+= Op
+(
+∥Γ∥0
+log p
+n
+)
+≤ op(1)
+the ﬁnal bounds by (29.35) and (29.21). Thusn−1/2
+(
+ˆX
+′
+Lasso,B − W B
+)′
+eB − →p 0 as needed. ■
+Proof of Theorem 29.6 The idealized estimator ˆθPR =
+(
+V ′V
+)−1 (
+V ′U
+)
+satisﬁes
+p
+n
+(ˆθPR − θ
+)
+=
+(
+n−1V ′V
+)−1 (
+n−1/2V ′e
+)
+which has the stated asymptotic distribution. The Theorem therefore holds if replacement of ( V ,U ) by
+( ˆV , ˆU ) is asymptotically negligible.
+
+
+--- page 33 ---
+
+CHAPTER 29. MACHINE LEARNING 942
+Since Y = X η + ˆV θ + X
+(
+ˆγ − γ
+)
+θ + e,
+p
+n
+(ˆθPR − θ
+)
+=
+p
+n
+ˆV
+′ ˆU
+ˆV
+′ ˆV
+=
+1pn
+ˆV
+′ (ˆV θ + X
+(
+ˆγ − γ
+)
+θ − X
+(
+ˆη − η
+)
++ e
+)
+1
+n
+ˆV
+′ ˆV
+. (29.39)
+The denominator equals
+1
+n
+ˆV
+′ ˆV = 1
+n V ′V − 2
+(
+ˆγ − γ
+)′ 1
+n X ′V +
+(
+ˆγ − γ
+)′ Qn
+(
+ˆγ − γ
+)
+.
+The numerator equals
+1pn
+ˆV
+′ (ˆV θ + X
+(
+ˆγ − γ
+)
+θ − X
+(
+ˆη − η
+)
++ e
+)
+= 1pn V ′e −
+(
+ˆγ − γ
+)′ 1pn X ′e −
+(
+ˆη − η
+)′ 1pn X ′V
++ θ
+(
+ˆγ − γ
+)′ 1pn X ′V +
+p
+n
+(
+ˆγ − γ
+)′ Qn
+(
+ˆη − η
+)
+− θ
+p
+n
+(
+ˆγ − γ
+)′ Qn
+(
+ˆγ − γ
+)
+.
+The terms on the right side beyond the ﬁrst are asymptotically negligible because
+p
+n
+(
+ˆγ − γ
+)′ Qn
+(
+ˆγ − γ
+)
+≤ Op
+(γ
+
+
+0
+log p
+pn
+)
+= op(1) (29.40)
+p
+n
+(
+ˆη − η
+)′ Qn
+(
+ˆη − η
+)
+≤ Op
+(
+η
+
+
+0
+log p
+pn
+)
+= op(1) (29.41)
+by Theorem 29.3 and Assumption (29.26),
+p
+n
+(
+ˆγ − γ
+)′ Qn
+(
+ˆη − η
+)
+≤
+(p
+n
+(
+ˆγ − γ
+)′ Qn
+(
+ˆγ − γ
+))1/2 (p
+n
+(
+ˆη − η
+)′ Qn
+(
+ˆη − η
+))1/2
+≤ Op
+(
+γ
+
+1/2
+0
+η
+
+1/2
+0
+log p
+pn
+)
+= op(1)
+by the Schwarz inequality and the above results, and
+⏐⏐
+⏐
+⏐
+(
+ˆγ − γ
+)′ 1
+pn X ′e
+⏐
+⏐
+⏐
+⏐ ≤
+
+ˆγ − γ
+
+
+1
+
+
+
+
+1
+pn X ′e
+
+
+
+
+∞
+≤ Op
+
+γ
+
+
+0
+√
+log p
+n
+
+Op
+(√
+log p
+)
+= Op
+(γ
+
+
+0
+log p
+pn
+)
+= op(1) (29.42)
+by Hölder’ s (29.2), Theorem 29.3, the Maximal Marchinkiewicz-Zygmund inequality (B.47) (as in (29.37)),
+and Assumption (29.26). Similarly
+(
+ˆγ − γ
+)′ 1pn X ′V = op(1)
+(
+ˆη − η
+)′ 1pn X ′V = op(1).
+Together we have shown that in (29.39), the replacement of (ˆV , ˆU ) by ( ˆV , ˆU ) is asymptotically negligible.
+■
+_____________________________________________________________________________________________
+
+
+--- page 34 ---
+
+CHAPTER 29. MACHINE LEARNING 943
+29.24 Exercises
+Exercise 29.1 Prove Theorem 29.1. Hint: The proof is similar to that of Theorem 3.7.
+Exercise 29.2 Show that (29.7) is the Mallows criterion for ridge regression. For a deﬁnition of the Mal-
+lows criterion see Section 28.6.
+Exercise 29.3 Derive the conditional bias (29.8) and variance (29.9) of the ridge regression estimator.
+Exercise 29.4 Show that the ridge regression estimator can be computed as least squares applied to an
+augmented data set. Take the original data ( Y , X ). Add p 0’ s toY and p rows of
+p
+λI p to X , apply least
+squares, and show that this equals ˆβridge.
+Exercise 29.5 Which estimator produces a higher regression R2, least squares or ridge regression?
+Exercise 29.6 Does ridge regression require that the columns of X linearly independent? Take a sample
+(Y , X ). Create the augmented regressor set ˜X = (X , X ) (add a duplicate of each regressor) and let ( ˆβ1, ˆβ2)
+be the ridge regression coefﬁcients for the regression ofY on ˜X . Show that ˆβ1 = ˆβ2 = 1
+2
+(
+X ′X + I p ˜λ
+)−1 (
+X ′Y
+)
+with ˜λ = λ/2.
+Exercise 29.7 Repeat the previous question for Lasso regression. Show that the Lasso coefﬁcient esti-
+mates ˆβ1 and ˆβ2 are individually indeterminate but their sum satisﬁes ˆβ1 + ˆβ2 = ˆβLasso, the coefﬁcients
+from the Lasso regression of Y on X .
+Exercise 29.8 You have the continuous variables (Y, X ) with X ≥ 0 and you want to estimate a regression
+tree for E[Y |X ]. A friend suggests adding a quadratic X 2 to the variables for added ﬂexibility. Does this
+make sense?
+Exercise 29.9 Take the cpsmar09 dataset and the subsample of Asian women (n = 1149). Estimate
+a Lasso linear regression of log(wage) on the following variables: education; dummies for education
+equalling 12, 13, 14, 15, 16, 18, and 20; experience/40 in powers from 1 to 9; dummies for marriage cate-
+gories married, divorced, separated, widowed, never married; dummies for the four regions; dummy for
+union membership. Report the estimated model and coefﬁcients.
+Exercise 29.10 Repeat the above exercise using the subsample of Hispanic men (n = 4547).
+
+
+--- page 35 ---
+
+Appendices
+944

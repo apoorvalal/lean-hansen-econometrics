@@ -1,0 +1,2523 @@
+--- page 1 ---
+
+Chapter 9
+Hypothesis Testing
+In Chapter 5 we brieﬂy introduced hypothesis testing in the context of the normal regression model.
+In this chapter we explore hypothesis testing in greater detail with a particular emphasis on asymptotic
+inference. For more detail on the foundations see Chapter 13 of Introduction to Econometrics.
+9.1 Hypotheses
+In Chapter 8 we discussed estimation subject to restrictions, including linear restrictions (8.1), non-
+linear restrictions (8.44), and inequality restrictions (8.49). In this chapter we discuss tests of such re-
+strictions.
+Hypothesis tests attempt to assess whether there is evidence contrary to a proposed restriction. Let
+θ = r (β) be a q × 1 parameter of interest where r : Rk → Θ ⊂ Rq is some transformation. For example, θ
+may be a single coefﬁcient, e.g. θ = βj , the difference between two coefﬁcients, e.g. θ = βj − βℓ, or the
+ratio of two coefﬁcients, e.g.θ = βj /βℓ.
+A point hypothesis concerning θ is a proposed restriction such as
+θ = θ0 (9.1)
+where θ0 is a hypothesized (known) value.
+More generally, letting β ∈ B ⊂ Rk be the parameter space, a hypothesis is a restriction β ∈ B0 where
+B0 is a proper subset of B. This specializes to (9.1) by setting B0 =
+{
+β ∈ B : r (β) = θ0
+}
+.
+In this chapter we will focus exclusively on point hypotheses of the form (9.1) as they are the most
+common and relatively simple to handle.
+The hypothesis to be tested is called the null hypothesis.
+Deﬁnition 9.1 The null hypothesis H0 is the restriction θ = θ0 or β ∈ B0.
+We often write the null hypothesis as H0 : θ = θ0 or H0 : r (β) = θ0.
+The complement of the null hypothesis (the collection of parameter values which do not satisfy the
+null hypothesis) is called the alternative hypothesis.
+Deﬁnition 9.2 The alternative hypothesis H1 is the set {θ ∈ Θ : θ ̸= θ0} or{
+β ∈ B : β ∉ B0
+}
+.
+221
+
+
+--- page 2 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 222
+We often write the alternative hypothesis as H1 : θ ̸= θ0 or H1 : r (β) ̸= θ0. For simplicity, we often refer
+to the hypotheses as “the null” and “the alternative” . Figure 9.1(a) illustrates the division of the parameter
+space into null and alternative hypotheses.
+H0
+H1
+(a) Null and Alternative Hypotheses
+T < c
+T > c
+S0
+S1 (b) Acceptance and Rejection Regions
+Figure 9.1: Hypothesis Testing
+In hypothesis testing, we assume that there is a true (but unknown) value of θ and this value either
+satisﬁesH0 or does not satisfy H0. The goal of hypothesis testing is to assess whether or not H0 is true by
+asking if H0 is consistent with the observed data.
+To be speciﬁc, take our example of wage determination and consider the question: Does union mem-
+bership affect wages? We can turn this into a hypothesis test by specifying the null as the restriction that
+a coefﬁcient on union membership is zero in a wage regression. Consider, for example, the estimates
+reported in Table 4.1. The coefﬁcient for “Male Union Member” is 0.095 (a wage premium of 9.5%) and
+the coefﬁcient for “Female Union Member” is 0.022 (a wage premium of 2.2%). These are estimates,
+not the true values. The question is: Are the true coefﬁcients zero? To answer this question the testing
+method asks the question: Are the observed estimates compatible with the hypothesis, in the sense that
+the deviation from the hypothesis can be reasonably explained by stochastic variation? Or are the ob-
+served estimates incompatible with the hypothesis, in the sense that that the observed estimates would
+be highly unlikely if the hypothesis were true?
+9.2 Acceptance and Rejection
+A hypothesis test either accepts the null hypothesis or rejects the null hypothesis in favor of the alter-
+native hypothesis. We can describe these two decisions as “ Accept H0” and “Reject H0” . In the example
+given in the previous section the decision is either to accept the hypothesis that union membership does
+not affect wages, or to reject the hypothesis in favor of the alternative that union membership does affect
+wages.
+The decision is based on the data and so is a mapping from the sample space to the decision set.
+This splits the sample space into two regions S0 and S1 such that if the observed sample falls into S0 we
+accept H0, while if the sample falls into S1 we reject H0. The set S0 is called the acceptance region and
+
+
+--- page 3 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 223
+the set S1 the rejection or critical region.
+It is convenient to express this mapping as a real-valued function called a test statistic
+T = T ((Y1, X1),..., (Yn, Xn))
+relative to a critical value c. The hypothesis test then consists of the decision rule:
+1. Accept H0 if T ≤ c.
+2. Reject H0 if T > c.
+Figure 9.1(b) illustrates the division of the sample space into acceptance and rejection regions.
+A test statistic T should be designed so that small values are likely when H0 is true and large values
+are likely when H1 is true. There is a well developed statistical theory concerning the design of optimal
+tests. We will not review that theory here, but instead refer the reader to Lehmann and Romano (2005).
+In this chapter we will summarize the main approaches to the design of test statistics.
+The most commonly used test statistic is the absolute value of the t-statistic
+T = |T (θ0)| (9.2)
+where
+T (θ) =
+ˆθ − θ
+s(ˆθ)
+(9.3)
+is the t-statistic from (7.33), ˆθ is a point estimator, ands(ˆθ) its standard error.T is an appropriate statistic
+when testing hypotheses on individual coefﬁcients or real-valued parameters θ = h(β) and θ0 is the hy-
+pothesized value. Quite typically θ0 = 0, as interest focuses on whether or not a coefﬁcient equals zero,
+but this is not the only possibility. For example, interest may focus on whether an elasticityθ equals 1, in
+which case we may wish to test H0 : θ = 1.
+9.3 Type I Error
+A false rejection of the null hypothesis H0 (rejecting H0 when H0 is true) is called a Type I error. The
+probability of a Type I error is called the size of the test.
+P
+[
+Reject H0 |H0 true
+]
+= P[T > c |H0 true]. (9.4)
+The uniform size of the test is the supremum of (9.4) across all data distributions which satisfy H0. A
+primary goal of test construction is to limit the incidence of Type I error by bounding the size of the test.
+For the reasons discussed in Chapter 7, in typical econometric models the exact sampling distribu-
+tions of estimators and test statistics are unknown and hence we cannot explicitly calculate (9.4). In-
+stead, we typically rely on asymptotic approximations. Suppose that the test statistic has an asymptotic
+distribution under H0. That is, when H0 is true
+T − →
+d
+ξ (9.5)
+as n → ∞ for some continuously-distributed random variable ξ. This is not a substantive restriction as
+most conventional econometric tests satisfy (9.5). Let G(u) = P[ξ ≤ u] denote the distribution of ξ. We
+call ξ (or G) the asymptotic null distribution.
+It is desirable to design test statistics T whose asymptotic null distribution G is known and does not
+depend on unknown parameters. In this case we say that T is asymptotically pivotal.
+
+
+--- page 4 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 224
+For example, if the test statistic equals the absolute t-statistic from (9.2), then we know from Theorem
+7.11 that if θ = θ0 (that is, the null hypothesis holds), then T − →
+d
+|Z |as n → ∞ where Z ∼ N(0,1). This
+means that G(u) = P[|Z|≤ u] = 2Φ(u) − 1, the distribution of the absolute value of the standard normal
+as shown in (7.34). This distribution does not depend on unknowns and is pivotal.
+We deﬁne theasymptotic size of the test as the asymptotic probability of a Type I error:
+limn→∞ P[T > c |H0 true] = P[ξ > c] = 1 −G(c).
+We see that the asymptotic size of the test is a simple function of the asymptotic null distribution G and
+the critical valuec. For example, the asymptotic size of a test based on the absolute t-statistic with critical
+value c is 2(1 − Φ(c)).
+In the dominant approach to hypothesis testing the researcher pre-selects a signiﬁcance level α ∈
+(0, 1) and then selects c so the asymptotic size is no larger than α. When the asymptotic null distribu-
+tion G is pivotal we accomplish this by setting c equal to the 1 − α quantile of the distribution G. (If
+the distribution G is not pivotal more complicated methods must be used.) We call c the asymptotic
+critical value because it has been selected from the asymptotic null distribution. For example, since
+2(1 − Φ(1.96)) = 0.05 it follows that the 5% asymptotic critical value for the absolute t-statistic is c = 1.96.
+Calculation of normal critical values is done numerically in statistical software. For example, in MATLAB
+the command is norminv(1- α/2).
+9.4 t tests
+As we mentioned earlier, the most common test of the one-dimensional hypothesis H0 : θ = θ0 ∈ R
+against the alternative H1 : θ ̸= θ0 is the absolute value of the t-statistic (9.3). We now formally state its
+asymptotic null distribution, which is a simple application of Theorem 7.11.
+Theorem 9.1 Under Assumptions 7.2, 7.3, and H0 : θ = θ0 ∈ R, T (θ0) − →
+d
+Z ∼
+N(0,1). For c satisfying α = 2(1 − Φ(c)), P[|T (θ0)|> c |H0] → α, and the test
+“Reject H0 if |T (θ0)|> c” has asymptotic size α.
+Theorem 9.1 shows that asymptotic critical values can be taken from the normal distribution. As in
+our discussion of asymptotic conﬁdence intervals (Section 7.13) the critical value could alternatively be
+taken from the studentt distribution, which would be the exact test in the normal regression model (Sec-
+tion 5.12). Indeed, t critical values are the default in packages such as Stata. Since the critical values from
+the student t distribution are (slightly) larger than those from the normal distribution, student t critical
+values slightly decrease the rejection probability of the test. In practical applications the difference is
+typically unimportant unless the sample size is quite small (in which case the asymptotic approximation
+should be questioned as well).
+The alternative hypothesis θ ̸= θ0 is sometimes called a “two-sided” alternative. In contrast, some-
+times we are interested in testing for one-sided alternatives such as H1 : θ > θ0 or H1 : θ < θ0. Tests of
+θ = θ0 against θ > θ0 or θ < θ0 are based on the signed t-statistic T = T (θ0). The hypothesis θ = θ0 is
+rejected in favor of θ > θ0 if T > c where c satisﬁesα = 1 − Φ(c). Negative values of T are not taken as
+evidence against H0, as point estimates ˆθ less than θ0 do not point to θ > θ0. Since the critical values are
+taken from the single tail of the normal distribution they are smaller than for two-sided tests. Speciﬁcally,
+the asymptotic 5% critical value is c = 1.645. Thus, we reject θ = θ0 in favor of θ > θ0 if T > 1.645.
+
+
+--- page 5 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 225
+Conversely, tests ofθ = θ0 against θ < θ0 reject H0 for negative t-statistics, e.g. ifT < −c. Large positive
+values of T are not evidence for H1 : θ < θ0. An asymptotic 5% test rejects if T < −1.645.
+There seems to be an ambiguity. Should we use the two-sided critical value 1.96 or the one-sided
+critical value 1.645? The answer is that in most cases the two-sided critical value is appropriate. We
+should use the one-sided critical values only when the parameter space is known to satisfy a one-sided
+restriction such as θ ≥ θ0. This is when the test of θ = θ0 against θ > θ0 makes sense. If the restriction
+θ ≥ θ0 is not known a priori then imposing this restriction to test θ = θ0 against θ > θ0 does not makes
+sense. Since linear regression coefﬁcients typically do not have a priori sign restrictions, the standard
+convention is to use two-sided critical values.
+This may seem contrary to the way testing is presented in statistical textbooks which often focus on
+one-sided alternative hypotheses. The latter focus is primarily for pedagogy as the one-sided theoretical
+problem is cleaner and easier to understand.
+9.5 Type II Error and Power
+A false acceptance of the null hypothesis H0 (accepting H0 when H1 is true) is called a Type II error.
+The rejection probability under the alternative hypothesis is called the power of the test, and equals 1
+minus the probability of a Type II error:
+π(θ) = P
+[
+Reject H0 |H1 true
+]
+= P[T > c |H1 true].
+We call π(θ) the power function and is written as a function of θ to indicate its dependence on the true
+value of the parameter θ.
+In the dominant approach to hypothesis testing the goal of test construction is to have high power
+subject to the constraint that the size of the test is lower than the pre-speciﬁed signiﬁcance level. Gen-
+erally, the power of a test depends on the true value of the parameter θ, and for a well-behaved test the
+power is increasing both asθ moves away from the null hypothesisθ0 and as the sample sizen increases.
+Given the two possible states of the world (H 0 or H1) and the two possible decisions (Accept H0 or
+Reject H0) there are four possible pairings of states and decisions as is depicted in Table 9.1.
+Table 9.1: Hypothesis Testing Decisions
+Accept H0 Reject H0
+H0 true Correct Decision Type I Error
+H1 true Type II Error Correct Decision
+Given a test statistic T , increasing the critical value c increases the acceptance region S0 while de-
+creasing the rejection region S1. This decreases the likelihood of a Type I error (decreases the size) but
+increases the likelihood of a Type II error (decreases the power). Thus the choice ofc involves a trade-off
+between size and the power. This is why the signiﬁcance levelα of the test cannot be set arbitrarily small.
+Otherwise the test will not have meaningful power.
+It is important to consider the power of a test when interpreting hypothesis tests as an overly narrow
+focus on size can lead to poor decisions. For example, it is easy to design a test which has perfect size
+yet has trivial power. Speciﬁcally, for any hypothesis we can use the following test: Generate a random
+variable U ∼ U [0,1] and reject H0 if U < α. This test has exact size of α. Yet the test also has power
+precisely equal to α. When the power of a test equals the size we say that the test has trivial power.
+Nothing is learned from such a test.
+
+
+--- page 6 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 226
+9.6 Statistical Signiﬁcance
+Testing requires a pre-selected choice of signiﬁcance levelα yet there is no objective scientiﬁc basis
+for choice of α. Nevertheless, the common practice is to set α = 0.05 (5%). Alternative common values
+are α = 0.10 (10%) and α = 0.01 (1%). These choices are somewhat the by-product of traditional tables of
+critical values and statistical software.
+The informal reasoning behind the 5% critical value is to ensure that Type I errors should be rela-
+tively unlikely – that the decision “Reject H0” has scientiﬁc strength – yet the test retains power against
+reasonable alternatives. The decision “Reject H0” means that the evidence is inconsistent with the null
+hypothesis in the sense that it is relatively unlikely (1 in 20) that data generated by the null hypothesis
+would yield the observed test result.
+In contrast, the decision “ Accept H0” is not a strong statement. It does not mean that the evidence
+supports H0 only that there is insufﬁcient evidence to rejectH0. Because of this it is more accurate to use
+the label “Do not Reject H0” instead of “ AcceptH0” .
+When a test rejects H0 at the 5% signiﬁcance level it is common to say that the statistic isstatistically
+signiﬁcantand if the test accepts H0 it is common to say that the statistic is not statistically signiﬁcant
+or that it is statistically insigniﬁcant. It is helpful to remember that this is simply a compact way of
+saying “Using the statistic T the hypothesis H0 can [cannot] be rejected at the asymptotic 5% level.”
+Furthermore, when the null hypothesis H0 : θ = 0 is rejected it is common to say that the coefﬁcient θ is
+statistically signiﬁcant, because the test has rejected the hypothesis that the coefﬁcient is equal to zero.
+Let us return to the example about the union wage premium as measured in Table 4.1. The absolute
+t-statistic for the coefﬁcient on “Male Union Member” is 0.095/0.020 = 4.7, which is greater than the 5%
+asymptotic critical value of 1.96. Therefore we reject the hypothesis that union membership does not
+affect wages for men. In this case we can say that union membership is statistically signiﬁcant for men.
+However, the absolute t-statistic for the coefﬁcient on “Female Union Member” is 0.023/0.020 = 1.2,
+which is less than 1.96 and therefore we do not reject the hypothesis that union membership does not
+affect wages for women. In this case we ﬁnd that membership for women is not statistically signiﬁcant.
+When a test accepts a null hypothesis (when a test is not statistically signiﬁcant) a common misin-
+terpretation is that this is evidence that the null hypothesis is true. This is incorrect. Failure to reject is
+by itself not evidence. Without an analysis of power we do not know the likelihood of making a Type II
+error and thus are uncertain. In our wage example it would be a mistake to write that “the regression
+ﬁnds that female union membership has no effect on wages” . This is an incorrect and most unfortunate
+interpretation. The test has failed to reject the hypothesis that the coefﬁcient is zero but that does not
+mean that the coefﬁcient is actually zero.
+When a test rejects a null hypothesis (when a test is statistically signiﬁcant) it is strong evidence
+against the hypothesis (since if the hypothesis were true then rejection is an unlikely event). Rejection
+should be taken as evidence against the null hypothesis. However, we can never conclude that the null
+hypothesis is indeed false as we cannot exclude the possibility that we are making a Type I error.
+Perhaps more importantly, there is an important distinction between statistical and economic sig-
+niﬁcance. If we correctly reject the hypothesis H0 : θ = 0 it means that the true value of θ is non-zero.
+This includes the possibility that θ may be non-zero but close to zero in magnitude. This only makes
+sense if we interpret the parameters in the context of their relevant models. In our wage regression ex-
+ample we might consider wage effects of 1% magnitude or less as being “close to zero” . In a log wage
+regression this corresponds to a dummy variable with a coefﬁcient less than 0.01. If the standard error
+is sufﬁciently small (less than 0.005) then a coefﬁcient estimate of 0.01 will be statistically signiﬁcant but
+not economically signiﬁcant. This occurs frequently in applications with very large sample sizes where
+standard errors can be quite small.
+The solution is to focus whenever possible on conﬁdence intervals and the economic meaning of the
+
+
+--- page 7 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 227
+coefﬁcients. For example, if the coefﬁcient estimate is 0.005 with a standard error of 0.002 then a 95%
+conﬁdence interval would be [0.001, 0.009] indicating that the true effect is likely between 0% and 1%,
+and hence is slightly positive but small. This is much more informative than the misleading statement
+“the effect is statistically positive” .
+9.7 P-Values
+Continuing with the wage regression estimates reported in Table 4.1, consider another question:
+Does marriage status affect wages? To test the hypothesis that marriage status has no effect on wages,
+we examine the t-statistics for the coefﬁcients on “Married Male” and “Married Female” in Table 4.1,
+which are 0.211/0.010 = 22 and 0.016/0.010 = 1.7, respectively. The ﬁrst exceeds the asymptotic 5% criti-
+cal value of 1.96 so we reject the hypothesis for men. The second is smaller than 1.96 so we fail to reject
+the hypothesis for women. Taking a second look at the statistics we see that the statistic for men (22)
+is exceptionally high and that for women (1.7) is only slightly below the critical value. Suppose that the
+t-statistic for women were slightly increased to 2.0. This is larger than the critical value so would lead to
+the decision “Reject H0” rather than “ Accept H0” . Should we really be making a different decision if the
+t-statistic is 2.0 rather than 1.7? The difference in values is small, shouldn’t the difference in the decision
+be also small? Thinking through these examples it seems unsatisfactory to simply report “ Accept H0” or
+“Reject H0” . These two decisions do not summarize the evidence. Instead, the magnitude of the statistic
+T suggests a “degree of evidence” against H0. How can we take this into account?
+The answer is to report what is known as the asymptotic p-value
+p = 1 −G(T ).
+Since the distribution function G is monotonically increasing, the p-value is a monotonically decreasing
+function of T and is an equivalent test statistic. Instead of rejecting H0 at the signiﬁcance levelα if T > c,
+we can rejectH0 if p < α. Thus it is sufﬁcient to reportp, and let the reader decide. In practice, the p-value
+is calculated numerically. For example, in MATLAB the command is2*(1-normalcdf(abs(t))) .
+It is instructive to interpretp as the marginal signiﬁcance level: the smallest value ofα for which the
+test T “rejects” the null hypothesis. That is, p = 0.11 means that T rejects H0 for all signiﬁcance levels
+greater than 0.11, but fails to reject H0 for signiﬁcance levels less than 0.11.
+Furthermore, the asymptotic p-value has a very convenient asymptotic null distribution. SinceT − →
+d
+ξ under H0, then p = 1 −G(T ) − →
+d
+1 −G(ξ), which has the distribution
+P[1 −G(ξ) ≤ u] = P[1 − u ≤ G(ξ)]
+= 1 − P
+[
+ξ ≤ G −1(1 − u)
+]
+= 1 −G
+(
+G −1(1 − u)
+)
+= 1 − (1 − u)
+= u,
+which is the uniform distribution on [0, 1]. (This calculation assumes that G(u) is strictly increasing
+which is true for conventional asymptotic distributions such as the normal.) Thus p − →
+d
+U[0, 1]. This
+means that the “unusualness” of p is easier to interpret than the “unusualness” of T.
+An important caveat is that the p-value p should not be interpreted as the probability that either
+hypothesis is true. A common mis-interpretation is that p is the probability “that the null hypothesis
+is true.” This is incorrect. Rather, p is the marginal signiﬁcance level – a measure of the strength of
+information against the null hypothesis.
+
+
+--- page 8 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 228
+For a t-statistic the p-value can be calculated either using the normal distribution or the student t
+distribution, the latter presented in Section 5.12. p-values calculated using the student t will be slightly
+larger, though the difference is small when the sample size is large.
+Returning to our empirical example, for the test that the coefﬁcient on “Married Male” is zero the p-
+value is 0.000. This means that it would be nearly impossible to observe a t-statistic as large as 22 when
+the true value of the coefﬁcient is zero. When presented with such evidence we can say that we “strongly
+reject” the null hypothesis, that the test is “highly signiﬁcant” , or that “the test rejects at any conventional
+critical value” . In contrast, the p-value for the coefﬁcient on “Married Female” is 0.094. In this context it
+is typical to say that the test is “close to signiﬁcant” , meaning that the p-value is larger than 0.05, but not
+too much larger.
+A related but inferior empirical practice is to append asterisks (*) to coefﬁcient estimates or test statis-
+tics to indicate the level of signiﬁcance. A common practice to to append a single asterisk (*) for an esti-
+mate or test statistic which exceeds the 10% critical value (i.e., is signiﬁcant at the 10% level), append a
+double asterisk (**) for a test which exceeds the 5% critical value, and append a triple asterisk (***) for a
+test which exceeds the 1% critical value. Such a practice can be better than a table of raw test statistics
+as the asterisks permit a quick interpretation of signiﬁcance. On the other hand, asterisks are inferior to
+p-values, which are also easy and quick to interpret. The goal is essentially the same; it is wiser to report
+p-values whenever possible and avoid the use of asterisks.
+Our recommendation is that the best empirical practice is to compute and report the asymptotic p-
+value p rather than simply the test statistic T , the binary decision Accept/Reject, or appending asterisks.
+The p-value is a simple statistic, easy to interpret, and contains more information than the other choices.
+We now summarize the main features of hypothesis testing.
+1. Select a signiﬁcance level α.
+2. Select a test statistic T with asymptotic distribution T − →
+d
+ξ under H0.
+3. Set the asymptotic critical value c so that 1 −G(c) = α, where G is the distribution function of ξ.
+4. Calculate the asymptotic p-value p = 1 −G(T ).
+5. Reject H0 if T > c, or equivalently p < α.
+6. Accept H0 if T ≤ c, or equivalently p ≥ α.
+7. Report p to summarize the evidence concerning H0 versus H1.
+9.8 t-ratios and the Abuse of Testing
+In Section 4.21 we argued that a good applied practice is to report coefﬁcient estimates ˆθ and stan-
+dard errors s(ˆθ) for all coefﬁcients of interest in estimated models. With ˆθ and s(ˆθ) the reader can easily
+construct conﬁdence intervals [ˆθ ± 2s(ˆθ)] and t-statistics
+(ˆθ − θ0
+)
+/s(ˆθ) for hypotheses of interest.
+Some applied papers (especially older ones) report t-ratios T = ˆθ/s(ˆθ) instead of standard errors.
+This is poor econometric practice. While the same information is being reported (you can back out
+standard errors by division, e.g. s(ˆθ) = ˆθ/T ), standard errors are generally more helpful to readers than
+t-ratios. Standard errors help the reader focus on the estimation precision and conﬁdence intervals,
+while t-ratios focus attention on statistical signiﬁcance. While statistical signiﬁcance is important, it
+is less important that the parameter estimates themselves and their conﬁdence intervals. The focus
+should be on the meaning of the parameter estimates, their magnitudes, and their interpretation, not on
+
+
+--- page 9 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 229
+listing which variables have signiﬁcant (e.g. non-zero) coefﬁcients. In many modern applications sample
+sizes are very large so standard errors can be very small. Consequently t-ratios can be large even if the
+coefﬁcient estimates are economically small. In such contexts it may not be interesting to announce
+“The coefﬁcient is non-zero!” Instead, what is interesting to announce is that “The coefﬁcient estimate
+is economically interesting!”
+In particular, some applied papers report coefﬁcient estimates and t-ratios and limit their discussion
+of the results to describing which variables are “signiﬁcant” (meaning that their t-ratios exceed 2) and
+the signs of the coefﬁcient estimates. This is very poor empirical work and should be studiously avoided.
+It is also a recipe for banishment of your work to lower tier economics journals.
+Fundamentally, the common t-ratio is a test for the hypothesis that a coefﬁcient equals zero. This
+should be reported and discussed when this is an interesting economic hypothesis of interest. But if this
+is not the case it is distracting.
+One problem is that standard packages, such as Stata, by default report t-statistics and p-values for
+every estimated coefﬁcient. While this can be useful (as a user doesn’t need to explicitly ask to test a
+desired coefﬁcient) it can be misleading as it may unintentionally suggest that the entire list of t-statistics
+and p-values are important. Instead, a user should focus on tests of scientiﬁcally motivated hypotheses.
+In general, when a coefﬁcient θ is of interest it is constructive to focus on the point estimate, its
+standard error, and its conﬁdence interval. The point estimate gives our “best guess” for the value. The
+standard error is a measure of precision. The conﬁdence interval gives us the range of values consistent
+with the data. If the standard error is large then the point estimate is not a good summary about θ. The
+endpoints of the conﬁdence interval describe the bounds on the likely possibilities. If the conﬁdence
+interval embraces too broad a set of values for θ then the dataset is not sufﬁciently informative to render
+useful inferences about θ. On the other hand if the conﬁdence interval is tight then the data have pro-
+duced an accurate estimate and the focus should be on the value and interpretation of this estimate. In
+contrast, the statement “the t-ratio is highly signiﬁcant” has little interpretive value.
+The above discussion requires that the researcher knows what the coefﬁcient θ means (in terms of
+the economic problem) and can interpret values and magnitudes, not just signs. This is critical for good
+applied econometric practice.
+For example, consider the question about the effect of marriage status on mean log wages. We had
+found that the effect is “highly signiﬁcant” for men and “close to signiﬁcant” for women. Now, let’ s con-
+struct asymptotic 95% conﬁdence intervals for the coefﬁcients. The one for men is [0.19, 0.23] and that
+for women is [−0.00, 0.03]. This shows that average wages for married men are about 19-23% higher than
+for unmarried men, which is substantial, while the difference for women is about 0-3%, which is small.
+These magnitudes are more informative than the results of the hypothesis tests.
+9.9 Wald Tests
+The t-test is appropriate when the null hypothesis is a real-valued restriction. More generally there
+may be multiple restrictions on the coefﬁcient vector β. Suppose that we have q > 1 restrictions which
+can be written in the form (9.1). It is natural to estimate θ = r (β) by the plug-in estimator ˆθ = r
+(ˆβ
+)
+. To
+test H0 : θ = θ0 against H1 : θ ̸= θ0 one approach is to measure the magnitude of the discrepancy ˆθ − θ0.
+As this is a vector there is more than one measure of its length. One simple measure is the weighted
+quadratic form known as the Wald statistic. This is (7.37) evaluated at the null hypothesis
+W = W (θ0) =
+(ˆθ − θ0
+)′ ˆV
+−1
+ˆθ
+(ˆθ − θ0
+)
+(9.6)
+
+
+--- page 10 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 230
+where ˆV ˆθ = ˆR
+′ ˆV ˆβ ˆR is an estimator of V ˆθ and ˆR = ∂
+∂β r ( ˆβ)′. Notice that we can write W alternatively as
+W = n
+(ˆθ − θ0
+)′ ˆV
+−1
+θ
+(ˆθ − θ0
+)
+using the asymptotic variance estimator ˆV θ, or we can write it directly as a function of ˆβ as
+W =
+(
+r ( ˆβ) − θ0
+)′ (
+ˆR
+′ ˆV ˆβ ˆR
+)−1 (
+r ( ˆβ) − θ0
+)
+.
+Also, when r (β) = R ′β is a linear function of β, then the Wald statistic simpliﬁes to
+W =
+(
+R ′ ˆβ − θ0
+)′ (
+R ′ ˆV ˆβR
+)−1 (
+R ′ ˆβ − θ0
+)
+.
+The Wald statistic W is a weighted Euclidean measure of the length of the vector ˆθ − θ0. When q = 1
+then W = T 2, the square of the t-statistic, so hypothesis tests based on W and |T |are equivalent. The
+Wald statistic (9.6) is a generalization of the t-statistic to the case of multiple restrictions. As the Wald
+statistic is symmetric in the argument ˆθ − θ0 it treats positive and negative alternatives symmetrically.
+Thus the inherent alternative is always two-sided.
+As shown in Theorem 7.13, when β satisﬁesr (β) = θ0 then W − →
+d
+χ2
+q , a chi-square random variable
+with q degrees of freedom. LetGq (u) denote the χ2
+q distribution function. For a given signiﬁcance levelα
+the asymptotic critical value c satisﬁesα = 1 −Gq (c). For example, the 5% critical values for q = 1, q = 2,
+and q = 3 are 3.84, 5.99, and 7.82, respectively, and in general the level α critical value can be calculated
+in MATLAB as chi2inv(1- α,q). An asymptotic test rejects H0 in favor of H1 if W > c. As with t-tests, it
+is conventional to describe a Wald test as “signiﬁcant” ifW exceeds the 5% asymptotic critical value.
+Theorem 9.2 Under Assumptions 7.2, 7.3, 7.4, andH0 : θ = θ0 ∈ Rq , then W − →
+d
+χ2
+q . For c satisfying α = 1 − Gq (c), P(W > c |H0) − →α so the test “Reject H0 if
+W > c” has asymptotic size α.
+Notice that the asymptotic distribution in Theorem 9.2 depends solely on q, the number of restric-
+tions being tested. It does not depend on k, the number of parameters estimated.
+The asymptotic p-value for W is p = 1 −Gq (W ), and this is particularly useful when testing multiple
+restrictions. For example, if you write that a Wald test on eight restrictions ( q = 8) has the value W =
+11.2 it is difﬁcult for a reader to assess the magnitude of this statistic unless they have quick access to a
+statistical table or software. Instead, if you write that the p-value is p = 0.19 (as is the case for W = 11.2
+and q = 8) then it is simple for a reader to interpret its magnitude as “insigniﬁcant” . To calculate the
+asymptotic p-value for a Wald statistic in MATLAB use the command1-chi2cdf(w,q) .
+Some packages (including Stata) and papers report F versions of Wald statistics. For any Wald statis-
+tic W which tests a q-dimensional restriction, the F version of the test is
+F = W /q.
+When F is reported, it is conventional to use Fq,n−k critical values and p-values rather than χ2
+q values.
+The connection between Wald and F statistics is demonstrated in Section 9.14 where we show that when
+Wald statistics are calculated using a homoskedastic covariance matrix then F = W /q is identicial to
+
+
+--- page 11 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 231
+the F statistic of (5.19). While there is no formal justiﬁcation to using the Fq,n−k distribution for non-
+homoskedastic covariance matrices, the Fq,n−k distribution provides continuity with the exact distribu-
+tion theory under normality and is a bit more conservative than the χ2
+q distribution. (Furthermore, the
+difference is small when n − k is moderately large.)
+To implement a test of zero restrictions in Stata an easy method is to use the command test X1 X2
+where X1 and X2 are the names of the variables whose coefﬁcients are hypothesized to equal zero. TheF
+version of the Wald statistic is reported using the covariance matrix calculated by the method speciﬁed
+in the regression command. A p-value is reported, calculated using the Fq,n−k distribution.
+To illustrate, consider the empirical results presented in Table 4.1. The hypothesis “Union mem-
+bership does not affect wages” is the joint restriction that both coefﬁcients on “Male Union Member”
+and “Female Union Member” are zero. We calculate the Wald statistic for this joint hypothesis and ﬁnd
+W = 23 (or F = 12.5) with a p-value of p = 0.000. Thus we reject the null hypothesis in favor of the al-
+ternative that at least one of the coefﬁcients is non-zero. This does not mean that both coefﬁcients are
+non-zero, just that one of the two is non-zero. Therefore examining both the joint Wald statistic and the
+individual t-statistics is useful for interpretation.
+As a second example from the same regression, take the hypothesis that married status has no effect
+on mean wages for women. This is the joint restriction that the coefﬁcients on “Married Female” and
+“Formerly Married Female” are zero. The Wald statistic for this hypothesis is W = 6.4 (F = 3.2) with a
+p-value of 0.04. Such a p-value is typically called “marginally signiﬁcant” in the sense that it is slightly
+smaller than 0.05.
+The Wald statistic was proposed by Wald (1943).
+Abraham Wald
+The Hungarian mathematician/statistician/econometrician Abraham Wald
+(1902-1950) developed an optimality property for the Wald test in terms of
+weighted average power. He also developed the ﬁeld of sequential testing, the
+design of experiments, and one of the ﬁrst instrumental variable estimators.
+9.10 Homoskedastic Wald Tests
+If the error is known to be homoskedastic then it is appropriate to use the homoskedastic Wald statis-
+tic (7.38) which replaces ˆV ˆθ with the homoskedastic estimator ˆV
+0
+ˆθ. This statistic equals
+W 0 =
+(ˆθ − θ0
+)′ (
+ˆV
+0
+ˆθ
+)−1 (ˆθ − θ0
+)
+=
+(
+r ( ˆβ) − θ0
+)′ (
+R ′ (
+X ′X
+)−1 ˆR
+)−1 (
+r ( ˆβ) − θ0
+)
+/s2.
+In the case of linear hypotheses H0 : R ′β = θ0 we can write this as
+W 0 =
+(
+R ′ ˆβ − θ0
+)′ (
+R ′ (
+X ′X
+)−1 R
+)−1 (
+R ′ ˆβ − θ0
+)
+/s2. (9.7)
+We call W 0 a homoskedastic Wald statistic as it is appropriate when the errors are conditionally ho-
+moskedastic.
+When q = 1 then W 0 = T 2, the square of the t-statistic where the latter is computed with a ho-
+moskedastic standard error.
+
+
+--- page 12 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 232
+Theorem 9.3 Under Assumptions 7.2 and 7.3, E
+[
+e2 |X
+]
+= σ2 > 0, and H0 : θ =
+θ0 ∈ Rq , then W 0 − →
+d
+χ2
+q . For c satisfying α = 1 −Gq (c), P
+[
+W 0 > c |H0
+]
+− →α so
+the test “Reject H0 if W 0 > c” has asymptotic size α.
+9.11 Criterion-Based Tests
+The Wald statistic is based on the length of the vector ˆθ − θ0: the discrepancy between the estimator
+ˆθ = r ( ˆβ) and the hypothesized value θ0. An alternative class of tests is based on the discrepancy between
+the criterion function minimized with and without the restriction.
+Criterion-based testing applies when we have a criterion function, say J(β) with β ∈ B, which is min-
+imized for estimation, and the goal is to test H0 : β ∈ B0 versus H1 : β ∉ B0 where B0 ⊂ β. Minimizing the
+criterion function over B and B0 we obtain the unrestricted and restricted estimators
+ˆβ = argmin
+β∈B
+J
+(
+β
+)
+˜β = argmin
+β∈B0
+J
+(
+β
+)
+.
+The criterion-based statistic for H0 versus H1 is proportional to
+J = min
+β∈B0
+J
+(
+β
+)
+− min
+β∈B
+J
+(
+β
+)
+= J( ˜β) − J( ˆβ).
+The criterion-based statistic J is sometimes called adistance statistic, a minimum-distance statistic,
+or a likelihood-ratio-like statistic.
+Since B0 is a subset of B, J( ˜β) ≥ J( ˆβ) and thus J ≥ 0. The statistic J measures the cost on the criterion
+of imposing the null restriction β ∈ B0.
+9.12 Minimum Distance Tests
+The minimum distance test is based on the minimum distance criterion (8.19)
+J
+(
+β
+)
+= n
+(ˆβ − β
+)′ ˆW
+(ˆβ − β
+)
+(9.8)
+with ˆβ the unrestricted least squares estimator. The restricted estimator ˜βmd minimizes (9.8) subject to
+β ∈ B0. Observing that J( ˆβ) = 0, the minimum distance statistic simpliﬁes to
+J = J( ˜βmd) = n
+(ˆβ − ˜βmd
+)′ ˆW
+(ˆβ − ˜βmd
+)
+. (9.9)
+The efﬁcient minimum distance estimator ˜βemd is obtained by setting ˆW = ˆV
+−1
+β in (9.8) and (9.9).
+The efﬁcient minimum distance statistic forH0 : β ∈ B0 is therefore
+J ∗ = n
+(ˆβ − ˜βemd
+)′ ˆV
+−1
+β
+(ˆβ − ˜βemd
+)
+. (9.10)
+Consider the class of linear hypotheses H0 : R ′β = θ0. In this case we know from (8.25) that the efﬁ-
+cient minimum distance estimator ˜βemd subject to the constraint R ′β = θ0 is
+˜βemd = ˆβ − ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβ − θ0
+)
+
+
+--- page 13 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 233
+and thus
+ˆβ − ˜βemd = ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβ − θ0
+)
+.
+Substituting into (9.10) we ﬁnd
+J ∗ = n
+(
+R ′ ˆβ − θ0
+)′ (
+R ′ ˆV βR
+)−1
+R ′ ˆV β ˆV
+−1
+β ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβ − θ0
+)
+= n
+(
+R ′ ˆβ − θ0
+)′ (
+R ′ ˆV βR
+)−1 (
+R ′ ˆβ − θ0
+)
+= W,
+which is the Wald statistic (9.6).
+Thus for linear hypotheses H0 : R ′β = θ0, the efﬁcient minimum distance statistic J ∗ is identical to
+the Wald statistic (9.6). For nonlinear hypotheses, however, the Wald and minimum distance statistics
+are different.
+Newey and West (1987a) established the asymptotic null distribution of J ∗.
+Theorem 9.4 Under Assumptions 7.2, 7.3, 7.4, and H0 : θ = θ0 ∈ Rq , J ∗ − →
+d
+χ2
+q .
+Testing using the minimum distance statistic J ∗ is similar to testing using the Wald statisticW . Criti-
+cal values and p-values are computed using theχ2
+q distribution. H0 is rejected in favor ofH1 if J ∗ exceeds
+the level α critical value, which can be calculated in MATLAB as chi2inv(1- α,q). The asymptotic p-
+value is p = 1 −Gq (J ∗). In MATLAB, use the command 1-chi2cdf(J,q) .
+We now demonstrate Theorem 9.4. The conditions of Theorem 8.10 hold, since H0 implies Assump-
+tion 8.1. From (8.54) with ˆW = ˆV β, we see that
+p
+n
+(ˆβ − ˜βemd
+)
+= ˆV β ˆR
+(
+R ∗′
+n ˆV β ˆR
+)−1
+R ∗′
+n
+p
+n
+(ˆβ − β
+)
+− →
+d
+V βR
+(
+R ′V βR
+)−1 R ′N(0,V β) = V βR Z
+where Z ∼ N(0,
+(
+R ′V βR
+)−1). Thus
+J ∗ = n
+(ˆβ − ˜βemd
+)′ ˆV
+−1
+β
+(ˆβ − ˜βemd
+)
+− →
+d
+Z ′R ′V βV −1
+β V βR Z = Z ′ (
+R ′V βR
+)
+Z = χ2
+q
+as claimed.
+9.13 Minimum Distance Tests Under Homoskedasticity
+If we set ˆW = ˆQ X X /s2 in (9.8) we obtain the criterion (8.20)
+J 0 (
+β
+)
+= n
+(ˆβ − β
+)′ ˆQ X X
+(ˆβ − β
+)
+/s2.
+A minimum distance statistic for H0 : β ∈ B0 is
+J 0 = min
+β∈B0
+J 0 (
+β
+)
+.
+
+
+--- page 14 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 234
+Equation (8.21) showed that SSE(β ) = n ˆσ2 + s2 J 0 (
+β
+)
+. So the minimizers of SSE(β ) and J 0 (
+β
+)
+are
+identical. Thus the constrained minimizer of J 0 (
+β
+)
+is constrained least squares
+˜βcls = argmin
+β∈B0
+J 0 (
+β
+)
+= argmin
+β∈B0
+SSE(β) (9.11)
+and therefore
+J 0
+n = J 0
+n( ˜βcls) = n
+(ˆβ − ˜βcls
+)′ ˆQ X X
+(ˆβ − ˜βcls
+)
+/s2.
+In the special case of linear hypotheses H0 : R ′β = θ0, the constrained least squares estimator subject
+to R ′β = θ0 has the solution (8.9)
+˜βcls = ˆβ − ˆQ
+−1
+X X R
+(
+R ′ ˆQ
+−1
+X X R
+)−1 (
+R ′ ˆβ − θ0
+)
+and solving we ﬁnd
+J 0 = n
+(
+R ′ ˆβ − θ0
+)′ (
+R ′ ˆQ
+−1
+X X R
+)−1 (
+R ′ ˆβ − θ0
+)
+/s2 = W 0.
+This is the homoskedastic Wald statistic (9.7). Thus for testing linear hypotheses, homoskedastic mini-
+mum distance and Wald statistics agree.
+For nonlinear hypotheses they disagree, but have the same null asymptotic distribution.
+Theorem 9.5 Under Assumptions 7.2 and 7.3, E
+[
+e2 |X
+]
+= σ2 > 0, and H0 : θ =
+θ0 ∈ Rq , then J 0 − →
+d
+χ2
+q .
+9.14 F Tests
+In Section 5.13 we introduced the F test for exclusion restrictions in the normal regression model. In
+this section we generalize this test to a broader set of restrictions. LetB0 ⊂ Rk be a constrained parameter
+space which imposes q restrictions on β.
+Let ˆβols be the unrestricted least squares estimator and let ˆσ2 = n−1 ∑n
+i =1
+(
+Yi − X ′
+i
+ˆβols
+)2
+be the associ-
+ated estimator ofσ2. Let ˜βcls be the CLS estimator (9.11) satisfying˜βcls ∈ B0 and let σ2 = n−1 ∑n
+i =1
+(
+Yi − X ′
+i
+˜βcls
+)2
+be the associated estimator of σ2. The F statistic for testing H0 : β ∈ B0 is
+F =
+(
+˜σ2 − ˆσ2)
+/q
+ˆσ2/(n − k) . (9.12)
+We can alternatively write
+F = SSE( ˜βcls) − SSE( ˆβols)
+qs 2 (9.13)
+where SSE(β) = ∑n
+i =1
+(
+Yi − X ′
+i β
+)2 is the sum-of-squared errors.
+This shows thatF is a criterion-based statistic. Using (8.21) we can also writeF = J 0/q, so theF statis-
+tic is identical to the homoskedastic minimum distance statistic divided by the number of restrictions
+q.
+As we discussed in the previous section, in the special case of linear hypotheses H0 : R ′β = θ0, J 0 =
+W 0. It follows that in this case F = W 0/q. Thus for linear restrictions the F statistic equals the ho-
+moskedastic Wald statistic divided by q. It follows that they are equivalent tests for H0 against H1.
+
+
+--- page 15 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 235
+Theorem 9.6 For tests of linear hypotheses H0 : R ′β = θ0 ∈ Rq , the F statistic
+equals F = W 0/q where W 0 is the homoskedastic Wald statistic. Thus under
+7.2, E
+[
+e2 |X
+]
+= σ2 > 0, and H0 : θ = θ0, then F − →
+d
+χ2
+q /q.
+When using an F statistic it is conventional to use the Fq,n−k distribution for critical values and p-
+values. Critical values are given in MATLAB by finv(1-α,q,n-k) and p-values by 1-fcdf(F,q,n-k) .
+Alternatively, the χ2
+q /q distribution can be used, using chi2inv(1- α,q)/q and 1-chi2cdf(F*q,q), re-
+spectively. Using the Fq,n−k distribution is a prudent small sample adjustment which yields exact an-
+swers if the errors are normal and otherwise slightly increasing the critical values and p-values relative
+to the asymptotic approximation. Once again, if the sample size is small enough that the choice makes a
+difference then probably we shouldn’t be trusting the asymptotic approximation anyway!
+An elegant feature about (9.12) or (9.13) is that they are directly computable from the standard output
+from two simple OLS regressions, as the sum of squared errors (or regression variance) is a typical printed
+output from statistical packages and is often reported in applied tables. ThusF can be calculated by hand
+from standard reported statistics even if you don’t have the original data (or if you are sitting in a seminar
+and listening to a presentation!).
+If you are presented with an F statistic (or a Wald statistic, as you can just divide by q) but don’t have
+access to critical values, a useful rule of thumb is to know that for largen the 5% asymptotic critical value
+is decreasing as q increases and is less than 2 for q ≥ 7.
+A word of warning: In many statistical packages when an OLS regression is estimated an “F -statistic”
+is automatically reported even though no hypothesis test was requested. What the package is reporting
+is an F statistic of the hypothesis that all slope coefﬁcients1 are zero. This was a popular statistic in the
+early days of econometric reporting when sample sizes were very small and researchers wanted to know
+if there was “any explanatory power” to their regression. This is rarely an issue today as sample sizes are
+typically sufﬁciently large that this F statistic is nearly always highly signiﬁcant. While there are special
+cases where this F statistic is useful these cases are not typical. As a general rule there is no reason to
+report this F statistic.
+9.15 Hausman Tests
+Hausman (1978) introduced a general idea about how to test a hypothesisH0. If you have two estima-
+tors, one which is efﬁcient under H0 but inconsistent under H1, and another which is consistent under
+H1, then construct a test as a quadratic form in the differences of the estimators. In the case of testing a
+hypothesis H0 : r (β) = θ0 let ˆβols denote the unconstrained least squares estimator and let ˜βemd denote
+the efﬁcient minimum distance estimator which imposes r (β) = θ0. Both estimators are consistent un-
+der H0 but ˜βemd is asymptotically efﬁcient. Under H1, ˆβols is consistent for β but ˜βemd is inconsistent.
+The difference has the asymptotic distribution
+p
+n
+(ˆβols − ˜βemd
+)
+− →
+d
+N
+(
+0,V βR
+(
+R ′V βR
+)−1 R ′V β
+)
+.
+Let A− denote the Moore-Penrose generalized inverse. The Hausman statistic for H0 is
+H =
+(ˆβols − ˜βemd
+)′
+avar
+(ˆβols − ˜βemd
+)− (ˆβols − ˜βemd
+)
+= n
+(ˆβols − ˜βemd
+)′
+(
+ˆV β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV β
+)− (ˆβols − ˜βemd
+)
+.
+1All coefﬁcients except the intercept.
+
+
+--- page 16 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 236
+The matrix ˆV
+1/2
+β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV
+1/2
+β idempotent so its generalized inverse is itself. (See Section A.11.) It
+follows that
+(
+ˆV β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV β
+)−
+= ˆV
+−1/2
+β
+(
+ˆV
+1/2
+β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV
+1/2
+β
+)−
+ˆV
+−1/2
+β
+= ˆV
+−1/2
+β ˆV
+1/2
+β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV
+1/2
+β ˆV
+−1/2
+β
+= ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′
+.
+Thus the Hausman statistic is
+H = n
+(ˆβols − ˜βemd
+)′ ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ (ˆβols − ˜βemd
+)
+.
+In the context of linear restrictions, ˆR = R and R ′ ˜β = θ0 so the statistic takes the form
+H = n
+(
+R ′ ˆβols − θ0
+)′ ˆR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβols − θ0
+)
+,
+which is precisely the Wald statistic. With nonlinear restrictions W and H can differ.
+In either case we see that that the asymptotic null distribution of the Hausman statistic H is χ2
+q , so
+the appropriate test is to reject H0 in favor of H1 if H > c where c is a critical value taken from the χ2
+q
+distribution.
+Theorem 9.7 For general hypotheses the Hausman test statistic is
+H = n
+(ˆβols − ˜βemd
+)′ ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ (ˆβols − ˜βemd
+)
+.
+Under Assumptions 7.2, 7.3, 7.4, and H0 : r (β) = θ0 ∈ Rq , H − →
+d
+χ2
+q .
+9.16 Score Tests
+Score tests are traditionally derived in likelihood analysis but can more generally be constructed from
+ﬁrst-order conditions evaluated at restricted estimates. We focus on the likelihood derivation.
+Given the log likelihood function ℓn(β, σ2), a restriction H0 : r
+(
+β
+)
+= θ0, and restricted estimators ˜β
+and ˜σ2, the score statistic for H0 is deﬁned as
+S =
+( ∂
+∂β ℓn( ˜β, ˜σ2)
+)′ (
+− ∂2
+∂β∂β′ ℓn( ˜β, ˜σ2)
+)−1 ( ∂
+∂β ℓn( ˜β, ˜σ2)
+)
+.
+The idea is that if the restriction is true then the restricted estimators should be close to the maximum
+of the log-likelihood where the derivative is zero. However if the restriction is false then the restricted
+estimators should be distant from the maximum and the derivative should be large. Hence small values
+of S are expected under H0 and large values under H1. Tests of H0 reject for large values of S.
+We explore the score statistic in the context of the normal regression model and linear hypotheses
+r
+(
+β
+)
+= R ′β. Recall that in the normal regression log-likelihood function is
+ℓn(β, σ2) = −n
+2 log(2πσ2) − 1
+2σ2
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 .
+
+
+--- page 17 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 237
+The constrained MLE under linear hypotheses is constrained least squares
+˜β = ˆβ −
+(
+X ′X
+)−1 R
+[
+R ′ (
+X ′X
+)−1 R
+]−1 (
+R ′ ˆβ − c
+)
+˜ei = Yi − X ′
+i ˜β
+˜σ2 = 1
+n
+n∑
+i =1
+˜e2
+i .
+We can calculate that the derivative and Hessian are
+∂
+∂β ℓn( ˜β, ˜σ2) = 1
+˜σ2
+n∑
+i =1
+Xi
+(
+Yi − X ′
+i ˜β
+)
+= 1
+˜σ2 X ′˜e
+− ∂2
+∂β∂β′ ℓn( ˜β, ˜σ2) = 1
+˜σ2
+n∑
+i =1
+Xi X ′
+i = 1
+˜σ2 X ′X .
+Since ˜e = Y − X ˜β we can further calculate that
+∂
+∂β ℓn( ˜β, ˜σ2) = 1
+˜σ2
+(
+X ′X
+)((
+X ′X
+)−1 X ′Y −
+(
+X ′X
+)−1 X ′X ˜β
+)
+= 1
+˜σ2
+(
+X ′X
+) (ˆβ − ˜β
+)
+= 1
+˜σ2 R
+[
+R ′ (
+X ′X
+)−1 R
+]−1 (
+R ′ ˆβ − c
+)
+.
+Together we ﬁnd that
+S =
+(
+R ′ ˆβ − c
+)′ (
+R ′ (
+X ′X
+)−1 R
+)−1 (
+R ′ ˆβ − c
+)
+/˜σ2.
+This is identical to the homoskedastic Wald statistic with s2 replaced by ˜σ2. We can also write S as a
+monotonic transformation of the F statistic, since
+S = n
+(
+˜σ2 − ˆσ2)
+˜σ2 = n
+(
+1 − ˆσ2
+˜σ2
+)
+= n
+(
+1 − 1
+1 + q
+n−k F
+)
+.
+The test “Reject H0 for large values of S” is identical to the test “Reject H0 for large values of F ” so they
+are identical tests. Since for the normal regression model the exact distribution ofF is known, it is better
+to use the F statistic with F p-values.
+In more complicated settings a potential advantage of score tests is that they are calculated using the
+restricted parameter estimates ˜β rather than the unrestricted estimates ˆβ. Thus when ˜β is relatively easy
+to calculate there can be a preference for score statistics. This is not a concern for linear restrictions.
+More generally, score and score-like statistics can be constructed from ﬁrst-order conditions evalu-
+ated at restricted parameter estimates. Also, when test statistics are constructed using covariance ma-
+trix estimators which are calculated using restricted parameter estimates (e.g. restricted residuals) then
+these are often described as score tests.
+An example of the latter is the Wald-type statistic
+W =
+(
+r ( ˆβ) − θ0
+)′ (
+ˆR
+′ ˜V ˆβ ˆR
+)−1 (
+r ( ˆβ) − θ0
+)
+where the covariance matrix estimate ˜V ˆβ is calculated using the restricted residuals ˜ei = Yi − X ′
+i
+˜β. This
+may be a good choice when β and θ are high-dimensional as in this context there may be worry that the
+estimator ˆV ˆβ is imprecise.
+
+
+--- page 18 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 238
+9.17 Problems with Tests of Nonlinear Hypotheses
+While the t and Wald tests work well when the hypothesis is a linear restriction on β, they can work
+quite poorly when the restrictions are nonlinear. This can be seen by a simple example introduced by
+Lafontaine and White (1986). Take the model Y ∼ N(β, σ2) and consider the hypothesis H0 : β = 1. Let ˆβ
+and ˆσ2 be the sample mean and variance of Y . The standard Wald statistic to test H0 is
+W = n
+(ˆβ − 1
+)2
+ˆσ2 .
+Now notice that H0 is equivalent to the hypothesis H0(s) : βs = 1 for any positive integer s. Letting
+r (β) = βs, and noting R = sβs−1, we ﬁnd that the Wald statistic to testH0(s) is
+Ws = n
+(ˆβs − 1
+)2
+ˆσ2s2 ˆβ2s−2 .
+While the hypothesis βs = 1 is unaffected by the choice of s, the statistic Ws varies with s. This is an
+unfortunate feature of the Wald statistic.
+To demonstrate this effect, we have plotted in Figure 9.2 the Wald statistic Ws as a function of s, set-
+ting n/ˆσ2 = 10. The increasing solid line is for the case ˆβ = 0.8. The decreasing dashed line is for the
+case ˆβ = 1.6. It is easy to see that in each case there are values of s for which the test statistic is signiﬁ-
+cant relative to asymptotic critical values, while there are other values of s for which the test statistic is
+insigniﬁcant. This is distressing since the choice ofs is arbitrary and irrelevant to the actual hypothesis.
+2 4 6 8 10
+0 1 2 3 4 5
+s
+Ws
+β=0.8
+β=1.6
+Figure 9.2: Wald Statistic as a Function of s
+Our ﬁrst-order asymptotic theory is not useful to help pick s, as Ws − →
+d
+χ2
+1 under H0 for any s. This
+is a context where Monte Carlo simulation can be quite useful as a tool to study and compare the exact
+distributions of statistical procedures in ﬁnite samples. The method uses random simulation to create
+artiﬁcial datasets to which we apply the statistical tools of interest. This produces random draws from
+the statistic’ s sampling distribution. Through repetition features of this distribution can be calculated.
+
+
+--- page 19 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 239
+In the present context of the Wald statistic, one feature of importance is the Type I error of the test
+using the asymptotic 5% critical value 3.84 – the probability of a false rejection, P
+[
+Ws > 3.84 |β = 1
+]
+.
+Given the simplicity of the model this probability depends only on s, n, and σ2. In Table 9.2 we report
+the results of a Monte Carlo simulation where we vary these three parameters. The value of s is varied
+from 1 to 10, n is varied among 20, 100 and 500, and σ is varied among 1 and 3. The table reports the
+simulation estimate of the Type I error probability from 50,000 random samples. Each row of the table
+corresponds to a different value of s – and thus corresponds to a particular choice of test statistic. The
+second through seventh columns contain the Type I error probabilities for different combinations of n
+and σ. These probabilities are calculated as the percentage of the 50,000 simulated Wald statistics Ws
+which are larger than 3.84. The null hypothesis βs = 1 is true so these probabilities are Type I error.
+To interpret the table remember that the ideal Type I error probability is 5% (.05) with deviations indi-
+cating distortion. Type I error rates between 3% and 8% are considered reasonable. Error rates above 10%
+are considered excessive. Rates above 20% are unacceptable. When comparing statistical procedures we
+compare the rates row by row, looking for tests for which rejection rates are close to 5% and rarely fall
+outside of the 3%-8% range. For this particular example the only test which meets this criterion is the
+conventional W = W1 test. Any other s leads to a test with unacceptable Type I error probabilities.
+Table 9.2: Type I Error Probability of Asymptotic 5%W (s) Test
+s σ = 1 σ = 3
+n = 20 n = 100 n = 500 n = 20 n = 100 n = 500
+1 0.05 0.05 0.05 0.05 0.05 0.05
+2 0.07 0.06 0.05 0.14 0.08 0.06
+3 0.09 0.06 0.05 0.21 0.12 0.07
+4 0.12 0.07 0.05 0.25 0.15 0.08
+5 0.14 0.08 0.06 0.27 0.18 0.10
+6 0.16 0.09 0.06 0.30 0.20 0.12
+7 0.18 0.10 0.06 0.32 0.22 0.13
+8 0.20 0.12 0.07 0.33 0.24 0.14
+9 0.21 0.13 0.07 0.34 0.25 0.16
+10 0.23 0.14 0.08 0.35 0.26 0.17
+Rejection frequencies from 50,000 simulated random samples.
+In Table 9.2 you can also see the impact of variation in sample size. In each case the Type I error
+probability improves towards 5% as the sample size n increases. There is, however, no magic choice of
+n for which all tests perform uniformly well. Test performance deteriorates as s increases which is not
+surprising given the dependence of Ws on s as shown in Figure 9.2.
+In this example it is not surprising that the choice s = 1 yields the best test statistic. Other choices
+are arbitrary and would not be used in practice. While this is clear in this particular example, in other
+examples natural choices are not obvious and the best choices may be counter-intuitive.
+This point can be illustrated through an example based on Gregory and Veall (1985). Take the model
+Y = β0 + X1β1 + X2β2 + e (9.14)
+E[X e] = 0
+and the hypothesis H0 : β1
+β2
+= θ0 where θ0 is a known constant. Equivalently, deﬁne θ = β1/β2 so the
+hypothesis can be stated as H0 : θ = θ0.
+
+
+--- page 20 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 240
+Let ˆβ = ( ˆβ0, ˆβ1, ˆβ2) be the least squares estimator of (9.14), let ˆV ˆβ be an estimator of the covariance
+matrix for ˆβ and set ˆθ = ˆβ1/ ˆβ2. Deﬁne
+ˆR 1 =
+
+
+
+
+
+
+
+
+0
+1
+ˆβ2
+−
+ˆβ1
+ˆβ2
+2
+
+
+
+
+
+
+
+
+so that the standard error for ˆθ is s(ˆθ) =
+(
+ˆR
+′
+1 ˆV ˆβ ˆR 1
+)1/2
+. In this case a t-statistic for H0 is
+T1 =
+( ˆβ1
+ˆβ2
+− θ0
+)
+s(ˆθ)
+.
+An alternative statistic can be constructed through reformulating the null hypothesis as
+H0 : β1 − θ0β2 = 0.
+A t-statistic based on this formulation of the hypothesis is
+T2 =
+ˆβ1 − θ0 ˆβ2
+(
+R ′
+2 ˆV ˆβR 2
+)1/2
+where
+R 2 =
+
+
+0
+1
+−θ0
+
+.
+To compare T1 and T2 we perform another simple Monte Carlo simulation. We let X1 and X2 be
+mutually independent N(0,1) variables, e be an independent N(0, σ2) draw with σ = 3, and normalize
+β0 = 0 and β1 = 1. This leaves β2 as a free parameter along with sample size n. We vary β2 among 0.1,
+0.25, 0.50, 0.75, and 1.0 and n among 100 and 500.
+Table 9.3: Type I Error Probability of Asymptotic 5% t-tests
+β2 n = 100 n = 500
+P(T < −1.645) P(T > 1.645) P(T < −1.645) P(T > 1.645)
+T1 T2 T1 T2 T1 T2 T1 T2
+0.10 0.47 0.05 0.00 0.05 0.28 0.05 0.00 0.05
+0.25 0.27 0.05 0.00 0.05 0.16 0.05 0.00 0.05
+0.50 0.14 0.05 0.00 0.05 0.12 0.05 0.00 0.05
+0.75 0.03 0.05 0.00 0.05 0.08 0.05 0.01 0.05
+1.00 0.00 0.05 0.00 0.05 0.03 0.05 0.03 0.05
+Rejection frequencies from 50,000 simulated random samples.
+The one-sided Type I error probabilities P[T < −1.645] and P[T > 1.645] are calculated from 50,000
+simulated samples. The results are presented in Table 9.3. Ideally, the entries in the table should be
+
+
+--- page 21 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 241
+0.05. However, the rejection rates for the T1 statistic diverge greatly from this value, especially for small
+values of β2. The left tail probabilities P[T1 < −1.645] greatly exceed 5%, while the right tail probabilities
+P[T1 > 1.645] are close to zero in most cases. In contrast, the rejection rates for the linear T2 statistic are
+invariant to the value of β2 and equal 5% for both sample sizes. The implication of Table 9.3 is that the
+two t-ratios have dramatically different sampling behavior.
+The common message from both examples is that Wald statistics are sensitive to the algebraic for-
+mulation of the null hypothesis.
+A simple solution is to use the minimum distance statistic J which equals W with r = 1 in the ﬁrst
+example, and |T2|in the second example. The minimum distance statistic is invariant to the algebraic
+formulation of the null hypothesis so is immune to this problem. Whenever possible, the Wald statistic
+should not be used to test nonlinear hypotheses.
+Theoretical investigations of these issues include Park and Phillips (1988) and Dufour (1997).
+9.18 Monte Carlo Simulation
+In Section 9.17 we introduced the method of Monte Carlo simulation to illustrate the small sample
+problems with tests of nonlinear hypotheses. In this section we describe the method in more detail.
+Recall, our data consist of observations (Yi , Xi ) which are random draws from a population distribu-
+tion F. Let θ be a parameter and let T = T ((Y1, X1),..., (Yn, Xn), θ) be a statistic of interest, for example an
+estimator ˆθ or a t-statistic (ˆθ − θ)/s(ˆθ). The exact distribution of T is
+G(u,F ) = P[T ≤ u |F ].
+While the asymptotic distribution of T might be known, the exact (ﬁnite sample) distribution G is gen-
+erally unknown.
+Monte Carlo simulation uses numerical simulation to computeG(u,F ) for selected choices of F. This
+is useful to investigate the performance of the statistic T in reasonable situations and sample sizes.
+The basic idea is that for any given F the distribution function G(u,F ) can be calculated numerically
+through simulation. The name Monte Carlo derives from the famous Mediterranean gambling resort
+where games of chance are played.
+The method of Monte Carlo is simple to describe. The researcher chooses F (the distribution of the
+pseudo data) and the sample sizen. A “true” value of θ is implied by this choice, or equivalently the value
+θ is selected directly by the researcher which implies restrictions on F .
+Then the following experiment is conducted by computer simulation:
+1. n independent random pairs
+(
+Y ∗
+i , X ∗
+i
+)
+, i = 1, ...,n, are drawn from the distribution F using the
+computer’ s random number generator.
+2. The statistic T = T
+((
+Y ∗
+1 , X ∗
+1
+)
+,...,
+(
+Y ∗
+n , X ∗
+n
+)
+, θ
+)
+is calculated on this pseudo data.
+For step 1, computer packages have built-in random number procedures including U[0,1] and N(0, 1).
+From these most random variables can be constructed. (For example, a chi-square can be generated by
+sums of squares of normals.)
+For step 2, it is important that the statistic be evaluated at the “true” value of θ corresponding to the
+choice of F.
+The above experiment creates one random draw T from the distribution G(u,F ). This is one ob-
+servation from an unknown distribution. Clearly, from one observation very little can be said. So the
+researcher repeats the experiment B times where B is a large number. Typically, we setB ≥ 1000. We will
+discuss this choice later.
+
+
+--- page 22 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 242
+Notationally, let the bt h experiment result in the draw Tb, b = 1, ...,B. These results are stored. After
+all B experiments have been calculated these results constitute a random sample of size B from the
+distribution of G(u,F ) = P[Tb ≤ u] = P[T ≤ u |F ].
+From a random sample we can estimate any feature of interest using (typically) a method of moments
+estimator. We now describe some speciﬁc examples.
+Suppose we are interested in the bias, mean-squared error (MSE), and/or variance of the distribution
+of ˆθ − θ. We then set T = ˆθ − θ, run the above experiment, and calculate
+ˆbias
+[ˆθ
+]
+= 1
+B
+B∑
+b=1
+Tb = 1
+B
+B∑
+b=1
+ˆθb − θ
+ˆmse
+[ˆθ
+]
+= 1
+B
+B∑
+b=1
+(Tb)2 = 1
+B
+B∑
+b=1
+(ˆθb − θ
+)2
+ˆvar
+[ˆθ
+]
+= ˆmse
+[ˆθ
+]
+−
+(
+ˆbias
+[ˆθ
+])2
+Suppose we are interested in the Type I error associated with an asymptotic 5% two-sided t-test. We
+would then set T =
+⏐⏐ˆθ − θ
+⏐
+⏐/s(ˆθ) and calculate
+ˆP = 1
+B
+B∑
+b=1
+1{Tb ≥ 1.96}, (9.15)
+the percentage of the simulated t-ratios which exceed the asymptotic 5% critical value.
+Suppose we are interested in the 5% and 95% quantile ofT = ˆθ or T =
+(ˆθ − θ
+)
+/s(ˆθ). We then compute
+the 5% and 95% sample quantiles of the sample {Tb}. For details on quantile estimation see Section 11.13
+of Introduction to Econometrics.
+The typical purpose of a Monte Carlo simulation is to investigate the performance of a statistical
+procedure in realistic settings. Generally, the performance will depend on n and F. In many cases an
+estimator or test may perform wonderfully for some values and poorly for others. It is therefore useful to
+conduct a variety of experiments for a selection of choices of n and F.
+As discussed above the researcher must select the number of experiments B. Often this is called the
+number of replications. Quite simply, a larger B results in more precise estimates of the features of
+interest ofG but requires more computational time. In practice, therefore, the choice ofB is often guided
+by the computational demands of the statistical procedure. Since the results of a Monte Carlo experiment
+are estimates computed from a random sample of sizeB it is straightforward to calculate standard errors
+for any quantity of interest. If the standard error is too large to make a reliable inference thenB will have
+to be increased.
+In particular, it is simple to make inferences about rejection probabilities from statistical tests, such
+as the percentage estimate reported in (9.15). The random variable1{Tb ≥ 1.96} is i.i.d. Bernoulli, equalling
+1 with probability p = E[1{Tb ≥ 1.96}]. The average (9.15) is therefore an unbiased estimator of p with
+standard error s
+(
+ˆp
+)
+=
+√
+p
+(
+1 − p
+)
+/B. As p is unknown, this may be approximated by replacing p with
+ˆp or with an hypothesized value. For example, if we are assessing an asymptotic 5% test, then we can
+set s
+(
+ˆp
+)
+=
+p
+(.05)(.95)/B ≃ .22/
+p
+B. Hence, standard errors for B = 100, 1000, and 5000, are, respectively,
+s
+(
+ˆp
+)
+= .022, .007, and .003.
+Most papers in econometric methods and some empirical papers include the results of Monte Carlo
+simulations to illustrate the performance of their methods. When extending existing results it is good
+practice to start by replicating existing (published) results. This is not exactly possible in the case of
+simulation results as they are inherently random. For example suppose a paper investigates a statistical
+test and reports a simulated rejection probability of 0.07 based on a simulation withB = 100 replications.
+
+
+--- page 23 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 243
+Suppose you attempt to replicate this result and ﬁnd a rejection probability of 0.03 (again using B = 100
+simulation replications). Should you conclude that you have failed in your attempt? Absolutely not!
+Under the hypothesis that both simulations are identical you have two independent estimates, ˆp1 = 0.07
+and ˆp2 = 0.03, of a common probability p. The asymptotic (as B → ∞) distribution of their difference isp
+B
+(
+ˆp1 − ˆp2
+)
+− →
+d
+N(0,2 p(1 − p)), so a standard error for ˆp1 − ˆp2 = 0.04 is ˆs =
+√
+2p(1 − p)/B ≃ 0.03, using
+the estimate p = ( ˆp1 + ˆp2)/2. Since the t-ratio 0.04/0.03 = 1.3 is not statistically signiﬁcant it is incorrect
+to reject the null hypothesis that the two simulations are identical. The difference between the results
+ˆp1 = 0.07 and ˆp2 = 0.03 is consistent with random variation.
+What should be done? The ﬁrst mistake was to copy the previous paper’ s choice ofB = 100. Instead,
+suppose you set B = 10,000 and now obtain ˆp2 = 0.04. Then ˆp1 − ˆp2 = 0.03 and a standard error is ˆs =√
+p(1 − p)(1/100 + 1/10000) ≃ 0.02. Still we cannot reject the hypothesis that the two simulations are
+different. Even though the estimates (0.07 and 0.04) appear to be quite different, the difﬁculty is that the
+original simulation used a very small number of replications (B = 100) so the reported estimate is quite
+imprecise. In this case it is appropriate to conclude that your results “replicate” the previous study as
+there is no statistical evidence to reject the hypothesis that they are equivalent.
+Most journals have policies requiring authors to make available their data sets and computer pro-
+grams required for empirical results. Most do not have similar policies regarding simulations. Never-
+theless, it is good professional practice to make your simulations available. The best practice is to post
+your simulation code on your webpage. This invites others to build on and use your results, leading to
+possible collaboration, citation, and/or advancement.
+9.19 Conﬁdence Intervals by Test Inversion
+There is a close relationship between hypothesis tests and conﬁdence intervals. We observed in Sec-
+tion 7.13 that the standard 95% asymptotic conﬁdence interval for a parameterθ is
+ˆC =
+[ˆθ − 1.96 × s(ˆθ), ˆθ + 1.96 × s(ˆθ)
+]
+= {θ : |T (θ)|≤ 1.96}. (9.16)
+That is, we can describe ˆC as “The point estimate plus or minus 2 standard errors” or “The set of param-
+eter values not rejected by a two-sided t-test.” The second deﬁnition, known as test statistic inversion,
+is a general method for ﬁnding conﬁdence intervals, and typically produces conﬁdence intervals with
+excellent properties.
+Given a test statistic T (θ) and critical value c, the acceptance region “ Accept if T (θ) ≤ c” is identical
+to the conﬁdence interval ˆC = {θ : T (θ) ≤ c}. Since the regions are identical the probability of coverage
+P
+[
+θ ∈ ˆC
+]
+equals the probability of correct acceptance P
+[
+Accept |θ
+]
+which is exactly 1 minus the Type I
+error probability. Thus inverting a test with good Type I error probabilities yields a conﬁdence interval
+with good coverage probabilities.
+Now suppose that the parameter of interest θ = r (β) is a nonlinear function of the coefﬁcient vector
+β. In this case the standard conﬁdence interval for θ is the set ˆC as in (9.16) where ˆθ = r ( ˆβ) is the point
+estimator and s(ˆθ) =
+√
+ˆR
+′ ˆV ˆβ ˆR is the delta method standard error. This conﬁdence interval is inverting
+the t-test based on the nonlinear hypothesis r (β) = θ. The trouble is that in Section 9.17 we learned that
+there is no unique t-statistic for tests of nonlinear hypotheses and that the choice of parameterization
+matters greatly.
+For example, if θ = β1/β2 then the coverage probability of the standard interval (9.16) is 1 minus the
+probability of the Type I error, which as shown in Table 8.2 can be far from the nominal 5%.
+In this example a good solution is the same as discussed in Section 9.17 – to rewrite the hypothesis as
+
+
+--- page 24 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 244
+a linear restriction. The hypothesis θ = β1/β2 is the same as θβ2 = β1. The t-statistic for this restriction is
+T (θ) =
+ˆβ1 − ˆβ2θ
+(
+R ′ ˆV ˆβR
+)1/2
+where
+R =
+( 1
+−θ
+)
+and ˆV ˆβ is the covariance matrix for (ˆβ1 ˆβ2). A 95% conﬁdence interval forθ = β1/β2 is the set of values of
+θ such that |T (θ)|≤ 1.96. Since T (θ) is a nonlinear function of θ one method to ﬁnd the conﬁdence set is
+grid search over θ.
+For example, in the wage equation
+log(wage) = β1experience + β2experience2/100 + · · ·
+the highest expected wage occurs at experience= −50β1/β2. From Table 4.1 we have the point estimate
+ˆθ = 29.8 and we can calculate the standard error s(ˆθ) = 0.022 for a 95% conﬁdence interval [29.8, 29.9].
+However, if we instead invert the linear form of the test we umerically ﬁnd the interval [29.1, 30.6] which
+is much larger. From the evidence presented in Section 9.17 we know the ﬁrst interval can be quite
+inaccurate and the second interval is greatly preferred.
+9.20 Multiple Tests and Bonferroni Corrections
+In most applications economists examine a large number of estimates, test statistics, and p-values.
+What does it mean (or does it mean anything) if one statistic appears to be “signiﬁcant” after examining
+a large number of statistics? This is known as the problem of multiple testing or multiple comparisons.
+To be speciﬁc, suppose we examine a set ofk coefﬁcients, standard errors and t-ratios, and consider
+the “signiﬁcance” of each statistic. Based on conventional reasoning, for each coefﬁcient we would reject
+the hypothesis that the coefﬁcient is zero with asymptotic size α if the absolute t-statistic exceeds the
+1 − α critical value of the normal distribution, or equivalently if the p-value for the t-statistic is smaller
+than α. If we observe that one of the k statistics is “signiﬁcant” based on this criterion, that means that
+one of the p-values is smaller than α, or equivalently, that the smallest p-value is smaller than α. We
+can then rephrase the question: Under the joint hypothesis that a set of k hypotheses are all true, what
+is the probability that the smallest p-value is smaller than α? In general, we cannot provide a precise
+answer to this quesion, but the Bonferroni correction bounds this probability by αk. The Bonferroni
+method furthermore suggests that if we want the familywise error probability (the probability that one
+of the tests falsely rejects) to be bounded belowα, then an appropriate rule is to reject only if the smallest
+p-value is smaller than α/k. Equivalently, the Bonferroni familywise p-value is k minj ≤k p j .
+Formally, suppose we have k hypotheses Hj , j = 1, ...,k. For each we have a test and associated p-
+value p j with the property that when Hj is true limn→∞ P
+[
+p j < α
+]
+= α. We then observe that among the
+k tests, one of the k is “signiﬁcant” if minj ≤k p j < α. This event can be written as
+{
+min
+j ≤k
+p j < α
+}
+=
+k⋃
+j =1
+{
+p j < α
+}
+.
+Boole’ s inequality states that for anyk events A j , P
+[
+k⋃
+j =1
+A j
+]
+≤
+k∑
+j =1
+P[Ak]. Thus
+P
+[
+min
+j ≤k
+p j < α
+]
+≤
+k∑
+j =1
+P
+[
+p j < α
+]
+→ kα
+
+
+--- page 25 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 245
+as stated. This demonstates that the familywise rejection probability is at most k times the individual
+rejection probability.
+Furthermore,
+P
+[
+min
+j ≤k
+p j < α
+k
+]
+≤
+k∑
+j =1
+P
+[
+p j < α
+k
+]
+→ α.
+This demonstrates that the familywise rejection probability can be controlled (bounded belowα) if each
+individual test is subjected to the stricter standard that a p-value must be smaller than α/k to be labeled
+as “signiﬁcant” .
+To illustrate, suppose we have two coefﬁcient estimates with individual p-values 0.04 and 0.15. Based
+on a conventional 5% level the standard individual tests would suggest that the ﬁrst coefﬁcient estimate
+is “signiﬁcant” but not the second. A Bonferroni 5% test, however, does not reject as it would require
+that the smallest p-value be smaller than 0.025, which is not the case in this example. Alternatively, the
+Bonferroni familywise p-value is 0.04 × 2 = 0.08, which is not signiﬁcant at the 5% level.
+In contrast, if the two p-values were 0.01 and 0.15, then the Bonferroni familywise p-value would be
+0.01 × 2 = 0.02, which is signiﬁcant at the 5% level.
+9.21 Power and Test Consistency
+The power of a test is the probability of rejecting H0 when H1 is true.
+For simplicity suppose thatYi is i.i.d. N(θ, σ2) with σ2 known, consider the t-statisticT (θ) = p
+n
+(
+Y − θ
+)
+/σ,
+and tests of H0 : θ = 0 against H1 : θ > 0. We reject H0 if T = T (0) > c. Note that
+T = T (θ) +
+p
+nθ/σ
+and T (θ) has an exact N(0,1) distribution. This is because T (θ) is centered at the true mean θ, while the
+test statistic T (0) is centered at the (false) hypothesized mean of 0.
+The power of the test is
+P[T > c |θ] = P
+[
+Z +
+p
+nθ/σ > c
+]
+= 1 − Φ
+(
+c −
+p
+nθ/σ
+)
+.
+This function is monotonically increasing in µ and n, and decreasing in σ and c.
+Notice that for any c and θ ̸= 0 the power increases to 1 as n → ∞. This means that for θ ∈ H1 the
+test will reject H0 with probability approaching 1 as the sample size gets large. We call this property test
+consistency.
+Deﬁnition 9.3 A test of H0 : θ ∈ Θ0 is consistent against ﬁxed alternatives if
+for all θ ∈ Θ1, P
+[
+Reject H0 |θ
+]
+→ 1 as n → ∞.
+For tests of the form “Reject H0 if T > c” , a sufﬁcient condition for test consistency is that the T
+diverges to positive inﬁnity with probability one for allθ ∈ Θ1.
+Deﬁnition 9.4 We say that T − →p ∞ as n → ∞ if for all M < ∞, P[T ≤ M] → 0
+as n → ∞ . Similarly, we say that T − →p −∞ as n → ∞ if for all M < ∞,
+P[T ≥ −M] → 0 as n → ∞.
+
+
+--- page 26 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 246
+In general, t-tests and Wald tests are consistent against ﬁxed alternatives. Take a t-statistic for a test
+of H0 : θ = θ0, T =
+(ˆθ − θ0
+)
+/s(ˆθ) where θ0 is a known value and s(ˆθ) =
+√
+n−1 ˆVθ . Note that
+T =
+ˆθ − θ
+s(ˆθ)
++
+pn (θ − θ0)√
+ˆVθ
+.
+The ﬁrst term on the right-hand-side converges in distribution to N(0, 1). The second term on the right-
+hand-side equals zero if θ = θ0, converges in probability to +∞ if θ > θ0, and converges in probability
+to −∞ if θ < θ0. Thus the two-sided t-test is consistent against H1 : θ ̸= θ0, and one-sided t-tests are
+consistent against the alternatives for which they are designed.
+Theorem 9.8 Under Assumptions 7.2, 7.3, and 7.4, for θ = r (β) ̸= θ0 and q = 1,
+then |T |− →p ∞. For any c < ∞ the test “Reject H0 if |T |> c” is consistent against
+ﬁxed alternatives.
+The Wald statistic for H0 : θ = r (β) = θ0 against H1 : θ ̸= θ0 is W = n
+(ˆθ − θ0
+)′ ˆV
+−1
+θ
+(ˆθ − θ0
+)
+. Under H1,
+ˆθ − →p θ ̸= θ0. Thus
+(ˆθ − θ0
+)′ ˆV
+−1
+θ
+(ˆθ − θ0
+)
+− →p (θ − θ0)′ V −1
+θ (θ − θ0) > 0. Hence under H1, W − →p ∞. Again,
+this implies that Wald tests are consistent.
+Theorem 9.9 Under Assumptions 7.2, 7.3, and 7.4, for θ = r (β) ̸= θ0, then
+W − →p ∞. For any c < ∞ the test “Reject H0 if W > c” is consistent against
+ﬁxed alternatives.
+9.22 Asymptotic Local Power
+Consistency is a good property for a test but is does not provided a tool to calculate test power. To
+approximate the power function we need a distributional approximation.
+The standard asymptotic method for power analysis uses what are called local alternatives. This is
+similar to our analysis of restriction estimation under misspeciﬁcation (Section 8.13). The technique is
+to index the parameter by sample size so that the asymptotic distribution of the statistic is continuous
+in a localizing parameter. In this section we consider t-tests on real-valued parameters and in the next
+section Wald tests. Speciﬁcally, we consider parameter vectors βn which are indexed by sample size n
+and satisfy the real-valued relationship
+θn = r (βn) = θ0 + n−1/2h (9.17)
+where the scalar h is called a localizing parameter. We index βn and θn by sample size to indicate their
+dependence on n. The way to think of (9.17) is that the true value of the parameters are βn and θn. The
+parameter θn is close to the hypothesized value θ0, with deviation n−1/2h.
+The speciﬁcation (9.17) states that for any ﬁxedh, θn approaches θ0 as n gets large. Thus θn is “close”
+or “local” to θ0. The concept of a localizing sequence (9.17) might seem odd since in the actual world the
+
+
+--- page 27 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 247
+sample size cannot mechanically affect the value of the parameter. Thus (9.17) should not be interpreted
+literally. Instead, it should be interpreted as a technical device which allows the asymptotic distribution
+to be continuous in the alternative hypothesis.
+To evaluate the asymptotic distribution of the test statistic we start by examining the scaled estima-
+tor centered at the hypothesized value θ0. Breaking it into a term centered at the true value θn and a
+remainder we ﬁnd p
+n
+(ˆθ − θ0
+)
+=
+p
+n
+(ˆθ − θn
+)
++
+p
+n (θn − θ0) =
+p
+n
+(ˆθ − θn
+)
++ h
+where the second equality is (9.17). The ﬁrst term is asymptotically normal:
+p
+n
+(ˆθ − θn
+)
+− →
+d
+√
+Vθ Z
+where Z ∼ N(0,1). Therefore p
+n
+(ˆθ − θ0
+)
+− →
+d
+√
+Vθ Z + h ∼ N(h,Vθ).
+This asymptotic distribution depends continuously on the localizing parameter h.
+Applied to the t statistic we ﬁnd
+T =
+ˆθ − θ0
+s(ˆθ)
+− →
+d
+√
+Vθ Z + h
+√
+Vθ
+∼ Z + δ (9.18)
+where δ = h/
+√
+Vθ. This generalizes Theorem 9.1 (which assumesH0 is true) to allow for local alternatives
+of the form (9.17).
+Consider a t-test of H0 against the one-sided alternative H1 : θ > θ0 which rejects H0 for T > c where
+Φ(c) = 1 − α. The asymptotic local power of this test is the limit (as the sample size diverges) of the
+rejection probability under the local alternative (9.17)
+limn→∞ P
+[
+Reject H0
+]
+= limn→∞ P[T > c]
+= P[Z + δ > c]
+= 1 − Φ(c − δ)
+= Φ(δ − c)
+def
+= π(δ).
+We call π(δ) the asymptotic local power function.
+In Figure 9.3(a) we plot the local power functionπ(δ) as a function ofδ ∈ [−1, 4] for tests of asymptotic
+size α = 0.10, α = 0.05, and α = 0.01. δ = 0 corresponds to the null hypothesis so π(δ) = α. The power
+functions are monotonically increasing in δ. Note that the power is lower than α for δ < 0 due to the
+one-sided nature of the test.
+We can see that the three power functions are ranked by α so that the test with α = 0.10 has higher
+power than the test with α = 0.01. This is the inherent trade-off between size and power. Decreasing size
+induces a decrease in power, and conversely.
+The coefﬁcientδ can be interpreted as the parameter deviation measured as a multiple of the stan-
+dard error s(ˆθ). To see this, recall that s(ˆθ) = n−1/2
+√
+ˆVθ ≃ n−1/2√
+Vθ and then note that
+δ = h√
+Vθ
+≃ n−1/2h
+s(ˆθ)
+= θn − θ0
+s(ˆθ)
+.
+Thus δ approximately equals the deviationθn −θ0 expressed as multiples of the standard errors(ˆθ). Thus
+as we examine Figure 9.3(a) we can interpret the power function at δ = 1 (e.g. 26% for a 5% size test) as
+
+
+--- page 28 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 248
+−1 0 1 2 3 4
+0.0 0.2 0.4 0.6 0.8 1.0
+δ
+Power
+α = 0.1
+α = 0.05
+α = 0.01
+(a) One-Sided t Test
+0 5 10 15
+0.0 0.2 0.4 0.6 0.8 1.0
+λ
+Power
+q=1
+q=2
+q=3 (b) Varying q
+Figure 9.3: Asymptotic Local Power Function
+the power when the parameterθn is one standard error above the hypothesized value. For example, from
+Table 4.1 the standard error for the coefﬁcient on “Married Female” is 0.010. Thus, in this example δ = 1
+corresponds to θn = 0.010 or an 1.0% wage premium for married females. Our calculations show that the
+asymptotic power of a one-sided 5% test against this alternative is about 26%.
+The difference between power functions can be measured either vertically or horizontally. For exam-
+ple, in Figure 9.3(a) there is a vertical dash-dotted line at δ = 1, showing that the asymptotic local power
+function π(δ) equals 39% for α = 0.10, equals 26% for α = 0.05, and equals 9% for α = 0.01. This is the
+difference in power across tests of differing size, holding ﬁxed the parameter in the alternative.
+A horizontal comparison can also be illuminating. To illustrate, in Figure 9.3(a) there is a horizontal
+dash-dotted line at 50% power. 50% power is a useful benchmark as it is the point where the test has equal
+odds of rejection and acceptance. The dotted line crosses the three power curves at δ = 1.29 (α = 0.10),
+δ = 1.65 (α = 0.05), and δ = 2.33 (α = 0.01). This means that the parameter θ must be at least 1.65
+standard errors above the hypothesized value for a one-sided 5% test to have 50% (approximate) power.
+The ratio of these values (e.g. 1.65/1.29 = 1.28 for the asymptotic 5% versus 10% tests) measures the
+relative parameter magnitude needed to achieve the same power. (Thus, for a 5% size test to achieve 50%
+power, the parameter must be 28% larger than for a 10% size test.) Even more interesting, the square of
+this ratio (e.g. (1.65/1.29)2 = 1.64) is the increase in sample size needed to achieve the same power under
+ﬁxed parameters. That is, to achieve 50% power, a 5% size test needs 64% more observations than a
+10% size test. This interpretation follows by the following informal argument. By deﬁnition and (9.17)
+δ = h/
+√
+Vθ = pn (θn − θ0)/
+√
+Vθ. Thus holding θ and Vθ ﬁxed,δ2 is proportional to n.
+The analysis of a two-sided t test is similar. (9.18) implies that
+T =
+⏐⏐⏐
+⏐
+⏐
+ˆθ − θ0
+s(ˆθ)
+⏐⏐⏐
+⏐
+⏐ − →
+d
+|Z + δ|
+and thus the local power of a two-sided t test is
+limn→∞ P
+[
+Reject H0
+]
+= limn→∞ P[T > c] = P[|Z + δ|> c] = Φ(δ − c) + Φ(−δ − c)
+
+
+--- page 29 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 249
+which is monotonically increasing in |δ|.
+Theorem 9.10 Under Assumptions 7.2, 7.3, 7.4, and θn = r (βn) = r0 + n−1/2h,
+then
+T (θ0) =
+ˆθ − θ0
+s(ˆθ)
+− →
+d
+Z + δ
+where Z ∼ N(0,1) and δ = h/
+√
+Vθ. For c such that Φ(c) = 1 − α,
+P[T (θ0) > c] − →Φ(δ − c).
+Furthermore, for c such that Φ(c) = 1 − α/2,
+P[|T (θ0)|> c] − →Φ(δ − c) + Φ(−δ − c).
+9.23 Asymptotic Local Power, Vector Case
+In this section we extend the local power analysis of the previous section to the case of vector-valued
+alternatives. We generalize (9.17) to vector-valued θn. The local parameterization is
+θn = r (βn) = θ0 + n−1/2h (9.19)
+where h is q × 1.
+Under (9.19), p
+n
+(ˆθ − θ0
+)
+=
+p
+n
+(ˆθ − θn
+)
++ h − →
+d
+Zh ∼ N(h,V θ),
+a normal random vector with mean h and covariance matrix V θ.
+Applied to the Wald statistic we ﬁnd
+W = n
+(ˆθ − θ0
+)′ ˆV
+−1
+θ
+(ˆθ − θ0
+)
+− →
+d
+Z ′
+hV −1
+θ Zh ∼ χ2
+q (λ) (9.20)
+where λ = h′V −1h. χ2
+q (λ) is a non-central chi-square random variable with non-centrality parameter λ.
+(Theorem 5.3.6.)
+The convergence (9.20) shows that under the local alternatives (9.19), W − →
+d
+χ2
+q (λ). This generalizes
+the null asymptotic distribution which obtains as the special case λ = 0. We can use this result to obtain
+a continuous asymptotic approximation to the power function. For any signiﬁcance level α > 0 set the
+asymptotic critical value c so that P
+[
+χ2
+q > c
+]
+= α. Then as n → ∞,
+P[W > c] − →P
+[
+χ2
+q (λ) > c
+] def
+= π(λ).
+The asymptotic local power function π(λ) depends only on α, q, and λ.
+Theorem 9.11 Under Assumptions 7.2, 7.3, 7.4, and θn = r (βn) = θ0 + n−1/2h,
+then W − →
+d
+χ2
+q (λ) where λ = h′V −1
+θ h. Furthermore, for c such that P
+[
+χ2
+q > c
+]
+=
+α, P[W > c] − →P
+[
+χ2
+q (λ) > c
+]
+.
+
+
+--- page 30 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 250
+Figure 9.3(b) plots π(λ) as a function of λ for q = 1, q = 2, and q = 3, and α = 0.05. The asymptotic
+power functions are monotonically increasing in λ and asymptote to one.
+Figure 9.3(b) also shows the power loss for ﬁxed non-centrality parameterλ as the dimensionality of
+the test increases. The power curves shift to the right as q increases, resulting in a decrease in power.
+This is illustrated by the dash-dotted line at 50% power. The dash-dotted line crosses the three power
+curves at λ = 3.85 (q = 1), λ = 4.96 (q = 2), and λ = 5.77 (q = 3). The ratio of these λ values correspond
+to the relative sample sizes needed to obtain the same power. Thus increasing the dimension of the test
+from q = 1 to q = 2 requires a 28% increase in sample size, or an increase from q = 1 to q = 3 requires a
+50% increase in sample size, to obtain a test with 50% power.
+_____________________________________________________________________________________________
+9.24 Exercises
+Exercise 9.1 Prove that if an additional regressorX k+1 is added to X , Theil’ s adjusted
+R
+2
+increases if and
+only if |Tk+1|> 1, where Tk+1 = ˆβk+1/s( ˆβk+1) is the t-ratio for ˆβk+1 and
+s( ˆβk+1) =
+(
+s2[(X ′X )−1]k+1,k+1
+)1/2
+is the homoskedasticity-formula standard error.
+Exercise 9.2 You have two independent samples (Y1i , X1i ) and (Y2i , X2i ) both with sample sizes n which
+satisfy Y1 = X1β1 + e1 and Y2 = X2β2 + e2, where E[X1e1] = 0 and E[X2e2] = 0. Let ˆβ1 and ˆβ2 be the OLS
+estimators of β1 ∈ Rk and β2 ∈ Rk.
+(a) Find the asymptotic distribution of pn
+((ˆβ2 − ˆβ1
+)
+−
+(
+β2 − β1
+))
+as n → ∞.
+(b) Find an appropriate test statistic for H0 : β2 = β1.
+(c) Find the asymptotic distribution of this statistic under H0.
+Exercise 9.3 Let T be a t-statistic for H0 : θ = 0 versus H1 : θ ̸= 0. Since |T |→d |Z |under H0, someone
+suggests the test “Reject H0 if |T |< c1 or |T |> c2, where c1 is the α/2 quantile of |Z |and c2 is the 1 − α/2
+quantile of |Z |.
+(a) Show that the asymptotic size of the test is α.
+(b) Is this a good test of H0 versus H1? Why or why not?
+Exercise 9.4 Let W be a Wald statistic for H0 : θ = 0 versus H1 : θ ̸= 0, where θ is q × 1. Since W − →
+d
+χ2
+q
+under H0, someone suggests the test “Reject H0 if W < c1 or W > c2, where c1 is the α/2 quantile of χ2
+q
+and c2 is the 1 − α/2 quantile of χ2
+q .
+(a) Show that the asymptotic size of the test is α.
+(b) Is this a good test of H0 versus H1? Why or why not?
+Exercise 9.5 Take the linear model Y = X ′
+1β1 + X ′
+2β2 + e with E[X e] = 0 where both X1 and X2 are q × 1.
+Show how to test the hypotheses H0 : β1 = β2 against H1 : β1 ̸= β2.
+
+
+--- page 31 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 251
+Exercise 9.6 Suppose a researcher wants to know which of a set of 20 regressors has an effect on a vari-
+able testscore. He regresses testscore on the 20 regressors and reports the results. One of the 20 regressors
+(studytime) has a large t-ratio (about 2.5), while the other t-ratios are insigniﬁcant (smaller than 2 in ab-
+solute value). He argues that the data show that studytime is the key predictor for testscore. Do you agree
+with this conclusion? Is there a deﬁciency in his reasoning?
+Exercise 9.7 Take the modelY = X β1 +X 2β2 +e with E[e |X ] = 0 where Y is wages (dollars per hour) and
+X is age. Describe how you would test the hypothesis that the expected wage for a 40-year-old worker is
+$20 an hour.
+Exercise 9.8 You want to test H0 : β2 = 0 against H1 : β2 ̸= 0 in the model Y = X ′
+1β1 + X ′
+2β2 + e with
+E[X e] = 0. You read a paper which estimates the model
+Y = X ′
+1 ˆγ1 + (X2 − X1)′ ˆγ2 + u
+and reports a test of H0 : γ2 = 0 against H1 : γ2 ̸= 0. Is this related to the test you wanted to conduct?
+Exercise 9.9 Suppose a researcher uses one dataset to test a speciﬁc hypothesisH0 against H1 and ﬁnds
+that he can reject H0. A second researcher gathers a similar but independent dataset, uses similar meth-
+ods and ﬁnds that she cannot reject H0. How should we (as interested professionals) interpret these
+mixed results?
+Exercise 9.10 In Exercise 7.8 you showed that pn
+(
+ˆσ2 − σ2)
+− →
+d
+N(0,V ) as n → ∞ for some V . Let ˆV be
+an estimator of V .
+(a) Using this result construct a t-statistic for H0 : σ2 = 1 against H1 : σ2 ̸= 1.
+(b) Using the Delta Method ﬁnd the asymptotic distribution of pn (ˆσ − σ).
+(c) Use the previous result to construct a t-statistic for H0 : σ = 1 against H1 : σ ̸= 1.
+(d) Are the null hypotheses in (a) and (c) the same or are they different? Are the tests in (a) and (c) the
+same or are they different? If they are different, describe a context in which the two tests would
+give contradictory results.
+Exercise 9.11 Consider a regression such as Table 4.1 where bothexperience and its square are included.
+A researcher wants to test the hypothesis that experience does not affect mean wages and does this by
+computing the t-statistic for experience. Is this the correct approach? If not, what is the appropriate
+testing method?
+Exercise 9.12 A researcher estimates a regression and computes a test of H0 against H1 and ﬁnds a p-
+value of p = 0.08, or “not signiﬁcant” . She says “I need more data. If I had a larger sample the test will
+have more power and then the test will reject.” Is this interpretation correct?
+Exercise 9.13 A common view is that “If the sample size is large enough, any hypothesis will be rejected.”
+What does this mean? Interpret and comment.
+Exercise 9.14 Take the modelY = X ′β + e with E[X e] = 0 and parameter of interest θ = R ′β with R k × 1.
+Let ˆβ be the least squares estimator and ˆV ˆβ its variance estimator.
+
+
+--- page 32 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 252
+(a) Write down ˆC , the 95% asymptotic conﬁdence interval forθ, in terms of ˆβ, ˆV ˆβ, R, and z = 1.96 (the
+97.5% quantile of N(0, 1)).
+(b) Show that the decision “Reject H0 if θ0 ∉ ˆC ” is an asymptotic 5% test of H0 : θ = θ0.
+Exercise 9.15 You are at a seminar where a colleague presents a simulation study of a test of a hypothesis
+H0 with nominal size 5%. Based on B = 100 simulation replications under H0 the estimated size is 7%.
+Your colleague says: “Unfortunately the test over-rejects.”
+(a) Do you agree or disagree with your colleague? Explain. Hint: Use an asymptotic (large B) approxi-
+mation.
+(b) Suppose the number of simulation replications were B = 1000 yet the estimated size is still 7%.
+Does your answer change?
+Exercise 9.16 Consider two alternative regression models
+Y = X ′
+1β1 + e1 (9.21)
+E[X1e1] = 0
+Y = X ′
+2β2 + e2 (9.22)
+E[X2e2] = 0
+where X1 and X2 have at least some different regressors. (For example, (9.21) is a wage regression on
+geographic variables and (2) is a wage regression on personal appearance measurements.) You want to
+know if model (9.21) or model (9.22) ﬁts the data better. Deﬁne σ2
+1 = E
+[
+e2
+1
+]
+and σ2
+2 = E
+[
+e2
+2
+]
+. You decide
+that the model with the smaller variance ﬁt (e.g., model (9.21) ﬁts better ifσ2
+1 < σ2
+2.) You decide to test for
+this by testing the hypothesis of equal ﬁt H0 : σ2
+1 = σ2
+2 against the alternative of unequal ﬁt H1 : σ2
+1 ̸= σ2
+2.
+For simplicity, suppose thate1i and e2i are observed.
+(a) Construct an estimator ˆθ of θ = σ2
+1 − σ2
+2.
+(b) Find the asymptotic distribution of p
+n
+(ˆθ − θ
+)
+as n → ∞.
+(c) Find an estimator of the asymptotic variance of ˆθ.
+(d) Propose a test of asymptotic size α of H0 against H1.
+(e) Suppose the test accepts H0. Brieﬂy, what is your interpretation?
+Exercise 9.17 You have two regressors X1 and X2 and estimate a regression with all quadratic terms
+included
+Y = α + β1X1 + β2X2 + β3X 2
+1 + β4X 2
+2 + β5X1X2 + e.
+One of your advisors asks: Can we exclude the variable X2 from this regression?
+How do you translate this question into a statistical test? When answering these questions, be spe-
+ciﬁc, not general.
+(a) What is the relevant null and alternative hypotheses?
+(b) What is an appropriate test statistic?
+
+
+--- page 33 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 253
+(c) What is the appropriate asymptotic distribution for the statistic?
+(d) What is the rule for acceptance/rejection of the null hypothesis?
+Exercise 9.18 The observed data is {Yi , Xi , Zi } ∈ R× Rk × Rℓ, k > 1 and ℓ > 1, i = 1, ...,n. An econometrician
+ﬁrst estimates Yi = X ′
+i
+ˆβ + ˆei by least squares. The econometrician next regresses the residual ˆei on Zi ,
+which can be written as ˆei = Z ′
+i ˜γ + ˜ui .
+(a) Deﬁne the population parameter γ being estimated in this second regression.
+(b) Find the probability limit for ˜γ.
+(c) Suppose the econometrician constructs a Wald statistic W for H0 : γ = 0 from the second regres-
+sion, ignoring the two-stage estimation process. Write down the formula for W .
+(d) Assume E
+[
+Z X ′]
+= 0. Find the asymptotic distribution for W under H0 : γ = 0.
+(e) If E
+[
+Z X ′]
+̸= 0 will your answer to (d) change?
+Exercise 9.19 An economist estimates Y = X ′
+1β1 + X2β2 + e by least squares and tests the hypothesis
+H0 : β2 = 0 against H1 : β2 ̸= 0. Assume β1 ∈ Rk and β2 ∈ R. She obtains a Wald statistic W = 0.34. The
+sample size is n = 500.
+(a) What is the correct degrees of freedom for the χ2 distribution to evaluate the signiﬁcance of the
+Wald statistic?
+(b) The Wald statistic W is very small. Indeed, is it less than the 1% quantile of the appropriate χ2
+distribution? If so, should you reject H0? Explain your reasoning.
+Exercise 9.20 You are reading a paper, and it reports the results from two nested OLS regressions:
+Yi = X ′
+1i ˜β1 + ˜ei
+Yi = X ′
+1i ˆβ1 + X ′
+2i ˆβ2 + ˆei .
+Some summary statistics are reported:
+Short Regression Long Regression
+R2 = .20 R2 = .26∑n
+i =1 ˜e2
+i = 106 ∑n
+i =1 ˆe2
+i = 100
+# of coefﬁcients=5 # of coefﬁcients=8
+n = 50 n = 50
+You are curious if the estimateˆβ2 is statistically different from the zero vector. Is there a way to determine
+an answer from this information? Do you have to make any assumptions (beyond the standard regularity
+conditions) to justify your answer?
+Exercise 9.21 Take the model Y = X1β1 + X2β2 + X3β3 + X4β4 + e with E[X e] = 0. Describe how to test
+H0 : β1
+β2
+= β3
+β4
+against
+H1 : β1
+β2
+̸= β3
+β4
+.
+
+
+--- page 34 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 254
+Exercise 9.22 You have a random sample from the model Y = X β1 + X 2β2 + e with E[e |X ] = 0 where Y
+is wages (dollars per hour) and X is age. Describe how you would test the hypothesis that the expected
+wage for a 40-year-old worker is $20 an hour.
+Exercise 9.23 Let T be a test statistic such that under H0, T − →
+d
+χ2
+3. Since P
+[
+χ2
+3 > 7.815
+]
+= 0.05, an
+asymptotic 5% test of H0 rejects when T > 7.815. An econometrician is interested in the Type I error
+of this test when n = 100 and the data structure is well speciﬁed. She performs the following Monte Carlo
+experiment.
+• B = 200 samples of size n = 100 are generated from a distribution satisfying H0.
+• On each sample, the test statistic Tb is calculated.
+• She calculates ˆp = B −1 ∑B
+b=1 1{Tb > 7.815} = 0.070.
+• The econometrician concludes that the test T is oversized in this context – it rejects too frequently
+under H0.
+Is her conclusion correct, incorrect, or incomplete? Be speciﬁc in your answer.
+Exercise 9.24 Do a Monte Carlo simulation. Take the model Y = α + X β + e with E[X e] = 0 where the
+parameter of interest is θ = exp(β). Your data generating process (DGP) for the simulation is:X is U [0,1],
+e ∼ N(0,1) is independent of X , and n = 50. Set α = 0 and β = 1. Generate B = 1000 independent sam-
+ples with α. On each, estimate the regression by least squares, calculate the covariance matrix using a
+standard (heteroskedasticity-robust) formula, and similarly estimate θ and its standard error. For each
+replication, store ˆβ, ˆθ, Tβ =
+(ˆβ − β
+)
+/s
+(ˆβ
+)
+, and Tθ =
+(ˆθ − θ
+)
+/s
+(ˆθ
+)
+.
+(a) Does the value of α matter? Explain why the described statistics areinvariant to α and thus setting
+α = 0 is irrelevant.
+(b) From the 1000 replications estimate E
+[ˆβ
+]
+and E
+[ˆθ
+]
+. Discuss if you see evidence if either estimator
+is biased or unbiased.
+(c) From the 1000 replications estimate P
+[
+Tβ > 1.645
+]
+and P[Tθ > 1.645]. What does asymptotic the-
+ory predict these probabilities should be in large samples? What do your simulation results indi-
+cate?
+Exercise 9.25 The data set Invest1993 on the textbook website contains data on 1962 U.S. ﬁrms ex-
+tracted from Compustat, assembled by Bronwyn Hall, and used in Hall and Hall (1993).
+The variables we use in this exercise are in the table below. The ﬂow variables are annual sums. The
+stock variables are beginning of year.
+year year of the observation
+I inva Investment to Capital Ratio
+Q vala Total Market Value to Asset Ratio (Tobin’ s Q)
+C cfa Cash Flow to Asset Ratio
+D debta Long Term Debt to Asset Ratio
+(a) Extract the sub-sample of observations for 1987. There should be 1028 observations. Estimate a
+linear regression of I (investment to capital ratio) on the other variables. Calculate appropriate
+standard errors.
+
+
+--- page 35 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 255
+(b) Calculate asymptotic conﬁdence intervals for the coefﬁcients.
+(c) This regression is related to Tobin’ sq theory of investment, which suggests that investment should
+be predicted solely by Q (Tobin’ s Q). This theory predicts that the coefﬁcient onQ should be pos-
+itive and the others should be zero. Test the joint hypothesis that the coefﬁcients on cash ﬂow
+(C ) and debt (D ) are zero. Test the hypothesis that the coefﬁcient on Q is zero. Are the results
+consistent with the predictions of the theory?
+(d) Now try a nonlinear (quadratic) speciﬁcation. Regress I on Q, C , D, Q2, C 2, D2, Q × C , Q × D, C × D.
+Test the joint hypothesis that the six interaction and quadratic coefﬁcients are zero.
+Exercise 9.26 In a paper in 1963, Marc Nerlove analyzed a cost function for 145 American electric com-
+panies. Nerlov was interested in estimating a cost function: C = f (Q,P L,P F,P K) where the variables are
+listed in the table below. His data set Nerlove1963 is on the textbook website.
+C Total Cost
+Q Output
+PL Unit price of labor
+PK Unit price of capital
+PF Unit price of fuel
+(a) First, estimate an unrestricted Cobb-Douglass speciﬁcation
+logC = β1 + β2 logQ + β3 logP L+ β4 logP K + β5 logP F + e. (9.23)
+Report parameter estimates and standard errors.
+(b) What is the economic meaning of the restriction H0 : β3 + β4 + β5 = 1?
+(c) Estimate (9.23) by constrained least squares imposing β3 + β4 + β5 = 1. Report your parameter
+estimates and standard errors.
+(d) Estimate (9.23) by efﬁcient minimum distance imposing β3 + β4 + β5 = 1. Report your parameter
+estimates and standard errors.
+(e) Test H0 : β3 + β4 + β5 = 1 using a Wald statistic.
+(f) Test H0 : β3 + β4 + β5 = 1 using a minimum distance statistic.
+Exercise 9.27 In Section 8.12 we reported estimates from Mankiw, Romer and Weil (1992). We reported
+estimation both by unrestricted least squares and by constrained estimation, imposing the constraint
+that three coefﬁcients (2nd , 3r d and 4t h coefﬁcients) sum to zero as implied by the Solow growth theory.
+Using the same dataset MRW1992 estimate the unrestricted model and test the hypothesis that the three
+coefﬁcients sum to zero.
+Exercise 9.28 Using the cps09mar dataset and the subsample of non-Hispanic Black individuals (race
+code = 2) test the hypothesis that marriage status does not affect mean wages.
+(a) Take the regression reported in Table 4.1. Which variables will need to be omitted to estimate a
+regression for this subsample?
+
+
+--- page 36 ---
+
+CHAPTER 9. HYPOTHESIS TESTING 256
+(b) Express the hypothesis “marriage status does not affect mean wages” as a restriction on the coefﬁ-
+cients. How many restrictions is this?
+(c) Find the Wald (or F) statistic for this hypothesis. What is the appropriate distribution for the test
+statistic? Calculate the p-value of the test.
+(d) What do you conclude?
+Exercise 9.29 Using the cps09mar dataset and the subsample of non-Hispanic Black individuals (race
+code = 2) and white individuals (race code = 1) test the hypothesis that the returns to education is com-
+mon across groups.
+(a) Allow the return to education to vary across the four groups (white male, white female, Black male,
+Black female) by interacting dummy variables with education. Estimate an appropriate version of
+the regression reported in Table 4.1.
+(b) Find the Wald (or F) statistic for this hypothessis. What is the appropriate distribution for the test
+statistic? Calculate the p-value of the test.
+(c) What do you conclude?

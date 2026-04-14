@@ -1,0 +1,2636 @@
+--- page 1 ---
+
+Chapter 11
+Multivariate Regression
+11.1 Introduction
+Multivariate regression is a system of regression equations. Multivariate regression is used as re-
+duced form models for instrumental variable estimation (Chaper 12), vector autoregressions (Chapter
+15), demand systems (demand for multiple goods), and other contexts.
+Multivariate regression is also called by the namesystems of regression equations. Closely related is
+the method of Seemingly Unrelated Regressions(SUR) introduced in Section 11.7.
+Most of the tools of single equation regression generalize to multivariate regression. A major differ-
+ence is a new set of notation to handle matrix estimators.
+11.2 Regression Systems
+A univariate linear regression equation equals Y = X ′β + e where Y is scalar and X is a vector. Multi-
+variate regression is a system of m linear regressions, and equals
+Y j = X ′
+j βj + e j (11.1)
+for j = 1, ...,m. Here we use the subscript j to denote the j t h dependent variable, not the i t h individual.
+As an example, Y j could be expenditures by a household on good category j (e.g., food, housing, trans-
+portation, clothing, recreation). The regressor vectors X j are k j × 1 and e j is an error. The coefﬁcient
+vectors βj are k j × 1. The total number of coefﬁcients are k = ∑m
+j =1 k j . The regressors can be common
+across j or can vary across j . In the household expenditure example the regressors X j are typically com-
+mon across j , and include variables such as household income, number and ages of family members,
+and demographic characteristics. The regression system specializes to univariate regression whenm = 1.
+Deﬁne them × 1 error vector e = (e1, ...,em)′ and its m × m covariance matrix Σ = E
+[
+ee ′]
+. The diagonal
+elements are the variances of the errors e j and the off-diagonals are the covariances across variables.
+We can group the m equations (11.1) into a single equation as follows. Let Y = (Y1,..., Ym)′ be the
+m × 1 vector of dependent variables. Deﬁne them × k matrix of regressors
+X =
+
+
+X ′
+1 0 · · · 0
+..
+. X ′
+2
+.
+.
+.
+0 0 · · · X ′
+m
+
+
+307
+
+
+--- page 2 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 308
+and the k × 1 stacked coefﬁcient vector
+β =
+
+
+β1
+..
+.
+βm
+
+.
+The m regression equations can be jointly written as
+Y =
+X β + e. (11.2)
+This is a system of m equations.
+For n observations the joint system can be written in matrix notation by stacking. Deﬁne
+Y =
+
+
+Y1
+...
+Yn
+
+, e =
+
+
+e1
+...
+en
+
+, X =
+
+
+X 1
+...
+X n
+
+
+which are mn × 1, mn × 1, and mn × k, respectively. The system can be written as Y = X β + e.
+In many applications the regressor vectors X j are common across the variables j , so X j = X and
+k j = k. By this we mean that the same variables enter each equation with no exclusion restrictions.
+Several important simpliﬁcations occur in this context. One is that we can write (11.2) using the notation
+Y = B ′X + e (11.3)
+where B =
+(
+β1, β2, · · ·, βm
+)
+is k × m. Another is that we can write the joint system of observations in the
+n × m matrix notation Y = X B + E where
+Y =
+
+
+Y ′
+1
+..
+.
+Y ′
+n
+
+, E =
+
+
+e′
+1
+..
+.
+e′
+n
+
+, X =
+
+
+X ′
+1
+..
+.
+X ′
+n
+
+.
+Another convenient implication of common regressors is that we have the simpliﬁcation
+X =
+
+
+X ′ 0 · · · 0
+0 X ′ 0
+..
+. .
+.
+. .
+.
+.
+0 0 · · · X ′
+
+
+= I m ⊗ X ′
+where ⊗ is the Kronecker product (see Appendix A.21).
+11.3 Least Squares Estimator
+The equations (11.1) can be estimated by least squares. This takes the form
+ˆβj =
+(
+n∑
+i =1
+X j iX ′
+j i
+)−1 (
+n∑
+i =1
+X j iY j i
+)
+.
+An estimator of β is the stacked vector
+ˆβ =
+
+
+ˆβ1
+..
+.
+ˆβm
+
+.
+
+
+--- page 3 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 309
+We can alternatively write this estimator using the systems notation
+ˆβ =
+(
+X
+′
+X
+)−1 (
+X
+′
+Y
+)
+=
+(
+n∑
+i =1
+X
+′
+i X i
+)−1 (
+n∑
+i =1
+X
+′
+i Yi
+)
+. (11.4)
+To see this, observe that
+X
+′
+X =
+(
+X
+′
+1 · · · X
+′
+n
+)
+
+
+X 1
+..
+.
+X n
+
+
+=
+n∑
+i =1
+X
+′
+i X i
+=
+n∑
+i =1
+
+
+X1i 0 · · · 0
+..
+. X2i
+.
+.
+.
+0 0 · · · Xmi
+
+
+
+
+X ′
+1i 0 · · · 0
+..
+. X ′
+2i
+.
+.
+.
+0 0 · · · X ′
+mi
+
+
+=
+
+
+∑n
+i =1 X1i X ′
+1i 0 · · · 0
+..
+. ∑n
+i =1 X2i X ′
+2i
+..
+.
+0 0 · · · ∑n
+i =1 Xmi X ′
+mi
+
+
+and
+X
+′
+Y =
+(
+X
+′
+1 · · · X
+′
+n
+)
+
+
+Y1
+..
+.
+Yn
+
+
+=
+n∑
+i =1
+X
+′
+i Yi
+=
+n∑
+i =1
+
+
+X1i 0 · · · 0
+..
+. X2i
+.
+.
+.
+0 0 · · · Xmi
+
+
+
+
+Y1i
+..
+.
+Ymi
+
+
+=
+
+
+∑n
+i =1 X1i Y1i
+..
+.∑n
+i =1 Xmi Ymi
+
+.
+Hence
+(
+X
+′
+X
+)−1 (
+X
+′
+Y
+)
+=
+(
+n∑
+i =1
+X i X
+′
+i
+)−1 (
+n∑
+i =1
+X i Yi
+)
+=
+
+
+(∑n
+i =1 X1i X ′
+1i
+)−1 (∑n
+i =1 X1i Y1i
+)
+..
+.(∑n
+i =1 Xmi X ′
+mi
+)−1 (∑n
+i =1 Xmi Ymi
+)
+
+
+= ˆβ
+as claimed.
+
+
+--- page 4 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 310
+The m × 1 residual vector for the i t h observation is ˆei = Yi − X
+′
+i ˆβ. The least squares estimator of the
+m × m error covariance matrix is
+ˆΣ = 1
+n
+n∑
+i =1
+ˆei ˆe′
+i . (11.5)
+In the case of common regressors, the least squares coefﬁcients can be written as
+ˆβj =
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Y j i
+)
+and
+ˆB =
+(ˆβ1, ˆβ2, · · ·, ˆβm
+)
+=
+(
+X ′X
+)−1 (
+X ′Y
+)
+. (11.6)
+In Stata, multivariate regression can be implemented using the mvreg command.
+11.4 Mean and Variance of Systems Least Squares
+We can calculate the ﬁnite-sample mean and variance of ˆβ under the conditional mean assumption
+E[e |X ] = 0 (11.7)
+where X is the union of the regressorsX j . Equation (11.7) is equivalent toE
+⌊
+Y j |X
+⌋
+= X ′
+j βj , which means
+that the regression model is correctly speciﬁed.
+We can center the estimator as
+ˆβ − β =
+(
+X
+′
+X
+)−1 (
+X
+′
+e
+)
+=
+(
+n∑
+i =1
+X
+′
+i X i
+)−1 (
+n∑
+i =1
+X
+′
+i ei
+)
+.
+Taking conditional expectations we ﬁnd E
+[ˆβ |X
+]
+= β. Consequently, systems least squares is unbiased
+under correct speciﬁcation.
+To compute the variance of the estimator, deﬁne the conditional covariance matrix of the errors of
+the i t h observation E
+[
+ei e′
+i |Xi
+]
+= Σi which in general is a function of Xi . If the observations are mutually
+independent then
+E
+[
+ee ′ |X
+]
+= E
+
+
+
+
+e1e′
+1 e1e′
+2 · · · e1e′
+n
+..
+. ... .
+.
+.
+ene′
+1 ene′
+2 · · · ene′
+n
+
+
+⏐⏐
+⏐
+⏐
+⏐
+⏐⏐
+X
+
+ =
+
+
+Σ1 0 · · · 0
+..
+. ... .
+.
+.
+0 0 · · · Σn
+
+.
+Also, by independence across observations,
+var
+[
+n∑
+i =1
+X
+′
+i ei
+⏐⏐
+⏐⏐⏐ X
+]
+=
+n∑
+i =1
+var
+[
+X
+′
+i ei
+⏐⏐⏐ Xi
+]
+=
+n∑
+i =1
+X
+′
+i Σi X i .
+It follows that
+var
+[ˆβ |X
+]
+=
+(
+X
+′
+X
+)−1
+(
+n∑
+i =1
+X
+′
+i Σi
+X i
+) (
+X
+′
+X
+)−1
+.
+When the regressors are common so that X i = I m ⊗ X ′
+i then the covariance matrix can be written as
+var
+[ˆβ |X
+]
+=
+(
+I m ⊗
+(
+X ′X
+)−1)(
+n∑
+i =1
+(
+Σi ⊗ Xi X ′
+i
+)
+) (
+I m ⊗
+(
+X ′X
+)−1)
+.
+
+
+--- page 5 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 311
+If the errors are conditionally homoskedastic
+E
+[
+ee ′ |X
+]
+= Σ (11.8)
+then the covariance matrix simpliﬁes to
+var
+[ˆβ |X
+]
+=
+(
+X
+′
+X
+)−1
+(
+n∑
+i =1
+X
+′
+i ΣX i
+) (
+X
+′
+X
+)−1
+.
+If both simpliﬁcations (common regressors and conditional homoskedasticity) hold then we have
+the considerable simplication
+var
+[ˆβ |X
+]
+= Σ ⊗
+(
+X ′X
+)−1 .
+11.5 Asymptotic Distribution
+For an asymptotic distribution it is sufﬁcient to consider the equation-by-equation projection model
+in which case
+E
+[
+X j e j
+]
+= 0. (11.9)
+First, consider consistency. Since ˆβj are the standard least squares estimators, they are consistent for
+the projection coefﬁcientsβj .
+Second, consider the asymptotic distribution. Our single equation theory implies that the ˆβj are
+asymptotically normal. But this theory does not provide a joint distribution of the ˆβj across j , which we
+now derive. Since the vector
+X
+′
+i ei =
+
+
+X1i e1i
+...
+Xmi emi
+
+
+is i.i.d. across i and mean zero under (11.9), the central limit theorem implies
+1pn
+n∑
+i =1
+X
+′
+i ei − →
+d
+N(0, Ω)
+where
+Ω = E
+[
+X
+′
+i ei e′
+i
+X i
+]
+= E
+[
+X
+′
+i Σi
+X i
+]
+.
+The matrix Ω is the covariance matrix of the variables X j ie j i across equations. Under conditional
+homoskedasticity (11.8) the matrix Ω simpliﬁes to
+Ω = E
+[
+X
+′
+i ΣX i
+]
+(11.10)
+(see Exercise 11.1). When the regressors are common it simplies to
+Ω = E
+[
+ee ′ ⊗ X X ′]
+(11.11)
+(see Exercise 11.2). Under both conditions (homoskedasticity and common regressors) it simpliﬁes to
+Ω = Σ ⊗ E
+[
+X X ′]
+(11.12)
+(see Exercise 11.3).
+Applied to the centered and normalized estimator we obtain the asymptotic distribution.
+
+
+--- page 6 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 312
+Theorem 11.1 Under Assumption 7.2, pn
+(ˆβ − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where V β =
+Q −1ΩQ −1 and
+Q = E
+[
+X
+′
+X
+]
+=
+
+
+E
+[
+X1X ′
+1
+]
+0 · · · 0
+... ... ...
+0 0 · · · E
+[
+Xm X ′
+m
+]
+
+.
+For a proof, see Exercise 11.4.
+When the regressors are common the matrix Q simpliﬁes as
+Q = I m ⊗ E
+[
+X X ′]
+(11.13)
+(See Exercise 11.5).
+If both the regressors are common and the errors are conditionally homoskedastic (11.8) then we
+have the simpliﬁcation
+V β = Σ ⊗
+(
+E
+[
+X X ′])−1 (11.14)
+(see Exercise 11.6).
+Sometimes we are interested in parameters θ = r (β1, ...,βm) = r (β) which are functions of the coefﬁ-
+cients from multiple equations. In this case the least squares estimator of θ is ˆθ = r ( ˆβ). The asymptotic
+distribution of ˆθ can be obtained from Theorem 11.1 by the delta method.
+Theorem 11.2 Under Assumptions 7.2 and 7.3, pn
+(ˆθ − θ
+)
+− →
+d
+N(0,V θ) where
+V θ = R ′V βR and R = ∂
+∂β r
+(
+β
+)′.
+For a proof, see Exercise 11.7.
+Theorem 11.2 is an example where multivariate regression is fundamentally distinct from univariate
+regression. Only by treating least squares as a joint estimator can we obtain a distributional theory for
+a function of multiple equations. We can thereby construct standard errors, conﬁdence intervals, and
+hypothesis tests.
+11.6 Covariance Matrix Estimation
+From the ﬁnite sample and asymptotic theory we can construct appropriate estimators for the vari-
+ance of ˆβ. In the general case we have
+ˆV ˆβ =
+(
+X
+′
+X
+)−1
+(
+n∑
+i =1
+X
+′
+i ˆei ˆe′
+i X i
+) (
+X
+′
+X
+)−1
+.
+Under conditional homoskedasticity (11.8) an appropriate estimator is
+ˆV
+0
+ˆβ =
+(
+X
+′
+X
+)−1
+(
+n∑
+i =1
+X
+′
+i ˆΣ
+X i
+) (
+X
+′
+X
+)−1
+.
+
+
+--- page 7 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 313
+When the regressors are common then these estimators equal
+ˆV ˆβ =
+(
+I m ⊗
+(
+X ′X
+)−1)(
+n∑
+i =1
+(
+ˆei ˆe′
+i ⊗ Xi X ′
+i
+)
+) (
+I m ⊗
+(
+X ′X
+)−1)
+and ˆV
+0
+ˆβ = ˆΣ ⊗
+(
+X ′X
+)−1, respectively.
+Covariance matrix estimators for ˆθ are found as
+ˆV ˆθ = ˆR
+′ ˆV ˆβ ˆR
+ˆV
+0
+ˆθ = ˆR
+′ ˆV
+0
+ˆβ ˆR
+ˆR = ∂
+∂β r
+(ˆβ
+)′
+.
+Theorem 11.3 Under Assumption 7.2, n ˆV ˆβ − →p V β and n ˆV
+0
+ˆβ − →p V 0
+β.
+For a proof, see Exercise 11.8.
+11.7 Seemingly Unrelated Regression
+Consider the systems regression model under the conditional mean and conditional homoskedas-
+ticity assumptions
+Y = X β + e (11.15)
+E[e |X ] = 0
+E
+[
+ee ′ |X
+]
+= Σ.
+Since the errors are correlated across equations we consider estimation by Generalized Least Squares
+(GLS). To derive the estimator, premultiply (11.15) by Σ−1/2 so that the transformed error vector is i.i.d.
+with covariance matrix I m. Then apply least squares and rearrange to ﬁnd
+ˆβgls =
+(
+n∑
+i =1
+X
+′
+i Σ−1X i
+)−1 (
+n∑
+i =1
+X
+′
+i Σ−1Yi
+)
+. (11.16)
+(see Exercise 11.9). Another approach is to take the vector representation
+Y =
+X β + e
+and calculate that the equation error e has variance E
+[
+ee ′]
+= I n ⊗ Σ. Premultiply the equation by I n ⊗
+Σ−1/2 so that the transformed error has covariance matrix I nm and then apply least squares to ﬁnd
+ˆβgls =
+(
+X
+′ (
+I n ⊗ Σ−1)
+X
+)−1 (
+X
+′ (
+I n ⊗ Σ−1)
+Y
+)
+(11.17)
+(see Exercise 11.10).
+
+
+--- page 8 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 314
+Expressions (11.16) and (11.17) are algebraically equivalent. To see the equivalence, observe that
+X
+′ (
+I n ⊗ Σ−1)
+X =
+(
+X
+′
+1 · · · X
+′
+n
+)
+
+
+Σ−1 0 · · · 0
+..
+. Σ−1 .
+.
+.
+0 0 · · · Σ−1
+
+
+
+
+X 1
+..
+.
+X n
+
+
+=
+n∑
+i =1
+X
+′
+i Σ−1X i
+and
+X
+′ (
+I n ⊗ Σ−1)
+Y =
+(
+X
+′
+1 · · · X
+′
+n
+)
+
+
+Σ−1 0 · · · 0
+..
+. Σ−1 .
+.
+.
+0 0 · · · 0−1
+
+
+
+
+Y1
+..
+.
+Yn
+
+
+=
+n∑
+i =1
+X
+′
+i Σ−1Yi .
+Since Σ is unknown it must be replaced by an estimator. UsingˆΣ from (11.5) we obtain a feasible GLS
+estimator.
+ˆβsur =
+(
+n∑
+i =1
+X
+′
+i ˆΣ−1
+X i
+)−1 (
+n∑
+i =1
+X
+′
+i ˆΣ−1Yi
+)
+=
+(
+X
+′ (
+I n ⊗ ˆΣ−1)
+X
+)−1 (
+X
+′ (
+I n ⊗ ˆΣ−1)
+Y
+)
+. (11.18)
+This is the Seemingly Unrelated Regression (SUR)estimator as introduced by Zellner (1962).
+The estimator ˆΣ can be updated by calculating the SUR residuals ˆei = Yi − X
+′
+i ˆβsur and the covariance
+matrix estimator ˆΣ = 1
+n
+∑n
+i =1 ˆei ˆe′
+i . Substituted into (11.18) we obtain an iterated SUR estimator. This can
+be iterated until convergence.
+Under conditional homoskedasticity (11.8) we can derive its asymptotic distribution.
+Theorem 11.4 Under Assumption 7.2 and (11.8)
+p
+n
+(ˆβsur − β
+)
+− →
+d
+N
+(
+0,V ∗
+β
+)
+where V ∗
+β =
+(
+E
+[
+X
+′
+Σ−1X
+])−1
+.
+For a proof, see Exercise 11.11.
+Under these assumptions SUR is more efﬁcient than least squares.
+Theorem 11.5 Under Assumption 7.2 and (11.8)
+V ∗
+β =
+(
+E
+[
+X
+′
+Σ−1X
+])−1
+≤
+(
+E
+[
+X
+′
+X
+])−1
+E
+[
+X
+′
+ΣX
+] (
+E
+[
+X
+′
+X
+])−1
+= V β
+and thus ˆβsur is asymptotically more efﬁcient than ˆβols.
+
+
+--- page 9 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 315
+For a proof, see Exercise 11.12.
+An appropriate estimator of the variance of ˆβsur is
+ˆV ˆβ =
+(
+n∑
+i =1
+X
+′
+i ˆΣ−1X i
+)−1
+.
+Theorem 11.6 Under Assumption 7.2 and (11.8) n ˆV ˆβ − →p V β.
+For a proof, see Exercise 11.13.
+In Stata, the seemingly unrelated regressions estimator is implemented using the sureg command.
+Arnold Zellner
+Arnold Zellner (1927-2010) of the United States was a founding father of the
+econometrics ﬁeld. He was a pioneer in Bayesian econometrics. One of his core
+contributions was the method of Seemingly Unrelated Regressions.
+11.8 Equivalence of SUR and Least Squares
+When the regressors are common across equations X j = X it turns out that the SUR estimator sim-
+pliﬁes to least squares.
+To see this, recall that when regressors are common this implies thatX = I m ⊗ X ′. Then
+X
+′
+i ˆΣ−1 = (I m ⊗ Xi ) ˆΣ−1
+= ˆΣ−1 ⊗ Xi
+=
+(ˆΣ−1 ⊗ I k
+)
+(I m ⊗ Xi )
+=
+(ˆΣ−1 ⊗ I k
+)
+X
+′
+i .
+Thus
+ˆβsur =
+(
+n∑
+i =1
+X
+′
+i ˆΣ−1
+X i
+)−1 (
+n∑
+i =1
+X
+′
+i ˆΣ−1Yi
+)
+=
+(
+(ˆΣ−1 ⊗ I k
+) n∑
+i =1
+X
+′
+i
+X i
+)−1 (
+(ˆΣ−1 ⊗ I k
+) n∑
+i =1
+X
+′
+i Yi
+)
+=
+(
+n∑
+i =1
+X
+′
+i
+X i
+)−1 (
+n∑
+i =1
+X
+′
+i Yi
+)
+= ˆβols.
+A model where regressors are not common across equations is nested within a model with the union
+of all regressors included in all equations. Thus the model with regressors common across equations
+
+
+--- page 10 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 316
+is a fully unrestricted model, and a model where the regressors differ across equations is a restricted
+model. Thus the above result shows that the SUR estimator reduces to least squares in the absence of
+restrictions, but SUR can differ from least squares otherwise.
+Another context where SUR=OLS is when the variance matrix is diagonal, Σ = diag
+{
+σ2
+1, ...,σ2
+m
+}
+. In
+this case Σ−1/2
+X i = X i diag
+{
+I k1σ−1/2
+1 ,..., I km σ−1/2
+m
+}
+from which you can calculate that ˆβsur = ˆβols. The
+intuition is that there is no difference in systems estimation when the equations are uncorrelated, which
+occurs when Σ is diagonal.
+11.9 Maximum Likelihood Estimator
+Take the linear model under the assumption that the error is independent of the regressors and mul-
+tivariate normally distributed. Thus Y = X β + e with e ∼ N(0, Σ). In this case we can consider the maxi-
+mum likelihood estimator (MLE) of the coefﬁcients.
+It is convenient to reparameterize the covariance matrix in terms of its inverse S = Σ−1. With this
+reparameterization the conditional density of Y given X = x equals
+f
+(
+y |x
+)
+= det(S)1/2
+(2π)m/2 exp
+(
+− 1
+2
+(
+y − xβ
+)′ S
+(
+y − xβ
+))
+.
+The log-likelihood function for the sample is
+ℓn(β, S) = −nm
+2 log(2π) + n
+2 log(det(S)) − 1
+2
+n∑
+i =1
+(
+Yi − X i β
+)′
+S
+(
+Yi − X i β
+)
+.
+The maximum likelihood estimator
+(ˆβmle, ˆSmle
+)
+maximizes the log-likelihood function. The ﬁrst or-
+der conditions are
+0 = ∂
+∂β ℓn(β, S)
+⏐⏐
+⏐
+⏐
+β= ˆβ,S=ˆS
+=
+n∑
+i =1
+X i ˆS
+(
+Yi − X i ˆβ
+)
+and
+0 = ∂
+∂S ℓn(β, Σ)
+⏐
+⏐
+⏐⏐
+β= ˆβ,S=ˆS
+= n
+2
+ˆS
+−1
+− 1
+2 tr
+(
+n∑
+i =1
+(
+Yi − X i ˆβ
+) (
+Yi − X i ˆβ
+)′
+)
+.
+The second equation uses the matrix results ∂
+∂S log(det(S)) = S−1 and ∂
+∂B tr(AB ) = A′ from Appendix
+A.20.
+Solving and making the substitution ˆΣ = ˆS
+−1
+we obtain
+ˆβmle =
+(
+n∑
+i =1
+X
+′
+i ˆΣ−1X i
+)−1 (
+n∑
+i =1
+X
+′
+i ˆΣ−1Yi
+)
+ˆΣmle = 1
+n
+n∑
+i =1
+(
+Yi − X i ˆβ
+) (
+Yi − X i ˆβ
+)′
+.
+Notice that each equation refers to the other. Hence these are not closed-form expressions but can be
+solved via iteration. The solution is identical to the iterated SUR estimator. Thus the iterated SUR esti-
+mator is identical to MLE under normality.
+Recall that the SUR estimator simpliﬁes to OLS when the regressors are common across equations.
+The same occurs for the MLE. Thus when X i = I m ⊗ X ′
+i we ﬁnd that ˆβmle = ˆβols and ˆΣmle = ˆΣols.
+
+
+--- page 11 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 317
+11.10 Restricted Estimation
+In many multivariate regression applications it is desired to impose restrictions on the coefﬁcients.
+In particular, cross-equation restrictions (for example, imposing Slutsky symmetry on a demand system)
+can be quite important and can only be imposed by a multivariate estimation method. Estimation sub-
+ject to restrictions can be done by minimum distance, maximum likelihood, or the generalized method
+of moments.
+Minimum distance is a straightforward application of the methods of Chapter 8 to the estimators
+presented in this chapter, since such methods apply to any asymptotically normal estimator.
+Imposing restrictions on maximum likelihood is also straightforward. The likelihood is maximized
+subject to the imposed restrictions. One important example is explored in detail in the following section.
+Generalized method of moments estimation of multivariate regression subject to restrictions will be
+explored in Section 13.18. This is a particularly simple and straightforward way to estimate restricted
+multivariate regression models and is our generally preferred approach.
+11.11 Reduced Rank Regression
+One context where systems estimation is important is when it is desired to impose or test restrictions
+across equations. Restricted systems are commonly estimated by maximum likelihood under normal-
+ity. In this section we explore one important special case of restricted multivariate regression known
+as reduced rank regression. The model was originally proposed by Anderson (1951) and extended by
+Johansen (1995).
+The unrestricted model is
+Y = B ′X +C ′Z + e (11.19)
+E
+[
+ee ′ |X , Z
+]
+= Σ
+where B is k × m, C is ℓ × m, Y ∈ Rm, X ∈ Rk, and Z ∈ Rℓ. We separate the regressors as X and Z because
+the coefﬁcient matrixB will be restricted while C will be unrestricted.
+The matrix B is full rank if
+rank(B) = min(k,m).
+The reduced rank restriction is rank(B) = r < min(k,m)for some known r .
+The reduced rank restriction implies that we can write the coefﬁcient matrix B in the factored form
+B = G A′ where A is m × r and G is k × r . This representation is not unique as we can replace G with GQ
+and A with AQ−1′ for any invertible Q and the same relation holds. Identiﬁcation therefore requires a
+normalization of the coefﬁcients. A conventional normalization isG ′DG = I r for given D.
+Equivalently, the reduced rank restriction can be imposed by requiring that B satisfy the restriction
+B A⊥ = G A′ A⊥ = 0 for some m × (m − r ) coefﬁcient matrix A⊥. Since G is full rank this requires that
+A′ A⊥ = 0, hence A⊥ is the orthogonal complement of A. Note that A⊥ is not unique as it can be replaced
+by A⊥Q for any (m − r ) × (m − r ) invertible Q. Thus if A⊥ is to be estimated it requires a normalization.
+We discuss methods for estimation ofG, A, Σ, C , and A⊥. The standard approach is maximum likeli-
+hood under the assumption that e ∼ N(0, Σ). The log-likelihood function for the sample is
+ℓn(G, A,C , Σ) = −nm
+2 log(2π) − n
+2 log(det(Σ))
+− 1
+2
+n∑
+i =1
+(
+Yi − AG′Xi −C ′Zi
+)′ Σ−1 (
+Yi − AG′Xi −C ′Zi
+)
+.
+
+
+--- page 12 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 318
+Anderson (1951) derived the MLE by imposing the constraint B A⊥ = 0 via the method of Lagrange
+multipliers. This turns out to be algebraically cumbersome.
+Johansen (1995) instead proposed the following straightforward concentration method. Treating G
+as if it is known, maximize the log-likelihood with respect to the other parameters. Resubstituting these
+estimators we obtain the concentrated log-likelihood function with respect toG. This can be maximized
+to ﬁnd the MLE forG. The other parameter estimators are then obtain by substitution. We now describe
+these steps in detail.
+Given G the likelihood is a normal multivariate regression in the variablesG ′X and Z , so the MLE for
+A, C and Σ are least squares. In particular, using the Frisch-Waugh-Lovell residual regression formula we
+can write the estimators for A and Σ as
+ˆA(G) =
+(
+˜Y
+′ ˜X G
+) (
+G ′ ˜X
+′ ˜X G
+)−1
+and
+ˆΣ(G) = 1
+n
+(
+˜Y
+′ ˜Y − ˜Y
+′ ˜X G
+(
+G ′ ˜X
+′ ˜X G
+)−1
+G ′ ˜X
+′ ˜Y
+)
+where ˜Y = Y − Z
+(
+Z ′Z
+)−1 Z ′Y and ˜X = X − Z
+(
+Z ′Z
+)−1 Z ′ ̸ X .
+Substituting these estimators into the log-likelihood function we obtain the concentrated likelihood
+function, which is a function of G only.
+˜ℓn(G) = ℓn
+(
+G, ˆA(G), ˆC (G), ˆΣ(G)
+)
+= m
+2
+(
+n log(2π) − 1
+)
+− n
+2 log
+[
+det
+(
+˜Y
+′ ˜Y − ˜Y
+′ ˜X G
+(
+G ′ ˜X
+′ ˜X G
+)−1
+G ′ ˜X
+′ ˜Y
+)]
+= m
+2
+(
+n log(2π) − 1
+)
+− n
+2 log
+(
+det
+(
+˜Y
+′ ˜Y
+))
+− n
+2 log
+
+
+det
+(
+G ′
+(
+˜X
+′ ˜X − ˜X
+′ ˜Y
+(
+˜Y
+′ ˜Y
+)−1
+Y ′ ˜X
+)
+G
+)
+det
+(
+G ′ ˜X
+′ ˜X G
+)
+
+.
+The third equality uses Theorem A.1.8. The MLEˆG for G is the maximizer of ˜ℓn(G), or equivalently equals
+ˆG = argmin
+G
+det
+(
+G ′
+(
+˜X
+′ ˜X − ˜X
+′ ˜Y
+(
+˜Y
+′ ˜Y
+)−1
+Y ′ ˜X
+)
+G
+)
+det
+(
+G ′ ˜X
+′ ˜X G
+) (11.20)
+= argmax
+G
+det
+(
+G ′ ˜X
+′ ˜Y
+(
+˜Y
+′ ˜Y
+)−1
+Y ′ ˜X G
+)
+det
+(
+G ′ ˜X
+′ ˜X G
+)
+= {v1, ...,vr }
+which are the generalized eigenvectors of ˜X
+′ ˜Y
+(
+˜Y
+′ ˜Y
+)−1
+Y ′ ˜X with respect to ˜X
+′ ˜X corresponding to the
+r largest generalized eigenvalues. (Generalized eigenvalues and eigenvectors are discussed in Section
+A.14.) The estimator satisﬁes the normalization ˆG
+′ ˜X
+′ ˜X ˆG = I r . Letting v ∗
+j denote the eigenvectors of
+(11.20) we can also express ˆG =
+{
+v ∗
+m, ...,v ∗
+m−r +1
+}
+.
+This is computationally straightforward. In MATLAB, for example, the generalized eigenvalues and
+eigenvectors of a matrix A with respect to B are found using the command eig(A,B).
+Given ˆG, the MLE ˆA, ˆC , ˆΣ are found by least squares regression of Y on ˆG
+′
+X and Z . In particular,
+ˆA = ˆG
+′ ˜X
+′ ˜Y since ˆG
+′ ˜X
+′ ˜X ˆG = I r .
+
+
+--- page 13 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 319
+We now discuss the estimator ˆA⊥ of A⊥. It turns out that
+ˆA⊥ = argmax
+A
+det
+(
+A′
+(
+˜Y
+′ ˜Y − ˜Y
+′ ˜X
+(
+˜X
+′ ˜X
+)−1
+˜X
+′ ˜Y
+)
+A
+)
+det
+(
+A′ ˜Y
+′ ˜Y A
+) (11.21)
+= {w1,..., wm−r }
+the eigenvectors of ˜Y
+′ ˜Y − ˜Y
+′ ˜X
+(
+˜X
+′ ˜X
+)−1
+˜X
+′ ˜Y with respect to ˜Y
+′ ˜Y associated with the largest m − r eigen-
+values.
+By the dual eigenvalue relation (Theorem A.5), equations (11.20) and (11.21) have the same non-zero
+eigenvalues λj and the associated eigenvectors v ∗
+j and w j satisfy the relationship
+w j = λ−1/2
+j
+(
+˜Y
+′ ˜Y
+)−1
+˜Y
+′ ˜X v ∗
+j .
+Letting Λ = diag{λm,..., λm−r +1} this implies
+{wm, ...,wm−r +1} =
+(
+˜Y
+′ ˜Y
+)−1
+˜Y
+′ ˜X
+{
+v ∗
+m,..., v ∗
+m−r +1
+}
+Λ =
+(
+˜Y
+′ ˜Y
+)−1
+ˆAΛ.
+The second equality holds since ˆG =
+{
+v ∗
+m,..., v ∗
+m−r +1
+}
+and ˆA = ˜Y
+′ ˜X ˆG. Since the eigenvectors w j satisfy
+the orthogonality property w ′
+j ˜Y
+′ ˜Y wℓ = 0 for j ̸= ℓ, it follows that
+0 = ˆA
+′
+⊥ ˜Y
+′ ˜Y {wm,..., wm−r +1} = ˆA
+′
+⊥ ˆAΛ.
+Since Λ > 0 we conclude that ˆA
+′
+⊥ ˆA = 0 as desired.
+The solution ˆA⊥ in (11.21) can be represented several ways. One which is computationally conve-
+nient is to observe that
+˜Y
+′ ˜Y − ˜Y
+′ ˜X
+(
+˜X
+′ ˜X
+)−1
+˜Y
+′ ˜X = Y ′M X ,Z Y = ˜E
+′ ˜E
+where M X ,Z = I n − (X , Z )
+(
+(X , Z )′ (X , Z )
+)−1 (X , Z )′ and ˜E = M X ,Z Y is the residual matrix from the unre-
+stricted multivariate least squares regression of Y on X and Z . The ﬁrst equality follows by the Frisch-
+Waugh-Lovell theorem. This shows that ˆA⊥ are the generalized eigenvectors of ˜E
+′ ˜E with respect to ˜Y
+′ ˜Y
+corresponding to the m − r largest eigenvalues. In MATLAB, for example, these can be computed using
+the eig(A,B) command.
+Another representation is to write M Z = I n − Z
+(
+Z ′Z
+)−1 Z ′ so that
+ˆA⊥ = argmax
+A
+det
+(
+A′Y ′M X ,Z Y A
+)
+det
+(
+A′Y ′M Z Y A
+) = argmin
+A
+det
+(
+A′Y ′M Z Y A
+)
+det
+(
+A′Y ′M X ,Z Y A
+).
+We summarize our ﬁndings.
+
+
+--- page 14 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 320
+Theorem 11.7 The MLE for the reduced rank model (11.19) under e ∼ N(0, Σ)
+is given as follows. Let ˜Y and ˜X be the residual matrices from multivariate re-
+gression of Y and X on Z , respectively. Then ˆGmle = {v1, ...,vr }, the generalized
+eigenvectors of ˜X
+′ ˜Y
+(
+˜Y
+′ ˜Y
+)−1
+Y ′ ˜X with respect to ˜X
+′ ˜X corresponding to the r
+largest eigenvalues ˆλj . ˆAmle, ˆC mle and ˆΣmle are obtained by the least squares
+regression
+Yi = ˆAmle ˆG
+′
+mleXi + ˆC
+′
+mleZi + ˆei
+ˆΣmle = 1
+n
+n∑
+i =1
+ˆei ˆe′
+i .
+Let ˜E be the residual matrix from a multivariate regression of Y on X and Z .
+Then ˆA⊥ equals the generalized eigenvectors of ˜E
+′ ˜E with respect to ˜Y
+′ ˜Y corre-
+sponding to the m − r smallest eigenvalues. The maximized likelihood equals
+ℓn = m
+2
+(
+n log(2π) − 1
+)
+− n
+2 log
+(
+det
+(
+˜Y
+′ ˜Y
+))
+− n
+2
+r∑
+j =1
+log
+(
+1 − ˆλj
+)
+.
+An R package for reduced rank regression is “RRR” . I am unaware of a Stata command.
+11.12 Principal Component Analysis
+In Section 4.23 we described the Duﬂo, Dupas and Kremer (2011) dataset which is a sample of Kenyan
+ﬁrst grade test scores. Following the authors we focused on the variabletotalscore which is each student’ s
+composite test score. If you examine the data ﬁle you will ﬁnd other pieces of information about the
+students’ performance, including each student’ s score on separate sections of the test, with the labels
+wordscore (word recognition), sentscore (sentence recognition), letterscore (letter recognition), spellscore
+(spelling), additions_score (addition), substractions_score (subtraction), multiplications_score (multipli-
+cation). The “total” score sums the scores from the individual sections. Perhaps there is more informa-
+tion in the section scores. How can we learn about this from the data?
+Principal component analysis (PCA) addresses this issue by ordering linear combinations by their
+contribution to variance.
+
+
+--- page 15 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 321
+Deﬁnition 11.1 Let X be a k × 1 random vector.
+The ﬁrst principal componentis U1 = h′
+1X where h1 satisﬁes
+h1 = argmax
+h′h=1
+var
+[
+h′X
+]
+.
+The second principal component is U2 = h′
+2X where
+h2 = argmax
+h′h=1,h′h1=0
+var
+[
+h′X
+]
+.
+In general, the j t h principal component is U j = h′
+j X where
+h j = argmax
+h′h=1,h′h1=0,...,h′h j −1=0
+var
+[
+h′X
+]
+.
+The principal components of X are linear combinations h′X ranked by contribution to variance. By
+the properties of quadratic forms (Section A.15) the weight vectorsh j are the eigenvectors of Σ = var[X ].
+Theorem 11.8 The principal components of X are U j = h′
+j X , where h j is the
+eigenvector of Σ associated with the j t h ordered eigenvalue λj of Σ.
+Another way to see the PCA construction is as follows. Since Σ is symmetric the spectral decompo-
+sition (Theorem A.3) states that Σ = H D H′ where H = [h1,..., hk] and D = diag(d1,..., dk) are the eigen-
+vectors and eigenvalues of Σ. Since Σ is positive semi-deﬁnite the eigenvalues are real, non-negative,
+and ordered d1 ≥ d2 ≥ · · · ≥dk. Let U = (U1,..., Uk) be the principal components of X . By Theorem 11.8,
+U = H ′X . The covariance matrix of U is
+var[U ] = var
+[
+H ′X
+]
+= H ′ΣH = D
+which is diagonal. This shows that var
+[
+U j
+]
+= d j and the principal components are mutually uncorre-
+lated. The relative variance contribution of the j t h principal component is d j /tr (Σ).
+Principal components are sensitive to the scaling ofX . Consequently, it is recommended to ﬁrst scale
+each element of X to have mean zero and unit variance. In this case Σ is a correlation matrix.
+The sample principal components are obtained by replacing the unknowns by sample estimators. Let
+ˆΣ be the sample covariance or correlation matrix and ˆh1, ˆh2,..., ˆhk its ordered eigenvectors. The sample
+principal components are ˆh′
+j Xi .
+To illustrate we use the Duﬂo, Dupas and Kremer (2011) dataset. In Table 11.1 we display the seven
+eigenvalues of the sample correlation matrix for the seven test scores described above. The seven eigen-
+values sum to seven since we have applied PCA to the correlation matrix. The ﬁrst eigenvalue is 4.0,
+implying that the ﬁrst principal component explains 57% of the variance of the seven test scores. The
+second eigenvalue is 1.0, implying that the second principal component explains 15% of the variance.
+Together the ﬁrst two components explain 72% of the variance of the seven test scores.
+In Table 11.2 we display the weight vectors (eigenvectors) for the ﬁrst two principal components.
+The weights for the ﬁrst component are all positive and similar in magnitude. This means that the ﬁrst
+
+
+--- page 16 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 322
+Table 11.1: Eigenvalue Decomposition of Sample Correlation Matrix
+Eigenvalue Proportion
+1 4.02 0.57
+2 1.04 0.15
+3 0.57 0.08
+4 0.52 0.08
+5 0.37 0.05
+6 0.29 0.04
+7 0.19 0.03
+Table 11.2: Principal Component Weight Vectors
+First Second
+words 0.41 −0.32
+sentences 0.32 −0.49
+letters 0.40 −0.13
+spelling 0.43 −0.28
+addition 0.38 0.41
+subtraction 0.35 0.52
+multiplication 0.33 0.36
+principal component is similar to a simple average of the seven test scores. This is quite fascinating.
+This is consistent with our intuition that a simple average (e.g. the variable totalscore) captures most
+of the information contained in the seven test scores. The weights for the second component have a
+different pattern. The four literacy scores receive negative weight and the three math scores receive
+positive weight with similar magnitudes. This means that the second principal component is similar to
+the difference between a student’ s math and verbal test scores. Taken together, the information in the
+ﬁrst two principal components is equivalent to “average verbal” and “average math” test scores. What
+this shows is that 57% of the variation in the seven section test scores can be explained by a simple
+average (e.g. totalscore), and 72% can be explained by averages for the verbal and math halves of the test.
+In Stata, principal components analysis can be implemented with the pca command. In R use
+prcomp or princomp. All three can be applied to either covariance matrices (unscaled data) or corre-
+lation matrices (normalized data) but they have different default settings. The Stata pca command by
+default normalizes the observations. The R commands by default do not normalize the observations.
+11.13 Factor Models
+Closely related to principal components are factor models. These are statistical models which de-
+compose random vectors into common factors and idiosyncratic errors. Factor models are popular
+throughout the social sciences. Consequently a variety of estimation methods have been developed.
+In the next few sections we focus on methods which are popular among economists.
+Let X = (X1, ...,Xk)′ be a k × 1 random vector (for example the seven test scores described in the
+previous section). Assume that the elements of X are scaled to have mean zero and unit variance.
+A single factor model for X is
+X = λF + u (11.22)
+
+
+--- page 17 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 323
+where λ ∈ Rk are factor loadings, F ∈ R is a common factor, and u ∈ Rk is a random error. The factor F
+is individual-speciﬁc while the coefﬁcientλ is common across individuals. The model (11.22) speciﬁes
+that correlation between the elements of X is due to the common factor F . In the student test score
+example it is intuitive to think of F as a student’ s scholastic “aptitude”; in this case the vectorλ describes
+how scholastic aptitude affects the seven subject scores.
+A multiple factor model has r < k factors. We write the model as
+X = ΛF + u (11.23)
+where Λ is a k × r matrix of factor loadings and F = (F1,..., Fr )′ is an r × 1 vector of factors. In the student
+test score example possible factors could be “math aptitude” , “language skills” , “social skills” , “artistic
+ability” , “creativity” , etc. The factor loading matrixΛ indicates the effect of each factor on each test score.
+The number of factors r is taken as known. We discuss selection of r later.
+The error vector u is assumed to be mean zero, uncorrelated with F , and (under correct speciﬁca-
+tion) to have mutually uncorrelated elements. We write its covariance matrix as Ψ = E
+[
+uu ′]
+. The factor
+vector F can either be treated as a random vector or as a regressor vector. In this section we treat F as a
+random vector; in the next we treat F as regressors. The random factors F are assumed mean zero and
+are normalized so that E
+[
+F F′]
+= I r .
+The assumptions imply that the correlation matrix Σ = E
+[
+X X ′]
+equals
+Σ = ΛΛ′ + Ψ. (11.24)
+The factor analysis literature often describes ΛΛ′ as the communality and the idiosyncratic error matrix
+Ψ as the uniqueness. The former is the portion of the variance which is explained by the factor model
+and the latter is the unexplained portion of the variance.
+The model is often1 estimated by maximum likelihood. Under joint normality of (F,u) the distribu-
+tion of X is N
+(
+0, ΛΛ′ + Ψ
+)
+. The parameters are Λ and Ψ = diag
+(
+ψ1, ...,ψk
+)
+. The log-likelihood function of
+a random sample (X1,..., Xn) is
+ℓn (Λ, Ψ) = −nk
+2 log(2π) − n
+2 logdet
+(
+ΛΛ′ + Ψ
+)
+− n
+2 tr
+((
+ΛΛ′ + Ψ
+)−1 ˆΣ
+)
+. (11.25)
+The MLE
+(ˆΛ, ˆΨ
+)
+maximizes ℓn (Λ, Ψ). There is not an algebraic solution so the estimator is found
+using numerical methods. Fortunately, computational algorithms are available in standard packages. A
+detailed description and analysis can be found in Anderson (2003, Chapter 14).
+The form of the log-likelihood is intriguing. Notice that the log-likelihood is only a function of the
+observations through its correlation matrix ˆΣ, and only a function of the parameters through the pop-
+ulation correlation matrix ΛΛ′ + Ψ. The ﬁnal term in (11.25) is a measure of the match between ˆΣ and
+ΛΛ′ + Ψ. Together, we see that the Gaussian log-likelihood is essentially a measure of the ﬁt of the model
+and sample correlation matrices. It is therefore not reliant on the normality assumption.
+It is often of interest to estimate the factors Fi . Given Λ the equation Xi = ΛFi + ui can be viewed as
+a regression with coefﬁcientFi . Its least squares estimator is ˆFi =
+(
+Λ′Λ
+)−1 Λ′Xi . The GLS estimator (tak-
+ing into account the covariance matrix of ui ) is ˆFi =
+(
+Λ′Ψ−1Λ
+)−1 Λ′Ψ−1Xi . This motivates the Bartlett
+scoring estimator
+˜Fi =
+(ˆΛ′ ˆΨ−1 ˆΛ
+)−1 ˆΛ′ ˆΨ−1Xi .
+The idealized version satisﬁes
+ˆFi =
+(
+Λ′Ψ−1Λ
+)−1
+Λ′Ψ−1 (ΛFi + ui ) = Fi +
+(
+Λ′Ψ−1Λ
+)−1
+Λ′Ψ−1ui
+1There are other estimators used in applied factor analysis. However there is little reason to consider estimators beyond the
+MLE of this section and the principal components estimator of the next section.
+
+
+--- page 18 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 324
+which is unbiased for Fi and has variance
+(
+Λ′Ψ−1Λ
+)−1. Thus the Barlett scoring estimator is typically
+described as “unbiased” though this is actually a property of its idealized version ˆFi .
+A second estimator for the factors can be constructed from the multivariate linear projection ofF on
+X . This is F = AX + ξ where the coefﬁcient matrixA is r × k. The coefﬁcient matrix equals
+A = E
+[
+F X ′]
+E
+[
+X X ′]−1 = Λ′Σ−1,
+the second equation using E
+[
+F X ′]
+= E
+[
+F (ΛF + u)′]
+= E
+[
+F F′]
+Λ′ + E
+[
+Fu ′]
+= Λ′. The predicted value of Fi
+is F ∗
+i = AXi = Λ′Σ−1Xi . This motivates the regression scoring estimator
+F i = ˆΛ′ ˆΣ−1Xi .
+The idealized version F ∗
+i has conditional expectation Λ′Σ−1ΛFi and is thus biased for Fi . Hence the
+regression scoring estimator F i is often described as “biased” . Some algebraic manipulations reveal that
+F ∗
+i has MSE I r − Λ′ (
+Λ′Λ + Ψ
+)−1 Λ which is smaller (in a positive deﬁnite sense) than the MSE of the
+idealized Bartlett estimator ˆFi .
+Which estimator is preferred, Bartlett or regression scoring? The differences diminish whenk is large
+so the choice is most relevant for small to moderate k. The regression scoring estimator has lower ap-
+proximate MSE, meaning that it is a more precise estimator. Thus based on estimation precision this is
+our recommended choice.
+The factor loadings Λ and factors F are not separately identiﬁed. To see this, notice that if you re-
+place (Λ, F ) with Λ∗ = ΛG and F ∗ = G ′F where G is r × r and orthonormal then the regression model is
+identical. Such replacements are called “rotations” in the factor analysis literature. Any orthogonal rota-
+tion of the factor loadings is an equally valid representation. The default MLE outputs are one speciﬁc
+rotation; others can be obtained by a variety of algorithms (which we do not review here). Consequently
+it is unwise to attribute meaning to the individual factor loading estimates.
+Another important and tricky issue is selection of the number of factors r . There is no clear guide-
+line. One approach is to examine the principal component decomposition, look for a division between
+the “large” and “small eigenvalues, and set r to equal to the number of “large” eigenvalues. Another
+approach is based on testing. As a by-product of the MLE (and standard package implementations) we
+obtain the LR test for the null hypothesis ofr factors against the alternative hypothesis ofk factors. If the
+LR test rejects (has a small p-value) this is evidence that the given r may be too small.
+In Stata, the MLE
+(ˆΛ, ˆΨ
+)
+can be calculated with the factor, ml factors(r) command. The factor
+estimates ˜Fi and
+F i can be calculated by thepredict command with either the barlett or regression
+option, respectively. In R, the command factanal(X,factors=r,rotation="none") calculates the
+MLE
+(ˆΛ, ˆΨ
+)
+and also calculates the factor estimates ˜Fi and/or F i using the scores option.
+11.14 Approximate Factor Models
+The MLE of the previous section is a good choice for factor estimation when the number of variables
+k is small and the factor model is believed to be correctly speciﬁed. In many economic applications of
+factor analysis, however, the number of variables is k is large. In such contexts the MLE can be com-
+putationally costly and/or unstable. Furthermore it is typically not credible to believe that the model is
+correctly speciﬁed; rather it is more reasonable to view the factor model as a useful approximation. In
+this section we explore an approach known as the approximate factor model with estimation by princi-
+pal components. The estimation method is justiﬁed by an asymptotic framework where the number of
+variables k → ∞.
+
+
+--- page 19 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 325
+The approximate factor modelwas introduced by Chamberlain and Rothschild (1983). It is the same
+as (11.23) but relaxes the assumption on the idiosyncratic error u so that the covariance matrix Ψ =
+E
+[
+uu ′]
+is left unrestricted. In this context the Gaussian MLE of the previous section is misspeciﬁed.
+Chamberlain and Rothschild (and the literature which followed) proposed estimation by least squares.
+The idea is to treat the factors as unknown regressors and simultaneously estimate the factorsFi and fac-
+tor loadings Λ. We ﬁrst describe the estimation method.
+Let (X1,..., Xn) be a sample centered at sample means. The least squares criterion is
+1
+n
+n∑
+i =1
+(Xi − ΛFi )′ (Xi − ΛFi ).
+Let
+(ˆΛ, ˆF1,..., ˆFn
+)
+be the joint minimizers. As Λ and Fi are not separately identiﬁed a normalization is
+needed. For compatibility with the notation of the previous section we use n−1 ∑n
+i =1 ˆFi ˆF ′
+i = I r .
+We use a concentration argument to ﬁnd the solution. As described in the previous section, each
+observation satisﬁes the multivariate equationXi = ΛFi + ui . For ﬁxedΛ this is a set of k equations with
+r unknowns Fi . The least squares solution is ˆFi (Λ) =
+(
+Λ′Λ
+)−1 Λ′Xi . Substituting this expression into the
+least squares criterion the concentrated least squares criterion for Λ is
+1
+n
+n∑
+i =1
+(
+Xi − Λ ˆFi (Λ)
+)′ (
+Xi − Λ ˆFi (Λ)
+)
+= 1
+n
+n∑
+i =1
+(
+Xi − Λ
+(
+Λ′Λ
+)−1 Λ′Xi
+)′ (
+Xi − Λ
+(
+Λ′Λ
+)−1 Λ′Xi
+)
+= 1
+n
+n∑
+i =1
+(
+X ′
+i Xi − X ′
+i Λ
+(
+Λ′Λ
+)−1 Λ′Xi
+)
+= tr
+[ˆΣ
+]
+− tr
+[(
+Λ′Λ
+)−1 Λ′ ˆΣΛ
+]
+where ˆΣ = n−1 ∑n
+i =1 Xi X ′
+i is the sample covariance matrix. The least squares estimator ˆΛ minimizes this
+criterion. Let ˆD and ˆH be ﬁrst r eigenvalues and eigenvectors of ˆΣ. Using the normalization Λ′Λ = I r ,
+from the extrema results of Section A.15 the minimizer of the least squares criterion is ˆΛ = ˆH. More
+broadly any rotation of ˆH is valid. Consider ˆΛ = ˆH ˆD
+1/2
+. Recall the expression for the factors ˆFi (Λ) =(
+Λ′Λ
+)−1 Λ′Xi . We ﬁnd that the estimated factors are
+ˆFi =
+(
+ˆD
+1/2 ˆH
+′ ˆH ˆD
+1/2)−1
+ˆD
+1/2 ˆH
+′
+Xi = ˆD
+−1/2 ˆH
+′
+Xi .
+We calculate that
+n−1
+n∑
+i =1
+ˆFi ˆF ′
+i = ˆD
+−1/2 ˆH
+′ ˆΣ ˆH ˆD
+−1/2′
+= ˆD
+−1/2 ˆD ˆD
+−1/2′
+= I r
+which is the desired normalization. This shows that the rotation ˆΛ = ˆH ˆD
+1/2
+produces factor estimates
+satisfying this normalization.
+We have proven the following result.
+Theorem 11.9 The least squares estimator of the factor model (11.23) under
+the normalization n−1 ∑n
+i =1 ˆFi ˆF ′
+i = I r has the following solution:
+1. Let ˆD = diag
+[ ˆd1,..., ˆdr
+]
+and ˆH =
+[ˆh1, ...,ˆhr
+]
+be the ﬁrstr eigenvalues and
+eigenvectors of the sample covariance matrix ˆΣ.
+2. ˆΛ = ˆH ˆD
+1/2
+.
+3. ˆFi = ˆD
+−1/2 ˆH
+′
+Xi .
+
+
+--- page 20 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 326
+Theorem 11.9 shows that the least squares estimator is based on an eigenvalue decomposition of the
+covariance matrix. This is computationally stable even in high dimensions.
+The factor estimates are the principal components scaled by the eigenvalues of ˆΣ. Speciﬁcally, the
+j t h factor estimate is ˆF j i = ˆd −1/2
+j
+ˆh′
+j X . Consequently many authors call this estimator the “principal-
+component method” .
+Unfortunately, ˆΛ is inconsistent for Λ if k is ﬁxed, as we now show. By the WLLN and CMT , ˆΣ − →p Σ
+and ˆH − →p H, the ﬁrstr eigenvectors of Σ. When Ψ is diagonal, the eigenvectors of Σ = ΛΛ′ +Ψ do not lie
+in the range space ofΛ except in the special caseΨ = σ2I k. Consequently the estimator ˆΛ is inconsistent.
+This inconsistency should not be viewed as surprising. The sample has a total of nk observations
+and the model has a total ofnr +kr −r (r +1)/2 parameters. Since the number of estimated pararameters
+is proportional to sample size we should not expect estimator consistency.
+As ﬁrst recognized by Chamberlain and Rothschild, this deﬁciency diminishes ask increases. Specif-
+ically, assume that k → ∞ as n → ∞. One implication is that the number of observations nk increase
+at a rate faster than n, while the number of parameters increase at a rate proportional to n. Another
+implication is that as k increases there is increasing information about the factors.
+To make this precise we add the following assumption. Letλmin (A) and λmax (A) denote the smallest
+and largest eigenvalues of a positive semi-deﬁnite matrixA.
+Assumption 11.1 As k → ∞
+1. λmax (Ψ) ≤ B < ∞.
+2. λmin
+(
+Λ′Λ
+)
+→ ∞ as k → ∞.
+Assumption 11.1.1 bounds the covariance matrix of the idiosyncratic errors. WhenΨ = diag
+(
+σ2
+1, ...,σ2
+k
+)
+this is the same as bounding the individual variances. Effectively Assumption 11.1.1 means that while
+the elements of u can be correlated they cannot have a correlation structure similar to that of a factor
+model. Assumption 11.1.2 requires the factor loading matrix to increase in magnitude as the number of
+variables increases. This is a fairly mild requirement. When the factor loadings are of similar magnitude
+across variables, λmin
+(
+Λ′Λ
+)
+∼ k → ∞. Conceptually, Assumption 11.1.2 requires additional variables to
+add information about the unobserved factors.
+Assumption 11.1 implies that in the covariance matrix factorizationΣ = ΛΛ′ + Ψ the component ΛΛ′
+dominates as k increases. This means that for large k the ﬁrstr eigenvectors of Σ are equivalent to those
+of ΛΛ′, which are in the range space of Λ. This observation led Chamberlain and Rothschild (1983) to
+deduce that the principal components estimator is an asymptotic (largek) analog estimator for the factor
+loadings and factors. Bai (2003) demonstrated that the estimator is consistent as n,k → ∞ jointly. The
+conditions and proofs are technical so are not reviewed here.
+Now consider the estimated factors
+ˆFi = D −1/2H ′Xi = D −1Λ′Xi
+where for simplicity we ignore estimation error. Since Xi = ΛFi + ui and Λ′Λ = D we can write this as
+ˆFi = Fi + D −1Λ′ui .
+
+
+--- page 21 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 327
+This shows that ˆFi is an unbiased estimator for Fi and has variance var
+[ˆFi
+]
+= D −1Λ′ΨΛD −1. Under
+Assumption 11.1,
+var
+[ˆFi
+]
+ ≤ B/λmin
+(
+Λ′Λ
+)
+→ 0. Thus ˆFi is consistent for Fi as k → ∞. Bai (2003) shows
+that this extends to the feasible estimator as n,k → ∞.
+In Stata, the least squares estimatorˆΛ and factors ˆFi can be calculated with thefactor, pcf factors(r)
+command followed by predict. In R a feasible estimation approach is to calculate the factors by eigen-
+value decomposition.
+11.15 Factor Models with Additional Regressors
+Consider the model
+X = ΛF + B Z + e
+where X and e are k × 1, Λ is k × r , F is r × 1, B is k × ℓ, and Z is ℓ × 1.
+The coefﬁcients Λ and B can be estimated by a combination of factor regression (either MLE or
+principal components) and least squares. The key is the following two observations:
+1. Given B, the coefﬁcientΛ can be estimated by factor regression applied to X − B Z .
+2. Given the factors F the coefﬁcientsΛ and B can be estimated by multivariate least squares ofX on
+F and Z .
+Estimation iterates between these two steps. Start with a preliminary estimator of B obtained by
+multivariate least squares of X on Z . Then apply the above two steps and iterate under convergence.
+11.16 Factor-Augmented Regression
+In the previous sections we considered factor models which decompose a set of variables into com-
+mon factors and idiosyncratic errors. In this section we consider factor-augmented regression, which
+uses such common factors as regressors for dimension reduction.
+Suppose we have the variables (Y , Z , X ) where Y ∈ R, Z ∈ Rℓ, and X ∈ Rk. In practice, k may be large
+and the elements of X may be highly correlated. The factor-augmented regression model is
+Y = F ′β + Z ′γ + e
+X = ΛF + u
+E[Fe ] = 0
+E[Z e] = 0
+E
+[
+Fu ′]
+= 0
+E[ue ] = 0,
+The random variables are e ∈ R, F ∈ Rr and u ∈ Rk. The regression coefﬁcients areβ ∈ Rk and γ ∈ Rℓ. The
+matrix Λ are the factor loadings.
+This model speciﬁes that the inﬂuence of X on Y is through the common factors F . The idea is
+that the variation in the regressors is mostly captured by the variation in the factors, so the inﬂuence
+of the regressors can be captured through these factors. This can be viewed as a dimension-reduction
+technique as we have reduced the k-dimensional X to the r -dimensional F . Interest typically focuses
+on the regressors Z and its coefﬁcientsγ. The factors F are included in the regression as “controls” and
+its coefﬁcientβ is less typically of interest. Since it is difﬁcult to interpret the factors F only their range
+space is identiﬁed it is generally prudent to avoid intrepreting the coefﬁcientsβ.
+
+
+--- page 22 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 328
+The model is typically estimated in multiple steps. First, the factor loadings Λ and factors Fi are
+estimated by factor regression. In the case of principal-components estimation the factor estimates are
+the scaled2 principal components ˆFi = ˆD
+−1 ˆΛ′Xi . Second, Y is regressed on the estimated factors and
+the other regressors to obtain the estimator ofβ and γ. This second-step estimator equals (for simplicity
+assume there is no Z )
+ˆβ =
+(
+n∑
+i =1
+ˆFi ˆF ′
+i
+)−1 (
+n∑
+i =1
+ˆFi Yi
+)
+=
+(
+ˆD
+−1 ˆΛ′ 1
+n
+n∑
+i =1
+Xi X ′
+i ˆΛ ˆD
+−1
+)−1 (
+ˆD
+−1 ˆΛ′ 1
+n
+n∑
+i =1
+Xi Yi
+)
+.
+Now let’ s investigate its asymptotic behavior. Asn → ∞, ˆΛ − →p Λ and ˆD − →p D so
+ˆβ − →p β∗ =
+(
+D −1Λ′E
+[
+X X ′]
+ΛD −1)−1 (
+D −1Λ′E[X Y ]
+)
+. (11.26)
+Recall E
+[
+X X ′]
+= ΛΛ′ + Ψ and Λ′Λ = D. We calculate that
+E[X Y ] = E
+[
+(ΛF + u)
+(
+F ′β + e
+)]
+= Λβ.
+We ﬁnd that the right-hand-side of (11.26) equals
+β∗ =
+(
+D −1Λ′ (
+ΛΛ′ + Ψ
+)
+ΛD −1)−1 (
+D −1Λ′Λβ
+)
+=
+(
+I r + D −1Λ′ΨΛD −1)−1
+β
+which does not equal β. Thus ˆβ has a probability limit but is inconsistent for β as n → ∞.
+This deﬁciency diminishes ask → ∞. Indeed,
+D −1Λ′ΨΛD −1
+ ≤ B
+
+D −1
+ → 0
+as k → ∞. This implies β∗ → β. Hence, if we take the sequential asymptotic limitn → ∞ followed by k →
+∞, we ﬁnd ˆβ − →p β. This implies that the estimator is consistent. Bai (2003) demonstrated consistency
+under the more rigorous but technically challenging setting where n,k → ∞ jointly. The implication of
+this result is that factor augmented regression is consistent if both the sample size and dimension of X
+are large.
+For asymptotic normality of ˆβ it turns out that we need to strengthen Assumption 11.1.2. The relevant
+condition is n−1/2λmin
+(
+Λ′Λ
+)
+→ ∞. This is similar to the condition that k2/n → ∞. This is technical but
+can be interpreted as meaning that k is large relative to p
+n. Intuitively, this requires that the dimension
+of X is larger than sample size n.
+In Stata, estimation takes the following steps. First, the factor command is used to estimate the
+factor model. Either MLE or principal components estimation can be used. Second, the predict com-
+mand is used to estimate the factors, either by Barlett or regression scoring. Third, the factors are treated
+as regressors in an estimated regression.
+11.17 Multivariate Normal*
+Some interesting sampling results hold for matrix-valued normal variates. Let Y be an n × m matrix
+whose rows are independent and distributed N
+(
+µ, Σ
+)
+. We say that Y is multivariate matrix normal, and
+2The unscaled principal components can equivalently be used if the coefﬁcients ˆβ are not reported. The coefﬁcient esti-
+mates ˆγ are unaffected by the choice of factor scaling.
+
+
+--- page 23 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 329
+write Y ∼ N
+(
+µ, I n ⊗ Σ
+)
+, where µ is n × m with each row equal to µ′. The notation is due to the fact that
+vec
+((
+Y − µ
+)′)
+∼ N(0, I n ⊗ Σ).
+Deﬁnition 11.2 If n × m Y ∼ N
+(
+µ, I n ⊗ Σ
+)
+then W = Y ′Y is distributed Wishart
+with n degress of freedom and covariance matrix Σ, and is written as W ∼
+Wm (n, Σ).
+The Wishart is a multivariate generalization of the chi-square. If W ∼ W1
+(
+n, σ2)
+then W ∼ σ2χ2
+n.
+The Wishart arises as the exact distribution of a sample covariance matrix in the normal sampling
+model. The bias-corrected estimator of Σ is
+ˆΣ = 1
+n − 1
+n∑
+i =1
+(
+Yi − Y
+) (
+Yi − Y
+)′
+.
+Theorem 11.10 If Yi ∼ N
+(
+µ, Σ
+)
+are independent then ˆΣ ∼ Wm
+(
+n − 1, 1
+n−1 Σ
+)
+.
+The following manipulation is useful.
+Theorem 11.11 If W ∼ Wm (n, Σ) then for m × 1 α,
+(
+α′W −1α
+)−1 ∼
+χ2
+n−m+1.
+α′Σ−1α
+To prove this, note that without loss of generality we can take Σ = I m and α′α = 1. Let H be m × m
+orthonormal with ﬁrst row equal to α. so that H α =
+( 1
+0
+)
+. Since the distribution of Y and Y H are
+identical we can without loss of generality set α =
+( 1
+0
+)
+. Partition Y = [Y 1, Y 2] where Y 1 is n × 1, Y 2 is
+n × (m − 1), and they are independent. Then
+(
+α′W −1α
+)−1
+=
+(
+(
+1 0
+)( Y ′
+1Y 1 Y ′
+1Y 2
+Y ′
+2Y 1 Y ′
+2Y 2
+)−1 ( 1
+0
+))−1
+= Y ′
+1Y 1 − Y ′
+1Y 2
+(
+Y ′
+2Y 2
+)−1 Y ′
+2Y 1
+= Y ′
+1M 2Y 1 ∼ χ2
+n−(m−1)
+where M 2 = I m−1 − Y 2
+(
+Y ′
+2Y 2
+)−1 Y ′
+2. The ﬁnal distributional equality holds conditional on Y 2 by the
+same argument in the proof of Theorem 5.7. Since this does not depend on Y 2 it is the unconditional
+distribution as well. This establishes the stated result.
+To test hypotheses about µ a classical statistic is known as Hotelling’sT 2:
+T 2 = n
+(
+Y − µ
+)′
+ˆΣ−1
+(
+Y − µ
+)
+.
+
+
+--- page 24 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 330
+Theorem 11.12 If Y ∼ N
+(
+µ, Σ
+)
+then
+T 2 ∼ m
+(n − m)(n − 1) F (m,n − m)
+a scaled F distribution.
+To prove this recall thatY is independent of ˆΣ. Apply Theorem 11.11 with α = Y − µ. Conditional on
+Y and using the fact that ˆΣ ∼ Wm
+(
+n − 1, 1
+n−1 Σ
+)
+,
+n
+T 2 =
+((
+Y − Σ
+)′
+ˆΣ−1
+(
+Y − Σ
+))−1
+∼
+χ2
+n−1−m+1(
+Y − µ
+)′ ( 1
+n−1 Σ
+)−1 (
+Y − µ
+)
+∼ n(n − 1) χ2
+n−m
+χ2
+m
+.
+Since the two chi-square variables are independent, this is the stated result.
+A very interesting property of this result is that the T 2 statistic is a multivariate quadratric form in
+normal random variables, yet it has the exact F distribution.
+_____________________________________________________________________________________________
+11.18 Exercises
+Exercise 11.1 Show (11.10) when the errors are conditionally homoskedastic (11.8).
+Exercise 11.2 Show (11.11) when the regressors are common across equations X j = X .
+Exercise 11.3 Show (11.12) when the regressors are common across equationsX j = X and the errors are
+conditionally homoskedastic (11.8).
+Exercise 11.4 Prove Theorem 11.1.
+Exercise 11.5 Show (11.13) when the regressors are common across equations X j = X .
+Exercise 11.6 Show (11.14) when the regressors are common across equationsX j = X and the errors are
+conditionally homoskedastic (11.8).
+Exercise 11.7 Prove Theorem 11.2.
+Exercise 11.8 Prove Theorem 11.3.
+Exercise 11.9 Show that (11.16) follows from the steps described.
+Exercise 11.10 Show that (11.17) follows from the steps described.
+Exercise 11.11 Prove Theorem 11.4.
+
+
+--- page 25 ---
+
+CHAPTER 11. MUL TIVARIATE REGRESSION 331
+Exercise 11.12 Prove Theorem 11.5.
+Hint: First, show that it is sufﬁcient to show that
+E
+[
+X
+′
+X
+] (
+E
+[
+X
+′
+Σ−1X
+])−1
+E
+[
+X
+′
+X
+]
+≤ E
+[
+X
+′
+ΣX
+]
+.
+Second, rewrite this equation using the transformations U = Σ1/2X and V = Σ1/2X , and then apply the
+matrix Cauchy-Schwarz inequality (B.33).
+Exercise 11.13 Prove Theorem 11.6.
+Exercise 11.14 Take the model
+Y = π′β + e
+π = E[X |Z ] = Γ′Z
+E[e |Z ] = 0
+where Y is scalar, X is a k vector and Z is an ℓ vector. β and π are k × 1 and Γ is ℓ × k. The sample is
+(Yi , Xi , Zi : i = 1, ...,n) with πi unobserved.
+Consider the estimator ˆβ for β by OLS of Y on ˆπ = ˆΓ′Z where ˆΓ is the OLS coefﬁcient from the multi-
+variate regression of X on Z .
+(a) Show that ˆβ is consistent for β.
+(b) Find the asymptotic distribution pn
+(ˆβ − β
+)
+as n → ∞ assuming that β = 0.
+(c) Why is the assumption β = 0 an important simplifying condition in part (b)?
+(d) Using the result in (c) construct an appropriate asymptotic test for the hypothesis H0 : β = 0.
+Exercise 11.15 The observations are i.i.d., (Y 1i ,Y2i , Xi : i = 1, ...,n). The dependent variables Y1 and Y2
+are real-valued. The regressor X is a k-vector. The model is the two-equation system
+Y1 = X ′β1 + e1
+E[X e1] = 0
+Y2 = X ′β2 + e2
+E[X e2] = 0.
+(a) What are the appropriate estimators ˆβ1 and ˆβ2 for β1 and β2?
+(b) Find the joint asymptotic distribution of ˆβ1 and ˆβ2.
+(c) Describe a test for H0 : β1 = β2.

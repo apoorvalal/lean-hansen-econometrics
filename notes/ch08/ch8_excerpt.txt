@@ -1,0 +1,2166 @@
+--- page 1 ---
+
+Chapter 8
+Restricted Estimation
+8.1 Introduction
+In the linear projection model
+Y = X ′β + e
+E[X e] = 0
+a common task is to impose a constraint on the coefﬁcient vector β. For example, partitioning X ′ =(
+X ′
+1, X ′
+2
+)
+and β′ =
+(
+β′
+1, β′
+2
+)
+a typical constraint is an exclusion restriction of the form β2 = 0. In this case
+the constrained model is
+Y = X ′
+1β1 + e
+E[X e] = 0.
+At ﬁrst glance this appears the same as the linear projection model but there is one important difference:
+the error e is uncorrelated with the entire regressor vector X ′ =
+(
+X ′
+1, X ′
+2
+)
+not just the included regressor
+X1.
+In general, a set of q linear constraints on β takes the form
+R ′β = c (8.1)
+where R is k × q, rank(R ) = q < k, and c is q × 1. The assumption that R is full rank means that the
+constraints are linearly independent (there are no redundant or contradictory constraints). We deﬁne
+the restricted parameter space B as the set of values of β which satisfy (8.1), that is
+B =
+{
+β : R ′β = c
+}
+.
+Sometimes we will call (8.1) a constraint and sometimes a restriction. They are the same thing.
+Similarly sometimes we will call estimators which satisfy (8.1) constrained estimators and sometimes
+restricted estimators. They mean the same thing.
+The constraint β2 = 0 discussed above is a special case of the constraint (8.1) with
+R =
+( 0
+I k2
+)
+, (8.2)
+a selector matrix, and c = 0.
+196
+
+
+--- page 2 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 197
+Another common restriction is that a set of coefﬁcients sum to a known constant, i.e. β1 + β2 = 1.
+For example, this constraint arises in a constant-return-to-scale production function. Other common
+restrictions include the equality of coefﬁcientsβ1 = β2, and equal and offsetting coefﬁcientsβ1 = −β2.
+A typical reason to impose a constraint is that we believe (or have information) that the constraint
+is true. By imposing the constraint we hope to improve estimation efﬁciency. The goal is to obtain
+consistent estimates with reduced variance relative to the unconstrained estimator.
+The questions then arise: How should we estimate the coefﬁcient vector β imposing the linear re-
+striction (8.1)? If we impose such constraints what is the sampling distribution of the resulting estimator?
+How should we calculate standard errors? These are the questions explored in this chapter.
+8.2 Constrained Least Squares
+An intuitively appealing method to estimate a constrained linear projection is to minimize the least
+squares criterion subject to the constraint R ′β = c.
+The constrained least squares estimator is
+˜βcls = argmin
+R ′β=c
+SSE(β) (8.3)
+where
+SSE(β) =
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 = Y ′Y − 2Y ′X β + β′X ′X β. (8.4)
+The estimator ˜βcls minimizes the sum of squared errors over all β such that β ∈ B, or equivalently such
+that the restriction (8.1) holds. We call ˜βcls the constrained least squares (CLS) estimator. We follow
+the convention of using a tilde “~” rather than a hat “^” to indicate that ˜βcls is a restricted estimator in
+contrast to the unrestricted least squares estimator ˆβ and write it as ˜βcls to be clear that the estimation
+method is CLS.
+One method to ﬁnd the solution to (8.3) uses the technique of Lagrange multipliers. The problem
+(8.3) is equivalent to ﬁnding the critical points of the Lagrangian
+L (β, λ) = 1
+2 SSE(β) + λ′ (
+R ′β − c
+)
+(8.5)
+over (β, λ) where λ is an s × 1 vector of Lagrange multipliers. The solution is a saddlepoint. The La-
+grangian is minimized over β while maximized over λ. The ﬁrst-order conditions for the solution of (8.5)
+are
+∂
+∂β L ( ˜βcls, ˜λcls) = −X ′Y + X ′X ˜βcls + R ˜λcls = 0 (8.6)
+and
+∂
+∂λ L ( ˜βcls, ˜λcls) = R ′ ˜β − c = 0. (8.7)
+Premultiplying (8.6) by R ′ (
+X ′X
+)−1 we obtain
+−R ′ ˆβ + R ′ ˜βcls + R ′ (
+X ′X
+)−1 R ˜λcls = 0
+where ˆβ =
+(
+X ′X
+)−1 X ′Y is the unrestricted least squares estimator. ImposingR ′ ˜βcls −c = 0 from (8.7) and
+solving for ˜λcls we ﬁnd
+˜λcls =
+[
+R ′ (
+X ′X
+)−1 R
+]−1 (
+R ′ ˆβ − c
+)
+.
+
+
+--- page 3 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 198
+Notice that
+(
+X ′X
+)−1 > 0 and R full rank imply that R ′ (
+X ′X
+)−1 R > 0 and is hence invertible. (See Section
+A.10.)
+Substituting this expression into (8.6) and solving for ˜βcls we ﬁnd the solution to the constrained
+minimization problem (8.3)
+˜βcls = ˆβols −
+(
+X ′X
+)−1 R
+[
+R ′ (
+X ′X
+)−1 R
+]−1 (
+R ′ ˆβols − c
+)
+. (8.8)
+(See Exercise 8.5 to verify that (8.8) satisﬁes (8.1).)
+This is a general formula for the CLS estimator. It also can be written as
+˜βcls = ˆβols − ˆQ
+−1
+X X R
+(
+R ′ ˆQ
+−1
+X X R
+)−1 (
+R ′ ˆβols − c
+)
+. (8.9)
+The CLS residuals are ˜ei = Yi − X ′
+i
+˜βcls and are written in vector notation as ˜e.
+To illustrate we generated a random sample of 100 observations for the variables (Y , X1, X2) and cal-
+culated the sum of squared errors function for the regression of Y on X1 and X2. Figure 8.1 displays
+contour plots of the sum of squared errors function. The center of the contour plots is the least squares
+minimizer ˆβols = (0.33,0.26) ′. Suppose it is desired to estimate the coefﬁcients subject to the constraint
+β1 + β2 = 1. This constraint is displayed in the ﬁgure by the straight line. The constrained least squares
+estimator is the point on this straight line which yields the smallest sum of squared errors. This is the
+point which intersects with the lowest contour plot. The solution is the point where a contour plot is
+tangent to the constraint line and is marked as ˜βcls = (0.52, 0.48)′.
+β1
+β2
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.2 0.4 0.6 0.8 1.0
+●
+β^
+ols
+● β~
+cls
+Figure 8.1: Imposing a Constraint on the Least Squares Criterion
+In Stata constrained least squares is implemented using the cnsreg command.
+8.3 Exclusion Restriction
+While (8.8) is a general formula for CLS, in most cases the estimator can be found by applying least
+squares to a reparameterized equation. To illustrate let us return to the ﬁrst example presented at the
+
+
+--- page 4 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 199
+beginning of the chapter – a simple exclusion restriction. Recall that the unconstrained model is
+Y = X ′
+1β1 + X ′
+2β2 + e, (8.10)
+the exclusion restriction is β2 = 0, and the constrained equation is
+Y = X ′
+1β1 + e. (8.11)
+In this setting the CLS estimator is OLS of Y on X1. (See Exercise 8.1.) We can write this as
+˜β1 =
+(
+n∑
+i =1
+X1i X ′
+1i
+)−1 (
+n∑
+i =1
+X1i Yi
+)
+. (8.12)
+The CLS estimator of the entire vector β′ =
+(
+β′
+1, β′
+2
+)
+is
+˜β =
+( ˜β1
+0
+)
+. (8.13)
+It is not immediately obvious but (8.8) and (8.13) are algebraically identical. To see this the ﬁrst compo-
+nent of (8.8) with (8.2) is
+˜β1 =
+(
+I k2 0
+)
+[
+ˆβ − ˆQ
+−1
+X X
+( 0
+I k2
+) [(
+0 I k2
+) ˆQ
+−1
+X X
+( 0
+I k2
+)]−1 (
+0 I k2
+) ˆβ
+]
+.
+Using (3.39) this equals
+˜β1 = ˆβ1 − ˆQ
+12 (
+ˆQ
+22)−1 ˆβ2
+= ˆβ1 + ˆQ
+−1
+11·2 ˆQ12 ˆQ
+−1
+22 ˆQ22·1 ˆβ2
+= ˆQ
+−1
+11·2
+(
+ˆQ1Y − ˆQ12 ˆQ
+−1
+22 ˆQ2Y
+)
++ ˆQ
+−1
+11·2 ˆQ12 ˆQ
+−1
+22 ˆQ22·1 ˆQ
+−1
+22·1
+(
+ˆQ2y − ˆQ21 ˆQ
+−1
+11 ˆQ1Y
+)
+= ˆQ
+−1
+11·2
+(
+ˆQ1Y − ˆQ12 ˆQ
+−1
+22 ˆQ21 ˆQ
+−1
+11 ˆQ1Y
+)
+= ˆQ
+−1
+11·2
+(
+ˆQ11 − ˆQ12 ˆQ
+−1
+22 ˆQ21
+)
+ˆQ
+−1
+11 ˆQ1Y
+= ˆQ
+−1
+11 ˆQ1Y
+which is (8.13) as originally claimed.
+8.4 Finite Sample Properties
+In this section we explore some of the properties of the CLS estimator in the linear regression model
+Y = X ′β + e (8.14)
+E[e |X ] = 0. (8.15)
+First, it is useful to write the estimator and the residuals as linear functions of the error vector. These
+are algebraic relationships and do not rely on the linear regression assumptions.
+
+
+--- page 5 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 200
+Theorem 8.1 The CLS estimator satisﬁes
+1. R ′ ˆβ − c = R ′ (
+X ′X
+)−1 X ′e
+2. ˜βcls − β =
+((
+X ′X
+)−1 X ′ − AX ′
+)
+e
+3. ˜e =
+(
+I − P + X AX ′)
+e
+4. I n − P + X AX ′ is symmetric and idempotent
+5. tr
+(
+I n − P + X AX ′)
+= n − k + q
+where P = X
+(
+X ′X
+)−1 X ′ and A =
+(
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1.
+For a proof see Exercise 8.6.
+Given the linearity of Theorem 8.1.2 it is not hard to show that the CLS estimator is unbiased for β.
+Theorem 8.2 In the linear regression model (8.14)-(8.15) under (8.1),
+E
+[˜βcls |X
+]
+= β.
+For a proof see Exercise 8.7.
+We can also calculate the covariance matrix of ˜βcls. First, for simplicity take the case of conditional
+homoskedasticity.
+Theorem 8.3 In the homoskedastic linear regression model (8.14)-(8.15) with
+E
+[
+e2 |X
+]
+= σ2, under (8.1),
+V 0
+˜β = var
+[˜βcls |X
+]
+=
+((
+X ′X
+)−1 −
+(
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1
+)
+σ2.
+For a proof see Exercise 8.8.
+We use the V 0
+˜β notation to emphasize that this is the covariance matrix under the assumption of
+conditional homoskedasticity.
+For inference we need an estimate of V 0
+˜β. A natural estimator is
+ˆV
+0
+˜β =
+((
+X ′X
+)−1 −
+(
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1
+)
+s2
+cls
+where
+s2
+cls = 1
+n − k + q
+n∑
+i =1
+˜e2
+i (8.16)
+
+
+--- page 6 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 201
+is a biased-corrected estimator of σ2. Standard errors for the components of β are then found by taking
+the squares roots of the diagonal elements of ˆV ˜β, for example
+s( ˆβj ) =
+√[
+ˆV
+0
+˜β
+]
+j j
+.
+The estimator (8.16) has the property that it is unbiased for σ2 under conditional homoskedasticity.
+To see this, using the properties of Theorem 8.1,
+(
+n − k + q
+)
+s2
+cls = ˜e′˜e
+= e′ (
+I n − P + X AX ′) (
+I n − P + X AX ′)
+e
+= e′ (
+I n − P + X AX ′)
+e. (8.17)
+We defer the remainder of the proof to Exercise 8.9.
+Theorem 8.4 In the homoskedastic linear regression model (8.14)-(8.15) with
+E
+[
+e2 |X
+]
+= σ2, under (8.1), E
+[
+s2
+cls |X
+]
+= σ2 and E
+[
+ˆV
+0
+˜β |X
+]
+= V 0
+˜β.
+Now consider the distributional properties in the normal regression model Y = X ′β + e with e ∼
+N(0, σ2). By the linearity of Theorem 8.1.2, conditional on X , ˜βcls − β is normal. Given Theorems 8.2 and
+8.3 we deduce that ˜βcls ∼ N
+(
+β,V 0
+˜β
+)
+.
+Similarly, from Exericise 8.1 we know ˜e =
+(
+I n − P + X AX ′)
+e is linear in e so is also conditionally nor-
+mal. Furthermore, since
+(
+I n − P + X AX ′)(
+X
+(
+X ′X
+)−1 − X A
+)
+= 0, ˜e and ˜βcls are uncorrelated and thus
+independent. Thus s2
+cls and ˜βcls are independent.
+From (8.17) and the fact that I n − P + X AX ′ is idempotent with rank n − k + q it follows that
+s2
+cls ∼ σ2χ2
+n−k+q /
+(
+n − k + q
+)
+.
+It follows that the t-statistic has the exact distribution
+T =
+ˆβj − βj
+s( ˆβj )
+∼ N(0, 1)√
+χ2
+n−k+q
+/
+(n − k + q)
+∼ tn−k+q
+a student t distribution with n − k + q degrees of freedom.
+The relevance of this calculation is that the “degrees of freedom” for CLS regression equal n − k + q
+rather than n − k as in OLS. Essentially the model has k − q free parameters instead of k. Another way
+of thinking about this is that estimation of a model with k coefﬁcients andq restrictions is equivalent to
+estimation with k − q coefﬁcients.
+We summarize the properties of the normal regression model.
+
+
+--- page 7 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 202
+Theorem 8.5 In the normal linear regression model (8.14)-(8.15) with con-
+straint (8.1),
+˜βcls ∼ N
+(
+β,V 0
+˜β
+)
+(
+n − k + q
+)
+s2
+cls
+σ2 ∼ χ2
+n−k+q
+T ∼ tn−k+q .
+An interesting relationship is that in the homoskedastic regression model
+cov
+(ˆβols − ˜βcls, ˜βcls |X
+)
+= E
+[(ˆβols − ˜βcls
+) (˜βcls − β
+)′
+|X
+]
+= E
+[
+AX ′ee ′
+(
+X
+(
+X ′X
+)−1 − X A
+)
+|X
+]
+= AX ′
+(
+X
+(
+X ′X
+)−1 − X A
+)
+σ2 = 0.
+This means that ˆβols − ˜βcls and ˜βcls are conditionally uncorrelated and hence independent. A corollary is
+cov
+(ˆβols, ˜βcls |X
+)
+= var
+[˜βcls |X
+]
+.
+A second corollary is
+var
+[ˆβols − ˜βcls |X
+]
+= var
+[ˆβols |X
+]
+− var
+[˜βcls |X
+]
+(8.18)
+=
+(
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1 σ2.
+This also shows that the difference between the CLS and OLS variances matrices equals
+var
+[ˆβols |X
+]
+− var
+[˜βcls |X
+]
+=
+(
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1 σ2 ≥ 0
+the ﬁnal equality meaning positive semi-deﬁnite. It follows that var
+[ˆβols |X
+]
+≥ var
+[˜βcls |X
+]
+in the posi-
+tive deﬁnite sense, and thus CLS is more efﬁcient than OLS. Both estimators are unbiased (in the linear
+regression model) and CLS has a lower covariance matrix (in the linear homoskedastic regression model).
+The relationship (8.18) is rather interesting and will appear again. The expression says that the vari-
+ance of the difference between the estimators is equal to the difference between the variances. This is
+rather special. It occurs generically when we are comparing an efﬁcient and an inefﬁcient estimator. We
+call (8.18) the Hausman Equality as it was ﬁrst pointed out in econometrics by Hausman (1978).
+8.5 Minimum Distance
+The previous section explored the ﬁnite sample distribution theory under the assumptions of the
+linear regression model, homoskedastic regression model, and normal regression model. We now return
+to the general projection model where we do not impose linearity, homoskedasticity, nor normality. We
+are interested in the question: Can we do better than CLS in this setting?
+A minimum distance estimator tries to ﬁnd a parameter value satisfying the constraint which is as
+close as possible to the unconstrained estimator. Let ˆβ be the unconstrained least squares estimator, and
+for some k × k positive deﬁnite weight matrixˆW > 0 deﬁne the quadratic criterion function
+J
+(
+β
+)
+= n
+(ˆβ − β
+)′ ˆW
+(ˆβ − β
+)
+. (8.19)
+
+
+--- page 8 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 203
+This is a (squared) weighted Euclidean distance between ˆβ and β. J
+(
+β
+)
+is small if β is close to ˆβ, and is
+minimized at zero only if β = ˆβ. A minimum distance estimator ˜βmd for β minimizes J
+(
+β
+)
+subject to the
+constraint (8.1), that is,
+˜βmd = argmin
+R ′β=c
+J
+(
+β
+)
+.
+The CLS estimator is the special case when ˆW = ˆQ X X and we write this criterion function as
+J 0 (
+β
+)
+= n
+(ˆβ − β
+)′ ˆQ X X
+(ˆβ − β
+)
+. (8.20)
+To see the equality of CLS and minimum distance rewrite the least squares criterion as follows. Substitute
+the unconstrained least squares ﬁtted equationYi = X ′
+i
+ˆβ + ˆei into SSE(β) to obtain
+SSE(β) =
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2
+=
+n∑
+i =1
+(
+X ′
+i ˆβ + ˆei − X ′
+i β
+)2
+=
+n∑
+i =1
+ˆe2
+i +
+(ˆβ − β
+)′
+(
+n∑
+i =1
+Xi X ′
+i
+)
+(ˆβ − β
+)
+= n ˆσ2 + J 0 (
+β
+)
+(8.21)
+where the third equality uses the fact that∑n
+i =1 Xi ˆei = 0, and the last line uses∑n
+i =1 Xi X ′
+i = n ˆQ X X . The ex-
+pression (8.21) only depends onβ through J 0 (
+β
+)
+. Thus minimization of SSE(β) and J 0 (
+β
+)
+are equivalent,
+and hence ˜βmd = ˜βcls when ˆW = ˆQ X X .
+We can solve for ˜βmd explicitly by the method of Lagrange multipliers. The Lagrangian is
+L (β, λ) = 1
+2 J
+(
+β, ˆW
+)
++ λ′ (
+R ′β − c
+)
+.
+The solution to the pair of ﬁrst order conditions is
+˜λmd = n
+(
+R ′ˆW
+−1
+R
+)−1 (
+R ′ ˆβ − c
+)
+(8.22)
+˜βmd = ˆβ − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1 (
+R ′ ˆβ − c
+)
+. (8.23)
+(See Exercise 8.10.) Comparing (8.23) with (8.9) we can see that ˜βmd specializes to ˜βcls when we set
+ˆW = ˆQ X X .
+An obvious question is which weight matrix ˆW is best. We will address this question after we derive
+the asymptotic distribution for a general weight matrix.
+8.6 Asymptotic Distribution
+We ﬁrst show that the class of minimum distance estimators are consistent for the population pa-
+rameters when the constraints are valid.
+Assumption 8.1 R ′β = c where R is k × q with rank(R) = q.
+
+
+--- page 9 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 204
+Assumption 8.2 ˆW − →p W > 0.
+Theorem 8.6 Consistency
+Under Assumptions 7.1, 8.1, and 8.2, ˜βmd − →p β as n → ∞.
+For a proof see Exercise 8.11.
+Theorem 8.6 shows that consistency holds for any weight matrix with a positive deﬁnite limit so
+includes the CLS estimator.
+Similarly, the constrained estimators are asymptotically normally distributed.
+Theorem 8.7 Asymptotic Normality
+Under Assumptions 7.2, 8.1, and 8.2,
+p
+n
+(˜βmd − β
+)
+− →
+d
+N
+(
+0,V β(W )
+)
+as n → ∞, where
+V β(W ) = V β − W −1R
+(
+R ′W −1R
+)−1
+R ′V β
+−V βR
+(
+R ′W −1R
+)−1
+R ′W −1
++W −1R
+(
+R ′W −1R
+)−1
+R ′V βR
+(
+R ′W −1R
+)−1
+R ′W −1 (8.24)
+and V β = Q −1
+X X ΩQ −1
+X X .
+For a proof see Exercise 8.12.
+Theorem 8.7 shows that the minimum distance estimator is asymptotically normal for all positive
+deﬁnite weight matrices. The asymptotic variance depends on W . The theorem includes the CLS esti-
+mator as a special case by setting W = Q X X .
+Theorem 8.8 Asymptotic Distribution of CLS Estimator
+Under Assumptions 7.2 and 8.1, as n → ∞
+p
+n
+(˜βcls − β
+)
+− →
+d
+N(0,V cls)
+where
+V cls = V β −Q −1
+X X R
+(
+R ′Q −1
+X X R
+)−1
+R ′V β
+− V βR
+(
+R ′Q −1
+X X R
+)−1
+R ′Q −1
+X X
++Q −1
+X X R
+(
+R ′Q −1
+X X R
+)−1
+R ′V βR
+(
+R ′Q −1
+X X R
+)−1
+R ′Q −1
+X X .
+
+
+--- page 10 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 205
+For a proof see Exercise 8.13.
+8.7 Variance Estimation and Standard Errors
+Earlier we introduced the covariance matrix estimator under the assumption of conditional homoskedas-
+ticity. We now introduce an estimator which does not impose homoskedasticity.
+The asymptotic covariance matrix V cls may be estimated by replacing V β with a consistent estima-
+tor such as ˆV β. A more efﬁcient estimator can be obtained by using the restricted coefﬁcient estimator
+which we now show. Given the constrained least squares squares residuals ˜ei = Yi − X ′
+i
+˜βcls we can esti-
+mate the matrix Ω = E
+[
+X X ′e2]
+by
+˜Ω = 1
+n − k + q
+n∑
+i =1
+Xi X ′
+i ˜e2
+i .
+Notice that we have used an adjusted degrees of freedom. This is an ad hoc adjustment designed to
+mimic that used for estimation of the error variance σ2. The moment estimator of V β is
+˜V β = ˆQ
+−1
+X X ˜Ω ˆQ
+−1
+X X
+and that for V cls is
+˜V cls = ˜V β − ˆQ
+−1
+X X R
+(
+R ′ ˆQ
+−1
+X X R
+)−1
+R ′ ˜V β
+− ˜V βR
+(
+R ′ ˆQ
+−1
+X X R
+)−1
+R ′ ˆQ
+−1
+x x
++ ˆQ
+−1
+X X R
+(
+R ′ ˆQ
+−1
+X X R
+)−1
+R ′ ˜V βR
+(
+R ′ ˆQ
+−1
+X X R
+)−1
+R ′ ˆQ
+−1
+X X .
+We can calculate standard errors for any linear combination h′ ˜βcls such that h does not lie in the
+range space of R. A standard error for h′ ˜β is
+s
+(
+h′ ˜βcls
+)
+=
+(
+n−1h′ ˜V clsh
+)1/2
+.
+8.8 Efﬁcient Minimum Distance Estimator
+Theorem 8.7 shows that minimum distance estimators, which include CLS as a special case, are
+asymptotically normal with an asymptotic covariance matrix which depends on the weight matrix W .
+The asymptotically optimal weight matrix is the one which minimizes the asymptotic variance V β(W ).
+This turns out to beW = V −1
+β as is shown in Theorem 8.9 below. SinceV −1
+β is unknown this weight matrix
+cannot be used for a feasible estimator but we can replace V −1
+β with a consistent estimator ˆV
+−1
+β and the
+asymptotic distribution (and efﬁciency) are unchanged. We call the minimum distance estimator with
+ˆW = ˆV
+−1
+β the efﬁcient minimum distance estimatorand takes the form
+˜βemd = ˆβ − ˆV βR
+(
+R ′ ˆV βR
+)−1 (
+R ′ ˆβ − c
+)
+. (8.25)
+The asymptotic distribution of (8.25) can be deduced from Theorem 8.7. (See Exercises 8.14 and 8.15,
+and the proof in Section 8.16.)
+
+
+--- page 11 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 206
+Theorem 8.9 Efﬁcient Minimum Distance Estimator
+Under Assumptions 7.2 and 8.1,
+p
+n
+(˜βemd − β
+)
+− →
+d
+N
+(
+0,V β,emd
+)
+as n → ∞, where
+V β,emd = V β − V βR
+(
+R ′V βR
+)−1 R ′V β. (8.26)
+Since
+V β,emd ≤ V β (8.27)
+the estimator (8.25) has lower asymptotic variance than the unrestricted esti-
+mator. Furthermore, for any W ,
+V β,emd ≤ V β(W ) (8.28)
+so (8.25) is asymptotically efﬁcient in the class of minimum distance estima-
+tors.
+Theorem 8.9 shows that the minimum distance estimator with the smallest asymptotic variance is
+(8.25). One implication is that the constrained least squares estimator is generally inefﬁcient. The inter-
+esting exception is the case of conditional homoskedasticity in which case the optimal weight matrix is
+W =
+(
+V 0
+β
+)−1
+so in this case CLS is an efﬁcient minimum distance estimator. Otherwise when the error
+is conditionally heteroskedastic there are asymptotic efﬁciency gains by using minimum distance rather
+than least squares.
+The fact that CLS is generally inefﬁcient is counter-intuitive and requires some reﬂection to under-
+stand. Standard intuition suggests to apply the same estimation method (least squares) to the uncon-
+strained and constrained models and this is the common empirical practice. But Theorem 8.9 shows that
+this is inefﬁcient. Why? The reason is that the least squares estimator does not make use of the regressor
+X2. It ignores the information E[X2e] = 0. This information is relevant when the error is heteroskedastic
+and the excluded regressors are correlated with the included regressors.
+Inequality (8.27) shows that the efﬁcient minimum distance estimator˜βemd has a smaller asymptotic
+variance than the unrestricted least squares estimator ˆβ. This means that efﬁcient estimation is attained
+by imposing correct restrictions when we use the minimum distance method.
+8.9 Exclusion Restriction Revisited
+We return to the example of estimation with a simple exclusion restriction. The model is
+Y = X ′
+1β1 + X ′
+2β2 + e
+with the exclusion restriction β2 = 0. We have introduced three estimators of β1. The ﬁrst is uncon-
+strained least squares applied to (8.10) which can be written as ˆβ1 = ˆQ
+−1
+11·2 ˆQ1Y ·2. From Theorem 7.25
+and equation (7.14) its asymptotic variance is
+avar
+[ˆβ1
+]
+= Q −1
+11·2
+(
+Ω11 −Q12Q −1
+22 Ω21 − Ω12Q −1
+22 Q21 +Q12Q −1
+22 Ω22Q −1
+22 Q21
+)
+Q −1
+11·2.
+
+
+--- page 12 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 207
+The second estimator of β1 is CLS, which can be written as ˜β1 = ˆQ
+−1
+11 ˆQ1Y . Its asymptotic variance can
+be deduced from Theorem 8.8, but it is simpler to apply the CLT directly to show that
+avar
+[˜β1
+]
+= Q −1
+11 Ω11Q −1
+11 . (8.29)
+The third estimator of β1 is efﬁcient minimum distance. Applying (8.25), it equals
+β1 = ˆβ1 − ˆV 12 ˆV
+−1
+22 ˆβ2 (8.30)
+where we have partitioned
+ˆV β =
+[ ˆV 11 ˆV 12
+ˆV 21 ˆV 22
+]
+.
+From Theorem 8.9 its asymptotic variance is
+avar
+[
+β1
+]
+= V 11 − V 12V −1
+22 V 21. (8.31)
+See Exercise 8.16 to verify equations (8.29), (8.30), and (8.31).
+In general the three estimators are different and they have different asymptotic variances. It is in-
+structive to compare the variances to assess whether or not the constrained estimator is more efﬁcient
+than the unconstrained estimator.
+First, assume conditional homoskedasticity. In this case the two covariance matrices simplify to
+avar
+[ˆβ1
+]
+= σ2Q −1
+11·2 and avar
+[˜β1
+]
+= σ2Q −1
+11 . If Q12 = 0 (so X1 and X2 are uncorrelated) then these two
+variance matrices are equal and the two estimators have equal asymptotic efﬁciency. Otherwise, since
+Q12Q −1
+22 Q21 ≥ 0, then Q11 ≥ Q11 −Q12Q −1
+22 Q21 and consequently
+Q −1
+11 σ2 ≤
+(
+Q11 −Q12Q −1
+22 Q21
+)−1
+σ2.
+This means that under conditional homoskedasticity ˜β1 has a lower asymptotic covariance matrix than
+ˆβ1. Therefore in this context constrained least squares is more efﬁcient than unconstrained least squares.
+This is consistent with our intuition that imposing a correct restriction (excluding an irrelevant regressor)
+improves estimation efﬁciency.
+However, in the general case of conditional heteroskedasticity this ranking is not guaranteed. In fact
+what is really amazing is that the variance ranking can be reversed. The CLS estimator can have a larger
+asymptotic variance than the unconstrained least squares estimator.
+To see this let’ s use the simple heteroskedastic example from Section 7.4. In that example, Q11 =
+Q22 = 1, Q12 = 1
+2 , Ω11 = Ω22 = 1, and Ω12 = 7
+8 . We can calculate (see Exercise 8.17) thatQ11·2 = 3
+4 and
+avar
+[ˆβ1
+]
+= 2
+3 (8.32)
+avar
+[˜β1
+]
+= 1 (8.33)
+avar
+[
+β1
+]
+= 5
+8 . (8.34)
+Thus the CLS estimator ˜β1 has a larger variance than the unrestricted least squares estimator ˆβ1! The
+minimum distance estimator has the smallest variance of the three, as expected.
+What we have found is that when the estimation method is least squares, deleting the irrelevant
+variable X2 can actually increase estimation variance, or equivalently, adding an irrelevant variable can
+decrease the estimation variance.
+
+
+--- page 13 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 208
+To repeat this unexpected ﬁnding, we have shown that it is possible for least squares applied to the
+short regression (8.11) to be less efﬁcient for estimation of β1 than least squares applied to the long
+regression (8.10) even though the constraint β2 = 0 is valid! This result is strongly counter-intuitive. It
+seems to contradict our initial motivation for pursuing constrained estimation – to improve estimation
+efﬁciency.
+It turns out that a more reﬁned answer is appropriate. Constrained estimation is desirable but not
+necessarily CLS. While least squares is asymptotically efﬁcient for estimation of the unconstrained pro-
+jection model it is not an efﬁcient estimator of the constrained projection model.
+8.10 Variance and Standard Error Estimation
+We have discussed covariance matrix estimation for CLS but not yet for the EMD estimator.
+The asymptotic covariance matrix (8.26) may be estimated by replacingV β with a consistent estima-
+tor. It is best to construct the variance estimate using ˜βemd. The EMD residuals are ˜ei = Yi − X ′
+i
+˜βemd.
+Using these we can estimate the matrix Ω = E
+[
+X X ′e2]
+by
+˜Ω = 1
+n − k + q
+n∑
+i =1
+Xi X ′
+i ˜e2
+i .
+Following the formula for CLS we recommend an adjusted degrees of freedom. Given ˜Ω the moment
+estimator of V β is ˜V β = ˆQ
+−1
+X X ˜Ω ˆQ
+−1
+X X . Given this, we construct the variance estimator
+˜V β,emd = ˜V β − ˜V βR
+(
+R ′ ˜V βR
+)−1
+R ′ ˜V β. (8.35)
+A standard error for h′ ˜β is then
+s
+(
+h′ ˜β
+)
+=
+(
+n−1h′ ˜V β,emdh
+)1/2
+. (8.36)
+8.11 Hausman Equality
+Form (8.25) we have
+p
+n
+(ˆβols − ˜βemd
+)
+= ˆV βR
+(
+R ′ ˆV βR
+)−1 p
+n
+(
+R ′ ˆβols − c
+)
+− →
+d
+N
+(
+0,V βR
+(
+R ′V βR
+)−1 R ′V β
+)
+.
+It follows that the asymptotic variances of the estimators satisfy the relationship
+avar
+[ˆβols − ˜βemd
+]
+= avar
+[ˆβols
+]
+− avar
+[˜βemd
+]
+. (8.37)
+We call (8.37) theHausman Equality: the asymptotic variance of the difference between an efﬁcient and
+another estimator is the difference in the asymptotic variances.
+8.12 Example: Mankiw, Romer and Weil (1992)
+We illustrate the methods by replicating some of the estimates reported in a well-known paper by
+Mankiw, Romer, and Weil (1992). The paper investigates the implications of the Solow growth model
+using cross-country regressions. A key equation in their paper regresses the change between 1960 and
+1985 in log GDP per capita on (1) log GDP in 1960, (2) the log of the ratio of aggregate investment to
+
+
+--- page 14 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 209
+Table 8.1: Estimates of Solow Growth Model
+ˆβols ˆβcls ˆβemd
+logGDP 1960 −0.29
+(0.05)
+−0.30
+(0.05)
+−0.30
+(0.05)
+log I
+GDP 0.52
+(0.11)
+0.50
+(0.09)
+0.46
+(0.08)
+log
+(
+n + g + δ
+)
+−0.51
+(0.24)
+−0.74
+(0.08)
+−0.71
+(0.07)
+log(School) 0.23
+(0.07)
+0.24
+(0.07)
+0.25
+(0.06)
+Intercept 3.02
+(0.74)
+2.46
+(0.44)
+2.48
+(0.44)
+Standard errors are heteroskedasticity-consistent
+GDP , (3) the log of the sum of the population growth raten, the technological growth rate g , and the rate
+of depreciation δ, and (4) the log of the percentage of the working-age population that is in secondary
+school (School), the latter a proxy for human-capital accumulation.
+The data is available on the textbook webpage in the ﬁleMRW1992.
+The sample is 98 non-oil-producing countries and the data was reported in the published paper.
+As g and δ were unknown the authors set g + δ = 0.05. We report least squares estimates in the ﬁrst
+column of Table 8.1. The estimates are consistent with the Solow theory due to the positive coefﬁcients
+on investment and human capital and negative coefﬁcient for population growth. The estimates are
+also consistent with the convergence hypothesis (that income levels tend towards a common mean over
+time) as the coefﬁcient on intial GDP is negative.
+The authors show that in the Solow model the 2 nd , 3r d and 4t h coefﬁcients sum to zero. They rees-
+timated the equation imposing this constraint. We present constrained least squares estimates in the
+second column of Table 8.1 and efﬁcient minimum distance estimates in the third column. Most of the
+coefﬁcients and standard errors only exhibit small changes by imposing the constraint. The one excep-
+tion is the coefﬁcient on log population growth which increases in magnitude and its standard error
+decreases substantially. The differences between the CLS and EMD estimates are modest.
+We now present Stata, R and MATLAB code which implements these estimates.
+You may notice that the Stata code has a section which uses the Mata matrix programming language.
+This is used because Stata does not implement the efﬁcient minimum distance estimator, so needs to be
+separately programmed. As illustrated here, the Mata language allows a Stata user to implement methods
+using commands which are quite similar to MATLAB.
+
+
+--- page 15 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 210
+Stata do File
+use "MRW1992.dta", clear
+gen lndY = log(Y85)-log(Y60)
+gen lnY60 = log(Y60)
+gen lnI = log(invest/100)
+gen lnG = log(pop_growth/100+0.05)
+gen lnS = log(school/100)
+* Unrestricted regression
+reg lndY lnY60 lnI lnG lnS if N==1, r
+* Store result for efﬁcient minimum distance
+mat b = e(b)’
+scalar k = e(rank)
+mat V = e(V)
+* Constrained regression
+constraint deﬁne 1 lnI+lnG+lnS=0
+cnsreg lndY lnY60 lnI lnG lnS if N==1, constraints(1) r
+* Efﬁcient minimum distance
+mata{
+data = st_data(.,("lnY60","lnI","lnG","lnS","lndY","N"))
+data_select = select(data,data[.,6]:==1)
+y = data_select[.,5]
+n = rows(y)
+x = (data_select[.,1..4],J(n,1,1))
+k = cols(x)
+invx = invsym(x’*x)
+b_ols = st_matrix("b")
+V_ols = st_matrix("V")
+R = (0 \ 1 \ 1 \ 1 \ 0)
+b_emd = b_ols-V_ols*R*invsym(R’*V_ols*R)*R’*b_ols
+e_emd = J(1,k,y-x*b_emd)
+xe_emd = x:*e_emd
+xe_emd’*xe_emd
+V2 = (n/(n-k+1))*invx*(xe_emd’*xe_emd)*invx
+V_emd = V2 - V2*R*invsym(R’*V2*R)*R’*V2
+se_emd = diagonal(sqrt(V_emd))
+st_matrix("b_emd",b_emd)
+st_matrix("se_emd",se_emd)}
+mat list b_emd
+mat list se_emd
+
+
+--- page 16 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 211
+R Program File
+data <- read.table("MRW1992.txt",header=TRUE)
+N <- matrix(data$N,ncol=1)
+lndY <- matrix(log(data$Y85)-log(data$Y60),ncol=1)
+lnY60 <- matrix(log(data$Y60),ncol=1)
+lnI <- matrix(log(data$invest/100),ncol=1)
+lnG <- matrix(log(data$pop_growth/100+0.05),ncol=1)
+lnS <- matrix(log(data$school/100),ncol=1)
+xx <- as.matrix(cbind(lnY60,lnI,lnG,lnS,matrix(1,nrow(lndY),1)))
+x <- xx[N==1,]
+y <- lndY[N==1]
+n <- nrow(x)
+k <- ncol(x)
+# Unrestricted regression
+invx <-solve(t(x)%*%x)
+b_ols <- solve((t(x)%*%x),(t(x)%*%y))
+e_ols <- rep((y-x%*%beta_ols),times=k)
+xe_ols <- x*e_ols
+V_ols <- (n/(n-k))*invx%*%(t(xe_ols)%*%xe_ols)%*%invx
+se_ols <- sqrt(diag(V_ols))
+print(beta_ols)
+print(se_ols)
+# Constrained regression
+R <- c(0,1,1,1,0)
+iR <- invx%*%R%*%solve(t(R)%*%invx%*%R)%*%t(R)
+b_cls <- b_ols - iR%*%b_ols
+e_cls <- rep((y-x%*%b_cls),times=k)
+xe_cls <- x*e_cls
+V_tilde <- (n/(n-k+1))*invx%*%(t(xe_cls)%*%xe_cls)%*%invx
+V_cls <- V_tilde - iR%*%V_tilde - V_tilde%*%t(iR) +iR%*%V_tilde%*%t(iR)
+print(b_cls)print(se_cls)
+# Efﬁcient minimum distance
+Vr <- V_ols%*%R%*%solve(t(R)%*%V_ols%*%R)%*%t(R)
+b_emd <- b_ols - Vr%*%b_ols
+e_emd <- rep((y-x%*%b_emd),times=k)
+xe_emd <- x*e_emd
+V2 <- (n/(n-k+1))*invx%*%(t(xe_emd)%*%xe_emd)%*%invx
+V_emd <- V2 - V2%*%R%*%solve(t(R)%*%V2%*%R)%*%t(R)%*%V2
+se_emd <- sqrt(diag(V_emd))
+
+
+--- page 17 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 212
+MATLAB Program File
+data = xlsread(’MRW1992.xlsx’);
+N = data(:,1);
+Y60 = data(:,4);
+Y85 = data(:,5);
+pop_growth = data(:,7);
+invest = data(:,8);
+school = data(:,9);
+lndY = log(Y85)-log(Y60);
+lnY60 = log(Y60);
+lnI = log(invest/100);
+lnG = log(pop_growth/100+0.05);
+lnS = log(school/100);
+xx = [lnY60,lnI,lnG,lnS,ones(size(lndY,1),1)];
+x = xx(N==1,:);
+y = lndY(N==1);
+[n,k] = size(x);
+% Unrestricted regression
+invx = inv(x’*x);
+beta_ols = (x’*x)\(x’*y);
+e_ols = repmat((y-x*beta_ols),1,k);
+xe_ols = x.*e_ols;
+V_ols = (n/(n-k))*invx*(xe_ols’*xe_ols)*invx;
+se_ols = sqrt(diag(V_ols));
+display(beta_ols);
+display(se_ols);
+% Constrained regression
+R = [0;1;1;1;0];
+iR = invx*R*inv(R’*invx*R)*R’;
+beta_cls = beta_ols - iR*beta_ols;
+e_cls = repmat((y-x*beta_cls),1,k);
+xe_cls = x.*e_cls;
+V_tilde = (n/(n-k+1))*invx*(xe_cls’*xe_cls)*invx;
+V_cls = V_tilde - iR*V_tilde - V_tilde*(iR’) + iR*V_tilde*(iR’);
+se_cls = sqrt(diag(V_cls));
+display(beta_cls);display(se_cls);
+% Efﬁcient minimum distance
+beta_emd = beta_ols-V_ols*R*inv(R’*V_ols*R)*R’*beta_ols;
+e_emd = repmat((y-x*beta_emd),1,k);
+xe_emd = x.*e_emd;
+V2 = (n/(n-k+1))*invx*(xe_emd’*xe_emd)*invx;
+V_emd = V2 - V2*R*inv(R’*V2*R)*R’*V2;
+se_emd = sqrt(diag(V_emd));
+display(beta_emd);
+display(se_emd);
+
+
+--- page 18 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 213
+8.13 Misspeciﬁcation
+What are the consequences for a constrained estimator ˜β if the constraint (8.1) is incorrect? To be
+speciﬁc suppose that the truth is
+R ′β = c ∗
+where c ∗ is not necessarily equal to c.
+This situation is a generalization of the analysis of “omitted variable bias” from Section 2.24 where
+we found that the short regression (e.g. (8.12)) is estimating a different projection coefﬁcient than the
+long regression (e.g. (8.10)).
+One answer is to apply formula (8.23) to ﬁnd that
+˜βmd − →p β∗
+md = β − W −1R
+(
+R ′W −1R
+)−1 (
+c ∗ − c
+)
+. (8.38)
+The second term, W −1R
+(
+R ′W −1R
+)−1 (c ∗ − c), shows that imposing an incorrect constraint leads to in-
+consistency – an asymptotic bias. We can call the limiting value β∗
+md the minimum-distance projection
+coefﬁcient or the pseudo-true value implied by the restriction.
+However, we can say more.
+For example, we can describe some characteristics of the approximating projections. The CLS esti-
+mator projection coefﬁcient has the representation
+β∗
+cls = argmin
+R ′β=c
+E
+[(
+Y − X ′β
+)2]
+,
+the best linear predictor subject to the constraint (8.1). The minimum distance estimator converges in
+probability to
+β∗
+md = argmin
+R ′β=c
+(
+β − β0
+)′ W
+(
+β − β0
+)
+where β0 is the true coefﬁcient. That is, β∗
+md is the coefﬁcient vector satisfying (8.1) closest to the true
+value in the weighted Euclidean norm. These calculations show that the constrained estimators are still
+reasonable in the sense that they produce good approximations to the true coefﬁcient conditional on
+being required to satisfy the constraint.
+We can also show that ˜βmd has an asymptotic normal distribution. The trick is to deﬁne the pseudo-
+true value
+β∗
+n = β − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1 (
+c ∗ − c
+)
+. (8.39)
+(Note that (8.38) and (8.39) are different!) Then
+p
+n
+(˜βmd − β∗
+n
+)
+=
+p
+n
+(ˆβ − β
+)
+− ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1 p
+n
+(
+R ′ ˆβ − c ∗)
+=
+(
+I k − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1
+R ′
+) p
+n
+(ˆβ − β
+)
+− →
+d
+(
+I k − W −1R
+(
+R ′W −1R
+)−1
+R ′
+)
+N
+(
+0,V β
+)
+= N
+(
+0,V β(W )
+)
+. (8.40)
+In particular p
+n
+(˜βemd − β∗
+n
+)
+− →
+d
+N
+(
+0,V ∗
+β
+)
+.
+This means that even when the constraint (8.1) is misspeciﬁed the conventional covariance matrix es-
+timator (8.35) and standard errors (8.36) are appropriate measures of the sampling variance though the
+
+
+--- page 19 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 214
+distributions are centered at the pseudo-true values (projections) β∗
+n rather than β. The fact that the
+estimators are biased is an unavoidable consequence of misspeciﬁcation.
+An alternative approach to the asymptotic distribution theory under misspeciﬁcation uses the con-
+cept of local alternatives. It is a technical device which might seem a bit artiﬁcial but it is a powerful
+method to derive useful distributional approximations in a wide variety of contexts. The idea is to index
+the true coefﬁcientβn by n via the relationship
+R ′βn = c + δn−1/2. (8.41)
+for some δ ∈ Rq . Equation (8.41) speciﬁes that βn violates (8.1) and thus the constraint is misspeciﬁed.
+However, the constraint is “close” to correct as the difference R ′βn − c = δn−1/2 is “small” in the sense
+that it decreases with the sample size n. We call (8.41) local misspeciﬁcation.
+The asymptotic theory is derived as n → ∞ under the sequence of probability distributions with the
+coefﬁcientsβn. The way to think about this is that the true value of the parameter is βn and it is “close”
+to satisfying (8.1). The reason why the deviation is proportional ton−1/2 is because this is the only choice
+under which the localizing parameter δ appears in the asymptotic distribution but does not dominate it.
+The best way to see this is to work through the asymptotic approximation.
+Since βn is the true coefﬁcient value, thenY = X ′βn + e and we have the standard representation for
+the unconstrained estimator, namely
+p
+n
+(ˆβ − βn
+)
+=
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+1pn
+n∑
+i =1
+Xi ei
+)
+− →
+d
+N
+(
+0,V β
+)
+. (8.42)
+There is no difference under ﬁxed (classical) or local asymptotics since the right-hand-side is indepen-
+dent of the coefﬁcientβn.
+A difference arises for the constrained estimator. Using (8.41), c = R ′βn − δn−1/2 so
+R ′ ˆβ − c = R ′ (ˆβ − βn
+)
++ δn−1/2
+and
+˜βmd = ˆβ − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1 (
+R ′ ˆβ − c
+)
+= ˆβ − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1
+R ′ (ˆβ − βn
+)
++ ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1
+δn−1/2.
+It follows that
+p
+n
+(˜βmd − βn
+)
+=
+(
+I k − ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1
+R ′
+) p
+n
+(ˆβ − βn
+)
++ ˆW
+−1
+R
+(
+R ′ˆW
+−1
+R
+)−1
+δ.
+The ﬁrst term is asymptotically normal (from 8.42)). The second term converges in probability to a con-
+stant. This is because the n−1/2 local scaling in (8.41) is exactly balanced by thepn scaling of the estima-
+tor. No alternative rate would have produced this result.
+Consequently we ﬁnd that the asymptotic distribution equals
+p
+n
+(˜βmd − βn
+)
+− →
+d
+N
+(
+0,V β
+)
++ W −1R
+(
+R ′W −1R
+)−1
+δ = N
+(
+δ∗,V β(W )
+)
+(8.43)
+where δ∗ = W −1R
+(
+R ′W −1R
+)−1 δ.
+The asymptotic distribution (8.43) is an approximation of the sampling distribution of the restricted
+estimator under misspeciﬁcation. The distribution (8.43) contains an asymptotic bias component δ∗.
+The approximation is not fundamentally different from (8.40) – they both have the same asymptotic
+variances and both reﬂect the bias due to misspeciﬁcation. The difference is that (8.40) puts the bias on
+the left-side of the convergence arrow while (8.43) has the bias on the right-side. There is no substantive
+difference between the two. However, (8.43) is more convenient for some purposes such as the analysis
+of the power of tests as we will explore in the next chapter.
+
+
+--- page 20 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 215
+8.14 Nonlinear Constraints
+In some cases it is desirable to impose nonlinear constraints on the parameter vectorβ. They can be
+written as
+r (β) = 0 (8.44)
+where r : Rk → Rq . This includes the linear constraints (8.1) as a special case. An example of (8.44) which
+cannot be written as (8.1) is β1β2 = 1, which is (8.44) with r (β) = β1β2 − 1.
+The constrained least squares and minimum distance estimators ofβ subject to (8.44) solve the min-
+imization problems
+˜βcls = argmin
+r (β)=0
+SSE(β) (8.45)
+˜βmd = argmin
+r (β)=0
+J
+(
+β
+)
+(8.46)
+where SSE(β) and J
+(
+β
+)
+are deﬁned in (8.4) and (8.19), respectively. The solutions solve the Lagrangians
+L (β, λ) = 1
+2 SSE(β) + λ′r (β)
+or
+L (β, λ) = 1
+2 J
+(
+β
+)
++ λ′r (β) (8.47)
+over (β, λ).
+Computationally there is no general closed-form solution so they must be found numerically. Algo-
+rithms to numerically solve (8.45) and (8.46) are known as constrained optimization methods and are
+available in programming languages including MATLAB, GAUSS and R. See Chapter 12 of Introduction
+to Econometrics.
+Assumption 8.3
+1. r (β) = 0.
+2. r (β) is continuously differentiable at the true β.
+3. rank(R ) = q, where R = ∂
+∂β r (β)′.
+The asymptotic distribution is a simple generalization of the case of a linear constraint but the proof
+is more delicate.
+
+
+--- page 21 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 216
+Theorem 8.10 Under Assumptions 7.2, 8.2, and 8.3, for ˜β = ˜βmd and ˜β = ˜βcls
+deﬁned in (8.45) and (8.46),
+p
+n
+(˜β − β
+)
+− →
+d
+N
+(
+0,V β(W )
+)
+as n → ∞ where V β(W ) is deﬁned in (8.24). For ˜βcls, W = Q X X and V β(W ) =
+V cls as deﬁned in Theorem 8.8. V β(W ) is minimized with W = V −1
+β in which
+case the asymptotic variance is
+V ∗
+β = V β − V βR
+(
+R ′V βR
+)−1 R ′V β.
+The asymptotic covariance matrix for the efﬁcient minimum distance estimator can be estimated by
+ˆV
+∗
+β = ˆV β − ˆV β ˆR
+(
+ˆR
+′ ˆV β ˆR
+)−1
+ˆR
+′ ˆV β
+where
+ˆR = ∂
+∂β r ( ˜βmd)′. (8.48)
+Standard errors for the elements of ˜βmd are the square roots of the diagonal elements of ˆV
+∗
+˜β = n−1 ˆV
+∗
+β.
+8.15 Inequality Restrictions
+Inequality constraints on the parameter vector β take the form
+r (β) ≥ 0 (8.49)
+for some function r : Rk → Rq . The most common example is a non-negative constraint β1 ≥ 0.
+The constrained least squares and minimum distance estimators can be written as
+˜βcls = argmin
+r (β)≥0
+SSE(β) (8.50)
+and
+˜βmd = argmin
+r (β)≥0
+J
+(
+β
+)
+. (8.51)
+Except in special cases the constrained estimators do not have simple algebraic solutions. An impor-
+tant exception is when there is a single non-negativity constraint, e.g. β1 ≥ 0 with q = 1. In this case the
+constrained estimator can be found by the following approach. Compute the uncontrained estimator ˆβ.
+If ˆβ1 ≥ 0 then ˜β = ˆβ. Otherwise if ˆβ1 < 0 then impose β1 = 0 (eliminate the regressor X1) and re-estimate.
+This method yields the constrained least squares estimator. While this method works when there is a
+single non-negativity constraint, it does not immediately generalize to other contexts.
+The computation problems (8.50) and (8.51) are examples of quadratic programming. Quick com-
+puter algorithms are available in programming languages including MATLAB, GAUSS and R.
+Inference on inequality-constrained estimators is unfortunately quite challenging. The conventional
+asymptotic theory gives rise to the following dichotomy. If the true parameter satisﬁes the strict in-
+equality r (β) > 0 then asymptotically the estimator is not subject to the constraint and the inequality-
+constrained estimator has an asymptotic distribution equal to the unconstrained case. However if the
+
+
+--- page 22 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 217
+true parameter is on the boundary, e.g., r (β) = 0, then the estimator has a truncated structure. This is
+easiest to see in the one-dimensional case. If we have an estimator ˆβ which satisﬁespn
+(ˆβ − β
+)
+− →
+d
+Z =
+N
+(
+0,Vβ
+)
+and β = 0, then the constrained estimator ˜β = max[ ˆβ,0] will have the asymptotic distributionpn ˜β − →
+d
+max[Z , 0], a “half-normal” distribution.
+8.16 Technical Proofs*
+Proof of Theorem 8.9, equation (8.28) Let R ⊥ be a full rank k ×
+(
+k − q
+)
+matrix satisfying R ′
+⊥V βR = 0 and
+then set C = [R, R ⊥] which is full rank and invertible. Then we can calculate that
+C ′V ∗
+βC =
+[
+R ′V ∗
+βR R ′V ∗
+βR ⊥
+R ′
+⊥V ∗
+βR R ′
+⊥V ∗
+βR ⊥
+]
+=
+[ 0 0
+0 R ′
+⊥V βR ⊥
+]
+and
+C ′V β(W )C
+=
+[
+R ′V ∗
+β(W )R R ′V ∗
+β(W )R ⊥
+R ′
+⊥V ∗
+β(W )R R ′
+⊥V ∗
+β(W )R ⊥
+]
+=
+[
+0 0
+0 R ′
+⊥V βR ⊥ + R ′
+⊥W R
+(
+R ′W R
+)−1R ′V βR
+(
+R ′W R
+)−1 R ′W R ⊥
+]
+.
+Thus
+C ′
+(
+V β(W ) − V ∗
+β
+)
+C
+= C ′V β(W )C −C ′V ∗
+βC
+=
+[
+0 0
+0 R ′
+⊥W R
+(
+R ′W R
+)−1 R ′V βR
+(
+R ′W R
+)−1 R ′W R ⊥
+]
+≥ 0
+Since C is invertible it follows that V β(W ) − V ∗
+β ≥ 0 which is (8.28). ■
+Proof of Theorem 8.10 We show the result for the minimum distance estimator ˜β = ˜βmd as the proof
+for the constrained least squares estimator is similar. For simplicity we assume that the constrained
+estimator is consistent ˜β − →p β. This can be shown with more effort, but requires a deeper treatment
+than appropriate for this textbook.
+For each element r j (β) of the q-vector r (β), by the mean value theorem there exists a β∗
+j on the line
+segment joining ˜β and β such that
+r j ( ˜β) = r j (β) + ∂
+∂β r j (β∗
+j )′ (˜β − β
+)
+. (8.52)
+Let R ∗
+n be the k × q matrix
+R ∗ =
+[ ∂
+∂β r1(β∗
+1 ) ∂
+∂β r2(β∗
+2 ) · · · ∂
+∂β rq (β∗
+q )
+]
+.
+
+
+--- page 23 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 218
+Since ˜β − →p β it follows that β∗
+j − →p β, and by the CMT ,R ∗ − →p R. Stacking the (8.52), we obtain
+r ( ˜β) = r (β) + R ∗′ (˜β − β
+)
+.
+Since r
+(˜β
+)
+= 0 by construction and r (β) = 0 by Assumption 8.1 this implies
+0 = R ∗′ (˜β − β
+)
+. (8.53)
+The ﬁrst-order condition for (8.47) is ˆW
+(ˆβ − ˜β
+)
+= ˆR ˜λ where ˆR is deﬁned in (8.48). Premultiplying by
+R ∗′ˆW
+−1
+, inverting, and using (8.53), we ﬁnd
+˜λ =
+(
+R ∗′ˆW
+−1 ˆR
+)−1
+R ∗′ (ˆβ − ˜β
+)
+=
+(
+R ∗′ˆW
+−1 ˆR
+)−1
+R ∗′ (ˆβ − β
+)
+.
+Thus
+˜β − β =
+(
+I k − ˆW
+−1 ˆR
+(
+R ∗′
+n ˆW
+−1 ˆR
+)−1
+R ∗′
+n
+) (ˆβ − β
+)
+. (8.54)
+From Theorem 7.3 and Theorem 7.6 we ﬁnd
+p
+n
+(˜β − β
+)
+=
+(
+I k − ˆW
+−1 ˆR
+(
+R ∗′
+n ˆW
+−1 ˜R
+)−1
+R ∗′
+n
+) p
+n
+(ˆβ − β
+)
+− →
+d
+(
+I k − W −1R
+(
+R ′W −1R
+)−1
+R ′
+)
+N
+(
+0,V β
+)
+= N
+(
+0,V β(W )
+)
+.
+■
+_____________________________________________________________________________________________
+8.17 Exercises
+Exercise 8.1 In the model Y = X ′
+1β1 + X ′
+2β2 +e, show directly from deﬁnition (8.3) that the CLS estimator
+of β = (β1, β2) subject to the constraint that β2 = 0 is the OLS regression of Y on X1.
+Exercise 8.2 In the model Y = X ′
+1β1 + X ′
+2β2 +e, show directly from deﬁnition (8.3) that the CLS estimator
+of β = (β1, β2) subject to the constraint β1 = c (where c is some given vector) is OLS of Y − X ′
+1c on X2.
+Exercise 8.3 In the model Y = X ′
+1β1 + X ′
+2β2 + e, with β1 and β2 each k × 1, ﬁnd the CLS estimator of
+β = (β1, β2) subject to the constraint that β1 = −β2.
+Exercise 8.4 In the linear projection model Y = α + X ′β + e consider the restriction β = 0.
+(a) Find the CLS estimator of α under the restriction β = 0.
+(b) Find an expression for the efﬁcient minimum distance estimator of α under the restriction β = 0.
+Exercise 8.5 Verify that for ˜βcls deﬁned in (8.8) thatR ′ ˜βcls = c.
+Exercise 8.6 Prove Theorem 8.1.
+Exercise 8.7 Prove Theorem 8.2, that is, E
+[˜βcls |X
+]
+= β, under the assumptions of the linear regression
+regression model and (8.1). (Hint: Use Theorem 8.1.)
+
+
+--- page 24 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 219
+Exercise 8.8 Prove Theorem 8.3.
+Exercise 8.9 Prove Theorem 8.4. That is, showE
+[
+s2
+cls |X
+]
+= σ2 under the assumptions of the homoskedas-
+tic regression model and (8.1).
+Exercise 8.10 Verify (8.22), (8.23), and that the minimum distance estimator ˜βmd with ˆW = ˆQ X X equals
+the CLS estimator.
+Exercise 8.11 Prove Theorem 8.6.
+Exercise 8.12 Prove Theorem 8.7.
+Exercise 8.13 Prove Theorem 8.8. (Hint: Use that CLS is a special case of Theorem 8.7.)
+Exercise 8.14 Verify that (8.26) is V β(W ) with W = V −1
+β .
+Exercise 8.15 Prove (8.27). Hint: Use (8.26).
+Exercise 8.16 Verify (8.29), (8.30) and (8.31).
+Exercise 8.17 Verify (8.32), (8.33), and (8.34).
+Exercise 8.18 Suppose you have two independent samples each with n observations which satisfy the
+models Y1 = X ′
+1β1+e1 with E[X1e1] = 0 and Y2 = X ′
+2β2+e2 with E[X2e2] = 0 where β1 and β2 are both k × 1.
+You estimateβ1 and β2 by OLS on each sample, with consistent asymptotic covariance matrix estimators
+ˆV β1 and ˆV β2. Consider efﬁcient minimum distance estimation under the restrictionβ1 = β2.
+(a) Find the estimator ˜β of β = β1 = β2.
+(b) Find the asymptotic distribution of ˜β.
+(c) How would you approach the problem if the sample sizes are different, say n1 and n2?
+Exercise 8.19 Use the cps09mar dataset and the subsample of white male Hispanics.
+(a) Estimate the regression
+álog(wage) = β1 education + β2 experience + β3 experience2/100 + β4married1
++ β5married2 + β6married3 + β7widowed + β8divorced + β9separated + β10
+where married1, married2, and married3 are the ﬁrst three marital codes listed in Section 3.22.
+(b) Estimate the equation by CLS imposing the constraints β4 = β7 and β8 = β9. Report the estimates
+and standard errors.
+(c) Estimate the equation using efﬁcient minimum distance imposing the same constraints. Report
+the estimates and standard errors.
+(d) Under what constraint on the coefﬁcients is the wage equation non-decreasing in experience for
+experience up to 50?
+(e) Estimate the equation imposing β4 = β7, β8 = β9, and the inequality from part (d).
+
+
+--- page 25 ---
+
+CHAPTER 8. RESTRICTED ESTIMATION 220
+Exercise 8.20 Take the model
+Y = m(X ) + e
+m(x) = β0 + β1x + β2x2 + · · · +βp x p
+E
+[
+X j e
+]
+= 0, j = 0, ...,p
+g (x) = d
+d xm(x)
+with i.i.d. observations (Y i , Xi ), i = 1, ...,n. The order of the polynomial p is known.
+(a) How should we interpret the function m(x) given the projection assumption? How should we in-
+terpret g (x)? (Brieﬂy)
+(b) Describe an estimator ˆg (x) of g (x).
+(c) Find the asymptotic distribution of pn
+(
+ˆg (x) − g (x)
+)
+as n → ∞.
+(d) Show how to construct an asymptotic 95% conﬁdence interval for g (x) (for a single x).
+(e) Assume p = 2. Describe how to estimate g (x) imposing the constraint that m(x) is concave.
+(f) Assume p = 2. Describe how to estimate g (x) imposing the constraint that m(u) is increasing on
+the region u ∈ [xL, xU ].
+Exercise 8.21 Take the linear model with restrictions Y = X ′β + e with E[X e] = 0 and R ′β = c. Consider
+three estimators for β:
+• ˆβ the unconstrained least squares estimator
+• ˜β the constrained least squares estimator
+• β the constrained efﬁcient minimum distance estimator
+For the three estimator deﬁne the residuals ˆei = Yi − X ′
+i
+ˆβ, ˜ei = Yi − X ′
+i
+˜β, ei = Yi − X ′
+i β, and variance
+estimators ˆσ2 = n−1 ∑n
+i =1 ˆe2
+i , ˜σ2 = n−1 ∑n
+i =1 ˜e2
+i , and
+σ2 = n−1 ∑n
+i =1
+e2
+i .
+(a) As β is the most efﬁcient estimator and ˆβ the least, do you expect σ2 < ˜σ2 < ˆσ2 in large samples?
+(b) Consider the statistic
+Tn = ˆσ−2
+n∑
+i =1
+(ˆei − ˜ei )2 .
+Find the asymptotic distribution for Tn when R ′β = c is true.
+(c) Does the result of the previous question simplify when the error ei is homoskedastic?
+Exercise 8.22 Take the linear modelY = X1β1 + X2β2 +e with E[X e] = 0. Consider the restriction β1
+β2
+= 2.
+(a) Find an explicit expression for the CLS estimator ˜β = ( ˜β1, ˜β2) of β = (β1, β2) under the restriction.
+Your answer should be speciﬁc to the restriction. It should not be a generic formula for an abstract
+general restriction.
+(b) Derive the asymptotic distribution of ˜β1 under the assumption that the restriction is true.

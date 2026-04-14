@@ -1,0 +1,1529 @@
+--- page 1 ---
+
+Chapter 24
+Quantile Regression
+24.1 Introduction
+This chapter introduces median regression (least absolute deviations) and quantile regression. An
+excellent monograph on the subject is Koenker (2005).
+A conventional goal in econometrics is estimation of impact of a variable X on another variable Y .
+We have discussed projections and conditional means but these are not the only measures of impact.
+Alternative measures include the conditional median and conditional quantile. We will focus on the
+case of continuously-distributed Y where quantiles are uniquely deﬁned.
+24.2 Median Regression
+Recall that the median of Y is the value m = med[Y ] such that P[Y ≤ m] = P[Y ≥ m] = 0.5. The
+median can be thought of the “typical realization” . For example, the median wage $19.23 in the CPS
+dataset can be interpreted as the wage of a “typical wage-earner” . One-half of wage earners have wages
+less than $19 and one-half have wages greater than $19.
+When a distribution is symmetric then the median equals the mean but when the distribution is
+asymmetric they differ.
+Throughout this textbook we have primarily focused on conditional relationships. For example, the
+conditional mean is the expected value within a sub-population. Similarly we deﬁne the conditional
+median as the median of a sub-population.
+Deﬁnition 24.1 The conditional median of Y given X = x is the value m(x) =
+med[Y |X = x] such that P[Y ≤ m(x) |X = x] = 0.5.
+For example, in the CPS sample the median wage for men is $21.15 and the median wage for women
+is $16.83. These are the wages of a “typical” man and woman.
+We can write the relationship between Y and X as the median regression model:
+Y = m(X ) + e
+med[e |X ] = 0.
+780
+
+
+--- page 2 ---
+
+CHAPTER 24. QUANTILE REGRESSION 781
+As stated this is simply a deﬁnitional framework.m(X ) is the conditional median given the random vari-
+able X . The error e is the deviation of Y from its conditional median and by deﬁnition has a conditional
+median of zero.
+We callm(x) the median regression function. In general it can take any shape. However, for practical
+convenience we focus on models which are linear in parameters m(x) = x′β. (This is not fundamentally
+restrictive as it allows series approximations.) This gives rise to the linear median regression model:
+Y = X ′β + e (24.1)
+med[e |X ] = 0.
+Equivalently, the model states that med [Y |X ] = X ′β. As in the case of regression the true median re-
+gression function is not necessarily linear, so the assumption of linearity is a meaningful assumption.
+The model resembles the linear regression model but is different. The coefﬁcients β in the median and
+mean regression models are not necessarily equal to one another.
+To estimate β it is useful to characterize β as a function of the distribution. Recall that the least
+squares estimator is derived from the foundational property that the mean minimizes the expected
+squared loss, that is, µ = argminθ E
+[
+(Y − θ)2]
+. We now present analogous properties of the median.
+Deﬁne the sign function
+d
+d x |x|= sgn(x) =
+{ 1{x > 0} − 1{x < 0}, x ̸= 0
+0 x = 0.
+Theorem 24.1 Assume Y is continuously distributed. Then the median m sat-
+isﬁes
+E
+[
+sgn(Y − m)
+]
+= 0. (24.2)
+If in addition E |Y |< ∞ it satisﬁes
+m = argmin
+θ
+E |Y − θ|. (24.3)
+If the conditional distribution F (y |x) of Y given X = x is continuous in y the
+conditional median error e = Y − m(X ) satisﬁes
+E
+[
+sgn(e) |X
+]
+= 0. (24.4)
+If in addition E |Y |< ∞ the conditional median satisﬁes
+m(x) = argmin
+θ
+E[|Y − θ||X = x]. (24.5)
+If (Y , X ) satisfy the linear median regression model (24.1) and E |Y |< ∞ then
+the coefﬁcientβ satisﬁes
+β = argmin
+b
+E
+⏐⏐Y − X ′b
+⏐
+⏐. (24.6)The proof is in Section 24.16.
+
+
+--- page 3 ---
+
+CHAPTER 24. QUANTILE REGRESSION 782
+Expression (24.6) is foundational. It shows that the median regression coefﬁcient β minimizes the
+expected absolute difference betweenY and the predicted value X ′β. This is foundational as it expresses
+the coefﬁcient as a function of the probability distribution. This result is a direct analog of the property
+that the mean regression coefﬁcient minimizes the expected squared loss. The difference between the
+two is the loss function – the measure of the magnitude of a prediction error. To visualize, Figure 24.1(a)
+displays the two loss functions. Comparing the two, squared loss puts small penalty on small errors yet
+large penalty on large errors. Both are symmetric and so treat positive and negative errors identically.
+In applications the linear assumptionX ′β is unlikely to be valid except in a saturated dummy variable
+regression. Thus in practice we should view a linear model as a useful approximation rather than a literal
+truth. To allow the model to be an approxiamtion we deﬁne the coefﬁcientβ as the best linear median
+predictor
+β
+def
+= argmin
+b
+E
+⏐⏐Y − X ′b
+⏐
+⏐. (24.7)
+This equals the true conditional median coefﬁcient when the conditional median is linear, but is deﬁned
+for general distributions satisfying E |Y |< ∞. The ﬁrst order condition for minimization implies that
+E
+[
+X sgn(e)
+]
+= 0. (24.8)
+The facts that (24.4) holds for median regression and (24.8) for the best linear median predictor are
+analogs to the relationships E[e |X ] = 0 and E[X e] = 0 in the conditional mean and linear projection
+models.
+24.3 Least Absolute Deviations
+Theorem 24.1 shows that in the linear median regression model the median regression coefﬁcient
+minimizes M(β) = E
+⏐⏐Y − X ′β
+⏐
+⏐, the expected absolute error. The sample estimator of this function is the
+average of absolute errors
+Mn(β) = 1
+n
+n∑
+i =1
+⏐
+⏐Yi − X ′
+i β
+⏐
+⏐.
+This is similar to the classical average of squared errors function but instead is the average of absolute er-
+rors. By not squaring the errors, Mn(β) puts less penalty on large errors relative to the average of squared
+errors function.
+Since β minimizes M(β) which is estimated by Mn(β) the m-estimator for β is the minimizer of
+Mn(β):
+ˆβ = argmin
+β
+Mn(β).
+This is called the Least Absolute Deviations (LAD) estimator of β as it minimizes the sum of absolute
+“deviations” of Yi from the ﬁtted valueX ′
+i β. The function ˆm(x) = x′ ˆβ is the median regression estimator.
+The LAD estimator ˆβ does not has a closed form solution so must be found by numerical minimization.
+The LAD residuals are ˆei = Yi − X ′
+i
+ˆβ. They approximately satisfy the property
+1
+n
+n∑
+i =1
+Xi sgn(ˆei ) ≃ 0.
+The approximation holds exactly if ˆei ̸= 0 for all i which can occur when Y is continuously distributed.
+This is the sample version of (24.8).
+The criterion Mn(β) is globally continuous and convex. Its surface resembles the surface of an in-
+verted cut gemstone, as it is covered by a network of ﬂat facets. The facets are joined at then lines where
+
+
+--- page 4 ---
+
+CHAPTER 24. QUANTILE REGRESSION 783
+sgn
+(
+Yi − X ′
+i β
+)
+= 0. To illustrate, Figure 24.1(b) displays the LAD criterion Mn(β) for seven observations1
+with a single regressor and no intercept. The LAD estimator is the minimizer.
+Since the criterion is faceted the minimum may be a set. Furthermore, since the criterion has dis-
+continuous derivatives classical minimization methods fail. The minimizer can be deﬁned by a set of
+linear constraints so linear programming methods are appropriate. Fortunately for applications good
+estimation algorithms are available and simple to use.
+x
+x
+x2
+(a) Quadratic and Absolute Loss Func-
+tions
+●
+●
+●
+●
+●
+●
+●
+β
+0.17 0.18 0.19 0.20 0.21 0.22
+Mn(β) (b) LAD Criterion with n = 7
+β
+0.16 0.17 0.18 0.19 0.20 0.21 0.22 0.23 0.24 0.25 0.26
+Mn(β) (c) LAD Criterion with n = 50,742
+Figure 24.1: LAD Criterion
+In large samples when Y has a continuous distribution the criterion approaches a smooth function.
+To illustrate Figure 24.1(c) displays the LAD criterionMn(β) for the full n = 50,742 sample. This criterion
+Mn(β) has 11,248 facets (the number is less than the number of observations since there are ties in the
+wage observations) but the large number makes the criterion visually smooth and close to quadratic.
+In Stata, LAD is implemented by qreg. In R, LAD is implemented by rq in the quantreg package.
+24.4 Quantile Regression
+The mean and median are measures of the central tendency of a distribution. A measure of the
+spread of the distribution is its quantiles. Recall that for τ ∈ [0,1] the τt h quantile qτ of Y is deﬁned as
+the value such that P
+[
+Y ≤ qτ
+]
+= τ. The median is the special case τ = 0.5. It will be convenient to deﬁne
+the quantile operator Qτ[Y ] as the solution to the equation
+P[Y ≤ Qτ[Y ]] = τ.
+As an example, take the distribution of wages from the CPS dataset. The median wage is $21.14. This
+tells us the “typical” wage rate but not the range of typical values. The 0.2 quantile is $11.65 and the 0.8
+quantile is $31.25. This shows us that 20% of wage earners had wages of $11.65 or below and 20% had
+wages of $31.25 and above.
+We are also interested in the quantiles of conditional distributions. Continuing the above example,
+consider the distribution of wages among men and women. The 0.2, 0.5, and 0.8 quantiles are displayed
+in Table 24.1. We see that the differences between men’ s and women’ s wages are increasing by quantile.
+1These are seven of the twenty observations from Table 3.1.
+
+
+--- page 5 ---
+
+CHAPTER 24. QUANTILE REGRESSION 784
+Table 24.1: Quantiles of Wage Distribution
+q.2 q.5 q.8
+All $11.65 $19.23 $31.25
+Men $12.82 $21.14 $35.90
+Women $10.58 $16.83 $26.44
+Deﬁnition 24.2 The conditional quantile of Y given X = x is the value qτ(x)
+such that P
+[
+Y ≤ qτ(x) |X = x
+]
+= τ.
+Given this notation we deﬁne the conditional quantile operators Qτ [Y |X = x] and Qτ [Y |X ]. The
+function qτ(x) is also called the quantile regression function.
+The conditional quantile function qτ(x) can take any shape with respect to x. It is monotonically
+increasing in τ, thus if τ1 < τ2 then qτ1(x) ≤ qτ2(x) for all x.
+● ● ● ● ● ● ● ● ● ●
+●
+●
+Y ears of Education
+Dollars per Hour
+4 6 8 10 12 14 16 18 20
+10 20 30 40 50 60 70 80 90 100 110● ● ● ● ● ●
+● ●
+●
+●
+●
+●
+●
+●
+90%
+70%
+50%
+30%
+10%
+(a) Wage Quantile Regression
+● ● ● ●
+● ●
+●
+●
+●
+●
+●
+●
+Y ears of Education
+log(Dollars per Hour)
+4 6 8 10 12 14 16 18 20
+2 3 4
+● ●
+● ●
+● ●
+●
+●
+●
+●
+●
+●
+●
+●
+90%
+70%
+50%
+30%
+10% (b) log(Wage) Quantile Regression
+x
+ρ0.5(x)
+ρ0.2(x) (c) Quantile Loss for τ = 0.5 and τ = 0.2
+Figure 24.2: Quantile Regressions
+To illustrate we display in Figure 24.2(a) the conditional quantile function of U.S. wages 2 as a func-
+tion of education, for τ = 0.1, 0.3, 0.5, 0.7, and 0.9. The ﬁve lines plotted are the quantile regression
+functions qτ(x) with wage on the y-axis and education on the x-axis. For each level of education the
+conditional quantiles qτ(x) are strictly ranked in τ, though for low levels of education they are close to
+one another. The ﬁve quantile regression functions are (generally) increasing in education, though not
+monotonically. The quantile regression functions also spread out as education increases; thus the gap
+between the quantiles increases with education. These quantile regression functions provide a summary
+of the conditional distribution of wages given education.
+A useful feature of quantile regression is that it is equivariant to monotone transformations. If Y2 =
+φ(Y1) where φ(y) is nondecreasing then Qτ [Y2 |X = x] = φ(Qτ [Y1 |X = x]). Alternatively, if q1
+τ(x) and
+q2
+τ(x) are the quantile functions ofY1 and Y2 then q2
+τ(x) = φ
+(
+q1
+τ(x)
+)
+. For example, the quantile regression
+of log wages on education is the logarithm of the quantile regression of wages on eduction. This is dis-
+played in Figure 24.2(b). Interestingly, the quantile regression functions of log wages are roughly parallel
+with one another and are roughly linear in education for levels above 12 years.
+2Calculated using the full cps90mar dataset.
+
+
+--- page 6 ---
+
+CHAPTER 24. QUANTILE REGRESSION 785
+We deﬁne thequantile regression model analogously to the median regression model:
+Y = qτ(X ) + e
+Qτ [e |X ] = 0.
+An important feature of the quantile regression model is that the error e is not centered at zero. Instead
+it is centered so that its τt h quantile is zero. This is a normalization but it points out that the meaning
+of the intercept changes when we move from mean regression to quantile regression and as we move
+between quantiles. The linear quantile regression model is
+Y = X ′βτ + e (24.9)
+Qτ [e |X ] = 0.
+Recall that the mean minimizes the squared error loss and the median minimizes the absolute error
+loss. There is an analog for the quantile. Deﬁne the tilted absolute loss function:
+ρτ (x) =
+{ −x (1 − τ) x < 0
+xτ x ≥ 0 (24.10)
+= x (τ − 1{x < 0}).
+For τ = 0.5 this is the scaled absolute loss 1
+2 |x|. For τ < 0.5 the function is tilted to the right. For τ > 0 it
+is tilted to the left. To visualize, Figure 24.2(c) displays the functions ρτ (x) for τ = 0.5 and τ = 0.2. The
+latter function is a tilted version of the former. The function ρτ(x) has come to be known as the check
+function because it resembles a check mark (✓).
+Let ψτ(x) = d
+d xρτ(x) = τ − 1{x < 0} for x ̸= 0. We now describe some properties of the quantile regres-
+sion function.
+Theorem 24.2 Assume Y is continuously distributed. Then the quantile qτ
+satisﬁes
+E
+[
+ψτ
+(
+Y − qτ
+)]
+= 0. (24.11)
+If in addition E |Y |< ∞ it satisﬁes
+qτ = argmin
+θ
+E
+[
+ρτ (Y − θ)
+]
+. (24.12)
+If the conditional distribution F (y |x) of Y given X = x is continuous in y the
+conditional quantile error e = Y − qτ(X ) satisﬁes
+E
+[
+ψτ (e) |X
+]
+= 0. (24.13)
+If in addition E |Y |< ∞ the conditional quantile function satisﬁes
+qτ(x) = argmin
+θ
+E
+[
+ρτ (Y − θ) |X = x
+]
+. (24.14)
+If (Y , X ) satisfy the linear quantile regression model (24.9) and E |Y |< ∞ then
+the coefﬁcientβ satisﬁes
+β = argmin
+b
+E
+[
+ρτ
+(
+Y − X ′b
+)]
+. (24.15)
+
+
+--- page 7 ---
+
+CHAPTER 24. QUANTILE REGRESSION 786
+The proof is in Section 24.16.
+Expression (24.15) shows that the quantile regression coefﬁcient β minimizes the expected check
+function distance between Y and the predicted value X ′β. This connects quantile regression with me-
+dian and mean regression.
+As for mean and median regression we should think of the linear modelX ′β as an approximation. In
+general we therefore deﬁne the coefﬁcientβ as the best linear quantile predictor
+βτ
+def
+= argmin
+b
+E
+[
+ρτ
+(
+Y − X ′b
+)]
+. (24.16)
+This equals the true conditional quantile coefﬁcient when true function is linear. The ﬁrst order condi-
+tion for minimization implies that
+E
+[
+X ψτ (e)
+]
+= 0.
+Unlike the best linear predictor we do not have an explicit expression forβτ. However from its deﬁnition
+we can see that βτ will produce an approximation x′βτ to the true conditional quantile function qτ(x)
+with the approximation weighted by the probability distribution of X .
+24.5 Example Quantile Shapes
+x
+q0.1(x)
+q0.3(x)
+q0.5(x)
+q0.7(x)
+q0.9(x)
+(a) Linear
+x
+q0.1(x)
+q0.3(x)
+q0.5(x)
+q0.7(x)
+q0.9(x) (b) Parallel
+x
+q0.1(x)
+q0.3(x)
+q0.5(x)
+q0.7(x)
+q0.9(x) (c) Coefﬁcient Heterogeneity
+Figure 24.3: Quantile Shapes
+Linear Quantile Functions
+The linear quantile regression model implies that the the quantile functions qτ(x) are linear in x. An
+example is shown in Figure 24.3(a). Here we plot linear quantile regression functions for τ = 0.1, 0.3, 0.5,
+0.7, and 0.9. In this example the slopes are positive and increasing with τ.
+Linear quantile regressions are convenient as they are simple to estimate and report. Sometimes lin-
+earity can be induced by judicious choice of variable transformation. Compare the quantile regressions
+in Figure 24.2(a) and Figure 24.2(b). The quantile regression functions for the level of wages appear to
+be concave; in contrast the quantile regression functions for log wages are close to linear for education
+above 12 years.
+Parallel Quantile Functions
+
+
+--- page 8 ---
+
+CHAPTER 24. QUANTILE REGRESSION 787
+Consider the model Y = m(X ) + e with e independent of X . Let zτ be the τt h quantile of e. In this
+case the conditional quantile function for Y is qτ(x) = m(x) + zτ. This implies that the functions qτ1(x)
+and qτ2(x) are parallel so all of the quantile regression functions are mutually parallel.
+An example is shown in Figure 24.3(b). Here we plot a set of quantile regression functions which are
+mutually parallel.
+In this context – when e is independent of X and/or the quantile regression functions are parallel –
+there is little gained by quantile regression analysis relative to mean regression or median regression. The
+models have the same slope coefﬁcients and only differ by their intercepts. Furthermore, a regression
+with e independent of X is a homoskedastic regression. Thus parallel quantile functions is indicative of
+conditional homoskedasticity.
+Once again examine the quantile regression functions for log wages displayed in Figure 24.2(b).
+These functions are visually close to parallel shifts of one another. Thus it appears that the log(wage)
+regression is close to a homoskedastic regression and slope coefﬁcients should be relatively robust to
+estimation by least squares, LAD, or quantile regression. This is a strong motivation for applying the
+logarithmic transformation for a wage regression.
+Coefﬁcient Heterogeneity
+Consider the process Y = η′X where η ∼ N(β, Σ) is independent of X . We described this earlier as
+a random coefﬁcient model, as the coefﬁcients η are speciﬁc to the individual. In this setting the con-
+ditional distribution of Y given X = x is N(x′β, x′Σx) so the conditional quantile functions are qτ(x) =
+x′β+zτ
+p
+x′Σx where zτ is the τt h quantile of N(0,1). These quantile functions are parabolic. An example
+is shown in Figure 24.3(c).
+24.6 Estimation
+Theorem 24.2 shows that in the linear quantile regression model the coefﬁcientβτ minimizes M(β; τ) =
+E
+[
+ρτ
+(
+Y − X ′β
+)]
+, the expected check function loss. The estimator of this function is the sample average
+Mn(β; τ) = 1
+n
+n∑
+i =1
+ρτ
+(
+Yi − X ′
+i β
+)
+.
+Since βτ minimizes M(β; τ) which is estimated by Mn(β; τ) the m-estimator for βτ is the minimizer
+of Mn(β; τ):
+ˆβτ = argmin
+β
+Mn(β; τ).
+This is called the Quantile Regression estimator of βτ. The coefﬁcient ˆβτ does not have a closed form
+solution so must be found by numerical minimization. The minimization techniques are identical to
+those used for median regression; hence typical software packages treat the two together.
+The quantile regression residuals ˆei (τ) = Yi − X ′
+i
+ˆβτ satisfy the approximate property
+1
+n
+n∑
+i =1
+Xi ψτ (ˆei (τ)) ≃ 0. (24.17)
+As for LAD, (24.17) holds exactly if ˆei (τ) ̸= 0 for all i , which occurs with high probability if Y is continu-
+ously distributed.
+In Stata, quantile regression is implemented byqreg. In R, quantile regression is implemented by rq
+in the quantreg package.
+
+
+--- page 9 ---
+
+CHAPTER 24. QUANTILE REGRESSION 788
+24.7 Asymptotic Distribution
+We ﬁrst provide conditions for consistent estimation. Letβτ be deﬁned in (24.16),e = Y − X ′βτ, and
+fτ (e |x) denote the conditional density of e given X = x.
+Theorem 24.3 Consistency of Quantile Regression Estimator
+Assume that (Yi , Xi ) are i.i.d., E |Y |< ∞ , E ∥X ∥ < ∞ , fτ (e |x) exists and satisﬁes
+fτ (e |x) ≤ D < ∞, and the parameter space for β is bounded. For any τ ∈ (0, 1)
+such that
+Q τ
+def
+= E
+[
+X X ′ fτ (0 |X )
+]
+> 0 (24.18)
+then ˆβτ − →p βτ as n → ∞.
+The proof is provided in Section 24.16.
+Theorem 24.3 shows that the quantile regression estimator is consistent for the best linear quantile
+predictor coefﬁcient under broad assumptions.
+A technical condition is (24.18) which is used to establish uniqueness of the coefﬁcient βτ. One
+sufﬁcient condition for (24.18) occurs when the conditional densityfτ (e |x) doesn’t depend onx at e = 0,
+thus fτ (0 |x) = fτ(e) and
+Q τ = E
+[
+X X ′]
+fτ(0). (24.19)
+In this context, (24.18) holds if E
+[
+X X ′]
+> 0 and fτ(0) > 0. The assumption that fτ (e |x) doesn’t depend
+on x at e = 0 (we call this quantile independence) is a traditional assumption in the early median re-
+gression/quantile regression literature, but does not make sense outside the narrow context where e is
+independent of X . Thus we should avoid (24.19) whenever possible, and if not view it as a convenient
+simpliﬁcation rather than a literal truth. The assumption thatfτ(0) > 0 means that there are a non-trivial
+set of observations for which the error e is near zero, or equivalently for which Y is close to X ′βτ. These
+are the observations which provide the decisive information to pin down βτ.
+A weaker way to obtain a sufﬁcient condition for (24.18) is to assume that for some bounded set X
+in the support of X , that (a) E
+[
+X X ′ |X ∈ X
+]
+> 0 and (b) fτ (0 |x) ≥ c > 0 for x ∈ X . This is the same as
+stating that if we truncate the regressor X to a bounded set that the design matrix is full rank and the
+conditional density of the error at zero is bounded away from zero. These conditions are rather abstract
+but mild.
+We now provide the asymptotic distribution.
+Theorem 24.4 Asymptotic Distribution of Quantile Regression Estimator
+In addition to the assumptions of Theorem 24.3, assume that E ∥X ∥3 < ∞ ,
+fτ (e |x) is continuous in e, and βτ is in the interior of the parameter space.
+Then as n → ∞ p
+n
+(ˆβτ − βτ
+)
+− →
+d
+N(0,V τ)
+where V τ = Q −1
+τ ΩτQ −1
+τ and Ωτ = E
+[
+X X ′ψ2
+τ
+]
+for ψτ = τ − 1
+{
+Y < X ′βτ
+}
+.
+
+
+--- page 10 ---
+
+CHAPTER 24. QUANTILE REGRESSION 789
+The proof is provided in Section 24.16.
+Theorem 24.4 shows that the quantile regression estimator is asymptotically normal with a sandwich
+asymptotic covariance matrix. Asymptotic normality does not rely on correct model speciﬁcation, and
+therefore applies broadly for practical applications where linear models are approximations rather than
+literal truths. The proof of the asymptotic distribution relies on the theory for general m-estimators
+(Theorem 22.3). Theorem 24.4 includes the least absolute deviations estimator as the special caseτ = 0.5.
+The asymptotic covariance matrix in Theorem 24.4 simpliﬁes under correct speciﬁcation. IfQτ [Y |X ] =
+X ′βτ then E
+[
+ψ2
+τ |X
+]
+= τ(1 − τ). It follows that Ωτ = τ(1 − τ)Q where Q = E
+[
+X X ′]
+.
+Combined with (24.19) we have three levels of asymptotic covariance matrices.
+1. General: V τ = Q −1
+τ ΩτQ −1
+τ
+2. Correct Speciﬁcation: V c
+τ = τ(1 − τ)Q −1
+τ QQ −1
+τ
+3. Quantile Independence: V 0
+τ = τ(1 − τ)
+fτ(0)2 Q −1
+The quantile independence case V 0
+τ is similar to the homoskedastic least squares covariance matrix.
+While V τ is the generally appropriate covariance matrix formula, the simpliﬁed formula V 0
+τ is eas-
+ier to interpret to obtain intuition about the precision of the quantile regression estimator. Similarly
+to the least squares estimator the covariance matrix is a scale multiple of
+(
+E
+[
+X X ′])−1. Thus it inherits
+the related properties of the least-squares estimator: ˆβτ is more efﬁcient when X has greater variance
+and is less collinear. The covariance matrix V 0
+τ is inversely proportional to fτ(0)2. Thus ˆβτ is more ef-
+ﬁcient when the density is high at 0 which means that there are many observations near the τt h quan-
+tile of the conditional distribution. If there are few observations near the τt h quantile then fτ(0) will
+be small and V 0
+τ large. We can also express this relationship in terms of the standard deviation σ of
+e. Let u = e/σ be the error scaled to have a unit variance, which has density gτ(x) = σfτ(σu). Then
+V 0
+τ = τ(1 − τ)
+gτ(0)2 σ2 (
+E
+[
+X X ′])−1, which is a scale of the homoskedastic least squares covariance matrix.
+24.8 Covariance Matrix Estimation
+There are multiple methods to estimate the asymptotic covariance matrix V τ. The easiest is based
+on the quantile independence assumption, leading to
+ˆV
+0
+τ = τ(1 − τ) ˆfτ(0)−2 ˆQ
+−1
+ˆQ = 1
+n
+n∑
+i =1
+Xi X ′
+i .
+where ˆfτ(0)−2 is a nonparametric estimator of fτ(0)−2. For the latter there are several proposed methods.
+One uses a difference in the distribution function ofY . A second uses a nonparametric estimator offτ(0).
+An estimator of V c
+τ assuming correct speciﬁcation is
+ˆV
+c
+τ = τ(1 − τ) ˆQ
+−1
+τ ˆQ ˆQ
+−1
+τ
+where ˆQ τ is a nonparametric estimator of Q τ. A feasible choice given a bandwidth h is
+ˆQ τ = 1
+2nh
+n∑
+i =1
+Xi X ′
+i 1{|ˆei |< h}.
+
+
+--- page 11 ---
+
+CHAPTER 24. QUANTILE REGRESSION 790
+An estimator of V τ allowing misspeciﬁcation is
+ˆV τ = ˆQ
+−1
+τ ˆΩτ ˆQ
+−1
+τ
+ˆΩτ = 1
+h
+n∑
+i =1
+Xi X ′
+i ˆψ2
+i τ
+ˆψi τ = τ − 1
+{
+Yi < X ′
+i ˆβτ
+}
+.
+Of the three covariance matrix methods introduced above ( ˆV
+0
+τ, ˆV
+c
+τ, and ˆV τ) the classical estimator
+ˆV
+0
+τ should be avoided for the same reasons why we avoid classical homoskedastic covariance matrix
+estimators for least squares estimation. Of the two robust estimators the better choice is ˆV τ (since it
+does not require correct speciﬁcation) but unfortunately it is not programmed in standard packages.
+This means that in practice the estimator ˆV
+c
+τ is recommended.
+The most common method for estimation of quantile regression covariance matrices, standard er-
+rors, and conﬁdence intervals is the bootstrap. The conventional nonparametric bootstrap is appropri-
+ate for the general model allowing for misspeciﬁcation, and the bootstrap variance is an estimator for
+ˆV τ. As we have learned in our study of bootstrap methods, it is generally advised to use a large num-
+ber B of bootstrap replications (at least 1000, with 10,000 preferred). This is somewhat computationally
+costly in large samples but this should not be a barrier to implementation as the full bootstrap calcula-
+tion only needs to be done for the ﬁnal calculation. Also, as we have learned, for conﬁdence intervals
+percentile-based intervals are greatly preferred over the normal-based intervals (which use bootstrap
+standard errors multiplied by normal quantiles). I recommend the BC percentile intervals. This requires
+changing the default settings in common programs such as Stata.
+In Stata, quantile regression is implemented using qreg. The default standard errors are ˆV
+0
+τ. Use
+vce(robust) for ˆV
+c
+τ. The covariance matrix estimator ˆV τ is not implemented. For bootstrap standard
+errors and conﬁdence intervals use bootstrap, reps(#): qreg y x. The bootstrap command fol-
+lowed by estat bootstrap produces BC percentile conﬁdence intervals.
+In R, quantile regression is implemented by the function rq in the quantreg package. The default
+standard errors are ˆV
+c
+τ. The covariance matrix estimator ˆV τ is not implemented. For bootstrap standard
+errors one method is to use the optionse=boot with the summary command. At present, the quantreg
+package does not include bootstrap percentile conﬁdence intervals.
+24.9 Clustered Dependence
+Under clustered dependence the asymptotic covariance matrix changes. In the formulaV τ = Q −1
+τ ΩτQ −1
+τ
+the matrix Q τ is unaltered but Ωτ changes to
+Ωcluster
+τ = limn→∞
+1
+n
+G∑
+g =1
+E
+[( ng∑
+ℓ=1
+Xℓg ψℓg τ
+) ( ng∑
+ℓ=1
+Xℓg ψℓg τ
+)′]
+.
+This can be estimated as
+ˆΩcluster
+τ = 1
+n
+G∑
+g =1
+[( ng∑
+ℓ=1
+Xℓg ˆψℓg τ
+) ( ng∑
+ℓ=1
+Xℓg ˆψℓg τ
+)′]
+.
+This leads to the cluster-robust asymptotic covariance matrix estimator ˆV
+cluster
+τ = ˆQ
+−1
+τ ˆΩcluster
+τ ˆQ
+−1
+τ .
+The cluster-robust estimator ˆV
+cluster
+τ is not implemented in Stata nor in the R quantreg package.
+Instead, the clustered bootstrap (sampling clusters with replacement) is recommended.
+
+
+--- page 12 ---
+
+CHAPTER 24. QUANTILE REGRESSION 791
+In Stata, the clustered bootstrap can be accomplished by: bootstrap, reps(#) cluster(id):
+qreg y x, followed by estat bootstrap.
+In R, the clustered bootstrap is included as an option in the quantreg package for calculation of stan-
+dard errors.
+We illustrate the application of clustered quantile regression using the Duﬂo, Dupas and Kremer
+(2011) school tracking application. (See Section 4.23.) Recall, the question was whether or not tracking
+(separating students into classrooms based on an initial test) inﬂuenced average end-of-year scores. We
+repeat the analysis using quantile regression. Parameter estimates and bootstrap standard errors (calcu-
+lated by clustered bootstrap using 10,000 replications, clustered by school) are reported in Table 24.2.
+The results are mixed. The point estimates suggest that there is a stronger effect of tracking at higher
+quantiles than lower quantiles. This is consistent with the premise that tracking affects students hetero-
+geneously, has no negative effects, and has the greatest impact on the upper end. The standard errors
+and conﬁdence intervals, however, are also larger for the higher quantiles, such that the quantile re-
+gression coefﬁcients at high quantiles are imprecisely estimated. Using the t test, two of the ﬁve slope
+coefﬁcients are (borderline) statistically signiﬁcant at the 5% level and one at the 10% level. In apparant
+contradiction, all ﬁve of the 95% BC percentile intervals include 0. Overall the evidence that tracking
+affects student performance is weak.
+Table 24.2: Quantile Regressions of Student Testscores on Tracking
+τ = 0.1 τ = 0.3 τ = 0.5 τ = 0.7 τ = 0.9
+tracking 0.069 0.136 0.125 0.185 0.151
+bootstrap standard error (0.045) (0.069) ( 0.074) ( 0.127) ( 0.126)
+95% conﬁdence interval [− 0.02,.15] [−0.01,.27] [−0.01,.28] [−0.06,.44] [−0.11,.40]
+24.10 Quantile Crossings
+A property of the quantile regression functions qτ(x) is that they are monotonically increasing in τ.
+This means that quantile functions for different quantiles, e.g. qτ1(x) and qτ2(x) for τ1 ̸= τ2, cannot cross
+each other. However a property of linear functions x′β with differing slopes is that they will necessarily
+cross if the support for X is sufﬁciently large. This is a potential problem in applications as practical uses
+of estimated quantile functions may require monotonicity in τ (for example if they are to be inverted to
+obtain a conditional distribution function).
+This is only a problem in practical applications if estimated quantile functions actually cross. If they
+do not this issue can be ignored. However when estimated quantile regression functions cross one an-
+other it can be prudent to address the issue.
+To illustrate examine Figure 24.4(a). This shows estimated linear quantile regressions of wage on
+education in the full cps09mar data set. These are linear projection approximations to the plots in Figure
+24.2(a). Since the actual quantile regression functions are convex the estimated linear models cross one
+another at low education levels. This is the quantile regression crossing phenomenon.
+When quantile regressions cross one another there are several possible remedies.
+First, you could re-specify the model. In the example of Figure 24.4(a) the problem arises in part be-
+cause the true quantile regression functions are convex and poorly approximated by linear functions. In
+this example we know that an improved approximation is obtained through a logarithmic transformation
+for wages. After a log transformation the quantile regression functions are much better approximated by
+linearity. Indeed, such estimates (obtained by quantile regression of log wages on education, and then
+
+
+--- page 13 ---
+
+CHAPTER 24. QUANTILE REGRESSION 792
+education
+wage
+0 2 4 6 8 10 12 14 16 18 20
+−10 0 10 20 30 40 50 60 70
+q0.1
+q0.3
+q0.5
+q0.7
+q0.9
+(a) Linear Model
+education
+0 2 4 6 8 10 12 14 16 18 20
+−10 0 10 20 30 40 50 60 70
+q0.1
+q0.3
+q0.5
+q0.7
+q0.9 (b) Logarithmic Model
+education
+0 2 4 6 8 10 12 14 16 18 20
+−10 0 10 20 30 40 50 60 70
+q0.1
+q0.3
+q0.5
+q0.7
+q0.9 (c) Linear Spline
+Figure 24.4: Quantile Crossings
+applying the exponential transformation to return to the original units) are displayed in Figure 24.4(b).
+These functions are smooth approximations and are strictly monotonic in τ. Problem solved.
+While the logarithmic/exponential transformation works well for a wage regression, it is not a generic
+solution. If the underlying quantile regressions are non-linear in X , an improved approximation (and
+possible elimination of the quantile crossing) may be obtained by a nonlinear or simple series approxi-
+mation. A visual examination of Figure 24.2(a) suggests that the functions may be piecewise linear with
+a kink at 11 years of education. This suggests a linear spline with a single knot at x = 11. The results
+from ﬁtting this model are displayed in Figure 24.4(c). The ﬁtted quantile regression functions exhibit a
+substantial change in slope at the kink point and are strictly monotonic in τ. Problem solved.
+A second approach is to reassess the empirical task. Examining Figure 24.4(a) we see that the crossing
+phenomenon occurs at very low levels of education (4 years) for which there are very few observations.
+This may not be viewed as an empirical interesting region. A solution is to truncate the data to eliminate
+observations with low education levels.
+A third approach is to constrain the estimated functions to satisfy monotonicity. Examine Figure
+24.4(a). The ﬁve regression functions are increasing with increasing slopes and the support forX is [0, 20]
+so it is necessary and sufﬁcient to constrain the ﬁve intercepts to be monotonically ranked. This can be
+imposed on this example by sequentially imposing cross-equation equality constraints. The R function
+rq has an option to impose parameter contraints. This approach may be feasible if the quantile crossing
+problem is mild.
+A ﬁnal approach isrearrangement. For each x take the ﬁve estimated quantile regression functions
+as displayed in Figure 24.4(a) and rearrange the estimates so that they satisfy the monotonicity require-
+ment. This does not alter the coefﬁcient estimates, only the estimated quantile regressions. This ap-
+proach is ﬂexible and works in general contexts without the need for model re-speciﬁcation. For details
+see Chernozhukov, Fernandez-Val, and Galichon (2010). The R package quantreg includes the option
+rearrange to implement their procedure.
+Of these four approaches, my recommendation is to start with a careful and thoughtful re-speciﬁcation
+of the model.
+
+
+--- page 14 ---
+
+CHAPTER 24. QUANTILE REGRESSION 793
+24.11 Quantile Causal Effects
+One question which frequently arises in the study of quantile regression is “Can we interpret the
+quantile regression causally?” We can partially answer this question in the treatment response frame-
+work by providing conditions under which the quantile regression derivatives equal quantile treatment
+effects.
+Recall that the treatment response model is Y = h (D, X ,U ) where Y is the outcome, D is the treat-
+ment variable, X are controls, and U is an unobserved structural random error. For simplicity take the
+case that D is binary. For concreteness let Y be wage, D college attendence, and U unobserved ability.
+In this framework, the causal effect of D on Y is
+C (X ,U ) = h(1, X ,U ) − h(0, X ,U ).
+In general this is heterogeneous. While the average causal effect is the expectation of this random vari-
+able, the quantile treatment effect is its τt h conditional quantile
+Qτ(x) = Qτ [C (X ,U ) |X = x].
+In Section 2.30 we presented an example of a population of Jennifers and Georges who had differential
+wage effects from college attendence. In this example the unobserved effectU is a person’ s type (Jennifer
+or George). The quantile treatment effect Qτ traces out the distribution of the causal effect of college
+attendence and is therefore more informative than the average treatment effect alone.
+From observational data we can estimate the quantile regression function
+qτ (d, x) = Qτ [Y |D = d, X = x] = Qτ [h (D, X ,U ) |D = d, X = x]
+and its implied effect of D on Y :
+Dτ(x) = qτ (1, x) − qτ (0, x).
+The question is: Under what condition does Dτ = Qτ? That is, when does quantile regression measure
+the causal effect of D on Y ?
+Assumption 24.1 Conditions for Quantile Causal Effect
+1. The error U is real valued.
+2. The causal effect C (x,u) is monotonically increasing in u.
+3. The treatment response h (D, X ,u) is monotonically increasing in u.
+4. Conditional on X the random variables D and U are independent.
+Assumption 24.1.1 excludes multi-dimensional unobserved heterogeneity. Assumptions 24.1.2 and
+24.1.3 are known as monotonicity conditions. A single monotonicity assumption is not restrictive (it
+is similar to a normalization) but the two conditions together are a substantive restriction. Take, for
+example, the case of the impact of college attendence on wages. Assumption 24.1.2 requires that the
+wage gain from attending college is increasing in latent ability U (given X ). Assumption 24.1.3 further
+requires that wages are increasing in latent ability U whether or not an individual attends college. In
+
+
+--- page 15 ---
+
+CHAPTER 24. QUANTILE REGRESSION 794
+our Jennifer and George example these assumptions require that Jennifer receives a higher wage than
+George if they both are high school graduates, if they are both college graduates, and that Jennifer’ s gain
+from attending college exceeds George’ s gain. These conditions were satisﬁed in the example of Section
+2.30 but with a tweak we can change the model so that one of the monotonicity conditions is violated.
+Assumption 24.1.4 is the traditional conditional independence assumption. This assumption is crit-
+ical for the causal effect interpretation. The idea is that by conditioning on a sufﬁciently rich set of vari-
+ables X any endogeneity between D and U has been eliminated.
+Theorem 24.5 Quantile Causal Effect If Assumption 24.1 holds then Dτ(x) =
+Qτ(x), the quantile regression derivative equals the quantile treatment effect.
+The proof is in Section 24.16.
+Theorem 24.5 provides conditions under which quantile regression is a causal model. Under the
+conditional independence and monotonicity assumptions the quantile regression coefﬁcients are the
+marginal causal effects of the treatment variable D upon the distribution of Y . The coefﬁcients are not
+the marginal causal effects for speciﬁc individuals, rather they are the causal effect for the distribution.
+Theorem 24.5 shows that under suitable assumptions we can learn more than just the average treatment
+effect – we can learn the distribution of treatment effects.
+24.12 Random Coefﬁcient Representation
+For some theoretical purposes it is convenient to write the quantile regression model using a random
+coefﬁcient representation. This also provides an alternative interpretation of the coefﬁcients.
+Recall that whenY has a continuous and invertible distribution functionF (y) the probability integral
+transformation is U = F (Y ) ∼ U [0,1]. As the inverse of the distribution function is the quantile function,
+this implies that we can write Y = qU , the quantile function evaluated at the random variable U . The
+intuition is that U is the “relative rank” of Y .
+Similarly when the conditional distributionF
+(
+y |x
+)
+of Y given X is invertible, the probability integral
+transformation is U = F (Y |X ) ∼ U [0,1] which is independent of X . Here, U is the relative rank of Y
+within the conditional distribution. Inverting we obtain Y = qU (X ). There is no additional error term
+e as the randomness is captured by U . The equation Y = qU (X ) is a representation of the conditional
+distribution of Y given X , not a structural model. However it does imply a mechanism by which we can
+generate Y . First, draw U ∼ U [0,1]. Second, draw X from its marginal distibution. Third, set Y = qU (X ).
+If we interpret Y = qU (X ) as a structural model (that is, take U as a structural unobservable variable,
+not merely a derivation based on the probability integral transformation) then we can view U as an in-
+dividual’ s latent relative rank which is invariant toX . Each person is identiﬁed with a speciﬁcU = τ. In
+this framework the quantile slope (the derivative of the quantile regression) is the quantile causal effect
+of X on Y . This representation satisﬁes the conditions of Theorem 24.5 sinceU is independent of X .
+In the linear quantile regression model Qτ [Y |X ] = X ′βτ, the random coefﬁcient3 representation is
+Y = X ′βU .
+3The coefﬁcients depends on U so are random, but the model is different from the random coefﬁcient model where each
+individual’ s coefﬁcient is a random vector.
+
+
+--- page 16 ---
+
+CHAPTER 24. QUANTILE REGRESSION 795
+24.13 Nonparametric Quantile Regression
+As emphasized in Section 24.10, quantile regression functions are undoubtedly nonlinear with un-
+known functional form and hence nonparametric. Quantile regression functions may be estimated using
+standard nonparametric methods. This is a potentially large subject. For brevity we brieﬂy discuss series
+methods which have the advantage that they are easily implemented with conventional software.
+The nonparametric quantile regression model is
+Y = qτ(X ) + e
+Qτ [e |X ] = 0.
+The function qτ(x) can be approximated by a series regression as described in Chapter 20. For example,
+a polynomial approximation is
+Y = β0 + β1X + β2X 2 + · · · +βK X K + eK
+Qτ [eK |X ] ≃ 0.
+A spline approximation is deﬁned similarly.
+For any K the coefﬁcients and regression function qτ(x) can be estimated by quantile regression.
+As in series regression the model order K should be selected to trade off ﬂexibility (bias reduction) and
+parsimony (variance reduction). Asymptotic theory requires that K → ∞ as n → ∞ but at a slower rate.
+An important practical question is how to select K in a given application. Unfortunately, standard
+information criterion (such as the AIC) do not apply for quantile regression and it is unclear if cross-
+validation is an appropriate model selection technique. Undoubtedly these questions are an important
+topic for future study.
+To illustrate we revisit the nonparametric polynomial estimates of the experience proﬁle for college-
+educated women earlier displayed in Figure 20.1. We estimate 4 log wage quantile regressions on a 5 t h-
+order polynomial in experience and display the estimates in Figure 24.5. There are two notable features.
+First, the τ = 0.1 quantile function peaks at a low level of experience (about 10 years) and then declines
+substantially with experience. This is likely an indicator of the wage-path of women on the low end of
+the pay scale. Second, even though this is in a logarithmic scale the gaps betwen the quantile functions
+substantially widen with experience. This means that heterogeneity in wages increases more than pro-
+portionately as experience increases.
+24.14 Panel Data
+Given a panel data structure { Yi t, Xi t} it is natural to consider a panel data quantile regression esti-
+mator. A linear model with an individual effect αi τ is
+Qτ [Yi t |Xi t, αi ] = X ′
+i tβτ + αi τ.
+It seems natural to consider estimation by one of our standard methods: (1) Remove the individual ef-
+fect by the within transformation; (2) Remove the invidual effect by ﬁrst differencing; (3) Estimate a
+full quantile regression model using the dummy variable representation. However, all of these meth-
+ods fail. The reason why methods (1) and (2) fail are the same: The quantile operator Qτ is not a linear
+operator. The within transformation of Qτ [Yi t |Xi t, αi τ] does not equal Qτ
+[ ˙Yi t |Xi t, αi τ
+]
+, and similarly
+∆Qτ [Yi t |Xi t, αi τ] ̸= Qτ [∆Yi t |Xi t, αi τ]. The reason why (3) fails is the incidental parameters problem. A
+4The sample is the n = 5199 observations of women with a college degree (16 years of education).
+
+
+--- page 17 ---
+
+CHAPTER 24. QUANTILE REGRESSION 796
+0 10 20 30 40
+2.0 2.5 3.0 3.5 4.0
+Labor Market Experience (Y ears)
+Log Dollars per Hour
+q0.1
+q0.3
+q0.5
+q0.7
+q0.9
+Figure 24.5: log(wage)/experience Proﬁle Quantile Regressions for College-Educated Women
+dummy variable model has the number of parameters proportional to sample size and in this context
+nonlinear estimators (including quantile regression) are inconsistent.
+There have been several proposals to deal with this issue but none are particularly satisfactory. We
+present here a method due to Canay (2011) which has the advantage of simplicity and wide applicability.
+The substantive assumption is that the individual effect is common across quantiles: αi τ = αi . Thus αi
+shifts the quantile regressions up and down uniformly. This is a sensible assumption whenαi represents
+omitted time-invariant variables with coefﬁcients which do not vary across quantiles.
+Given this assumption we can write the quantile regression model as
+Yi t = X ′
+i tβ(τ) + αi + ei t.
+We can also use the random coefﬁcient representation of Section 24.12 to write
+Yi t = X ′
+i tβ(Ui τ) + αi
+where Ui τ ∼ U [0,1] is independent of ( Xi t, αi ). Taking conditional expectations we obtain the model
+Yi t = X ′
+i tθ + αi + ui t
+where θ = E
+[
+β(Ui τ)
+]
+and ui t is conditionally mean zero. The coefﬁcient θ is a weighted average of the
+quantile regression coefﬁcientsβ(τ).
+Canay’ s estimator takes the following steps.
+1. Estimate αi by ﬁxed effects ˆαi as in (17.51). [Estimate θ by the within estimator ˆθ and αi by taking
+averages of Yi t − X ′
+i t
+ˆθ for each individual.]
+2. Estimate β(τ) by quantile regression of Yi t − ˆαi on Xi t.
+The key to Canay’ s estimator is that the assumption that the ﬁxed effectαi does not vary across the
+quantiles τ, which means that the ﬁxed effects can be estimated by conventional ﬁxed effects. Once
+eliminated we can apply conventional quantile regression. The primary disadvantage of this approach
+is that the assumption that αi does not vary across quantiles is restrictive. In general the topic of panel
+quantile regression is a potentially important topic for further econometric research.
+
+
+--- page 18 ---
+
+CHAPTER 24. QUANTILE REGRESSION 797
+24.15 IV Quantile Regression
+As we studied in Chapter 12, in many structural economic models some regressors are potentially
+endogenous, meaning jointly dependent with the regression error. This situation equally arises in quan-
+tile regression models. A standard method to handle endogenous regressors is instrumental variables
+regression which relies on a set of instruments Z which satisfy an uncorrelatedness or independence
+condition. Similar methods can be applied in quantile regression though the techniques are computa-
+tionally more difﬁcult, the theory less well developed, and applications limited.
+The model is
+Y = X ′βτ + e
+Qτ [e |Z ] = 0
+where X and βτ are k × 1, Z is ℓ × 1, amd ℓ ≥ k. The difference with the conventional quantile regression
+model is that the second equation is conditional on Z rather than X .
+The assumption on the error implies that E
+[
+ψτ (e) |Z
+]
+= 0. This holds by the same derivation as for
+the quantile regression model. This is a conditional moment equation. It implies the unconditional
+moment equation5 E
+[
+Z ψτ (e)
+]
+= 0. Written as a function of the observations and parameters
+E
+[
+Z ψτ
+(
+Y − X ′βτ
+)]
+= 0.
+This is a set of ℓ moment equations for k parameters. A suitable estimation method is GMM. A com-
+putational challenge is that the moment condition functions are discontinuous in βτ so conventional
+minimization techniques fail.
+The method of IV quantile regression was articulated by Chernozhukov and C. Hansen (2005), which
+should be consulted for further details.
+24.16 Technical Proofs*
+Proof of Theorem 24.1: Since P[Y = m] = 0,
+E
+[
+sgn(Y − m)
+]
+= E[1{Y > m}] − E[1{Y < m}] = P[Y > m] − P[Y < m] = 1
+2 − 1
+2 = 0
+which is (24.2).
+Exchanging integration and differentiation
+d
+d θ E |Y − θ|= E
+[ d
+d θ |Y − θ|
+]
+= E
+[
+sgn(Y − θ)
+]
+= 0,
+the ﬁnal equality atθ = m by (24.2). This is the ﬁrst order condition for an optimum. SinceE
+[
+sgn(Y − θ)
+]
+=
+1 − 2P[Y < θ] is globally decreasing in θ, the second order condition shows that m is the unique mini-
+mizer. This is (24.3).
+(24.4) and (24.5) follow by similar arguments using the conditional distribution. (24.6) follows from
+(24.5) under the assumption that med[Y |X ] = X ′β. ■
+Proof of Theorem 24.2: Since P
+[
+Y = qτ
+]
+= 0,
+E
+[
+ψτ
+(
+Y − qτ
+)]
+= τ − P
+[
+Y < qτ
+]
+= 0
+5In fact, the assumptions imply E
+[
+φ(Z )ψτ (e)
+]
+= 0 for any function φ. We assume that the desired instruments have been
+selected and are incorporated in the vector Z as denoted.
+
+
+--- page 19 ---
+
+CHAPTER 24. QUANTILE REGRESSION 798
+which is (24.11).
+Exchanging integration and differentiation
+d
+d θ E
+[
+ρτ (Y − θ)
+]
+= E
+[
+ψτ (Y − θ)
+]
+= 0,
+the ﬁnal equality atθ = qτ by (24.11). This is the ﬁrst order condition for an optimum. SinceE
+[
+ψτ (Y − θ)
+]
+=
+τ−P[Y < θ] is globally decreasing inθ, the second order condition shows thatqτ is the unique minimizer.
+This is (24.12).
+(24.13) and (24.14) follow by similar arguments using the conditional distribution. (24.15) follows
+from (24.14) under the assumption that Qτ [Y |X ] = X ′β. ■
+Proof of Theorem 24.3: The quantile regression estimator is an m-estimator, so we appeal to Theorem
+22.1, which shows that ˆβτ is consisent if Mn(β; τ) is uniformly consistent for M(β; τ) and βτ uniquely
+minimizes M(β; τ).
+To show that Mn(β; τ) is uniformly consistent for M(β; τ) we appeal to Theorem 22.2 which holds if
+(a) (Yi , Xi ) are i.i.d; (b) E
+⏐⏐ρτ
+(
+Y − X ′β
+)⏐
+⏐ < ∞ for all β; (c) the parameter space for β is bounded; and (d)
+For some A < ∞, E
+⏐
+⏐ρτ
+(
+Y − X ′β1
+)
+− ρτ
+(
+Y − X ′β2
+)⏐
+⏐ ≤ A
+
+β1 − β2
+
+ for all β1, β2. Conditions (a) and (c) hold
+by assumption. Condition (b) holds since
+E
+⏐
+⏐ρτ
+(
+Y − X ′β
+)⏐
+⏐ ≤ E
+⏐
+⏐Y − X ′β
+⏐
+⏐ ≤ E |Y |+
+
+β
+
+ E ∥X ∥ < ∞.
+Finally,
+E
+⏐
+⏐ρτ
+(
+Y − X ′β1
+)
+− ρτ
+(
+Y − X ′β2
+)⏐
+⏐ ≤ E
+⏐
+⏐X ′ (
+β1 − β2
+)⏐
+⏐ ≤ E ∥X ∥
+
+β1 − β2
+
+
+which is condition (d) with A = E ∥X ∥.
+We now show that βτ uniquely minimizes M(β; τ). It is a minimizer by (24.16). It is unique because
+M
+(
+β; τ
+)
+is a convex function and
+∂2
+∂β∂β′ M
+(
+βτ; τ
+)
+= E
+[
+X X ′ fτ
+(
+X ′βτ |X
+)]
+> 0. (24.20)
+The inequality holds by assumption; we now establish the equality.
+Exchanging integration and differentiation, using ψτ(x) = d
+d xρτ(x) = τ − 1{x < 0}, the law of iterated
+expectations, and the conditional distribution function Fτ(u |x) = E[1{e < u} |X ]
+∂
+∂β M
+(
+β; τ
+)
+= −E
+[
+X ψτ
+(
+Y − X ′β
+)]
+= −τE[X ] + E
+[
+X E
+[
+1
+{
+Y < X ′ (
+β − βτ
+)}
+|X
+]]
+= −τE[X ] + E
+[
+X Fτ
+(
+X ′ (
+β − βτ
+)
+|X
+)]
+. (24.21)
+Hence
+∂2
+∂β∂β′ M
+(
+β; τ
+)
+= ∂
+∂β′ E
+[
+X Fτ
+(
+X ′ (
+β − βτ
+)
+|X
+)]
+= E
+[
+X X ′ fτ
+(
+X ′ (
+β − βτ
+)
+|X
+)]
+,
+where the right-side is ﬁnite under the assumptions. Evaluated at βτ this is (24.20). This shows that
+M
+(
+βτ; τ
+)
+is globally convex and is strictly convex at the minimum βτ. Thus the latter is the unique
+minimizer. ■
+Proof of Theorem 24.4: Since ˆβτ is an m-estimator we verify the conditions of Theorem 22.3. First,
+calculate that
+E
+[(
+X ψτ
+) (
+X ψτ
+)′]
+= E
+[
+X X ′ψ2
+τ
+]
+= Ωτ.
+
+
+--- page 20 ---
+
+CHAPTER 24. QUANTILE REGRESSION 799
+Theorem 22.3 states that asymptotic normality holds if (a) E
+[
+∥X ∥2 ψ2
+τ
+]
+< ∞; (b) ∂2
+∂β∂β′ M
+(
+β; τ
+)
+is continu-
+ous in a neighborhood of βτ; (c) For some A < ∞ , E
+X ψτ
+(
+Y − X ′β1
+)
+− X ψτ
+(
+Y − X ′β2
+)
+2 ≤ A
+
+β1 − β2
+
+
+for all β1, β2 in a neighborhood of βτ; (d) Q τ > 0; (e) βτ is in the interior of the parameter space.
+Condition (a) holds since E
+[
+∥X ∥2 ψ2
+τ
+]
+≤ E ∥X ∥2 < ∞ by assumption. Equation (24.21) shows that
+∂2
+∂β∂β′ M
+(
+β; τ
+)
+= −E
+[
+X X ′ fτ
+(
+X ′ (
+β − βτ
+)
+|X
+)]
+which is continuous under the assumption that fτ(e |x) is
+continuous in e, implying Condition (b). We calculate that
+E
+X
+(
+ψτ
+(
+Y − X ′β1
+)
+− ψτ
+(
+Y − X ′β2
+))
+2
+= E
+[
+∥X ∥2 1
+{
+X ′β1 ≤ Y < X ′β2
+}]
++ E
+[
+∥X ∥2 1
+{
+X ′β2 ≤ Y < X ′β1
+}]
+= E
+[
+∥X ∥2 (
+Fτ
+(
+X ′ (
+β2 − βτ
+)
+|X
+)
+− Fτ
+(
+X ′ (
+β1 − βτ
+)
+|X
+))]
++ E
+[
+∥X ∥2 (
+Fτ
+(
+X ′ (
+β1 − βτ
+)
+|X
+)
+− Fτ
+(
+X ′ (
+β2 − βτ
+)
+|X
+))]
+≤ 2DE ∥X ∥3 
+β2 − β1
+
+
+where we use the assumption fτ(e |x) ≤ D. This implies Condition (c) with A = 2DE ∥X ∥3. Condition (d)
+holds by (24.18). Condition (e) holds by assumption.
+Since Conditions (a)-(e) hold the result follows. ■
+Proof of Theorem 24.5: By the deﬁnition of the quantile treatment effect, monotonicity of causal effect
+(Assumption 24.1.2), deﬁnition of the causal effect, monotonicity of the treatment response (Assumption
+24.1.3), and the deﬁnition of the quantile regression function, we ﬁnd that
+Qτ(x) = Qτ [C (X ,U ) |X = x]
+= C (x, Qτ[U |X = x])
+= h(1, x, Qτ[U |X = x]) − h(0, x, Qτ[U |X = x])
+= Qτ[h(1, X ,U ) |X = x] − Qτ[h(0, X ,U ) |X = x]
+= qτ (1, x) − qτ (0, x)
+= Dτ(x)
+as claimed. ■
+_____________________________________________________________________________________________
+24.17 Exercises
+Exercise 24.1 Prove (24.4) in Theorem 24.1.
+Exercise 24.2 Prove (24.5) in Theorem 24.1.
+Exercise 24.3 Deﬁneψ(x) = τ − 1{x < 0}. Let θ satisfy E
+[
+ψ(Y − θ)
+]
+= 0. Is θ a quantile of the distribution
+of Y ?
+Exercise 24.4 Take the model Y = X ′β + e where the distribution of e given X is symmetric about zero.
+(a) Find E[Y |X ] and med[Y |X ].
+(b) Do OLS and LAD estimate the same coefﬁcient β or different coefﬁcients?
+(c) Under which circumstances would you prefer LAD over OLS? Under which circumstances would
+you prefer OLS over LAD? Explain.
+
+
+--- page 21 ---
+
+CHAPTER 24. QUANTILE REGRESSION 800
+Exercise 24.5 You are interested in estimating the equation Y = X ′β + e. You believe the regressors are
+exogenous, but you are uncertain about the properties of the error. You estimate the equation both by
+least absolute deviations (LAD) and OLS. A colleague suggests that you should prefer the OLS estimate,
+because it produces a higher R2 than the LAD estimate. Is your colleague correct?
+Exercise 24.6 Prove (24.13) in Theorem 24.2.
+Exercise 24.7 Prove (24.14) in Theorem 24.2.
+Exercise 24.8 Suppose X is binary. Show that Qτ[Y |X ] is linear in X .
+Exercise 24.9 Suppose X1 and X2 are binary. Find Qτ[Y |X1, X2].
+Exercise 24.10 Show (24.19).
+Exercise 24.11 Show under correct speciﬁcation that Ωτ = E
+[
+X X ′ψ2
+τ
+]
+satisﬁes the simpliﬁcationΩτ =
+τ(1 − τ)Q.
+Exercise 24.12 Take the treatment response setting of Theorem 24.5. Suppose h(0, X2,U ) = 0, meaning
+that the response variable Y is zero whenever there is no treatment. Show that Assumption 24.1.3 is not
+necessary for Theorem 24.5.
+Exercise 24.13 Using the cps09mar dataset take the sample of Hispanic men with education 11 years or
+higher. Estimate linear quantile regression functions for log wages on education. Interpret your ﬁndings.
+Exercise 24.14 Using the cps09mar dataset take the sample of Hispanic women with education 11 years
+or higher. Estimate linear quantile regression functions for log wages on education. Interpret.
+Exercise 24.15 Take the Duﬂo, Dupas and Kremer (2011) dataset DDK2011 and the subsample of stu-
+dents for which tracking=1. Estimate linear quantile regressions of totalscore on percentile (the latter is
+the student’ s test score before the school year). Calculate standard errors by clustered bootstrap. Do the
+coefﬁcients change meaningfully by quantile? How do you interpret these results?
+Exercise 24.16 Using the cps09mar dataset estimate similarly to Figure 24.5 the quantile regressions
+for log wages on a 5 t h- order polynomial in experience for college-educated Black women. Repeat for
+college-educated white women. Interpret your ﬁndings.

@@ -1,0 +1,1239 @@
+--- page 1 ---
+
+Chapter 27
+Censoring and Selection
+27.1 Introduction
+Censored regression occurs when the dependent variable is constrained, resulting in a pile-up of
+observations on a boundary. Selection occurs when sampling is endogenous. Under either censoring or
+selection, conventional (e.g. least squares) estimators are biased for the population parameters of the
+uncensored/unselected distributions. Methods have been developed to circumvent this bias, including
+the Tobit, CLAD, and sample selection estimators.
+For more detail see Maddala (1983), Amemiya (1985), Gourieroux (2000), Cameron and Trivedi (2005),
+and Wooldridge (2010).
+27.2 Censoring
+It is common in economic applications for a dependent variable to have a mixed discrete/continuous
+distribution, where the discrete component is on the boundary of support. Most commonly this bound-
+ary occurs at 0. For example, Figure 27.1(a) displays the density of tabroad (transfers from abroad) from
+the data ﬁle CHJ2004. This variable is the amount 1 of remittances received by a Philippino household
+from a foreign source. For 80% of households this variable equals 0. The associated mass point is dis-
+played by the bar at zero. For 20% of households tabroad is positive and continuously distributed with a
+thick right tail. The associated density is displayed by the line graph.
+Given such observations it is unclear how to proceed with a regression analysis. Should we use the
+full sample including the 0’ s? Should we use only the sub-sample excluding the 0’ s? Or should we do
+something else?
+To answer these questions it is useful to have a statistical model. A classical framework is cen-
+sored regression, which posits that the observed variable is a censored version of a latent continuously-
+distributed variable. Without loss of generality we focus on the case of censoring from below at zero.
+The censored regression model was proposed by Tobin (1958) to explain household consumption of
+durable goods. Tobin observed that in survey data, durable good consumption is zero for a positive frac-
+tion of households. He proposed treating the observations as censored realizations from a continuous
+1In thousands of Philippino pesos.
+842
+
+
+--- page 2 ---
+
+CHAPTER 27. CENSORING AND SELECTION 843
+Thousands of Pesos
+0 2 4 6 8 10 12 14 16 18 20
+20%
+80%
+(a) Transfers from Abroad – CHJ2004 data set
+0 X'β Y* (b) Censoring Process
+Figure 27.1: Censored Distributions
+distribution. His model is
+Y ∗ = X ′β + e
+e ∼ N(0, σ2)
+Y = max
+(
+Y ∗,0
+)
+. (27.1)
+This model is known as Tobit regression or censored regression. It is also known as the Type 1 Tobit
+model. The variable Y ∗ is latent (unobserved). The observed variable Y is censored from below at zero.
+This means that positive values are uncensored and negative values are transformed to 0. This censoring
+model replicates the observed phenomenon of a pile-up of observations at 0.
+The Tobit model can be justiﬁed by a latent choice framework where an individual’ s optimal (un-
+constrained) continuously distributed choice is Y ∗. Feasible choices, however, are constrained to satisfy
+Y ≥ 0. (For example, negative purchases are not allowed.) Consequently the realized value Y is a cen-
+sored version of Y ∗. To justify this interpretation of the model we need to envisage a context where de-
+sired choices include negative values. This may be a strained interpretation for consumption purchases,
+but may be reasonable when negative values make economic sense.
+The censoring process is depicted in Figure 27.1(b). The latent variableY ∗ has a normal density cen-
+tered at X ′β. The portion for Y ∗ > 0 is maintained while the portion for Y ∗ < 0 is transformed to a point
+mass at zero. The location of the density and the degree of censoring are controlled by the conditional
+mean X ′β. As X ′β moves to the right the amount of censoring is decreased. As X ′β moves to the left the
+amount of censoring is increased.
+A common “remedy” to the censoring problem is deletion of the censored observations. This creates
+a truncated distribution which is deﬁned by the following transformation
+Y # =
+{ Y if Y > 0
+missing if Y = 0.
+In Figure 27.1(a) and Figure 27.1(b) the truncated distribution is the continuous portion above 0 with the
+mass point at 0 omitted.
+
+
+--- page 3 ---
+
+CHAPTER 27. CENSORING AND SELECTION 844
+The censoring and truncation processes are depicted in Figure 27.2(a) which plots 100 random 2
+draws (Y ∗, X ). The uncensored variables are marked by the open circles and squares. The open squares
+are the realizations for which Y ∗ > 0 and the open circles are the realizations for which Y ∗ < 0. The cen-
+sored distribution replaces the negative values of Y ∗ with 0, and thus replaces the open with the ﬁlled
+circles. The censored distribution thus consists of the open squares and ﬁlled circles. The truncated
+distribution is obtained by deleting the censored observations so consists of just the open squares.
+X
+−3 −2 −1 0 1 2 3
+−4 −2 0 2 4
+m#(x)
+m(x)
+m*(x)
+Y>0 (uncensored)
+Y<0 (unobserved)
+Y=0 (censored)
+Y*
+(a) Conditional Distrbutions
+X
+−3 −2 −1 0 1 2 3
+0.0 0.2 0.4 0.6 0.8 1.0
+P[Y=0|X] (b) Censoring Probability
+Figure 27.2: Properties of Censored Distributions
+To summarize: we distinguish between three distributions and variables: uncensored (Y ∗), cen-
+sored (Y ), and truncated (Y #).
+The censored regression model (27.1) makes several strong assumptions: (1) linearity of the condi-
+tional mean; (2) independence of the error; (3) normal distribution. The linearity assumption is not crit-
+ical as we can interpret X ′β as a series expansion or similar ﬂexible approximation. The independence
+assumption, however, is quite important as its violation (e.g. heteroskedasticity) changes the properties
+of the censoring process. The normality assumption is also quite important, yet difﬁcult to justify from
+ﬁrst principles.
+27.3 Censored Regression Functions
+We can calculate some properties of the conditional distribution of the censored random variable.
+The conditional probability of censoring is
+P
+[
+Y ∗ < 0 |X
+]
+= P
+[
+e < −X ′β
+⏐⏐ X
+]
+= Φ
+(
+− X ′β
+σ
+)
+.
+We illustrate in Figure 27.2(b). This plots the censoring probability as a function of X for the example
+from Figure 27.2(a). The censoring probability is 98% for X = −3, 50% for X = −1 and 2% for X = 1.
+2X ∼ U [−3, 3] andY ∗ |X ∼ N(1 + X ,1).
+
+
+--- page 4 ---
+
+CHAPTER 27. CENSORING AND SELECTION 845
+The conditional mean of the uncensored, censored, and truncated distributions are
+m∗(X ) = E
+[
+Y ∗ |X
+]
+= X ′β,
+m(X ) = E[Y |X ] = X ′β Φ
+( X ′β
+σ
+)
++ σφ
+( X ′β
+σ
+)
+(27.2)
+m#(X ) = E
+[
+Y # |X
+]
+= X ′β + σλ
+( X ′β
+σ
+)
+. (27.3)
+The function λ(x) = φ(x)/Φ(x) in (27.3) is called the inverse Mills ratio. To obtain (27.2) and (27.3) see
+Theorems 5.8.2 and 5.7.6 of Introduction to Econometrics and Exercise 27.1.
+Since Y ∗ ≤ Y ≤ Y # it follows that
+m∗(x) ≤ m(x) ≤ m#(x)
+with strict inequality if the censoring probability is positive. This shows that the conditional means of
+the truncated and censored distributions are biased for the uncensored conditional mean.
+We illustrate in Figure 27.2(a). The uncensored mean m∗(x) is marked by the straight line, the cen-
+sored mean m(x) is marked with the dashed line, and the truncated meanm#(x) is marked with the long
+dashes. The functions are strictly ranked with the truncated mean exhibiting the highest bias.
+27.4 The Bias of Least Squares Estimation
+If the observations (Y , X ) are generated by the censored model (27.1) then least squares estimation
+using either the full sample including the censored observations or the truncated sample excluding the
+censored observations will be biased. Indeed, an estimator which is consistent for the conditional mean
+(such as a series estimator) will estimate the censored mean m(x) or truncated mean m#(x) in the cen-
+sored and truncated samples, respectively, not the latent conditional meanm∗(x).
+It is also interesting to consider the properties of the best linear predictor of Y on X , which is the
+estimand of the least squares estimator. In general, this depends on the marginal distribution of the
+regressors. However, when the regressors are normally distributed it takes a simple form as discovered
+by Greene (1981). Write the model with an explicit intercept as Y ∗ = α + X ′β + e and assume X ∼ N(0, Σ).
+Greene showed that the best linear predictor slope coefﬁcient is
+βBLP = β(1 − π) (27.4)
+where π = P[Y = 0] is the censoring probability. We derive (27.4) at the end of this section.
+Greene’ s formula (27.4) shows that the least squares slope coefﬁcients are shrunk towards zero pro-
+portionately with the censoring percentage. While Greene’ s formula is special to normal regressors it
+gives a baseline estimate of the bias due to censoring. The censoring proportion π is easily estimated
+from the sample (e.g. π = 0.80 in our transfers example) allowing a quick calculation of the expected bias
+due to censoring. This can be used as a rule of thumb. If the expected bias is sufﬁciently small (e.g. less
+than 5%) the resulting expected estimation bias (e.g. 5%) may be acceptable, leading to conventional
+least squares estimation using the full sample without an explicit treatment of censoring. However, if
+the censoring proportion π is sufﬁciently high (e.g. 10%) then estimation methods which correct for
+censoring bias may be desired.
+We close this section by deriving (27.4). The calculation is simpliﬁed by a trick suggested by Gold-
+berger (1981). Notice that Y ∗ ∼ N(α, σ2
+Y ) with σ2
+Y = σ2 + β′Σβ. Using the moments of the truncated
+normal distribution (Introduction to Econometrics , Theorems 5.7.6 and 5.7.8) and setting λ = λ(α/σY )
+
+
+--- page 5 ---
+
+CHAPTER 27. CENSORING AND SELECTION 846
+we can calculate that
+E
+[(
+Y ∗ − α
+)
+Y ∗ |Y ∗ > 0
+]
+= var
+[
+Y ∗ |Y ∗ > 0
+]
++
+(
+E
+[
+Y ∗ |Y ∗ > 0
+]
+− α
+)
+E
+[
+Y ∗ |Y ∗ > 0
+]
+= σ2
+Y
+(
+1 − α
+σY
+λ − λ2
+)
++ σY λ(α + σY λ) = σ2
+Y .
+The projection of X on Y ∗ is X = E[X Y ∗] σ−2
+Y (Y ∗ − α) + u where u is independent of Y ∗. This implies
+E
+[
+X Y ∗ |Y ∗ > 0
+]
+= E
+[(
+E
+[
+X Y ∗]
+σ−2
+Y
+(
+Y ∗ − α
+)
++ u
+)
+Y ∗ |Y ∗ > 0
+]
+= E
+[
+X Y ∗]
+σ−2
+Y E
+[(
+Y ∗ − α
+)
+Y ∗ |Y ∗ > 0
+]
+= E
+[
+X Y ∗]
+.
+Hence
+βBLP = E
+[
+X X ′]−1 E[X Y ]
+= E
+[
+X X ′]−1 E
+[
+X Y ∗ |Y ∗ > 0
+]
+(1 − π)
+= E
+[
+X X ′]−1 E
+[
+X Y ∗]
+(1 − π)
+= β(1 − π)
+which is (27.4) as claimed.
+27.5 Tobit Estimator
+Tobin (1958) proposed estimation of the censored regression model (27.1) by maximum likelihood.
+The censored variable Y has a conditional distribution function which is a mixture of continuous
+and discrete components:
+F
+(
+y |x
+)
+=
+
+
+
+0, y < 0
+Φ
+( y − x′β
+σ
+)
+, y ≥ 0.
+The associated density3 function is
+f
+(
+y |x
+)
+= Φ
+(
+− x′β
+σ
+)1{y=0} [
+σ−1φ
+( y − x′β
+σ
+)]1{y>0}
+.
+The ﬁrst component is the probability of censoring and the second component is the normal regression
+density.
+The log-likelihood is the sum of the log density functions evaluated at the observations:
+ℓn
+(
+β, σ2)
+=
+n∑
+i =1
+log f (Yi |Xi )
+=
+n∑
+i =1
+(
+1{Yi = 0}log f (Yi |Xi ) + 1{Yi > 0}log
+[
+σ−1φ
+(
+Yi − X ′
+i β
+σ
+)])
+=
+∑
+Yi =0
+log Φ
+(
+−
+X ′
+i β
+σ
+)
+− 1
+2
+∑
+Yi >0
+(
+log
+(
+2πσ2)
++ 1
+σ2
+(
+Yi − X ′
+i β
+)2
+)
+.
+3Since the distribution function is discontinuous at y = 0 the density is technically the derivative with respect to a mixed
+continuous/discrete measure.
+
+
+--- page 6 ---
+
+CHAPTER 27. CENSORING AND SELECTION 847
+The ﬁrst component is the same as in a probit model, and the second component is the same as for the
+normal regression model.
+The MLE
+(ˆβ, ˆσ2)
+are the values which maximize the log-likelihood ℓn
+(
+β, σ2)
+. This estimator was
+nicknamed “Tobit” by Goldberger because of its connection with the probit estimator. Amemiya (1973)
+established its asymptotic normality.
+Computation is improved, as shown by Olsen (1978), if we transform the parameters to γ = β/σ and
+v = 1/σ. Then the reparameterized log-likelihood equals
+ℓn
+(
+γ, ν
+)
+=
+∑
+Yi =0
+log Φ
+(
+−X ′
+i γ
+)
++
+∑
+Yi >0
+log
+(
+ν/
+p
+2π
+)
++
+(
+− 1
+2
+) ∑
+Yi >0
+(
+Yi ν − X ′
+i γ
+)2 . (27.5)
+This is the sum of three terms, each of which is globally concave in (γ,ν) (as we now discuss), so ℓn
+(
+γ, ν
+)
+is globally concave in (γ, v) ensuring global convergence of Newton-based optimizers. Indeed, the third
+term in (27.5) is the negative of a quadratic in (γ, v), so is concave. The second term in (27.5) is logarith-
+mic in ν, which is concave. The ﬁrst term in (27.5) is a function only ofγ and has second derivative
+∂2
+∂γ∂γ′
+∑
+Yi =0
+log Φ
+(
+−X ′
+i γ
+)
+=
+∑
+Yi =0
+Xi X ′
+i λ′ (
+−X ′
+i γ
+)
+which is negative deﬁnite since the Mills ratio satisﬁes λ′ (u) < 0 (see Theorem 5.7.7 in Introduction to
+Econometrics). Hence the ﬁrst term in (27.5) is concave.
+In Stata, Tobit regression can be estimated with the tobit command. In R there are several options
+including the tobit command in the AER package.
+James Tobin
+James Tobin (1918-2002) of the United States was one of the leading macroe-
+conomists of the mid-twentieth century and winner of the 1981 Nobel Memorial
+Prize in Economic Sciences. His 1958 paper introduced censored regression and
+its MLE, typically called the Tobit estimator. As a fascinating coincidence, the
+name “Tobit” also arises in the 1951 novel The Caine Mutiny, set on a U.S. Navy
+destroyer during World War II. At one point in the novel the author describes
+a crew member named “Tobit” who had “a mind like a sponge” because of his
+strong intellect. It turns out the author (Herman Wouk) and James Tobin served
+on the same Navy destroyer during WWII. Go ﬁgure!
+27.6 Identiﬁcation in Tobit Regression
+The Tobit model (27.1) makes several strong assumptions. Which are critical? To investigate this
+question consider the nonparametric censored regression framework
+Y ∗ = m(X ) + e
+E[e] = 0
+Y = max
+(
+Y ∗,0
+)
+
+
+--- page 7 ---
+
+CHAPTER 27. CENSORING AND SELECTION 848
+where e ∼ F independent of X , and the regression function m(x) and distribution function F (u) are
+unknown. What is identiﬁed?
+Suppose that the random variable m(X ) has unbounded support on the real line (as occurs when
+m(X ) = X ′β and X has an unbounded distribution such as the normal). Then we can ﬁnd a set X ⊂ R
+such that for x ∈ X , P[Y = 0 |X = x] = F (−m(x)) ≃ 0. We can then imagine taking the subsample of ob-
+servations for which X ∈ X . The function m(x) is identiﬁed for x ∈ X , permitting the identiﬁcation of
+the distribution F (u). As the censoring probability P[Y = 0 |X = x] = F (−m(x)) is globally identiﬁed the
+function m(x) is globally identiﬁed as well. This discussion shows that so long as we maintain the as-
+sumption that X and e are independent, the regression functionm(x) and distribution function F (u) are
+nonparametrically identiﬁed when the mean m(X ) has full support. These two assumptions, however,
+are essential as we now discuss.
+Suppose the full support condition fails in the sense that the regression function is bounded m(X ) ≤
+m at a value such that P[Y = 0 |X = x] = F (−m) > 0. In this case the error distribution F (u) is not identi-
+ﬁed foru ≤ −m. This means that the distribution function can take any shape for u ≤ −m so long as it is
+weakly increasing. This implies that the mean E[e] is not identiﬁed so the location ofm(x) (the intercept
+of the regression) is not identiﬁed.
+The second important assumption is that e is independent of X . This assumption has been relaxed
+by Powell (1984, 1986) in the conditional quantile framework. The model is
+Y ∗ = qτ(X ) + e
+Qτ [e |X ] = 0
+Y = max
+(
+Y ∗, 0
+)
+for some τ ∈ (0, 1). This model deﬁnesqτ(x) as the τt h conditional quantile function. Since quantiles are
+equivariant to monotone transformations we have the relationship
+Qτ [Y |X = x] = max
+(
+qτ(x),0
+)
+.
+Thus the conditional quantile function of Y is the censored quantile function of Y ∗. The function
+Qτ [Y |X = x] is identiﬁed from the joint distribution of (Y, X ). Consequently the function qτ(x) is iden-
+tiﬁed for anyx such that qτ(x) > 0. This is an important conceptual breakthrough. Powell’ s result shows
+that identiﬁcation of qτ(x) does not require the error to be independent of X nor have a known distri-
+bution. The key insight is that quantiles, not means, are nonparametrically identiﬁed from a censored
+distribution.
+A limitation with Powell’ s result is that the function qτ(x) is only identifed on sub-populations for
+which censoring does not exceed τ%.
+To illustrate, Figure 27.3(a) displays the conditional quantile functions qτ(x) for τ = 0.3, 0.5, 0.7, and
+0.9 for the conditional distribution Y ∗ |X ∼ N
+(px − 3
+2 ,2 + x
+)
+. The portions above zero (which are identi-
+ﬁed from the censored distribution) are plotted with solid lines. The portions below zero (which are not
+identiﬁed from the censored distribution) are plotted with dashed lines. We can see that in this example
+the quantile function q.9(x) is identiﬁed for all values of x, the quantile function q.3(x) is not identiﬁed
+for any values of x, and the quantile functions q.7(x) and q.5(x) are identiﬁed for a subset of values of x.
+The explanation is that for any ﬁxed value of X = x we only observe the censored distribution Y and so
+only observe the quantiles above the censoring point. There is no nonparametric information about the
+distribution of Y ∗ below the censoring point.
+
+
+--- page 8 ---
+
+CHAPTER 27. CENSORING AND SELECTION 849
+q0.3(x)
+q0.5(x)
+q0.7(x)
+q0.9(x)
+(a) Y ∗ |X ∼ N
+(p
+X − 3
+2 , 2+ X
+)
+0 50000 100000 150000 200000
+Total Income (Pesos)
+Transfers (Pesos)
+0 3000 6000 9000 12000 15000
+OLS
+Tobit
+LAD
+CLAD
+(b) Effect of Income on Transfers
+Figure 27.3: Censored Regression Quantiles
+27.7 CLAD and CQR Estimators
+Powell (1984, 1986) applied the quantile identiﬁcation strategy described in the previous section to
+develop straightforward censored regression estimators.
+The model in Powell (1984) is censored median regression:
+Y ∗ = X ′β + e
+med[e |X ] = 0
+Y = max
+(
+Y ∗,0
+)
+.
+In this model Y ∗ is latent with med[Y ∗ |X ] = X ′β and Y is censored at zero. As described in the previous
+section the equivariance property of the median implies that the conditional median of Y equals
+med[Y |X ] = max
+(
+X ′β, 0
+)
+.
+This is a parametric but nonlinear median regression model for Y .
+The appropriate estimator for median regression is least absolute deviations (LAD). The censored
+least absolute deviations (CLAD) criterion is
+Mn(β) = 1
+n
+n∑
+i =1
+⏐⏐Yi − max
+(
+X ′
+i β, 0
+)⏐
+⏐.
+The CLAD estimator minimizes Mn(β)
+ˆβCLAD = argmin
+β
+Mn(β).
+The CLAD criterion Mn(β) has similar properties as LAD criterion, namely that it is continuous,
+faceted, and has discontinuous ﬁrst derivatives. An important difference, however, is that Mn(β) is not
+globally convex, so minimization algorithms may converge to a local rather than a global minimum.
+
+
+--- page 9 ---
+
+CHAPTER 27. CENSORING AND SELECTION 850
+Powell (1986) extended CLAD to censored quantile regression (CQR). The model is
+Y ∗ = X ′β + e
+Qτ [e |X ] = 0
+Y = max
+(
+Y ∗, 0
+)
+for τ ∈ (0, 1). The equivariance property implies that the conditional quantile function for Y is
+Qτ [Y |X ] = max
+(
+X ′β,0
+)
+.
+The CQR criterion is
+Mn(β; τ) = 1
+n
+n∑
+i =1
+ρτ
+(
+Yi − max
+(
+X ′
+i β, 0
+))
+where ρτ(u) is the check function (24.10). The CQR estimator minimizes this criterion
+ˆβCQR(τ) = argmin
+β
+Mn(β; τ).
+As for CLAD, the criterion is not globally concave so numerical minimization is not guarenteed to con-
+verge to the global minimum.
+Powell (1984, 1986) shows that the CLAD and CQR estimators are asymptotically normal by similar
+arguments as for quantile regression. An important technical difference with quantile regression is that
+the CLAD and CQR estimators require stronger conditions for identiﬁcation. As we discussed in the pre-
+vious section the quantile function X ′β is only identiﬁed for regions where it is positive. This means
+that we require a positive fraction of the population to satisfy X ′β > 0. Furthermore, the relevant design
+matrix (24.18) is deﬁned on this sub-population, and must be full rank for conventional inference. Es-
+sentially, there must be sufﬁcient variation in the regressors over the region of the sample space where
+there is no censoring.
+CLAD can be estimated in Stata with the add-on packageclad. In R, CLAD and CQR can be estimated
+with the crq command in the package quantreg.
+27.8 Illustrating Censored Regression
+To illustrate the methods we revisit of the applications reported in Section 20.6, where we used a
+linear spline to estimate the impact of income on non-governmental transfers for a sample of 8684
+Phillipino households. The least squares estimates indicated a sharp discontinuity in the conditional
+mean around 20,000 pesos. The dependent variable is the sum of transfers received domestically, from
+abroad, and in-kind, less gifts. Each of these four sub-variables is non-negative. If we apply the model
+to any of these sub-variables there is substantial censoring. To illustrate, we set the dependent variable
+to equal the sum of transfers received domestically, from abroad, and in-kind, for which the censoring
+proportion is 18%. This proportion is sufﬁciently high that we should expect signiﬁcant censoring bias if
+censoring is ignored.
+We estimate the same model as reported in Section 20.6 and displayed in Figure 20.2(b), which is
+a linear spline in income with 5 knots and 15 additional control regressors. We estimated the equation
+using four methods: (a) least squares; (b) Tobit regression; (c) LAD; (d) CLAD. We display the estimated
+regression as a function of income (with remaining regressors set at sample means) in Figure 27.3(b).
+The basic insight – that the regression has a slope close to−1 for low income levels and is ﬂat for high
+income levels with a sharp discontinuity at an income level of 20,000 pesos – is remarkably robust across
+
+
+--- page 10 ---
+
+CHAPTER 27. CENSORING AND SELECTION 851
+the four estimates. What is noticably different, however, is the level of the regression function. The least
+squares estimate is several thousand pesos above the others. The fact that the LAD and CLAD estimates
+have a meaningfully different level should not be surprising. The dependent variable is highly skewed,
+so the mean and median are quite different (the unconditional mean and median are 7700 and 1200,
+respectively). This implies a level shift of the regression function. This does not explain, however, why
+the Tobit estimate also is substantially shifted down. Instead, this can be explained by censoring bias.
+Since the regression function is negatively sloped the censoring probability is increasing in income, so
+the bias of the least squares estimator is positive and increasing in the income level. The LAD and CLAD
+estimates are quite similar even though the LAD estimates do not account for censoring. Overall, the
+CLAD estimates are the preferred choice because they are robust to both censoring and non-normality.
+27.9 Sample Selection Bias
+While econometric models typically assume random sampling, actual observations are typically gath-
+ered non-randomly. This can induce estimation bias if selection (presence in the sample) is endoge-
+neous. The following are examples of potential sample selection.
+1. Wage regression. Wages are only observed for individuals who have wage income, which means
+that the individual is a member of the labor force and has a wage-paying job. The decision to work
+may be endogenously related to the person’ s observed and unobserved characteristics.
+2. Program evaluation. The goal is to measure the impact of a program such as workforce training
+through a pilot program. Endogenous selection arises when individuals volunteer to participate
+(rather than being randomly assigned). Individuals who volunteer for a training program may have
+abilities which are correlated with outcomes.
+3. Surveys. While a survey may be randomly distributed the act of completing the survey is non-
+random. Most surveys have low response rates. Endogenous selection arises when the decision to
+complete and return the survey is correlated with the survey responses.
+4. Ratings. We are routinely asked to rate products, services, and experiences. Most people do not
+respond to the request. Endogenous selection arises when the decision to rate the product is cor-
+related with the response.
+To understand the effect of sample selection it is useful to view sampling as a two-stage process. In
+the ﬁrst stage the random variables (Y, X ) are drawn. In the second stage the pair is either selected into
+the sample (S = 1) or unobserved (S = 0). The sample then consists of the pairs ( Y , X ) for which S = 1.
+Suppose that the variables satisfy the latent regression model Y = X ′β + e with E[e |X ] = 0. Then the
+conditional mean in the observed (selected) sample is
+E[Y |X ,S = 1] = X ′β + E[e |X ,S = 1].
+Selection bias occurs when the second term is non-zero. To understand this further suppose that se-
+lection can be modelled as S = 1
+{
+X ′γ + u > 0
+}
+for some error u. This is consistent with a latent utility
+framework where X ′γ + u is the latent utility of participation. Given this framework we can write the
+conditional mean of Y in the selected sample as
+E[Y |X ,S = 1] = X ′β + E
+[
+e |u > −X ′γ
+]
+.
+
+
+--- page 11 ---
+
+CHAPTER 27. CENSORING AND SELECTION 852
+Let e = ρu + ε be the projection of e on u. Suppose that the errors are independent of X , and u and ε are
+mutually independent. Then the above expression equals
+E[Y |X ,S = 1] = X ′β + ρE
+[
+u |u > −X ′γ
+]
+= X ′β + ρg
+(
+X ′γ
+)
+for some function g (u). When u ∼ N(0,1), g (u) = φ(u)/Φ(u) = λ(u) (see Exercise 27.7) so the expression
+equals
+E[Y |X ,S = 1] = X ′β + ρλ
+(
+X ′γ
+)
+. (27.6)
+This is the same as (27.3) in the special case ρ = σ and γ = β/σ. This, as shown in Figure 27.2(a), deviates
+from the latent conditional mean X ′β.
+One way to interpret this effect is that the regression function (27.6) contains two components: X ′β
+and ρλ
+(
+X ′γ
+)
+. A linear regression on X omits the second term and thus inherits omitted variables bias as
+X and λ
+(
+X ′γ
+)
+are correlated. The extent of omitted variables bias depends on the magnitude of ρ which
+is the coefﬁcient from the projection ofe on u. When the errors e and u are independent (when selection
+is exogenous) then ρ = 0 and (27.6) simpliﬁes toX ′β and there is no omitted term. Thus sample selection
+bias arises if (and only if) selection is correlated with the equation error.
+Furthermore, the omitted selection term λ
+(
+X ′γ
+)
+only impacts estimated marginal effects if the slope
+coefﬁcientsγ are non-zero. In contrast suppose thatX ′γ = γ0, a constant. Then (27.6) equalsE[Y |X ,S = 1] =
+X ′β + ρλ
+(
+γ0
+)
+so the impact of selection is an intercept shift. If our focus is on marginal effects sample
+selection bias only arises when the selection equation has non-trivial dependence on the regressors X .
+In Figure 27.2(a) we saw that censoring attenuates (ﬂattens) the regression function. While the se-
+lection mean (27.6) takes a similar form it is broader and can have a different impact. In contrast to
+the censoring case, selection can both steepen as well as ﬂatten the regression function. In general it is
+difﬁcult to predict the effect of selection on regression functions.
+As we have shown, endogenous selection changes the conditional mean. If samples are generated by
+endogenous selection then estimation will be biased for the parameters of interest. Without information
+on the selection process there is little that can be done to “correct” the bias other than to be aware of its
+presence. In the next section we discuss one approach which corrects for sample selection bias when we
+have information on the selection process.
+27.10 Heckman’s Model
+Heckman (1979) showed that sample selection bias can be corrected if we have a sample which in-
+cludes the non-selected observations. Suppose that the observations {Y i , Xi , Zi } are a random sample
+where Y is a selected variable (such as wage, which is only observed if a person has wage income). Heck-
+man’ s approach is to build a joint model of the full sample (not just the selected sample) and use this to
+estimate the model parameters.
+Heckman’ s model is
+Y ∗ = X ′β + e
+S∗ = Z ′γ + u
+S = 1
+{
+S∗ > 0
+}
+Y =
+{ Y ∗ if S = 1
+missing if S = 0
+with ( e
+u
+)
+∼ N
+(
+0,
+( σ2 σ21
+σ21 1
+))
+.
+
+
+--- page 12 ---
+
+CHAPTER 27. CENSORING AND SELECTION 853
+The model speciﬁes that the latent variables Y ∗ and S∗ are linear in regressors X and Z with structural
+errors e and u. The variable S indicates selection and follows a probit equation. The variable Y equals
+the latent variable Y ∗ if selected (S = 1) and otherwise is missing. The model speciﬁes that the errors are
+jointly normal with covariance σ21. The variance of u is not identiﬁed so is normalized to equal 1.
+In Heckman’ s classic example,Y ∗ is the wage (or log(wage)) an individual would receive if they were
+employed, S is employment status, and Y is observed wage. The coefﬁcients β are those of the wage
+regression; the coefﬁcientsγ are those which determine employment status. The error e is unobserved
+ability and other unobserved factors which determine an individual’ s wages; the error u is the unob-
+served factors which determine employment status; and the two are likely to be correlated.
+Based on the same calculations as discussed in the previous section, the conditional mean of Y in
+the selected sample is
+E[Y |X , Z ,S = 1] = X ′β + σ21λ
+(
+Z ′γ
+)
+(27.7)
+where λ(x) is the inverse Mills ratio.
+Heckman proposed a two-step estimator of the coefﬁcients. The insight is that the coefﬁcient γ is
+identiﬁed by the probit regression of S on Z . Given γ the coefﬁcients β and σ21 are identiﬁed by least
+squares regression of Y on
+(
+X , λ(Z ′γ)
+)
+using the selected sample. The steps are as follows.
+1. Construct (if necessary) the binary variable S from the observed series Y .
+2. Estimate the coefﬁcient ˆγ by probit regression of S on Z .
+3. Construct the variables ˆλi = λ
+(
+Z ′
+i ˆγ
+)
+.
+4. Estimate the coefﬁcients ( ˆβ, ˆσ21) by least-squares regression ofYi on (Xi , ˆλi ) using the sub-sample
+with Si = 1.
+Heckman showed that the estimator ˆβ is consistent and asymptotically normal. The variable ˆλi is
+a generated regressor (see Section 12.26) which affects covariance matrix estimation. The method is
+sometimes called “Heckit” as it is an analog of probit, logit, and Tobit regression.
+As a by-product we also obtain an estimator of the covariance σ21. This parameter indicates the
+magnitude of sample selection endogeneity. If selection is exogenous then σ21 = 0. The null hypothesis
+of exogenous selection can be tested by examining the t-statistic for ˆσ21.
+An alternative to two-step estimation is joint maximum likelihood. The joint density of S and Y is
+f (s, y |x, z) = P[S = 0 |x, z]1−s f
+(
+y,S = 1 |x, z
+)s .
+The selection probability is P[S = 0 |x, z] = 1 − Φ
+(
+z′γ
+)
+. The conditional density component is
+f
+(
+y,S = 1, |x, z
+)
+=
+∫ ∞
+0
+f
+(
+y, s∗ |x, z
+)
+d s∗
+=
+∫ ∞
+0
+f
+(
+s∗ |y, x, z
+)
+f
+(
+y |x, z
+)
+d s∗
+=
+(
+1 − F
+(
+s∗ |y, x, z
+))
+f
+(
+y |x, z
+)
+.
+The ﬁrst equality holds since S = 1 is the same as S∗ > 0. The second factors the joint density into
+the product of the conditional of S∗ given Y and the marginal of Y . The marginal density of Y is
+σ−1φ
+(
+(y − x′β)/σ
+)
+. The conditional distribution of S∗ given Y is N
+(
+Z ′γ + σ21
+σ2
+(
+Y − X ′β
+)
+, 1− σ21
+σ2
+)
+. Mak-
+ing these substitutions we obtain the joint mixed density
+f (s, y |x, z) =
+(
+1 − Φ
+(
+z′γ
+))1−s
+
+Φ
+
+
+z′γ + σ21
+σ2
+(
+y − x′β
+)
+√
+1 − σ21
+σ2
+
+ 1
+σ φ
+( y − x′β
+σ
+)
+
+
+s
+.
+
+
+--- page 13 ---
+
+CHAPTER 27. CENSORING AND SELECTION 854
+Evaluated at the observations we obtain the log-likelihood function
+ℓn
+(
+β, γ, σ2, σ21
+)
+=
+∑
+Si =0
+log
+(
+1 − Φ
+(
+Z ′
+i γ
+))
++
+∑
+Si =1
+
+log Φ
+
+
+Z ′
+i γ + σ21
+σ2
+(
+Yi − X ′
+i β
+)
+√
+1 − σ21
+σ2
+
+ − 1
+2 log
+(
+2πσ2)
+− 1
+2σ2
+(
+Yi − X ′
+i β
+)2
+
+.
+The maximum likelihood estimator
+(ˆβ, ˆγ, ˆσ2, ˆσ21
+)
+maximizes the log-likelihood.
+The MLE is the preferred estimation method for ﬁnal reporting. It can be computationally demand-
+ing in some applications, however, so the two-step estimator can be useful for preliminary analysis.
+In Stata the two-step estimator and joint MLE can be obtained with the heckman command.
+27.11 Nonparametric Selection
+A nonparametric selection model is
+Y ∗ = m(X ) + e
+S∗ = g (Z ) + u
+S = 1
+{
+S∗ > 0
+}
+Y =
+{ Y ∗ if S = 1
+missing if S = 0
+where the distribution of (e ,u) is unknown. For simplicity we assume that (e ,u) are independent of
+(X , Z ).
+Selection occurs ifu > −g (Z ). This is unaffected by monotonically increasing transformations. There-
+fore the distribution of u is not separately identiﬁed from the function g (Z ). Consequently we can nor-
+malize the distribution of u to a convenient form. Here we use the normal distribution: u ∼ Φ(x).
+Since the functions m(X ) and g (Z ) are nonparametric we can use series methods to approximate
+them by linear models of the form m(X ) = X ′β and g (Z ) = Z ′γ after suitable variable transformation.
+We will use this latter notation to link the models to estimation methods.
+The conditional probability of selection is
+p(Z ) = P[S = 1 |Z ] = P
+[
+u > −Z ′γ |Z
+]
+= Φ
+(
+Z ′γ
+)
+.
+The probability p(Z ) is known as the propensity score; it is nonparametrically identiﬁed from the joint
+distribution of (S, Z ), so the function g (Z ) = Z ′γ is identiﬁed. The coefﬁcientγ and propensity score can
+be estimated by binary choice methods, for example by a series probit regression.
+The conditional mean of Y given selection is
+E[Y |X , Z ,S = 1] = X ′β + h1
+(
+Z ′γ
+)
+(27.8)
+where h1(x) = E[e |u > −x]. In general h1(x) can take a range of possible shapes. When (e ,u) are jointly
+normal with covariance σ21 then h1(x) = σ21λ(x) where λ(x) = φ(x)/Φ(x) is the inverse Mills ratio. There
+are two alternative representations of the conditional mean which are potentially useful. Since g (Z ) =
+Φ−1 (
+p(Z )
+)
+we have the representation
+E[Y |X , Z ,S = 1] = X ′β + h2
+(
+p(Z ))
+)
+(27.9)
+where h2(x) = h1
+(
+Φ−1 (x)
+)
+. Also, since λ(x) is invertible we have the representation
+E[Y |X , Z ,S = 1] = X ′β + h3
+(
+λ(Z ′γ)
+)
+(27.10)
+
+
+--- page 14 ---
+
+CHAPTER 27. CENSORING AND SELECTION 855
+where h3(x) = h1
+(
+λ−1(x)
+)
+.
+The three equations (27.8)-(27.10) suggest three two-step approaches to nonparametric estimation
+which we now describe. Each is based on a ﬁrst-step binary choice estimator ˆγ of γ.
+Equation (27.8) suggests a regression of Y on X and a series expansion in Z ′ ˆγ, for example a low-
+order polynomial in Z ′ ˆγ.
+Equation (27.9) suggests a regression of Y on X and a series expansion in the propensity score ˆp =
+Φ
+(
+Z ′ ˆγ
+)
+, for example a low-order polynomial in ˆp.
+Equation (27.10) suggests a regression of Y on X and a series expansion in ˆλ = λ
+(
+Z ′ ˆγ
+)
+, for example a
+low-order polynomial in ˆλ.
+The advantage of expansions based on (27.10) is that it will be ﬁrst-order accurate in the leading
+case of the normal distribution. This means that for distributions close to the normal, series expansions
+will be accurate even with a small number of terms. The advantage of expansions based on (27.9) is
+interpretability: The regression is expressed as a function of the propensity score.
+Das, Newey, and Vella (2003) provide a detailed asymptotic theory for this class of estimators focusing
+on those based on (27.9). They provide conditions under which the models are identiﬁed, the estimators
+consistent, and asymptotically normally distributed.
+These nonparametric selection estimators are two-step estimators with generated regressors (see
+Section 12.26). Therefore conventional covariance matrix estimators and standard errors are inconsis-
+tent. Asymptotically valid covariance matrix estimators can be constructed using GMM. An alternative
+is to use bootstrap methods. The latter should be implemented as an explicit two-step estimator so that
+the ﬁrst-step estimation is treated by the bootstrap distribution.
+A standard recommendation is that the regressorsZ in the selection equation should include at least
+one relevant variable which is a valid exclusion from the regressors X in the main equation. The reason
+is that otherwise the series expansions for m(x) and h(Z ′γ) can be highly collinear and not separately
+identiﬁed. This insight applies to the parametric case as well. One difﬁculty is that in applications it may
+be challenging to identify variables which affect selection S∗ but not the outcome Y ∗.
+27.12 Panel Data
+A panel censored regression (panel Tobit) equation is
+Y ∗
+i t = X ′
+i tβ + ui + ei t
+Yi t = max
+(
+Y ∗
+i t, 0
+)
+.
+The individual effect ui can be treated as a random effect (uncorrelated with the errors) or a ﬁxed effect
+(unstructured correlation).
+A random effects estimator can be derived under the assumption of joint normality of the errors.
+This is implemented in the Stata command xttobit. The advantage is that the procedure is simple to
+implement. The disadvantages are those typically associated with random effects estimators.
+A ﬁxed effects estimator was developed by Honoré (1992). His key insight is the following, which
+we illustrate assuming T = 2. If the errors (ei 1,ei 2) are independent of ( Xi 1, Xi 2,ui ) then the distri-
+bution of (Y ∗
+i 1,Y ∗
+i 2) conditional on ( Xi 1, Xi 2) is symmetric about the 45 degree line through the point
+(∆X ′β,0) in (Y 1,Y2) space. This distribution does not depend on the ﬁxed effect ui . From this symme-
+try and the censoring rules Honoré derived moment conditions which identify the coefﬁcients β and
+allow estimation by GMM. Honoré (1992) provides a complete asymptotic distribution theory. Honoré
+has provided a Stata command Pantob which implements his estimator and is available on his website.
+https://www.princeton.edu/~honore/stata/.
+
+
+--- page 15 ---
+
+CHAPTER 27. CENSORING AND SELECTION 856
+A panel sample selection model is
+Y ∗
+i t = X ′
+i tβ + ui + ei t
+S∗
+i t = Z ′
+i tγ + ηi + vi t
+Si t = 1
+{
+S∗
+i t > 0
+}
+Yi t =
+{ Y ∗
+i t if Si t = 1
+missing if Si t = 0 .
+A method to estimated this model is presented in Kyriazidou (1997). Again for exposition we focus on
+the T = 2 case. Her estimator is motivated by the observation that β could be consistently estimated
+by least squares applied to the sub-sample where Si 1 = Si 2 = 1 (both observations are selected) and
+Z ′
+i 1γ = Z ′
+i 2γ (both observations have same probability of selection). The parameter γ is identiﬁed up to
+scale by the selection equation so can be estimated as ˆγ by the methods described in Section 25.13 (e.g.
+Chamberlain (1980, 1984)). Given ˆγ we estimate β by kernel-weighted least squares on the sub-sample
+with Si 1 = Si 2 = 1, with kernel weights depending on(Zi 1 − Zi 2)′ ˆγ. Kyriazidou (1997) provides a complete
+distribution theory.
+_____________________________________________________________________________________________
+27.13 Exercises
+Exercise 27.1 Derive (27.2) and (27.3). Hint: Use Theorems 5.7 and 5.8 of Introduction to Econometrics.
+Exercise 27.2 Take the model
+Y ∗ = X ′β + e
+e ∼ N
+(
+0, σ2)
+Y =
+{ Y ∗ if Y ∗ ≤ τ
+missing if Y ∗ > τ .
+In this model, we say that Y is capped from above. Suppose you regress Y on X . Is OLS consistent for β?
+Describe the nature of the effect of the mis-measured observation on the OLS estimator.
+Exercise 27.3 Take the model
+Y = X ′β + e
+e ∼ N
+(
+0, σ2)
+.
+Let ˆβ denote the OLS estimator for β based on an available sample.
+(a) Suppose that an observation is in the sample only if X1 > 0 where X1 is an element of X . Is ˆβ
+consistent for β? Obtain an expression for its probability limit.
+(b) Suppose that an observation is in the sample only if Y > 0. Is ˆβ consistent for ˆβ? Obtain an expres-
+sion for its probability limit.
+Exercise 27.4 For the censored conditional mean (27.2) propose a NLLS estimator of (β, σ).
+Exercise 27.5 For the truncated conditional mean (27.3) propose a NLLS estimator of (β, σ).
+
+
+--- page 16 ---
+
+CHAPTER 27. CENSORING AND SELECTION 857
+Exercise 27.6 A latent variable Y ∗ is generated by
+Y ∗ = β0 + X β1 + e
+e |X ∼ N
+(
+0, σ2(X )
+)
+σ2(X ) = γ0 + X 2γ1
+Y = max
+(
+Y ∗, 0
+)
+.
+where X is scalar. Assume γ0 > 0 and γ1 > 0. The parameters are β, γ0, γ1. Find the log-likelihood func-
+tion for the conditional distribution of Y given X .
+Exercise 27.7 Take the model
+S = 1
+{
+X ′γ + u > 0
+}
+Y =
+{ X ′β + e if S = 1
+missing if S = 0
+( e
+u
+)
+∼ N
+(
+0,
+( σ2 σ21
+σ21 1
+))
+Show E[Y |X ,S = 1] = X ′β + σ21λ
+(
+X ′γ
+)
+.
+Exercise 27.8 Show (27.7).
+Exercise 27.9 Take the CHJ2004 dataset. The variables tinkind and income are household transfers re-
+ceived in-kind and household income, respectively. Divide both variables by 1000 to standardize. Create
+the regressor Dincome=(income-1)×1 {income > 1}.
+(a) Estimate a linear regression of tinkind on income and Dincome. Interpret the results.
+(b) Calculate the percentage of censored observations (the percentage for which tinkind= 0. Do you
+expect censoring bias to be a problem in this example?
+(c) Suppose you try and ﬁx the problem by omitting the censored observations. Estimate the regres-
+sion on the subsample of observations for which tinkind> 0.
+(d) Estimate a Tobit regression of of tinkind on income and Dincome.
+(e) Estimate the same regression using CLAD.
+(f) Interpret and explain the differences between your results in (a)-(e).
+Exercise 27.10 Take the cps09mar dataset and the subsample of individuals with at least 12 years of
+education. Create wage=earnings/(hours×weeks) and lwage=log(wage).
+(a) Estimate a linear regression of lwage on education and education^2. Interpret the results.
+(b) Suppose the wage data had been capped about $30/hour. Create a variable cwage which is lwage
+capped at 3.4. Estimate a linear regression of cwage on education and education^2. How would
+you interpret these results if you were unaware that the dependent variable was capped?
+(c) Suppose you try and ﬁx the problem by omitting the capped observations. Estimate the regression
+on the subsample of observations for which cwage is less than 3.4.
+
+
+--- page 17 ---
+
+CHAPTER 27. CENSORING AND SELECTION 858
+(d) Estimate a Tobit regression of cwage on education and education^2 with upper censoring at 3.4.
+(e) Estimate the same regression using CLAD. You may need to impose an upper censoring of 3.3.
+(f) Interpret and explain the differences between your results in (a)-(e).
+Exercise 27.11 Take the DDK2011 dataset. Create a variable testscore which is totalscore standardized to
+have mean zero and variance one. The variable tracking is a dummy indicating that the students were
+tracked (separated by initial test score). The varible percentile is the student’ s percentile in the initial
+distribution. For the following regressions cluster by school.
+(a) Estimate a linear regression of testscore on tracking, percentile, and percentile^2. Interpret the re-
+sults.
+(b) Suppose the scores were censored from below. Create a variable ctest which is testscore censored
+at 0. Estimate a linear regression of ctest on tracking, percentile, and percentile^2. How would you
+interpret these results if you were unaware that the dependent variable was censored?
+(c) Suppose you try and ﬁx the problem by omitting the censored observations. Estimate the regres-
+sion on the subsample of observations for which ctest is positive.
+(d) Interpret and explain the differences between your results in (a), (b), and (c).

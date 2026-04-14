@@ -1,0 +1,1283 @@
+--- page 1 ---
+
+Chapter 5
+Normal Regression
+5.1 Introduction
+This chapter introduces the normal regression model, which is a special case of the linear regression
+model. It is important as normality allows precise distributional characterizations and sharp inferences.
+It also provides a baseline for comparison with alternative inference methods, such as asymptotic ap-
+proximations and the bootstrap.
+The normal regression model is a fully parametric setting where maximum likelihood estimation
+is appropriate. Therefore in this chapter we introduce likelihood methods. The method of maximum
+likelihood is a powerful statistical method for parametric models (such as the normal regression model)
+and is widely used in econometric practice.
+We start the chapter with a review of the deﬁnition and properties of the normal distribution. For
+detail and mathematical proofs see Chapter 5 of Introduction to Econometrics.
+5.2 The Normal Distribution
+We say that a random variable Z has the standard normal distribution, or Gaussian, written Z ∼
+N(0, 1), if it has the density
+φ(x) = 1
+p
+2π
+exp
+(
+− x2
+2
+)
+, −∞ < x < ∞.
+The standard normal density is typically written with the symbolφ(x) and the corresponding distribution
+function by Φ(x). Plots of the standard normal density function φ(z) and distribution function Φ(x) are
+displayed in Figure 5.1.
+137
+
+
+--- page 2 ---
+
+CHAPTER 5. NORMAL REGRESSION 138
+−4 −2 0 2 4
+0.0 0.1 0.2 0.3 0.4
+−4 −3 −2 −1 0 1 2 3 4
+(a) Normal Density
+0.0 0.2 0.4 0.6 0.8 1.0
+−4 −3 −2 −1 0 1 2 3 4 (b) Normal Distribution
+Figure 5.1: Standard Normal Density and Distribution
+Theorem 5.1 If Z ∼ N(0, 1) then
+1. All integer moments of Z are ﬁnite.
+2. All odd moments of Z equal 0.
+3. For any positive integer m
+E
+[
+Z 2m]
+= (2m − 1)!! = (2m − 1) × (2m − 3) × · · · ×1.
+4. For any r > 0
+E |Z |r = 2r /2
+pπ Γ
+(r + 1
+2
+)
+where Γ(t) =
+∫ ∞
+0 ut −1e−udu is the gamma function.
+If Z ∼ N(0, 1) and X = µ + σZ for µ ∈ R and σ ≥ 0 then X has the univariate normal distribution,
+written X ∼ N
+(
+µ, σ2)
+. By change-of-variables X has the density
+f (x) = 1p
+2πσ2
+exp
+(
+−
+(
+x − µ
+)2
+2σ2
+)
+, −∞ < x < ∞.
+The mean and variance of X are µ and σ2, respectively.
+The normal distribution and its relatives (the chi-square, student t, F , non-central chi-square and F)
+are frequently used for inference to calculate critical values and p-values. This involves evaluating the
+normal cdf Φ(x) and its inverse. Since the cdf Φ(x) is not available in closed form statistical textbooks
+have traditionally provided tables for this purpose. Such tables are not used currently as these calcula-
+tions are embedded in modern statistical software. For convenience, we list the appropriate commands
+
+
+--- page 3 ---
+
+CHAPTER 5. NORMAL REGRESSION 139
+in MATLAB, R, and Stata to compute the cumulative distribution function of commonly used statistical
+distributions.
+Numerical Cumulative Distribution Function
+To calculate P(Z ≤ x) for given x
+MATLAB R Stata
+N(0, 1) normcdf(x) pnorm(x) normal(x)
+χ2
+r chi2cdf(x,r) pchisq(x,r) chi2(r,x)
+tr tcdf(x,r) pt(x,r) 1-ttail(r,x)
+Fr,k fcdf(x,r,k) pf(x,r,k) F(r,k,x)
+χ2
+r (d) ncx2cdf(x,r,d) pchisq(x,r,d) nchi2(r,d,x)
+Fr,k(d) ncfcdf(x,r,k,d) pf(x,r,k,d) 1-nFtail(r,k,d,x)
+Here we list the appropriate commands to compute the inverse probabilities (quantiles) of the same
+distributions.
+Numerical Quantile Function
+To calculate x which solves p = P(Z ≤ x) for given p
+MATLAB R Stata
+N(0, 1) norminv(p) qnorm(p) invnormal(p)
+χ2
+r chi2inv(p,r) qchisq(p,r) invchi2(r,p)
+tr tinv(p,r) qt(p,r) invttail(r,1-p)
+Fr,k finv(p,r,k) qf(p,r,k) invF(r,k,p)
+χ2
+r (d) ncx2inv(p,r,d) qchisq(p,r,d) invnchi2(r,d,p)
+Fr,k(d) ncfinv(p,r,k,d) qf(p,r,k,d) invnFtail(r,k,d,1-p)
+5.3 Multivariate Normal Distribution
+We say that the k-vector Z has a multivariate standard normal distribution, written Z ∼ N(0, I k), if
+it has the joint density
+f (x) = 1
+(2π)k/2 exp
+(
+− x′x
+2
+)
+, x ∈ Rk.
+The mean and covariance matrix of Z are 0 and I k, respectively. The multivariate joint density factors
+into the product of univariate normal densities, so the elements ofZ are mutually independent standard
+normals.
+If Z ∼ N(0, I k) and X = µ + B Z then the k-vector X has a multivariate normal distribution, written
+X ∼ N
+(
+µ, Σ
+)
+where Σ = B B′ ≥ 0. If Σ > 0 then by change-of-variables X has the joint density function
+f (x) = 1
+(2π)k/2 det(Σ)1/2 exp
+(
+−
+(
+x − µ
+)′ Σ−1 (
+x − µ
+)
+2
+)
+, x ∈ Rk.
+
+
+--- page 4 ---
+
+CHAPTER 5. NORMAL REGRESSION 140
+The mean and covariance matrix of X are µ and Σ, respectively. By setting k = 1 you can check that the
+multivariate normal simpliﬁes to the univariate normal.
+An important property of normal random vectors is that afﬁne functions are multivariate normal.
+Theorem 5.2 If X ∼ N
+(
+µ, Σ
+)
+and Y = a + B X , then Y ∼ N
+(
+a + B µ, B ΣB ′)
+.
+One simple implication of Theorem 5.2 is that if X is multivariate normal then each component of X
+is univariate normal.
+Another useful property of the multivariate normal distribution is that uncorrelatedness is the same
+as independence. That is, if a vector is multivariate normal, subsets of variables are independent if and
+only if they are uncorrelated.
+Theorem 5.3 Properties of the Multivariate Normal Distribution
+1. The mean and covariance matrix of X ∼ N
+(
+µ, Σ
+)
+are E[X ] = µ and
+var[X ] = Σ.
+2. If ( X ,Y ) are multivariate normal, X and Y are uncorrelated if and only if
+they are independent.
+3. If X ∼ N
+(
+µ, Σ
+)
+and Y = a + B X , then Y ∼ N
+(
+a + B µ, B ΣB ′)
+.
+4. If X ∼ N(0, I k) then X ′X ∼ χ2
+k, chi-square with k degrees of freedom.
+5. If X ∼ N(0, Σ) with Σ > 0 then X ′Σ−1X ∼ χ2
+k where k = dim(X ).
+6. If X ∼ N(µ, Σ) with Σ > 0, r × r , then X ′Σ−1X ∼ χ2
+r (λ) where λ = µ′Σ−1µ.
+7. If Z ∼ N(0, 1) and Q ∼ χ2
+k are independent then Z /
+√
+Q/k ∼ tk, student t
+with k degrees of freedom.
+8. If (Y ,X ) are multivariate normal
+( Y
+X
+)
+∼ N
+(( µY
+µX
+)
+,
+( ΣY Y ΣY X
+ΣX Y ΣX X
+))
+with ΣY Y > 0 and ΣX X > 0 then the conditional distributions are
+Y |X ∼ N
+(
+µY + ΣY X Σ−1
+X X
+(
+X − µX
+)
+, ΣY Y − ΣY X Σ−1
+X X ΣX Y
+)
+X |Y ∼ N
+(
+µX + ΣX Y Σ−1
+Y Y
+(
+Y − µY
+)
+, ΣX X − ΣX Y Σ−1
+Y Y ΣY X
+)
+.
+
+
+--- page 5 ---
+
+CHAPTER 5. NORMAL REGRESSION 141
+5.4 Joint Normality and Linear Regression
+Suppose the variables (Y , X ) are jointly normally distributed. Consider the best linear predictor of Y
+given X
+Y = X ′β + α + e.
+By the properties of the best linear predictor, E[X e] = 0 and E[e] = 0, so X and e are uncorrelated. Since
+(e, X ) is an afﬁne transformation of the normal vector (Y, X ) it follows that (e, X ) is jointly normal (Theo-
+rem 5.2). Since (e , X ) is jointly normal and uncorrelated they are independent (Theorem 5.3). Indepen-
+dence implies that
+E[e |X ] = E[e] = 0
+and
+E
+[
+e2 |X
+]
+= E
+[
+e2]
+= σ2
+which are properties of a homoskedastic linear CEF .
+We have shown that when (Y , X ) are jointly normally distributed they satisfy a normal linear CEF
+Y = X ′β + α + e
+where
+e ∼ N(0, σ2)
+is independent of X . This result can also be deduced from Theorem 5.3.7.
+This is a classical motivation for the linear regression model.
+5.5 Normal Regression Model
+The normal regression model is the linear regression model with an independent normal error
+Y = X ′β + e (5.1)
+e ∼ N(0, σ2).
+As we learned in Section 5.4 the normal regression model holds when (Y , X ) are jointly normally dis-
+tributed. Normal regression, however, does not require joint normality. All that is required is that the
+conditional distribution of Y given X is normal (the marginal distribution of X is unrestricted). In this
+sense the normal regression model is broader than joint normality. Notice that for notational conve-
+nience we have written (5.1) so that X contains the intercept.
+Normal regression is a parametric model where likelihood methods can be used for estimation, test-
+ing, and distribution theory. The likelihood is the name for the joint probability density of the data,
+evaluated at the observed sample, and viewed as a function of the parameters. The maximum likelihood
+estimator is the value which maximizes this likelihood function. Let us now derive the likelihood of the
+normal regression model.
+First, observe that model (5.1) is equivalent to the statement that the conditional density of Y given
+X takes the form
+f
+(
+y |x
+)
+= 1
+(
+2πσ2)1/2 exp
+(
+− 1
+2σ2
+(
+y − x′β
+)2
+)
+.
+
+
+--- page 6 ---
+
+CHAPTER 5. NORMAL REGRESSION 142
+Under the assumption that the observations are mutually independent this implies that the conditional
+density of (Y1,..., Yn) given (X1, ...,Xn) is
+f
+(
+y1,..., yn |x1,..., xn
+)
+=
+n∏
+i =1
+f
+(
+yi |xi
+)
+=
+n∏
+i =1
+1
+(
+2πσ2)1/2 exp
+(
+− 1
+2σ2
+(
+yi − x′
+i β
+)2
+)
+= 1
+(
+2πσ2)n/2 exp
+(
+− 1
+2σ2
+n∑
+i =1
+(
+yi − x′
+i β
+)2
+)
+def
+= Ln(β, σ2).
+This is called the likelihood function when evaluated at the sample data.
+For convenience it is typical to work with the natural logarithm
+logLn(β, σ2) = −n
+2 log(2πσ2) − 1
+2σ2
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 def
+= ℓn(β, σ2) (5.2)
+which is called the log-likelihood function.
+The maximum likelihood estimator(MLE) ( ˆβmle, ˆσ2
+mle) is the value which maximizes the log-likelihood.
+We can write the maximization problem as
+( ˆβmle, ˆσ2
+mle) = argmax
+β∈Rk , σ2>0
+ℓn(β, σ2). (5.3)
+In most applications of maximum likelihood the MLE must be found by numerical methods. However
+in the case of the normal regression model we can ﬁnd an explicit expression for ˆβmle and ˆσ2
+mle.
+The maximizers ( ˆβmle, ˆσ2
+mle) of (5.3) jointly solve the ﬁrst-order conditions (FOC)
+0 = ∂
+∂β ℓn(β, σ2)
+⏐⏐
+⏐
+⏐
+β= ˆβmle,σ2=ˆσ2
+mle
+= 1
+ˆσ2
+mle
+n∑
+i =1
+Xi
+(
+Yi − X ′
+i ˆβmle
+)
+(5.4)
+0 = ∂
+∂σ2 ℓn(β, σ2)
+⏐⏐
+⏐
+⏐
+β= ˆβmle,σ2=ˆσ2
+mle
+= − n
+2ˆσ2
+mle
++ 1
+2ˆσ4
+mle
+n∑
+i =1
+(
+Yi − X ′
+i ˆβmle
+)2
+. (5.5)
+The ﬁrst FOC (5.4) is proportional to the ﬁrst-order conditions for the least squares minimization prob-
+lem of Section 3.6. It follows that the MLE satisﬁes
+ˆβmle =
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+= ˆβols.
+That is, the MLE for β is algebraically identical to the OLS estimator.
+Solving the second FOC (5.5) for ˆσ2
+mle we ﬁnd
+ˆσ2
+mle = 1
+n
+n∑
+i =1
+(
+Yi − X ′
+i ˆβmle
+)2
+= 1
+n
+n∑
+i =1
+(
+Yi − X ′
+i ˆβols
+)2
+= 1
+n
+n∑
+i =1
+ˆe2
+i = ˆσ2
+ols.
+Thus the MLE for σ2 is identical to the OLS/moment estimator from (3.26).
+Since the OLS estimator and MLE under normality are equivalent, ˆβ is described by some authors as
+the maximum likelihood estimator, and by other authors as the least squares estimator. It is important
+
+
+--- page 7 ---
+
+CHAPTER 5. NORMAL REGRESSION 143
+to remember, however, that ˆβ is only the MLE when the error e has a known normal distribution and not
+otherwise.
+Plugging the estimators into (5.2) we obtain the maximized log-likelihood
+ℓn
+(ˆβmle, ˆσ2
+mle
+)
+= −n
+2 log
+(
+2πˆσ2
+mle
+)
+− n
+2 . (5.6)
+The log-likelihood is typically reported as a measure of ﬁt.
+It may seem surprising that the MLE ˆβmle is numerically equal to the OLS estimator despite emerging
+from quite different motivations. It is not completely accidental. The least squares estimator minimizes
+a particular sample loss function – the sum of squared error criterion – and most loss functions are equiv-
+alent to the likelihood of a speciﬁc parametric distribution, in this case the normal regression model. In
+this sense it is not surprising that the least squares estimator can be motivated as either the minimizer
+of a sample loss function or as the maximizer of a likelihood function.
+Carl Friedrich Gauss
+The mathematician Carl Friedrich Gauss (1777-1855) proposed the normal re-
+gression model, and derived the least squares estimator as the maximum like-
+lihood estimator for this model. He claimed to have discovered the method in
+1795 at the age of eighteen but did not publish the result until 1809. Interest
+in Gauss’ s approach was reinforced by Laplace’ s simultaneous discovery of the
+central limit theorem, which provided a justiﬁcation for viewing random distur-
+bances as approximately normal.
+5.6 Distribution of OLS Coefﬁcient Vector
+In the normal linear regression model we can derive exact sampling distributions for the OLS/MLE
+estimator, residuals, and variance estimator. In this section we derive the distribution of the OLS coefﬁ-
+cient estimator.
+The normality assumption e |X ∼ N
+(
+0, σ2)
+combined with independence of the observations has the
+multivariate implication
+e |X ∼ N
+(
+0, I nσ2)
+.
+That is, the error vector e is independent of X and is normally distributed.
+Recall that the OLS estimator satisﬁes
+ˆβ − β =
+(
+X ′X
+)−1 X ′e
+which is a linear function of e. Since linear functions of normals are also normal (Theorem 5.2) this
+implies that conditional on X ,
+ˆβ − β |X ∼
+(
+X ′X
+)−1 X ′N
+(
+0, I nσ2)
+∼ N
+(
+0, σ2 (
+X ′X
+)−1 X ′X
+(
+X ′X
+)−1)
+= N
+(
+0, σ2 (
+X ′X
+)−1)
+.
+This shows that under the assumption of normal errors the OLS estimator has an exact normal dis-
+tribution.
+
+
+--- page 8 ---
+
+CHAPTER 5. NORMAL REGRESSION 144
+Theorem 5.4 In the normal regression model,
+ˆβ |X ∼ N
+(
+β, σ2 (
+X ′X
+)−1)
+.
+Theorems 5.2 and 5.4 imply that any afﬁne function of the OLS estimator is also normally distributed
+including individual components. Letting βj and ˆβj denote the j t h elements of β and ˆβ, we have
+ˆβj |X ∼ N
+(
+βj , σ2
+[(
+X ′X
+)−1]
+j j
+)
+. (5.7)
+Theorem 5.4 is a statement about the conditional distribution. What about the unconditional distri-
+bution? In Section 4.7 we presented Kinal’ s theorem about the existence of moments for the joint normal
+regression model. We re-state the result here.
+Theorem 5.5 Kinal (1980) If (Y , X ) are jointly normal, then for any r , E
+ ˆβ
+
+r
+<
+∞ if and only if r < n − k + 1.
+5.7 Distribution of OLS Residual Vector
+Consider the OLS residual vector. Recall from (3.24) that ˆe = Me where M = I n − X
+(
+X ′X
+)−1 X ′. This
+shows that ˆe is linear in e. So conditional on X
+ˆe = Me |X ∼ N
+(
+0, σ2M M
+)
+= N
+(
+0, σ2M
+)
+the ﬁnal equality since M is idempotent (see Section 3.12). This shows that the residual vector has an
+exact normal distribution.
+Furthermore, it is useful to ﬁnd the joint distribution of ˆβ and ˆe. This is easiest done by writing the
+two as a stacked linear function of the error e. Indeed,
+( ˆβ − β
+ˆe
+)
+=
+( (
+X ′X
+)−1 X ′e
+Me
+)
+=
+( (
+X ′X
+)−1 X ′
+M
+)
+e
+which is a linear function of e. The vector thus has a joint normal distribution with covariance matrix
+(
+σ2 (
+X ′X
+)−1 0
+0 σ2M
+)
+.
+The off-diagonal block is zero because X ′M = 0 from (3.21). Since this is zero it follows that ˆβ and ˆe are
+statistically independent (Theorem 5.3.2).
+Theorem 5.6 In the normal regression model, ˆe |X ∼ N
+(
+0, σ2M
+)
+and is inde-
+pendent of ˆβ.
+The fact that ˆβ and ˆe are independent implies that ˆβ is independent of any function of the residual
+vector including individual residuals ˆei and the variance estimators s2 and ˆσ2.
+
+
+--- page 9 ---
+
+CHAPTER 5. NORMAL REGRESSION 145
+5.8 Distribution of Variance Estimator
+Next, consider the variance estimator s2 from (4.26). Using (3.28) it satisﬁes (n − k) s2 = ˆe′ˆe = e′Me .
+The spectral decomposition of M (equation (A.4)) is M = H ΛH ′ where H ′H = I n and Λ is diagonal with
+the eigenvalues of M on the diagonal. Since M is idempotent with rank n − k (see Section 3.12) it has
+n − k eigenvalues equalling 1 and k eigenvalues equalling 0, so
+Λ =
+[ I n−k 0
+0 0 k
+]
+.
+Let u = H ′e ∼ N
+(
+0, I nσ2)
+(see Exercise 5.2) and partition u =
+(
+u′
+1, u′
+2
+)′ where u1 ∼ N
+(
+0, I n−k σ2)
+. Then
+(n − k) s2 = e′Me
+= e′H
+[ I n−k 0
+0 0
+]
+H ′e
+= u′
+[ I n−k 0
+0 0
+]
+u
+= u′
+1u1
+∼ σ2χ2
+n−k.
+We see that in the normal regression model the exact distribution of s2 is a scaled chi-square.
+Since ˆe is independent of ˆβ it follows that s2 is independent of ˆβ as well.
+Theorem 5.7 In the normal regression model,
+(n − k) s2
+σ2 ∼ χ2
+n−k
+and is independent of ˆβ.
+5.9 t-statistic
+An alternative way of writing (5.7) is
+ˆβj − βj
+√
+σ2
+[(
+X ′X
+)−1]
+j j
+∼ N(0, 1).
+This is sometimes called a standardized statistic as the distribution is the standard normal.
+Now take the standardized statistic and replace the unknown variance σ2 with its estimator s2. We
+call this a t-ratio or t-statistic
+T =
+ˆβj − βj
+√
+s2
+[(
+X ′X
+)−1]
+j j
+=
+ˆβj − βj
+s( ˆβj )
+
+
+--- page 10 ---
+
+CHAPTER 5. NORMAL REGRESSION 146
+where s( ˆβj ) is the classical (homoskedastic) standard error for ˆβj from (4.37). We will sometimes write
+the t-statistic as T (βj ) to explicitly indicate its dependence on the parameter value βj , and sometimes
+will simplify notation and write the t-statistic as T when the dependence is clear from the context.
+With algebraic re-scaling we can write the t-statistic as the ratio of the standardized statistic and the
+square root of the scaled variance estimator. Since the distributions of these two components are normal
+and chi-square, respectively, and independent, we deduce that the t-statistic has the distribution
+T =
+ˆβj − βj
+√
+σ2
+[(
+X ′X
+)−1]
+j j
+/ √
+(n − k)s2
+σ2
+/
+(n − k)
+∼ N(0, 1)√
+χ2
+n−k
+/
+(n − k)
+∼ tn−k
+a student t distribution with n − k degrees of freedom.
+This derivation shows that the t-ratio has a sampling distribution which depends only on the quantity
+n −k. The distribution does not depend on any other features of the data. In this context, we say that the
+distribution of the t-ratio is pivotal, meaning that it does not depend on unknowns.
+The trick behind this result is scaling the centered coefﬁcient by its standard error, and recognizing
+that each depends on the unknown σ only through scale. Thus the ratio of the two does not depend on
+σ. This trick (scaling to eliminate dependence on unknowns) is known as studentization.
+Theorem 5.8 In the normal regression model, T ∼ tn−k.
+An important caveat about Theorem 5.8 is that it only applies to the t-statistic constructed with the
+homoskedastic (old-fashioned) standard error. It does not apply to a t-statistic constructed with any
+of the robust standard errors. In fact, the robust t-statistics can have ﬁnite sample distributions which
+deviate considerably from tn−k even when the regression errors are independent N(0, σ2). Thus the dis-
+tributional result in Theorem 5.8 and the use of the t distribution in ﬁnite samples is only exact when
+applied to classical t-statistics under the normality assumption.
+5.10 Conﬁdence Intervals for Regression Coefﬁcients
+The OLS estimator ˆβ is a point estimator for a coefﬁcient β. A broader concept is a set or interval
+estimator which takes the form ˆC = [ˆL, ˆU ]. The goal of an interval estimator ˆC is to contain the true
+value, e.g. β ∈ ˆC , with high probability.
+The interval estimator ˆC is a function of the data and hence is random.
+An interval estimator ˆC is called a 1−α conﬁdence intervalwhen P
+[
+β ∈ ˆC
+]
+= 1−α for a selected value
+of α. The value 1 − α is called the coverage probability. Typical choices for the coverage probability 1− α
+are 0.95 or 0.90.
+The probability calculation P
+[
+β ∈ ˆC
+]
+is easily mis-interpreted as treating β as random and ˆC as ﬁxed.
+(The probability that β is in ˆC .) This is not the appropriate interpretation. Instead, the correct inter-
+pretation is that the probability P
+[
+β ∈ ˆC
+]
+treats the point β as ﬁxed and the set ˆC as random. It is the
+probability that the random set ˆC covers (or contains) the ﬁxed true coefﬁcientβ.
+
+
+--- page 11 ---
+
+CHAPTER 5. NORMAL REGRESSION 147
+There is not a unique method to construct conﬁdence intervals. For example, one simple (yet silly)
+interval is
+ˆC =
+{ R with probability 1 − α{ˆβ
+}
+with probability α.
+If ˆβ has a continuous distribution, then by construction P
+[
+β ∈ ˆC
+]
+= 1 − α, so this conﬁdence interval has
+perfect coverage. However, ˆC is uninformative about ˆβ and is therefore not useful.
+Instead, a good choice for a conﬁdence interval for the regression coefﬁcientβ is obtained by adding
+and subtracting from the estimator ˆβ a ﬁxed multiple of its standard error:
+ˆC =
+[ˆβ − c × s( ˆβ), ˆβ + c × s( ˆβ)
+]
+(5.8)
+where c > 0 is a pre-speciﬁed constant. This conﬁdence interval is symmetric about the point estimator
+ˆβ and its length is proportional to the standard error s( ˆβ).
+Equivalently, ˆC is the set of parameter values forβ such that the t-statisticT (β) is smaller (in absolute
+value) than c, that is
+ˆC =
+{
+β :
+⏐⏐T (β)
+⏐
+⏐ ≤ c
+}
+=
+{
+β : −c ≤
+ˆβ − β
+s( ˆβ)
+≤ c
+}
+.
+The coverage probability of this conﬁdence interval is
+P
+[
+β ∈ ˆC
+]
+= P
+[⏐
+⏐T (β)
+⏐
+⏐ ≤ c
+]
+= P
+[
+−c ≤ T (β) ≤ c
+]
+. (5.9)
+Since the t-statistic T (β) has the tn−k distribution (5.9) equals F (c) − F (−c), where F (u) is the student t
+distribution function with n −k degrees of freedom. Since F (−c) = 1−F (c) (see Exercise 5.8) we can write
+(5.9) as
+P
+[
+β ∈ ˆC
+]
+= 2F (c) − 1.
+This is the coverage probability of the interval ˆC , and only depends on the constant c.
+As we mentioned before, a conﬁdence interval has the coverage probability 1 − α. This requires se-
+lecting the constant c so that F (c) = 1 − α/2. This holds if c equals the 1 − α/2 quantile of the tn−k distri-
+bution. As there is no closed form expression for these quantiles we compute their values numerically.
+For example, by tinv(1-alpha/2,n-k) in MATLAB. With this choice the conﬁdence interval (5.8) has
+exact coverage probability 1− α. By default, Stata reports 95% conﬁdence intervals ˆC for each estimated
+regression coefﬁcient using the same formula.
+Theorem 5.9 In the normal regression model, (5.8) with c = F −1(1 − α/2) has
+coverage probability P
+[
+β ∈ ˆC
+]
+= 1 − α.
+When the degree of freedom is large the distinction between the student t and the normal distribu-
+tion is negligible. In particular, for n − k ≥ 61 we have c ≤ 2.00 for a 95% interval. Using this value we
+obtain the most commonly used conﬁdence interval in applied econometric practice:
+ˆC =
+[ˆβ − 2s( ˆβ), ˆβ + 2s( ˆβ)
+]
+. (5.10)
+This is a useful rule-of-thumb. This 95% conﬁdence interval ˆC is simple to compute and can be easily
+calculated from coefﬁcient estimates and standard errors.
+
+
+--- page 12 ---
+
+CHAPTER 5. NORMAL REGRESSION 148
+Theorem 5.10 In the normal regression model, if n − k ≥ 61 then (5.10) has
+coverage probability P
+[
+β ∈ ˆC
+]
+≥ 0.95.
+Conﬁdence intervals are a simple yet effective tool to assess estimation uncertainty. When reading
+a set of empirical results look at the estimated coefﬁcient estimates and the standard errors. For a pa-
+rameter of interest compute the conﬁdence interval ˆC and consider the meaning of the spread of the
+suggested values. If the range of values in the conﬁdence interval are too wide to learn about β then do
+not jump to a conclusion about β based on the point estimate alone.
+5.11 Conﬁdence Intervals for Error Variance
+We can also construct a conﬁdence interval for the regression error variance σ2 using the sampling
+distribution of s2 from Theorem 5.7. This states that in the normal regression model
+(n − k) s2
+σ2 ∼ χ2
+n−k. (5.11)
+Let F (u) denote the χ2
+n−k distribution function and for some α set c1 = F −1(α/2) and c2 = F −1(1 − α/2)
+(the α/2 and 1 − α/2 quantiles of the χ2
+n−k distribution). Equation (5.11) implies that
+P
+[
+c1 ≤ (n − k) s2
+σ2 ≤ c2
+]
+= F (c2) − F (c1) = 1 − α.
+Rewriting the inequalities we ﬁnd
+P
+[ (n − k) s2
+c2
+≤ σ2 ≤ (n − k) s2
+c1
+]
+= 1 − α.
+This shows that an exact 1− α conﬁdence interval forσ2 is
+ˆC =
+[ (n − k) s2
+c2
+, (n − k) s2
+c1
+]
+. (5.12)
+Theorem 5.11 In the normal regression model (5.12) has coverage probability
+P
+[
+σ2 ∈ ˆC
+]
+= 1 − α.
+The conﬁdence interval (5.12) for σ2 is asymmetric about the point estimate s2 due to the latter’ s
+asymmetric sampling distribution.
+
+
+--- page 13 ---
+
+CHAPTER 5. NORMAL REGRESSION 149
+5.12 t Test
+A typical goal in an econometric exercise is to assess whether or not a coefﬁcient β equals a speciﬁc
+value β0. Often the speciﬁc value to be tested is β0 = 0 but this is not essential. This is called hypothesis
+testing, a subject which will be explored in detail in Chapter 9. In this section and the following we give
+a short introduction speciﬁc to the normal regression model.
+For simplicity write the coefﬁcient to be tested asβ. The null hypothesis is
+H0 : β = β0. (5.13)
+This states that the hypothesis is that the true value of β equals the hypothesized value β0.
+The alternative hypothesis is the complement of H0, and is written as
+H1 : β ̸= β0.
+This states that the true value of β does not equal the hypothesized value.
+We are interested in testing H0 against H1. The method is to design a statistic which is informative
+about H1. If the observed value of the statistic is consistent with random variation under the assumption
+that H0 is true, then we deduce that there is no evidence against H0 and consequently do not reject H0.
+However, if the statistic takes a value which is unlikely to occur under the assumption that H0 is true,
+then we deduce that there is evidence againstH0 and consequently we reject H0 in favor of H1. The main
+steps are to design a test statistic and to characterize its sampling distribution.
+The standard statistic to test H0 against H1 is the absolute value of the t-statistic
+|T |=
+⏐⏐⏐
+⏐
+⏐
+ˆβ − β0
+s( ˆβ)
+⏐
+⏐⏐⏐
+⏐. (5.14)
+If H0 is true then we expect |T |to be small, but if H1 is true then we would expect |T |to be large. Hence
+the standard rule is to reject H0 in favor of H1 for large values of the t-statistic |T |and otherwise fail to
+reject H0. Thus the hypothesis test takes the form
+Reject H0 if |T |> c.
+The constant c which appears in the statement of the test is called the critical value. Its value is
+selected to control the probability of false rejections. When the null hypothesis is true T has an exact
+tn−k distribution in the normal regression model. Thus for a given value of c the probability of false
+rejection is
+P
+[
+Reject H0 |H0
+]
+= P[|T |> c |H0]
+= P[T > c |H0] + P[T < −c |H0]
+= 1 − F (c) + F (−c)
+= 2(1 − F (c))
+where F (u) is the tn−k distribution function. This is the probability of false rejection and is decreasing
+in the critical value c. We select the value c so that this probability equals a pre-selected value called the
+signiﬁcance level which is typically written as α. It is conventional to set α = 0.05, though this is not a
+hard rule. We then select c so that F (c) = 1 − α/2, which means that c is the 1 − α/2 quantile (inverse
+CDF) of the tn−k distribution, the same as used for conﬁdence intervals. With this choice the decision
+rule “Reject H0 if |T |> c” has a signiﬁcance level (false rejection probability) ofα.
+
+
+--- page 14 ---
+
+CHAPTER 5. NORMAL REGRESSION 150
+Theorem 5.12 In the normal regression model if the null hypothesis (5.13) is
+true, then for |T |deﬁned in (5.14) T ∼ tn−k. If c is set so that P[|tn−k |≥ c] =
+αthen the test “Reject H0 in favor of H1 if |T |> c” has signiﬁcance levelα.
+To report the result of a hypothesis test we need to pre-determine the signiﬁcance levelα in order to
+calculate the critical value c. This can be inconvenient and arbitrary. A simpliﬁcation is to report what
+is known as the p-value of the test. In general, when a test takes the form “Reject H0 if S > c” and S has
+null distribution G(u) then the p-value of the test is p = 1 − G(S). A test with signiﬁcance level α can
+be restated as “Reject H0 if p < α” . It is sufﬁcient to report the p-valuep and we can interpret the value
+of p as indexing the test’ s strength of rejection of the null hypothesis. Thus a p-value of 0.07 might be
+interpreted as “nearly signiﬁcant” , 0.05 as “borderline signiﬁcant” , and 0.001 as “highly signiﬁcant” . In
+the context of the normal regression model the p-value of a t-statistic |T |is p = 2(1 − Fn−k(|T |)) where
+Fn−k is the tn−k CDF . For example, in MATLAB the calculation is 2*(1-tcdf(abs(t),n-k)). In Stata,
+the default is that for any estimated regression, t-statistics for each estimated coefﬁcient are reported
+along with their p-values calculated using this same formula. These t-statistics test the hypotheses that
+each coefﬁcient is zero.
+A p-value reports the strength of evidence against H0 but is not itself a probability. A common mis-
+understanding is that the p-value is the “probability that the null hypothesis is true” . This is an incorrect
+interpretation. It is a statistic, is random, and is a measure of the evidence against H0. Nothing more.
+5.13 Likelihood Ratio Test
+In the previous section we described the t-test as the standard method to test a hypothesis on a
+single coefﬁcient in a regression. In many contexts, however, we want to simultaneously assess a set of
+coefﬁcients. In the normal regression model, this can be done by an F test which can be derived from
+the likelihood ratio test.
+Partition the regressors as X = (X ′
+1, X ′
+2) and similarly partition the coefﬁcient vector as β = (β′
+1, β′
+2)′.
+The regression model can be written as
+Y = X ′
+1β1 + X ′
+2β2 + e. (5.15)
+Let k = dim(X ), k1 = dim(X1), and q = dim(X2), so that k = k1 + q. Partition the variables so that the
+hypothesis is that the second set of coefﬁcients are zero, or
+H0 : β2 = 0. (5.16)
+If H0 is true then the regressors X2 can be omitted from the regression. In this case we can write (5.15) as
+Y = X ′
+1β1 + e. (5.17)
+We call (5.17) the null model. The alternative hypothesis is that at least one element of β2 is non-zero
+and is written as H1 : β2 ̸= 0.
+When models are estimated by maximum likelihood a well-accepted testing procedure is to reject
+H0 in favor of H1 for large values of the Likelihood Ratio – the ratio of the maximized likelihood function
+under H1 and H0, respectively. We now construct this statistic in the normal regression model. Recall
+from (5.6) that the maximized log-likelihood equals
+ℓn
+(ˆβ, ˆσ2)
+= −n
+2 log
+(
+2πˆσ2)
+− n
+2 .
+
+
+--- page 15 ---
+
+CHAPTER 5. NORMAL REGRESSION 151
+We similarly calculate the maximized log-likelihood for the constrained model (5.17). By the same steps
+for derivation of the unconstrained MLE we ﬁnd that the MLE for (5.17) is OLS of Y on X1. We can write
+this estimator as
+˜β1 =
+(
+X ′
+1X 1
+)−1 X ′
+1Y
+with residual ˜ei = Yi − X ′
+1i
+˜β1 and error variance estimate ˜σ2 = 1
+n
+∑n
+i =1 ˜e2
+i . We use tildes “~” rather than
+hats “^” above the constrained estimates to distinguish them from the unconstrained estimates. You can
+calculate similar to (5.6) that the maximized constrained log-likelihood is
+ℓn
+(˜β1, ˜σ2)
+= −n
+2 log
+(
+2π˜σ2)
+− n
+2 .
+A classic testing procedure is to reject H0 for large values of the ratio of the maximized likelihoods.
+Equivalently the test rejects H0 for large values of twice the difference in the log-likelihood functions.
+(Multiplying the likelihood difference by two turns out to be a useful scaling.) This equals
+LR = 2
+(
+ℓn
+(ˆβ, ˆσ2)
+− ℓn
+(˜β1, ˜σ2))
+= 2
+((
+− n
+2 log
+(
+2πˆσ2)
+− n
+2
+)
+−
+(
+− n
+2 log
+(
+2π˜σ2)
+− n
+2
+))
+= n log
+( ˜σ2
+ˆσ2
+)
+. (5.18)
+The likelihood ratio test rejects H0 for large values of LR, or equivalently (see Exercise 5.10) for large
+values of
+F =
+(
+˜σ2 − ˆσ2)
+/q
+ˆσ2/(n − k) . (5.19)
+This is known as the F statistic for the test of hypothesis H0 against H1.
+To develop an appropriate critical value we need the null distribution of F. Recall from (3.28) that
+n ˆσ2 = e′Me where M = I n − P with P = X
+(
+X ′X
+)−1 X ′. Similarly, under H0, n ˜σ2 = e′M 1e where M =
+I n − P 1 with P 1 = X 1
+(
+X ′
+1X 1
+)−1 X ′
+1. You can calculate that M 1 − M = P − P 1 is idempotent with rank q.
+Furthermore, (M 1 − M) M = 0. It follows that e′ (M 1 − M) e ∼ χ2
+q and is independent of e′Me . Hence
+F = e′ (M 1 − M) e/q
+e′Me /(n − k) ∼
+χ2
+q /q
+χ2
+n−k/(n − k)
+∼ Fq,n−k
+an exact F distribution with degrees of freedom q and n − k, respectively. Thus under H0, the F statistic
+has an exact F distribution.
+The critical values are selected from the upper tail of theF distribution. For a given signiﬁcance level
+α (typically α = 0.05) we select the critical value c so that P
+[
+Fq,n−k ≥ c
+]
+= α. For example, in MATLAB
+the expression is finv(1-α,q,n-k). The test rejects H0 in favor of H1 if F > c and does not reject H0
+otherwise. The p-value of the test isp = 1−Gq,n−k (F ) where Gq,n−k (u) is the Fq,n−k distribution function.
+In MATLAB, the p-value is computed as 1-fcdf(f,q,n-k) . It is equivalent to reject H0 if F > c or p < α.
+In Stata, the command to test multiple coefﬁcients takes the form ‘test X1 X2 ’ where X1 and X2
+are the names of the variables whose coefﬁcients are tested. Stata then reports the F statistic for the
+hypothesis that the coefﬁcients are jointly zero along with the p-value calculated using theF distribution.
+Theorem 5.13 In the normal regression model if the null hypothesis (5.16) is
+true then for F deﬁned in (5.19)F ∼ Fq,n−k. If c is set so that P
+[
+Fq,n−k ≥ c
+]
+= α
+then the test “Reject H0 in favor of H1 if F > c” has signiﬁcance levelα.
+
+
+--- page 16 ---
+
+CHAPTER 5. NORMAL REGRESSION 152
+Theorem 5.13 justiﬁes the F test in the normal regression model with critical values from the F dis-
+tribution.
+5.14 Information Bound for Normal Regression
+This section requires a familiarity with the theory of the Cramér-Rao Lower Bound. See Chapter 10
+of Introduction to Econometrics.
+The likelihood scores for the normal regression model are
+∂
+∂β ℓn(β, σ2) = 1
+σ2
+n∑
+i =1
+Xi
+(
+Yi − X ′
+i β
+)
+= 1
+σ2
+n∑
+i =1
+Xi ei
+and
+∂
+∂σ2 ℓn(β, σ2) = − n
+2σ2 + 1
+2σ4
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 = 1
+2σ4
+n∑
+i =1
+(
+e2
+i − σ2)
+.
+It follows that the information matrix is
+I = var
+[ ∂
+∂β ℓ(β, σ2)
+∂
+∂σ2 ℓ(β, σ2)
+⏐⏐
+⏐⏐⏐ X
+]
+=
+
+
+1
+σ2 X ′X 0
+0 2σ4
+n
+
+ (5.20)
+(see Exercise 5.11). The Cramér-Rao Lower Bound is
+I −1 =
+
+
+σ2 (
+X ′X
+)−1 0
+0 2σ4
+n
+
+.
+This shows that the lower bound for estimation of β is σ2 (
+X ′X
+)−1 and the lower bound for σ2 is 2σ4/n.
+Since in the homoskedastic linear regression model the OLS estimator is unbiased and has variance
+σ2 (
+X ′X
+)−1 it follows that the OLS coefﬁcient estimator ˆβ is Cramér-Rao efﬁcient in the normal regres-
+sion model. Cramér-Rao efﬁciency means that no unbiased estimator has a lower covariance matrix.
+This expands on the Gauss-Markov theorem which stated that no linear unbiased estimator has a lower
+variance matrix in the homoskedastic regression model. Notice that that the results are complementary.
+Gauss-Markov efﬁciency concerns a more narrow class of estimators (linear) but allows a broader model
+class (linear homoskedastic rather than normal regression). The Cramér-Rao efﬁciency result is more
+powerful in that it does not restrict the class of estimators (beyond unbiasedness) but is more restrictive
+in the class of models allowed (normal regression). However, the result is not as powerful as the Mod-
+ern Gauss-Markov Theorem (Theorem 4.7) as the latter does not require the observations to be normally
+distributed.
+The unbiased variance estimator s2 of σ2 has variance 2σ4/(n − k) (see Exercise 5.12) which is larger
+than the Cramér-Rao lower bound 2 σ4/n. Thus in contrast to the coefﬁcient estimator, the variance
+estimator is not Cramér-Rao efﬁcient.
+_____________________________________________________________________________________________
+5.15 Exercises
+Exercise 5.1 Show that if Q ∼ χ2
+r , then E[Q] = r and var[Q] = 2r.
+Hint: Use the representation Q = ∑n
+i =1 Z 2
+i with Zi independent N(0, 1).
+
+
+--- page 17 ---
+
+CHAPTER 5. NORMAL REGRESSION 153
+Exercise 5.2 Show that if e ∼ N
+(
+0, I nσ2)
+and H ′H = I n then u = H ′e ∼ N
+(
+0, I nσ2)
+.
+Exercise 5.3 Show that if e ∼ N(0, Σ) and Σ = A A′ then u = A−1e ∼ N(0, I n).
+Exercise 5.4 Show that argmaxθ∈Θ ℓn(θ) = argmaxθ∈Θ Ln(θ).
+Exercise 5.5 For the regression in-sample predicted values ˆYi show that ˆYi |X ∼ N
+(
+X ′
+i β, σ2hi i
+)
+where
+hi i are the leverage values (3.40).
+Exercise 5.6 In the normal regression model show that the leave-one out prediction errors ˜ei and the
+standardized residuals ei are independent of ˆβ, conditional on X .
+Hint: Use (3.45) and (4.24).
+Exercise 5.7 In the normal regression model show that the robust covariance matrices ˆV
+HC0
+ˆβ , ˆV
+HC1
+ˆβ ,
+ˆV
+HC2
+ˆβ , and ˆV
+HC3
+ˆβ are independent of the OLS estimator ˆβ, conditional on X .
+Exercise 5.8 Let F (u) be the distribution function of a random variable X whose density is symmetric
+about zero. (This includes the standard normal and the student t.) Show that F (−u) = 1 − F (u).
+Exercise 5.9 Let ˆCβ = [L,U ] be a 1−α conﬁdence interval forβ, and consider the transformationθ = g (β)
+where g (·) is monotonically increasing. Consider the conﬁdence interval ˆCθ = [g (L), g (U )] for θ. Show
+that P
+[
+θ ∈ ˆCθ
+]
+= P
+[
+β ∈ ˆCβ
+]
+. Use this result to develop a conﬁdence interval forσ.
+Exercise 5.10 Show that the test “Reject H0 if LR ≥ c1” for LR deﬁned in (5.18), and the test “Reject H0 if
+F ≥ c2” for F deﬁned in (5.19), yield the same decisions if c2 =
+(
+exp(c1/n) − 1
+)
+(n − k)/q. Does this mean
+that the two tests are equivalent?
+Exercise 5.11 Show (5.20).
+Exercise 5.12 In the normal regression model let s2 be the unbiased estimator of the error variance σ2
+from (4.26).
+(a) Show that var
+[
+s2]
+= 2σ4/(n − k).
+(b) Show that var
+[
+s2]
+is strictly larger than the Cramér-Rao Lower Bound for σ2.
+
+
+--- page 18 ---
+
+Part II
+Large Sample Methods
+154

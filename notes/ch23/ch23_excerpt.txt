@@ -1,0 +1,1261 @@
+--- page 1 ---
+
+Chapter 23
+Nonlinear Least Squares
+23.1 Introduction
+A nonlinear regression model is a parameteric regression function m (x, θ) = E[Y |X = x] which is
+nonlinear in the parameters θ ∈ Θ. We write the model as
+Y = m (X , θ) + e
+E[e |X ] = 0.
+In nonlinear regression the ordinary least squares estimator does not apply. Instead the parameters are
+typically estimated bynonlinear least squares (NLLS). NLLS is an m-estimator which requires numerical
+optimization.
+We illustrate nonlinear regression with three examples.
+Our ﬁrst example is theBox-Cox regression model. The Box-Cox transformation (Box and Cox, 1964)
+for a strictly positive variable x > 0 is
+x(λ) =
+
+
+
+
+
+xλ − 1
+λ , if λ ̸= 0
+log(x), if λ = 0.
+(23.1)
+The Box-Cox transformation continuously nests linear (λ = 1) and logarithmic (λ = 0) functions. Figure
+23.1(a) displays the Box-Cox transformation (23.1) over x ∈ (0, 2] for λ = 2, 1, 0, 0.5, 0, and −1. The
+parameter λ controls the curvature of the function.
+The Box-Cox regression model is
+Y = β0 + β1X (λ) + e
+which has parameters θ = (β0, β1, λ). The regression function is linear in (β0, β1) but nonlinear in λ.
+To illustrate we revisit the reduced form regression (12.87) of risk on log
+(
+mortality
+)
+from Acemoglu,
+Johnson and Robinson (2001). A reasonable question is why the authors speciﬁed the equation as a
+regression on log
+(
+mortality
+)
+rather than on mortality. The Box-Cox regression model allows both as
+special cases, and equals
+risk = β0 + β1mortality(λ) + e. (23.2)
+Our second example is a Constant Elasticity of Substitution (CES) production function, which was
+introduced by Arrow, Chenery, Minhas, and Solow (1961) as a generalization of the popular Cobb-Douglass
+762
+
+
+--- page 2 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 763
+production function. The CES function for two inputs is
+Y =
+
+
+
+
+A
+(
+αX ρ
+1 + (1 − α) X ρ
+2
+)ν/ρ
+, if ρ ̸= 0
+A
+(
+X α
+1 X (1−α)
+2
+)ν
+, if ρ = 0.
+where A is heterogeneous (random) productivity, ν > 0, α ∈ (0, 1), and ρ ∈ (−∞,1]. The coefﬁcient ν is
+the elasticity of scale. The coefﬁcient α is the share parameter. The coefﬁcient ρ is a re-writing 1 of the
+elasticity of substitution σ between the inputs and satisﬁes σ = 1/(1 − ρ). The elasticity satisﬁes σ > 1 if
+ρ > 0, and σ < 1 if ρ < 0. At ρ = 0 we obtain the unit elastic Cobb-Douglas function. Setting ρ = 1 and
+ν = 1 we obtain a linear production function. Taking the limitρ → −∞ we obtain the Leontief production
+function.
+To illustrate, Figure 23.1(b) displays the isoquants (level sets of the production function) for the CES
+production function with parameters set to the estimates from the example discussed below.
+Set log A = β + e. The framework implies the regression model
+logY = β + ν
+ρ log
+(
+αX ρ
+1 + (1 − α) X ρ
+2
+)
++ e (23.3)
+with parameters θ = (ρ, ν, α, β).
+We illustrate CES production function estimation with a modiﬁcation of Papageorgiou, Saam, and
+Schulte (2017). These authors estimate a CES production function for electricity production where X1
+is generation capacity using “clean” technology and X2 is generation capacity using “dirty” technology.
+They estimate the model using a panel of 26 countries for the years 1995 to 2009. Their goal was to mea-
+sure the elasticity of substitution between clean and dirty electrical generation. The data ﬁle PPS2017 is
+an extract of the authors’ dataset.
+Our third example is the regression kink model. This is essentially a piecewise continuous linear
+spline where the knot is treated as a free parameter. The model used in our application is the nonlinear
+AR(1) model
+Yt = β1 (Xt −1 − c)− + β2 (Xt −1 − c)+ + β3Yt −1 + β4 + et (23.4)
+where (a)− and (a)+ are the negative-part and positive-part functions, c is the kink point, and the slopes
+are β1 and β2 on the two sides of the kink. The parameters are θ = (β1, β2, β3, β4,c). The regression
+function is linear in (β1, β2, β3, β4) and nonlinear in c.
+To illustrate, Figure 23.1(c) displays a regression kink function from the application discussed below.
+The kink c = 44 is marked by the square. You can see that the function is upward sloped for X < c and
+downward sloped for X > c.
+We illustrate the regression kink model with an application from B. E. Hansen (2017) which is a for-
+malization of Reinhart and Rogoff (2010). The data are a time-series of annual observations on U.S. real
+GDP growth Yt and the ratio of federal debt to GDP Xt for the years 1791-2009. Reinhart-Rogoff were in-
+terested in the hypothesis that the growth rate of GDP slows when the level of debt exceeds a threshold.
+23.2 Identiﬁcation
+The regression model m (x, θ) is correctly speciﬁed if there exists a parameter value θ0 such that
+m (x, θ0) = E[Y |X = x]. The parameter is point identiﬁedif θ0 is unique. In correctly-speciﬁed nonlinear
+regression models the parameter is point identiﬁed if there is a unique true parameter.
+1It is tempting to write the model as a function of the elasticity of substitution σ rather than its transformation ρ. However
+this is unadvised as it renders the regression function more nonlinear and difﬁcult to optimize.
+
+
+--- page 3 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 764
+x
+x(λ)
+0.0 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0−1.0 −0.8 −0.6 −0.4 −0.2 0.0 0.2 0.4 0.6 0.8 1.0
+λ = 2
+λ = 1
+λ = 0.5
+λ = 0
+λ = −1
+(a) Box-Cox Transformation
+X1
+X2
+0 25 50 75 100 125 150 175 200
+0 200 400 600 800 1000
+Y = 4000
+Y = 3000
+Y = 2000
+Y = 1000
+Y = 500 (b) CES Production Function Isoquants
+0 20 40 60 80 100 120
+Debt/GDP
+GDP Growth Rate
+−8 −6 −4 −2 0 2 4 6 8 (c) Regression Kink Model
+Figure 23.1: Nonlinear Regression Models
+Assume E
+[
+Y 2]
+< ∞. Since the conditional mean is the best mean-squared predictor it follows that
+the true parameter θ0 satisﬁes the optimization expression
+θ0 = argmin
+θ∈Θ
+S(θ) (23.5)
+where
+S(θ) = E
+[
+(Y − m (X , θ))2]
+is the expected squared error. This expresses the parameter as a function of the distribution of (Y , X ).
+The regression model is mis-speciﬁed if there is no θ such that m (x, θ) = E[Y |X = x]. In this case
+we deﬁne the pseudo-true value θ0 as the best-ﬁtting parameter (23.5). It is difﬁcult to give general
+conditions under which the solution is unique. Hence identiﬁcation of the pseudo-true value under
+mis-speciﬁcation is typically assumed rather than deduced.
+23.3 Estimation
+The analog estimator of the expected squared error S(θ) is the sample average of squared errors
+Sn(θ) = 1
+n
+n∑
+i =1
+(Yi − m (Xi , θ))2 .
+Since θ0 minimizes S(θ) its analog estimator minimizes Sn(θ)
+ˆθnlls = argmin
+θ∈Θ
+Sn(θ).
+This is called the Nonlinear Least Squares (NLLS) estimator. It includes OLS as the special case when
+m (Xi , θ) is linear in θ. It is an m-estimator with ρi (θ) = (Yi − m (Xi , θ))2.
+As Sn(θ) is a nonlinear function ofθ in general there is no explicit algebraic expression for the solution
+ˆθnlls. Instead it is found by numerical minimization. Chapter 12 ofIntroduction to Econometrics provides
+an overview. The NLLS residuals are ˆei = Yi − m
+(
+Xi , ˆθnlls
+)
+.
+In some cases, including our ﬁrst and third examples in Section 23.1, the model m (x, θ) is linear in
+most of the parameters. In these cases a computational shortcut is to use nested minimization (also
+
+
+--- page 4 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 765
+known as concentration or proﬁling). Take Example 1 (Box-Cox Regression). Given the Box-Cox param-
+eter λ the regression is linear. The coefﬁcients
+(
+β0, β1
+)
+can be estimated by least squares, obtaining the
+residuals and sample concentrated average of squared errors S∗
+n(λ). The latter can be minimized using
+one-dimensional methods. The minimizer ˆλ is the NLLS estimator of λ. Given ˆλnlls, the NLLS coefﬁcient
+estimators
+(ˆβ0, ˆβ1
+)
+are found by OLS regression of Yi on a constant and X (ˆλ)
+i .
+−2.0 −1.5 −1.0 −0.5 0.0 0.5 1.0
+λ
+1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0
+(a) Box-Cox Regression
+ρ
+α
+−3 −2 −1 0 1
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7
+● θ^ (b) CES Production Function
+10 20 30 40 50 60 70
+17.2 17.3 17.4 17.5
+Threshold Parameter c (c) Regression Kink Application
+Figure 23.2: Sum of Squared Errors Functions
+We illustrate with our three examples.
+Figure 23.2(a) displays the concentrated average of squared errors S∗
+n(λ) for the Box-Cox regression
+model applied to (23.2), displayed as a function of the Box-Cox parameter λ. You can see that S∗
+n(λ) is
+neither quadratic nor globally convex, but has a well-deﬁned minimum atˆλ = −0.77. This is a parameter
+value which produces a regression model considerably more curved than the logarithm speciﬁcation
+used by Acemoglou et. al.
+Figure 23.2(b) displays the average of squared errors for the CES production function application,
+displayed as a function of (ρ , α) with the other parameters set at the minimizer. You can see that the
+minimum is obtained at ( ˆρ, ˆα) = (.36, .39). We have displayed the function Sn(ρ, α) by its contour sur-
+faces. A quadratic function has elliptical contour surfaces. You can see that the function appears to be
+close to quadratic near the minimum but becomes increasingly non-quadratic away from the minimum.
+Figure 23.2(c) displays the concentrated average of squared errors S∗
+n(c) for the regression kink ap-
+plication. You can see that the function appears similar to a quadratic only local to the minimum. Away
+from the minimum it is close to linear, and for distant values is concave.
+The parameter estimates and standard errors for the three models are presented in Table 23.1. Stan-
+dard error calculation will be discussed in Section 23.5. The standard errors for the Box-Cox and Regres-
+sion Kink models were calculated using the heteroskedasticity-robust formula, and those for the CES
+production function were calculated by the cluster-robust formula, clustering by country.
+Take the Box-Cox regression. The estimate ˆλ = −0.77 shows that the estimated relationship between
+risk and mortality has stronger curvature than the logarithm function, and the estimate ˆβ1 = − 17 is
+negative as predicted. The large standard error for ˆβ1, however, indicates that the slope coefﬁcient is not
+precisely estimated.
+Take the CES production function. The estimate ˆρ = 0.36 is positive, indicating that the clean and
+dirty technologies are substitutes. The implied elasticity of substitution σ = 1/(1 − ρ) is ˆσ = 1.57, with its
+standard error calculated by the delta method. The estimated elasticity of scale ˆν = 1.05 is slightly above
+one, consistent with increasing returns to scale. The share parameter for clean technology ˆα = 0.39 is
+
+
+--- page 5 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 766
+Table 23.1: NLLS Estimates of Example Models
+Parameter Estimate Standard Error
+Box-Cox Regression β0 27.5 12.4
+β1 −17.0 15.3
+λ −0.77 0.28
+CES Production Function ρ 0.36 0.29
+ν 1.05 0.03
+α 0.39 0.06
+β 1.66 0.31
+σ 1.57 0.46
+Regression Kink Regression β1 0.033 0.026
+β2 −0.067 0.046
+β3 0.28 0.09
+β4 3.78 0.68
+c 43.9 11.8
+somewhat less than one-half, indicating that dirty technology is the dominating input.
+Take the regression kink function. The estimated slope of GDP growth for low debt levels ˆβ1 = 0.03
+is positive, and the estimated slope for high debt levels ˆβ2 = −0.07 is negative. This is consistent with
+the Reinhart-Rogoff hypothesis that high debt levels lead to a slowdown in economic growth. The esti-
+mated kink point is ˆc = 44% which is considerably lower than the postulated 90% kink point suggested
+by Reinhart-Rogoff based on their informal analysis.
+Interpreting conventional t-ratios and p-values in nonlinear models should be done thoughtfully.
+This is a context where the annoying empirical custom of appending asterisks to all “signiﬁcant” coef-
+ﬁcient estimates is particularly inappropriate. Take, for example, the CES estimates in Table 23.1. The
+“t-ratio” for ν is for the test of the hypothesis that ν = 0, which is a meaningless hypothesis. Similarly
+the t-ratio for α is for an uninteresting hypothesis. It does not make sense to append asterisks to these
+estimates and describe them as “signiﬁcant” as there is no reason to take 0 as an interesting value for
+the parameter. Similarly in the Box-Cox regression there is no reason to take λ = 0 as an important hy-
+pothesis. In the Regression Kink model the hypothesis c = 0 is generally meaningless and could easily lie
+outside the parameter space.
+23.4 Asymptotic Distribution
+We ﬁrst consider the consistency of the NLLS estimator. We appeal to Theorems 22.1, 22.2, and 22.3
+for m-estimators.
+
+
+--- page 6 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 767
+Assumption 23.1
+1. (Yi , Xi ) are i.i.d.
+2. E
+[
+Y 2]
+< ∞.
+3. E
+[
+m (X , θ)2]
+< ∞ for all θ ∈ Θ.
+4. Θ is bounded.
+5. For some A < ∞ and α > 0, E |m (X , θ1) − m (X , θ2)|2 ≤ A ∥θ1 − θ2∥α for all
+θ1, θ2 ∈ Θ.
+6. For all ϵ > 0, inf
+θ:∥θ−θ0∥≥ϵ
+S(θ) > S(θ0).
+Theorem 23.1 Consistency of NLLS Estimator
+If Assumption 23.1 holds then ˆθ − →p θ0 as n → ∞.
+The ﬁrst three assumptions are standard. Assumption 23.1.4 is not essential but simpliﬁes the proof.
+Assumption 23.1.5 is technical. It is used to ensure that the criterion function is not too variable so
+that the uniform law of large numbers can be applied. Assumption 23.1.6 is critical. It states that the
+minimizer θ0 is unique.
+We next discuss the asymptotic distribution. We ﬁrst present the main result, then discuss the as-
+sumptions. Set mθ (x, θ) = ∂
+∂θ m (x, θ) and mθi = mθ (Xi , θ0). DeﬁneQ = E
+[
+mθi m
+′
+θi
+]
+and Ω = E
+[
+mθi m
+′
+θi e2
+i
+]
+.
+Let N be some neighborhood of θ0.
+
+
+--- page 7 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 768
+Assumption 23.2 For some neighborhood N of θ0,
+1. E[e |X ] = 0.
+2. E
+[
+Y 4]
+< ∞ and E ∥mθi ∥4 < ∞.
+3. E |m (X , θ)|4 < ∞.
+4. m (x, θ) and E[mθ (Xi , θ)] are differentiable functions for θ ∈ N .
+5. For some A < ∞ and α > 0,
+E |m (X , θ1) − m (X , θ2)|4 ≤ A ∥θ1 − θ2∥α
+E ∥mθ (X , θ1) − mθ (X , θ2)∥4 ≤ A ∥θ1 − θ2∥α
+for all θ1, θ2 ∈ Θ.
+6. Q = E
+[
+mθi m
+′
+θi
+]
+> 0.
+7. θ0 is in the interior of Θ.
+Theorem 23.2 Asymptotic Normality of NLLS Estimator
+If Assumptions 23.1 and 23.2 hold thenpn
+(ˆθ − θ0
+)
+− →
+d
+N(0,V ) as n → ∞, where
+V = Q −1ΩQ −1.
+Assumption 23.2.1 imposes that the model is correctly speciﬁed. If we relax this assumption the
+asymptotic distribution is still normal but the covariance matrix changes.
+Assumption 23.2.2 are moment bounds needed for asymptotic normality. Assumption 23.2.4 states
+that the regression function is differentiable in the parameter and the expectation of the ﬁrst derivative
+is also differentiable. This holds if m (x, θ) is second differentiable but is broader as expectation is a
+smoothing operation. Assumption 23.2.5 is a technical assumption which ensure the criterion is not too
+variable in the parameter.
+Assumption 23.2.6 is critical. It states that the “linearized regressor” mθi has a full rank population
+design matrix. If this assumption fails then mθi will be multicollinear.
+Assumption 23.2.7 requires that the parameters are not on the boundary of the parameter space. This
+is important as otherwise the sampling distribution will be asymmetric.
+Theorem 23.2 shows that under general conditions the NLLS estimator has an asymptotic distribu-
+tion with similar structure to that of the OLS estimator. The estimator converges at a conventional rate to
+a normal distribution with a sandwich-form covariance matrix. Furthermore, the asymptotic variance is
+identical to that in a hypothetical OLS regression with the linearized regressormθi . Thus, asymptotically,
+the distribution of NLLS is identical to a linear regression.
+The asymptotic distribution simpliﬁes under conditional homoskedasticity. If E
+[
+e2 |X
+]
+= σ2 then
+the asymptotic variance is V = σ2Q −1.
+
+
+--- page 8 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 769
+23.5 Covariance Matrix Estimation
+The asymptotic covariance matrix V is estimated similarly to linear regression with the adjustment
+that we use an estimate of the linearized regressor mθi . This estimate is
+ˆmθi = mθ
+(
+Xi , ˆθ
+)
+= ∂
+∂θ m
+(
+Xi , ˆθ
+)
+.
+It is best if the derivative is calculated algebraically but a numerical derivative (a discrete derivative) can
+substitute.
+Take, for example, the Box-Cox regression model for whichm(x, β0, β1, λ) = β0 +β1x(λ) . We calculate
+that for λ ̸= 0
+mθ
+(
+x, β0, β1, λ
+)
+=
+
+
+∂
+∂β0
+(
+β0 + β1x(λ) )
+∂
+∂β1
+(
+β0 + β1x(λ) )
+∂
+∂βλ
+(
+β0 + β1x(λ)
+i
+)
+
+ =
+
+
+1
+x(λ)
+xλ log(x) − x(λ)
+λ
+
+.
+For λ = 0 the third entry is log2(x)/2. The estimate is obtained by replacingλ with the estimator ˆλ. Hence
+for ˆλ ̸= 0
+ˆmθi =
+
+
+
+1
+x(ˆλ)
+1 − x ˆλ + λx ˆλ log(x)
+ˆλ2
+
+
+.
+The covariance matrix components are estimated as
+ˆQ = 1
+n
+n∑
+i =1
+ˆmθi ˆm′
+θi
+ˆΩ = 1
+n
+n∑
+i =1
+ˆmθi ˆm′
+θi ˆe2
+i
+ˆV = ˆQ
+−1 ˆΩ ˆQ
+−1
+(23.6)
+where ˆei = Yi − m
+(
+Xi , ˆθ
+)
+are the NLLS residuals. Standard errors are calculated conventionally as the
+square roots of the diagonal elements of n−1 ˆV .
+If the error is homoskedastic the covariance matrix can be estimated using the formula
+ˆV
+0
+= ˆQ
+−1
+ˆσ2
+ˆσ2 = 1
+n
+n∑
+i =1
+ˆe2
+i .
+If the observations satisfy cluster dependence then a standard cluster variance estimator can be used,
+again treating the linearized regressor estimate ˆmθi as the effective regressor.
+To illustrate, standard errors for our three estimated models are displayed in Table 23.1. The standard
+errors for the ﬁrst and third models were calculated using the formula (23.6). The standard errors for the
+CES model were clustered by country.
+In small samples the standard errors for NLLS may not be reliable. An alternative is to use bootstrap
+methods for inference. The nonparametric bootstrap draws with replacement from the observation pairs
+(Yi , Xi ) to create bootstrap samples, to which NLLS is applied to obtain bootstrap parameter estimates
+ˆθ∗. From ˆθ∗ we can calculate bootstrap standard errors and/or bootstrap conﬁdence intervals, for ex-
+ample by the bias-corrected percentile method.
+
+
+--- page 9 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 770
+23.6 Panel Data
+Consider the nonlinear regression model with an additive individual effect
+Yi t = m (Xi t, θ) + ui + εi t
+E[εi t |Xi t] = 0.
+To eliminate the individual effect we can apply the within or ﬁrst-differencing transformations. Ap-
+plying the within transformation we obtain
+˙Yi t = ˙m (Xi t, θ) + ˙εi t (23.7)
+where
+˙m (Xi t, θ) = m (Xi t, θ) − 1
+Ti
+∑
+t ∈Si
+m (Xi t, θ)
+using the panel data notation. Thus ˙m (Xi t, θ) is the within transformation applied to m (Xi t, θ). It is
+not m
+( ˙Xi t, θ
+)
+. Equation (23.7) is a nonlinear panel model. The coefﬁcient can be estimated by NLLS.
+The estimator is appropriate when Xi t is strictly exogenous, as ˙m (Xi t, θ) is a function of Xi s for all time
+periods.
+An alternative is to apply the ﬁrst-difference transformation. Thus yields
+∆Yi t = ∆m (Xi t, θ) + ∆εi t (23.8)
+where ∆m (Xi t, θ) = m (Xi t, θ) − m
+(
+Xi ,t −1, θ
+)
+. Equation (23.8) can be estimated by NLLS. Again this re-
+quires that Xi t is strictly exogenous for consistent estimation.
+If the regressors Xi t contains a lagged dependent variable Yi ,t −1 then NLLS is not an appropriate
+estimator. GMM can be applied to (23.8) similar to linear dynamic panel regression models.
+23.7 Threshold Models
+An extreme example of nonlinear regression is the class of threshold regression models. These are
+discontinuous regression models where the kink points are treated as free parameters. They have been
+used succesfully in economics to model threshold effects and tipping points. They are also the core tool
+for the modern machine learning methods of regression trees and random forests. In this section we
+provide a review.
+A threshold regression model takes the form
+Y = β′
+1X1 + β′
+2X21
+{
+Q ≥ γ
+}
++ e
+E[e |X ] = 0
+where X1 and X2 are k1 × 1 and k2 × 1, respectively, andQ is scalar. The variable Q is called the threshold
+variable and γ is called the threshold.
+Typically, both X1 and X2 contain an intercept, and X2 and Q are subsets of X1. In the latter case
+β2 is the change in the slope at the threshold. The threshold variable Q should be either continuously
+distributed or ordinal.
+In a full threshold speciﬁcationX1 = X2 = X . In this case all coefﬁcients switch at the threshold. This
+regression can alternatively be written as
+Y =
+
+
+
+θ′
+1X + e, Q < γ
+θ′
+2X + e, Q ≥ γ
+
+
+--- page 10 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 771
+where θ1 = β1 and θ2 = β1 + β2.
+A simple yet full threshold model arises when there is only a single regressor X . The regression can
+be written as
+Y = α1 + β1X + α21
+{
+X ≥ γ
+}
++ β2X 1
+{
+X ≥ γ
+}
++ e.
+This resembles a Regression Kink model, but is more general as it allows for a discontinuity atX = γ. The
+Regression Kink model imposes the restriction α + βγ = 0.
+A threshold model is most suitable for a context where an economic model predicts a discontinuity in
+the conditional mean. It can also be used as a ﬂexible approximation for a context where it is believed the
+conditional mean has a sharp nonlinearity with respect to one variable, or has sharp interaction effects.
+The Regression Kink model, for example, does not allow for kink interaction effects.
+The threshold model is critically dependent on the choice of threshold variable Q. This variable
+controls the ability of the regression model to display nonlinearity. In principle this can be generalized
+by incorporating multiple thresholds in potentially different variables but this generalization is limited
+by sample size and information.
+The threshold model is linear in the coefﬁcients β =
+(
+β1, β2
+)
+and nonlinear in γ. The parameter γ is
+of critical importance as it determines the model’ s nonlinearity – the sample split.
+Many empirical applications estimate threshold models using informal ad hoc methods. What you
+may see is a splitting of the sample into “subgroups” based on regressor characteristics. When the latter
+split is based on a continuous regressor the split point is exactly a threshold parameter. When you see
+such tables it is prudent to be skeptical. How was this threshold parameter selected? Based on intuition?
+Or based on data exploration? If the former do you expect the results to be informative? If the latter
+should you trust the reported tests?
+To illustrate threshold regression we review an inﬂuential paper by Card, Mas and Rothstein (2008).
+They were interested in the process of racial segregation in U.S. cities. A common hypothesis concerning
+the behavior of white Americans is that they are only comfortable living in a neighborhood if it has a
+small percentage of minority residents. A simple model of this behavior (explored in their paper) predicts
+that this preference leads to an unstable mixed-race equilibrium in the fraction of minorities. They call
+this equilibrium the tipping point. If the minority fraction exceeds this tipping point the outcome will
+change discontinuously. The economic mechanism is that if minorities move into a neighborhood at a
+roughly continuous rate, when the tipping point is reached there will be a surge in exits by white residents
+who elect to move due to their discomfort. This predicts a threshold regression with a discontinuity at
+the tipping point. The data ﬁleCMR2008 is an abridged version of the authors’ dataset.
+The authors use a speciﬁcation similar to the following
+∆Wci t = δ01
+{
+Mci t −1 ≥ γ
+}
++ δ1
+(
+Mci t −1 − γ
+)
+1
+{
+Mci t −1 ≥ γ
+}
++ β1Mci t −1 + β2M 2
+ci t −1 + θ′Xci t −1 + α + uc + eci t (23.9)
+where c is the city (MSA) 2, i is a census tract within the city, t is the time period (decade), ∆Wci t is the
+white population percentage change in the tract over the decade, Mci t is the fraction of minorties in the
+tract, uc is a ﬁxed effect for the city, and Xci t are tract-level regression controls. The sample is based
+on Census data which is collected at ten-year intervals. They estimate models for three decades; we
+focus on 1970-1980. Thus ∆Wci t is the change in white population over the period 1970-1980 and the
+remaining variables are for 1970. The controls used in the regression are the unemployment rate, the
+log mean family income, housing vacancy rate, renter share, fraction of homes in single-unit buildings,
+and fraction of workers who commute by public transport. This model has n = 35,656 observations
+and N = 104 cities. This speciﬁcation allows the relationship between ∆W and M to be nonlinear (a
+2Metropolitan Statistical Area (MSA). The authors use the 104 MSAs with at least 100 census tracts.
+
+
+--- page 11 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 772
+γ
+0.1 0.2 0.3 0.4 0.5
+3766 3768 3770 3772
+Sn(γ)
+● γ^
+(a) Estimation Criterion
+Fraction Minority in 1970
+Change in White Population, 1970−1980
+0.1 0.2 0.3 0.4 0.5
+−20 −10 0 10 20 (b) Threshold Regression Estimates
+γ
+0.1 0.2 0.3 0.4 0.5
+0 10 20 30 40 50 60 70 80
+Multiplier Bootstrap 99% Critical Value
+95%
+90%
+Fn(γ)
+Fn(γ^) (c) Test for a Threshold
+Figure 23.3: Threshold Regression – Card-Mas-Rothstein (2008) Model
+quadratic) with a discontinuous shift in the intercept and slope at the threshold. The authors’ major
+prediction is that δ0 should be large and negative. The threshold parameter γ is the minority fraction
+which triggers discontinuous white outward migration.
+As the threshold regression model is an explicit nonlinear regression the appropriate estimation
+method is NLLS. Since the model is linear in all coefﬁcients except for γ the best computational tech-
+nique is concentrated least squares. For each γ the model is linear and the coefﬁcients can be esti-
+mated by least squares. This produces a concentrated average of squared errors S∗
+n(γ) which can be
+minimized to ﬁnd the NLLS estimator ˆγ. To illustrate, the concentrated least squares criterion for the
+Card-Mas-Rothstein dataset3 is displayed in Figure 23.3(a). As you can see, the criterion S∗
+n(γ) is highly
+non-smooth. This is typical in threshold applications. Consequently, the criterion needs to be mini-
+mized by grid search. The criterion is a step function with a step at each observation. A full search would
+calculate S∗
+n(γ) for γ equalling each value of Mci t −1 in the sample. A simpliﬁcation (which we employ)
+is to calculate the criterion at a smaller number of gridpoints. In our illustration we use 100 gridpoints
+equally-spaced between the 0.1 and 0.9 quantiles4 of Mci t −1. (These quantiles are the boundaries of the
+displayed graph.) What you can see is that the criterion is generally lower for values of γ between 0.05
+and 0.25, and especially lower for values of γ near 0.2. The minimum is obtained at ˆγ = 0.198. This is
+the NLLS estimator. In the context of the application this means that the point estimate of the tipping
+point is 20%, which means that when the neighborhood minority fraction exceeds 20% white households
+discontinuously change their behavior. The remaining NLLS estimates are obtained by least squares re-
+gression (23.9) setting γ = ˆγ.
+Our estimates are reported in Table 23.2. Following Card, Mas, and Rothstein (2008) the standard
+errors are clustered 5 by city (MSA). Examining Table 23.2 we can see that the estimates suggest that
+3Using the 1970-1980 sample and model (23.9).
+4It is important that the search be constrained to values ofγ which lie well within the support of the threshold variable. Oth-
+erwise the regression may be infeasible. The required degree of trimming (away from the boundaries of the support) depends
+on the individual application.
+5It is not clear to me whether clustering is appropriate in this application. One motivation for clustering is inclusion of ﬁxed
+effects as this induces correlation across observations within a cluster. However in this case the typical number of observations
+per cluster is several hundred so this correlation is near zero. Another motivation for clustering is that the regression error eci t
+(the unobserved factors for changes in white population) is correlated across tracts within a city. While it may be expected that
+attitudes towards minorities among whites may be correlated within a city, it seems less clear that we should expect uncondi-
+tional correlation in population changes.
+
+
+--- page 12 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 773
+neighborhood declines in the white population were increasing in the minority fraction, with a sharp
+and accelerating decline above the tipping point of 20%. The estimated discontinuity is −11.6%. This is
+nearly identical to the estimate obtained by Card, Mas and Rothstein (2008) using a different estimation
+method.
+The white population was also decreasing in response to the unemployment rate, the renter share,
+and the use of public transportation, but increasing in response to the vacancy rate. Another interesting
+observation is that despite the fact that the sample has a very large (35,656) number of observations the
+standard errors for the parameter estimates are rather large indicating considerable imprecision. This is
+mostly due to the clustered covariance matrix calculation as there are only N = 104 clusters.
+Table 23.2: Threshold Estimates: Card-Mas-Rothstein (2008) Model
+Variable Estimate Standard Error
+Intercept Change −11.6 3.7
+Slope Change −74.1 42.6
+Minority Fraction −54.4 28.8
+Minority Fraction2 142.3 23.9
+Unemployment Rate −81.1 38.8
+log
+(
+Mean Family Income
+)
+3.4 3.6
+Housing Vacancy Rate 324.9 40.2
+Renter Share −62.7 13.6
+Fraction Single-Unit −4.8 9.5
+Fraction Public Transport −91.6 24.5
+Intercept 14.8 na
+MSA Fixed Effects yes
+Threshold 0.198
+99% Conﬁdence Interval [0.198, 0.209]
+N =Number of MSAs 104
+n =Number of observations 35, 656
+The asymptotic theory of threshold regression is non-standard. Chan (1993) showed that under cor-
+rect speciﬁcation the threshold estimatorˆγ converges in probability to γ at the fast rateOp(n−1) and that
+the other parameter estimators have conventional asymptotic distributions, justifying the standard er-
+rors as reported in Table 23.2. He also showed that the threshold estimatorˆγ has a non-standard asymp-
+totic distribution which cannot be used for conﬁdence interval construction.
+B. E. Hansen (2000) derived the asymptotic distribution of ˆγ and associated test statistics under a
+“small threshold effect” asymptotic framework for a continuous threshold variable Q. This distribution
+theory permits simple construction of an asymptotic conﬁdence interval for γ. In brief, he shows that
+under correct speciﬁcation, independent observations, and homoskedasticity, the F statistic for testing
+the hypothesis H0 : γ = γ0 has the asymptotic distribution
+n
+(
+S∗
+n
+(
+γ0
+)
+− S∗
+n
+(
+ˆγ
+))
+S∗
+n
+(
+ˆγ
+) − →
+d
+ξ
+where P[ξ ≤ x] =
+(
+1 − exp(−x/2)
+)2. The 1 − α quantile of ξ can be found by solving
+(
+1 − exp(−c1−α/2)
+)2 =
+1 − α, and equals c1−α = −2 log(1−
+p
+1 − α). For example, c.95 = 7.35 and c.99 = 10.6.
+Based on test inversion a valid 1−α asymptotic conﬁdence interval forγ is the set of F statistics which
+
+
+--- page 13 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 774
+are less than c1−α and equals
+C1−α =
+{
+γ :
+n
+(
+S∗
+n
+(
+γ
+)
+− S∗
+n
+(
+ˆγ
+))
+S∗
+n
+(
+ˆγ
+) ≤ c1−α
+}
+=
+{
+γ : S∗
+n
+(
+γ
+)
+≤ S∗
+n
+(
+ˆγ
+)(
+1 + c1−α
+n
+)}
+.
+This is constructed numerically by grid search. In our example C0.99 = [0.198, 0.209]. This is a narrow
+conﬁdence interval. However, this interval does not take into account clustered dependence. Based on
+Hansen’ s theory we can expect that under cluster dependence the asymptotic distribution ξ needs to
+be re-scaled. This will result in replacing 1 + c1−α/n in the above formula with 1 + ρc1−α/n for some
+adjustment factor ρ. This will widen the conﬁdence interval. Based on the shape of Figure 23.3(a) the
+adjusted conﬁdence interval may not be too wide. However this is a conjecture as the theory has not
+been worked out so we cannot estimate the adjustment factor ρ.
+Empirical practice and simulation results suggest that threshold estimates tend to be quite imprecise
+unless a moderately large sample (e.g., n ≥ 500) is used. The threshold parameter is identiﬁed by obser-
+vations close to the threshold, not by observations far from the threshold. This requires large samples
+to ensure that there are a sufﬁcient number of observations near the threshold in order to be able to pin
+down its location
+Given the coefﬁcient estimates the regression function can be plotted along with conﬁdence intervals
+calculated conventionally. In Figure 23.3(b) we plot the estimated regression function with 95% asymp-
+totic conﬁdence intervals calculated based on the covariance matrix for the estimates (ˆβ1, ˆβ2, ˆδ1, ˆδ2). The
+estimate ˆθ does not contribute if the regression function is evaluated at mean values. We ignore estima-
+tion of the intercept ˆα as its variance is not identiﬁed under clustering dependence and we are primarily
+interest in the magnitude of relative comparisons. What we see in Figure 23.3(b) is that the regression
+function is generally downward sloped, indicating that the change in the white population is generally
+decreasing as the minority fraction increases, as expected. The tipping effect is visually strong. When the
+fraction minority crosses the tipping point there are sharp decreases in both the level and the slope of
+the regression function. The level of the estimated regression function also indicates that the expected
+change in the white population switches from positive to negative at the tipping point, consistent with
+the segregation hypothesis. It is instructive to observe that the conﬁdence bands are quite wide despite
+the large sample. This is largely due to the decision to use a clustered covariance matrix estimator. Con-
+sequently there is considerable uncertainty in the location of the regression function. The conﬁdence
+bands are widest at the estimated tipping point.
+The empirical results presented in this section are distinct from, yet similar to, those reported in
+Card, Mas, and Rothstein (2008). This is an inﬂuential paper as it used the rigor of an economic model to
+give insight about segregation behavior, and used a rich detailed dataset to investigate the strong tipping
+point prediction.
+23.8 Testing for Nonlinear Components
+Identiﬁcation can be tricky in nonlinear regression models. Suppose that
+m(X , θ) = X ′β + X (γ)′δ
+where X
+(
+γ
+)
+is a function of X and an unknown parameter γ. Examples for X
+(
+γ
+)
+include the Box-Cox
+transformation and X 1
+{
+X > γ
+}
+. The latter arises in the Regression Kink and threshold regression models.
+The model is linear when δ = 0. This is often a useful hypothesis (sub-model) to consider. For exam-
+ple, in the Card-Mas-Rothstein (2008) application this is the hypothesis of no tipping point which is the
+key issue explored in their paper.
+
+
+--- page 14 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 775
+In this section we consider tests of the hypothesis H0 : δ = 0. Under H0 the model is Y = X ′β + e
+and both δ and γ have dropped out. This means that under H0 the parameter γ is not identiﬁed. This
+renders standard distribution theory invalid. When the truth is δ = 0 the NLLS estimator of
+(
+β, δ, γ
+)
+is
+not asymptotically normally distributed. Classical tests excessively over-reject H0 if applied with con-
+ventional critical values.
+As an example consider the threshold regression (23.9). The hypothesis of no tipping point corre-
+sponds to the joint hypothesis δ0 = 0 and δ1 = 0. Under this hypothesis the parameter γ is not identiﬁed.
+To test the hypothesis a standard test is to reject for large values of the F statistic
+F =
+n
+(˜Sn − S∗
+n
+(
+ˆγ
+))
+S∗
+n
+(
+ˆγ
+)
+where ˜Sn = n−1 ∑n
+i =1
+(
+Yi − X ′
+i
+ˆβ
+)2
+and ˆβ is the least squares coefﬁcient from the regression ofY on X . This
+is the difference between the error variance estimators based on estimates calculated under the null (˜Sn)
+and alternative (S∗
+n
+(
+ˆγ
+)
+).
+The F statistic can be written as
+F = maxγ Fn(γ) = Fn(ˆγ)
+where
+Fn(γ) =
+n
+(˜Sn − S∗
+n
+(
+γ
+))
+S∗
+n
+(
+γ
+) .
+The statistic Fn(γ) is the classical F statistic for a test of H0 : δ = 0 when γ is known. We can see from this
+representation that F is non-standard as it is the maximum over a potentially large number of statistics
+Fn(γ).
+To illustrate, Figure 23.3(c) plots the test statistic Fn(γ) as a function ofγ. You can see that the function
+is erratic, similar to the concentrated criterion S∗
+n
+(
+γ
+)
+. This is sensible, since F n(γ) is an afﬁne function
+of the inverse of S∗
+n
+(
+γ
+)
+. The statistic is maximized at ˆγ because of this duality. The maximum value is
+F = Fn(ˆγ). In this application we ﬁnd F= 62.4. This is extremely high by conventional standards.
+The asymptotic theory of the test has been worked out by Andrews and Ploberger (1994) and B. E.
+Hansen (1996). In particular, Hansen shows the validity of the multiplier bootstrap for calculation of
+p-values for independent observations. The method is as follows.
+1. On the observations (Yi , Xi ) calculate the F test statistic for H0 against H1 (or any other standard
+statistic such as a Wald or likelihood ratio).
+2. For b = 1, ...,B :
+(a) Generate n random variables ξ∗
+i with mean zero and variance 1 (standard choices are normal
+and Rademacher).
+(b) Set Y ∗
+i = ˆei ξ∗
+i where ˆei are the NLLS residuals.
+(c) On
+(
+Y ∗
+i , Xi
+)
+calculate the F statistic F∗
+b for H0 against H1.
+3. The multiplier bootstrap p-value is p ∗
+n = 1
+B
+∑B
+b=1 1
+{
+F∗
+b > F
+}
+.
+4. If p ∗
+n < α the test is signiﬁcant at levelα.
+5. Critical values can be calcualted as empirical quantiles of the bootstrap statistics F ∗
+b.
+
+
+--- page 15 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 776
+In step 2b you can alternatively set Y ∗
+i = ˆβ′Zi + ˆei ξ∗
+i . Tests on δ are invariant to the bootstrap value
+of δ. What is important is that the bootstrap data satisfy the null hypothesis.
+For clustered samples we need to make a minor modiﬁcation. Write the regression by cluster as
+Y g = X g β + X g (γ)δ + e g .
+The bootstrap method is modiﬁed by altering steps 2a and 2b above. Let N denote the number of clus-
+ters. The modiﬁed algorithm uses the following steps.
+1. (a) Generate N random variables ξ∗
+g with mean zero and variance 1.
+(b) Set Y ∗
+g = ˆe g ξ∗
+g .
+To illustrate we apply this test to the threshold regression (23.9) estimated with the Card-Mas-Rothstein
+(2008) data. We useB = 10,000 bootstrap replications. Applying the ﬁrst algorithm (suitable for indepen-
+dent observations) the bootstrap p-value is 0%. The 99% critical value is 16.7, so the observed value of
+F = 62.4 far exceeds this threshold. Applying the second algorithm (suitable under cluster dependence)
+the bootstrap p-value is 2.6%. The 95% critical value is 55.3 and the 99% is 75.2. Thus the observed value
+of F = 62.4 is “signiﬁcant” at the 5% but not the 1% level. For a sample of size n = 35,656 this is surpris-
+ingly mild signiﬁcance. These critical values are indicated on Figure 23.3(c) by the dashed lines. The F
+statistic process breaks the 90% and 95% critical values but not the 99%. Thus despite the visually strong
+evidence of a tipping effect from the previous section the statistical evidence of this effect is strong but
+not overwhelming.
+23.9 Computation
+Stata has a built-in command nl for NLLS estimation. You need to specify the nonlinear equation
+and give starting values for the numerical search. It is prudent to try several starting values since the
+algorithm is not guaranteed to converge to the global minimum.
+Estimation of NLLS in R or MATLAB requires a bit more programming but is straightforward. You
+write a function which calculates the average squared error Sn (θ) (or concentrated average squared er-
+ror) as a function of the parameters. You then call a numerical optimizer to minimize this function. For
+example, in R for vector-valued parameters the standard optimizer is optim . For scalar parameters use
+optimize.
+23.10 Technical Proofs*
+Proof of Theorem 23.1. The stated result holds by Theorem 22.1 under the latter’ s Assumptions 1 and
+2. Assumption 2 of Theorem 22.1 is satisﬁed by Assumption 23.1.6. Assumption 1 of Theorem 22.1 is
+satisﬁed by Theorem 22.2 under the latter’ s Assumptions 1-4. Its Assumptions 1 and 3 are satisﬁed by
+Assumptions 23.1.1 and 23.1.4. To verify Assumption 2 of Theorem 22.2 observe that by thecr inequality
+(B.5)
+E
+[
+(Y − m (X , θ))2]
+≤ 2E
+[
+Y 2]
++ 2E
+[
+m (X , θ)2]
+< ∞
+under Assumptions 23.1.2 and 23.1.3. To verify Assumption 4 of Theorem 22.2, set C1 =
+(
+E
+[
+Y 2])1/2, C2 =(
+E
+[
+m (X , θ)2])1/2
+and C3 = sup
+θ1,θ1∈Θ
+∥θ1 − θ2∥α/2 which are all ﬁnite under Assumptions 23.1.2-23.1.4. Then
+
+
+--- page 16 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 777
+using the Cauchy-Schwarz inequality (B.32),
+E
+⏐⏐(Y − m (X , θ1))2 − (Y − m (X , θ2))2⏐
+⏐
+= E
+⏐
+⏐2Y (m (X , θ2) − m (X , θ1)) + m (X , θ1)2 − m (X , θ2)2⏐
+⏐
+≤ 2C1
+(
+E |m (X , θ1) − m (X , θ2)|2)1/2
++ E |m (X , θ2) − m (X , θ1)|2
++ 2E |m (X , θ1)(m (X , θ2) − m (X , θ1))|
+≤ 2C1 A1/2 ∥θ1 − θ2∥α/2 + A ∥θ1 − θ2∥α + 2C2
+(
+E |m (X , θ2) − m (X , θ1)|2)1/2
+≤
+(
+2A1/2C1 + 2A1/2C2 + AC3
+)
+∥θ1 − θ2∥α/2 .
+This is Assumption 4 of Theorem 22.2. We have veriﬁed the assumptions of Theorem 22.2 as applied to
+the criterion function and thus the assumptions of Theorem 22.1 are satisﬁed. We conclude thatˆθ − →p θ0
+as stated. ■
+Proof of Theorem 23.2. We need to show that the assumptions imply those of Theorem 22.3. It is conve-
+nient to rescale the criterion so that ρi (θ) = 1
+2 (Yi − m (Xi , θ))2. Then ψi = mθi ei .
+For Assumption 1 of Theorem 22.3, by the Cauchy-Schwarz inequality (B.32) and Assumption 23.2.2
+E
+ψi
+
+2 = E ∥mθi ei ∥2 ≤
+(
+E ∥mθi ∥4 E
+[
+e4
+i
+])1/2
+< ∞.
+We next show Assumption 2 of Theorem 22.3. Using Assumption 23.2.1, we calculate that
+S (θ) = E
+[
+ρi (θ)
+]
+= 1
+2 E
+[
+e2
+i
+]
++ 1
+2 E
+[
+(m (Xi , θ0) − m (Xi , θ))2]
+.
+Thus
+ψ(θ) = ∂
+∂θ S (θ) = −E[mθ (Xi , θ)(m (Xi , θ0) − m (Xi , θ))]
+with derivative
+Q (θ) = − ∂
+∂θ′ E[mθ (Xi , θ)(m (Xi , θ0) − m (Xi , θ))]
+= E
+[
+mθ (Xi , θ)mθ (Xi , θ)′]
+− ∂
+∂θ′
+1
+E[mθ (Xi , θ1)(m (Xi , θ0) − m (Xi , θ))]|θ1=θ . (23.10)
+This exists and is continuous for θ ∈ N under Assumption 23.2.4.
+We next show Assumption 3 of Theorem 22.3. Set
+C =
+(
+E
+[
+Y 4
+i
+])1/4
++ sup
+θ∈N
+(
+E
+[
+m (Xi , θ)4])1/4
++ sup
+θ∈N
+(
+E ∥mθ (Xi , θ)∥4)1/4
+. (23.11)
+Notice that
+ψi (θ) = mθ (Xi , θ)(Yi − m (Xi , θ))
+so
+ψi (θ1) − ψi (θ2) = (mθ (Xi , θ1) − mθ (Xi , θ2))
+(
+yi − m (Xi , θ)
+)
++ mθ (Xi , θ2)(m (Xi , θ2) − m (Xi , θ2)).
+Thus using the Minkowski and Cauchy-Schwarz inequalities, (23.11), and Assumption 23.2.5,
+(
+E
+
+ψi (θ1) − ψi (θ2)
+
+2)1/2
+≤
+((
+E
+[
+Y 4
+i
+])1/4
++
+(
+E
+[
+m (Xi , θ)4])1/4)(
+E ∥mθ (Xi , θ1) − mθ (Xi , θ2)∥4)1/4
++
+(
+E ∥mθ (Xi , θ)∥4)1/4 (
+E |m (Xi , θ1) − m (Xi , θ2)|4)1/4
+≤ (2C + 1) A1/4 ∥θ1 − θ2∥α/4 .
+
+
+--- page 17 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 778
+This is Assumption 3 of Theorem 22.3
+Assumptions 4 and 5 of Theorem 22.3 are implied directly by Assumptions 23.2.6 and 23.2.7. Thus the
+assumptions of Theorem 22.3 are satisﬁed. It remains to verify the expressions for Q and Ω. Expression
+(23.10) evaluated at θ0 is
+∂
+∂θ′ ψ(θ0) = E
+[
+mθi m′
+θi
+]
+which veriﬁes the expression for Q. We also calculate that Ω = E
+[
+ψi ψ′
+i
+]
+= E
+[
+mθi m′
+θi e2
+i
+]
+, verifying the
+stated expression.
+The stated result follows from Theorem 22.3. ■
+_____________________________________________________________________________________________
+23.11 Exercises
+Exercise 23.1 Take the model Y = exp(θ) + e with E[e] = 0.
+(a) Is the conditional mean linear or nonlinear in θ? Is this a nonlinear regression model?
+(b) Is there a way to estimate the model using linear methods? If so, explain how to obtain an estimator
+ˆθ for θ.
+(c) Is your answer in part (b) the same as the NLLS estimator, or different?
+Exercise 23.2 Take the modelY (λ) = β0 +β1X +e with E[e |X ] = 0 where Y (λ) is the Box-Cox transforma-
+tion of Y .
+(a) Is this a nonlinear regression model in the parameters (λ, β0, β1)? (Careful, this is tricky.)
+Exercise 23.3 Take the model Y = β1
+β2 + β3X + e with E[e |X ] = 0.
+(a) Are the parameters (β 1, β2, β3) identiﬁed?
+(b) If not, what parameters are identiﬁed? How would you estimate the model?
+Exercise 23.4 Take the model Y = β1 exp
+(
+β2X
+)
++ e with E[e |X ] = 0.
+(a) Are the parameters (β 1, β2) identiﬁed?
+(b) Find an expression to calculate the covariance matrix of the NLLS estimatiors ( ˆβ1, ˆβ2).
+Exercise 23.5 Take the model Y = m(X , θ) + e with e |X ∼ N(0, σ2). Find the MLE for θ and σ2.
+Exercise 23.6 Take the model Y = exp
+(
+X ′θ
+)
++ e with E[Z e] = 0, where X is k × 1 and Z is ℓ × 1.
+(a) What relationship between ℓ and k is necessary for identiﬁcation ofθ?
+(b) Describe how to estimate θ by GMM.
+(c) Describe an estimator of the asymptotic covariance matrix.
+Exercise 23.7 Suppose thatY = m(X , θ)+e with E[e |X ] = 0, ˆθ is the NLLS estimator, andˆV the estimator
+of var
+[ˆθ
+]
+. You are interested in the conditional mean function E[Y |X = x] = m(x) at some x. Find an
+asymptotic 95% conﬁdence interval form(x).
+
+
+--- page 18 ---
+
+CHAPTER 23. NONLINEAR LEAST SQUARES 779
+Exercise 23.8 The ﬁle PSS2017 contains a subset of the data from Papageorgiou, Saam, and Schulte
+(2017). For a robustness check they re-estimated their CES production function using approximated
+capital stocks rather than capacities as their input measures. Estimate the model (23.3) using this al-
+ternative measure. The variables for Y , X1, and X2 are EG_total, EC_c_alt, and EC_d_alt, respectively.
+Compare the estimates with those reported in Table 23.1.
+Exercise 23.9 The ﬁleRR2010 contains the U.S. observations from the Reinhart and Rogoff (2010). The
+data set has observations on real GDP growth, debt/GDP , and inﬂation rates. Estimate the model (23.4)
+setting Y as the inﬂation rate and X as the debt ratio.
+Exercise 23.10 In Exercise 9.26, you estimated a cost function on a cross-section of electric companies.
+Consider the nonlinear speciﬁcation
+logT C = β1 + β2 logQ + β3
+(
+logP L+ logP K + logP F
+)
++ β4
+logQ
+1 + exp
+(
+−
+(
+logQ − γ
+)) + e. (23.12)
+This model is called a smooth threshold model. For values of logQ much below γ, the variable logQ has
+a regression slope of β2. For values much above β7, the regression slope is β2 + β4. The model imposes a
+smooth transition between these regimes.
+(a) The model works best when γ is selected so that several values (in this example, at least 10 to 15)
+of logQi are both below and above γ. Examine the data and pick an appropriate range for γ.
+(b) Estimate the model by NLLS using a global numerical search over (β 1, β2, β3, β4, γ).
+(c) Estimate the model by NLLS using a concentrated numerical search over γ. Do you obtain the
+same results?
+(d) Calculate standard errors for all the parameters estimates (β 1, β2, β3, β4, γ).

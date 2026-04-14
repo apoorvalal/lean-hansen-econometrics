@@ -1,0 +1,2245 @@
+--- page 1 ---
+
+Chapter 15
+Multivariate Time Series
+15.1 Introduction
+A multivariate time series Yt = (Y1t , ...,Ymt )′ is an m × 1 vector process observed in sequence over
+time, t = 1, ...,n. Multivariate time series models primarily focus on the joint modeling of the vector series
+Yt . The most common multivariate time series models used by economists are vector autoregressions
+(VARs). VARs were introduced to econometrics by Sims (1980).
+Some excellent textbooks and review articles on multivariate time series include Hamilton (1994),
+Watson (1994), Canova (1995), Lütkepohl (2005), Ramey (2016), Stock and Watson (2016), and Kilian and
+Lütkepohl (2017).
+15.2 Multiple Equation Time Series Models
+To motivate vector autoregressions let us start by reviewing the autoregressive distributed lag model
+of Section 14.41 for the case of two series Yt = (Y1t ,Y2t )′ with a single lag. An AR-DL model for Y1t is
+Y1t = α0 + α1Y1t −1 + β1Y2t −1 + e1t .
+Similarly, an AR-DL model forY2t is
+Y2t = γ0 + γ1Y2t −1 + δ1Y1t −1 + e2t .
+These two equations specify that each variable is a linear function of its own lag and the lag of the
+other variable. In so doing we ﬁnd that the variables on the right hand side of each equation areYt −1.
+We can simplify the equations by combining the regressors stacking the two equations together and
+writing the vector error as et = (e1t ,e2t )′ to ﬁnd
+Yt = a0 + A1Yt −1 + et
+where a0 is 2 × 1 and A1 is 2 × 2. This is a bivariate vector autoregressive model for Yt . It speciﬁes that
+the multivariate process Yt is a linear function of its own lag Yt −1 plus et . It is the combination of two
+equations each of which is an autoregressive distributed lag model. Thus a multivariate autoregression
+is simply a set of autoregressive distributed lag models.
+The above derivation assumed a single lag. If the equations include p lags of each variable we obtain
+the p t h order vector autoregressive (VAR) model
+Yt = a0 + A1Yt −1 + A2Yt −2 + · · · +ApYt −p + et . (15.1)
+509
+
+
+--- page 2 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 510
+This is a bivariate vector autoregressive model for Yt .
+Furthermore, there is nothing special about the two variable case. The notation in (15.1) allowsYt to
+be a vector of dimension m in which case the matrices Aℓ are m × m and the error et is m × 1. We will
+denote the elements of Aℓ using the notation
+Aℓ =
+
+
+
+
+a11,ℓ a12,ℓ · · · a1m,ℓ
+a21,ℓ a22,ℓ · · · a2m,ℓ
+..
+. .
+.
+. .
+.
+.
+am1,ℓ am2,ℓ · · · amm,ℓ
+
+
+
+
+.
+The error et = (e1t , ...,emt )′ is the component of Yt = (Y1t , ...,Ymt )′ which is unforecastable at time t −
+1. However, the components of Yt are contemporaneously correlated. Therefore the contemporaneous
+covariance matrix Σ = E
+[
+ee ′]
+is non-diagonal.
+The VAR model falls in the class of multivariate regression models studied in Chapter 11.
+In the following several sections we take a step back and provide a rigorous foundation for vector
+autoregressions for stationary time series.
+15.3 Linear Projection
+In Section 14.14 we derived the linear projection of the univariate series Yt on its inﬁnite past his-
+tory. We now extend this to the multivariate case. Deﬁne the multivariate inﬁnite past history ˜Yt −1 =
+(...,Yt −2,Yt −1). The projection of Yt onto ˜Yt −1, written P t −1 [Yt ] = P
+[
+Yt |˜Yt −1
+]
+, is unique and has a
+unique projection error
+et = Yt − P t −1 [Yt ]. (15.2)
+We will call the projection errors et the “innnovations” .
+The innovations et are mean zero and serially uncorrelated. We state this formally.
+Theorem 15.1 If Yt is covariance stationary it has the projection equation
+Yt = P t −1 [Yt ] + et .
+The innovations et satisfy E[et ] = 0, E
+[
+et −ℓe′
+t
+]
+= 0 for ℓ ≥ 1, and Σ = E
+[
+ee ′]
+< ∞.
+If Yt is strictly stationary then et is strictly stationary.
+The uncorrelatedness of the projection errors is a property of a multivariate white noise process.
+Deﬁnition 15.1 The vector process et is multivariate white noise if E[et ] = 0,
+E
+[
+et e′
+t
+]
+= Σ < ∞, and E
+[
+et e′
+t −ℓ
+]
+= 0 for ℓ ̸= 0.
+
+
+--- page 3 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 511
+15.4 Multivariate Wold Decomposition
+By projecting Yt onto the past history of the white noise innovations et we obtain a multivariate
+version of the Wold decomposition.
+Theorem 15.2 If Yt is covariance stationary and non-deterministic then it has
+the linear representation
+Yt = µ +
+∞∑
+ℓ=0
+Θℓet −ℓ (15.3)
+where et are the white noise projection errors and Θ0 = I m. The coefﬁcient
+matrices Θℓ are m × m.
+We can write the moving average representation using the lag operator notation as
+Yt = µ + Θ(L)et
+where
+Θ(z) =
+∞∑
+ℓ=0
+Θℓzℓ.
+A multivariate version of Theorem 14.19 can also be established.
+Theorem 15.3 If Yt is covariance stationary, non-deterministic, with Wold
+representation Yt = Θ(L)et , such that λmin (Θ∗(z)Θ(z)) ≥ δ > 0 for all
+complex |z|≤ 1, and for some integer s ≥ 0 the Wold coefﬁcients satisfy∑∞
+j =0
+∑∞
+k=0 k sΘj +k
+2 < ∞, then Yt has an inﬁnite-order autoregressive repre-
+sentation
+A (L)Yt = a0 + et (15.4)
+where
+A (z) = I m −
+∞∑
+ℓ=1
+Aℓzℓ
+and the coefﬁcients satisfy∑∞
+k=1 k s ∥Ak ∥ < ∞. The series in (15.4) is convergent.
+For a proof see Section 2 of Meyer and Kreiss (2015).
+We can also provide an analog of Theorem 14.6.
+Theorem 15.4 If et ∈ Rm is strictly stationary, ergodic, E ∥et ∥ < ∞, and∑∞
+ℓ=0 ∥Θℓ∥ < ∞, then Yt = ∑∞
+ℓ=0 Θℓet −ℓ is strictly stationary and ergodic.
+
+
+--- page 4 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 512
+The proof of Theorem 15.4 is a straightforward extension of Theorem 14.6 so is omitted.
+The moving average and autoregressive lag polynomials satisfy the relationship Θ(z) = A (z)−1.
+For some purposes (such as impulse response calculations) we need to calculate the moving average
+coefﬁcient matricesΘℓ from the autoregressive coefﬁcient matricesAℓ. While there is not a closed-form
+solution there is a simple recursion by which the coefﬁcients may be calculated.
+Theorem 15.5 For j ≥ 1, Θj = ∑j
+ℓ=1 AℓΘj −ℓ.
+To see this, suppose for simplicity a0 = 0 and that the innovations satisfy et = 0 for t ̸= 0. Then Yt = 0
+for t < 0. Using the regression equation (15.4) for t ≥ 0 we solve for each Yt . For t = 0
+Y0 = e0 = Θ0e0
+where Θ0 = I m. For t = 1
+Y1 = A1Y0 = A1Θ0e0 = Θ1e0
+where Θ1 = A1Θ0. For t = 2
+Y2 = A1Y1 + A2Y0 = A1Θ1e0 + A2Θ0e0 = Θ2e0
+where Θ2 = A1Θ1 + A2Θ0. For t = 3
+Y3 = A1Y2 + A2Y1 + A3Y0 = A1Θ2e0 + A2Θ1e0 + A3Θ0e0 = Θ3e0
+where Θ3 = A1Θ2 + A2Θ2 + A2Θ0. The coefﬁcients satisfy the stated recursion as claimed.
+15.5 Impulse Response
+One of the most important concepts in applied multivariate time series is the impulse response
+function (IRF) which is deﬁned as the change in Yt due to a change in an innovation or shock. In this
+section we deﬁne the baseline IRF – the unnormalized non-orthogonalized impulse response function
+– which is the change in Yt due to a change in an innovation et . Speciﬁcally, we deﬁne the impulse re-
+sponse of variable i with respect to innovation j as the change in the time t projection of the i t h variable
+Yi t+h due to the j t h innovation e j t
+IRFi j (h) = ∂
+∂e j t
+P t [Yi t+h].
+There are m2 such responses for each horizon h. We can write them as an m × m matrix
+IRF(h) = ∂
+∂e′
+t
+P t [Yt +h].
+Recall the multivariate Wold representation
+Yt = µ +
+∞∑
+ℓ=0
+Θℓet −ℓ.
+
+
+--- page 5 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 513
+We can calculate that the projection onto the history at time t is
+P t [Yt +h] = µ +
+∞∑
+ℓ=h
+Θℓet +h−ℓ = µ +
+∞∑
+ℓ=0
+Θh+ℓet −ℓ.
+We deduce that the impulse response is IRF(h ) = Θh, the ht h moving average coefﬁcient matrix. The
+invididual impulse response is IRFi j (h) = Θh,i j , the i j t h element of Θh.
+Here we have deﬁned the impulse response in terms of the linear projection operator. An alternative
+is to deﬁne the impulse response in terms of the conditional expectation operator. The two coincide
+when the innovations et are a martingale difference sequence (and thus when the true process is linear)
+but otherwise will not coincide.
+Typically we view impulse responses as a function of the horizon h and plot them as a function of
+h for each pair (i , j ). The impulse response function IRF i j (h) is interpreted as how the i t h variable re-
+sponds over time to the j t h innovation.
+In a linear vector autoregression the impulse response function is symmetric in negative and positive
+innovations. That is, the impact on Yi t+h of a positive innovation e j t = 1 is IRF i j (h) and the impact of
+a negative innovation e j t = −1 is −IRFi j (h). Furthermore, the magnitude of the impact is linear in the
+magnitude of the innovation. Thus the impact of the innovation e j t = 2 is 2 × IRFi j (h) and the impact
+of the innovation e j t = −2 is −2 × IRFi j (h). This means that the shape of the impulse response function
+is unaffected by the magnitude of the innovation. (These are consequences of the linearity of the vector
+autoregressive model not necessarily features of the true world.)
+The impulse response functions can be scaled as desired. One standard choice is to scale so that the
+innovations correspond to one unit of the impulse variable. Thus if the impulse variable is measured in
+dollars the impulse response can be scaled to correspond to a change in $1 or some multiple such as a
+million dollars. If the impulse variable is measured in percentage points (e.g. an interest rate) then the
+impulse response can be scaled to correspond to a change of one percentage point (e.g. from 3% to 4%)
+or to correspond to a change of one basis point (e.g. from 3.05% to 3.06%). Another standard choice is to
+scale the impulse responses to correspond to a “one standard deviation” innovation. This occurs when
+the innovations have been scaled to have unit variances. In this latter case impulse response functions
+can be interpreted as responses due to a “typical” sized (one standard deviation) innovation.
+Closely related to the IRF is the cumulative impulse response function (CIRF) deﬁned as
+CIRF(h) =
+h∑
+ℓ=1
+∂
+∂e′
+t
+P t [Yt +ℓ] =
+h∑
+ℓ=1
+Θℓ.
+The cumulative impulse response is the accumulated (summed) responses on Yt from time t to t + h.
+The limit of the cumulative impulse response as h → ∞ is the long-run impulse response matrix
+C = lim
+h→∞
+CIRF(h) =
+∞∑
+ℓ=1
+Θℓ = Θ(1) = A (1)−1 .
+This is the full (summed) effect of the innovation over all time.
+It is useful to observe that when a VAR is estimated on differenced observations∆Yt then cumulative
+impulse response is
+CIRF(h) = ∂
+∂e′
+t
+P t
+[
+h∑
+ℓ=1
+∆Yt +ℓ
+]
+= ∂
+∂e′
+t
+P t [Yt +h]
+which is the impulse response for the variable Yt in levels. More generally, when a VAR is estimated with
+some variables in levels and some in differences then the cumulative impulse response for the second
+group will coincide with the impulse responses for the same variables measured in levels.
+
+
+--- page 6 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 514
+It is typical to report cumulative impulse response functions for variables which enter a VAR in differ-
+ences. In fact, in this context many authors will label the cumulative impulse response as “the impulse
+response” .
+15.6 VAR(1) Model
+The ﬁrst-order vector autoregressive process, denotedVAR(1), is
+Yt = a0 + A1Yt −1 + et
+where et is a strictly stationary and ergodic white noise process.
+We are interested in conditions under which Yt is a stationary process. Let λi (A) denote the i t h
+eigenvalue of A.
+Theorem 15.6 If et is strictly stationary, ergodic, E ∥et ∥ < ∞, and |λi (A1)|< 1
+for i = 1, ...,m, then the VAR(1) process Yt is strictly stationary and ergodic.
+The proof is given in Section 15.31.
+15.7 VAR(p) Model
+The pt h-order vector autoregressive process, denoted VAR(p), is
+Yt = a0 + A1Yt −1 + · · · +ApYt −p + et
+where et is a strictly stationary and ergodic white noise process.
+We can write the model using the lag operator notation as
+A (L)Yt = a0 + et
+where
+A (z) = I m − A1z − · · · −Ap z p.
+The condition for stationarity of the system can be expressed as a restriction on the roots of the
+determinantal equation of the autoregressive polynomial. Recall, a root r of det (A (z)) is a solution to
+det(A (r )) = 0.
+Theorem 15.7 If all roots r of det (A (z)) satisfy |r |> 1 then the VAR(p) process
+Yt is strictly stationary and ergodic.
+The proof is structurally identical to that of Theorem 14.23 so is omitted.
+
+
+--- page 7 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 515
+15.8 Regression Notation
+Deﬁne the
+(
+mp + 1
+)
+× 1 vector
+Xt =
+
+
+
+
+
+
+1
+Yt −1
+Yt −2
+..
+.
+Yt −p
+
+
+
+
+
+
+and the m × (mp + 1) matrix A′ =
+(
+a0 A1 A2 · · · Ap
+)
+. Then the VAR system of equations can be
+written as
+Yt = A′Xt + et . (15.5)
+This is a multivariate regression model. The error has covariance matrix
+Σ = E
+[
+et e′
+t
+]
+. (15.6)
+We can also write the coefﬁcient matrix as A =
+(
+a1 a2 · · · am
+)
+where a j is the vector of coefﬁ-
+cients for the j t h equation. Thus Y j t = a′
+j Xt + e j t.
+In general, if Yt is strictly stationary we can deﬁne the coefﬁcient matrixA by linear projection.
+A =
+(
+E
+[
+Xt X ′
+t
+])−1 E
+[
+Xt Y ′
+t
+]
+.
+This holds whether or not Yt is actually a VAR(p) process. By the properties of projection errors
+E
+[
+Xt e′
+t
+]
+= 0. (15.7)
+The projection coefﬁcient matrixA is identiﬁed ifE
+[
+Xt X ′
+t
+]
+is invertible.
+Theorem 15.8 If Yt is strictly stationary and 0 < Σ < ∞ for Σ deﬁned in (15.6),
+then Q = E
+[
+Xt X ′
+t
+]
+> 0 and the coefﬁcient vector (14.45) is identiﬁed.
+The proof is given in Section 15.31.
+15.9 Estimation
+From Chapter 11 the systems estimator of a multivariate regression is least squares. The estimator
+can be written as
+ˆA =
+( n∑
+t =1
+Xt X ′
+t
+)−1 ( n∑
+t =1
+Xt Y ′
+t
+)
+.
+Alternatively, the coefﬁcient estimator for thej t h equation is
+ˆa j =
+( n∑
+t =1
+Xt X ′
+t
+)−1 ( n∑
+t =1
+Xt Y j t
+)
+.
+
+
+--- page 8 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 516
+The least squares residual vector is ˆet = Yt − ˆA
+′
+Xt . The estimator of the covariance matrix is
+ˆΣ = 1
+n
+n∑
+t =1
+ˆet ˆe′
+t . (15.8)
+(This may be adjusted for degrees-of-freedom if desired, but there is no established ﬁnite-sample justi-
+ﬁcation for a speciﬁc adjustment.)
+If Yt is strictly stationary and ergodic with ﬁnite variances then we can apply the Ergodic Theorem
+(Theorem 14.9) to deduce that
+1
+n
+n∑
+t =1
+Xt Y ′
+t − →p E
+[
+Xt Y ′
+t
+]
+and n∑
+t =1
+Xt X ′
+t − →p E
+[
+Xt X ′
+t
+]
+.
+Since the latter is positive deﬁnite by Theorem 15.8 we conclude that ˆA is consistent for A. Standard
+manipulations show that ˆΣ is consistent as well.
+Theorem 15.9 If Yt is strictly stationary, ergodic, and 0 < Σ < ∞ then ˆA − →p A
+and ˆΣ − →p Σ as n → ∞.
+VAR models can be estimated in Stata using the var command.
+15.10 Asymptotic Distribution
+Set
+a = vec(A) =
+
+
+a1
+...
+am
+
+, ˆa = vec
+(ˆA
+)
+=
+
+
+ˆa1
+...
+ˆam
+
+.
+By the same analysis as in Theorem 14.30 combined with Theorem 11.1 we obtain the following.
+Theorem 15.10 Suppose that Yt follows the VAR(p) model, all roots r of
+det(A (z)) satisfy |r |> 1, E[et |Ft −1] = 0, E ∥et ∥4 < ∞, and Σ > 0, then as n → ∞,pn ( ˆa − a) − →
+d
+N(0,V ) where
+V = Q
+−1
+ΩQ
+−1
+Q = I m ⊗Q
+Q = E
+[
+Xt X ′
+t
+]
+Ω = E
+[
+et e′
+t ⊗ Xt X ′
+t
+]
+.
+
+
+--- page 9 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 517
+Notice that the theorem uses the strong assumption that the innovation is a martingale difference
+sequence E[et |Ft −1] = 0. This means that the VAR(p) model is the correct conditional mean for each
+variable. In words, these are the correct lags and there is no omitted nonlinearity.
+If we further strengthen the MDS assumption to conditional homoskedasticity
+E
+[
+et e′
+t |Ft −1
+]
+= Σ
+then the asymptotic variance simpliﬁes as
+Ω = Σ ⊗Q
+V = Σ ⊗Q −1.
+In contrast, if the VAR(p) is an approximation then the MDS assumption is not appropriate. In this
+case the asymptotic distribution can be derived under mixing conditions.
+Theorem 15.11 Assume that Yt is strictly stationary, ergodic, and for somer >
+4, E ∥Yt ∥r < ∞ and the mixing coefﬁcients satisfy ∑∞
+ℓ=1 α(ℓ)1−4/r < ∞. Let a be
+the projection coefﬁcient vector and et the projection error. Then as n → ∞,pn ( ˆa − a) − →
+d
+N(0,V ) where
+V =
+(
+I m ⊗Q −1)
+Ω
+(
+I m ⊗Q −1)
+Q = E
+[
+Xt X ′
+t
+]
+Ω =
+∞∑
+ℓ=−∞
+E
+[
+et −ℓe′
+t ⊗ Xt −ℓX ′
+t
+]
+.
+This theorem does not require that the true process is a VAR. Instead, the coefﬁcients are deﬁned as
+those which produce the best (mean square) approximation, and the only requirements on the true pro-
+cess are general dependence conditions. The theorem shows that the coefﬁcient estimators are asymp-
+totically normal with a covariance matrix which takes a “long-run” sandwich form.
+15.11 Covariance Matrix Estimation
+The classic homoskedastic estimator of the covariance matrix for ˆa equals
+ˆV
+0
+ˆa = ˆΣ ⊗
+(
+X ′X
+)−1 . (15.9)
+Estimators adjusted for degree-of-freedom can also be used though there is no established ﬁnite-sample
+justiﬁcation. This variance estimator is appropriate under the assumption that the conditional mean is
+correctly speciﬁed as a VAR(p) and the innovations are conditionally homoskedastic.
+The heteroskedasticity-robust estimator equals
+ˆV ˆa =
+(
+I n ⊗
+(
+X ′X
+)−1)( n∑
+t =1
+(
+ˆet ˆe′
+t ⊗ Xt X ′
+t
+)) (
+I n ⊗
+(
+X ′X
+)−1)
+. (15.10)
+This variance estimator is appropriate under the assumption that the conditional mean is correctly spec-
+iﬁed as a VAR(p) but does not require that the innovations are conditionally homoskedastic.
+
+
+--- page 10 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 518
+The Newey-West estimator equals
+ˆV ˆa =
+(
+I n ⊗
+(
+X ′X
+)−1)
+ˆΩM
+(
+I n ⊗
+(
+X ′X
+)−1)
+(15.11)
+ˆΩM =
+M∑
+ℓ=−M
+wℓ
+∑
+1≤t −ℓ≤n
+(ˆet −ℓ ⊗ Xt −ℓ)
+(
+ˆe′
+t ⊗ X ′
+t
+)
+wℓ = 1 − |ℓ|
+M + 1 .
+The number M is called the lag truncation number. An unweighted version setswℓ = 1. The Newey-West
+estimator does not require that the VAR(p) is correctly speciﬁed.
+Traditional textbooks have only used the homoskedastic variance estimation formula (15.9) and con-
+sequently existing software follows the same convention. For example, the var command in Stata dis-
+plays only homoskedastic standard errors. Some researchers use the heteroskedasticity-robust estimator
+(15.10). The Newey-West estimator (15.11) is not commonly used for VAR models.
+Asymptotic approximations tend to be much less accurate under time series dependence than for
+independent observations. Therefore bootstrap methods are popular. In Section 14.46 we described
+several bootstrap methods for time series observations. While Section 14.46 focused on univariate time
+series, the extension to multivariate observations is straightforward.
+15.12 Selection of Lag Length in an VAR
+For a data-dependent rule to pick the lag length p it is recommended to minimize an information
+criterion. The formula for the AIC is
+AIC(p) = n logdet ˆΣ(p) + 2K (p)
+ˆΣ(p) = 1
+n
+n∑
+t =1
+ˆet (p)ˆet (p)′
+K (p) = m(pm + 1)
+where K (p) is the number of parameters and ˆet (p) is the OLS residual vector from the model withp lags.
+The log determinant is the criterion from the multivariate normal likelihood.
+In Stata the AIC for a set of estimated VAR models can be compared using the varsoc command. It
+should be noted, however, that the Stata routine actually displays AIC(p)/n = logdet ˆΣ(p)+2K (p)/n. This
+does not affect the ranking of the models but makes the differences between models appear misleadingly
+small.
+15.13 Illustration
+We estimate a three-variable system which is a simpliﬁed version of a model often used to study
+the impact of monetary policy. The three variables are quarterly from FRED-QD: real GDP growth rate
+(100∆log(GDP t )), GDP inﬂation rate (100∆log(Pt )), and the Federal funds interest rate. VARs from lags 1
+through 8 were estimated by least squares. The model with the smallest AIC is the VAR(6). The coefﬁcient
+estimates and (homoskedastic) standard errors for the VAR(6) are reported in Table 15.1.
+Examining the coefﬁcients in the table we can see that GDP displays a moderate degree of serial
+correlation and shows a large response to the federal funds rate, especially at lags 2 and 3. Inﬂation also
+displays serial correlation, shows minimal response to GDP , and also has meaningful response to the
+federal funds rate. The federal funds rate has the strongest serial correlation. Overall, it is difﬁcult to
+
+
+--- page 11 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 519
+read too much meaning into the coefﬁcient estimates due to the complexity of the interactions. Because
+of this difﬁculty it is typical to focus on other representations of the coefﬁcient estimates such as impulse
+responses which we discuss in the upcoming sections.
+15.14 Predictive Regressions
+In some contexts (including prediction) it is useful to consider models where the dependent variable
+is dated multiple periods ahead of the right-hand-side variables. These equations can be single equation
+or multivariate; we can consider both as special cases of a VAR (as a single equation model can be written
+as one equation taken from a VAR system). An h-step predictive VAR(p) takes the form
+Yt +h = b0 + B 1Yt + · · · +B pYt −p+1 + ut . (15.12)
+The integer h ≥ 1 is the horizon. A one-step predictive VAR equals a standard VAR. The coefﬁcients
+should be viewed as the best linear predictors of Yt +h given (Yt ,..., Yt −p+1).
+There is an interesting relationship between a VAR model and the corresponding h-step predictive
+VAR model.
+Theorem 15.12 If Yt is a VAR(p) process then its h-step predictive regression
+is a predictive VAR(p) with ut a MA(h-1) process and B 1 = Θh = IRF(h).
+The proof of Theorem 15.12 is presented in Section 15.31.
+There are several implications of this theorem. First, ifYt is a VAR(p) process then the correct number
+of lags for an h-step predictive regression is also p lags. Second, the error in a predictive regression is a
+MA process and is thus serially correlated. The linear dependence, however, is capped by the horizon.
+Third, the leading coefﬁcient matrix corresponds to theht h moving average coefﬁcient matrix which also
+equals the ht h impulse response matrix.
+The predictive regression (15.12) can be estimated by least squares. We can write the estimates as
+Yt +h = ˆb0 + ˆB 1Yt + · · · +ˆB pYt −p+1 + ˆut . (15.13)
+For a distribution theory we need to apply Theorem 15.11 since the innovationsut are a moving average
+and thus violate the MDS assumption. It follows as well that the covariance matrix for the estimators
+should be estimated by the Newey-West (15.11) estimator. There is a difference, however. Since ut is
+known to be a MA(h-1) a reasonable choice is to setM = h −1 and use the simple weightswℓ = 1. Indeed,
+this was the original suggestion by L. Hansen and Hodrick (1980).
+For a distributional theory we can apply Theorem 15.11. Let b be the vector of coefﬁcients in (15.12)
+and ˆb the corresponding least squares estimator. Let Xt be the vector of regressors in (15.12).
+
+
+--- page 12 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 520
+Table 15.1: Vector Autoregression
+GDP INF FF
+GDP t −1 0.25 0.01 0.08
+(0.07) (0.02) (0.02)
+GDP t −2 0.23 −0.02 0.04
+(0.07) (0.02) (0.02)
+GDP t −3 0.00 0.03 0.01
+(0.07) (0.02) (0.02)
+GDP t −4 0.14 0.04 −0.02
+(0.07) (0.02) (0.02)
+GDP t −5 −0.02 −0.03 0.04
+(0.07) (0.02) (0.02)
+GDP t −6 0.05 −0.00 −0.01
+(0.06) (0.02) (0.02)
+I N Ft −1 0.11 0.57 0.01
+(0.20) (0.07) (0.05)
+I N Ft −2 −0.17 0.10 0.17
+(0.23) (0.08) (0.06)
+I N Ft −3 0.01 0.09 −0.05
+(0.23) (0.08) (0.06)
+I N Ft −4 0.16 0.14 −0.05
+(0.23) (0.08) (0.06)
+I N Ft −5 0.12 −0.05 −0.05
+(0.24) (0.08) (0.06)
+I N Ft −6 −0.14 0.10 0.09
+(0.21) (0.07) (0.05)
+F Ft −1 0.13 0.28 1.14
+(0.26) (0.08) (0.07)
+F Ft −2 −1.50 −0.27 −0.53
+(0.38) (0.12) (0.10)
+F Ft −3 1.40 0.12 0.53
+(0.40) (0.13) (0.10)
+F Ft −4 −0.57 −0.13 −0.28
+(0.41) (0.13) (0.11)
+F Ft −5 0.01 0.25 0.28
+(0.40) (0.13) (0.10)
+F Ft −6 0.47 −0.27 −0.24
+(0.26) (0.08) (0.07)
+Intercept 1.15 0.22 −0.33
+(0.54) (0.18) (0.14)
+
+
+--- page 13 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 521
+Theorem 15.13 If Yt is strictly stationary, ergodic, Σ > 0, and for some r > 4,
+E ∥Yt ∥r < ∞ and the mixing coefﬁcients satisfy∑∞
+ℓ=1 α(ℓ)1−4/r < ∞, then as n →
+∞, pn
+(ˆb − b
+)
+− →
+d
+N(0,V ) where
+V =
+(
+I m ⊗Q −1)
+Ω
+(
+I m ⊗Q −1)
+Q = E
+[
+Xt X ′
+t
+]
+Ω =
+∞∑
+ℓ=−∞
+E
+[
+( ˆut −ℓ ⊗ Xt −ℓ)
+(
+ˆu′
+t ⊗ X ′
+t
+)]
+.
+15.15 Impulse Response Estimation
+Reporting of impulse response estimates is one of the most common applications of vector autore-
+gressive modeling. There are several methods to estimate the impulse response function. In this section
+we review the most common estimator based on the estimated VAR parameters.
+Within a VAR(p) model the impulse responses are determined by the VAR coefﬁcients. We can write
+this mapping as Θh = gh (A). The plug-in approach suggests the estimator ˆΘh = gh( ˆA) given the VAR(p)
+coefﬁcient estimator ˆA. These are the impulse responses implied by the estimated VAR coefﬁcients.
+While it is possible to explicitly write the function gh (A), a computationally simple approach is to use
+Theorem 15.5 which shows that the impulse response matrices can be written as a simple recursion in
+the VAR coefﬁcients. Thus the impulse response estimator satisﬁes the recursion
+ˆΘh =
+min[h,p]∑
+ℓ=1
+ˆAℓ ˆΘh−ℓ.
+We then set ˆIRF(h) = ˆΘh.
+This is the the most commonly used method for impulse response estimation and it is the method
+implemented in standard packages.
+Since ˆA is random so is ˆIRF(h) as it is a nonlinear function of ˆA. Using the delta method, we deduce
+that the elements of ˆIRF(h) (the impulse responses) are asymptotically normally distributed. With some
+messy algebra explicit expressions for the asymptotic variances can be obtained. Sample versions can be
+used to calculate asymptotic standard errors. These can be used to form asymptotic conﬁdence intervals
+for the impulse responses.
+The asymptotic approximations, however, can be poor. As we discussed earlier the asymptotic ap-
+proximations for the distribution of the coefﬁcients ˆA can be poor due to the serial dependence in the
+observations. The asymptotic approximations for ˆIRF(h) can be signiﬁcantly worse because the impulse
+responses are highly nonlinear functions of the coefﬁcients. For example, in the simple AR(1) model
+with coefﬁcient estimate ˆα the ht h impulse response is ˆαh which is highly nonlinear for even moderate
+horizons h.
+Consequently, asymptotic approximations are less popular than bootstrap approximations. The
+most popular bootstrap approximation uses the recursive bootstrap (see Section 14.46) using the ﬁt-
+ted VAR model and then calculates conﬁdence intervals for the impulse responses with the percentile
+method. An unfortunate feature of this choice is that the percentile bootstrap conﬁdence interval is bi-
+ased since the nonlinear impulse response estimates are biased and the percentile bootstrap accentuates
+bias.
+
+
+--- page 14 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 522
+Some advantages of the estimation method as described is that it produces impulse response esti-
+mates which are directly related to the estimated VAR(p) model and are internally consistent with one
+another. The method is also numerically stable. It is efﬁcient when the true process is a true VAR(p)
+with conditionally homoskedastic MDS innovations. When the true process is not a VAR(p) it can be
+thought of as a non-parametric estimator of the impulse response if p is large (or selected appropriately
+in a data-dependent fashion, such as by the AIC).
+A disadvantage of this estimator is that it is a highly nonlinear function of the VAR coefﬁcient estima-
+tors. Therefore the distribution of the impulse response estimator is unlikely to be well approximated by
+the normal distribution. When the VAR(p) is not the true process then it is possible that the nonlinear
+transformation accentuates the misspeciﬁcation bias.
+Impulse response functions can be calculated and displayed in Stata using the irf command. The
+command irf create is used to calculate impulse response functions and conﬁdence intervals. The
+default conﬁdence intervals are asymptotic (delta method). Bootstrap (recursive method) standard er-
+rors can be substituted using the bs option. The command irf graph irf produces graphs of the
+impulse response function along with 95% asymptotic conﬁdence intervals. The command irf graph
+cirf produces the cumulative impulse response function. It may be useful to know that the impulse
+response estimates are unscaled so represent the response due to a one-unit change in the impulse vari-
+able. A limitation of the Stata irf command is that there are limited options for standard error and
+conﬁdence interval construction. The asymptotic standard errors are calculated using the homoskedas-
+tic formula not the correct heteroskedastic formula. The bootstrap conﬁdence intervals are calculated
+using the normal approximation bootstrap conﬁdence interval, the least reliable bootstrap conﬁdence
+interval method. Better options such as the bias-corrected percentile conﬁdence interval are not pro-
+vided as options.
+15.16 Local Projection Estimator
+Jordà (2005) observed that the impulse response can be estimated by a least squares predictive re-
+gression. The key is Theorem 15.12 which established that Θh = B 1, the leading coefﬁcient matrix in the
+h-step predictive regression.
+The method is as follows. For each horizon h estimate a predictive regression (15.12) to obtain the
+leading coefﬁcient matrix estimator ˆB 1. The estimator is ˆIRF(h) = ˆB 1 and is known as the local projec-
+tion estimator.
+Theorem 15.13 shows that the local projection impulse response estimator is asymptotically normal.
+Newey-West methods must be used for calculation of asymptotic standard errors since the regression
+errors are serially correlated.
+Jordà (2005) speculates that the local projection estimator will be less sensitive to misspeciﬁcation
+since it is a straightforward linear estimator. This is intuitive but unclear. Theorem 15.12 relies on the
+assumption that Yt is a VAR(p) process, and fails otherwise. Thus if the true process is not a VAR(p) then
+the coefﬁcient matrixB 1 in (15.12) does not correspond to the desired impulse response matrix Θh and
+hence will be misspeciﬁed. The accuracy (in the sense of low bias) of both the conventional and the local
+projection estimator relies on p being sufﬁciently large that the VAR(p) model is a good approximation
+to the true inﬁnite-order regression (15.4). Without a formal theory it is difﬁcult to know which estimator
+is more robust than the other.
+One implementation challenge is the choice of p. While the method allows for p to vary across hori-
+zon h there is no well-established method for selection of the VAR order for predictive regressions. (Stan-
+dard selection criteria such as AIC are inappropriate under serially correlated errors just as conventional
+standard errors are inappropriate.) Therefore the seemingly natural choice is to use the same p for all
+
+
+--- page 15 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 523
+horizons and base this choice on the one-step VAR model where AIC can be used for model selection.
+An advantage of the local projection method is that it is a direct estimator of the impulse response
+and thus possibly more robust than the conventional method. It is a linear estimator and thus likely to
+have a better-behaved asymptotic distribution.
+A disadvantage is that the method relies on a regression (15.12) that has serially correlated errors. The
+latter are highly correlated at long horizons and this renders the estimator imprecise. Local projection
+estimators tend to be less smooth and more erratic than those produced by the conventional estimator
+reﬂecting a possible lack of precision.
+15.17 Regression on Residuals
+If the innovations et were observed it would be natural to directly estimate the coefﬁcients of the
+multivariate Wold decomposition. We would pick a maximum horizonh and then estimate the equation
+Yt = µ + Θ1et −1 + Θ2et −2 + · · · +Θhet −h + ut
+where
+ut = et +
+∞∑
+ℓ=h+1
+Θℓet −ℓ.
+The variables (e t −1, ...,et −h) are uncorrelated with ut so the least squares estimator of the coefﬁcients is
+consistent and asymptotically normal. Since ut is serially correlated the Newey-West method should be
+used to calculate standard errors.
+In practice the innovations et are not observed. If they are replaced by the residuals ˆet from an esti-
+mated VAR(p) then we can estimate the coefﬁcients by least squares applied to the equation
+Yt = µ + Θ1 ˆet −1 + Θ2 ˆet −2 + · · · +Θh ˆet −h + ˆut .
+This idea originated with Durbin (1960).
+This is a two-step estimator with generated regressors. (See Section 12.26.) The impulse response
+estimators are consistent and asymptotically normal but with a non-standard covariance matrix due to
+the two-step estimation. Conventional, robust, and Newey-West standard errors do not account for this
+without modiﬁcation.
+Chang and Sakata (2007) proposed a simpliﬁed version of the Durbin regression. Notice that for any
+horizon h we can rewrite the Wold decomposition as
+Yt +h = µ + Θhet + vt +h
+where
+vt =
+h−1∑
+ℓ=0
+Θℓet −ℓ +
+∞∑
+ℓ=h+1
+Θℓet −ℓ.
+The regressor et is uncorrelated with vt +h. Thus Θh can be estimated by a regression of Yt +h on et .
+In practice we can replace et by the least squares residual ˆet from an estimated VAR(p) to estimate the
+regression
+Yt +h = µ + Θh ˆet + ˆvt +h. (15.14)
+Similar to the Durbin regression the Chang-Sakata estimator is a two-step estimator with a generated
+regressor. However, as it takes the form studied in Section 12.27 it can be shown that the Chang-Sakata
+two-step estimator has the same asymptotic distribution as the idealized one-step estimator as ifet were
+
+
+--- page 16 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 524
+observed. Thus the standard errors do not need to be adjusted for generated regressors which is an ad-
+vantage. The errors are serially correlated so Newey-West standard errors should be used. The variance
+of the error vt +h is larger than the variance of the error ut in the Durbin regression so the Chang-Sakata
+estimator may be less precise than the Durbin estimator.
+Chang and Sakata (2007) also point out the following implication of the FWL theorem. The least
+squares slope estimator in (15.14) is algebraically identical 1 to the slope estimator ˆB 1 in a predictive
+regression with p − 1 lags. Thus the Chang-Sakata estimator is similar to a local projection estimator.
+15.18 Orthogonalized Shocks
+We can use the impulse response function to examine how the innnovations impact the time-paths
+of the variables. A difﬁculty in interpretation, however, is that the elements of the innovation vector et
+are contemporeneously correlated. Thus e j t and ei t are (in general) not independent, so consequently it
+does not make sense to treate j t and ei t as fundamental “shocks” . Another way of describing the problem
+is that it does not make sense, for example, to describe the impact of e j t while “holding” ei t constant.
+The natural solution is to orthogonalize the innovations so that they are uncorrelated and then view
+the orthogonalized errors as the fundamental “shocks” . Recall thatet is mean zero with covariance matrix
+Σ. We can factor Σ into the product of an m × m matrix B with its transpose Σ = B B′. The matrix B is
+called a “square root” of Σ. (See Section A.13.) Deﬁne εt = B −1et . The random vector εt has mean
+zero and covariance matrix B −1ΣB −1′ = B −1B B′B −1′ = I m. The elements εt = (ε1t , ...,εmt ) are mutually
+uncorrelated. We can write the innovations as a function of the orthogonalized errors as
+et = B εt . (15.15)
+To distinguish εt from et we will typically call εt the “orthogonalized shocks” or more simply as the
+“shocks” and continue to call et the “innovations” .
+When m > 1 there is not a unique square root matrix B so there is not a unique orthogonalization.
+The most common choice (and was originally advocated by Sims (1980)) is the Cholesky decomposition
+(see Section A.16). This sets B to be lower triangular, meaning that it takes the form
+B =
+
+
+b11 0 0
+b21 b22 0
+b31 b32 b33
+
+
+with non-negative diagonal elements. We can write the Cholesky decomposition of a matrix A as C =
+chol(A) which means that A = CC ′ with C lower triangular. We thus set
+B = chol(Σ). (15.16)
+Equivalently, the innovations are related to the orthogonalized shocks by the equations
+e1t = b11ε1t
+e2t = b21ε1t + b22ε2t
+e3t = b31ε1t + b31ε2t + b33ε3t .
+This structure is recursive. The innovation e1t is a function only of the single shock ε1t . The inno-
+vation e2t is a function of the shocks ε1t and ε2t , and the innovation e3t is a function of all three shocks.
+1Technically, if the sample lengths are adjusted.
+
+
+--- page 17 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 525
+Another way of looking at the structure is that the ﬁrst shock ε1t affects all three innovation, the second
+shock ε2t affects e2t and e3t , and the third shock ε3t only affects e3t .
+A recursive structure is an exclusion restriction. The recursive structure excludesε2t and ε3t contem-
+poreneously affecting e1t , and excludes ε3t contemporeneously affecting e2t .
+When using the Cholesky decomposition the recursive structure is determined by the ordering of the
+variables in the system. The order matters and is the key identifying assumption. We will return to this
+issue later.
+Finally, we mention that the system (15.15) is equivalent to the system
+Aet = εt (15.17)
+where A = B −1 is lower triangular when B is lower triangular. The representation (15.15) is more conve-
+nient, however, for most of our purposes.
+15.19 Orthogonalized Impulse Response Function
+We have deﬁned the impulse response function as the change in the timet projection of the variables
+Yt +h due to the innovation et . As we discussed in the previous section since the innovations are contem-
+poreneously correlated it makes better sense to focus on changes due to the orthogonalized shocks εt .
+Consequently we deﬁne theorthgonalized impulse response function (OIRF) as
+OIRF(h) = ∂
+∂ε′
+t
+P t [Yt +h].
+We can write the multivariate Wold representation as
+Yt = µ +
+∞∑
+ℓ=0
+Θℓet −ℓ = µ +
+∞∑
+ℓ=0
+ΘℓB εt −ℓ
+where B is from (15.16). We deduce that
+OIRF(h) = ΘhB = IRF(h)B.
+This is the non-orthogonalized impulse response matrix multiplied by the matrix square root B.
+Write the rows of the matrix Θh as
+Θh =
+
+
+θ′
+1h
+θ′
+mh
+
+
+and the columns of the matrix B as B = [b1, ...,bm]. We can see that
+OIRFi j (h) = [ΘhB]i j = θ′
+i hb j .
+There are m2 such responses for each horizon h.
+The cumulative orthogonalized impulse response function (COIRF) is
+COIRF(h) =
+h∑
+ℓ=1
+OIRF(ℓ) =
+h∑
+ℓ=1
+ΘℓB.
+
+
+--- page 18 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 526
+15.20 Orthogonalized Impulse Response Estimation
+We have discussed estimation of the moving average matrices Θℓ. We need an estimator of B.
+We ﬁrst estimate the VAR(p) model by least squares. This gives us the coefﬁcient matricesˆA and the
+error covariance matrix ˆΣ. From the latter we apply the Cholesky decomposition ˆB = chol
+(ˆΣ
+)
+so that
+ˆΣ = ˆB ˆB
+′
+. (See Section A.16 for the algorithm.) The orthogonalized impulse response estimators are
+OIRF(h) = ˆΘh ˆB = ˆθ′
+i h
+ˆb j .
+The estimator OIRF(h) is a nonlinear function of ˆA and ˆΣ. It is asymptotically normally distributed
+by the delta method. This allows for explicit calculation of asymptotic standard errors. These can be
+used to form asymptotic conﬁdence intervals for the impulse responses.
+As discussed earlier, the asymptotic approximations can be quite poor. Consequently bootstrap ap-
+proximations are more widely used than asymptotic methods.
+Orthogonalized impulse response functions can be displayed in Stata using the irf command. The
+command irf graph oirf produces graphs of the orthogonalized impulse response function along
+with 95% asymptotic conﬁdence intervals. The command irf graph coirf produces the cumulative
+orthogonalized impulse response function. It may also be useful to know that the OIRF are scaled for a
+one-standard deviation shock so the impulse response represents the response due to a one-standard-
+deviation change in the impulse variable. As discussed earlier, the Stata irf command has limited op-
+tions for standard error and conﬁdence interval construction. The asymptotic standard errors are cal-
+culated using the homoskedastic formula not the correct heteroskedastic formula. The bootstrap conﬁ-
+dence intervals are calculated using the normal approximation bootstrap conﬁdence interval.
+15.21 Illustration
+To illustrate we use the three-variable system from Section 15.13. We use the ordering (1) real GDP
+growth rate, (2) inﬂation rate, (3) Federal funds interest rate. We discuss the choice later when we dis-
+cuss identiﬁcation. We use the estimated VAR(6) and calculate the orthogonalized impulse response
+functions using the standard VAR estimator.
+In Figure 15.1 we display the estimated orthogonalized impulse response of the GDP growth rate in
+response to a one standard deviation increase in the federal funds rate. The left plot shows the impulse
+response function and the middle plot the cumulative impulse response function. As we discussed ear-
+lier the interpretation of the impulse response and the cumulative impulse response depends on whether
+the variable enters the VAR in differences or in levels. In this case, GDP growth is the ﬁrst difference of
+the natural logarithm. Thus the left plot (the impulse response function) shows the effect of interest rates
+on the growth rate of GDP . The middle plot (the cumulative impulse response) shows the effect on the
+log-level of GDP . The left plot shows that the GDP growth rate is negatively affected in the second quarter
+after an interest rate increase (a drop of about 0.2%, non-annualized), and the negative effects continue
+for several quarters following. The middle plot shows the effect on the level of GDP measured as per-
+centage changes. It shows that an interest rate increase causes GDP to fall for about 8 quarters, reducing
+GDP by about 0.6%.
+15.22 Forecast Error Decomposition
+An alternative tool to investigate an estimated VAR is the forecast error decomposition which de-
+composes multi-step forecast error variances by the component shocks. The forecast error decomposi-
+tion indicates which shocks contribute towards the ﬂuctuations of each variable in the system.
+
+
+--- page 19 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 527
+-.3
+-.2
+-.1
+0
+.1
+0 4 8 12 16 20
+Quarters
+(a) Impulse Response Function
+-1
+-.8
+-.6
+-.4
+-.2
+0
+0 4 8 12 16 20
+Quarters (b) Cumulative IRF
+0
+.1
+.2
+.3
+0 4 8 12 16 20
+Quarters (c) Error Decomposition
+Figure 15.1: Response of GDP Growth to Orthogonalized Fed Funds Shock
+It is deﬁned as follows. Take the moving average representation of thei t h variable Yi ,t +h written as a
+function of the orthogonalized shocks
+Yi ,t +h = µi +
+∞∑
+ℓ=0
+θi (ℓ)′B εt +h−ℓ.
+The best linear forecast of Yt +h at time t is
+Yi ,t +h|t = µi +
+∞∑
+ℓ=h
+θi (ℓ)′B εt +h−ℓ.
+The h-step forecast error is the difference
+Yi ,t +h − Yi ,t +h|t =
+h−1∑
+ℓ=0
+θi (ℓ)′B εt +h−ℓ.
+The variance of this forecast error is
+var
+[
+Yi ,t +h − Yi ,t +h|t
+]
+=
+h−1∑
+ℓ=0
+var
+[
+θi (ℓ)′B εt +h−ℓ
+]
+=
+h−1∑
+ℓ=0
+θi (ℓ)′B B′θi (ℓ). (15.18)
+To isolate the contribution of the j t h shock, notice that
+et = B εt = b1ε1t + · · · +bmεmt .
+Thus the contribution of the j t h shock is b j εj t. Now imagine replacing B εt in the variance calculation
+by the j t h contribution b j εj t. This is
+var
+[
+Yi t+h − Yi ,t +h|t
+]
+=
+h−1∑
+ℓ=0
+var
+[
+θi (ℓ)′b j εj t+h−ℓ
+]
+=
+h−1∑
+ℓ=0
+(
+θi (ℓ)′b j
+)2 . (15.19)
+Examining (15.18) and using B = [b1,..., bm] we can write (15.18) as
+var
+[
+Yi ,t +h − Yi ,t +h|t
+]
+=
+m∑
+j =1
+h−1∑
+ℓ=0
+(
+θi (ℓ)′b j
+)2 . (15.20)
+
+
+--- page 20 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 528
+The forecast error decomposition is deﬁned as the ratio of the j t h contribution to the total which is
+the ratio of (15.19) to (15.20):
+FEi j (h) =
+∑h−1
+ℓ=0
+(
+θi (ℓ)′b j
+)2
+∑m
+j =1
+∑h−1
+ℓ=0
+(
+θi (ℓ)′b j
+)2 .
+The FE i j (h) lies in [0,1] and varies across h. Small values indicate that εj t contributes only a small
+amount to the variance of Yi t. Large values indicate that εj t contributes a major amount of the vari-
+ance of εi t.
+A forecast error decomposition requires orthogonalized innovations. There is no non-orthogonalized
+version.
+The forecast error decomposition can be calculated and displayed in Stata using the irf command.
+The command irf graph fevd produces graphs of the forecast error decomposition along with 95%
+asymptotic conﬁdence intervals.
+To illustrate, in Figure 15.1 (right plot) we display the estimated forecast error decomposition of the
+GDP growth rate due to the federal funds rate. This shows the contribution of movements in the federal
+funds rate towards ﬂuctuations in GDP growth. The estimated effect is about 15% at long horizons. This
+is a small but important share of the variance of GDP growth. Combined with the impulse response func-
+tions we learn two lessons: (1) Monetary policy (movements in the federal funds rate) can meaningfully
+affect GDP growth; (2) Monetary policy only accounts for a small component of ﬂuctuations in U.S. GDP .
+15.23 Identiﬁcation of Recursive VARs
+As we have discussed a common method to orthogonalize the VAR errors is the lower triangular
+Cholesky decomposition which implies a recursive structure. The ordering of the variables is critical
+this recursive structure. Unless the errors are uncorrelated different orderings will lead to different im-
+pulse response functions and forecast error decompositions. The ordering must be selected by the user;
+there is no data-dependent choice.
+In order for impulse responses and forecast error decompositions to be interpreted causally the or-
+thogonalization must be identiﬁed by the user based on a structural economic argument. The choice is
+similar to the exclusion restrictions necessary for speciﬁcation of an instrumental variables regression.
+By ordering the variables recursively we are effectively imposing exclusion restrictions. Recall that in our
+empirical example we used the ordering: (1) real GDP growth rate, (2) inﬂation rate, (3) Federal funds
+interest rate. This means that in the equation for GDP we excluded the contemporeneous inﬂation rate
+and interest rate, and in the equation for inﬂation we excluded the contemporenous interest rate. These
+are exclusion restrictions. Are they justiﬁed?
+One approach is to order ﬁrst the variables which are believed to be contemporaneously affected by
+the fewest number of shocks. One way of thinking about it is that they are the variables which are “most
+sticky” within a period. The variables listed last are those which are believed to be contemporanously
+affected by the greatest number of shocks. These are the ones which are able to respond within a single
+period to the shocks or are most ﬂexible. In our example we listed output ﬁrst, prices second and interest
+rates last. This is consistent with the view that output is effectively pre-determined (within a period) and
+does not (within a period) respond to price and interest rate movements. Prices are allowed to respond
+within a period in response to output changes but not in response to interest rate changes. The latter
+could be justiﬁed if interest rate changes affect investment decisions but the latter take at least one period
+to implement. By listing the federal funds rate last the model allows monetary policy to respond within
+a period to contemporeneous information about output and prices.
+In general, this line of reasoning suggests that production measures should be listed ﬁrst, goods
+
+
+--- page 21 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 529
+prices second, and ﬁnancial prices last. This reasoning is more credible when the time periods are short,
+and less credible for longer time periods.
+Further justiﬁcations for possible recursive orderings can include: (1) information delays; (2) imple-
+mentation delays; (3) institutions; (4) market structure; (5) homogeneity; (6) imposing estimates from
+other sources. In most cases such arguments can be made but will be viewed as debatable and restric-
+tive. In any situation it is best to be explicit about your choice and reasoning.
+Returning to the empirical illustration it is fairly conventional to order the fed funds rate last. This
+allows the fed funds rate to respond to contemporeneous information about output and price growth
+and identiﬁes the fed funds policy shock by the assumption that it does not have a contemporenous
+impact on the other variables. It is not clear, however, how to order the other two variables. For simplicity
+consider a traditional aggregate supply/aggregate demand model of the determination of output and the
+price level. If the aggregate supply curve is perfectly inelastic in the short run (one quarter) then output
+is effectively ﬁxed (sticky) so changes in aggregate demand affect prices but not output. Changes in
+aggregate supply affect both output and prices. Thus we would want to order GDP ﬁrst and inﬂation
+second. This choice would identify the GDP error as the aggregate supply shock. This is the ordering
+used in our example.
+In contrast, suppose that the aggregate supply curve is perfectly elastic in the short run. Then prices
+are ﬁxed and output is ﬂexible. Changes in aggregate supply affect both price and output but changes
+in aggregate demand only affect output. In this case we would want to order inﬂation ﬁrst and GDP
+second. This choice identiﬁes the inﬂation error as the aggregate supply shock, the opposite case from
+the previous assumption!
+If the choice between perfectly elastic and perfectly inelastic aggregate supply is not credible then
+the supply and demand shocks cannot be separately identiﬁed based on ordering alone. In this case
+the full set of impulse responses and error decompositions are not identiﬁed. However, a subset may be
+identiﬁed. In general, if the shocks can be ordered in groups then we can identify any shock for which a
+group has a single variable. In our example, consider the ordering (1) GDP and inﬂation; (2) federal funds
+rate. This means that the model assumes that GDP and inﬂation do not contemporeneously respond to
+interest rate movements but no other restrictions are imposed. In this case the fed funds policy shock is
+identiﬁed. This means that impulse responses of all three variables with respect to the policy shock are
+identiﬁed and similarly the forecast error composition of the effect of the fed funds shock on each vari-
+able is identiﬁed. These can be estimated by a VAR using the ordering (GDP , inﬂation, federal funds rate)
+as done in our example or using the ordering (inﬂation, GDP , federal funds rate). Both choices will lead
+to the same estimated impulse responses as described. The remaining impulse responses (responses to
+GDP and inﬂation shocks), however, will differ across these two orderings.
+15.24 Oil Price Shocks
+To further illustrate the identiﬁcation of impulse response functions by recursive structural assump-
+tions we repeat here some of the analysis from Kilian (2009). His paper concerns the identiﬁcation of
+the factors affecting crude oil prices, in particular separating supply and demand shocks. The goal is to
+determine how oil prices respond to economic shocks and how the responses differ by the type of shock.
+To answer this question Kilian uses a three-variable VAR with monthly measures of global oil pro-
+duction, global economic activity, and the global price of crude oil for 1973m2-2007m12. He uses global
+variables since the price of crude oil is globally determined. One innovation in the paper is that Kil-
+ian develops a new index of global economic activity based on ocean freight rates. His motivation is
+that shipping rates are directly related to the global demand for industrial commodities. This data set is
+posted on the textbook webpage as Kilian2009 .
+
+
+--- page 22 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 530
+Kilian argues that these three variables are determined by three economic shocks: oil supply, aggre-
+gate demand, and oil demand. He suggests that oil supply shocks should be thought of as disruptions
+in production, processing, or shipping. Aggregate demand is global economic activity. Kilian also ar-
+gues that oil demand shocks are primarily due to the precautionary demand for oil driven by uncertainty
+about future oil supply shortfalls.
+To identify the shocks Kilian makes the following exclusion restrictions. First, he assumes that the
+short-run (one month) supply of crude oil is inelastic with respect to price. Equivalently, oil production
+takes at least one month to respond to price changes. This restriction is believed to be plausible because
+of technological factors in crude oil production. It is costly to open new oil ﬁelds; and it is nearly impossi-
+ble to cap an oil well once tapped. Second, Kilian assumes that in the short-run (one month) global real
+economic activity does not respond to changes in oil prices (due to shocks speciﬁc to the oil market),
+while economic activity is allowed to respond to oil production shocks. This assumption is viewed by
+Kilian as plausible due to the sluggishness in the response of economic activity to price changes. Crude
+oil prices, however, are allowed to respond simultaneously to all three shocks.
+Kilian’ s identiﬁcation strategy is similar to that described in the previous section for the simple ag-
+gregate demand/aggregate supply model. The separation of supply and demand shocks is achieved by
+exclusion restrictions which imply short-run inelasticities. The plausibility of these assumptions rests in
+part on the monthly frequency of the data. While it is plausible that oil production and economic activity
+may not respond within one month to price shocks, it is much less plausible that there is no response
+for a full quarter. Kilian’ s least convincing identifying assumption (in my opinion) is the assumption that
+economic activity does not respond simultaneously to oil price changes. While much economic activity
+is pre-planned and hence sluggish to respond, some economic activity (recreational driving, for exam-
+ple) may immediately respond to price changes.
+Kilian estimates the three-variable VAR using 24 lags and calculates the orthogonalized impulse re-
+sponse functions using the ordering implied by these assumptions. He does not discuss the choice of
+24 lags but presumably this is intended to allow for ﬂexible dynamic responses. If the AIC is used for
+model selection, three lags would be selected. For the analysis reported here I used 4 lags. The results are
+qualitatively similar to those obtained using 24 lags. For ease of interpretation oil supply is entered neg-
+atively (multiplied by −1) so that all three shocks are scaled to increase oil prices. The impulse response
+functions for the price of crude oil are displayed in Figure 15.2 for 1-24 months. Panel (a) displays the re-
+sponse of crude oil prices due to an oil supply shock, panel (b) displays the response due to an aggregate
+demand shock, and panel (c) displays the response due to an oil-demand shock. Notice that all three
+ﬁgures have been displayed using the same y-axis scalings so that the ﬁgures are comparable.
+What is noticeable about the ﬁgures is how differently crude oil prices respond to the three types of
+shocks. Panel (a) shows that oil prices are only minimally affected by oil production shocks. There is an
+estimated small short term increase in oil prices, but it is not statistically signiﬁcant and it reverses within
+one year. Panel (b) shows that oil prices are signiﬁcantly affected by aggregate demand shocks and the
+effect cumulatively increases over two years. This is not surprising. Economic activity relies on crude
+oil and economic activity is serially correlated. Panel (c) shows that oil prices are strongly immediately
+affected by oil demand shocks but the effect attenuates over time. This is a reverse pattern than that
+found for aggregate demand shocks.
+The Kilian (2009) paper is an excellent example of how recursive orderings can be used to identify an
+orthogonalized VAR through a careful discussion of the causal system and the use of monthly observa-
+tions.
+
+
+--- page 23 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 531
+-2
+0
+2
+4
+6
+8
+10
+0 4 8 12 16 20 24
+Months
+(a) Supply Shock
+-2
+0
+2
+4
+6
+8
+10
+0 4 8 12 16 20 24
+Months (b) Aggregate Demand Schock
+-2
+0
+2
+4
+6
+8
+10
+0 4 8 12 16 20 24
+Months (c) Oil Demand Schock
+Figure 15.2: Response of Oil Prices to Orthogonalized Shocks
+15.25 Structural VARs
+Recursive models do not allow for simultaneity between the elements of et and thus the variables
+Yt cannot be contemporeneously endogenous. This is highly restrictive and may not credibly describe
+many economic systems. There is a general preference in the economics community for structural vec-
+tor autoregressive models (SVARs) which use alternative identiﬁcation restrictions which do not rely
+exclusively on recursiveness. Two popular categories of structural VAR models are those based on short-
+run (contemporeneous) restrictions and those based on long-run (cumulative) restrictions. In this sec-
+tion we review SVARs based on short-run restrictions.
+When we introduced methods to orthogonalize the VAR errors we pointed out that we can represent
+the relationship between the errors and shocks using either the equationet = B εt (15.15) or the equation
+Aet = εt (15.17). Equation (15.15) writes the errors as a function of the shocks. Equation (15.17) writes
+the errors as a simultaneous system. A broader class of models can be captured by the equation system
+Aet = B εt (15.21)
+where (in the 3 × 3 case)
+A =
+
+
+1 a12 a13
+a21 1 a23
+a31 a32 1
+
+, B =
+
+
+b11 b12 b13
+b21 b22 b23
+b31 b32 b33
+
+. (15.22)
+(Note: This matrix A has nothing to do with the regression coefﬁcient matrixA. I apologize for the double
+use of A, but I use the notation (15.21) to be consistent with the notation elsewhere in the literature.)
+Written out,
+e1t = −a12e2t − a13e3t + b11ε1t + b12ε2t + b13ε3t
+e2t = −a21e1t − a23e3t + b21ε1t + b22ε2t + b23ε3t
+e3t = −a31e1t − a32e2t + b31ε1t + b32ε2t + b33ε3t .
+The diagonal elements of the matrix A are set to 1 as normalizations. This normalization allows the
+shocks εi t to have unit variance which is convenient for impulse response calculations.
+The system as written is under-identiﬁed. In this three-equation example, the matrix Σ provides
+only six moments, but the above system has 15 free parameters! To achieve identiﬁcation we need nine
+restrictions.
+
+
+--- page 24 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 532
+In most applications, it is common to start with the restriction that for each common non-diagonal
+element of A and B at most one can be non-zero. That is, for any pair i ̸= j , either b j i = 0 or a j i = 0.
+We will illustrate by using a simpliﬁed version of the model employed by Blanchard and Perotti (2002)
+who were interested in decomposing the effects of government spending and taxes on GDP . They pro-
+posed a three-variable system consisting of real government spending (net of transfers), real tax revenues
+(including transfer payments as negative taxes), and real GDP . All variables are measured in logs. They
+start with the restrictions a21 = a12 = b31 = b32 = b13 = b23 = 0, or
+A =
+
+
+1 0 a13
+0 1 a23
+a31 a32 1
+
+, B =
+
+
+b11 b12 0
+b21 b22 0
+0 0 b33
+
+.
+This is done so that that the relationship between the shocks ε1t and ε2t is treated as reduced-form but
+the coefﬁcients in the A matrix can be interpreted as contemporeneous elasticities between the vari-
+ables. For example, a23 is the within-quarter elasticity of tax revenue with respect to GDP , a31 is the
+within-quarter elasticity of GDP with respect to government spending, etc.
+We just described six restrictions while nine are required for identiﬁcation. Blanchard and Perotti
+(2002) made a strong case for two additional restrictions. First, the within-quarter elasticity of govern-
+ment spending with respect to GDP is zero, a13 = 0. This is because government ﬁscal policy does not
+(and cannot) respond to news about GDP within the same quarter. Since the authors deﬁned govern-
+ment spending as net of transfer payments there is no “automatic stabilizer” component of spending.
+Second, the within-quarter elasticity of tax revenue with respect to GDP can be estimated from exist-
+ing microeconometric studies. The authors survey the available literature and set a23 = −2.08. To fully
+identify the model we need one ﬁnal restriction. The authors argue that there is no clear case for any
+speciﬁc restriction, and so impose a recursive B matrix (setting b12 = 0) and experiment with the alter-
+native b21 = 0, ﬁnding that the two speciﬁcations are near-equivalent since the two shocks are nearly
+uncorrelated. In summary the estimated model takes the form
+A =
+
+
+1 0 0
+0 1 −2.08
+a31 a32 1
+
+, B =
+
+
+b11 0 0
+b21 b22 0
+0 0 b33
+
+.
+Blanchard and Perotti (2002) make use of both matrices A and B. Other authors use either the sim-
+pler structure Aet = εt or et = B εt . In general, either of the two simpler structures are simpler to compute
+and interpret.
+Taking the variance of the variables on each side of (15.21) we ﬁnd
+AΣA′ = B B′. (15.23)
+This is a system of quadratic equations in the free parameters. If the model is just identiﬁed it can be
+solved numerically to ﬁnd the coefﬁcients of A and B given Σ. Similarly, given the least squares error
+covariance matrix ˆΣ we can numerically solve for the coefﬁcients of ˆA and ˆB.
+While most applications use just-identiﬁed models, if the model is over-identiﬁed (if there are fewer
+free parameters than estimated components of Σ) then the coefﬁcients of ˆA and ˆB can be found using
+minimum distance. The implementation in Stata uses MLE (which simultaneously estimates the VAR
+coefﬁcients). The latter is appropriate when the model is correctly speciﬁed (including normality) but
+otherwise an unclear choice.
+Given the parameter estimates the structural impulse response function is
+SIRF(h) = ˆΘ(h) ˆA
+−1 ˆB.
+
+
+--- page 25 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 533
+The structural forecast error decompositions are calculated as before withb j replaced by the j t h column
+of ˆA
+−1 ˆB.
+The structural impulse responses are nonlinear functions of the VAR coefﬁcient and covariance ma-
+trix estimators so by the delta method are asymptotically normal. Thus asymptotic standard errors can
+be calculated (using numerical derivatives if convenient). As for orthogonalized impulse responses the
+asymptotic normal approximation is unlikely to be a good approximation so bootstrap methods are an
+attractive alternative.
+Structural VARs should be interpreted similarly to instrumental variable estimators. Their interpre-
+tation relies on valid exclusion restrictions which can only be justiﬁed by external information.
+We replicate a simpliﬁed version of Blanchard-Perotti (2002). We use2 quarterly variables from FRED-
+QD for 1959-2017: real GDP (gdpc1 ), real tax revenue (fgrecptx ), and real government spending (gcec1),
+all in natural logarithms. Using the AIC for lag length selection we estimate VARs from one to eight lags
+and select a VAR(5). The model also includes a linear and quadratic function of time 3. The estimated
+structural impulse responses of the three variables with respect to the government spending shock are
+displayed in Figure 15.3, and the impulse responses with respect to the tax revenue shock are displayed
+in Figure 15.4. The estimated impulse responses are similar to those reported by Blanchard-Perotti.
+In Figure 15.3 we see that the effect of a government spending shock is persistent, increasing govern-
+ment spending about 1% for the four-year horizon. The effect on tax revenue is minimal. The effect on
+GDP is positive, small (around 0.25%), but persistent.
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters
+(a) Spending
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters (b) Taxes
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters (c) GDP
+Figure 15.3: Response to a Government Spending Shock
+In Figure 15.4 we see that the effect of a tax revenue shock is quite different. The initial effect on
+tax revenue is high but diminishes to zero by about two years. The effect on government spending is
+mildly negative4. The effect on GDP is negative and persistent, and more substantial than the effect of
+a spending shock, reaching about −0.5% at six quarters. Together, the impulse response estimates show
+that changes in government spending and tax revenue have meaningful economic impacts. Increased
+spending has a positive effect on GDP while increased taxes has a negative effect.
+The Blanchard-Perotti (2002) paper is an excellent example of how credible exclusion restrictions can
+be used to identify a non-recursive structural system to help answer an important economic question.
+2These are similar to, but not the same as, the variables used by Blanchard and Perotti.
+3The authors detrend their data using a quadratic function of time. By the FWL Theorem this is equivalent to including a
+quadratic in time in the regression.
+4The estimated negative effect is difﬁcult to explain, and was not discussed in Blanchard-Perotti.
+
+
+--- page 26 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 534
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters
+(a) Spending
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters (b) Taxes
+-1
+-.5
+0
+.5
+1
+1.5
+2
+0 2 4 6 8 10 12 14 16
+Quarters (c) GDP
+Figure 15.4: Response to a Tax Revenue Shock
+The within-quarter exogeneity of government spending is compelling and the use of external informa-
+tion to ﬁx the elasticity of tax revenue with respect to GDP is clever.
+Structural vector autoregressions can be estimated in Stata using the svar command. Short-run
+restrictions of the form (15.21) can be imposed using the aeq and beq options. Structural impulse re-
+sponses can be displayed usingirf graph sirf and structural forecast error decompositions usingirf
+graph sfevd. Unfortunately, Stata does not provide a convenient way to display cumulative structural
+impulse response functions. The same limitations for standard error and conﬁdence interval construc-
+tion in Stata hold for structural impulse responses as for non-structural impulse responses.
+15.26 Identiﬁcation of Structural VARs
+The coefﬁcient matricesA and B in (15.21) are identiﬁed if they can be uniquely solved from (15.23).
+This is a set of m(m + 1)/2 unique equations so the total number of free coefﬁcients in A and B cannot
+be larger than m(m + 1)/2, e.g., 6 when m = 3. This is the order condition for identiﬁcation. It is neces-
+sary, but not sufﬁcient. It is easy to write down restrictions which satisfy the order condition but do not
+produce an identiﬁed system.
+It is difﬁcult to see if the system is identiﬁed simply by looking at the restrictions (except in the recur-
+sive case, which is relatively straightforward to identify). An intuitive way of verifying identiﬁcation is to
+use our knowledge of instrumental variables. We can identify the equations sequentially, one at a time,
+or in blocks, using the metaphor of instrumental variables.
+The general technique is as follows. Start by writing out the system imposing all restrictions and
+absorbing the diagonal elements of B into the shocks (so that they are still uncorrelated but have non-
+unit variances). For the Blanchard-Perotti (2002) example, this is
+e1t = ε1t
+e2t = 2.08e3t + b21ε1t + ε2t
+e3t = −a31e1t − a32e2t + ε3t .
+Take the equations one at a time and ask if they can be estimated by instrumental variables using the
+excluded variables as instruments. Once an equation has been veriﬁed as identiﬁed then its shock is
+identiﬁed and can be used as an instrument since it is uncorrelated with the shocks in the other equa-
+tions.
+
+
+--- page 27 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 535
+In this example take the equations as ordered. The ﬁrst equation is identiﬁed as there are no coef-
+ﬁcients to estimate. Thus ε1t is identiﬁed. For the second equation there is one free parameter which
+can be estimated by least squares ofe2t −2.08e3t on ε1t , which is valid since ε1t and ε2t are uncorrelated.
+This identiﬁes the second equation and the shock ε2t . The third equation has two free parameters and
+two endogenous regressors so we need two instruments. We can use the shocks ε1t and ε2t as they are
+uncorrelated with ε3t and are correlated with the variables e1t and e2t . Thus this equation is identiﬁed.
+We deduce that the system is identiﬁed.
+Consider another example based on Keating (1992). He estimated a four-variable system with prices,
+the fed funds rate, M2, and GDP . His model for the errors takes the formAet = εt . Written out explicitly:
+eP = εAS
+eF F = a23eM + εMS
+eM = a31 (eP + eGDP ) + a32eF F + εMD
+eGDP = a41eP + a42eF F + a43eM + εI S
+where the four shocks are “aggregate supply” , “money supply” , “money demand” , and “I-S” . This struc-
+ture can be based on the following assumptions: An elastic short-run aggregate supply curve (prices do
+not respond within a quarter); a simple monetary supply policy (the fed funds rate only responds within
+quarter to the money supply); money demand only responds to nominal output (log price plus log real
+output) and fed funds rate within quarter; and unrestricted I-S curve.
+To analyze conditions for identiﬁcation we start by checking the order condition. There are 10 coefﬁ-
+cients in the system (including the four variances), which equals m(m +1)/2 since m = 4. Thus the order
+condition is exactly satisﬁed.
+We check the equations for identiﬁcation. We start with the ﬁrst equation. It has no coefﬁcients so is
+identiﬁed and thus so isεAS . The second equation has one coefﬁcient. We can useεAS as an instrument
+because it is uncorrelated with εMS . The relevance condition will hold if εAS is correlated with eM . From
+the third equation we see that this will hold if a31 ̸= 0. Given this assumption a23 and εMS are identiﬁed.
+The third equation has two coefﬁcients so we can use (εAS , εMS ) as instruments since they are uncorre-
+lated with εMD . εMS is correlated with eF F and εAS is correlated with eP . Thus the relevance condition
+is satisﬁed. The ﬁnal equation has three coefﬁcients so we use (εAS , εMS , εMD ) as instruments. They are
+uncorrelated with εI S and correlated with the variables (eP ,eF F,eM ) so this equation is identiﬁed.
+We ﬁnd that the system is identiﬁed ifa31 ̸= 0. This requires that money demand responds to nom-
+inal GDP which is a prediction from standard monetary economics. This condition seems reasonable.
+Regardless, the point of this exercise is to determine speciﬁc conditions for identiﬁcation and articulate
+them in your analysis.
+15.27 Long-Run Restrictions
+To review, the algebraic identiﬁcation problem for impulse response estimation is that we require a
+square root matrix B = Σ1/2 yet the latter is not unique and the results are sensitive to the choice. The
+non-uniqueness arises because B has m2 elements while Σ has m(m + 1)/2 free elements. The recursive
+solution is to set B to equal the Cholesky decomposition of Σ, or equivalently to specify B as lower trian-
+gular. Structural VARs based on short-run (contemporeneous) restrictions generalize this idea by allow-
+ing general restrictions on B based on economic assumptions about contemporeneous causal relations
+and prior knowledge about B. Identiﬁcation requires m(m − 1)/2 restrictions. Even more generally, a
+structural VAR can be constructed by imposing m(m − 1)/2 restrictions due to any known structure or
+features of the impulse response functions.
+
+
+--- page 28 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 536
+One important class of such structural VARs are those based on long-run restrictions. Some eco-
+nomic hypotheses imply restrictions on long-run impulse responses. These can provide a compelling
+case for identiﬁcation.
+An inﬂuential example of a structural VAR based on a long-run restriction is Blanchard and Quah
+(1989). They were interested in decomposing the effects of demand and supply shocks on output. Their
+hypothesis is that demand shocks are long-run neutral meaning that the long-run impact of a demand
+shock on output is zero. This implies that the long-run impulse response of output with respect to de-
+mand is zero. This can be used as an identifying restriction.
+The long-run structural impulse response is the cumulative sum of all impulse responses
+C =
+∞∑
+ℓ=1
+ΘℓB = Θ(1)B = A (1)−1 B.
+A long-run restriction is a restriction placed on the matrix C . Since the sum A (1) is identiﬁed this pro-
+vides identifying information on the matrix B.
+Blanchard and Quah (1989) suggest a bivariate VAR for the ﬁrst-differenced logarithm of real GDP
+and the unemployment rate. Blanchard-Quah assume that the structural shocks are aggregate supply
+and aggregate demand. They adopt the hypothesis that aggregate demand has no long-run impact on
+GDP . This means that the long-run impulse response matrix satisﬁes
+C =
+[ c11 0
+c21 c22
+]
+. (15.24)
+Another way of thinking about this is that Blanchard-Quah label “aggregate supply” as the long-run com-
+ponent of GDP and label “aggregate demand” as the transitory component of GDP .
+The relations C = A (1)−1 B and B B′ = Σ imply
+CC ′ = A (1)−1 B B′ A (1)−1′ = A (1)−1 ΣA (1)−1′ . (15.25)
+This is a set of m2 equations but because the matrices are positive semi-deﬁnite there are m(m + 1)/2
+independent equations. If the matrixC has m(m+1)/2 free coefﬁcients then the system is identiﬁed. This
+requires m(m − 1)/2 restrictions. In the Blanchard-Quah example, m = 2 so one restriction is sufﬁcient
+for identiﬁcation.
+In many applications, including Blanchard-Quah, the matrixC is lower triangular which permits the
+following elegant solution. Examining (15.25) we see that C is a matrix square root of A (1)−1 ΣA (1)−1′,
+and since C is lower triangular it is the Cholesky decomposition. We deduce C = chol
+(
+A (1)−1 ΣA (1)−1)
+.
+The plug-in estimator for C is ˆC = chol
+(ˆA(1)−1 ˆΣ ˆA(1)−1)
+where ˆA(1) = I m − ˆA1 − · · · −ˆAp. By construc-
+tion the solution ˆC will be lower triangular and satisfy the desired restriction.
+More generally if the restrictions on C do not take a lower triangular form then the estimator can be
+found by numerically solving the system of quadratic equations
+ˆC ˆC
+′
+= ˆA (1)−1 ˆΣ ˆA (1)−1′ .
+In either case the estimator is ˆB = ˆA(1) ˆC and the estimator of the structural impulse response is
+SIRF(h) = ˆΘh ˆB = ˆΘh ˆA(1) ˆC .
+Notice that by construction the long-run impulse response is
+∞∑
+ℓ=1
+SIRF(h) =
+∞∑
+ℓ=1
+ˆΘh ˆA(1) ˆC = ˆA(1)−1 ˆA(1) ˆC = ˆC
+
+
+--- page 29 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 537
+so indeed ˆC is the estimated long-run impulse response and satisﬁes the desired restriction.
+Long-run structural vector autoregressions can be estimated in Stata using thesvar command using
+the lreq option. Structural impulse responses can be displayed using irf graph sirf and structural
+forecast error decompositions using irf graph sfevd. This Stata option does not produce asymptotic
+standard errors when imposing long-run restrictions so for conﬁdence intervals bootstrapping is rec-
+ommended. The same limitations for such intervals constructed in Stata hold for structural impulse
+response functions as the other cases discussed.
+Unfortunately, a limitation of the Stata svar command is that it does not display cumulative struc-
+tural impulse response functions. In order to display these one needs to cumulate the impulse response
+estimates. This can be done but then standard errors and conﬁdence intervals are not available. This
+means that for serious applied work programming needs to be done outside of Stata.
+15.28 Blanchard and Quah (1989) Illustration
+As we described in the previous section, Blanchard and Quah (1989) estimated a bivariate VAR in GDP
+growth and the unemployment rate assuming that the the structural shocks are aggregate supply and
+aggregate demand imposing that that the long-run response of GDP with respect to aggregate demand
+is zero. Their original application used U.S. data for 1950-1987. We revisit using FRED-QD (1959-2017).
+While Blanchard and Quah used a VAR(8) model the AIC selects a VAR(3). We use a VAR(4). To ease
+the interpretation of the impulse responses the unemployment rate is entered negatively (multiplied by
+−1) so that both series are pro-cyclical and positive shocks increase output. Blanchard and Quah used a
+careful detrending method; instead we including a linear time trend in the estimated VAR.
+The ﬁtted reduced form model coefﬁcients satisfy
+ˆA(1) = I m −
+4∑
+j =1
+ˆA j =
+( 0.42 0.05
+−0.15 0.04
+)
+and the residual covariance matrix is
+ˆΣ =
+( 0.531 0.095
+0.095 0.053
+)
+.
+We calculate
+ˆC = chol
+(ˆA (1)−1 ˆΣ ˆA (1)−1′)
+=
+( 1.00 0
+4.75 5.42
+)
+ˆB = ˆA(1) ˆC =
+( 0.67 0.28
+0.05 0.23
+)
+.
+Examining ˆB, the unemployment rate is contemporeneously mostly affected by the aggregate demand
+shock, while GDP growth is affected by both shocks.
+Using this square root of ˆΣ we construct the structural impulse response functions for GDP and the
+unemployment rate as a function of the two shocks (aggregate supply and aggregate demand). The cal-
+culations were done in Stata. Unfortunately the Statasvar command is highly limited and does not pro-
+duce cumulative structural impulse responses which are needed for GDP (as it is estimated in growth
+rates). We calculated the impulse responses for GDP by cumulating the impulse responses for GDP
+growth. This can be done for the point estimates but does not produce standard errors. For conﬁdence
+intervals explicit programming of the estimation would be required.
+In Figures 15.5 and 15.6 we display the estimated structural impulse response functions. Figure 15.5
+displays the impulse responses of GDP and Figure 15.6 displays the impulse responses of the (negative)
+
+
+--- page 30 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 538
+-.4
+-.2
+0
+.2
+.4
+.6
+.8
+1
+1.2
+1.4
+1.6
+0 4 8 12 16 20 24
+Quarters
+(a) Supply Shock
+-.4
+-.2
+0
+.2
+.4
+.6
+.8
+1
+1.2
+1.4
+1.6
+0 4 8 12 16 20 24
+Quarters (b) Demand Shock
+Figure 15.5: Response of GDP
+unemployment rate. The left panels display the impulse responses with respect to the aggregate supply
+shock and the right panels the impulse responses with respect to the aggregate demand shock. Figure
+15.6 displays 95% normal approximation bootstrap intervals, calculated from 10,000 bootstrap replica-
+tions. The four estimated impulse responses have similar hump shapes with a peak around four quarters.
+The estimated functions are similar to those found by Blanchard and Quah (1989).
+-.2
+-.1
+0
+.1
+.2
+.3
+.4
+.5
+.6
+0 4 8 12 16 20 24
+Quarters
+(a) Supply Shock
+-.2
+-.1
+0
+.1
+.2
+.3
+.4
+.5
+.6
+0 4 8 12 16 20 24
+Quarters (b) Demand Shock
+Figure 15.6: Response of Unemployment Rate
+Let’ s examine and contrast panels (a) and (b) of Figure 15.5. These are the responses of GDP to ag-
+gregate supply and demand shocks, respectively. We can see in panel (a) that the impulse response due
+to a supply shock is immediate, strong, and persistent. The effect peaks around four quarters and then
+ﬂattens with an effect at 24 quarters similar to the immediate effect. In contrast we can see in panel (b)
+that the effect of a demand shock is more modest, peaks sooner, and decays, with the effect near zero by
+24 quarters. The decay reﬂects the long-run neutrality of demand shocks. While the estimated effect is
+transitory the duration of the effect is still meaningful out to three years.
+Figure 15.6 displays the responses of the unemployment rate. Its response to a supply shock (panel
+(a)) takes several quarters to take effect, peaks around 5 quarters, and then decays. The response of the
+unemployment rate to a demand shock (panel (b)) is more immediate, peaks around 4 quarters, and then
+decays. Both are near zero by 6 years. The conﬁdence intervals for the supply shock impulse responses
+
+
+--- page 31 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 539
+are wider than those for the demand shocks indicating that the estimates of the impulse responses due
+to supply shocks are not precisely estimated.
+0
+.2
+.4
+.6
+.8
+1
+0 4 8 12 16 20 24
+Quarters
+(a) GDP
+0
+.2
+.4
+.6
+.8
+1
+0 4 8 12 16 20 24
+Quarters (b) Unemployment Rate
+Figure 15.7: Forecast Error Decomposition, % due to Supply Shock
+Figure 15.7 displays the estimated structural forecast error decompositions. Since there are only two
+errors we only display the percentage squared error due to the supply shock. In panel (a) we display the
+forecast error decomposition for GDP and in panel (b) the forecast error decomposition for the unem-
+ployment rate. We can see that about 80% of the ﬂuctuations in GDP are attributed to the supply shock.
+For the unemployment rate the short-term ﬂuctuations are mostly attributed to the demand shock but
+the long-run impact is about 40% due to the supply shock. The conﬁdence intervals are very wide, how-
+ever, indicating that these estimates are not precise.
+It is fascinating that the structural impulse response estimates shown here are nearly identical to
+those found by Blanchard and Quah (1989) despite the fact that we have used a considerably different
+sample period.
+15.29 External Instruments
+Structural VARs can also be identiﬁed and estimated using external instrumental variables. This
+method is also called Proxy SVARs. Consider the three-variable system for the innovations
+e1t + a12e2t + a13e3t = ε1t (15.26)
+a21e1t + e2t = ε2t + b23ε3t = u2t (15.27)
+a31e1t + e3t = b32ε2t + ε3t = u3t . (15.28)
+In this system we have used the normalization b11 = b22 = b33 = 1 rather than normalizing the variances
+of the shocks.
+Suppose we have an external instrumental variable Zt which satisﬁes the properties
+E[Zt ε1t ] ̸= 0 (15.29)
+E[Zt ε2t ] = 0 (15.30)
+E[Zt ε3t ] = 0. (15.31)
+Equation (15.29) is the relevance condition – that the instrument and the shockε1t are correlated. Equa-
+tions (15.30)-(15.31) are the exogeneity condition – that the instrument is uncorrelated with the shocks
+ε2t and ε3t . Identiﬁcation rests on the validity of these assumptions.
+
+
+--- page 32 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 540
+Suppose e1t , e2t and e3t were observed. Then the coefﬁcient a21 in (15.27) can be estimated by in-
+strumental variables regression of e2t on e1t using the instrumental variable Zt . This is valid because Zt
+is uncorrelated with u2t = ε2t + b23ε3t under the assumptions (15.30)-(15.31) yet is correlated with e1t
+under (15.29). Given this estimator we obtain a residual ˆu2t . Similarly we can estimate a31 in (15.27)
+by instrumental variables regression of e3t on e1t using the instrumental variable Zt , obtaining a resid-
+ual ˆu3t . We can then estimate a12 and a13 in in (15.26) by instrumental variables regression of e1t on
+(e2t ,e3t ) using the instrumental variables ( ˆu2t , ˆu3t ). The latter are valid instruments since E[u2t ε1t ] = 0
+and E[u3t ε1t ] = 0 since the structural errors are uncorrelated, and because (u2t ,u3t ) is correlated with
+(e2t ,e3t ) by construction. This regression also produces a residual ˆε1t which is an appropriate estimator
+for the shock ε1t .
+This estimation method is not special for a three-variable system; it can be applied for any m. The
+identiﬁed coefﬁcients are those in the ﬁrst equation (15.26), the structural shockε1t , and the impacts (a21
+and α31) of this shock on the other variables. The other shocks ε2t and ε3t are not separately identiﬁed,
+and their correlation structure (b 23 and b32) is not identiﬁed. An exception arises when m = 2, in which
+case all coefﬁcients and shocks are identiﬁed.
+While e1t , e2t and e3t are not observed we can replace their values by the residuals ˆe1t , ˆe2t and ˆe3t
+from the estimated VAR(p) model. All of the coefﬁcient estimates are then two-step estimators with gen-
+erated regressors. This affects the asymptotic distribution so conventional asymptotic standard errors
+should not be used. Bootstrap conﬁdence intervals are appropriate.
+The structure (15.26)-(15.28) is convenient as four coefﬁcients can be identiﬁed. Other structures
+can also be used. Consider the structure
+e1t = ε1t + b12ε2t + b23ε3t
+e2t = b21ε1t + ε2t + b23ε3t
+e3t = b31ε1t + b32ε2t + ε3t
+If the same procedure is applied we can identify the coefﬁcients b21 and b31 and the shock ε1t but no
+other coefﬁcients or shocks. In this structure the coefﬁcientsb12 and b23 cannot be separately identiﬁed
+because the shocks ε2t and ε3t are not separately identiﬁed.
+For more details see Stock and Watson (2012) and Mertens and Ravn (2013).
+15.30 Dynamic Factor Models
+Dynamic factor models are increasingly popular in applied time series, in particular for forecasting.
+For a recent detailed review of the methods see Stock and Watson (2016) and the references therein. For
+some of the foundational theory see Bai (2003) and Bai and Ng (2002, 2006).
+In Sections 11.13-11.16 we introduced the standard multi-factor model (11.23):
+Xt = ΛFt + ut (15.32)
+where Xt and ut are k × 1, Λ is k × r with r < k, and Ft is r × 1. The elements of Ft are called the common
+factors as they affect all elements of Xt . The columns of Λ are called the factor loadings. The variables ut
+are called the idiosyncratic errors. It is often assumed that the elements of Xt have been transformed to
+be mean zero and have common variances.
+In the time-series case it is natural to augment the model to allow for dynamic relationships. In
+particular we would like to allow Ft and ut to be serially correlated. It is convenient to consider vector
+
+
+--- page 33 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 541
+autoregressive models which can be written using lag operator notation as
+A (L)Ft = vt (15.33)
+B (L)ut = et (15.34)
+where A (L) and B (L) are lag polynomials with p and q lags, respectively. Equations (15.32)-(15.33)-
+(15.34) together make the standard dynamic factor model. To simplify the model and aid identiﬁcation,
+further restrictions are often imposed, in particular that the lag polynomial B (L) is diagonal.
+Furthermore we may wish to generalize (15.32) to allowFt to impact Xt via a distributed lag relation-
+ship. This generalization can be written as
+Xt = Λ(L)Ft + ut (15.35)
+where Λ(L) is an ℓt h order distributed lag of dimension k × r . Equation (15.35), however, is not funda-
+mentally different from (15.32). That is, if we deﬁne the stacked factor vectorF t =
+(
+F ′
+t ,F ′
+t −1,..., F ′
+t −ℓ
+)′ then
+(15.35) can be written in the form (15.32) withF t replacing Ft and the matrixΛ replaced by(Λ1, Λ2, ...,Λℓ).
+Hence we will focus on the standard model (15.32)-(15.33)-(15.34).
+Deﬁne the inverse lag operatorsD (L) = A (L)−1 and C (L) = B (L)−1. Then by applying C (L) to (15.32)
+and D (L) to (15.33) we obtain
+C (L) Xt = C (L) ΛFt +C (L)ut
+= C (L) ΛD (L) vt + et
+= Λ(L) vt + et
+where Λ(L) = C (L) ΛD (L). For simplicity treat this lag polynomial as if it has ℓ lags. Using the same
+stacking trick from the previous paragraph and deﬁning Vt =
+(
+v ′
+t , v ′
+t −1, ...,v ′
+t −ℓ
+)′ we ﬁnd that this model
+can be written as
+C (L) Xt = HVt + et (15.36)
+for some k × r ℓ matrix H. This is known as the static form of the dynamic factor model. It shows that Xt
+can be written as a function of its own lags plus a linear function of the serially uncorrelated factors Vt
+and a serially uncorrelated error et .
+The static form (15.36) is convenient as factor regression can be used for estimation. The model is
+identical to factor regression with additional regressors as described in Section 11.15. (The additional
+regressors are the lagged values ofXt .) In that section it is described how to estimate the coefﬁcients and
+factors by iterating between multivariate least squares and factor regression.
+To estimate the explicit dynamic model (15.32)-(15.33)-(15.34) state-space methods are convenient.
+For details and references see Stock and Watson (2016).
+The dynamic factor model (15.32)-(15.33)-(15.34) can be estimated in Stata using dfactor.
+15.31 Technical Proofs*
+Proof of Theorem 15.6 Without loss of generality assume a0 = 0.
+By the Jordan matrix decomposition (see Section A.13), A = P J P−1 where J = diag{J 1, ...,J r } is in
+Jordan normal form. The dimension of each Jordan block J i is determined by the multiplicity of the
+eigenvalues λi of A. For unique eigenvalues λi , J i = λi . For eigenvalues λi with double multiplicity the
+Jordan blocks take the form
+J i =
+[ λi 1
+0 λi
+]
+.
+
+
+--- page 34 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 542
+For eigenvalues with multiplicity s > 2 the Jordan blocks are s × s upper diagonal with the eigenvalue on
+the diagonal and 1 immediately above the diagonal (see A.7).
+DeﬁneXt = P −1Yt and ut = P −1et , which satisfy Xt = J Xt −1 + ut . Partition Xt and ut conformably
+with J. The i t h set satisfy Xi t = J i Xi ,t −1 + ui t. We now show that Xi t is strictly stationary and ergodic,
+from which we deduce that Yt = P Xt is strictly stationary and ergodic.
+For single dimension blocks J i = λi , so Xi t = λi Xi ,t −1 + ui t which is an AR(1) model with coefﬁcient
+λi and innovation ui t. The assumptions imply |λi |< 1 and E |ui t|< ∞ so the conditions of Theorem
+14.21 are satisﬁed, implying thatXi t is strictly stationary and ergodic.
+For blocks with dimension two, by back-substitution we ﬁnd Xi t = ∑∞
+ℓ=0 J ℓ
+i ui ,t −ℓ. By direct calcula-
+tion we ﬁnd that
+J ℓ
+i =
+[ λℓ
+i ℓλℓ−1
+i
+0 λℓ
+i
+]
+.
+Partitioning Xi t = (X1i t, X2i t) and ui t = (u1i t,u2i t) this means that
+X1i t =
+∞∑
+ℓ=0
+λℓ
+i u1i ,t −ℓ +
+∞∑
+ℓ=0
+ℓλℓ
+i u2i ,t −ℓ
+X2i t =
+∞∑
+ℓ=0
+λℓ
+i u2i ,t −ℓ.
+The series ∑∞
+ℓ=0 λℓ
+i and ∑∞
+ℓ=0 ℓλℓ
+i are convergent by the ratio test (Theorem A.3 of Introduction to Econo-
+metrics) since |λi |< 1. Thus the above sums satisfy the conditions of Theorem 14.6 so are strictly station-
+ary and ergodic as required.
+Blocks with multiplicity s > 2 are handled by similar but more tedious calculations. ■
+Proof of Theorem 15.8 The assumption that Σ > 0 means that if we regress Y1t on Y2t , ...,Ypt and
+Yt −1, ...,Yt −p that the error will have positive variance. If Q is singular then there is some γ such that
+γ′Qγ = 0. As in the proof of Theorem 14.28 this means that the regression ofY1t on Y2t ,..., Ypt ,Yt −1, ...,Yt −p+1
+has a zero variance. This is a contradiction. We conclude that Q is not singular. ■
+Proof of Theorem 15.12 The ﬁrst part of the theorem is established by back-substitution. Since Yt is a
+VAR(p) process,
+Yt +h = a0 + A1Yt +h−1 + A2Yt +h−2 + · · · +ApYt +h−p + et .
+We then substitute out the ﬁrst lag. We ﬁnd
+Yt +h = a0 + A1
+(
+a0 + A1Yt +h−2 + A2Yt +h−3 + · · · +ApYt +h−p−1 + et −1
+)
++ A2Yt +h−2 + · · · +ApYt +h−p + et
+= a0 + A1a0 + (A1 A1 + A2)Yt +h−2 + (A1 A2 + A3)Yt +h−3 + · · · +Ap ApYt +h−p−1 + A1et −1 + et .
+We continue making substitutions. With each substitution the error increases its MA order. After h − 1
+substitutions the equation takes the form (15.12) with ut an MA(h-1) process.
+To recognize that B 1 = Θh, notice that the deduction that ut is an MA(h-1) process means that we
+can equivalently write (15.12) as
+Yt +h = b0 +
+∞∑
+j =1
+B j Yt +1−j + ut
+with B j = 0 for j > p. That is, the equation (15.12) includes all relevant lags. By the projection properties
+of regression coefﬁcients this means that the coefﬁcientB 1 is invariant to replacing the regressor Yt by
+
+
+--- page 35 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 543
+the innovation from its regression on the other lags. This is the VAR(p) model itself which has innovation
+et . We have deduced that the coefﬁcientB 1 is equivalent to that in the regression
+Yt +h = b0 + B 1et +
+∞∑
+j =2
+B j Yt +1−j + ut .
+Notice that et is uncorrelated with the other regressors. Thus B 1 = ∂
+∂e ′
+t
+P t [Yt +h] = Θh as claimed. This
+completes the proof. ■
+_____________________________________________________________________________________________
+15.32 Exercises
+Exercise 15.1 Take the VAR(1) model Yt = AYt −1 + et . Assume et is i.i.d. For each speciﬁed matrix A
+below, check if Yt is strictly stationary. Use mathematical software to compute eigenvalues if needed.
+(a) A =
+[ 0.7 0.2
+0.2 0.7
+]
+(b) A =
+[ 0.8 0.4
+0.4 0.8
+]
+(c) A =
+[ 0.8 0.4
+−0.4 0.8
+]
+Exercise 15.2 Take the VAR(2) modelYt = A1Yt −1+A2Yt −2+et with A1 =
+[ 0.3 0.2
+0.2 0.3
+]
+and A2 =
+[ 0.4 −0.1
+−0.1 0.4
+]
+.
+Assume et is i.i.d. Is Yt strictly stationary? Use mathematical software if needed.
+Exercise 15.3 Suppose Yt = AYt −1 + ut and ut = But −1 + et . Show that Yt is a VAR(2) and derive the
+coefﬁcient matrices and equation error.
+Exercise 15.4 Suppose Yi t, i = 1, ...,m, are independent AR(p) processes. Derive the form of their joint
+VAR representation.
+Exercise 15.5 In the VAR(1) model Yt = A1Yt −1 + et ﬁnd an explicit expression for the h-step moving
+average matrix Θh from (15.3).
+Exercise 15.6 In the VAR(2) model Yt = A1Yt −1 + A2Yt −2 + et ﬁnd explicit expressions for the moving
+average matrix Θh from (15.3) for h = 1, ...4.
+Exercise 15.7 Derive a VAR(1) representation of a VAR(p) process analogously to equation (??) for au-
+toregressions. Use this to derive an explicit formula for the h-step impulse response IRF(h) analogously
+to (14.42).
+Exercise 15.8 Let Yt = (Y1t ,Y2t )′ be 2 × 1 and consider a VAR(2) model. Suppose Y2t does not Granger-
+cause Y1t . What are the implications for the VAR coefﬁcient matricesA1 and A2?
+Exercise 15.9 Continuting the previous exercise, suppose that bothY2t does not Granger-cause Y1t , and
+Y1t does not Granger-cause Y2t . What are the implications for the VAR coefﬁcient matricesA1 and A2?
+
+
+--- page 36 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 544
+Exercise 15.10 Suppose that you have 20 years of monthly observations onm = 8 variables. Your advisor
+recommends p = 12 lags to account for annual patterns. How many coefﬁcients per equation will you be
+estimating? How many observations do you have? In this context does it make sense to you to estimate
+a VAR(12) with all eight variables?
+Exercise 15.11 Let ˆet be the least squares residuals from an estimated VAR, ˆΣ be the residual covariance
+matrix, and ˆB = chol(ˆΣ). Show that ˆB can be calculated by recursive least squares using the residuals.
+Exercise 15.12 Cholesky factorization
+(a) Derive the Cholesky decomposition of the covariance matrix
+[ σ2
+1 ρσ1σ2
+ρσ1σ2 σ2
+1
+]
+.
+(b) Write the answer for the correlation matrix (the special case σ2
+1 = 1 and σ2
+2 = 1).
+(c) Find an upper triangular decomposition for the correlation matrix. That is, an upper-triangular
+matrix R which satisﬁesRR ′ =
+[ 1 ρ
+ρ 1
+]
+.
+(d) Suppose Θh =
+[ 1 0
+1 1
+]
+, σ2
+1 = 1, and σ2
+2 = 1, and ρ = 0.8. Find the orthogonalized impulse response
+OIRF(h) using the Cholesky decomposition.
+(e) Suppose that the ordering of the variables is reversed. This is equivalent to using the upper trian-
+gular decomposition from part (c). Calculate the orthogonalized impulse response OIRF(h).
+(f) Compare the two orthogonalized impulse responses.
+Exercise 15.13 You read an empirical paper which estimates a VAR in a listed set of variables and dis-
+plays estimated orthogonalized impulse response functions. No comment is made in the paper about
+the ordering or the identiﬁcation of the system, and you have no reason to believe that the order used is
+“standard” in the literature. How should you interpret the estimated impulse response functions?
+Exercise 15.14 Take the quarterly series gdpc1 (real GDP), gdpctpi (GDP price deﬂator), and fedfunds
+(Fed funds interest rate) from FRED-QD. Transform the ﬁrst two into growth rates as in Section 15.13.
+Estimate the same three-variable VAR(6) using the same ordering. The identiﬁcation strategy discussed
+in Section 15.23 speciﬁes the supply shock as the orthogonalized shock to the GDP equation. Calculate
+the impulse response function of GDP , the price level, and the Fed funds rate with respect to this supply
+shock. For the ﬁrst two this will require calculating the cumulative impulse response function. (Explain
+why.) Comment on the estimated functions.
+Exercise 15.15 Take theKilian2009 dataset which has the variables oil (oil production), output (global
+economic activity), and price (price of crude oil). Estimate an orthogonalized VAR(4) using the same
+ordering as in Kilian (2009) as described in Section 15.24. (As described in that section, multiply “oil” by
+−1 so that all shocks increase prices.) Estimate the impulse response of output with respect to the three
+shocks. Comment on the estimated functions.
+Exercise 15.16 Take the monthly seriespermit (building permits), houst (housing starts), andrealln (real
+estate loans) from FRED-MD. The listed ordering is motivated by transaction timing. A developer is
+required to obtain a building permit before they start building a house (the latter is known as a “housing
+start”). A real estate loan is obtained when the house is purchased.
+
+
+--- page 37 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 545
+(a) Transform realln into growth rates (ﬁrst difference of logs).
+(b) Select an appropriate lag order for the three-variable system by comparing the AIC of VARs of order
+1 through 8.
+(c) Estimate the VAR model and plot the impulse response functions of housing starts with respect to
+the three shocks.
+(d) Interpret your ﬁndings.
+Exercise 15.17 Take the quarterly seriesgpdic1 (Real Gross Private Domestic Investment),gdpctpi (GDP
+price deﬂator), gdpc1 (real GDP), and fedfunds (Fed funds interest rate) from FRED-QD. Transform the
+ﬁrst three into logs, e.g. gdp= 100 log(gdpc1). Consider a structural VAR based on short-run restrictions.
+Use a structure of the form Aet = εt . Impose the restrictions that the ﬁrst three variables do not react
+to the fed funds rate, that investment does not respond to prices, and that prices do not respond to
+investment. Finally, impose that investment is short-run unit elastic with respect to GDP (in the equation
+for investment, the A coefﬁcient on GDP is−1).
+(a) Write down the matrix A similar to (15.22), imposing the identifying constraints as deﬁned above.
+(b) Is the model identiﬁed? Is there a condition for identiﬁcation? Explain.
+(c) In this model are output and price simultaneous, or recursive as in the example described in Sec-
+tion 15.23?
+(d) Estimate the structural VAR using 6 lags or a different number of your choosing (justify your choice)
+and include an exogenous time trend. Report your estimates of the A matrix. Can you interpret
+the coefﬁcients?
+(e) Estimate and report the following three impulse response functions:
+1. The effect of the fed funds rate on GDP .
+2. The effect of the GDP shock on GDP .
+3. The effect of the GDP shock on prices.
+Exercise 15.18 Take theKilian2009 dataset which has the variables oil (oil production), output (global
+economic activity), and price (price of crude oil). Consider a structural VAR based on short-run restric-
+tions. Use a structure of the form Aet = εt . Impose the restrictions that oil production does not respond
+to output or oil prices, and that output does not respond to oil production. The last restriction can be
+motivated by the observation that supply disruptions take more than a month to reach the retail market
+so the effect on economic activity is similarly delayed by one month.
+(a) Write down the matrix A similar to (15.22) imposing the identifying constraints as deﬁned above.
+(b) Is the model identiﬁed? Is there a condition for identiﬁcation? Explain.
+(c) Estimate the structural VAR using 4 lags or a different number of your choosing (justify your choice).
+(As described in that section, multiply “oil” by −1 so that all shocks increase prices.) Report your
+estimates of the A matrix. Can you interpret the coefﬁcients?
+(d) Estimate the impulse response of oil price with respect to the three shocks. Comment on the esti-
+mated functions.
+
+
+--- page 38 ---
+
+CHAPTER 15. MUL TIVARIATE TIME SERIES 546
+Exercise 15.19 Take the quarterly series gdpc1 (real GDP), m1realx (real M1 money stock), and cpiaucsl
+(CPI) from FRED-QD. Create nominal M1 (multiply m1realx times cpiaucsl), and transform real GDP and
+nominal M1 to growth rates. The hypothesis of monetary neutrality is that the nominal money supply
+has no effect on real outcomes such as GDP . Strict monetary neutrality states that there is no short or
+long-term effect. Long-run neutrality states that there is no long-term effect.
+(a) To test strict neutrality use a Granger-causality test. Regress GDP growth on four lags of GDP
+growth and four lags of money growth. Test the hypothesis that the four money lags jointly have
+zero coeffﬁcients. Use robust standard errors. Interpret the results.
+(b) To test long-run neutrality test if the sum of the four coefﬁcients on money growth equals zero.
+Interpret the results.
+(c) Estimate a structural VAR in real GDP growth and nominal money growth imposing the long-run
+neutrality of money. Explain your method.
+(d) Report estimates of the impulse responses of the levels of GDP and nominal money to the two
+shocks. Interpret the results.
+Exercise 15.20 Shapiro and Watson (1988) estimated a structural VAR imposing long-run constraints.
+Replicate a simpliﬁed version of their model. Take the quarterly series hoanbs (hours worked, nonfarm
+business sector), gdpc1 (real GDP), and gdpctpi (GDP deﬂator) from FRED-QD. Transform the ﬁrst two
+to growth rates and for the third (GDP deﬂator) take the second difference of the logarithm (differenced
+inﬂation). Shapiro and Watson estimated a structural model imposing the constraints that labor sup-
+ply hours are long-run unaffected by output and inﬂation and GDP is long-run unaffected by demand
+shocks. This implies a recursive ordering in the variables for a long-run restriction.
+(a) Write down the matrix C as in (15.24) imposing the identifying constraints as deﬁned above.
+(b) Is the model identiﬁed?
+(c) Use the AIC to select the number of lags for a VAR.
+(d) Estimate the structural VAR. Report the estimated C matrix. Can you interpret the coefﬁcients?
+(e) Estimate the structural impulse responses of the level of GDP with respect to the three shocks.
+Interpret the results.

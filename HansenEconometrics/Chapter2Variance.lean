@@ -11,7 +11,8 @@ variable {Ω : Type*}
 variable {m m₀ : MeasurableSpace Ω}
 variable {μ : Measure Ω}
 
-/-- Hansen Chapter 2: the integral of conditional variance equals the integral of squared CEF error. -/
+/-- Hansen Chapter 2.12: the expected conditional variance equals the expected squared
+CEF error. This is the regression-error variance identity following Definitions 2.1-2.2. -/
 theorem integral_condVar_eq_integral_cefError_sq
     {Y : Ω → ℝ}
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -21,7 +22,7 @@ theorem integral_condVar_eq_integral_cefError_sq
     (ProbabilityTheory.setIntegral_condVar (m := m) (m₀ := m₀) (μ := μ)
       (X := Y) hY2 MeasurableSet.univ)
 
-/-- Hansen Chapter 2 / law of total variance in Mathlib form. -/
+/-- Hansen Theorem 2.8 / law of total variance in Mathlib form. -/
 theorem law_total_variance
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
@@ -31,7 +32,7 @@ theorem law_total_variance
   simpa using ProbabilityTheory.integral_condVar_add_variance_condExp (m := m) (m₀ := m₀) (μ := μ)
     (X := Y) hm hY
 
-/-- Rearranged law of total variance. -/
+/-- Hansen Theorem 2.8, rearranged. -/
 theorem variance_decomposition
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
@@ -41,7 +42,7 @@ theorem variance_decomposition
   rw [eq_comm]
   simpa using law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY
 
-/-- More information can only reduce mean-squared residual variation, stated via total variance. -/
+/-- The explained variance is bounded by total variance, as a direct consequence of Theorem 2.8. -/
 theorem variance_condExp_le_variance
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)

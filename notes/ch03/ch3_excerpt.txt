@@ -1,0 +1,2556 @@
+--- page 1 ---
+
+Chapter 3
+The Algebra of Least Squares
+3.1 Introduction
+In this chapter we introduce the popular least squares estimator. Most of the discussion will be alge-
+braic, with questions of distribution and inference deferred to later chapters.
+3.2 Samples
+In Section 2.18 we derived and discussed the best linear predictor of Y given X for a pair of random
+variables (Y , X ) ∈ R × Rk and called this the linear projection model. We are now interested in estimating
+the parameters of this model, in particular the projection coefﬁcient
+β =
+(
+E
+[
+X X ′])−1 E[X Y ]. (3.1)
+We can estimate β from samples which include joint measurements of (Y , X ). For example, suppos-
+ing we are interested in estimating a wage equation, we would use a dataset with observations on wages
+(or weekly earnings), education, experience (or age), and demographic characteristics (gender, race, lo-
+cation). One possible dataset is the Current Population Survey (CPS), a survey of U.S. households which
+includes questions on employment, income, education, and demographic characteristics.
+Notationally we wish to distinguish observations (realizations) from the underlying random vari-
+ables. The random variables are (Y, X ). The observations are (Yi , Xi ). From the vantage of the researcher
+the latter are numbers. From the vantage of statistical theory we view them as realizations of random
+variables. For individual observations we append a subscript i which runs from 1 to n, thus the i t h ob-
+servation is (Yi , Xi ). The number n is the sample size. The dataset or sample is {(Yi , Xi ) : i = 1, ...,n}.
+From the viewpoint of empirical analysis a dataset is an array of numbers. It is typically organized
+as a table where each column is a variable and each row is an observation. For empirical analysis the
+dataset is ﬁxed in the sense that they are numbers presented to the researcher. For statistical analysis we
+view the dataset as random, or more precisely as a realization of a random process.
+The individual observations could be draws from a common (homogeneous) distribution or could
+be draws from heterogeneous distributions. The simplest approach is to assume homogeneity – that the
+observations are realizations from an identical underlying population F.
+Assumption 3.1 The variables {(Y 1, X1),..., (Yi , Xi ), ..., (Yn, Xn)} are identically dis-
+tributed; they are draws from a common distribution F .
+62
+
+
+--- page 2 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 63
+This assumption does not need to be viewed as literally true. Rather it is a useful modeling device so
+that parameters such as β are well deﬁned. This assumption should be interpreted as how we view an
+observation a priori, before we actually observe it. If I tell you that we have a sample with n = 59 obser-
+vations set in no particular order, then it makes sense to view two observations, say 17 and 58, as draws
+from the same distribution. We have no reason to expect anything special about either observation.
+In econometric theory we refer to the underlying common distribution F as the population. Some
+authors prefer the label the data-generating-process (DGP). You can think of it as a theoretical con-
+cept or an inﬁnitely-large potential population. In contrast, we refer to the observations available to us
+{(Yi , Xi ) : i = 1, ...,n} as the sample or dataset. In some contexts the dataset consists of all potential ob-
+servations, for example administrative tax records may contain every single taxpayer in a political unit.
+Even in this case we view the observations as if they are random draws from an underlying inﬁnitely-large
+population as this will allow us to apply the tools of statistical theory.
+The linear projection model applies to the random variables (Y , X ). This is the probability model
+described in Section 2.18. The model is
+Y = X ′β + e (3.2)
+where the linear projection coefﬁcientβ is deﬁned as
+β = argmin
+b∈Rk
+S(b), (3.3)
+the minimizer of the expected squared error
+S(β) = E
+[(
+Y − X ′β
+)2]
+. (3.4)
+The coefﬁcient has the explicit solution (3.1).
+3.3 Moment Estimators
+We want to estimate the coefﬁcient β deﬁned in (3.1) from the sample of observations. Notice that
+β is written as a function of certain population expectations. In this context an appropriate estimator is
+the same function of the sample moments. Let’ s explain this in detail.
+To start, suppose that we are interested in the population meanµ of a random variable Y with distri-
+bution function F
+µ = E[Y ] =
+∫ ∞
+−∞
+ydF (y). (3.5)
+The expectation µ is a function of the distribution F . To estimate µ given n random variables Yi from F
+a natural estimator is the sample mean
+ˆµ =
+Y = 1
+n
+n∑
+i =1
+Yi .
+Notice that we have written this using two pieces of notation. The notation Y with the bar on top is
+conventional for a sample mean. The notation ˆµ with the hat “^” is conventional in econometrics to
+denote an estimator of the parameterµ. In this case Y is the estimator of µ, so ˆµ and Y are the same. The
+sample mean Y can be viewed as the natural analog of the population mean (3.5) because Y equals the
+expectation (3.5) with respect to the empirical distribution – the discrete distribution which puts weight
+1/n on each observation Yi . There are other justiﬁcations forY as an estimator for µ. We will defer these
+discussions for now. Sufﬁce it to say that it is the conventional estimator.
+
+
+--- page 3 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 64
+Now suppose that we are interested in a set of population expectations of possibly nonlinear func-
+tions of a random vector Y , say µ = E[h(Y )]. For example, we may be interested in the ﬁrst two moments
+of Y , E[Y ] and E
+[
+Y 2]
+. In this case the natural estimator is the vector of sample means,
+ˆµ = 1
+n
+n∑
+i =1
+h(Yi ).
+We call ˆµ the moment estimator for µ. For example, if h(y) = (y, y 2)′ then ˆµ1 = n−1 ∑n
+i =1 Yi and ˆµ2 =
+n−1 ∑n
+i =1 Y 2
+i .
+Now suppose that we are interested in a nonlinear function of a set of moments. For example, con-
+sider the variance of Y
+σ2 = var[Y ] = E
+[
+Y 2]
+− (E[Y ])2 .
+In general, many parameters of interest can be written as a function of moments of Y . Notationally,
+β = g (µ) and µ = E[h(Y )]. Here, Y are the random variables, h(Y ) are functions (transformations) of the
+random variables, and µ is the expectation of these functions. β is the parameter of interest, and is the
+(nonlinear) function g (·) of these expectations.
+In this context a natural estimator of β is obtained by replacing µ with ˆµ. Thus ˆβ = g
+(
+ˆµ
+)
+. The esti-
+mator ˆβ is often called a plug-in estimator. We also call ˆβ a moment, or moment-based, estimator of β
+since it is a natural extension of the moment estimator ˆµ.
+Take the example of the variance σ2 = var[Y ]. Its moment estimator is
+ˆσ2 = ˆµ2 − ˆµ2
+1 = 1
+n
+n∑
+i =1
+Y 2
+i −
+(
+1
+n
+n∑
+i =1
+Yi
+)2
+.
+This is not the only possible estimator for σ2 (there is also the well-known bias-corrected estimator) but
+ˆσ2 is a straightforward and simple choice.
+3.4 Least Squares Estimator
+The linear projection coefﬁcientβ is deﬁned in (3.3) as the minimizer of the expected squared error
+S(β) deﬁned in (3.4). For given β, the expected squared error is the expectation of the squared error(
+Y − X ′β
+)2 . The moment estimator of S(β) is the sample average:
+ˆS(β) = 1
+n
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 = 1
+n SSE(β) (3.6)
+where
+SSE(β) =
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2
+is called the sum of squared errors function.
+Since ˆS(β) is a sample average we can interpret it as an estimator of the expected squared error S(β).
+Examining ˆS(β) as a function of β is informative about how S(β) varies with β. Since the projection coef-
+ﬁcient minimizesS(β) an analog estimator minimizes (3.6).
+We deﬁne the estimator ˆβ as the minimizer of ˆS(β).
+
+
+--- page 4 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 65
+Deﬁnition 3.1 The least squares estimator is ˆβ = argmin
+β∈Rk
+ˆS(β)
+where ˆS(β) = 1
+n
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2.
+As ˆS(β) is a scale multiple of SSE(β) we may equivalently deﬁne ˆβ as the minimizer of SSE (β). Hence
+ˆβ is commonly called the least squares (LS) estimator of β. The estimator is also commonly refered to
+as the ordinary least squares (OLS) estimator. For the origin of this label see the historical discussion on
+Adrien-Marie Legendre below. Here, as is common in econometrics, we put a hat “^” over the parameter
+β to indicate that ˆβ is a sample estimator of β. This is a helpful convention. Just by seeing the symbol
+ˆβ we can immediately interpret it as an estimator (because of the hat) of the parameter β. Sometimes
+when we want to be explicit about the estimation method, we will write ˆβols to signify that it is the OLS
+estimator. It is also common to see the notation ˆβn, where the subscript “n” indicates that the estimator
+depends on the sample size n.
+It is important to understand the distinction between population parameters such as β and sample
+estimators such as ˆβ. The population parameter β is a non-random feature of the population while the
+sample estimator ˆβ is a random feature of a random sample. β is ﬁxed, while ˆβ varies across samples.
+3.5 Solving for Least Squares with One Regressor
+For simplicity, we start by considering the case k = 1 so that there is a scalar regressor X and a scalar
+coefﬁcientβ. To illustrate, Figure 3.1(a) displays a scatter plot1 of 20 pairs (Yi , Xi ).
+The sum of squared errors SSE(β ) is a function of β. Given β we calculate the “error” Yi − Xi β by
+taking the vertical distance between Yi and Xi β. This can be seen in Figure 3.1(a) by the vertical lines
+which connect the observations to the straight line. These vertical lines are the errors Yi − Xi β. The sum
+of squared errors is the sum of the 20 squared lengths.
+The sum of squared errors is the function
+SSE(β) =
+n∑
+i =1
+(
+Yi − Xi β
+)2 =
+(
+n∑
+i =1
+Y 2
+i
+)
+− 2β
+(
+n∑
+i =1
+Xi Yi
+)
++ β2
+(
+n∑
+i =1
+X 2
+i
+)
+.
+This is a quadratic function of β. The sum of squared error function is displayed in Figure 3.1(b) over the
+range [2,4]. The coefﬁcient β ranges along the x-axis. The sum of squared errors SSE(β) as a function of
+β is displayed on the y-axis.
+The OLS estimator ˆβ minimizes this function. From elementary algebra we know that the minimizer
+of the quadratic function a − 2bx + cx 2 is x = b/c. Thus the minimizer of SSE(β) is
+ˆβ =
+∑n
+i =1 Xi Yi
+∑n
+i =1 X 2
+i
+. (3.7)
+For example, the minimizer of the sum of squared error function displayed in Figure 3.1(b) is ˆβ = 3.07,
+and is marked on the x-axis.
+The intercept-only model is the special case Xi = 1. In this case we ﬁnd
+ˆβ =
+∑n
+i =1 1Yi
+∑n
+i =1 12 = 1
+n
+n∑
+i =1
+Yi = Y , (3.8)
+1The observations were generated by simulation as X ∼ U [0,1] and Y ∼ N[3X , 1].
+
+
+--- page 5 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 66
+●
+●
+● ●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+(a) Deviation from Fitted Line
+2.0 2.5 3.0 3.5 4.0
+10 12 14 16 18
+β^
+(b) Sum of Squared Error Function
+Figure 3.1: Regression With One Regressor
+the sample mean of Yi . Here, as is common, we put a bar “ −” over Y to indicate that the quantity is a
+sample mean. This shows that the OLS estimator in the intercept-only model is the sample mean.
+Technically, the estimator ˆβ in (3.7) only exists if the denominator is non-zero. Since it is a sum of
+squares it is necessarily non-negative. Thus ˆβ exists if ∑n
+i =1 X 2
+i > 0.
+3.6 Solving for Least Squares with Multiple Regressors
+We now consider the case with k > 1 so that the coefﬁcientβ ∈ Rk is a vector.
+To illustrate, Figure 3.2(a) displays a scatter plot of 100 triples (Y i , X1i , X2i ). The regression function
+x′β = x1β1 + x2β2 is a 2-dimensional surface and is shown as the plane in Figure 3.2(a).
+X1
+X2
+X1
+X2
+Y
+X1
+(a) Regression Plane
+2.0
+2.5
+3.0
+3.5
+4.0
+2.0
+2.5
+3.0
+3.5
+4.0
+420
+430
+440
+450
+460
+470
+β2β1
+(b) Sum of Squared Error Function
+β1
+β2
+2.5 3.0 3.5 4.0
+2.5 3.0 3.5
+β^
+(c) SSE Contour
+Figure 3.2: Regression with Two Variables
+The sum of squared errors SSE(β ) is a function of the vector β. For any β the error Yi − X ′
+i β is the
+
+
+--- page 6 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 67
+vertical distance betweenYi and X ′
+i β. This can be seen in Figure 3.2(a) by the vertical lines which connect
+the observations to the plane. As in the single regressor case these vertical lines are the errors ei = Yi −
+X ′
+i β. The sum of squared errors is the sum of the 100 squared lengths.
+The sum of squared errors can be written as
+SSE(β) =
+n∑
+i =1
+Y 2
+i − 2β′
+n∑
+i =1
+Xi Yi + β′
+n∑
+i =1
+Xi X ′
+i β.
+As in the single regressor case this is a quadratic function in β. The difference is that in the multiple
+regressor case this is a vector-valued quadratic function. To visualize the sum of squared errors function
+Figure 3.2(b) displays SSE(β ). Another way to visualize a 3-dimensional surface is by a contour plot.
+A contour plot of the same SSE(β ) function is shown in Figure 3.2(c). The contour lines are points in
+the (β 1, β2) space where SSE(β ) takes the same value. The contour lines are elliptical since SSE( β) is
+quadratic.
+The least squares estimator ˆβ minimizes SSE(β). A simple way to ﬁnd the minimum is by solving the
+ﬁrst-order conditions. The latter are
+0 = ∂
+∂β SSE( ˆβ) = −2
+n∑
+i =1
+Xi Yi + 2
+n∑
+i =1
+Xi X ′
+i ˆβ. (3.9)
+We have written this using a single expression, but it is actually a system ofk equations with k unknowns
+(the elements of ˆβ).
+The solution for ˆβ may be found by solving the system of k equations in (3.9). We can write this
+solution compactly using matrix algebra. Dividing (3.9) by 2 we obtain
+n∑
+i =1
+Xi X ′
+i ˆβ =
+n∑
+i =1
+Xi Yi . (3.10)
+This is a system of equations of the form Ab = c where A is k × k and b and c are k × 1. The solution is
+b = A−1c, and can be obtained by pre-multiplying Ab = c by A−1 and using the matrix inverse property
+A−1 A = I k. Applied to (3.10) we ﬁnd an explicit formula for the least squares estimator
+ˆβ =
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+. (3.11)
+This is the natural estimator of the best linear projection coefﬁcientβ deﬁned in (3.3), and could also be
+called the linear projection estimator.
+Recall that we claimed that ˆβ in (3.11) is the minimizer of SSE(β ), and found it by solving the ﬁrst-
+order conditions. To be complete we should verify the second-order conditions. We calculate that
+∂2
+∂β∂β′ SSE(β) = 2
+n∑
+i =1
+Xi X ′
+i > 0
+which is a positive deﬁnite matrix. This shows that the second-order condition for minimization is sat-
+isﬁed so ˆβ is indeed the unique minimizer of SSE(β).
+Returning to the example sum of squared errors function SSE(β) displayed in Figure 3.2(b), the least
+squares estimator ˆβ is the the pair ( ˆβ1, ˆβ2) which minimize this function; visually it is the low spot in the
+3-dimensional graph, and is marked in Figure 3.2(c) as the center point of the contour plots.
+Returning to equation (3.11), suppose that k = 1. In this case Xi is scalar so Xi X ′
+i = X 2
+i . Then (3.11)
+simpliﬁes to the expression (3.7) previously derived. The expression (3.11) is a notationally simple gen-
+eralization but requires a careful attention to vector and matrix manipulations.
+
+
+--- page 7 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 68
+Alternatively, equation (3.1) writes the projection coefﬁcientβ as an explicit function of the popula-
+tion moments Q X Y and Q X X . Their moment estimators are the sample moments
+ˆQ X Y = 1
+n
+n∑
+i =1
+Xi Yi
+ˆQ X X = 1
+n
+n∑
+i =1
+Xi X ′
+i .
+The moment estimator of β replaces the population moments in (3.1) with the sample moments:
+ˆβ = ˆQ
+−1
+X X ˆQ X Y
+=
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+1
+n
+n∑
+i =1
+Xi Yi
+)
+=
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+which is identical with (3.11).
+Technically, the estimator ˆβ is unique and equals (3.11) only if the inverted matrix is actually invert-
+ible, which holds if (and only if) this matrix is positive deﬁnite. This excludes the case that Xi contains
+redundant regressors. This will be discussed further in Section 3.24.
+Theorem 3.1 If ∑n
+i =1 Xi X ′
+i > 0, the least squares estimator is unique and equals
+ˆβ =
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+.
+Adrien-Marie Legendre
+The method of least squares was ﬁrst published in 1805 by the French mathe-
+matician Adrien-Marie Legendre (1752-1833). Legendre proposed least squares
+as a solution to the algebraic problem of solving a system of equations when the
+number of equations exceeded the number of unknowns. This was a vexing and
+common problem in astronomical measurement. As viewed by Legendre, (3.2) is
+a set of n equations with k unknowns. As the equations cannot be solved exactly,
+Legendre’ s goal was to selectβ to make the set of errors as small as possible. He
+proposed the sum of squared error criterion and derived the algebraic solution
+presented above. As he noted, the ﬁrst-order conditions (3.9) is a system of k
+equations with k unknowns which can be solved by “ordinary” methods. Hence
+the method became known as Ordinary Least Squares and to this day we still
+use the abbreviation OLS to refer to Legendre’ s estimation method.
+
+
+--- page 8 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 69
+3.7 Illustration
+We illustrate the least squares estimator in practice with the data set used to calculate the estimates
+reported in Chapter 2. This is the March 2009 Current Population Survey, which has extensive informa-
+tion on the U.S. population. This data set is described in more detail in Section 3.22. For this illustration
+we use the sub-sample of married (spouse present) Black female wage earners with 12 years potential
+work experience. This sub-sample has 20 observations2.
+In Table 3.1 we display the observations for reference. Each row is an individual observation which
+are the data for an individual person. The columns correspond to the variables (measurements) for the
+individuals. The second column is the reported wage (total annual earnings divided by hours worked).
+The third column is the natural logarithm of the wage. The fourth column is years of education. The
+ﬁfth and six columns are further transformations, speciﬁcally the square ofeducation and the product of
+education and log(wage). The bottom row are the sums of the elements in that column.
+Table 3.1: Observations From CPS Data Set
+Observation wage log(wage) education education 2 education×log(wage)
+1 37.93 3.64 18 324 65.44
+2 40.87 3.71 18 324 66.79
+3 14.18 2.65 13 169 34.48
+4 16.83 2.82 16 256 45.17
+5 33.17 3.50 16 256 56.03
+6 29.81 3.39 18 324 61.11
+7 54.62 4.00 16 256 64.00
+8 43.08 3.76 18 324 67.73
+9 14.42 2.67 12 144 32.03
+10 14.90 2.70 16 256 43.23
+11 21.63 3.07 18 324 55.44
+12 11.09 2.41 16 256 38.50
+13 10.00 2.30 13 169 29.93
+14 31.73 3.46 14 196 48.40
+15 11.06 2.40 12 144 28.84
+16 18.75 2.93 16 256 46.90
+17 27.35 3.31 14 196 46.32
+18 24.04 3.18 16 256 50.76
+19 36.06 3.59 18 324 64.53
+20 23.08 3.14 16 256 50.22
+Sum 515 62.64 314 5010 995.86
+Putting the variables into the standard regression notation, let Yi be log(wage ) and Xi be years of
+education and an intercept. Then from the column sums in Table 3.1 we have
+n∑
+i =1
+Xi Yi =
+( 995.86
+62.64
+)
+and
+n∑
+i =1
+Xi X ′
+i =
+( 5010 314
+314 20
+)
+.
+2This sample was selected speciﬁcally so that it has a small number of observations, facilitating exposition.
+
+
+--- page 9 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 70
+Taking the inverse we obtain (
+n∑
+i =1
+Xi X ′
+i
+)−1
+=
+( 0.0125 −0.196
+−0.196 3.124
+)
+.
+Thus by matrix multiplication
+ˆβ =
+( 0.0125 −0.196
+−0.196 3.124
+) ( 995.86
+62.64
+)
+=
+( 0.155
+0.698
+)
+.
+In practice the regression estimates ˆβ are computed by computer software without the user taking
+the explicit steps listed above. However, it is useful to understand that the least squares estimator can be
+calculated by simple algebraic operations. If your data is in a spreadsheet similar to Table 3.1, then the
+listed transformations (logarithm, squares, cross-products, column sums) can be computed by spread-
+sheet operations. ˆβ could then be calculated by matrix inversion and multiplication. Once again, this is
+rarely done by applied economists since computer software is available to ease the process.
+We often write the estimated equation using the format
+álog(wage) = 0.155 education + 0.698. (3.12)
+An interpretation of the estimated equation is that each year of education is associated with a 16% in-
+crease in mean wages.
+Equation (3.12) is called a bivariate regression as there are two variables. It is also called a simple
+regression as there is a single regressor. A multiple regression has two or more regressors and allows a
+more detailed investigation. Let’ s take an example similar to (3.12) but include all levels of experience.
+This time we use the sub-sample of single (never married) Asian men which has 268 observations. In-
+cluding as regressors years of potential work experience (experience ) and its square (experience 2/100)
+(we divide by 100 to simplify reporting) we obtain the estimates
+álog(wage) = 0.143 education + 0.036 experience − 0.071 experience2/100 + 0.575. (3.13)
+These estimates suggest a 14% increase in mean wages per year of education holding experience con-
+stant.
+3.8 Least Squares Residuals
+As a by-product of estimation we deﬁne theﬁtted value ˆYi = X ′
+i
+ˆβ and the residual
+ˆei = Yi − ˆYi = Yi − X ′
+i ˆβ. (3.14)
+Sometimes ˆYi is called the predicted value but this is a misleading label. The ﬁtted value ˆYi is a function
+of the entire sample including Yi , and thus cannot be interpreted as a valid prediction of Yi . It is thus
+more accurate to describe ˆYi as a ﬁttedrather than a predicted value.
+Note that Yi = ˆYi + ˆei and
+Yi = X ′
+i ˆβ + ˆei . (3.15)
+We make a distinction between the error ei and the residual ˆei . The error ei is unobservable while the
+residual ˆei is an estimator. These two variables are frequently mislabeled which can cause confusion.
+Equation (3.9) implies that
+n∑
+i =1
+Xi ˆei = 0. (3.16)
+
+
+--- page 10 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 71
+To see this by a direct calculation, using (3.14) and (3.11),
+n∑
+i =1
+Xi ˆei =
+n∑
+i =1
+Xi
+(
+Yi − X ′
+i ˆβ
+)
+=
+n∑
+i =1
+Xi Yi −
+n∑
+i =1
+Xi X ′
+i ˆβ
+=
+n∑
+i =1
+Xi Yi −
+n∑
+i =1
+Xi X ′
+i
+(
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+=
+n∑
+i =1
+Xi Yi −
+n∑
+i =1
+Xi Yi = 0.
+When Xi contains a constant an implication of (3.16) is
+1
+n
+n∑
+i =1
+ˆei = 0. (3.17)
+Thus the residuals have a sample mean of zero and the sample correlation between the regressors and
+the residual is zero. These are algebraic results and hold true for all linear regression estimates.
+3.9 Demeaned Regressors
+Sometimes it is useful to separate the constant from the other regressors and write the linear projec-
+tion equation in the format
+Yi = X ′
+i β + α + ei
+where α is the intercept and Xi does not contain a constant. The least squares estimates and residuals
+can be written as Yi = X ′
+i
+ˆβ + ˆα + ˆei .
+In this case (3.16) can be written as the equation system
+n∑
+i =1
+(
+Yi − X ′
+i ˆβ − ˆα
+)
+= 0
+n∑
+i =1
+Xi
+(
+Yi − X ′
+i ˆβ − ˆα
+)
+= 0.
+The ﬁrst equation implies
+ˆα = Y − X
+′ ˆβ.
+Subtracting from the second we obtain
+n∑
+i =1
+Xi
+((
+Yi − Y
+)
+−
+(
+Xi − X
+)′ ˆβ
+)
+= 0.
+Solving for ˆβ we ﬁnd
+ˆβ =
+(
+n∑
+i =1
+Xi
+(
+Xi − X
+)′
+)−1 (
+n∑
+i =1
+Xi
+(
+Yi − Y
+))
+=
+(
+n∑
+i =1
+(
+Xi − X
+) (
+Xi − X
+)′
+)−1 (
+n∑
+i =1
+(
+Xi − X
+) (
+Yi − Y
+))
+. (3.18)
+Thus the OLS estimator for the slope coefﬁcients is OLS with demeaned data and no intercept.
+The representation (3.18) is known as the demeaned formula for the least squares estimator.
+
+
+--- page 11 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 72
+3.10 Model in Matrix Notation
+For many purposes, including computation, it is convenient to write the model and statistics in ma-
+trix notation. The n linear equations Yi = X ′
+i β + ei make a system of n equations. We can stack these n
+equations together as
+Y1 = X ′
+1β + e1
+Y2 = X ′
+2β + e2
+..
+.
+Yn = X ′
+nβ + en.
+Deﬁne
+Y =
+
+
+
+Y1
+Y2
+..
+.
+Yn
+
+
+
+, X =
+
+
+
+X ′
+1
+X ′
+2
+..
+.
+X ′
+n
+
+
+
+
+, e =
+
+
+
+
+e1
+e2
+..
+.
+en
+
+
+
+
+.
+Observe that Y and e are n × 1 vectors and X is an n × k matrix. The system of n equations can be
+compactly written in the single equation
+Y = X β + e. (3.19)
+Sample sums can be written in matrix notation. For example
+n∑
+i =1
+Xi X ′
+i = X ′X
+n∑
+i =1
+Xi Yi = X ′Y .
+Therefore the least squares estimator can be written as
+ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+.
+The matrix version of (3.15) and estimated version of (3.19) is
+Y = X ˆβ + ˆe.
+Equivalently the residual vector is
+ˆe = Y − X ˆβ.
+Using the residual vector we can write (3.16) as
+X ′ˆe = 0.
+It can also be useful to write the sum of squared error criterion as
+SSE
+(
+β
+)
+=
+(
+Y − X β
+)′ (
+Y − X β
+)
+.
+Using matrix notation we have simple expressions for most estimators. This is particularly conve-
+nient for computer programming as most languages allow matrix notation and manipulation.
+
+
+--- page 12 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 73
+Theorem 3.2 Important Matrix Expressions
+ˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+ˆe = Y − X ˆβ
+X ′ˆe = 0.
+Early Use of Matrices
+The earliest known treatment of the use of matrix methods to
+solve simultaneous systems is found in Chapter 8 of the Chinese
+text The Nine Chapters on the Mathematical Art, written by sev-
+eral generations of scholars from the 10t h to 2nd century BCE.
+3.11 Projection Matrix
+Deﬁne the matrix
+P = X
+(
+X ′X
+)−1 X ′.
+Observe that
+P X = X
+(
+X ′X
+)−1 X ′X = X .
+This is a property of a projection matrix . More generally, for any matrix Z which can be written as
+Z = X Γ for some matrix Γ (we say that Z lies in the range space of X ), then
+P Z = P X Γ = X
+(
+X ′X
+)−1 X ′X Γ = X Γ = Z .
+As an important example, if we partition the matrix X into two matrices X 1 and X 2 so that X =
+[X 1 X 2] then P X 1 = X 1. (See Exercise 3.7.)
+The projection matrix P has the algebraic property that it is idempotent: P P = P. See Theorem 3.3.2
+below. For the general properties of projection matrices see Section A.11.
+The matrix P creates the ﬁtted values in a least squares regression:
+P Y = X
+(
+X ′X
+)−1 X ′Y = X ˆβ = ˆY .
+Because of this property P is also known as the hat matrix.
+A special example of a projection matrix occurs when X = 1n is an n-vector of ones. Then
+P = 1n
+(
+1′
+n1n
+)−1 1′
+n = 1
+n 1n1′
+n.
+Note that in this case
+P Y = 1n
+(
+1′
+n1n
+)−1 1′
+nY = 1n
+Y
+creates an n-vector whose elements are the sample mean Y .
+The projection matrix P appears frequently in algebraic manipulations in least squares regression.
+The matrix has the following important properties.
+
+
+--- page 13 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 74
+Theorem 3.3 The projection matrix P = X
+(
+X ′X
+)−1 X ′ for any n × k X with n ≥
+k has the following algebraic properties.
+1. P is symmetric (P ′ = P).
+2. P is idempotent (P P = P).
+3. tr P = k.
+4. The eigenvalues of P are 1 and 0. There arek eigenvalues equalling 1 and
+n − k equalling 0.
+5. rank (P) = k.
+We close this section by proving the claims in Theorem 3.3. Part 1 holds since
+P ′ =
+(
+X
+(
+X ′X
+)−1 X ′
+)′
+=
+(
+X ′)′ ((
+X ′X
+)−1)′
+(X )′
+= X
+((
+X ′X
+)′)−1
+X ′
+= X
+(
+(X )′ (
+X ′)′)−1
+X ′ = P.
+To establish part 2, the fact that P X = X implies that
+P P = P X
+(
+X ′X
+)−1 X ′ = X
+(
+X ′X
+)−1 X ′ = P
+as claimed. For part 3,
+tr P = tr
+(
+X
+(
+X ′X
+)−1 X ′
+)
+= tr
+((
+X ′X
+)−1 X ′X
+)
+= tr(I k) = k.
+See Appendix A.5 for deﬁnition and properties of the trace operator.
+For part 4, it is shown in Appendix A.11 that the eigenvalues λi of an idempotent matrix are all 1
+and 0. Since tr P equals the sum of the n eigenvalues and tr P = k by part 3, it follows that there are k
+eigenvalues equalling 1 and the remainder n − k equalling 0.
+For part 5, observe that P is positive semi-deﬁnite since its eigenvalues are all non-negative. By
+Theorem A.4.5 its rank equals the number of positive eigenvalues, which is k as claimed.
+3.12 Annihilator Matrix
+Deﬁne
+M = I n − P = I n − X
+(
+X ′X
+)−1 X ′
+where I n is the n × n identity matrix. Note that
+M X = (I n − P) X = X − P X = X − X = 0. (3.21)
+Thus M and X are orthogonal. We call M the annihilator matrix due to the property that for any matrix
+Z in the range space of X then
+M Z = Z − P Z = 0.
+
+
+--- page 14 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 75
+For example, M X 1 = 0 for any subcomponent X 1 of X , and MP = 0 (see Exercise 3.7).
+The annihilator matrix M has similar properties with P, including that M is symmetric (M ′ = M) and
+idempotent (M M = M). It is thus a projection matrix. Similarly to Theorem 3.3.3 we can calculate
+tr M = n − k. (3.22)
+(See Exercise 3.9.) One implication is that the rank of M is n − k.
+While P creates ﬁtted values,M creates least squares residuals:
+MY = Y − P Y = Y − X ˆβ = ˆe. (3.23)
+As discussed in the previous section, a special example of a projection matrix occurs when X = 1n is
+an n-vector of ones, so that P = 1n
+(
+1′
+n1n
+)−1 1′
+n. The associated annihilator matrix is
+M = I n − P = I n − 1n
+(
+1′
+n1n
+)−1 1′
+n.
+While P creates a vector of sample means, M creates demeaned values:
+MY = Y − 1n
+Y .
+For simplicity we will often write the right-hand-side as Y − Y . The i t h element is Yi − Y , the demeaned
+value of Yi .
+We can also use (3.23) to write an alternative expression for the residual vector. Substituting Y =
+X β + e into ˆe = MY and using M X = 0 we ﬁnd
+ˆe = MY = M
+(
+X β + e
+)
+= Me (3.24)
+which is free of dependence on the regression coefﬁcientβ.
+3.13 Estimation of Error Variance
+The error variance σ2 = E
+[
+e2]
+is a moment, so a natural estimator is a moment estimator. If ei were
+observed we would estimate σ2 by
+˜σ2 = 1
+n
+n∑
+i =1
+e2
+i . (3.25)
+However, this is infeasible asei is not observed. In this case it is common to take a two-step approach to
+estimation. The residuals ˆei are calculated in the ﬁrst step, and then we substituteˆei for ei in expression
+(3.25) to obtain the feasible estimator
+ˆσ2 = 1
+n
+n∑
+i =1
+ˆe2
+i . (3.26)
+In matrix notation, we can write (3.25) and (3.26) as ˜σ2 = n−1e′e and
+ˆσ2 = n−1ˆe′ˆe. (3.27)
+Recall the expressions ˆe = MY = Me from (3.23) and (3.24). Applied to (3.27) we ﬁnd
+ˆσ2 = n−1ˆe′ˆe = n−1e′M Me = n−1e′Me (3.28)
+the third equality since M M = M.
+An interesting implication is that
+˜σ2 − ˆσ2 = n−1e′e − n−1e′Me = n−1e′Pe ≥ 0.
+The ﬁnal inequality holds because P is positive semi-deﬁnite and e′Pe is a quadratic form. This shows
+that the feasible estimator ˆσ2 is numerically smaller than the idealized estimator (3.25).
+
+
+--- page 15 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 76
+3.14 Analysis of Variance
+Another way of writing (3.23) is
+Y = P Y + MY = ˆY + ˆe. (3.29)
+This decomposition is orthogonal, that is
+ˆY
+′
+ˆe = (P Y )′ (MY ) = Y ′P MY = 0. (3.30)
+It follows that
+Y ′Y = ˆY
+′ ˆY + 2 ˆY
+′ˆe + ˆe′ˆe = ˆY
+′ ˆY + ˆe′ˆe
+or n∑
+i =1
+Y 2
+i =
+n∑
+i =1
+ˆY 2
+i +
+n∑
+i =1
+ˆe2
+i .
+Subtracting Y from both sides of (3.29) we obtain
+Y − 1nY = ˆY − 1nY + ˆe.
+This decomposition is also orthogonal when X contains a constant, as
+(
+ˆY − 1nY
+)′
+ˆe = ˆY
+′
+ˆe − Y 1′
+nˆe = 0
+under (3.17). It follows that
+(
+Y − 1nY
+)′ (
+Y − 1nY
+)
+=
+(
+ˆY − 1nY
+)′ (
+ˆY − 1nY
+)
++ ˆe′ˆe
+or n∑
+i =1
+(
+Yi − Y
+)2
+=
+n∑
+i =1
+(
+ˆYi − Y
+)2
++
+n∑
+i =1
+ˆe2
+i .
+This is commonly called the analysis-of-variance formula for least squares regression.
+A commonly reported statistic is the coefﬁcient of determinationor R-squared:
+R2 =
+∑n
+i =1
+(
+ˆYi − Y
+)2
+∑n
+i =1
+(
+Yi −
+Y
+)2 = 1 −
+∑n
+i =1 ˆe2
+i
+∑n
+i =1
+(
+Yi −
+Y
+)2 .
+It is often described as “the fraction of the sample variance of Y which is explained by the least squares
+ﬁt” .R2 is a crude measure of regression ﬁt. We have better measures of ﬁt, but these require a statistical
+(not just algebraic) analysis and we will return to these issues later. One deﬁciency with R2 is that it in-
+creases when regressors are added to a regression (see Exercise 3.16) so the “ﬁt” can be always increased
+by increasing the number of regressors.
+The coefﬁcient of determination was introduced by Wright (1921).
+3.15 Projections
+One way to visualize least squares ﬁtting is as a projection operation.
+Write the regressor matrix as X = [X 1 X 2 ... X k] where X j is the j t h column of X . The range space
+R(X ) of X is the space consisting of all linear combinations of the columns X 1,X 2,...,X k. R(X ) is a k
+
+
+--- page 16 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 77
+dimensional surface contained in Rn. If k = 2 then R(X ) is a plane. The operator P = X
+(
+X ′X
+)−1 X ′
+projects vectors onto R(X ). The ﬁtted values ˆY = P Y are the projection of Y onto R(X ).
+To visualize examine Figure 3.3. This displays the case n = 3 and k = 2. Displayed are three vectors
+Y , X 1, and X 2, which are each elements of R3. The plane created by X 1 and X 2 is the range space R(X ).
+Regression ﬁtted values are linear combinations of X 1 and X 2 and so lie on this plane. The ﬁtted value
+ˆY is the vector on this plane closest to Y . The residual ˆe = Y − ˆY is the difference between the two. The
+angle between the vectors ˆY and ˆe is 90◦, and therefore they are orthogonal as shown.
+X1
+X2
+X1
+X2
+Y
+X1
+X2
+e^
+Y
+X1
+X2
+e^
+Y
+X1
+X2
+e^
+Y
+X1
+X2
+e^
+Y
+Y^
+X1
+X2
+e^
+Y
+Y^
+X1
+X2
+e^
+Y
+Y^
+X1
+X2
+e^
+Y
+Y^
+X1
+Figure 3.3: Projection of Y onto X 1 and X 2
+3.16 Regression Components
+Partition X = [X 1 X 2] and β = (β1, β2). The regression model can be written as
+Y = X 1β1 + X 2β2 + e. (3.31)
+The OLS estimator of β = (β′
+1, β′
+2)′ is obtained by regression of Y on X = [X 1 X 2] and can be written as
+Y = X ˆβ + ˆe = X 1 ˆβ1 + X 2 ˆβ2 + ˆe. (3.32)
+We are interested in algebraic expressions for ˆβ1 and ˆβ2.
+Let’ s ﬁrst focus onˆβ1. The least squares estimator by deﬁnition is found by the joint minimization
+(ˆβ1, ˆβ2
+)
+= argmin
+β1,β2
+SSE
+(
+β1, β2
+)
+(3.33)
+where
+SSE
+(
+β1, β2
+)
+=
+(
+Y − X 1β1 − X 2β2
+)′ (
+Y − X 1β1 − X 2β2
+)
+.
+An equivalent expression for ˆβ1 can be obtained by concentration (nested minimization). The solution
+(3.33) can be written as
+ˆβ1 = argmin
+β1
+(
+min
+β2
+SSE
+(
+β1, β2
+))
+. (3.34)
+
+
+--- page 17 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 78
+The inner expression min β2 SSE
+(
+β1, β2
+)
+minimizes over β2 while holding β1 ﬁxed. It is the lowest pos-
+sible sum of squared errors given β1. The outer minimization argmin β1 ﬁnds the coefﬁcientβ1 which
+minimizes the “lowest possible sum of squared errors given β1” . This means that ˆβ1 as deﬁned in (3.33)
+and (3.34) are algebraically identical.
+Examine the inner minimization problem in (3.34). This is simply the least squares regression of
+Y − X 1β1 on X 2. This has solution
+argmin
+β2
+SSE
+(
+β1, β2
+)
+=
+(
+X ′
+2X 2
+)−1 (
+X ′
+2
+(
+Y − X 1β1
+))
+with residuals
+Y − X 1β1 − X 2
+(
+X ′
+2X 2
+)−1 (
+X ′
+2
+(
+Y − X 1β1
+))
+=
+(
+M 2Y − M 2X 1β1
+)
+= M 2
+(
+Y − X 1β1
+)
+where
+M 2 = I n − X 2
+(
+X ′
+2X 2
+)−1 X ′
+2 (3.35)
+is the annihilator matrix for X 2. This means that the inner minimization problem (3.34) has minimized
+value
+min
+β2
+SSE
+(
+β1, β2
+)
+=
+(
+Y − X 1β1
+)′ M 2M 2
+(
+Y − X 1β1
+)
+=
+(
+Y − X 1β1
+)′ M 2
+(
+Y − X 1β1
+)
+where the second equality holds since M 2 is idempotent. Substituting this into (3.34) we ﬁnd
+ˆβ1 = argmin
+β1
+(
+Y − X 1β1
+)′ M 2
+(
+Y − X 1β1
+)
+=
+(
+X ′
+1M 2X 1
+)−1 (
+X ′
+1M 2Y
+)
+.
+By a similar argument we ﬁnd
+ˆβ2 =
+(
+X ′
+2M 1X 2
+)−1 (
+X ′
+2M 1Y
+)
+where
+M 1 = I n − X 1
+(
+X ′
+1X 1
+)−1 X ′
+1 (3.36)
+is the annihilator matrix for X 1.
+Theorem 3.4 The least squares estimator
+(ˆβ1, ˆβ2
+)
+for (3.32) has the algebraic
+solution
+ˆβ1 =
+(
+X ′
+1M 2X 1
+)−1 (
+X ′
+1M 2Y
+)
+(3.37)
+ˆβ2 =
+(
+X ′
+2M 1X 2
+)−1 (
+X ′
+2M 1Y
+)
+(3.38)
+where M 1 and M 2 are deﬁned in (3.36) and (3.35), respectively.
+
+
+--- page 18 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 79
+3.17 Regression Components (Alternative Derivation)*
+An alternative proof of Theorem 3.4 uses an algebraic argument based on the population calculations
+from Section 2.22. Since this is a classic derivation we present it here for completeness.
+Partition ˆQ X X as
+ˆQ X X =
+
+
+ˆQ11 ˆQ12
+ˆQ21 ˆQ22
+
+ =
+
+
+
+1
+n X ′
+1X 1
+1
+n X ′
+1X 2
+1
+n X ′
+2X 1
+1
+n X ′
+2X 2
+
+
+
+and similarly ˆQ X Y as
+ˆQ X Y =
+
+
+ˆQ1Y
+ˆQ2Y
+
+ =
+
+
+
+1
+n X ′
+1Y
+1
+n X ′
+2Y
+
+
+.
+By the partitioned matrix inversion formula (A.3)
+ˆQ
+−1
+X X =
+
+
+ˆQ11 ˆQ12
+ˆQ21 ˆQ22
+
+
+−1
+def
+=
+
+
+ˆQ
+11 ˆQ
+12
+ˆQ
+21 ˆQ
+22
+
+ =
+
+
+ˆQ
+−1
+11·2 − ˆQ
+−1
+11·2 ˆQ12 ˆQ
+−1
+22
+− ˆQ
+−1
+22·1 ˆQ21 ˆQ
+−1
+11 ˆQ
+−1
+22·1
+
+ (3.39)
+where ˆQ11·2 = ˆQ11 − ˆQ12 ˆQ
+−1
+22 ˆQ21 and ˆQ22·1 = ˆQ22 − ˆQ21 ˆQ
+−1
+11 ˆQ12. Thus
+ˆβ =
+( ˆβ1
+ˆβ2
+)
+=
+[
+ˆQ
+−1
+11·2 − ˆQ
+−1
+11·2 ˆQ12 ˆQ
+−1
+22
+− ˆQ
+−1
+22·1 ˆQ21 ˆQ
+−1
+11 ˆQ
+−1
+22·1
+] [ ˆQ1Y
+ˆQ2Y
+]
+=
+(
+ˆQ
+−1
+11·2 ˆQ1Y ·2
+ˆQ
+−1
+22·1 ˆQ2Y ·1
+)
+.
+Now
+ˆQ11·2 = ˆQ11 − ˆQ12 ˆQ
+−1
+22 ˆQ21
+= 1
+n X ′
+1X 1 − 1
+n X ′
+1X 2
+( 1
+n X ′
+2X 2
+)−1 1
+n X ′
+2X 1
+= 1
+n X ′
+1M 2X 1
+and
+ˆQ1y·2 = ˆQ1Y − ˆQ12 ˆQ
+−1
+22 ˆQ2Y
+= 1
+n X ′
+1Y − 1
+n X ′
+1X 2
+( 1
+n X ′
+2X 2
+)−1 1
+n X ′
+2Y
+= 1
+n X ′
+1M 2Y .
+Equation (3.38) follows.
+Similarly to the calculation for ˆQ11·2 and ˆQ1Y ·2 you can show that ˆQ2Y ·1 = 1
+n X ′
+2M 1Y and ˆQ22·1 =
+1
+n X ′
+2M 1X 2. This establishes (3.37). Together, this is Theorem 3.4.
+
+
+--- page 19 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 80
+3.18 Residual Regression
+As ﬁrst recognized by Frisch and Waugh (1933) and extended by Lovell (1963), expressions (3.37)
+and (3.38) can be used to show that the least squares estimators ˆβ1 and ˆβ2 can be found by a two-step
+regression procedure.
+Take (3.38). Since M 1 is idempotent, M 1 = M 1M 1 and thus
+ˆβ2 =
+(
+X ′
+2M 1X 2
+)−1 (
+X ′
+2M 1Y
+)
+=
+(
+X ′
+2M 1M 1X 2
+)−1 (
+X ′
+2M 1M 1Y
+)
+=
+(
+˜X
+′
+2 ˜X 2
+)−1 (
+˜X
+′
+2˜e1
+)
+where ˜X 2 = M 1X 2 and ˜e1 = M 1Y .
+Thus the coefﬁcient estimatorˆβ2 is algebraically equal to the least squares regression of˜e1 on ˜X 2. No-
+tice that these two are Y and X 2, respectively, premultiplied byM 1. But we know that pre-multiplication
+by M 1 creates least squares residuals. Therefore ˜e1 is simply the least squares residual from a regression
+of Y on X 1, and the columns of ˜X 2 are the least squares residuals from the regressions of the columns of
+X 2 on X 1.
+We have proven the following theorem.
+Theorem 3.5 Frisch-Waugh-Lovell (FWL)
+In the model (3.31), the OLS estimator of β2 and the OLS residuals ˆe may be
+computed by either the OLS regression (3.32) or via the following algorithm:
+1. Regress Y on X 1, obtain residuals ˜e1;
+2. Regress X 2 on X 1, obtain residuals ˜X 2;
+3. Regress ˜e1 on ˜X 2, obtain OLS estimates ˆβ2 and residuals ˆe.
+In some contexts (such as panel data models, to be introduced in Chapter 17), the FWL theorem can
+be used to greatly speed computation.
+The FWL theorem is a direct analog of the coefﬁcient representation obtained in Section 2.23. The
+result obtained in that section concerned the population projection coefﬁcients; the result obtained here
+concern the least squares estimators. The key message is the same. In the least squares regression (3.32)
+the estimated coefﬁcientˆβ2 algebraically equals the regression ofY on the regressors X 2 after the regres-
+sors X 1 have been linearly projected out. Similarly, the coefﬁcient estimate ˆβ1 algebraically equals the
+regression of Y on the regressors X 1 after the regressors X 2 have been linearly projected out. This result
+can be insightful when interpreting regression coefﬁcients.
+A common application of the FWL theorem is the demeaning formula for regression obtained in
+(3.18). Partition X = [X 1 X 2] where X 1 = 1n is a vector of ones and X 2 is a matrix of observed regressors.
+In this case M 1 = I n − 1n
+(
+1′
+n1n
+)−1 1′
+n. Observe that ˜X 2 = M 1X 2 = X 2 −
+X 2 and M 1Y = Y − Y are the
+“demeaned” variables. The FWL theorem says that ˆβ2 is the OLS estimate from a regression of Yi − Y on
+X2i − X 2 :
+ˆβ2 =
+(
+n∑
+i =1
+(
+X2i − X 2
+) (
+X2i − X 2
+)′
+)−1 (
+n∑
+i =1
+(
+X2i − X 2
+) (
+Yi − Y
+))
+.
+This is (3.18).
+
+
+--- page 20 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 81
+Ragnar Frisch
+Ragnar Frisch (1895-1973) was co-winner with Jan Tinbergen of the ﬁrst No-
+bel Memorial Prize in Economic Sciences in 1969 for their work in developing
+and applying dynamic models for the analysis of economic problems. Frisch
+made a number of foundational contributions to modern economics beyond the
+Frisch-Waugh-Lovell Theorem, including formalizing consumer theory, produc-
+tion theory, and business cycle theory.
+3.19 Leverage Values
+The leverage values for the regressor matrix X are the diagonal elements of the projection matrix
+P = X
+(
+X ′X
+)−1 X ′ . There are n leverage values, and are typically written as hi i for i = 1, ...,n. Since
+P =
+
+
+X ′
+1
+X ′
+2
+..
+.
+X ′
+n
+
+
+
+(
+X ′X
+)−1 (
+X1 X2 · · · Xn
+)
+they are
+hi i = X ′
+i
+(
+X ′X
+)−1 Xi . (3.40)
+The leverage value hi i is a normalized length of the observed regressor vector Xi . They appear fre-
+quently in the algebraic and statistical analysis of least squares regression, including leave-one-out re-
+gression, inﬂuential observations, robust covariance matrix estimation, and cross-validation.
+A few properties of the leverage values are now listed.
+Theorem 3.6
+1. 0 ≤ hi i ≤ 1.
+2. hi i ≥ 1/n if X includes an intercept.
+3. ∑n
+i =1 hi i = k.
+We prove Theorem 3.6 below.
+The leverage value hi i measures how unusual the i t h observation Xi is relative to the other observa-
+tions in the sample. A largehi i occurs when Xi is quite different from the other sample values. A measure
+of overall unusualness is the maximum leverage value
+h = max
+1≤i ≤n
+hi i. (3.41)
+It is common to say that a regression design is balanced when the leverage values are all roughly
+equal to one another. From Theorem 3.6.3 we deduce that complete balance occurs whenhi i = h = k/n.
+An example of complete balance is when the regressors are all orthogonal dummy variables, each of
+which have equal occurrance of 0’ s and 1’ s.
+
+
+--- page 21 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 82
+A regression design is unbalanced if some leverage values are highly unequal from the others. The
+most extreme case is h = 1. An example where this occurs is when there is a dummy regressor which
+takes the value 1 for only one observation in the sample.
+The maximal leverage value (3.41) will change depending on the choice of regressors. For example,
+consider equation (3.13), the wage regression for single Asian men which has n = 268 observations. This
+regression has h = 0.33. If the squared experience regressor is omitted the leverage drops to h = 0.10. If a
+cubic in experience is added it increases toh = 0.76. And if a fourth and ﬁfth power are added it increases
+to h = 0.99.
+Some inference procedures (such as robust covariance matrix estimation and cross-validation) are
+sensitive to high leverage values. We will return to these issues later.
+We now prove Theorem 3.6. For part 1 letsi be an n × 1 unit vector with a 1 in the i t h place and zeros
+elsewhere so that hi i = s′
+i P si . Then applying the Quadratic Inequality (B.18) and Theorem 3.3.4,
+hi i = s′
+i P si ≤ s′
+i si λmax (P) = 1
+as claimed.
+For part 2 partition Xi = (1, Z ′
+i )′. Without loss of generality we can replace Zi with the demeaned
+values Z ∗
+i = Zi − Z . Then since Z ∗
+i and the intercept are orthgonal
+hi i = (1, Z ∗′
+i )
+[ n 0
+0 Z ∗′Z ∗
+]−1 ( 1
+Z ∗
+i
+)
+= 1
+n + Z ∗′
+i
+(
+Z ∗′Z ∗)−1 Z ∗
+i ≥ 1
+n .
+For part 3, ∑n
+i =1 hi i = tr P = k where the second equality is Theorem 3.3.3.
+3.20 Leave-One-Out Regression
+There are a number of statistical procedures – residual analysis, jackknife variance estimation, cross-
+validation, two-step estimation, hold-out sample evaluation – which make use of estimators constructed
+on sub-samples. Of particular importance is the case where we exclude a single observation and then
+repeat this for all observations. This is called leave-one-out (LOO) regression.
+Speciﬁcally, the leave-one-out estimator of the regression coefﬁcientβ is the least squares estimator
+constructed using the full sample excluding a single observation i . This can be written as
+ˆβ(−i ) =
+(
+∑
+j ̸=i
+X j X ′
+j
+)−1 (
+∑
+j ̸=i
+X j Y j
+)
+=
+(
+X ′X − Xi X ′
+i
+)−1 (
+X ′Y − Xi Yi
+)
+=
+(
+X ′
+(−i )X (−i )
+)−1
+X ′
+(−i )Y (−i ). (3.42)
+Here, X (−i ) and Y (−i ) are the data matrices omitting the i t h row. The notation ˆβ(−i ) or ˆβ−i is commonly
+used to denote an estimator with the i t h observation omitted. There is a leave-one-out estimator for
+each observation, i = 1, ...,n, so we have n such estimators.
+The leave-one-out predicted value for Yi is ˜Yi = X ′
+i
+ˆβ(−i ). This is the predicted value obtained by
+estimating β on the sample without observation i and then using the covariate vector Xi to predict Yi .
+Notice that ˜Yi is an authentic prediction as Yi is not used to construct ˜Yi . This is in contrast to the ﬁtted
+values ˆYi which are functions of Yi .
+
+
+--- page 22 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 83
+The leave-one-out residual, prediction error, or prediction residual is ˜ei = Yi − ˜Yi . The prediction
+errors may be used as estimators of the errors instead of the residuals. The prediction errors are better
+estimators than the residuals since the former are based on authentic predictions.
+The leave-one-out formula (3.42) gives the unfortunate impression that the leave-one-out coefﬁ-
+cients and errors are computationally cumbersome, requiring n separate regressions. In the context of
+linear regression this is fortunately not the case. There are simple linear expressions for ˆβ(−i ) and ˜ei .
+Theorem 3.7 The leave-one-out estimator and prediction error equal
+ˆβ(−i ) = ˆβ −
+(
+X ′X
+)−1 Xi ˜ei (3.43)
+and
+˜ei = (1 − hi i)−1 ˆei (3.44)
+where hi i are the leverage values as deﬁned in (3.40).
+We prove Theorem 3.7 at the end of the section.
+Equation (3.43) shows that the leave-one-out coefﬁcients can be calculated by a simple linear op-
+eration and do not need to be calculated using n separate regressions. Another interesting feature of
+equation (3.44) is that the prediction errors ˜ei are a simple scaling of the least squares residuals ˆei with
+the scaling dependent on the leverage valueshi i. If hi i is small then ˜ei ≃ ˆei . However if hi i is large then ˜ei
+can be quite different from ˆei . Thus the difference between the residuals and predicted values depends
+on the leverage values, that is, how unusual is Xi .
+To write (3.44) in vector notation, deﬁne
+M ∗ =
+(
+I n − diag{h11, ..,hnn }
+)−1
+= diag{(1 − h11)−1 ,.., (1 − hnn )−1}.
+Then (3.44) is equivalent to
+˜e = M ∗ˆe. (3.45)
+One use of the prediction errors is to estimate the out-of-sample mean squared error:
+˜σ2 = 1
+n
+n∑
+i =1
+˜e2
+i = 1
+n
+n∑
+i =1
+(1 − hi i)−2 ˆe2
+i . (3.46)
+This is known as the sample mean squared prediction error. Its square root ˜σ =
+p
+˜σ2 is the prediction
+standard error.
+We complete the section with a proof of Theorem 3.7. The leave-one-out estimator (3.42) can be
+written as
+ˆβ(−i ) =
+(
+X ′X − Xi X ′
+i
+)−1 (
+X ′Y − Xi Yi
+)
+. (3.47)
+Multiply (3.47) by
+(
+X ′X
+)−1 (
+X ′X − Xi X ′
+i
+)
+. We obtain
+ˆβ(−i ) −
+(
+X ′X
+)−1 Xi X ′
+i ˆβ(−i ) =
+(
+X ′X
+)−1 (
+X ′Y − Xi Yi
+)
+= ˆβ −
+(
+X ′X
+)−1 Xi Yi .
+Rewriting
+ˆβ(−i ) = ˆβ −
+(
+X ′X
+)−1 Xi
+(
+Yi − X ′
+i ˆβ(−i )
+)
+= ˆβ −
+(
+X ′X
+)−1 Xi ˜ei
+which is (3.43). Premultiplying this expression by X ′
+i and using deﬁnition (3.40) we obtain
+X ′
+i ˆβ(−i ) = X ′
+i ˆβ − X ′
+i
+(
+X ′X
+)−1 Xi ˜ei = X ′
+i ˆβ − hi i ˜ei .
+Using the deﬁnitions forˆei and ˜ei we obtain ˜ei = ˆei + hi i ˜ei . Re-writing we obtain (3.44).
+
+
+--- page 23 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 84
+3.21 Inﬂuential Observations
+Another use of the leave-one-out estimator is to investigate the impact of inﬂuential observations,
+sometimes called outliers. We say that observationi is inﬂuential if its omission from the sample induces
+a substantial change in a parameter estimate of interest.
+For illustration consider Figure 3.4 which shows a scatter plot of realizations (Yi , Xi ). The 25 observa-
+tions shown with the open circles are generated by Xi ∼ U [1,10] and Yi ∼ N(Xi , 4). The 26t h observation
+shown with the ﬁlled circle is X26 = 9, Y26 = 0. (Imagine that Y26 = 0 was incorrectly recorded due to a
+mistaken key entry.) The ﬁgure shows both the least squares ﬁtted line from the full sample and that
+obtained after deletion of the 26t h observation from the sample. In this example we can see how the 26t h
+observation (the “outlier”) greatly tilts the least squares ﬁtted line towards the 26t h observation. In fact,
+the slope coefﬁcient decreases from 0.97 (which is close to the true value of 1.00) to 0.56, which is sub-
+stantially reduced. Neither Y26 nor X26 are unusual values relative to their marginal distributions so this
+outlier would not have been detected from examination of the marginal distributions of the data. The
+change in the slope coefﬁcient of−0.41 is meaningful and should raise concern to an applied economist.
+●
+●
+●●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+2 4 6 8 10
+0 2 4 6 8 10
+x
+y
+●
+leave−one−out OLS
+OLS
+Figure 3.4: Impact of an Inﬂuential Observation on the Least-Squares Estimator
+From (3.43) we know that
+ˆβ − ˆβ(−i ) =
+(
+X ′X
+)−1 Xi ˜ei . (3.48)
+By direct calculation of this quantity for each observation i , we can directly discover if a speciﬁc obser-
+vation i is inﬂuential for a coefﬁcient estimate of interest.
+For a general assessment, we can focus on the predicted values. The difference between the full-
+sample and leave-one-out predicted values is
+ˆYi − ˜Yi = X ′
+i ˆβ − X ′
+i ˆβ(−i ) = X ′
+i
+(
+X ′X
+)−1 Xi ˜ei = hi i ˜ei
+which is a simple function of the leverage values hi i and prediction errors ˜ei . Observation i is inﬂuential
+for the predicted value if |hi i ˜ei |is large, which requires that both hi i and |˜ei |are large.
+One way to think about this is that a large leverage value hi i gives the potential for observation i to
+be inﬂuential. A large hi i means that observation i is unusual in the sense that the regressor Xi is far
+
+
+--- page 24 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 85
+from its sample mean. We call an observation with large hi i a leverage point. A leverage point is not
+necessarily inﬂuential as the latter also requires that the prediction error ˜ei is large.
+To determine if any individual observations are inﬂuential in this sense several diagnostics have been
+proposed (some names include DFITS, Cook’ s Distance, and Welsch Distance). Unfortunately, from a
+statistical perspective it is difﬁcult to recommend these diagnostics for applications as they are not based
+on statistical theory. Probably the most relevant measure is the change in the coefﬁcient estimates given
+in (3.48). The ratio of these changes to the coefﬁcient’ s standard error is called its DFBETA, and is a
+postestimation diagnostic available in Stata. While there is no magic threshold, the concern is whether
+or not an individual observation meaningfully changes an estimated coefﬁcient of interest. A simple
+diagnostic for inﬂuential observations is to calculate
+Inﬂuence = max
+1≤i ≤n
+⏐⏐ ˆYi − ˜Yi
+⏐
+⏐ = max
+1≤i ≤n
+|hi i ˜ei |.
+This is the largest (absolute) change in the predicted value due to a single observation. If this diagnostic
+is large relative to the distribution of Y it may indicate that that observation is inﬂuential.
+If an observation is determined to be inﬂuential what should be done? As a common cause of inﬂu-
+ential observations is data error, the inﬂuential observations should be examined for evidence that the
+observation was mis-recorded. Perhaps the observation falls outside of permitted ranges, or some ob-
+servables are inconsistent (for example, a person is listed as having a job but receives earnings of $0). If it
+is determined that an observation is incorrectly recorded, then the observation is typically deleted from
+the sample. This process is often called “cleaning the data” . The decisions made in this process involve a
+fair amount of individual judgment. [When this is done the proper practice is to retain the source data in
+its original form and create a program ﬁle which executes all cleaning operations (for example deletion
+of individual observations). The cleaned data ﬁle can be saved at this point, and then used for the subse-
+quent statistical analysis. The point of retaining the source data and a speciﬁc program ﬁle which cleans
+the data is twofold: so that all decisions are documented, and so that modiﬁcations can be made in re-
+visions and future research.] It is also possible that an observation is correctly measured, but unusual
+and inﬂuential. In this case it is unclear how to proceed. Some researchers will try to alter the speciﬁ-
+cation to properly model the inﬂuential observation. Other researchers will delete the observation from
+the sample. The motivation for this choice is to prevent the results from being skewed or determined
+by individual observations. This latter practice is viewed skeptically by many researchers who believe it
+reduces the integrity of reported empirical results.
+For an empirical illustration consider the log wage regression (3.13) for single Asian men. This regres-
+sion, which has 268 observations, has Inﬂuence= 0.29. This means that the most inﬂuential observation,
+when deleted, changes the predicted (ﬁtted) value of the dependent variable log(wage) by 0.29, or equiv-
+alently the average wage by 29%. This is a meaningful change and suggests further investigation. We
+examine the inﬂuential observation, and ﬁnd that its leveragehi i is 0.33. It is a moderately large leverage
+value, meaning that the regressor Xi is somewhat unusual. Examining further, we ﬁnd that this indi-
+vidual is 65 years old with 8 years education, so that his potential work experience is 51 years. This is
+the highest experience in the subsample – the next highest is 41 years. The large leverage is due to his
+unusual characteristics (very low education and very high experience) within this sample. Essentially,
+regression (3.13) is attempting to estimate the conditional mean at experience= 51 with only one obser-
+vation. It is not surprising that this observation determines the ﬁt and is thus inﬂuential. A reasonable
+conclusion is the regression function can only be estimated over a smaller range of experience. We re-
+strict the sample to individuals with less than 45 years experience, re-estimate, and obtain the following
+estimates.
+álog(wage) = 0.144 education + 0.043 experience − 0.095 experience2/100 + 0.531. (3.49)
+
+
+--- page 25 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 86
+For this regression, we calculate that Inﬂuence = 0.11, which is greatly reduced relative to the regression
+(3.13). Comparing (3.49) with (3.13), the slope coefﬁcient for education is essentially unchanged, but the
+coefﬁcients on experience and its square have slightly increased.
+By eliminating the inﬂuential observation equation (3.49) can be viewed as a more robust estimate
+of the conditional mean for most levels ofexperience. Whether to report (3.13) or (3.49) in an application
+is largely a matter of judgment.
+3.22 CPS Data Set
+In this section we describe the data set used in the empirical illustrations.
+The Current Population Survey (CPS) is a monthly survey of about 57,000 U.S. households conducted
+by the Bureau of the Census of the Bureau of Labor Statistics. The CPS is the primary source of informa-
+tion on the labor force characteristics of the U.S. population. The survey covers employment, earnings,
+educational attainment, income, poverty, health insurance coverage, job experience, voting and registra-
+tion, computer usage, veteran status, and other variables. Details can be found at www.census.gov/cps
+and dataferrett.census.gov.
+From the March 2009 survey we extracted the individuals with non-allocated variables who were full-
+time employed (deﬁned as those who had worked at least 36 hours per week for at least 48 weeks the past
+year), and excluded those in the military. This sample has 50,742 individuals. We extracted 14 variables
+from the CPS on these individuals and created the data set cps09mar. This data set, and all others used
+in this textbook, are available at http://www.ssc.wisc.edu/~bhansen/econometrics/.
+3.23 Numerical Computation
+Modern econometric estimation involves large samples and many covariates. Consequently, calcu-
+lation of even simple statistics such as the least squares estimator requires a large number (millions) of
+arithmetic operations. In practice most economists don’t need to think much about this as it is done
+swiftly and effortlessly on personal computers. Nevertheless it is useful to understand the underlying
+calculation methods as choices can occasionally make substantive differences.
+While today nearly all statistical computations are made using statistical software running on elec-
+tronic computers, this was not always the case. In the nineteenth and early twentieth centures “com-
+puter” was a job label for workers who made computations by hand. Computers were employed by as-
+tronomers and statistical laboratories. This fascinating job (and the fact that most computers employed
+in laboratories were women) has entered popular culture. For example the lives of several computers
+who worked for the early U.S. space program is described in the book and popular movie Hidden Fig-
+ures, a ﬁctional computer/astronaut is the protagonist of the novel The Calculating Stars, and the life of
+computer/astronomer Henrietta Swan Leavitt is dramatized in the play Silent Sky.
+Until programmable electronic computers became available in the 1960s economics graduate stu-
+dents were routinely employed as computers. Sample sizes were considerably smaller than those seen
+today, but still the effort required to calculate by hand a regression with even n = 100 observations and
+k = 5 variables is considerable! If you are a current graduate student you should feel fortunate that the
+profession has moved on from the era of human computers! (Now research assistants do more elevated
+tasks such as writing Stata and MATLAB code.)
+To obtain the least squares estimateˆβ =
+(
+X ′X
+)−1 (
+X ′Y
+)
+we need to either invertX ′X or solve a system
+of equations. To be speciﬁc, letA = X ′X and c = X ′Y so that the least squares estimate can be written as
+either the solution to
+A ˆβ = c (3.50)
+
+
+--- page 26 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 87
+or as
+ˆβ = A−1c. (3.51)
+The equations (3.50) and (3.51) are algebraically identical but they suggest two distinct numerical ap-
+proaches to obtain ˆβ. (3.50) suggests solving a system of k equations. (3.51) suggests ﬁnding A−1 and
+then multiplying by c. While the two expressions are algebraically identical the implied numerical ap-
+proaches are different.
+In a nutshell, solving the system of equations (3.50) is numerically preferred to the matrix inversion
+problem (3.51). Directly solving (3.50) is faster and produces a solution with a higher degree of numerical
+accuracy. Thus (3.50) is generally recommended over (3.51). However, in most practical applications the
+choice will not make any practical difference. Contexts where the choice may make a difference is when
+the matrix A is ill-conditioned (to be discussed in Section 3.24) or of extremely high dimension.
+Numerical methods to solve the system of equations (3.50) and calculate A−1 are discussed in Sec-
+tions A.18 and A.19, respectively.
+Statistical packages use a variety of matrix methods to solve (3.50). Stata uses the sweep algorithm
+which is a variant of the Gauss-Jordan algorithm discussed in Section A.18. (For the sweep algorithm see
+Goodnight (1979).) In R, solve(A,b) uses the QR decomposition. In MATLAB, A\b uses the Cholesky
+decomposition when A is positive deﬁnite and the QR decomposition otherwise.
+3.24 Collinearity Errors
+For the least squares estimator to be uniquely deﬁned the regressors cannot be linearly dependent.
+However, it is quite easy toattempt to calculate a regression with linearly dependent regressors. This can
+occur for many reasons, including the following.
+1. Including the same regressor twice.
+2. Including regressors which are a linear combination of one another, such as education, experience
+and age in the CPS data set example (recall, experience is deﬁned asage-education-6).
+3. Including a dummy variable and its square.
+4. Estimating a regression on a sub-sample for which a dummy variable is either all zeros or all ones.
+5. Including a dummy variable interaction which yields all zeros.
+6. Including more regressors than observations.
+In any of the above cases the regressors are linearly dependent so X ′X is singular and the least
+squares estimator is not unique. If you attempt to estimate the regression, you are likely to encounter an
+error message. (A possible exception is MATLAB using “A\b” , as discussed below.) The message may be
+that “system is exactly singular” , “system is computationally singular” , a variable is “omitted because of
+collinearity” , or a coefﬁcient is listed as “NA ” . In some cases (such as estimation in R using explicit matrix
+computation or MATLAB using the regress command) the program will stop execution. In other cases
+the program will continue to run. In Stata (and in the lm package in R), a regression will be reported but
+one or more variables will be omitted.
+If any of these warnings or error messages appear, the correct response is to stop and examine the
+regression coding and data. Did you make an unintended mistake? Have you included a linearly de-
+pendent regressor? Are you estimating on a subsample for which the variables (in particular dummy
+
+
+--- page 27 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 88
+variables) have no variation? If you can determine that one of these scenarios caused the error, the so-
+lution is immediately apparent. You need to respecify your model (either sample or regressors) so that
+the redundancy is eliminated. All empirical researchers encounter this error in the course of empirical
+work. You should not, however, simply accept output if the package has selected variables for omission.
+It is the researcher’ s job to understand the underlying cause and enact a suitable remedy.
+There is also a possibility that the statistical package will not detect and report the matrix singularity.
+If you compute in MATLAB using explicit matrix operations and use the recommendedA\b command to
+compute the least squares estimator MATLAB may return a numerical solution without an error message
+even when the regressors are algebraically dependent. It is therefore recommended that you perform a
+numerical check for matrix singularity when using explicit matrix operations in MATLAB.
+How can we numerically check if a matrix A is singular? A standard diagnostic is the reciprocal
+condition number
+C = λmin (A)
+λmax (A) .
+If C = 0 then A is singular. If C = 1 then A is perfectly balanced. If C is extremely small we say that A
+is ill-conditioned. The reciprocal condition number can be calculated in MATLAB or R by the rcond
+command. Unfortunately, there is no accepted tolerance for how small C should be before regarding
+A as numerically singular, in part since rcond(A) can return a positive (but small) result even if A is
+algebraically singular. However, in double precision (which is typically used for computation) numerical
+accuracy is bounded by 2−52 ≃ 2e-16, suggesting the minimum bound C ≥ 2e-16.
+Checking for numerical singularity is complicated by the fact that low values ofC can also be caused
+by unbalanced or highly correlated regressors.
+To illustrate, consider a wage regression using the sample from (3.13) on powers of experience X
+from 1 through k (e.g. X , X 2, X 3, ...,X k). We calculated the reciprocal condition number C for each k,
+and found that C is decreasing as k increases, indicating increasing ill-conditioning. Indeed, for k =
+5, we ﬁnd C = 6e-17, which is lower than double precision accuracy. This means that a regression on
+(X , X 2, X 3, X 4, X 5) is ill-conditioned. The regressor matrix, however, is not singular. The low value ofC is
+not due to algebraic singularity but rather is due to a lack of balance and high collinearity.
+Ill-conditioned regressors have the potential problem that the numerical results (the reported coef-
+ﬁcient estimates) will be inaccurate. It may not be a concern in most applications as this only occurs in
+extreme cases. Nevertheless, we should try and avoid ill-conditioned regressions whenever possible.
+There are strategies which can reduce or even eliminate ill-conditioning. Often it is sufﬁcient to
+rescale the regressors. A simple rescaling which often works for non-negative regressors is to divide each
+by its sample mean, thus replace X j i with X j i/
+X j . In the above example with the powers of experience,
+this means replacing X 2
+i with X 2
+i /
+(
+n−1 ∑n
+i =1 X 2
+i
+)
+, etc. Doing so dramatically reduces the ill-conditioning.
+With this scaling, regressions for k ≤ 11 satisfy C ≥ 1e-15. Another rescaling speciﬁc to a regression with
+powers is to ﬁrst rescale the regressor to lie in [−1, 1] before taking powers. With this scaling, regressions
+for k ≤ 16 satisfy C ≥ 1e-15. A simpler scaling option is to rescale the regressor to lie in [0,1] before taking
+powers. With this scaling, regressions for k ≤ 9 satisfy C ≥ 1e-15. This is often sufﬁcient for applications.
+Ill-conditioning can often be completely eliminated by orthogonalization of the regressors. This is
+achieved by sequentially regressing each variable (each column in X ) on the preceeding variables (each
+preceeding column), taking the residual, and then rescaling to have a unit variance. This will produce
+regressors which algebraically satisfy X ′X = nI n and have a condition number of C = 1. If we apply this
+method to the above example, we obtain a condition number close to 1 for k ≤ 20.
+What this shows is that when a regression has a small condition number it is important to examine
+the speciﬁcation carefully. It is possible that the regressors are linearly dependent in which case one or
+more regressors will need to be omitted. It is also possible that the regressors are badly scaled in which
+case it may be useful to rescale some of the regressors. It is also possible that the variables are highly
+
+
+--- page 28 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 89
+collinear in which case a possible solution is orthogonalization. These choices should be made by the
+researcher not by an automated software program.
+3.25 Programming
+Most packages allow both interactive programming (where you enter commands one-by-one) and
+batch programming (where you run a pre-written sequence of commands from a ﬁle). Interactive pro-
+gramming can be useful for exploratory analysis but eventually all work should be executed in batch
+mode. This is the best way to control and document your work.
+Batch programs are text ﬁles where each line executes a single command. For Stata, this ﬁle needs to
+have the ﬁlename extension “.do” , and for MATLAB “.m” . For R there is no speciﬁc naming requirements,
+though it is typical to use the extension “.r” . When writing batch ﬁles it is useful to include comments for
+documentation and readability. To execute a program ﬁle you type a command within the program.
+Stata: do chapter3 executes the ﬁlechapter3.do
+MATLAB: run chapter3 executes the ﬁlechapter3.m
+R: source(chapter3.r) or source(`chapter3.r') executes the ﬁlechapter3.r
+There are similarities and differences between the commands used in these packages. For example:
+1. Different symbols are used to create comments. * in Stata, # in R, and % in MATLAB.
+2. MATLAB uses the symbol ; to separate lines. Stata and R use a hard return.
+3. Stata uses ln() to compute natural logarithms. R and MATLAB use log().
+4. The symbol = is used to deﬁne a variable. R prefers<-. Double equality == is used to test equality.
+We now illustrate programming ﬁles for Stata, R, and MATLAB, which execute a portion of the em-
+pirical illustrations from Sections 3.7 and 3.21. For the R and MATLAB code we illustrate using explicit
+matrix operations. Alternatively, R and MATLAB have built-in functions which implement least squares
+regression without the need for explicit matrix operations. In R the standard function is lm . In MATLAB
+the standard function is regress. The advantage of using explicit matrix operations as shown below is
+that you know exactly what computations are done and it is easier to go “out of the box” to execute new
+procedures. The advantage of using built-in functions is that coding is simpliﬁed and you are much less
+likely to make a coding error.
+
+
+--- page 29 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 90
+Stata do File
+* Clear memory and load the data
+clear
+use cps09mar.dta
+* Generate transformations
+gen wage = ln(earnings/(hours*week))
+gen experience = age - education - 6
+gen exp2 = (experience^2)/100
+* Create indicator for subsamples
+gen mbf = (race == 2) & (marital <= 2) & (female == 1)
+gen mbf12 = (mbf == 1) & (experience == 12)
+gen sam = (race == 4) & (marital == 7) & (female == 0)
+* Regressions
+reg wage education if mbf12 == 1
+reg wage education experience exp2 if sam == 1
+* Leverage and inﬂuence
+predict leverage, hat
+predict e, residual
+gen d=e*leverage/(1-leverage)
+summarize d if sam ==1
+
+
+--- page 30 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 91
+R Program File
+# Load the data and create subsamples
+dat <- read.table("cps09mar.txt")
+experience <- dat[,1]-dat[,4]-6
+mbf <- (dat[,11]==2)&(dat[,12]<=2)&(dat[,2]==1)&(experience==12)
+sam <- (dat[,11]==4)&(dat[,12]==7)&(dat[,2]==0)
+dat1 <- dat[mbf,]
+dat2 <- dat[sam,]
+# First regression
+y <- as.matrix(log(dat1[,5]/(dat1[,6]*dat1[,7])))
+x <- cbind(dat1[,4],matrix(1,nrow(dat1),1))
+xx <- t(x)%*%x
+xy <- t(x)%*%y
+beta <- solve(xx,xy)
+print(beta)
+# Second regression
+y <- as.matrix(log(dat2[,5]/(dat2[,6]*dat2[,7])))
+experience <- dat2[,1]-dat2[,4]-6
+exp2 <- (experience^2)/100
+x <- cbind(dat2[,4],experience,exp2,matrix(1,nrow(dat2),1))
+xx <- t(x)%*%x
+xy <- t(x)%*%y
+beta <- solve(xx,xy)
+print(beta)
+# Create leverage and inﬂuence
+e <- y-x%*%beta
+xxi <- solve(xx)
+leverage <- rowSums(x*(x%*%xxi))
+r <- e/(1-leverage)
+d <- leverage*e/(1-leverage)
+print(max(abs(d)))
+
+
+--- page 31 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 92
+MATLAB Program File
+% Load the data and create subsamples
+dat = load cps09mar.txt;
+# An alternative to load the data from an excel ﬁle is
+# dat = xlsread(’cps09mar.xlsx’);
+experience = dat(:,1)-dat(:,4)-6;
+mbf = (dat(:,11)==2)&(dat(:,12)<=2)&(dat(:,2)==1)&(experience==12);
+sam = (dat(:,11)==4)&(dat(:,12)==7)&(dat(:,2)==0);
+dat1 = dat(mbf,:);
+dat2 = dat(sam,:);
+% First regression
+y = log(dat1(:,5)./(dat1(:,6).*dat1(:,7)));
+x = [dat1(:,4),ones(length(dat1),1)];
+xx = x’*x
+xy = x’*y
+beta = xx\xy;
+display(beta);
+% Second regression
+y = log(dat2(:,5)./(dat2(:,6).*dat2(:,7)));
+experience = dat2(:,1)-dat2(:,4)-6;
+exp2 = (experience.^2)/100;
+x = [dat2(:,4),experience,exp2,ones(length(dat2),1)];
+xx = x’*x
+xy = x’*y
+beta = xx\xy;display(beta);
+% Create leverage and inﬂuence
+e = y-x*beta;
+xxi = inv(xx)
+leverage = sum((x.*(x*xxi))’)’;
+d = leverage.*e./(1-leverage);
+inﬂuence = max(abs(d));
+display(inﬂuence);
+_____________________________________________________________________________________________
+3.26 Exercises
+Exercise 3.1 Let Y be a random variable with µ = E[Y ] and σ2 = var[Y ]. Deﬁne
+g
+(
+y, µ, σ2)
+=
+(
+y − µ(
+y − µ
+)2 − σ2
+)
+.
+Let (ˆµ, ˆσ2) be the values such thatg n(ˆµ, ˆσ2) = 0 where g n(m, s) = n−1 ∑n
+i =1 g
+(
+yi ,m, s
+)
+. Show that ˆµ and ˆσ2
+are the sample mean and variance.
+Exercise 3.2 Consider the OLS regression of the n × 1 vector Y on the n × k matrix X . Consider an al-
+ternative set of regressors Z = XC , where C is a k × k non-singular matrix. Thus, each column of Z is a
+
+
+--- page 32 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 93
+mixture of some of the columns of X . Compare the OLS estimates and residuals from the regression ofY
+on X to the OLS estimates from the regression of Y on Z .
+Exercise 3.3 Using matrix algebra, show X ′ˆe = 0.
+Exercise 3.4 Let ˆe be the OLS residual from a regression of Y on X = [X 1 X 2]. Find X ′
+2ˆe.
+Exercise 3.5 Let ˆe be the OLS residual from a regression of Y on X . Find the OLS coefﬁcient from a
+regression of ˆe on X .
+Exercise 3.6 Let ˆY = X (X ′X )−1X ′Y . Find the OLS coefﬁcient from a regression of ˆY on X .
+Exercise 3.7 Show that if X = [X 1 X 2] then P X 1 = X 1 and M X 1 = 0.
+Exercise 3.8 Show that M is idempotent: M M = M.
+Exercise 3.9 Show that trM = n − k.
+Exercise 3.10 Show that if X = [X 1 X 2] and X ′
+1X 2 = 0 then P = P 1 + P 2.
+Exercise 3.11 Show that when X contains a constant, n−1 ∑n
+i =1 ˆYi =
+Y .
+Exercise 3.12 A dummy variable takes on only the values 0 and 1. It is used for categorical variables. Let
+D 1 and D 2 be vectors of 1’ s and 0’ s, with thei t h element of D 1 equaling 1 and that of D 2 equaling 0 if the
+person is a man, and the reverse if the person is a woman. Suppose that there aren1 men and n2 women
+in the sample. Consider ﬁtting the following three equations by OLS
+Y = µ + D 1α1 + D 2α2 + e (3.52)
+Y = D 1α1 + D 2α2 + e (3.53)
+Y = µ + D 1φ + e (3.54)
+Can all three equations (3.52), (3.53), and (3.54) be estimated by OLS? Explain if not.
+(a) Compare regressions (3.53) and (3.54). Is one more general than the other? Explain the relationship
+between the parameters in (3.53) and (3.54).
+(b) Compute 1′
+nD 1 and 1′
+nD 2, where 1n is an n × 1 vector of ones.
+Exercise 3.13 Let D 1 and D 2 be deﬁned as in the previous exercise.
+(a) In the OLS regression
+Y = D 1 ˆγ1 + D 2 ˆγ2 + ˆu,
+show that ˆγ1 is the sample mean of the dependent variable among the men of the sample (
+Y 1),
+and that ˆγ2 is the sample mean among the women (Y 2).
+(b) Let X (n × k) be an additional matrix of regressors. Describe in words the transformations
+Y ∗ = Y − D 1Y 1 − D 2Y 2
+X ∗ = X − D 1X
+′
+1 − D 2X
+′
+2
+where
+X 1 and X 2 are the k × 1 means of the regressors for men and women, respectively.
+
+
+--- page 33 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 94
+(c) Compare ˜β from the OLS regression
+Y ∗ = X ∗ ˜β + ˜e
+with ˆβ from the OLS regression
+Y = D 1 ˆα1 + D 2 ˆα2 + X ˆβ + ˆe.
+Exercise 3.14 Let ˆβn =
+(
+X ′
+n X n
+)−1 X ′
+nY n denote the OLS estimate whenY n is n × 1 and X n is n × k. A new
+observation (Yn+1, Xn+1) becomes available. Prove that the OLS estimate computed using this additional
+observation is
+ˆβn+1 = ˆβn + 1
+1 + X ′
+n+1
+(
+X ′
+n X n
+)−1 Xn+1
+(
+X ′
+n X n
+)−1 Xn+1
+(
+Yn+1 − X ′
+n+1 ˆβn
+)
+.
+Exercise 3.15 Prove that R2 is the square of the sample correlation between Y and ˆY .
+Exercise 3.16 Consider two least squares regressions
+Y = X 1 ˜β1 + ˜e
+and
+Y = X 1 ˆβ1 + X 2 ˆβ2 + ˆe.
+Let R2
+1 and R2
+2 be the R-squared from the two regressions. Show that R2
+2 ≥ R2
+1. Is there a case (explain)
+when there is equality R2
+2 = R2
+1?
+Exercise 3.17 For ˜σ2 deﬁned in (3.46), show that˜σ2 ≥ ˆσ2. Is equality possible?
+Exercise 3.18 For which observations will ˆβ(−i ) = ˆβ?
+Exercise 3.19 For the intercept-only model Yi = β + ei , show that the leave-one-out prediction error is
+˜ei =
+( n
+n − 1
+) (
+Yi − Y
+)
+.
+Exercise 3.20 Deﬁne the leave-one-out estimator ofσ2,
+ˆσ2
+(−i ) = 1
+n − 1
+∑
+j ̸=i
+(
+Y j − X ′
+j ˆβ(−i )
+)2
+.
+This is the estimator obtained from the sample with observation i omitted. Show that
+ˆσ2
+(−i ) = n
+n − 1 ˆσ2 −
+ˆe2
+i
+(n − 1)(1 − hi i) .
+Exercise 3.21 Consider the least squares regression estimators
+Yi = X1i ˆβ1 + X2i ˆβ2 + ˆei
+and the “one regressor at a time” regression estimators
+Yi = X1i ˜β1 + ˜e1i , Yi = X2i ˜β2 + ˜e2i
+Under what condition does ˜β1 = ˆβ1 and ˜β2 = ˆβ2?
+
+
+--- page 34 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 95
+Exercise 3.22 You estimate a least squares regression
+Yi = X ′
+1i ˜β1 + ˜ui
+and then regress the residuals on another set of regressors
+˜ui = X ′
+2i ˜β2 + ˜ei
+Does this second regression give you the same estimated coefﬁcients as from estimation of a least squares
+regression on both set of regressors?
+Yi = X ′
+1i ˆβ1 + X ′
+2i ˆβ2 + ˆei
+In other words, is it true that ˜β2 = ˆβ2? Explain your reasoning.
+Exercise 3.23 The data matrix is (Y, X ) with X = [X 1, X 2], and consider the transformed regressor matrix
+Z = [X 1, X 2 − X 1]. Suppose you do a least squares regression ofY on X , and a least squares regression of
+Y on Z . Let ˆσ2 and ˜σ2 denote the residual variance estimates from the two regressions. Give a formula
+relating ˆσ2 and ˜σ2? (Explain your reasoning.)
+Exercise 3.24 Use thecps09mar data set described in Section 3.22 and available on the textbook website.
+Take the sub-sample used for equation (3.49) (see Section 3.25) for data construction)
+(a) Estimate equation (3.49) and compute the equation R2 and sum of squared errors.
+(b) Re-estimate the slope on education using the residual regression approach. Regress log(wage) on
+experience and its square, regress education on experience and its square, and the residuals on the
+residuals. Report the estimates from this ﬁnal regression, along with the equation R2 and sum of
+squared errors. Does the slope coefﬁcient equal the value in (3.49)? Explain.
+(c) Are the R2 and sum-of-squared errors from parts (a) and (b) equal? Explain.
+Exercise 3.25 Estimate equation (3.49) as in part (a) of the previous question. Let ˆei be the OLS resid-
+ual, ˆYi the predicted value from the regression, X1i be education and X2i be experience. Numerically
+calculate the following:
+(a) ∑n
+i =1 ˆei
+(b) ∑n
+i =1 X1i ˆei
+(c) ∑n
+i =1 X2i ˆei
+(d) ∑n
+i =1 X 2
+1i ˆei
+(e) ∑n
+i =1 X 2
+2i ˆei
+(f) ∑n
+i =1 ˆYi ˆei
+(g) ∑n
+i =1 ˆe2
+i
+Are these calculations consistent with the theoretical properties of OLS? Explain.
+Exercise 3.26 Use the cps09mar data set.
+
+
+--- page 35 ---
+
+CHAPTER 3. THE ALGEBRA OF LEAST SQUARES 96
+(a) Estimate a log wage regression for the subsample of white male Hispanics. In addition to educa-
+tion, experience, and its square, include a set of binary variables for regions and marital status. For
+regions, create dummy variables for Northeast, South and West so that Midwest is the excluded
+group. For marital status, create variables for married, widowed or divorced, and separated, so that
+single (never married) is the excluded group.
+(b) Repeat using a different econometric package. Compare your results. Do they agree?

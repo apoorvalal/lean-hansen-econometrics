@@ -1,0 +1,3795 @@
+--- page 1 ---
+
+Chapter 28
+Model Selection, Stein Shrinkage, and
+Model Averaging
+28.1 Introduction
+The chapter reviews model selection, James-Stein shrinkage, and model averaging.
+Model selection is a tool for selecting one model (or estimator) out of a set of models. Different model
+selection methods are distinguished by the criteria used to rank and compare models.
+Model averaging is a generalization of model selection. Models and estimators are averaged using
+data-dependent weights.
+James-Stein shrinkage modiﬁes classical estimators by shrinking towards a reasonable target. Shrink-
+ing reduces mean squared error.
+Two excellent monographs on model selection and averaging are Burnham and Anderson (1998) and
+Claeskens and Hjort (2008). James-Stein shrinkage theory is thoroughly covered in Lehmann and Casella
+(1998). See also Efron (2010) and Wasserman (2006).
+28.2 Model Selection
+In the course of an applied project an economist will routinely estimate multiple models. Indeed,
+most applied papers include tables displaying the results from different speciﬁcations. The question
+arises: Which model is best? Which should be used in practice? How can we select the best choice? This
+is the question of model selection.
+Take, for example, a wage regression. Suppose we want a model which conditions on education,
+experience, region, and marital status. How should we proceed? Should we estimate a simple linear
+model plus a quadratic in experience? Should education enter linearly, a simple spline as in Figure 2.6(a),
+or with separate dummies for each education level? Should marital status enter as a simple dummy
+(married or not) or allowing for all recorded categories? Should interactions be included? Which? How
+many? Taken together we need to select the speciﬁc regressors to include in the regression model.
+Model “selection” may be mis-named. It would be more appropriate to call the issue “estimator se-
+lection” . When we examine a table containing the results from multiple regressions we are comparing
+multiple estimates of the same regression. One estimator may include fewer variables than another; that
+is a restricted estimator. One may be estimated by least squares and another by 2SLS. Another could
+be nonparametric. The underlying model is the same; the difference is the estimator. Regardless, the
+literature has adopted the term “model selection” and we will adhere to this convention.
+859
+
+
+--- page 2 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 860
+To gain some basic understanding it may be helpful to start with a stylzed example. Suppose that
+we have a K × 1 estimator ˆθ which has mean θ and known covariance matrix V . An alternative feasible
+estimator is ˜θ = 0. The latter may seem like a silly estimator but it captures the feature that model se-
+lection typically concerns exclusion restrictions. In this context we can compare the accuracy of the two
+estimators by their weighted mean-squared error (WMSE). For a given weight matrix W deﬁne
+wmse
+[ˆθ
+]
+= tr
+(
+E
+[(ˆθ − θ
+) (ˆθ − θ
+)′]
+W
+)
+= E
+[(ˆθ − θ
+)′
+W
+(ˆθ − θ
+)]
+.
+The calculations simplify by setting W = V −1 which we do for our remaining calculations.
+For our two estimators we calculate that
+wmse
+[ˆθ
+]
+= K (28.1)
+wmse
+[˜θ
+]
+= θ′V −1θ
+def
+= λ. (28.2)
+(See Exercise 28.1) The WMSE of ˆθ is smaller if K < λ and the WMSE of ˜θ is smaller if K > λ. One insight
+from this simple analysis is that we should prefer smaller (simpler) models when potentially omitted
+variables have small coefﬁcients relative to estimation variance, and should prefer larger (more compli-
+cated) models when these variables have large coefﬁcients relative to estimation variance.
+The comparison between (28.1) and (28.2) is a basic bias-variance trade-off. The estimator ˆθ is un-
+biased but has a variance contribution of K . The estimator ˜θ has zero variance but has a squared bias
+contribution λ. The WMSE combines these two components.
+Selection based on WMSE suggests that we should select the estimator ˆθ if K < λ and select ˜θ if
+K > λ. This is infeasible since λ is unknown. It can be estimated by replacing ˆθ with θ. This estimator is
+ˆλ = ˆθ′V −1 ˆθ = W , the Wald statistic for the test of θ = 0. However, the estimator ˆλ has expectation
+E
+[ˆλ
+]
+= E
+[ˆθ′V −1′ ˆθ
+]
+= θ′V −1′θ + E
+[(ˆθ − θ
+)′
+V −1 (ˆθ − θ
+)]
+= λ + K
+so is biased itself. An unbiased estimator is ˜λ = ˆλ − K . Notice that ˜λ > K is the same as W > 2K . This
+leads to the model-selection rule: Use ˆθ if W > 2K and use ˜θ otherwise.
+This is an overly-simplistic setting but highlights the fundamental ingredients of criterion-based
+model selection. Comparing the MSE of different estimators typically involves a trade-off between the
+bias and variance with more complicated models exhibiting less bias but increased estimation variance.
+The actual trade-off is unknown since the bias depends on the unknown true parameters. The bias,
+however, can be estimated, giving rise to empirical estimates of the MSE and empirical model selection
+rules.
+A large number of model selection criteria have been proposed. We list here those most frequently
+used in applied econometrics.
+We ﬁrst list selection criteria for the linear regression modelY = X ′β+e with σ2 = E
+[
+e2]
+and a k× 1 co-
+efﬁcient vectorβ. Let ˆβ be the least squares estimator, ˆei the least squares residual, and ˆσ2 = n−1 ∑n
+i =1 ˆe2
+i
+the variance estimator. The number of estimated parameters (β and σ2) is K = k + 1.
+Bayesian Information Criterion
+BIC = n + n log
+(
+2πˆσ2)
++ K log(n). (28.3)
+Akaike Information Criterion
+AIC = n + n log
+(
+2πˆσ2)
++ 2K . (28.4)
+
+
+--- page 3 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 861
+Cross-Validation
+CV =
+n∑
+i =1
+˜e2
+i (28.5)
+where ˜ei are the least squares leave-one-out prediction errors.
+We next list two commonly-used selection criteria for likelihood-based estimation. Let f (y, θ) be a
+parametric density with a K × 1 parameter θ. The likelihood Ln(θ) = ∏n
+i =1 f (Yi , θ) is the density evaluated
+at the observations. The maximum likelihood estimator ˆθ maximizes ℓn(θ) = logLn(θ).
+Bayesian Information Criterion
+BIC = −2ℓn(ˆθ) + K log(n). (28.6)
+Akaike Information Criterion
+AIC = −2ℓn(ˆθ) + 2K . (28.7)
+In the following sections we derive and discuss these and other model selection criteria.
+28.3 Bayesian Information Criterion
+The Bayesian Information Criterion (BIC), also known as theSchwarz Criterion, was introduced by
+Schwarz (1978). It is appropriate for parametric models estimated by maximum likelihood and is used
+to select the model with the highest approximate probability of being the true model.
+Let f (y, θ) be the parametric model density, and let π(θ) be the prior density for θ. The joint density
+of Y and θ is f (y, θ)π(θ). The marginal density of Y is
+p(y) =
+∫
+f (y, θ)π(θ)d θ.
+The marginal density p(Y ) evaluated at the observations is known as the marginal likelihood.
+Schwarz (1978) established the following approximation.
+Theorem 28.1 Schwarz . If the model f (y, θ) satisﬁes standard regularity con-
+ditions and the prior π(θ) is diffuse then
+−2 logp(Y ) = −2ℓn(ˆθ) + K log(n) +O(1)
+where the O(1) term is bounded as n → ∞.
+A heuristic proof for normal linear regression is given in Section 28.32. A “diffuse” prior is one which
+distributes weight uniformly over the parameter space.
+Schwarz’ s theorem shows that the marginal likelihood approximately equals the maximized likeli-
+hood multiplied by an adjustment depending on the number of estimated parameters and the sample
+size. The approximation (28.6) is commonly called the Bayesian Information Criterion or BIC. The BIC
+is a penalized log likelihood. The term K log(n) can be interpreted as an over-parameterization penalty.
+The multiplication of the log likelihood by −2 is traditional as it puts the criterion into the same units as
+a log-likelihood statistic.
+
+
+--- page 4 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 862
+In the context of normal linear regression we have calculated in (5.6) that
+ℓn(ˆθ) = −n
+2
+(
+log(2π) + 1
+)
+− n
+2 log
+(
+ˆσ2)
+where ˆσ2 is the residual variance estimate. Hence BIC equals (28.3) with K = k + 1.
+Since n log(2π) + n does not vary across models this term is often omitted. It is better, however, to
+deﬁne the BIC as described above so that different parametric families are comparable. It is also useful
+to know that some authors deﬁne the BIC by dividing the above expression byn (e.g. BIC = log
+(
+2πˆσ2)
++
+K log(n)/n) which does not change the rankings between models. However, this is an unwise choice
+because it alters the scaling, making it difﬁcult to compare the degree of difference between models.
+Now suppose that we have two modelsM1 and M2 which have marginal likelihoodsp1(Y ) and p2(Y ).
+Assume that both models have equal prior probability. Bayes Theorem states that the probability that a
+model is true given the data is proportional to its marginal likelihood. Speciﬁcally
+P[M1 |Y ] = p1(Y )
+p1(Y ) + p2(Y )
+P[M2 |Y ] = p2(Y )
+p1(Y ) + p2(Y ) .
+Bayes selection picks the model with highest probability. Thus if p1(Y ) > p2(Y ) we select M1. If
+p1(Y ) < p2(Y ) we select M2.
+Finding the model with highest marginal likelihood is the same as ﬁnding the model with lowest
+value of −2 logp(Y ). Theorem 28.1 shows that the latter approximately equals the BIC. BIC selection
+picks the model with the lowest1 value of BIC. Thus BIC selection is approximate Bayes selection.
+The above discussion concerned two models but applies to any number of models. BIC selection
+picks the model with the smallest BIC. For implementation you simply estimate each model, calculate
+its BIC, and compare.
+The BIC may be obtained in Stata by using the command estimates stats after an estimated
+model.
+28.4 Akaike Information Criterion for Regression
+The Akaike Information Criterion (AIC) was introduced by Akaike (1973). It is used to select the
+model whose estimated density is closest to the true density. It is designed for parametric models esti-
+mated by maximum likelihood.
+Let ˆf (y) be an estimate of the unknown density g (y) of the observation vector Y = (Y1, ...,Yn). For
+example, the normal linear regression estimate of g (y) is ˆf (y) = ∏n
+i =1 φˆσ
+(
+Yi − X ′
+i
+ˆβ
+)
+.
+To measure the distance between densities g and f Akaike used the Kullback-Leibler information
+criterion (KLIC)
+KLIC(g , f ) =
+∫
+g (y)log
+(g (y)
+f (y)
+)
+d y.
+Notice that KLIC(g , f ) = 0 when f (y) = g (y). By Jensen’ s inequality,
+KLIC(g , f ) = −
+∫
+g (y)log
+( f (y)
+g (y)
+)
+d y ≥ −log
+∫
+f (y)d y = 0.
+Thus KLIC(g , f ) is a non-negative measure of the deviation of f from g , with small values indicating a
+smaller deviation.
+1When the BIC is negative this means taking the most negative value.
+
+
+--- page 5 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 863
+g(x)
+f(x)
+(a) f (x) and g (x)
+ (b) log(f (x)/g (x))
+Figure 28.1: Kullback-Leibler Distance Measure
+To illustrate, in Figure 28.1 we display two densities and their log ratio. In panel (a) we display two
+densities f (x) and g (x). For concreteness, the density g (x) is the nonparametric estimate of the log wage
+density displayed in Figure 2.1. The density f (x) is the MLE of a log-normal parametric model. You
+can see that the two densites are quite similar and have the same general shape. The parametric model,
+however, is somewhat lower at the peak, and may over-state the right tail of the density. In panel (b) you
+see the log ratio log(f (x)/g (x)). The dashed line is 0 for reference. If the two densities were the same then
+the plot would equal the zero line. Negative values indicate regions where f (x) < g (x). Positive values
+indicate regions where f (x) > g (x). In this plot we see that the largest percentage deviations are in the
+right tail. The KLIC is the weighted integral of this log ratio function. It is a weighted average with weights
+given by the density g (x). Since g (x) puts most probability mass in the left-middle of the plot this is the
+region emphasized by the KLIC calcuation. Thus while the right tail has the largest deviations it does not
+receive a large weight in the KLIC because the density g (x) has little probability mass there.
+The KLIC distance between the true and estimated densities is
+KLIC(g , ˆf ) =
+∫
+g (y)log
+(
+g
+(
+y
+)
+ˆf
+(
+y
+)
+)
+d y
+=
+∫
+g (y)log
+(
+g
+(
+y
+))
+d y −
+∫
+g (y)log
+(ˆf
+(
+y
+))
+d y.
+This is random as it depends on the estimator ˆf . Akaike proposed the expected KLIC distance
+E
+[
+KLIC(g , ˆf )
+]
+=
+∫
+g (y)log
+(
+g
+(
+y
+))
+d y − E
+[∫
+g (y)log
+(ˆf
+(
+y
+))
+d y
+]
+. (28.8)
+The ﬁrst term in (28.8) does not depend on the model. So minimization of expected KLIC distance is
+minimization of the second term. Multiplied by 2 (similarly to the BIC) this is
+T = −2E
+[∫
+g (y)log
+(ˆf (y)
+)
+d y
+]
+. (28.9)
+
+
+--- page 6 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 864
+The expectation is over the random estimator ˆf .
+An alternative interpretation is to notice that the integral in (28.9) is an expectation over Y with re-
+spect to the true data density g (y). Thus we can write (28.9) as
+T = −2E
+[
+log
+(ˆf
+(˜Y
+))]
+(28.10)
+where ˜Y is an independent copy of Y . The key to understand this expression is that both the estimator
+ˆf and the evaluation points ˜Y are random and independently distributed. This is the expected log-
+likelihood ﬁt using the estimated model ˆf of an out-of-sample realization ˜Y . Thus T can be interpreted
+as an expected predictive log likelihood. Models with low values of T have good ﬁt based on the out-of-
+sample log-likelihood.
+To gain further understanding we consider the simple case of the normal linear regression model
+with K regressors. The log density of the model for the observations is
+log f (Y , X , θ) = −n
+2 log
+(
+2πσ2)
+− 1
+2σ2
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2 . (28.11)
+The expected value at the true parameter values is− n
+2 log
+(
+2πσ2)
+− n
+2 . This means that the idealized value
+of T is T0 = n log
+(
+2πσ2)
++ n. This would be the value obtained if there were no estimation error.
+We now add the assumption that the variance σ2 is known. This is not realistic but simpliﬁes the
+calculations.
+Theorem 28.2 Suppose ˆf (y) is an estimated normal linear regression model
+with K regressors and a known variance σ2. Suppose that the true density g (y)
+is a conditionally homoskedastic regression with variance σ2. Then
+T = n log
+(
+2πσ2)
++ n + K = T0 + K (28.12)
+E
+[
+−2ℓn(ˆθ)
+]
+= n log
+(
+2πσ2)
++ n − K = T0 − K . (28.13)
+The proof is given in Section 28.32.
+These expressions are interesting. Expression (28.12) shows that the expected KLIC distanceT equals
+the idealized value T0 plus K . The latter is the cost of parameter estimation, measured in terms of ex-
+pected KLIC distance. By estimating parameters (rather than using the true values) the expected KLIC
+distance increases linearly with K .
+Expression (28.13) shows the converse story. It shows that the sample log-likelihood function is
+smaller than the idealized value T0 by K . This is the cost of in-sample over-ﬁtting. The sample log-
+likelihood is an in-sample measure of ﬁt and therefore understates the population log-likelihood. The
+two expressions together show that the sample log-likelihood is smaller than the target value T by 2K .
+This is the combined cost of over-ﬁtting and parameter estimation.
+Combining these expressions we can suggest an unbiased estimator for T . In the normal regression
+model we use (28.4). Since n log(2π)+n does not vary across models it are often omitted. Thus for linear
+regression it is common to use the deﬁnition AIC= n log
+(
+ˆσ2)
++ 2K .
+Interestingly the AIC takes a very similar form to the BIC. Both the AIC and BIC are penalized log like-
+lihoods, and both penalties are proportional to the number of estimated parameters K . The difference
+is that the AIC penalty is 2 K while the BIC penalty is K log(n). Since 2 < log(n) if n ≥ 8 the BIC uses a
+stronger parameterization penalty.
+
+
+--- page 7 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 865
+Selecting a model by the AIC is equivalent to calculating the AIC for each model and selecting the
+model with the lowest2 value.
+Theorem 28.3 Under the assumptions of Theorem 28.2, E[AIC] = T . AIC is
+thus an unbiased estimator of T .
+One of the interesting features of these results are that they are exact – there is no approximation
+error – and they do not require that the true error is normally distributed. The critical assumption is
+conditional homoskedasticity. If homoskedasticity fails then the AIC loses its validity. In more general
+contexts these results do not hold exactly but instead hold as approximations (as discussed in the next
+section).
+The AIC may be obtained in Stata by using the command estimates stats after an estimated
+model.
+28.5 Akaike Information Criterion for Likelihood
+For the general likelihood context Akaike proposed the criterion (28.7). Here, ˆθ is the maximum
+likelihood estimator, ℓn(ˆθ) is the maximized log-likelihood function, and K is the number of estimated
+parameters. This specializes to (28.4) for the case of a normal linear regression model.
+As for regression, AIC selection is performed by estimating a set of models, calculating AIC for each,
+and selecting the model with the smallest AIC.
+The advantages of the AIC are that it is simple to calculate, easy to implement, and straightforward
+to interpret. It is intuitive as it is a simple penalized likelihood.
+The disadvantage is that its simplicity may be deceptive. The proof shows that the criterion is based
+on a quadratic approximation to the log likelihood and an asymptotic chi-square approximation to the
+classical Wald statistic. When these conditions fail then the AIC may not be accurate. For example,
+if the model is an approximate (quasi) likelihood rather than a true likelihood then the failure of the
+information matrix equality implies that the classical Wald statistic is not asymptotically normal. In
+this case the accuracy of AIC fails. Another problem is that many nonlinear models have parameter
+regions where parametric identiﬁcation fails. In these models the quadratic approximation to the log
+likelihood function fails to hold uniformly in the parameter space so the accuracy of the AIC fails. These
+qualiﬁcations point to challenges in interpretation of the AIC in nonlinear models.
+The following is an analog of Theorem 28.3.
+Theorem 28.4 Under standard regularity conditions for maximum likelihood
+estimation, plus the assumption that certain statistics (identiﬁed in the proof)
+are uniformly integrable, E[AIC] = T + O
+(
+n1/2)
+. AIC is thus an approximately
+unbiased estimator of T .
+A sketch of the proof is given in Section 28.32.
+This result shows that the AIC is, in general, a reasonable estimator of the KLIC ﬁt of an estimated
+parametric model. The theorem holds broadly for maximum likelihood estimation and thus the AIC can
+be used in a wide variety of contexts.
+2When the AIC is negative this means taking the most negative value.
+
+
+--- page 8 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 866
+28.6 Mallows Criterion
+The Mallows Criterion was proposed by Mallows (1973) and is often called the Cp criterion. It is
+appropriate for linear estimators of homoskedastic regression models.
+Take the homoskedastic regression framework
+Y = m + e
+m = m(X )
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2.
+Write the ﬁrst equation in vector notation for the n observations as Y = m + e. Let ˆm = AY be a linear
+estimator of m, meaning that A is some n × n function of the regressor matrix X only. The residuals are
+ˆe = Y − ˆm. The class of linear estimators includes least squares, weighted least squares, kernel regression,
+local linear regression, and series regression. For example, the least squares estimator using a regressor
+matrix Z is the case A = Z
+(
+Z ′Z
+)−1 Z ′.
+Mallows (1973) proposed the criterion
+Cp = ˆe′ˆe + 2˜σ2 tr(A) (28.14)
+where ˜σ2 is a preliminary estimator of σ2 (typically based on ﬁtting a large model). In the case of least
+squares regression with K coefﬁcients this simpliﬁes to
+Cp = n ˆσ2 + 2K ˜σ2. (28.15)
+The Mallows crierion can be used similarly to the AIC. A set of regression models are estimated and
+the criterion Cp calculated for each. The model with the smallest value of Cp is the Mallows-selected
+model.
+Mallows designed the criterion Cp as an unbiased estimator of the following measure of ﬁt
+R = E
+[
+n∑
+i =1
+( ˆmi − mi )2
+]
+.
+This is the expected squared difference between the estimated and true regression evaluated at the ob-
+servations.
+An alternative motivation for R is in terms of prediction accuracy. Consider an independent set of
+observations ˜Yi , i = 1, ...,n, which have the same regressors Xi as those in sample. Consider prediction
+of ˜Yi given Xi and the ﬁtted regression. The least squares predictor is ˆmi . The sum of expected squared
+prediction errors is
+MSFE =
+n∑
+i =1
+E
+[(˜Yi − ˆmi
+)2]
+.
+The best possible (infeasible) value of this quantity is
+MSFE0 =
+n∑
+i =1
+E
+[(˜Yi − mi
+)2]
+.
+The difference is the prediction accuracy of the estimator:
+MSFE − MSFE0 =
+n∑
+i =1
+E
+[(˜Yi − ˆmi
+)2]
+−
+n∑
+i =1
+E
+[(˜Yi − mi
+)2]
+= E
+[
+n∑
+i =1
+( ˆmi − mi )2
+]
+= R
+
+
+--- page 9 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 867
+which equals Mallows’ measure of ﬁt. ThusR can be viewed as a measure of prediction accuracy.
+We stated that the Mallows criterion is an unbiased estimator of R. More accurately, the adjusted
+criterion C ∗
+p = Cp − e′e is unbiased for R. When comparing models Cp and C ∗
+p are equivalent so this
+substitution has no consequence for model selection.
+Theorem 28.5 If ˆm = AY is a linear estimator, the regression error is condi-
+tionally mean zero and homoskedastic, and ˜σ2 is unbiased for σ2, then
+E
+[
+C ∗
+p
+]
+= R
+so the adjusted Mallows criterion C ∗
+p is an unbiased estimator of R.
+The proof is given in Section 28.32.
+28.7 Hold-Out Criterion
+Dividing the sample into two parts, one for estimation and the second for evaluation, creates a simple
+device for model evaluation and selection. This procedure is often labelled hold-out evaluation. In the
+recent machine learning literature the data division is typically described as atraining sample and a test
+sample.
+The sample is typically divided randomly so that the estimation (training) sample has N observa-
+tions, the evaluation (test) sample hasP observations, where N +P = n. There is no universal rule for the
+choice of N & P, but N = P = n/2 is a standard choice.
+For more complicated procedures, such as the evaluation of model selection methods, it is desirable
+to make a tripartite division of the sample into (1) training, (2) model selection, and (3) ﬁnal estimation
+and assessment. This can be particularly useful when it is desired to obtain a parameter estimator whose
+distribution is not distorted by the model selection process. Such divisions are most suited for a context
+of an extremely large sample.
+Take the standard case of a bipartite division where 1 ≤ i ≤ N is the estimation sample and N + 1 ≤
+i ≤ N + P is the evaluation sample. On the estimation sample we construct the parameter estimates, for
+example the least squares coefﬁcients
+˜βN =
+(
+N∑
+i =1
+Xi X ′
+i
+)−1 (
+N∑
+i =1
+Xi Yi
+)
+.
+Combining this coefﬁcient with the evaluation sample we calculate the prediction errors˜eN ,i = Yi −X ′
+i
+˜βN
+for i ≥ N + 1.
+In Section 4.14 we deﬁned the mean squared forecast error (MSFE) based on a estimation sample of
+size N as the expectation of the squared out-of-sample prediction error MSFEN = E
+[
+˜e2
+N ,i
+]
+. The hold-out
+estimator of the MSFE is the average of the squared prediction errors
+˜σ2
+N ,P = 1
+P
+N +P∑
+i =N +1
+˜e2
+N ,i .
+We can see that ˜σ2
+N ,P is unbiased for MSFEN .
+
+
+--- page 10 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 868
+When N = P we can improve estimation of the MSFE by ﬂipping the procedure. Exchanging the
+roles of estimation and evaluation samples we obtain a second MSFE estimator, say ˜ω2
+N ,P . The global
+estimator is their mean ˜σ∗2
+N ,P =
+(
+˜σ2
+N ,P + ˜ω2
+N ,P
+)
+/2. This estimator also has expectation MSFE N but has
+reduced variance.
+The estimated MSFE ˜σ2
+N ,P can be used for model selection. The quantity ˜σ2
+N ,P is calculated for a
+set of proposed models. The selected model is the one with the smallest value of ˜σ2
+N ,P . The method is
+intuitive, general, and ﬂexible, and does not rely on technical assumptions.
+The hold-out method has two disadvantages. First, if our goal is estimation using the full sample,
+our desired estimate is MSFE n, not MSFE N . Hold-out estimation provides an estimator of the MSFE
+based on estimation using a substantially reduced sample size, and is thus biased for the MSFE based
+on estimation using the full sample. Second, the estimator ˜σ2
+N ,P is sensitive to the random sorting of
+the observations into the estimation and evaluation samples. This affects model selection. Results can
+depend on the initial sample sorting and are therefore partially arbitrary.
+28.8 Cross-Validation Criterion
+In applied statistics and machine learning the default method for model selection and tuning pa-
+rameter selection is cross-validation. We have introduced some of the concepts throughout the text-
+book, and review and unify the concepts at this point. Cross-validation is closely related to the hold-out
+criterion introduced in the previous section.
+In Section 3.20 we deﬁned the leave-one-out estimator as that obtained by applying an estimation
+formula to the sample omitting the i t h observation. This is identical to the hold-out problem as de-
+scribed previously, where the estimation sample is N = n − 1 and the evaluation sample is P = 1. The
+estimator obtained omitting observation i is written as ˆβ(−i ). The prediction error is ˜ei = Yi − X ′
+i
+ˆβ(−i ).
+The out-of-sample mean squared error “estimate” is ˜e2
+i . This is repeated n times, once for each observa-
+tion i , and the MSFE estimate is the average of the n squared prediction errors
+CV = 1
+n
+n∑
+i =1
+˜e2
+i .
+The estimator CV is called the cross-validation (CV) criterion. It is a natural generalization of the
+hold-out criterion and eliminates the two disadvantages described in the previous section. First, the
+CV criterion is an unbiased estimator of MSFE n−1, which is essentially the same as MSFE n. Thus CV
+is essentially unbiased for model selection. Second, the CV criterion does not depend on a random
+sorting of the observations. As there is no random component the criterion takes the same value in any
+implementation.
+In least squares estimation the CV criterion has a simple computational implementation. Theorem
+3.7 shows that the leave-one-out least squares estimator (3.42) equals
+ˆβ(−i ) = ˆβ − 1
+(1 − hi i)
+(
+X ′X
+)−1 Xi ˆei
+where ˆei are the least squares residuals and hi i are the leverage values. The prediction error thus equals
+˜ei = Yi − X ′
+i ˆβ(−i ) = (1 − hi i)−1 ˆei
+where the second equality is from Theorem 3.7. Consequently the CV criterion is
+CV = 1
+n
+n∑
+i =1
+˜e2
+i = 1
+n
+n∑
+i =1
+(1 − hi i)−2 ˆe2
+i .
+
+
+--- page 11 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 869
+Recall as well that in our study of nonparametric regression (Section 19.12) we deﬁned the cross-
+validation criterion for kernel regression as the weighted average of the squared prediction errors
+CV = 1
+n
+n∑
+i =1
+˜e2
+i w(Xi ).
+Theorem 19.7 showed that CV is approximately unbiased for the integrated mean squared error (IMSE),
+which is a standard measure of accuracy for nonparametric regression. These results show that CV is an
+unbiased estimator for both the MSFE and IMSE, showing a close connection between these measures
+of accuracy.
+In Section 20.17 and equation (20.30) we deﬁned the CV criterion for series regression as in (28.5).
+Selecting variables for series regression is identical to model selection. The results as described above
+show that the CV criterion is an estimator for the MSFE and IMSE of the regression model and is therefore
+a good candidate for assessing model accuracy. The validity of the CV criterion is much broader than the
+AIC as the theorems for CV do not require conditional homoskedasticity. This is not an artifact of the
+proof method; cross-validation is inherently more robust than AIC or BIC.
+Implementation of CV model selection is the same as for the other criteria. A set of regression models
+are estimated. For each the CV criterion is calculated. The model with the smallest value of CV is the CV-
+selected model.
+The CV method is also much broader in concept and potential application. It applies to any esti-
+mation method so long as a “leave one out” error can be calculated. It can also be applied to other loss
+functions beyond squared error loss. For example, a cross-validation estimate of absolute loss is
+CV = 1
+n
+n∑
+i =1
+|˜ei |.
+Computationally and conceptually it is straightforward to select models by minimizing such criterion.
+However, the properties of applying CV to general criterion is not known.
+Stata does not have a standard command to calculate the CV criterion for regression models.
+28.9 K-Fold Cross-Validation
+There are two deﬁciencies with the CV criterion which can be alleviated by the closely relatedK-fold
+cross-valiation criterion. The ﬁrst deﬁciency is that CV calculation can be computationally costly when
+sample sizes are very large or the estimation method is other than least squares. For estimators other
+than least squares it may be necessary to calculaten separate estimations which can be computationally
+prohibitive in some contexts. A second deﬁciency is that the CV criterion, viewed as an estimator of
+MSFEn, has a high variance. The source is that the leave-one-out estimatorsˆβ(−i ) have minimal variation
+across i and are therefore highly correlated.
+An alternative is is to split the sample into K groups (or “folds”) and treat each group as a hold-out
+sample. This effectively reduces the number of estimations from n to K . (This K is not the number of
+estimated coefﬁcients. I apologize for the possible confusion in notation but this is the standard label.)
+A common choice is K = 10, leading to what is known as 10-fold cross-validation.
+The method works by the following steps. This description is for estimation of a regression model
+Y = g (X , θ) + e with estimator ˆθ.
+1. Randomly sort the observations.
+2. Split the observations into folds k = 1, ...,K of (roughly) equal size nk ≃ n/K . Let Ik denote the
+observations in fold k.
+
+
+--- page 12 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 870
+3. For k = 1, ..,K
+(a) Exclude fold Ik from the dataset. This produces a sample with n − nk observations.
+(b) Calculate the estimator ˆθ(−k) on this sample.
+(c) Calculate the prediction errors ˜ei = Yi − g (Xi , ˆθ(−k)) for i ∈ Ik.
+(d) Calculate CV k = n−1
+k
+∑
+i ∈Ik ˜e2
+i
+4. Calculate CV = K −1 ∑K
+k=1 CVk.
+If K = n the method is identical to leave-one-out cross validation.
+A useful feature of K-fold CV is that we can calculate an approximate standard error. It is based
+on the approximation var (CV) ≃ K −1 var(CVk) which is based on the idea that CV k are approximately
+uncorrelated acros folds. This leads to the standard error
+s (CV) =
+
+√
+1
+K (K − 1)
+K∑
+k=1
+(CVk − CV)2.
+This is similar to a clustered variance formula, where the folds are treated as clusters. The standard error
+s (CV) can be reported to assess the precision of CV as an estimate of the MSFE.
+One disadvantage of K-fold cross-validation is that CV can be sensitive to the initial random sorting
+of the observations, leading to partially arbitrary results. This problem can be reduced by a technique
+called repeated CV, which repeats the K-fold CV algorithm M times (each time with a different random
+sorting), leading to M values of CV . These are averaged to produce the repeated CV value. AsM increases
+the randomness due to sorting is eliminated. An associated standard error can be obtained by taking the
+square root of the average squared standard errors.
+CV model selection is typically implemented by selecting the model with the smallest value of CV .
+An alternative implementation is known as the one standard error (1se) rule and selects the most par-
+simonious model whose value of CV is within one standard error of the minimum CV . The (informal)
+idea is that models whose value of CV is within one standard error of one another are not statistically
+distinguishable, and all else held equal we should lean towards parsimony. The 1se rule is the default,
+for example, in the popular cv.glmnet R function. The 1se rule is an oversmoothing choice, meaning
+that it leans towards higher bias and reduced variance. In contrast, for inference many econometricians
+recommend undersmoothing bandwidths, which means selecting a less parsimonious model than the
+CV minimizing choice.
+28.10 Many Selection Criteria are Similar
+For the linear regression model many selection criteria have been introduced. However, many of
+these alternative criteria are quite similar to one another. In this section we review some of these con-
+nections. The following discussion is for the standard regression modelY = X ′β +e with n observations,
+K estimated coefﬁcients, and least squares variance estimatorˆσ2.
+Shibata (1980) proposed the criteria
+Shibata = ˆσ2
+(
+1 + 2K
+n
+)
+as an estimator of the MSFE. Recalling the Mallows criterion for regression (28.15) we see that Shibata =
+Cp/n if we replace the preliminary estimator ˜σ2 with ˆσ2. Thus the two are quite similar in practice.
+
+
+--- page 13 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 871
+Taking logarithms and using the approximation log(1+ x) ≃ x for small x
+n log(Shibata) = n log
+(
+ˆσ2)
++ n log
+(
+1 + 2K
+n
+)
+≃ n log
+(
+ˆσ2)
++ 2K = AIC.
+Thus minimization of Shibata’ s criterion and AIC are similar.
+Akaike (1969) proposed the Final Prediction Error Criteria
+FPE = ˆσ2
+(1 + K /n
+1 − K /n
+)
+.
+Using the expansions (1− x)−1 ≃ 1 + x and (1 + x)2 ≃ 1 + 2x we see that FPE ≃ Shibata.
+Craven and Wahba (1979) proposed Generalized Cross Validation
+GCV = n ˆσ2
+(n − K )2 .
+By the expansion (1 − x)−2 ≃ 1 + 2x we ﬁnd that
+nGCV = ˆσ2
+(1 − K /n)2 ≃ ˆσ2
+(
+1 + 2K
+n
+)
+= Shibata.
+The above calculations show that the WMSE, AIC, Shibata, FPE, GCV , and Mallows criterion are all
+close approximations to one another when K /n is small. Differences arise in ﬁnite samples for large K .
+However, the above analysis shows that there is no fundamental difference between these criteria. They
+are all estimating the same target. This is in contrast to BIC which uses a different parameterization
+penalty and is asymptotically distinct.
+Interestingly there also is a connection between CV and the above criteria. Again using the expansion
+(1 − x)−2 ≃ 1 + 2x we ﬁnd that
+CV =
+n∑
+i =1
+(1 − hi i)−2 ˆe2
+i
+≃
+n∑
+i =1
+ˆe2
+i +
+n∑
+i =1
+2hi i ˆe2
+i
+= n ˆσ2 + 2
+n∑
+i =1
+X ′
+i
+(
+X ′X
+)−1 Xi ˆe2
+i
+= n ˆσ2 + 2 tr
+(
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+))
+≃ n ˆσ2 + 2 tr
+((
+E
+[
+X X ′])−1 (
+E
+[
+X X ′e2]))
+= n ˆσ2 + 2K σ2
+≃ Shibata.
+The third-to-last line holds asymptotically by the WLLN. The following equality holds under conditional
+homoskedasiticity. The ﬁnal approximation replacesσ2 by the estimator ˆσ2. This calculation shows that
+under the assumption of conditional homoskedasticity the CV criterion is similar to the other criteria. It
+differs under heteroskedasticity, however, which is one of its primary advantages.
+
+
+--- page 14 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 872
+28.11 Relation with Likelihood Ratio Testing
+Since the AIC and BIC are penalized log-likelihoods, AIC and BIC selection are related to likelihood
+ratio testing. Suppose we have two nested models M1 and M2 with log-likelihoods ℓ1n
+(ˆθ1
+)
+and ℓ2n
+(ˆθ2
+)
+and K1 < K2 estimated parameters. AIC selects M1 if AIC(K1) < AIC(K2) which occurs when
+−2ℓ1n
+(ˆθ1
+)
++ 2K1 < −2ℓ2n
+(ˆθ2
+)
+) + 2K2
+or
+LR = 2
+(
+ℓ2n
+(ˆθ2
+)
+− ℓ1n
+(ˆθ1
+))
+< 2r
+where r = K2 − K1. Thus AIC selection is similar to selection by likelihood ratio testing with a different
+critical value. Rather than using a critical value from the chi-square distribution the “critical value” is 2r.
+This is not to say that AIC selection is testing (it is not). But rather that there is a similar structure in the
+decision.
+There are two useful practical implications. One is that when test statistics are reported in their F
+form (which divide by the difference in coefﬁcients r ) then the AIC “critical value” is 2. The AIC selects
+the restricted (smaller) model if F < 2. It selects the unrestricted (larger) model if F > 2.
+Another useful implication is in the case of considering a single coefﬁcient (when r = 1). AIC selects
+the coefﬁcient (the larger model) if LR > 2. In contrast a 5% signiﬁcance test “selects” the larger model
+(rejects the smaller) if LR > 3.84. Thus AIC is more generous in terms of selecting larger models. An
+equivalent way of seeing this is that AIC selects the coefﬁcient if the t-ratio exceeds 1.41 while the 5%
+signiﬁcance test selects if the t-ratio exceeds 1.96.
+Similar comments apply to BIC selection though the effective critical values are different. For com-
+paring models with coefﬁcients K1 < K2 the BIC selects M1 if LR < log(n)r . The “critical value” for an F
+statistic is log(n). Hence BIC selection becomes stricter as sample sizes increase.
+28.12 Consistent Selection
+An important property of a model selection procedure is whether it selects a true model in large
+samples. We call such a procedure consistent.
+To discuss this further we need to thoughtfully deﬁne what is a “true” model. The answer depends
+on the type of model.
+When a model is a parametric density or distribution f (y, θ) with θ ∈ Θ (as in likelihood estimation)
+then the model is true if there is some θ0 ∈ Θ such that f (y, θ0) equals the true density or distribution.
+Notice that it is important in this context both that the function class f (y, θ) and parameter space Θ are
+appropriately deﬁned.
+In a semiparametric conditional moment condition model which states E
+[
+g (Y , X , θ) |X
+]
+= 0 with
+θ ∈ Θ then the model is true if there is some θ0 ∈ Θ such that E
+[
+g (Y , X , θ0) |X
+]
+= 0. This includes the
+regression modelY = m (X , θ)+e with E[e |X ] = 0 where the model is true if there is someθ0 ∈ Θ such that
+m (X , θ0) = E[Y |X ]. It also includes the homoskedastic regression model which adds the requirement
+that E
+[
+e2 |X
+]
+= σ2 is a constant.
+In a semiparametric unconditional moment condition model E
+[
+g (Y , X , θ)
+]
+= 0 then the model is
+true if there is some θ0 ∈ Θ such that E
+[
+g (Y , X , θ0)
+]
+= 0. A subtle issue here is that when the model is just
+identiﬁed andΘ is unrestricted then this condition typically holds and so the model is typically true. This
+includes least squares regression interpreted as a projection and just-identiﬁed instrumental variables
+regression.
+In a nonparametric model such as Y ∼ f ∈ F where F is some function class (such as second-order
+differentiable densities) then the model is true if the true density is a member of the function class F .
+
+
+--- page 15 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 873
+A complication arises that there may be multiple true models. This cannot occur when models are
+strictly non-nested (meaning that there is no common element in both model classes) but strictly non-
+nested models are rare. Most models have non-trivial intersections. For example, the linear regression
+models Y = α + X ′
+1β1 + e and Y = α + X ′
+2β2 + e with X1 and X2 containing no common elements may
+appear non-nested but they intersect when β1 = 0 and β2 = 0. As another example consider the linear
+model Y = α+X ′β+e and log-linear model log(Y) = α+X ′β+e. If we add the assumption thate ∼ N(0, σ2)
+then the models are non-intersecting. But if we relax normality and instead use the conditional mean
+assumption E[e |X ] = 0 then the models are intersecting when β1 = 0 and β2 = 0.
+The most common type of intersecting models are nested. In regression this occurs when the two
+models are Y = X ′
+1β1 + e and Y = X ′
+1β1 + X ′
+2β2 + e. If β2 ̸= 0 then only the second model is true. But if
+β2 = 0 then both are true models.
+In general, given a set of models
+M = {M1, ...,MM } a subset M
+∗
+are true models (as described above)
+while the remainder are not true models.
+A model selection rule ˆM selects one model from the set M . We say a method is consistent if it
+asymptotically selects a true model.
+Deﬁnition 28.1 A model selection rule is model selection consistent if
+P
+[
+ˆM ∈ M
+∗]
+→ 1 as n → ∞.
+This states that the model selection rule selects a true model with probability tending to 1 as the
+sample size diverges.
+A broad class of model selection methods satisfy this deﬁnition of consistency. To see this consider
+the class of information criteria
+IC = −2ℓn
+(ˆθ
+)
++ c(n,K ).
+This includes AIC (c = 2K ), BIC (c = K log(n)), and testing-based selection (c equals a ﬁxed quantile of
+the χ2
+K distribution).
+Theorem 28.6 Under standard regularity conditions for maximum likelihood
+estimation, selection based on IC is model selection consistent ifc(n,K ) = o(n)
+as n → ∞.
+The proof is given in Section 28.32.
+This result covers AIC, BIC and testing-based selection. Thus all are model selection consistent.
+A major limitation with this result is that the deﬁnition of model selection consistency is weak. A
+model may be true but over-parameterized. To understand the distinction consider the models Y =
+X ′
+1β1 + e and Y = X ′
+1β1 + X ′
+2β2 + e. If β2 = 0 then both M1 and M2 are true, but M1 is the preferred
+model as it is more parsimonious. When two nested models are both true models it is conventional to
+think of the more parsimonious model as the correct model. In this context we do not describe the larger
+model as an incorrect model but rather as over-parameterized. If a selection rule asymptotically selects
+an over-parameterized model we say that it “over-selects” .
+
+
+--- page 16 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 874
+Deﬁnition 28.2 A model selection rule asymptotically over-selectsif there are
+models M1 ⊂ M2 such that lim infn→∞ P
+[
+ˆM = M2 |M1
+]
+> 0.
+The deﬁnition states that over-selection occurs when two models are nested and the smaller (short)
+model is true (so both models are true models but the smaller model is more parsimonious) if the larger
+model is asymptotically selected with positive probability.
+Theorem 28.7 Under standard regularity conditions for maximum likelihood
+estimation, selection based on IC asymptotically over-selects if c(n,K ) = O(1)
+as n → ∞.
+The proof is given in Section 28.32.
+This result includes both AIC and testing-based selection. Thus these procedures over-select. For
+example, if the models areY = X ′
+1β1 +e and Y = X ′
+1β1 + X ′
+2β2 +e and β2 = 0 holds, then these procedures
+select the over-parameterized regression with positive probability.
+Following this line of reasoning, it is useful to draw a distinction between true and parsimonious
+models. We deﬁne the set of parsimonious models M
+0
+⊂ M
+∗
+as the set of true models with the fewest
+number of parameters. When the models in M
+∗
+are nested then M
+0
+will be a singleton. In the regres-
+sion example with β2 = 0 then M1 is the unique parsimonious model among {M1, M2}. We introduce a
+stronger consistency deﬁnition for procedures which asymptotically select parsimonious models.
+Deﬁnition 28.3 A model selection rule isconsistent for parsimonious models
+if P
+[
+ˆM ∈ M
+0]
+→ 1 as n → ∞.
+Of the methods we have reviewed, only BIC selection is consistent for parsimonious models, as we
+now show.
+Theorem 28.8 Under standard regularity conditions for maximum likelihood
+estimation, selection based on IC is consistent for parsimonious models if for
+all K2 > K1
+c(n,K2) − c(n,K1) → ∞ (28.16)
+as n → ∞, yet c(n,K ) = o(n) as n → ∞.
+The proof is given in Section 28.32.
+The condition includes BIC since c(n,K2) − c(n,K1) = (K2 − K1)log(n ) → ∞ if K2 > K1.
+Some economists have interpreted Theorem 28.8 as indicating that BIC selection is preferred over
+the other methods. This is an incorrect deduction. In the next section we show that the other selection
+procedures are asymptotically optimal in terms of model ﬁt and in terms of out-of-sample forecasting.
+Thus consistent model selection is only one of several desirable statistical properties.
+
+
+--- page 17 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 875
+28.13 Asymptotic Selection Optimality
+Regressor selection by the AIC/Shibata/Mallows/CV class turns out to be asymptotically optimal with
+respect to out-of-sample prediction under quite broad conditions. This may appear to conﬂict with
+the results of the previous section but it does not as there is a critical difference between the goals of
+consistent model selection and accurate prediction.
+Our analysis will be in the homoskedastic regression model conditioning on the regressor matrix X .
+We write the regression model as
+Y = m + e
+m =
+∞∑
+j =1
+X j βj
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2
+where X = (X1, X2,...). We can also write the regression equation in matrix notation as Y = m + e.
+The K t h regression model uses the ﬁrstK regressors XK = (X1, X2,..., XK ). The least squares estimates
+in matrix notation are
+Y = X K ˆβK + ˆeK .
+As in Section 28.6 deﬁne the ﬁtted valuesˆm = X K ˆβK and regression ﬁt (sum of expected squared predic-
+tion errors) as
+Rn(K ) = E
+[
+( ˆm − m)′ ( ˆm − m) |X
+]
+(28.17)
+though now we index R by sample size n and model K for precision.
+In any sample there is an optimal model K which minimizes Rn(K ):
+K opt
+n = argmin
+K
+Rn(K ).
+Model K opt
+n obtains the minimized value of Rn(K )
+Ropt
+n = Rn(K opt
+n ) = min
+K
+Rn(K ).
+Now consider model selection using the Mallow’ s criterion for regression models
+Cp(K ) = ˆe′
+K ˆeK + 2σ2K
+where we explicitly index byK , and for simplicity we assume the error varianceσ2 is known. (The results
+are unchanged if it is replaced by a consistent estimator.) Let the selected model be
+ˆKn = argmin
+K
+Cp(K ).
+Prediction accuracy using the Mallows-selected model is Rn( ˆKn). We say that a selection procedure is
+asymptotically optimal if the prediction accuracy is asymptotically equivalent with the infeasible opti-
+mum. This can be written as
+Rn( ˆKn)
+Ropt
+n
+− →p 1. (28.18)
+We consider convergence in (28.18) in terms of the risk ratio since Ropt
+n diverges as the sample size in-
+creases.
+Li (1987) established the asymptotic optimality (28.18). His result depends on the following condi-
+tions.
+
+
+--- page 18 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 876
+Assumption 28.1
+1. The observations (Y i , X i ), i = 1, ...,n, are independent and identically dis-
+tributed.
+2. E[e |X ] = 0.
+3. E
+[
+e2 |X
+]
+= σ2.
+4. E
+[
+|e|4r |X
+]
+≤ B < ∞ for some r > 1.
+5. Ropt
+n → ∞ as n → ∞.
+6. The estimated models are nested.
+Assumptions 28.1.2 and 28.1.3 state that the true model is a conditionally homoskedastic regression.
+Assumption 28.1.4 is a technical condition, that a conditional moment of the error is uniformly bounded.
+Assumption 28.1.5 is subtle. It effectively states that there is no correctly speciﬁed ﬁnite-dimensional
+model. To see this, suppose that there is a K such that the model is correctly speciﬁed, meaning that
+mi = ∑K
+j =1 X j iβj . In this case we can show that Rn(K ) = 0, violating Assumption 28.1.5. Assumption
+28.1.6 is a technical condition that restricts the number of estimated models. Non-nested models can be
+allowed but then an alternative restriction on the number of estimated models is needed.
+Theorem 28.9 Assumption 28.1 implies (28.18). Thus Mallows selection is
+asymptotically equivalent to using the infeasible optimal model.
+The proof is given in Section 28.32.
+Theorem 28.9 states that Mallows selection in a conditional homoskedastic regression is asymptot-
+ically optimal. The key assumptions are homoskedasticity and that all ﬁnite-dimensional models are
+misspeciﬁed (incomplete), meaning that there are always omitted variables. The latter means that re-
+gardless of the sample size there is always a trade-off between omitted variables bias and estimation
+variance. The theorem as stated is speciﬁc for Mallows selection but extends to AIC, Shibata, GCV , FPE,
+and CV with some additional technical considerations. The primary message is that the selection meth-
+ods discussed in the previous section asymptotically select a sequence of models which are best-ﬁtting
+in the sense of minimizing the prediction error.
+Using a similar argument Andrews (1991c) showed that selection by cross-validation satisﬁes the
+same asymptotic optimality condition without requiring conditional homoskedasticity. The treatment
+is a bit more technical so we do not review it here. This indicates an important advantage for cross-
+validation selection over the other methods.
+28.14 Focused Information Criterion
+Claeskens and Hjort (2003) introduced the Focused Information Criterion (FIC) as an estimator
+of the MSE of a scalar parameter. The criterion is appropriate in correctly-speciﬁed likelihood models
+
+
+--- page 19 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 877
+when one of the estimated models nests the other models. Let f (y, θ) be a parametric model density
+with a K × 1 parameter θ.
+The class of models (sub-models) allowed are those deﬁned by a set of differentiable restrictions
+r (θ) = 0. Let ˜θ be the restricted MLE which maximizes the likelihood subject to r (θ) = 0.
+A key feature of the FIC is that it focuses on a real-valued parameter µ = g (θ) where g is some dif-
+ferentiable function. Claeskens and Hjort call µ the target parameter. The choice of µ is made by the
+researcher and is a critical choice. In most applications µ is the key coefﬁcient in the application (for
+example, the returns to schooling in a wage regression). The unrestricted MLE for µ is ˆµ = g (ˆθ), the
+restricted MLE is ˜µ = g (˜θ).
+Estimation accuracy is measured by the MSE of the estimator of the target parameter, which is the
+squared bias plus the variance:
+mse
+[
+˜µ
+]
+= E
+[(
+˜µ − µ
+)2]
+=
+(
+E
+[
+˜µ
+]
+− µ
+)2 + var
+[
+˜µ
+]
+.
+It turns out to be convenient to normalize the MSE by that of the unrestricted estimator. We deﬁne this
+as the Focus
+F = mse
+[
+˜µ
+]
+− mse
+[
+ˆµ
+]
+.
+The Claeskens-Hjort FIC is an estimator of F . Speciﬁcally,
+FIC =
+(
+˜µ − ˆµ
+)2 − 2 ˆG
+′ ˆV ˆθ ˆR
+(
+ˆR
+′ ˆV ˆθ ˆR
+)−1
+ˆR
+′ ˆV ˆθ ˆG
+where ˆV ˆθ , ˆG and ˆR are estimators of var
+[ˆθ
+]
+, G = ∂
+∂θ′ g (θ) and R = ∂
+∂θ′ r (θ).
+In a least squares regression Y = X β + e with a linear restriction R ′β = 0 and linear parameter of
+interest µ = G ′β the FIC equals
+FIC =
+(
+G ′R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1 ˆβ
+)2
+− 2ˆσ2G ′ (
+X ′X
+)−1 R
+(
+R ′ (
+X ′X
+)−1 R
+)−1
+R ′ (
+X ′X
+)−1 G.
+The FIC is used similarly to AIC. The FIC is calculated for each sub-model of interest and the model
+with the lowest value of FIC is selected.
+The advantage of the FIC is that it is speciﬁcally targeted to minimize the MSE of the target parameter.
+The FIC is therefore appropriate when the goal is to estimate a speciﬁc target parameter. A disadvantage
+is that it does not necessarily produce a model with good estimates of the other parameters. For example,
+in a linear regression Y = X1β1 + X2β2 + e, if X1 and X2 are uncorrelated and the focus parameter is β1
+then the FIC will tend to select the sub-model without X2, and thus the selected model will produce a
+highly biased estimate of β2. Consequently when using the FIC it is dubious if attention should be paid
+to estimates other than those of µ.
+Computationally it may be convenient to implement the FIC using an alternative formulation. De-
+ﬁne the adjusted focus
+F∗ = n
+(
+F + 2mse
+[
+ˆµ
+])
+= n
+(
+mse
+[
+˜µ
+]
++ mse
+[
+ˆµ
+])
+.
+This adds the same quantity to all models and therefore does not alter the minimizing model. Multipli-
+cation by n puts the FIC in units which are easier for reporting. The estimate of the adjusted focus is an
+adjusted FIC and can be written as
+FIC∗ = n
+(
+˜µ − ˆµ
+)2 + 2n ˆV ˜µ (28.19)
+= n
+(
+˜µ − ˆµ
+)2 + 2ns
+(
+˜µ
+)2 (28.20)
+
+
+--- page 20 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 878
+where
+ˆV ˜µ = ˆG
+′
+(
+I k − ˆV ˆθ ˆR
+(
+ˆR
+′ ˆV ˆθ ˆR
+)−1
+ˆR
+′ ˆV ˆθ
+)
+ˆG
+is an estimator of var
+[
+˜µ
+]
+and s
+(
+˜µ
+)
+= ˆV
+1/2
+˜µ is a standard error for ˜µ.
+This means that FIC ∗ can be easily calculated using conventional software without additional pro-
+gramming. The estimator ˆµ can be calculated from the full model (the long regression) and the estimator
+˜µ and its standard error s
+(
+˜µ
+)
+from the restricted model (the short regression). The formula (28.20) can
+then be applied to obtain FIC∗.
+The formula (28.19) also provides an intuitive understanding of the FIC. When we minimize FIC∗ we
+are minimizing the variance of the estimator of the target parameter (ˆV ˜µ) while not altering the estimate
+˜µ too much from the unrestricted estimate ˆµ.
+When selecting from amongst just two models, the FIC selects the restricted model if
+(
+˜µ − ˆµ
+)2 +2 ˆV ˜µ <
+0 which is the same as
+(
+˜µ − ˆµ
+)2 / ˆV ˜µ < 2. The statistic to the left of the inequality is the squared t-statistic
+in the restricted model for testing the hypothesis that µ equals the unrestricted estimator ˆµ but ignoring
+the estimation error in the latter. Thus a simple implementation (when just comparing two models) is
+to estimate the long and short regressions, take the difference in the two estimates of the coefﬁcient of
+interest, and compute a t-ratio using the standard error from the short (restricted) regression. If this
+t-ratio exceeds 1.4 the FIC selects the long regression estimate. If the t-ratio is smaller than 1.4 the FIC
+selects the short regression estimate.
+Claeskens and Hjort motivate the FIC using a local misspeciﬁcation asymptotic framework. We use a
+simpler heuristic motivation. First take the unrestricted MLE. Under standard conditions ˆµ has asymp-
+totic variance G ′V θG where V θ = I −1. As the estimator is asymptotically unbiased it follows that
+mse
+[
+ˆµ
+]
+≃ var
+[
+ˆµ
+]
+≃ n−1G ′V θG.
+Second take the restricted MLE. Under standard conditions ˜µ has asymptotic variance
+G ′
+(
+V θ − V θR
+(
+R ′V θR
+)−1 RV θ
+)
+G.
+˜µ also has a probability limit, say µR, which (generally) differs from µ. Together we ﬁnd that
+mse
+[
+˜µ
+]
+≃ B + n−1G ′
+(
+V θ − V θR
+(
+R ′V θR
+)−1 RV θ
+)
+G
+where B =
+(
+µ − µR
+)2. Subtracting, we ﬁnd that the Focus is
+F ≃ B − n−1G ′V θR
+(
+R ′V θR
+)−1 RV θG.
+The plug-in estimator ˆB =
+(
+ˆµ − ˜µ
+)2 of B is biased since
+E
+[ˆB
+]
+=
+(
+E
+[
+ˆµ − ˜µ
+])2 + var
+[
+ˆµ − ˜µ
+]
+≃ B + var
+[
+ˆµ
+]
+− var
+[
+˜µ
+]
+≃ B + n−1G ′V θR
+(
+R ′V θR
+)−1 RV θG.
+It follows that an approximately unbiased estimator for F is
+ˆB − 2n−1G ′V θR
+(
+R ′V θR
+)−1 RV θG.
+The FIC is obtained by replacing the unknown G, R, and n−1V θ by estimates.
+
+
+--- page 21 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 879
+28.15 Best Subset and Stepwise Regression
+Suppose that we have a set of potential regressors { X1, ...,XK } and we want to select a subset of the
+regressors to use in a regression. Let Sm denote a subset of the regressors, and let m = 1, ...,M denote
+the set of potential subsets. Given a model selection criterion (e.g. AIC, Mallows, or CV) the best subset
+model is the one which minimizes the criterion across theM models. This is implemented by estimating
+the M models and comparing the model selection criteria.
+If K is small it is computationally feasible to compare all subset models but it is not feasible when K
+is large. This is because the number of potential subsets is M = 2K which increases quickly with K . For
+example, K = 10 implies M = 1024, K = 20 implies M ≥ 1, 000, 000, and K = 40 implies M exceeds one
+trillion. It simply does not make sense to contemplate estimating all subset regressions!
+If the goal is to ﬁnd the set of regressors which produces the smallest selection criterion it seems
+likely that we should be able to ﬁnd an approximating set of regressors at much reduced computation
+cost. Some speciﬁc algorithms to implement this goal are as called stepwise, stagewise, and least angle
+regression. None of these procedures are believed to actually achieve the goal of minimizing any speciﬁc
+selection criterion; rather they are viewed as useful computational approximations. There is also some
+potential confusion as different authors seem to use the same terms for somewhat different implemen-
+tations. We use the terms here as described in Hastie, Tibshirani, and Friedman (2008).
+In the following descriptions we use SSE(m ) to refer to the sum of squared residuals from a ﬁtted
+model and C (m) to refer to the selection criterion used for model comparison (AIC is most typically
+used).
+Backward Stepwise Regression
+1. Start with all regressors { X1,..., XK } included in the “active set” .
+2. For m = 0, ...,K − 1
+(a) Estimate the regression of Y on the active set.
+(b) Identify the regressor whose omission will have the smallest impact on C (m).
+(c) Put this regressor in slot K − m and delete from the active set.
+(d) Calculate C (m) and store in slot K − m.
+3. The model with the smallest value of C (m) is the selected model.
+Backware stepwise regression requires K < n so that regression with all variables is feasible. It pro-
+duces an ordering of the regressors from “most relevant” to “least relevant” . A simpliﬁed version is to
+exit the loop when C (m) increases. (This may not yield the same result as completing the loop.) For the
+case of AIC selection, step (b) can be implemented by calculating the classical (homoskedastic) t-ratio
+for each active regressor and ﬁnd the regressor with the smallest absolute t-ratio. (See Exercise 28.3.)
+Forward Stepwise Regression
+1. Start with the null set {∅} as the “active set” and all regressors { X1,..., XK } as the “inactive set” .
+2. For m = 1, ...,min(n − 1,K )
+(a) Estimate the regression of Y on the active set.
+(b) Identify the regressor in the inactive set whose inclusion will have the largest impact onC (m).
+
+
+--- page 22 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 880
+(c) Put this regressor in slot m and move it from the inactive to the active set.
+(d) Calculate C (m) and store in slot m.
+3. The model with the smallest value of C (m) is the selected model.
+A simpliﬁed version is to exit the loop whenC (m) increases. (This may not yield the same answer as
+completing the loop.) For the case of AIC selection step (b) can be implemented by ﬁnding the regressor
+in the inactive set with the largest absolute correlation with the residual from step (a). (See Exercise 28.4.)
+There are combined algorithms which check both forward and backward movements at each step.
+The algorithms can also be implemented with the regressors organized in groups (so that all elements are
+either included or excluded at each step). There are also old-fashioned versions which use signiﬁcance
+testing rather than selection criterion (this is generally not advised).
+Stepwise regression based on old-fashioned signiﬁcance testing can be implemented in Stata using
+the stepwise command. If attention is conﬁned to models which include regressors one-at-a-time, AIC
+selection can be implemented by setting the signiﬁcance level equal to p = 0.32. Thus the command
+stepwise, pr(.32) implements backward stepwise regression with the AIC criterion, and stepwise,
+pe(.32) implements forward stepwise regression with the AIC criterion.
+Stepwise regression can be implemented in R using the lars command.
+28.16 The MSE of Model Selection Estimators
+Model selection can lead to estimators with poor sampling performance. In this section we show that
+the mean squared error of estimation is not necessarily improved, and can be considerably worsened,
+by model selection.
+To keep things simple consider an estimator with an exact normal distribution and known covariance
+matrix. Normalizing the latter to the identity we consider the setting
+ˆθ ∼ N(θ, I K )
+and the class of model selection estimators
+ˆθpms =
+{ ˆθ if ˆθ′ ˆθ > c
+0 if ˆθ′ ˆθ ≤ c
+for some c. AIC sets c = 2K , BIC sets c = K log(n), and 5% signiﬁcance testing sets c to equal the 95%
+quantile of the χ2
+K distribution. It is common to call ˆθpms a post-model-selection (PMS) estimator
+We can explicitly calculate the MSE of ˆθpms.
+Theorem 28.10 If ˆθ ∼ N(θ, I K ) then
+mse
+[ˆθpms
+]
+= K + (2λ − K )FK +2 (c, λ) − λFK +4 (c, λ)
+where Fr (x, λ) is the non-central chi-square distribution function with r de-
+grees of freedom and non-centrality parameter λ = θ′θ.
+The proof is given in Section 28.32.
+
+
+--- page 23 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 881
+The MSE is determined only by K , λ, and c. λ = θ′θ turns out to be an important parameter for the
+MSE. As the squared Euclidean length, it indexes the magnitude of the coefﬁcientθ.
+We can see the following limiting cases. If λ = 0 then mse
+[ˆθpms
+]
+= K (1 − FK +2 (c,0)). As λ → ∞ then
+mse
+[ˆθpms
+]
+→ K . The unrestricted estimator obtains if c = 0, in which case mse
+[ˆθpms
+]
+= K . As c → ∞,
+mse
+[ˆθpms
+]
+→ λ. The latter fact implies that the PMS estimator based on the BIC has MSE→ ∞ as n → ∞.
+Using Theorem 28.10 we can numerically calculate the MSE. In Figure 28.2(a) and (b) we plot the MSE
+of a set of estimators for a range of values of
+p
+λ. Panel (a) is for K = 1, panel (b) is for K = 5. The dash-
+dotted line marks the MSE of the unselected estimator ˆθ which is invariant to λ. The other estimators
+plotted are AIC selection (c = 2K ), 5% signiﬁcance testing selection (chi-square critical value), and BIC
+selection (c = K log(n)) for n = 200 and n = 1000.
+0 1 2 3 4
+λ
+0 1 2 3 4 5
+AIC
+5% Sig Test
+BIC, n=200
+BIC, n=1000
+(a) MSE, K = 1
+0 5 10 15 20
+λ
+0 1 2 3 4 5 6 7 8
+AIC
+5% Sig Test
+BIC, n=200
+BIC, n=1000 (b) MSE, K = 5
+0.0 0.2 0.4 0.6 0.8 1.0 1.20.6 0.7 0.8 0.9 1.0
+β2
+Coverage Probability for  β1
+ρ=0.0
+ρ=0.3
+ρ=0.5
+ρ=0.7
+ρ=0.8 (c) Coverage Probability
+Figure 28.2: MSE and Coverage of Post-Model-Selection Estimators
+In the plots you can see that the PMS estimators have lower MSE than the unselected estimator
+roughly for λ < K but higher MSE for λ > K . The AIC estimator has MSE which is least distorted from
+the unselected estimator, reaching a peak of about 1.5 for K = 1. The BIC estimators, however, have very
+large MSE for larger values of λ, and the distortion is growing as n increases. The MSE of the selection
+estimators increases with λ until it reaches a peak and then slowly decreases and asymptotes back to K .
+Furthermore, the MSE of BIC is unbounded as n diverges. Thus for very large sample sizes the MSE of
+a BIC-selected estimator can be a very large multiple of the MSE of the unselected estimator. The plots
+show that if λ is small there are advantages to model selection as MSE can be greatly reduced. However if
+λ is large then MSE can be greatly increased if BIC is used, and moderately increased if AIC is used. A sen-
+sible reading of the plots leads to the practical recommendation to not use the BIC for model selection,
+and use the AIC with care.
+The numerical calculations show that MSE is reduced by selection when λ is small but increased
+when λ is moderately large. What does this mean in practice? λ is small when θ is small which means
+the compared models are similar in terms of estimation accuracy. In these contexts model selection
+can be valuable as it helps select smaller models to improve precision. However when λ is moderately
+large (which means that θ is moderately large) the smaller model has meaningful omitted variable bias,
+yet the selection criteria have difﬁculty detecting which model to use. The conservative BIC selection
+procedure tends to select the smaller model and thus incurs greater bias resulting in high MSE. These
+considerations suggest that it is better to use the AIC when selecting among models with similar estima-
+tion precision. Unfortunately it is impossible to known a priori the appropriate models.
+The results of this section may appear to contradict Theorem 28.8 which showed that the BIC is con-
+
+
+--- page 24 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 882
+sistent for parsimonious models as for all λ > 0 in the plots the correct parsimonious model is the larger
+model. Yet BIC is not selecting this model with sufﬁcient frequency to produce a low MSE. There is no
+contradiction. The consistency of the BIC appears in the lower portion of the plots where the MSE of
+the BIC estimator is the approximately straight line MSE = λ. This is the MSE of the restricted estimator.
+Thus for small λ the BIC properly selects the true model. The fact that the MSE of the AIC estimator
+somewhat exceeds that of the BIC in this region is illustrating the over-selection property of the AIC.
+28.17 Inference After Model Selection
+Economists are typically interested in inferential questions such as hypothesis tests and conﬁdence
+intervals. If an econometric model has been selected by a procedure such as AIC or CV what are the
+properties of statistical tests applied to the selected model?
+To be concrete consider the regression model Y = X1β1 + X2β2 + e and selection of the variable X2.
+That is, we compare Y = X1β1 + e with Y = X1β1 + X2β2 + e. It is not too deep a realization that in
+this context it is inappropriate to conduct conventional inference for β2 in the selected model. If we
+select the smaller model there is no estimate of β2. If we select the larger it is because the t-ratio for β2
+exceeds the critical value. The distribution of the t-ratio, conditional on exceeding a critical value, is not
+conventionally distributed and there seems little point to push this issue further.
+The more interesting and subtle question is the impact on inference concerning β1. This indeed is
+a context of typical interest. An economist is interested in the impact of X1 on Y given a set of controls
+X2. It is common to select across these controls to ﬁnd a suitable empirical model. Once this has been
+obtained we want to make inferential statements about β1. Has selection over the controls impacted
+inference?
+We illustrate the issue numerically. Suppose that (X1, X2) are jointly normal with unit variances and
+correlation ρ, e is independent and standard normal, and n = 30. We estimate the long regression of Y
+on (X1, X2) and the short regression of Y on X1 alone. We construct the t-statistic3 for β2 = 0 in the long
+regression and select the long regression if the t-statistic is signiﬁcant at the 5% level and select the short
+regression if the t-statistic is not signiﬁcant. We construct the standard 95% conﬁdence interval 4 for
+β1 in the selected regression. These conﬁdence intervals will have exact 95% coverage when there is no
+selection and the estimated model is correct, so deviations from 95% are due to model selection and mis-
+speciﬁcation. We calculate the actual coverage probability by simulation using one million replications,
+varying5 β2 and ρ.
+We display in Figure 28.2(c) the coverage probabilities as a function of β2 for several values of ρ. If
+the regressors are uncorrelated (ρ = 0) then the actual coverage probability equals the nominal level of
+0.95. This is because the t-statistic for β2 is independent of those for β1 in this normal regression model
+and the coefﬁcients onX1 in the short and long regression are identical.
+This invariance breaks down for ρ ̸= 0. As ρ increases the coverage probability of the conﬁdence
+intervals fall below the nominal level. The distortion is strongly affected by the value of β2. For β2 = 0
+the distortion is mild. The reason is that when β2 = 0 the selection t-statistic selects the short regression
+with high probability (95%) which leads to approximately valid inference. Also, as β2 → ∞ the coverage
+probability converges to the nominal level. The reason is that for large β2 the selection t-statistic selects
+the long regression with high probability, again leading to approximately valid inference. The distortion
+is large, however, for intermediate values of β2. For ρ = 0.5 the coverage probability falls to 88%, and
+3Using the homoskedastic variance formula and assuming the error variance is known. This is done to focus on the selection
+issue rather than covariance matrix estimation.
+4Using the homoskedastic variance formula and assuming the correct error variance is known.
+5The coverage probability is invariant to β1.
+
+
+--- page 25 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 883
+for ρ = 0.8 the probability is low as 62%. The reason is that for intermediate values of β2 the selection
+t-statistic selects both models with meaningful probability, and this selection decision is correlated with
+the t-statistics for β1. The degree of under-coverage is enormous and greatly troubling.
+The message from this display is that inference after model selection is problematic. Conventional
+inference procedures do not have conventional distributions and the distortions are potentially un-
+bounded.
+28.18 Empirical Illustration
+We illustrate the model selection methods with an application. Take the CPS dataset and the sub-
+sample of Asian women which has n = 1149 observations. Consider a log wage regression with primary
+interest on the return to experience measured as the percentage difference between expected wages
+between 0 and 30 years of experience. We consider and compare nine least squares regressions. All
+include an indicator for married and three indicators for the region. The estimated models range in
+complexity concerning the impact of education and experience.
+Table 28.1: Estimates of Return to Experience among Asian Women
+Model 1 Model 2 Model 3 Model 4 Model 5 Model 6 Model 7 Model 8 Model 9
+Return 13% 22% 20% 29% 40% 37% 33% 47% 45%
+s.e. 7 8 7 11 11 11 17 18 17
+BIC 956 907 924 964 913 931 977 925 943
+AIC 915 861 858 914 858 855 916 860 857
+CV 405 387 386 405 385 385 406 387 386
+FIC 86 48 53 58 32 34 86 71 68
+Education College Spline Dummy College Spline Dummy College Spline Dummy
+Experience 2 2 2 4 4 4 6 6 6
+Terms for experience:
+• Models 1-3 include include experience and its square.
+• Models 4-6 include powers of experience up to power 4.
+• Models 7-9 include powers of experience up to power 6.
+Terms for education:
+• Models 1, 4, and 7 include a single dummy variable college indicating that years of education is 16
+or higher.
+• Models 2, 5, and 8 include a linear spline in education with a single knot at education=9.
+• Models 3, 6, and 9 include six dummy variables, for education equalling 12, 13, 14, 16, 18, and 20.
+Table 28.1 reports key estimates from the nine models. Reported are the estimate of the return to ex-
+perience as a percentage wage difference, its standard error (HC1), the BIC, AIC, CV , and FIC∗, the latter
+
+
+--- page 26 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 884
+treating the return to experience as the focus. What we can see is that the estimates vary meaningfully,
+ranging from 13% to 47%. Some of the estimates also have moderately large standard errors. (In most
+models the return to experience is “statistically signiﬁcant” , but by large standard errors we mean that
+it is difﬁcult to pin down the precise value of the return to experience.) We can also see that the most
+important factors impacting the magnitude of the point estimate is going beyond the quadratic speciﬁ-
+cation for experience, and going beyond the simplest speciﬁcation for education. Another item to notice
+is that the standard errors are most affected by the number of experience terms.
+The BIC picks a parsimonious model with the linear spline in education and a quadratic in experi-
+ence. The AIC and CV select a less parsimonious model with the full dummy speciﬁcation for education
+and a 4t h order polynomial in experience. The FIC selects an intermediate model, with a linear spline in
+education and a 4t h order polynomial in experience.
+When selecting a model using information criteria it is useful to examine several criteria. In applica-
+tions decisions should be made by a combination of judgment as well as the formal criteria. In this case
+the cross-validation criterion selects model 6 which has the estimate of 37%, but near-similar values of
+the CV criterion are obtained by models 3 and 9 which have the estimates 20% and 45%. The FIC, which
+focuses on this speciﬁc coefﬁcient, selects model 5 which has the point estimate 40% which is similar to
+the CV-selected model. Overall based on this evidence the CV-selected model and its point estimate of
+37% seems an appropriate choice. However, the uncertainty reﬂected by the ﬂatness of the CV criterion
+suggests that uncertainty remains in the choice of speciﬁcation.
+28.19 Shrinkage Methods
+Shrinkage methods are a broad class of estimators which reduce variance by moving an estimator ˆθ
+towards a pre-selected point such as the zero vector. In high dimensions the reduction in variance more
+than compensates for the increase in bias resulting in improved efﬁciency when measured by mean
+squared error. This and the next few sections review material presented in Chapter 15 of Introduction to
+Econometrics.
+The simplest shrinkage estimator takes the form ˜θ = (1 − w) ˆθ for some shrinkage weight w ∈ [0,1].
+Setting w = 0 we obtain ˜θ = ˆθ (no shrinkage) and setting w = 1 we obtain ˜θ = 0 (full shrinkage). It is
+straightforward to calculate the MSE of this estimator. Assume ˆθ ∼ (θ,V ). Then ˜θ has bias
+bias
+[˜θ
+]
+= E
+[˜θ
+]
+− θ = −wθ, (28.21)
+variance
+var
+[˜θ
+]
+= (1 − w)2 V , (28.22)
+and weighted mean squared error (using the weight matrix W = V −1)
+wmse
+[˜θ
+]
+= K (1 − w)2 + w 2λ (28.23)
+where λ = θ′V −1θ.
+Theorem 28.11 If ˆθ ∼ (θ,V ) and ˜θ = (1 − w) ˆθ then
+1. wmse
+[˜θ
+]
+< wmse
+[ˆθ
+]
+if 0 < w < 2K /(K + λ).
+2. wmse
+[˜θ
+]
+is minimized by the shrinkage weight w0 = K /(K + λ).
+3. The minimized WMSE is wmse
+[˜θ
+]
+= K λ/(K + λ).
+
+
+--- page 27 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 885
+For the proof see Exercise 28.6.
+Part 1 of the theorem shows that the shrinkage estimator has reduced WMSE for a range of values
+of the shrinkage weight w. Part 2 of the theorem shows that the WMSE-minimizing shrinkage weight
+is a simple function of K and λ. The latter is a measure of the magnitude of θ relative to the estimation
+variance. When λ is large (the coefﬁcients are large) then the optimal shrinkage weightw0 is small; when
+λ is small (the coefﬁcients are small) then the optimal shrinkage weightw0 is large. Part 3 calculates the
+associated optimal WMSE. This can be substantially less than the WMSE of the original estimator ˆθ. For
+example, if λ = K then wmse
+[˜θ
+]
+= K /2, one-half the WMSE of the original estimator.
+To construct the optimal shrinkage weight we need the unknown λ. An unbiased estimator is ˆλ =
+ˆθ′V −1 ˆθ − K (see Exercise 28.7) implying the shrinkage weight
+ˆw = K
+ˆθ′V −1 ˆθ
+. (28.24)
+Replacing K with a free parameter c (which we call the shrinkage coefﬁcient) we obtain
+˜θ =
+(
+1 − c
+ˆθ′V −1 ˆθ
+)
+ˆθ. (28.25)
+This class of estimators is often called a Stein-Rule estimator.
+This estimator has many appealing properties. It can be viewed as a smoothed selection estimator.
+The quantity ˆθ′V −1 ˆθ is a Wald statistic for the hypothesis H0 : θ = 0. Thus when this Wald statistic is
+large (when the evidence suggests the hypothesis of a zero coefﬁcient is false) the shrinkage estimator
+is close to the original estimator ˆθ. However when this Wald statistic is small (when the evidence is
+consistent with the hypothesis of a zero coefﬁcient) then the shrinkage estimator moves the original
+estimator towards zero.
+28.20 James-Stein Shrinkage Estimator
+James and Stein (1961) made the following discovery.
+Theorem 28.12 Assume that ˆθ ∼ N(θ,V ), ˜θ is deﬁned in (28.25), andK > 2.
+1. If 0 < c < 2(K − 2) then wmse
+[˜θ
+]
+< wmse
+[ˆθ
+]
+.
+2. The WMSE is minimized by setting c = K − 2 and equals
+wmse
+[˜θ
+]
+= K − (K − 2)2 E
+[
+Q −1
+K
+]
+where QK ∼ χ2
+K (λ).
+See Theorem 15.3 of Introduction to Econometrics.
+This result stunned the world of statistics. Part 1 shows that the shrinkage estimator has strictly
+smaller WMSE for all values of the parameters and thus dominates the original estimator. The latter
+is the MLE so this result shows that the MLE is dominated and thus inadmissible. This is a stunning
+result because it had previously been assumed that it would be impossible to ﬁnd an estimator which
+dominates the MLE.
+
+
+--- page 28 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 886
+Theorem 28.12 critically depends on the condition K > 2. This means that shrinkage achieves uni-
+form improvements only in dimensions three or larger.
+The minimizing choice for the shrinkage coefﬁcient c = K − 2 leads to what is commonly known as
+the James-Stein estimator
+˜θ =
+(
+1 − K − 2
+ˆθ′V −1 ˆθ
+)
+ˆθ.
+In practice V is unknown so we substitute an estimator ˆV . This leads to
+˜θJS =
+(
+1 − K − 2
+ˆθ′ ˆV
+−1 ˆθ
+)
+ˆθ
+which is fully feasible as it does not depend on unknowns or tuning parameters. The substitution of ˆV
+for V can be justiﬁed by ﬁnite sample or asymptotic arguments.
+28.21 Interpretation of the Stein Effect
+The James-Stein Theorem appears to conﬂict with classical statistical theory. The original estimator
+ˆθ is the maximum likelihood estimator. It is unbiased. It is minimum variance unbiased. It is Cramer-
+Rao efﬁcient. How can it be that the James-Stein shrinkage estimator achieves uniformly smaller mean
+squared error?
+Part of the answer is that classical theory has caveats. The Cramer-Rao Theorem, for example, re-
+stricts attention to unbiased estimators and thus precludes consideration of shrinkage estimators. The
+James-Stein estimator has reduced MSE, but is not Cramer-Rao efﬁcient since it is biased. Therefore the
+James-Stein Theorem does not conﬂict with the Cramer-Rao Theorem. Rather, they are complementary
+results. On the one hand, the Cramer-Rao Theorem describes the best possible variance when unbiased-
+ness is an important property for estimation. On the other hand, the James-Stein Theorem shows that
+if unbiasedness is not a critical property but instead MSE is important, then there are better estimators
+than the MLE.
+The James-Stein Theorem may also appear to conﬂict with our results from Section 28.16 which
+showed that selection estimators do not achieve uniform MSE improvements over the MLE. This may
+appear to be a conﬂict since the James-Stein estimator has a similar form to a selection estimator. The
+difference is that selection estimators are hard threshold rules – they are discontinuous functions of the
+data – while the James-Stein estimator is a soft threshold rule – it is a continuous function of the data.
+Hard thresholding tends to result in high variance; soft thresholding tends to result in low variance. The
+James-Stein estimator is able to achieve reduced variance because it is a soft threshold function.
+The MSE improvements achieved by the James-Stein estimator are greatest when λ is small. This
+occurs when the parameters θ are small in magnitude relative to the estimation variance V . This means
+that the user needs to choose the centering point wisely.
+28.22 Positive Part Estimator
+The simple James-Stein estimator has the odd property that it can “over-shrink” . Whenˆθ′V −1 ˆθ < K −2
+then ˜θ has opposite sign with ˆθ. This does not make sense and suggests that further improvements can
+be made. The standard solution is to use “positive-part” trimming by bounding the shrinkage weight
+
+
+--- page 29 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 887
+(28.24) below one. This estimator can be written as
+˜θ+ =
+{ ˜θ, ˆθ′V −1 ˆθ ≥ K − 2
+0, ˆθ′V −1 ˆθ < K − 2
+=
+(
+1 − K − 2
+ˆθ′V −1 ˆθ
+)
++
+ˆθ
+where (a)+ = max[a,0] is the “positive-part” function. Alternatively, it can be written as
+˜θ+ = ˆθ −
+( K − 2
+ˆθ′V −1 ˆθ
+)
+1
+ˆθ
+where (a)1 = min[a, 1]
+The positive part estimator simultaneously performs “selection” as well as “shrinkage” . If ˆθ′V −1 ˆθ is
+sufﬁciently small, ˜θ+ “selects” 0. When ˆθ′V −1 ˆθ is of moderate size, ˜θ+ shrinks ˆθ towards zero. When
+ˆθ′V −1 ˆθ is very large, ˜θ+ is close to the original estimator ˆθ.
+Consistent with our intuition the positive part estimator has uniformly lower WMSE than the unad-
+justed James-Stein estimator.
+Theorem 28.13 Under the assumptions of Theorem 28.12
+wmse
+[˜θ+]
+< wmse
+[˜θ
+]
+. (28.26)
+For a proof see Theorem 15.6 ofIntroduction to Econometrics. Theorem 15.7 ofIntroduction to Econo-
+metrics provides an explicit numerical evaluation of the MSE for the positive-part estimator.
+In Figure 28.3(a) we plot wmse
+[˜θ+]
+/K as a function of λ/K for K = 4, 6, 12, and 48. The plots are uni-
+formly below 1 (the normalized WMSE of the MLE) and substantially so for small and moderate values of
+λ. The WMSE functions fall as K increases, demonstrating that the MSE reductions are more substantial
+when K is large.
+0 1 2 3 4 5
+0.0 0.2 0.4 0.6 0.8 1.0
+λ K
+MSE/K
+K= 4
+K= 6
+K= 12
+K= 48
+(a) WMSE of James-Stein
+2.5 2.6 2.7 2.8 2.9 3.0 3.1
+Experience
+log(wage)
+0 10 20 30 40 50
+Model 3
+Model 9
+James−Stein (b) Experience Proﬁle
+−0.05 0.00 0.05 0.10 0.15 0.20
+Individual Firm Effect
+Fixed Effects
+James−Stein (c) Firm Effects
+Figure 28.3: James-Stein Estimator
+In summary, the positive-part transformation is an important improvement over the unadjusted
+James-Stein estimator. It is more reasonable and reduces the mean squared error. The broader mes-
+sage is that imposing boundary conditions can improve estimation efﬁciency.
+
+
+--- page 30 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 888
+28.23 Shrinkage Towards Restrictions
+The classical James-Stein estimator does not have direct use in applications because it is rare that we
+wish to shrink an entire parameter vector towards a speciﬁc point. Rather, it is more common to wish to
+shrink a parameter vector towards a set of restrictions. Here are a few examples:
+1. Shrink a long regression towards a short regression.
+2. Shrink a regression towards an intercept-only model.
+3. Shrink the regression coefﬁcients towards a set of restrictions.
+4. Shrink a set of estimates (or coefﬁcients) towards their common mean.
+5. Shrink a set of estimates (or coefﬁcients) towards a parametric model.
+6. Shrink a nonparametric series model towards a parametric model.
+The way to think generally about these applications it that the researcher wants to allow for generality
+with the large model but believes that the smaller model may be a useful approximation. A shrinkage
+estimator allows the data to smoothly select between these two options depending on the strength of
+information for the two speciﬁcations.
+Let ˆθ ∼ N(θ,V ) be the original estimator, for example a set of regression coefﬁcient estimates. The
+normality assumption is used for the exact theory but can be justiﬁed based on an asymtotic approxi-
+mation as well. The researcher considers a set of q > 2 linear restrictions which can be written as R ′θ = r
+where R is K × q and r is q × 1. A minimum distance estimator for θ is
+ˆθR = ˆθ − V R
+(
+R ′V R
+)−1 (
+R ′ ˆθ − r
+)
+.
+The James-Stein estimator with positive-part trimming is
+˜θ+ = ˆθ −
+(
+q − 2
+(ˆθ − ˆθR
+)′
+V −1 (ˆθ − ˆθR
+)
+)
+1
+(ˆθ − ˆθR
+)
+.
+The function (a)1 = min[a,1] bounds the shrinkage weight below one.
+Theorem 28.14 Under the assumptions of Theorem 28.12, if q > 2 then
+wmse
+[˜θ+]
+< wmse
+[˜θ
+]
+.
+The shrinkage estimator achieves uniformly smaller MSE if the number of restrictions is three or
+greater. The number of restrictions q plays the same role as the number of parameters K in the classical
+James-Stein estimator. Shrinkage achieves greater gains when there are more restrictionsq, and achieves
+greater gains when the restrictions are close to being satisﬁed in the population. If the imposed restric-
+tions are far from satisﬁed then the shrinkage estimator will have similar performance as the original
+estimator. It is therefore important to select the restrictions carefully.
+In practice the covariance matrix V is unknown so it is replaced by an estimator ˆV . Thus the feasible
+version of the estimators equal
+ˆθR = ˆθ − ˆV R
+(
+R ′ ˆV R
+)−1 (
+R ′ ˆθ − r
+)
+
+
+--- page 31 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 889
+and
+˜θ+ = ˆθ −
+(q − 2
+J
+)
+1
+(ˆθ − ˆθR
+)
+(28.27)
+where
+J =
+(ˆθ − ˆθR
+)′ ˆV
+−1 (ˆθ − ˆθR
+)
+.
+It is insightful to notice that J is the minimum distance statistic for the test of the hypothesis H0 :
+R ′θ = r against H1 : R ′θ ̸= r . Thus the degree of shrinkage is a smoothed version of the standard test of
+the restrictions. When J is large (so the evidence indicates that the restrictions are false) the shrinkage
+estimator is close to the unrestricted estimator ˆθ. When J is small (so the evidence indicates that the re-
+strictions could be correct) the shrinkage estimator equals the restricted estimator ˆθR . For intermediate
+values of J the shrinkage estimator shrinks ˆθ towards ˆθR .
+We can substitute forJ any similar asymptotically chi-square statistic, including the Wald, Likelihood
+Ratio, and Score statistics. We can also use the F statistic (which is commonly produced by statistical soft-
+ware) if we multiply by q. These substitutions do not produce the same exact ﬁnite sample distribution
+but are asymptotically equivalent.
+In linear regression we have some very convenient simpliﬁcations available. In general, ˆV can be a
+heteroskedastic-robust or cluster-robust covariance matrix estimator. However, if the dimension K of
+the unrestricted estimator is quite large or has sparse dummy variables then these covariance matrix
+estimators are ill-behaved and it may be better to use a classical covariance matrix estimator to perform
+the shrinkage. If this is done then ˆV =
+(
+X ′X
+)−1 s2, ˆθR is the constrained least squares estimator (in most
+applications the least squares estimator of the short regression) andJ is a conventional (homoskedastic)
+Wald statistic for a test of the restrictions. We can write the latter in F statistic form
+J =
+n
+(
+ˆσ2
+R − ˆσ2)
+s2 (28.28)
+where ˆσ2
+R and ˆσ2 are the least squares error variance estimators from the restricted and unrestricted
+models. The shrinkage weight ((q − 2)/J)1 can be easily calculated from standard regression output.
+28.24 Group James-Stein
+The James-Stein estimator can be applied to groups (blocks) of parameters. Suppose we have the pa-
+rameter vector θ = (θ1, θ2, ...,θG) partitioned into G groups each of dimensionKg ≥ 3. We have a standard
+estimator ˆθ =
+(ˆθ1, ˆθ2, ...,ˆθG
+)
+(for example, least squares regression or MLE) with covariance matrixV . The
+group James-Stein estimator is
+˜θ =
+(˜θ1, ˜θ2,..., ˜θG
+)
+˜θg = ˆθg
+(
+1 −
+Kg − 2
+ˆθ′
+g V −1
+g ˆθg
+)
++
+where V g is the g t h diagonal block of V . A feasible version of the estimator replaces V with ˆV and V g
+with ˆV g .
+The group James-Stein estimator separately shrinks each block of coefﬁcients. The advantage rela-
+tive to the classical James-Stein estimator is that this allows the shrinkage weight to vary across blocks.
+Some parameter blocks can use a large amount of shrinkage while others a minimal amount. Since the
+positive-part trimming is used the estimator simultaneously performs shrinkage and selection. Blocks
+with small effects will be shrunk to zero and eliminated. The disadvantage of the estimator is that the
+beneﬁts of shrinkage may be reduced since the shrinkage dimension is reduced. The trade-off between
+
+
+--- page 32 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 890
+these factors will depend on how heterogeneous the optimal shrinkage weight varies across the param-
+eters.
+The groups should be selected based on two criteria. First, they should be selected so that the groups
+separate variables by expected amount of shrinkage. Thus coefﬁcients which are expected to be “large”
+relative to their estimation variance should be grouped together and coefﬁcients which are expected to
+be “small” should be grouped together. This will allow the estimated shrinkage weights to vary according
+to the group. For example, a researcher may expect high-order coefﬁcients in a polynomial regression to
+be small relative to their estimation variance. Hence it is appropriate to group the polynomial variables
+into “low order” and “high order” . Second, the groups should be selected so that the researcher’ s loss
+(utility) is separable across groups of coefﬁcients. This is because the optimality theory (given below)
+relies on the assumption that the loss is separable. To understand the implications of these recommen-
+dations consider a wage regression. Our interpretation of the education and experience coefﬁcients are
+separable if we use them for separate purposes, such as for estimation of the return to education and the
+return to experience. In this case it is appropriate to separate the education and experience coefﬁcients
+into different groups.
+For an optimality theory we deﬁne weighted MSE with respect to the block-diagonal weight matrix
+W = diag(V −1
+1 ,..., V −1
+G ).
+Theorem 28.15 Under the assumptions of Theorem 28.12, if WMSE is deﬁned
+with respect to W = diag(V −1
+1 ,..., V −1
+G ) and Kg > 2 for all g = 1, ...,G then
+wmse
+[˜θ
+]
+< wmse
+[ˆθ
+]
+.The proof is a simple extension of the classical James-Stein theory. The block diagonal structure of
+W means that the WMSE is the sum of the WMSE of each group. The classical James-Stein theory can
+be applied to each group ﬁnding that the WMSE is reduced by shrinkage group-by-group. Thus the total
+WMSE is reduced by shrinkage.
+28.25 Empirical Illustrations
+We illustrate James-Stein shrinkage with three empirical applications.
+The ﬁrst application is to the sample used in Section 28.18, the CPS dataset with the subsample of
+Asian women (n = 1149) focusing on the return to experience proﬁle. We consider shrinkage of Model 9
+(6t h order polynomial in experience) towards Model 3 (2nd order polynomial in experience). The differ-
+ence in the number of estimated coefﬁcients is 4. We setˆV to equal the HC1 covariance matrix estimator.
+The shrinkage weight is 0.46, meaning that the Stein Rule estimator is approximately an equal weighted
+average of the estimates from the two models. The estimated experience proﬁles are displayed in Figure
+28.3(b).
+The two least squares estimates are visually distinct. The 6 t h order polynomial (Model 9) shows a
+steep return to experience for the ﬁrst 10 years, then a wobbly experience proﬁle up to 40 years, and
+declining above that. It also shows a dip around 25 years. The quadratic speciﬁcation misses some of
+these features. The James-Stein estimator is essentially an average of the two proﬁles. It retains most
+features of the quartic speciﬁcation, except that it smooths out the unappealing 25-year dip.
+The second application is to the Invest1993 data set used in Chapter 17. This is a panel data set
+of annual observations on investment decisions by corporations. We focus on the ﬁrm-speciﬁc effects.
+
+
+--- page 33 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 891
+These are of interest when studying ﬁrm heterogeneity and is of particular importance for ﬁrm-speciﬁc
+forecasting. Accurate estimation of ﬁrm effects is challenging when the number of time series observa-
+tions per ﬁrm is small.
+To keep the analysis focused we restrict attention to ﬁrms which are traded on either the NYSE or
+AMEX and to the last ten years of the sample (1982-1991). Since the regressors are lagged this means that
+there are at most nine time-series observations per ﬁrm. The sample has a total of N = 786 ﬁrms and
+n = 5692 observations for estimation. Our baseline model is the two-way ﬁxed effects linear regression
+as reported in the fourth column of Table 17.2. Our restricted model replaces the ﬁrm ﬁxed effects with
+19 industry-speciﬁc dummy variables. This is similar to the ﬁrst column of Table 17.2 except that the
+trading dummy is omitted and time dummies are added. The Stein Rule estimator thus shrinks the ﬁxed
+effects model towards the industry effects model. The latter will do well if most of the ﬁxed effects are
+explained by industry rather than ﬁrm-speciﬁc variation.
+Due to the large number of estimated coefﬁcients in the unrestricted model we use the homoskedas-
+tic weight matrix as a simpliﬁcation. This allows the calculation of the shrinkage weight using the simple
+formula (28.28) for the statistic J. The heteroskedastic covariance matrix is not appropriate and the
+cluster-robust covariance matrix will not be reliable due to the sparse dummy speciﬁcation.
+The estimated shrinkage weight is 0.35 which means that the Stein Rule estimator puts about 1/3
+weight on the industry-effect speciﬁcation and 2/3 weight on the ﬁrm-speciﬁc speciﬁcation.
+To report our results we focus on the distribution of the ﬁrm-speciﬁc effects. For the ﬁxed effects
+model these are the estimated ﬁxed effects. For the industry-effect model these are the estimated in-
+dustry dummy coefﬁcients (for each ﬁrm). For the Stein Rule estimates they are a weighted average of
+the two. We estimate6 the densities of the estimated ﬁrm-speciﬁc effects from the ﬁxed-effects and Stein
+Rule estimators, and plot them in Figure 28.3(c).
+You can see that the ﬁxed-effects estimate of the ﬁrm-speciﬁc density is more dispersed while the
+Stein estimator is sharper and more peaked indicating that the ﬁxed effects estimator attributes more
+variation in ﬁrm-speciﬁc factors than the Stein estimator. The Stein estimator pulls the ﬁxed effects
+towards their common mean, adjusting for the randomness due to their estimation. Our expectation is
+that the Stein estimates, if used for an application such as ﬁrm-speciﬁc forecasting, will be more accurate
+because they will have reduced variance relative to the ﬁxed effects estimates.
+The third application uses the CPS dataset with the subsample of Black men (n = 2413) focusing on
+the return to education across U.S. regions (Northeast, Midwest, South, West). Suppose you are asked to
+ﬂexibly estimate the return to education for Black men allowing for the return to education to vary across
+the regions. Given the model selection information from Section 28.18 a natural baseline is model 6 aug-
+mented to allow for greater variation across regions. A ﬂexible speciﬁcation interacts the six education
+dummy variables with the four regional dummies (omitting the intercept), which adds 18 coefﬁcients
+and allows the return to education to vary without restriction in each region.
+The least squares estimate of the return to education by region is displayed in Figure 28.4(a). For sim-
+plicity we label the omitted education group (less than 12 years education) as “11 years” . The estimates
+appear noisy due to the small samples. One feature which we can see is that the four lines track one
+another for years of education between 12 and 18. That is, they are roughly linear in years of education
+with the same slope but different intercepts.
+To improve the precision of the estimates we shrink the four proﬁles towards Model 6. This means
+that we are shrinking the proﬁles not towards each other but towards the model with the same effect
+of education but regional-speciﬁc intercepts. Again we use the HC1 covariance matrix estimate. The
+number of restrictions is 18. The shrinkage weight is 0.49 which means that the Stein Rule estimator
+6The two densities are estimated with a common bandwidth to aid comparison. The bandwidth was selected to compromise
+between those selected for the two samples.
+
+
+--- page 34 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 892
+2.0 2.5 3.0 3.5 4.0
+Education
+log(wage)
+12 14 16 18 20
+Northeast
+Midwest
+South
+West
+(a) Least Squares Estimates
+2.0 2.5 3.0 3.5 4.0
+Education
+log(wage)
+12 14 16 18 20
+Northeast
+Midwest
+South
+West (b) Stein Rule Estimates
+Figure 28.4: Stein Rule Estimation of Education Proﬁles Across Regions
+puts equal weight on the two models.
+The Stein Rule estimates are displayed in Figure 28.4(b). The estimates are less noisy than panel (a)
+and it is easier to see the patterns. The four lines track each other and are approximately linear over 12-
+18. For 20 years of education the four lines disperse which seems likely due to small samples. In panel
+(b) it is easier to see the patterns across regions. It appears that the northeast region has the highest
+wages (conditional on education) while the west region has the lowest wages. This ranking is constant
+for nearly all levels of education.
+While the Stein Rule estimates shrink the nonparametric estimates towards the common-education-
+factor speciﬁcation it does not impose the latter speciﬁcation. The Stein Rule estimator has the ability to
+put near zero weight on the common-factor model. The fact that the estimates put 1/2 weight on both
+models is the choice selected by the Stein Rule and is thus data-driven.
+The message from these three applications is that the James-Stein shrinkage approach can be con-
+structively used to reduce estimation variance in economic applications. These applications illustrate
+common forms of potential applications: Shrinkage of a ﬂexible speciﬁcation towards a simpler speci-
+ﬁcation; Shrinkage of heterogeneous estimates towards homogeneous estimates; Shrinkage of ﬁxed ef-
+fects towards group dummy estimates. These three applications also employed moderately large sample
+sizes (n = 1149, 2413, and 5692) yet found shrinkage weights near 50%. This shows that the beneﬁts of
+Stein shrinkage are not conﬁned to “small” samples but rather can be constructive used in moderately
+large samples with complicated structures.
+28.26 Model Averaging
+Recall that the problem of model selection is how to select a single model from a general set of mod-
+els. The James-Stein shrinkage estimator smooths between two nested models by taking a weighted
+average of two estimators. More generally we can take an average of an arbitrary number of estimators.
+These estimators are known as model averaging estimators. The key issue for estimation is how to select
+the averaging weights.
+
+
+--- page 35 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 893
+Suppose we have a set ofM models M = {M1,..., MM }. For each model there is an estimatorˆθm of the
+parameter θ. The natural way to think about multiple models, parameters, and estimators is the same as
+for model selection. All models are subsets of a general superset (overlapping) model which contains all
+submodels as special cases.
+Corresponding to the set of models we introduce a set of weights w = {w1,..., wM }. It is common
+to restrict the weights to be non-negative and sum to one. The set of such weights is called the RM
+probability simplex.
+Deﬁnition 28.4 Probability Simplex. The set S ⊂ RM of vectors such that∑M
+m=1 wm = 1 and wi ≥ 1 for i = 1, ...,M.
+The probability simplex in R2 and R3 is shown in the two panels of Figure 28.5. The simplex in R2
+(the left panel) is the line between the vertices (1,0) and (0,1). An example element is the point (.7, .3)
+indicated by the dot. This is the weight vector which puts weight 0.7 on model 1 and weight 0.3 on
+model 2. The vertice (1,0) is the weight vector which puts all weight on model 1, corresponding to model
+selection, and similarly the vertice (0,1) is the weight vector which puts all weight on model 2.
+The simplex in R3 (the right panel) is the equilateral triangle formed between (1,0,0), (0, 1, 0), and
+(0, 0, 1). An example element is the point (.1, .5,.4) indicated by the dot. The edges are weight vectors
+which are averages between two of the three models. For example the bottom edge are weight vectors
+which divide the weight between models 1 and 2, placing no weight on model 3. The vertices are weight
+vectors which put all weight on one of the three models and correspond to model selection.
+(1,0)
+(0,1)
+w1
+w2
+●
+w=(.7,.3)
+(1,0,0)
+(0,1,0)
+(1,0,0)
+(0,0,1)
+(0,1,0)
+(1,0,0)
+(0,0,1)
+(0,1,0)
+(1,0,0)w1
+(0,0,1)
+(0,1,0)
+w2
+(1,0,0)w1
+(0,0,1)
+w3
+(0,1,0)
+w2
+(1,0,0)w1
+(0,0,1)
+w3
+(0,1,0)
+●
+w2
+(1,0,0)w1
+(0,0,1)
+w3
+(0,1,0)
+●
+w=(.1,.5,.4)
+w2
+(1,0,0)w1
+(0,0,1)
+w3
+(0,1,0)
+●
+w=(.1,.5,.4)
+w2
+(1,0,0)w1
+F
+igure 28.5: Probability Simplex in R2 and R3
+Since the weights on the probability simplex sum to one, an alternative representation is to elim-
+inate one weight by substitution. Thus we can set wM = 1 − ∑M −1
+m=1 wm and deﬁne the set of vectors
+w = {w1,..., wM −1} which lie in the RM −1 unit simplex, which is the region bracketed by the probabil-
+ity simplex and the origin.
+Given a weight vector we deﬁne the averaging estimator
+ˆθ (w) =
+M∑
+m=1
+wm ˆθm. (28.29)
+
+
+--- page 36 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 894
+Selection estimators emerge as the special case where the weight vector w is a unit vector, e.g. the ver-
+tices in Figure 28.5.
+It is not absolutely necessary to restrict the weight vector of an averaging estimator to lie in the
+probability simplex S , but in most cases it is a sensible restriction which improves performance. The
+unadjusted James-Stein estimator, for example, is an averaging estimator which does not enforce non-
+negativity of the weights. The positive-part version, however, imposes non-negativity and achieves re-
+duced MSE as a result.
+In Section 28.19 and Theorem 28.11 we explored the MSE of a simple shrinkage estimator which
+shrinks an unrestricted estimator towards the zero vector. This is the same as a model averaging esti-
+mator where one of the two estimators is the zero vector. In Theorem 28.11 we showed that the MSE
+of the optimal shrinkage (model averaging) estimator is less than the unrestricted estimator. This result
+extends to the case of averaging between an arbitrary number of estimators. The MSE of the optimal
+averaging estimator is less than the MSE of the estimator of the full model in any given sample.
+The optimal averaging weights, however, are unknown. A number of methods have been proposed
+for selection of the averaging weights.
+One simple method is equal weighting. This is achieved by setting wm = 1/M and results in the
+estimator
+ˆθ∗ = 1
+M
+M∑
+m=1
+ˆθm.
+The advantages of equal weighting are that it is simple, easy to motivate, and no randomness is intro-
+duced by estimation of the weights. The variance of the equal weighting estimator can be calculated
+since the weights are ﬁxed. Another important advantage is that the estimator can be constructed in
+contexts where it is unknown how to construct empirical-based weights, for example when averaging
+models from completely different probability families. The disadvantages of equal weighting are that
+the method can be sensitive to the set of models considered, there is no guarantee that the estimator will
+perform better than the unrestricted estimator, and sample information is inefﬁciently used. In practice,
+equal weighting is best used in contexts where the set of models have been pre-screened so that all are
+considered “reasonable” models. From the standpoint of econometric methodology equal weighting is
+not a proper statistical method as it is an incomplete methodology.
+Despite these concerns equal weighting can be constructively employed when summarizing infor-
+mation for a non-technical audience. The relevant context is when you have a small number of rea-
+sonable but distinct estimates typically made using different assumptions. The distinct estimates are
+presented to illustrate the range of possible results and the average taken to represent the “consensus”
+or “recommended” estimate.
+As mentioned above, a number of methods have been proposed for selection of the averaging weights.
+In the following sections we outline four popular methods: Smoothed BIC, Smoothed AIC, Mallows av-
+eraging, and Jackknife averaging.
+28.27 Smoothed BIC and AIC
+Recall that Schwarz’ s Theorem 28.1 states that for a probability model f (y, θ) and a diffuse prior the
+marginal likelihood p(Y ) satisﬁes
+−2 logp(Y ) ≃ −2ℓn
+(ˆθ
+)
++ K log(n) = BIC.
+This has been been interpreted to mean that the model with the highest value of the right-hand-side
+approximately has the highest marginal likelihood and is thus the model with the highest probability of
+being the true model.
+
+
+--- page 37 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 895
+There is another interpretation of Schwarz’ s result. The marginal likelihood is approximately propor-
+tional to the probability that the model is true, conditional on the data. Schwarz’ s Theorem implies that
+this is approximately
+p(Y ) ≃ exp(−BIC/2)
+which is a simple exponential transformation of the BIC. Weighting by posterior probability can be
+achieved by setting model weights proportional to this transformation. These are known as BIC weights
+and produce the smoothed BIC estimator.
+To describe the method completely, we have a set of modelsM = {M1, ...,MM }. Each model fm(y, θm)
+depends on a Km × 1 parameter vector θm which is estimated by the maximum likelihood. The maxi-
+mized likelihood is Lm(ˆθm) = fm(Y , ˆθm). The BIC for model m is BICm = −2 logLm(ˆθm) + Km log(n).
+The BIC weights are
+wm = exp(−BICm/2)
+∑M
+j =1 exp
+(
+−BICj /2
+).
+Some properties of the BIC weights are as follows. They are non-negative so all models receive pos-
+itive weight. Some models can receive weight arbitrarily close to zero and in practice many estimated
+models may receive BIC weight that is essentially zero. The model which is selected by BIC receives the
+greatest weight and models which have BIC values close to the minimum receive weights closest to the
+largest weight. Models whose BIC is not close to the minimum receive weight near zero.
+The Smoothed BIC (SBIC) estimator is
+ˆθsbic =
+M∑
+m=1
+wm ˆθm.
+The SBIC estimator is a smoother function of the data than BIC selection as there are no discontinuous
+jumps across models.
+An advantage of the smoothed BIC weights and estimator is that it can be used to combine models
+from different probability families. As for the BIC it is important that all models are estimated on the
+same sample. It is also important that the full formula is used for the BIC (no omission of constants)
+when combining models from different probability families.
+Computationally it is better to implement smoothed BIC with what are called “BIC differences” rather
+than the actual values of the BIC, as the formula as written can produce numerical overﬂow problems.
+The difﬁculty is due to the exponentiation in the formula. This problem can be eliminated as follows. Let
+BIC∗ = min
+1≤m≤M
+BICm
+denote the lowest BIC among the models and deﬁne the BIC differences
+∆BICm = BICm − BIC∗.
+Then
+wm = exp(−BICm/2)
+∑M
+j =1 exp
+(
+−BICj /2
+)
+= exp(−BICm/2)exp(BIC∗/2)
+∑M
+j =1 exp
+(
+−BICj /2
+)
+exp(BIC∗/2)
+= exp(−∆BICm/2)
+∑M
+j =1 exp
+(
+−∆BICj /2
+).
+
+
+--- page 38 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 896
+Thus the weights are algebraically identically whether computed on BICm or ∆BICm. Since ∆BICm are of
+smaller magnitude than BICm overﬂow problems are less likely to occur.
+Because of the properties of the exponential, if ∆BICm ≥ 10 then wm ≤ 0.01. Thus smoothed BIC
+typically concentrates weight on models whose BIC values are close to the minimum. This means that
+in practice smoothed BIC puts effective non-zero weight on a small number of models.
+Burnham and Anderson (1998) follow a suggestion they credit to Akaike that if we make the same
+transformation to the AIC as to the BIC to obtain the smoothed BIC weights we obtain frequentist ap-
+proximate probabilities for the models. Speciﬁcally they propose the weights
+wm = exp(−AICm/2)
+∑M
+j =1 exp
+(
+−AICj /2
+).
+They do not provide a strong theoretical justiﬁcation for this speciﬁc choice of transformation but it
+seems natural given the smoothed BIC formula and works well in simulations.
+The algebraic properties of the AIC weights are similar to those of the BIC weights. All models receive
+positive weight though some receive weight which is arbitrarily close to zero. The model with the smallest
+AIC receives the greatest AIC weight, and models with similar AIC values receive similar AIC weights.
+Computationally the AIC weights should be computed using AIC differences. Deﬁne
+AIC∗ = min
+1≤m≤M
+AICm
+∆AICm = AICm − AIC∗.
+The AIC weights algebraically equal
+wm = exp(−∆AICmAICm/2)
+∑M
+j =1 exp
+(
+−∆AICj /2
+) .
+As for the BIC weights wm ≤ 0.01 if ∆AICm ≥ 10 so the AIC weights will concentrated on models whose
+AIC values are close to the minimum. However, in practice it is common that the AIC criterion is less
+concentrated than the BIC criterion as the AIC puts a smaller penalty on large penalizations. The AIC
+weights tend to be more spread out across models than the corresponding BIC weights.
+The Smoothed AIC (SAIC) estimator is
+ˆθsaic =
+M∑
+m=1
+wm ˆθm.
+The SAIC estimator is a smoother function of the data than AIC selection.
+Recall that both AIC selection and BIC selection are model selection consistent in the sense that as
+the sample size gets large the probability that the selected model is a true model is arbtrarily close to one.
+Furthermore, BIC is consistent for parsimonious models and AIC asymptotically over-selects.
+These properties extend to SBIC and SAIC. In large samples SAIC and SBIC weights will concentrate
+exclusively on true models; the weight on incorrect models will asymptotically approach zero. However,
+SAIC will asymptotically spread weight across both parsimonious true models and overparameterized
+true models, while SBIC asymptotically concentrates weight only on parsimonious true models.
+An interesting property of the smoothed estimators is the possibility of asymptotically spreading
+weight across equal-ﬁtting parsimonious models. Suppose we have two non-nested models with the
+same number of parameters and the same KLIC value so they are equal approximations. In large sam-
+ples both SBIC and SAIC will be weighted averages of the two estimators rather than simply selecting one
+of the two.
+
+
+--- page 39 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 897
+28.28 Mallows Model Averaging
+In linear regression the Mallows criterion (28.14) applies directly to the model averaging estimator
+(28.29). The homoskedastic regression model is
+Y = m + e
+m = m(X )
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2.
+Suppose that there are M models for m(X ), each which takes the form β′
+m Xm for some Km × 1 regression
+vector Xm. The mt h model estimator of the coefﬁcient is ˆβm =
+(
+X ′
+m X m
+)−1 X ′
+mY , and the estimator of
+the vector m is ˆmm = P mY where P m = X m
+(
+X ′
+m X m
+)−1 X ′
+m. The corresponding residual vector is ˆem =
+(I n − P m) Y .
+The model averaging estimator for ﬁxed weights is
+ˆmm (w) =
+M∑
+m=1
+wmP mY = P (w) Y
+where
+P (w) =
+M∑
+m=1
+wmP m.
+The model averaging residual is
+ˆe (w) = (I n − P (w)) Y =
+M∑
+m=1
+wm (I n − P m) Y .
+The estimator ˆmm (w) is linear in Y so the Mallows criterion can be applied. It equals
+C (w) = ˆe (w)′ ˆe (w) + 2˜σ2 tr(P (w))
+= ˆe (w)′ ˆe (w) + 2˜σ2
+M∑
+m=1
+wmKm
+where ˜σ2 is a preliminary7 estimator of σ2.
+In the case of model selection the Mallows penalty is proportional to the number of estimated coefﬁ-
+cients. In the model averaging case the Mallows penalty is the average number of estimated coefﬁcients.
+The Mallows-selected weight vector is that which minimizes the Mallows criterion. It equals
+ˆwmma = argmin
+w∈S
+C (w). (28.30)
+Computationally it is useful to observe that C (w) is a quadratric function in w. Indeed, by deﬁning
+the n × M matrix ˆE = [ˆe1,..., ˆe M ] of residual vectors and the M × 1 vector K = [K1, ...,KM ] the criterion is
+C (w) = w ′ ˆE
+′ ˆE w + 2˜σ2K ′w.
+The probability simplex S is deﬁned by one equality and 2 M inequality constraints. The minimiza-
+tion problem (28.30) falls in the category of quadratic programming which means optimization of a
+7It is typical to use the bias-corrected least squares variance estimator from the largest model.
+
+
+--- page 40 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 898
+quadratic subject to linear equality and inequality constraints. This is a well-studied area of numeri-
+cal optimization and numerical solutions are widely available. In R use the command solve.QP in the
+package quadprog. In MATLAB use the command quadprog.
+Figure 28.6 illustrates the Mallows weight computation problem. Displayed is the probability simplex
+S in R3. The axes are the weight vectors. The ellipses are the contours of the unconstrained sum of
+squared errors as a function of the weight vectors projected onto the constrained set∑M
+m=1 wm = 1. This is
+the extension of the probability simplex as a two-dimensional plane inR3. The midpoint of the contours
+is the minimizing weight vector allowing for weights outside [0, 1]. The point where the lowest contour
+ellipse hits the probability simplex is the solution (28.30), the Mallows selected weight vector. In the left
+panel is displayed an example where the solution is the vertex (0,1,0) so the selected weight vector puts
+all weight on model 2. In the right panel is displayed an example where the solution lies on the edge
+between (1, 0, 0) and (0, 0, 1), meaning that the selected weight vector averages models 1 and 3 but puts
+no weight on model 2. Since the contour sets are ellipses and the constraint set is a simplex, solution
+points tend to be on edges and vertices meaning that some models receive zero weight. In fact, where
+there are a large number of models a generic feature of the solution is that most models receive zero
+weight; the selected weight vector puts positive weight on a small subset of the eligible models.
+●
+●
+w1 w2
+w3
+w1 w2
+w3
+●
+●
+Figure 28.6: Mallows Weight Selection
+Once the weights ˆw are obtained the model averaging estimator of the coefﬁcients are found by
+averaging the model estimates ˆβm using the weights.
+In the special case of two nested models the Mallows criterion can be written as
+C (w) = (w,1 − w)
+( ˆe′
+1ˆe1 ˆe′
+1ˆe2
+ˆe′
+2ˆe1 ˆe′
+2ˆe2
+) ( w
+1 − w
+)
++ 2˜σ2 (wK 1 + (1 − w)K2)
+= (w,1 − w)
+( ˆe′
+1ˆe1 ˆe′
+2ˆe2
+ˆe′
+2ˆe2 ˆe′
+2ˆe2
+) ( 1 − w
+w
+)
++ 2˜σ2 (wK 1 + (1 − w)K2)
+= w 2 (
+ˆe′
+1ˆe1 − ˆe′
+2ˆe2
+)
++ ˆe′
+2ˆe2 − 2˜σ2 (K2 − K1) w + 2˜σ2
+where we assume K1 < K2 so that ˆe′
+1ˆe2 = Y ′ (I n − P 1)( I n − P 2) Y = Y ′ (I n − P 2) Y = ˆe′
+2ˆe2. The minimizer
+of this criterion is
+ˆw =
+( ˜σ2 (K2 − K1)
+ˆe′
+1ˆe1 − ˆe′
+2ˆe2
+)
+1
+.
+This is the same as the Stein Rule weight (28.27) with a slightly different shrinkage constant. Thus the
+Mallows averaging estimator forM = 2 is a member of the Stein Rule family. Hence forM > 2 the Mallows
+averaging estimator is a generalization of the James-Stein estimator to multiple models.
+
+
+--- page 41 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 899
+Based on the latter observation, B. E. Hansen (2014) shows that the MMA estimator has lower WMSE
+than the unrestricted least squares estimator when the models are nested linear regressions, the errors
+are homoskedastic, and the models are separated by 4 coefﬁcients or greater. The latter condition is
+analogous to the conditions for improvements in the Stein Rule theory.
+B. E. Hansen (2007) showed that the MMA estimator asymptotically achieves the same MSE as the in-
+feasible optimal best weighted average using the theory of Li (1987) under similar conditions. This shows
+that using model selection tools to select the averaging weights is asymptotically optimal for regression
+ﬁtting and point forecasting.
+28.29 Jackknife (CV) Model Averaging
+A disadvantage of Mallows selection is that the criterion is valid only when the errors are condi-
+tionally homoskedastic. In constrast, selection by cross-validation does not require homoskedasticity.
+Therefore it seems sensible to use cross-validation rather than Mallows to select the weight vectors. It
+turns out that this is a simple extension with excellent ﬁnite sample performance. In the Machine Learn-
+ing literature this method is called stacking.
+A ﬁtted averaging regression (with ﬁxed weights) can be written as
+Yi =
+M∑
+m=1
+wm X ′
+mi ˆβm + ˆei (w)
+where ˆβm are the least squares coefﬁcient estimates from Model m. The corresponding leave-one-out
+equation is
+Yi =
+M∑
+m=1
+wm X ′
+mi ˆβm,(−i ) + ˜ei (w)
+where ˆβm,(−i ) are the least squares coefﬁcient estimates from Model m when observation i is deleted.
+The leave-one-out prediction errors satisfy the simple relationship
+˜ei (w) =
+M∑
+m=1
+wm ˜emi
+where ˜emi are the leave-one-out prediction errors for model m. In matrix notation ˜e (w) = ˜E w where ˜E
+is the n × M matrix of leave-one-out prediction errors.
+This means that the jackknife estimate of variance (or equivalently the cross-validation criterion)
+equals
+CV(w) = w ′ ˜E
+′ ˜E w
+which is a quadratic function of the weight vector. The cross-validation choice for weight vector is the
+minimizer
+ˆwjma = argmin
+w∈S
+CV(w). (28.31)
+Given the weights the coefﬁcient estimates (and any other parameter of interest) are found by taking
+weighted averages of the model estimates using the weight vector ˆwjma. B. E. Hansen and Racine (2012)
+call this the Jackknife Model Averaging (JMA) estimator.
+The algebraic properties of the solution are similar to Mallows. Since (28.31) minimizes a quadratic
+function subject to a simplex constraint solutions tend to be on edges and vertices which means that
+many (or most) models receive zero weight. Hence JMA weight selection simultaneously performs se-
+lection and shrinkage. The solution is found numerically by quadratic programming which is computa-
+tionally simple and fast even when the number of models M is large.
+
+
+--- page 42 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 900
+B. E. Hansen and Racine (2012) showed that the JMA estimator is asymptotically equivalent to the in-
+feasible optimal weighted average across least squares estimates based on a regression ﬁt criteria. Their
+results hold under quite mild conditions including conditional heteroskedasticity. This result is similar
+to Andrews (1991c) generalization of Li (1987)’ s result for model selection.
+The implication of this theory is that JMA weight selection is computationally simple and has excel-
+lent sampling performance.
+28.30 Granger-Ramanathan Averaging
+A method similar to JMA based on hold-out samples was proposed for forecast combination by
+Granger and Ramanathan (1984), and has emerged as a popular method in the modern machine learning
+literature.
+Randomly split the sample into two parts: an estimation an an evaluation sample. Using the estima-
+tion sample, estimate the M regression models, obtaining the coefﬁcients ˆβm. Using these coefﬁcients
+and the evaluation sample construct the ﬁtted values˜Ymi = X ′
+mi
+ˆβm for the M models. Then estimate the
+model weights by a least squares regression of Yi on ˜Ymi and no intercept using the evaluation sample.
+This regression is
+Yi =
+M∑
+m=1
+ˆwm ˜Ymi + ˆei .
+The least squares coefﬁcients ˆwm are the Granger-Ramanathan weights.
+Based on an informal argument Granger and Ramanathan (1984) recommended an unconstrained
+least squares regression to obtain the weights but this is not advised as this produces extremely erratic
+empirical weights, especially when M is large. It is recommended to use constrained regression, impos-
+ing the constraints ˆwm ≥ 0 and ∑M
+m=1 ˆwm = 1. To impose the non-negativity constraints it is best to use
+quadratic programming.
+This Granger-Ramanathan approach is best suited for applications with a very large sample size
+where the efﬁciency loss from the hold-out sample split is not a concern.
+28.31 Empirical Illustration
+We illustrate the model averaging methods with the empirical application from Section 28.18, which
+reported wage regression estimates for the CPS sub-sample of Asian women focusing on the return to
+experience between 0 and 30 years.
+Table 28.2 reports the model averaging weights obtained using the methods of SBIC, SAIC, Mallows
+model averaging (MMA), and jackknife model averaging (JMA). Also reported in the ﬁnal column is the
+weighted average estimate of the return to experience as a percentage.
+The results show that the methods put weight on somewhat different models. The SBIC puts nearly
+all weight on model 2. The SAIC puts nearly 1/2 of the weight on model 6 with most of the remainder
+split between models 5 and 9. MMA puts nearly 1/2 of the weight on model 9, 30% on 5, and 9% on
+model 1. JMA is similar to MMA but more emphasis on parsimony, with 1/2 of the weight on model 5,
+17% on model 9, 17% on model 1, and 8% on model 3. One of the interesting things about the MMA/JMA
+methods is that they can split weight between quite different models, e.g. models 1 and 9.
+The averaging estimators from the non-BIC methods are similar to one another but SBIC produces a
+much smaller estimate than the other methods.
+
+
+--- page 43 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 901
+Table 28.2: Model Averaging Weights and Estimates of Return to Experience among Asian Women
+Model 1 Model 2 Model 3 Model 4 Model 5 Model 6 Model 7 Model 8 Model 9 Return
+SBIC .02 .96 .00 .00 .04 .00 .00 .00 .00 22%
+SAIC .00 .02 .10 .00 .15 .44 .00 .06 .22 38%
+MMA .09 .02 .02 .00 .30 .00 .00 .00 .57 39%
+JMA .17 .00 .08 .00 .57 .01 .00 .00 .17 34%
+28.32 Technical Proofs*
+Proof of Theorem 28.1We establish the theorem under the simplifying assumptions of the normal linear
+regression model with a K × 1 coefﬁcient vectorβ and known variance σ2. The likelihood function is
+Ln(β) =
+(
+2πσ2)−n/2
+exp
+(
+− 1
+2σ2
+n∑
+i =1
+(
+Yi − X ′
+i β
+)2
+)
+.
+Evaluated at the MLE ˆβ this equals
+Ln( ˆβ) =
+(
+2πσ2)−n/2
+exp
+(
+−
+∑n
+i =1 ˆe2
+i
+2σ2
+)
+. (28.32)
+Using (8.21) we can write
+Ln(β) =
+(
+2πσ2)−n/2
+exp
+(
+− 1
+2σ2
+(
+n∑
+i =1
+ˆe2
+i +
+(ˆβ − β
+)′
+X ′X
+(ˆβ − β
+)
+))
+= Ln( ˆβ)exp
+(
+− 1
+2σ2
+(ˆβ − β
+)′
+X ′X
+(ˆβ − β
+))
+.
+For a diffuse prior π(β) = C the marginal likelihood is
+p(Y ) = Ln( ˆβ)
+∫
+exp
+(
+− 1
+2σ2
+(ˆβ − β
+)′
+X ′X
+(ˆβ − β
+))
+C dβ
+= Ln( ˆβ)n−K /2 (
+2πσ2)K /2
+det
+( 1
+n X ′X
+)−1/2
+C
+where the ﬁnal equality is the multivariate normal integral. Rewriting and taking logs
+−2 logp(Y ) = −2 logLn( ˆβ) + K logn − K log
+(
+2πσ2)
++ logdet
+( 1
+n X ′X
+)
++ logC
+= −2ℓn( ˆβ) + K logn +O(1).
+This is the theorem. ■
+Proof of Theorem 28.2 From (28.11)
+∫
+g (y)log f (y, ˆθ)d y = −n
+2 log
+(
+2πσ2)
+− 1
+2σ2
+n∑
+i =1
+∫ (
+y − X ′
+i ˆβ
+)2
+g
+(
+y |Xi
+)
+d y
+= −n
+2 log
+(
+2πσ2)
+− 1
+2σ2
+n∑
+i =1
+(
+σ2 +
+(ˆβ − β
+)′
+Xi X ′
+i
+(ˆβ − β
+))
+= −n
+2 log
+(
+2πσ2)
+− n
+2 − 1
+2σ2 e′Pe .
+
+
+--- page 44 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 902
+Thus
+T = −2E
+[∫
+g (y)log ˆf (y)d y
+]
+= n log
+(
+2πσ2)
++ n + 1
+σ2 E
+[
+e′Pe
+]
+= n log
+(
+2πσ2)
++ n + K .
+This is (28.12). The ﬁnal equality holds under the assumption of conditional homoskedasticity.
+Evaluating (28.11) at ˆβ we obtain the log likelihood
+−2ℓn( ˆβ) = n log
+(
+2πσ2)
++ 1
+σ2
+n∑
+i =1
+ˆe2
+i = n log
+(
+2πσ2)
++ 1
+σ2 e′Me .
+This has expectation
+−E
+[
+2ℓn( ˆβ)
+]
+= n log
+(
+2πσ2)
++ 1
+σ2 E
+[
+e′Pe
+]
+= n log
+(
+2πσ2)
++ n − K .
+This is (28.13). The ﬁnal equality holds under conditional homoskedasticity. ■
+Proof of Theorem 28.4 The proof uses Taylor expansions similar to those used for the asymptotic distri-
+bution theory of the MLE in nonlinear models. We avoid technical details so this is not a full proof.
+Write the model density as f (y, θ) and the estimated model as ˆf (y) = f (y, ˆθ). Recall from (28.10) that
+we can write the target T as
+T = −2E
+[
+log f ( ˜Y , ˆθ)
+]
+where ˜Y is an independent copy of Y . Let ˜θ be the MLE calculated on the sample ˜Y . ˜θ is an independent
+copy of ˆθ. By symmetry we can write T as
+T = −2E
+[
+log f (Y , ˜θ)
+]
+. (28.33)
+Deﬁne the HessianH = − ∂
+∂θ∂θ′ E
+[
+log f (Y , θ)
+]
+> 0. Now take a second-order Taylor series expansion of the
+log likelihood log f (Y , ˜θ) about ˆθ. This is
+log f (Y , ˜θ) = log f (Y , ˆθ) + ∂
+∂θ′ log f (Y , ˆθ)
+(˜θ − ˆθ
+)
+− 1
+2
+(˜θ − ˆθ
+)′
+H
+(˜θ − ˆθ
+)
++Op
+(
+n−1/2)
+= log f (Y , ˆθ) − n
+2
+(˜θ − ˆθ
+)′
+H
+(˜θ − ˆθ
+)
++Op
+(
+n−1/2)
+. (28.34)
+The second equality holds because of the ﬁrst-order condition for the MLEˆθ.
+If the Op(n−1/2) term in (28.34) is uniformly integrable (28.33) and (28.34) imply that
+T = −E
+[
+2 logf (Y , ˆθ)
+]
++ E
+[
+n
+(˜θ − ˆθ
+)′
+H
+(˜θ − ˆθ
+)]
++O
+(
+n−1/2)
+= −E
+[
+2 logL(ˆθ)
+]
++ E
+[
+n
+(˜θ − θ
+)′
+H
+(˜θ − θ
+)]
++ E
+[
+n
+(ˆθ − θ
+)′
+H
+(ˆθ − θ
+)]
++ 2E
+[
+n
+(˜θ − θ
+)′
+H
+(ˆθ − θ
+)]
++O
+(
+n−1/2)
+= −E
+[
+2ℓn(ˆθ)
+]
++ E
+[
+χ2
+K
+]
++ E
+[
+˜χ2
+K
+]
++O
+(
+n−1/2)
+= −E
+[
+2ℓn(ˆθ)
+]
++ 2K +O
+(
+n−1/2)
+where χ2
+K and ˜χ2
+K are chi-square random variables withK degrees of freedom. The second-to-last equal-
+ity holds if
+n
+(ˆθ − θ
+)′
+H
+(ˆθ − θ
+)
+− →
+d
+χ2
+K (28.35)
+and the Wald statistic on the left-side of (28.35) is uniformly integrable. The asymptotic convergence
+(28.35) holds for the MLE under standard regularity conditions (including correct speciﬁcation). ■
+
+
+--- page 45 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 903
+Proof of Theorem 28.5Using matrix notation we can write ˆm −m = −(I n − A) m + Ae . We can then write
+the ﬁt as
+R = E
+[
+( ˆm − m)′ ( ˆm − m) |X
+]
+= E
+[
+m′ (
+I n − A′)
+(I n − A) m − 2m′ (
+I n − A′)
+Ae + e′ A′ Ae |X
+]
+= m′ (
+I n − A′)
+(I n − A) m + σ2 tr
+(
+A′ A
+)
+.
+Notice that this calculation relies on the assumption of conditional homoskedasticity.
+Now consider the Mallows criterion. We ﬁnd that
+C ∗
+p = ˆe′ˆe + 2˜σ2 tr(A) − e′e
+= (m + e)′ (
+I n − A′)
+(I n − A)( m + e) + 2˜σ2 tr(A) − e′e
+= m′ (
+I n − A′)
+(I n − A) m + 2m′ (
+I n − A′)
+(I n − A) e + e′ A′ Ae − 2e′ Ae + 2˜σ2 tr(A).
+Taking expectations and using the assumptions of conditional homoskedasticity and E
+[
+˜σ2 |X
+]
+= σ2
+E
+[
+C ∗
+p |X
+]
+= m′ (
+I n − A′)
+(I n − A) m + σ2 tr
+(
+A′ A
+)
+= R.
+This is the result as stated. ■
+Proof of Theorem 28.6 Take any two models M1 and M2 where M1 ∉ M
+∗
+and M2 ∈ M
+∗
+. Let their
+information criteria be written as
+IC1 = −2ℓ1(ˆθ1) + c(n,K1)
+IC2 = −2ℓ2(ˆθ2) + c(n,K2).
+Model M1 is selected over M2 if
+LR < c(n,K2) − c(n,K1)
+where LR = 2
+(
+ℓ2(ˆθ2) − ℓ(ˆθ1)
+)
+is the likelihood ratio statistic for testing M1 against M2. Since we have
+assumed that M1 is not a true model while M2 is true, then LR diverges to +∞ at rate n. This means that
+for any α > 0, n−1+αLR − →p +∞. Furthermore, the assumptions imply n−1+α (c(n,K1) − c(n,K2)) − →0.
+Fix ϵ > 0. There is an n sufﬁciently large such thatn−1+α (c(n,K1) − c(n,K2)) < ϵ. Thus
+P
+[
+ˆM = M1
+]
+≤ P
+[
+n−1+αLR < n−1+α (c(n,K2) − c(n,K1))
+]
+≤ P[LR < ϵ] → 0.
+Since this holds for anyM1 ∉ M
+∗
+we deduce that the selected model is inM
+∗
+with probability approach-
+ing one. This means that the selection criterion is model selection consistent as claimed. ■
+Proof of Theorem 28.7 Take the setting as described in the proof of Theorem 28.6 but now assumeM1 ⊂
+M2 and M1, M2 ∈ M
+∗
+. The likelihood ratio statistic satisﬁes LR− →
+d
+χ2
+r where r = K2 − K1. Let
+B = limsup
+n→∞
+(c(n,K1) − c(n,K2)) < ∞.
+Letting Fr (u) denote the χ2
+r distribution function
+P
+[
+ˆM = M2
+]
+= P[LR > (c(n,K2) − c(n,K1))]
+≥ P[LR > B]
+→ P
+[
+χ2
+r > B
+]
+= 1 − Fr (B) > 0
+
+
+--- page 46 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 904
+since χ2
+r has support over the positive real line andB < ∞. This shows that the selection criterion asymp-
+totically over-selects with positive probability. ■
+Proof of Theorem 28.8Since c(n,K ) = o(n) the procedure is model selection consistent. Take two models
+M1, M2 ∈ M
+∗
+with K1 < K2. Since both models are true then LR = Op(1). Fix ϵ > 0. There is a B < ∞
+such that LR ≤ B with probability exceeding 1 − ϵ. By (28.16) there is an n sufﬁciently large such that
+c(n,K2) − c(n,K1) > B. Thus
+P
+[
+ˆM = M2
+]
+≤ P[LR > (c(n,K2) − c(n,K1))] ≤ P[LR > B] ≤ ϵ.
+Since ϵ is arbitrary P
+[
+ˆM = M2
+]
+− →0 as claimed. ■
+Proof of Theorem 28.9 First, we examine Rn(K ). Write the predicted values in matrix notation as ˆmK =
+X K ˆβK = P K Y where P K = X K
+(
+X ′
+K X K
+)−1 X ′
+K . It is useful to observe that m − ˆmK = M K m − P K e where
+M K = I K − P K . We ﬁnd that the prediction risk equals
+Rn(K ) = E
+[
+(m − ˆmK )′ (m − ˆmK ) |X
+]
+= E
+[
+(M K m − P K e)′ (M K m − P K e) |X
+]
+= m′M K m + E
+[
+e′P K e |X
+]
+= m′M K m + σ2K .
+The choice of regressors affects Rn(K ) through the two terms in the ﬁnal line. The ﬁrst term m′M K m is
+the squared bias due to omitted variables. As K increases this term decreases reﬂecting reduced omitted
+variables bias. The second term σ2K is estimation variance. It is increasing in the number of regressors.
+Increasing the number of regressors affects the quality of out-of-sample prediction by reducing the bias
+but increasing the variance.
+We next examine the adjusted Mallows criterion. We ﬁnd that
+C ∗
+n (K ) = ˆe′
+K ˆeK + 2σ2K − e′e
+= (m + e)′ M K (m + e) + 2σ2K − e′e
+= m′M K m + 2m′M K e − e′P K e + 2σ2K .
+The next step is to show that
+sup
+K
+⏐⏐⏐
+⏐
+C ∗
+n (K ) − Rn(K )
+Rn(K )
+⏐
+⏐
+⏐
+⏐ − →p 0 (28.36)
+as n → ∞. To establish (28.36), observe that
+C ∗
+n (K ) − Rn(K ) = 2m′M K e − e′P K e + σ2K .
+Pick ϵ > 0 and some sequence Bn → ∞ such that Bn/
+(
+Ropt
+n
+)r
+→ 0. (This is feasible by Assumption 28.1.5.)
+By Boole’ s inequality (B.24), Whittle’ s inequality (B.48), the facts thatm′M K m ≤ Rn(K ) and Rn(K ) ≥ σ2K ,
+
+
+--- page 47 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 905
+Bn/
+(
+Ropt
+n
+)r
+→ 0, and ∑∞
+K =1 K −r < ∞
+P
+[
+sup
+K
+⏐⏐⏐⏐
+m′M K e
+Rn(K )
+⏐
+⏐⏐⏐ > ϵ
+⏐
+⏐⏐⏐ X
+]
+≤
+∞∑
+K =1
+P
+[ ⏐
+⏐⏐⏐
+m′M K e
+Rn(K )
+⏐
+⏐⏐⏐ > ϵ
+⏐
+⏐⏐⏐ X
+]
+≤ C1r
+ϵ2r
+∞∑
+K =1
+⏐
+⏐m′M K m
+⏐
+⏐r
+Rn(K )2r
+≤ C1r
+ϵ2r
+∞∑
+K =1
+1
+Rn(K )r
+= C1r
+ϵ2r
+Bn∑
+K =1
+1
+Rn(K )r + C1r
+ϵ2r
+∞∑
+K =Bn +1
+1
+Rn(K )r
+≤ C1r
+ϵ2r
+Bn(
+Ropt
+n
+)r + C1r
+ϵ2r σ2r
+∞∑
+K =Bn +1
+1
+K r
+→ 0.
+By a similar argument but using Whittle’ s inequality (B.49), tr(P K P K ) = tr(P K ) = K , and K ≤ σ−2Rn(K )
+P
+[
+sup
+K
+⏐
+⏐⏐⏐
+e′P K e − σ2K
+Rn(K )
+⏐⏐⏐
+⏐ > ϵ
+⏐⏐⏐
+⏐ X
+]
+≤
+∞∑
+K =1
+P
+[ ⏐⏐⏐
+⏐
+e′P K e − E
+(
+e′P K e
+)
+Rn(K )
+⏐⏐⏐
+⏐ > ϵ
+⏐⏐⏐
+⏐ X
+]
+≤ C2r
+ϵ2r
+∞∑
+K =1
+tr(P K P K )r
+Rn(K )2r
+= C2r
+ϵ2r
+∞∑
+K =1
+K r
+Rn(K )2r
+≤ C1r
+ϵ2r σ2r
+∞∑
+K =1
+1
+Rn(K )r
+→ 0.
+Together these imply (28.36).
+Finally we show that (28.36) implies (28.18). The argument is similar to the standard consistency
+proof for nonlinear estimators. (28.36) states that C ∗
+n (K ) converges uniformly in probability to Rn(K ).
+This implies that the minimizer of C ∗
+n (K ) converges in probability to that of Rn(K ). Formally, since K opt
+n
+minimizes Rn(K )
+0 ≤ Rn( ˆKn) − Rn(K opt
+n )
+Rn( ˆKn)
+= C ∗
+n ( ˆKn) − Rn(K opt
+n )
+Rn( ˆKn)
+− C ∗
+n ( ˆKn) − Rn( ˆKn)
+−Rn( ˆKn)
+≤ C ∗
+n ( ˆKn) − Rn(K opt
+n )
+Rn( ˆKn)
++ op(1)
+≤ C ∗
+n (K opt
+n ) − Rn(K opt
+n )
+Rn(K opt
+n )
++ op(1)
+≤ op(1).
+The second inequality is (28.36). The following uses the facts that ˆKn minimizes C ∗
+n (K ) and K opt
+n mini-
+mizes Rn(K ). The ﬁnal is (28.36). This is (28.18). ■
+
+
+--- page 48 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 906
+Before providing the proof of Theorem 28.10 we present two technical results related to the non-
+central chi-square density function with degree of freedom K and non-centrality parameter λ which
+equals
+fK (x, λ) =
+∞∑
+i =0
+e−λ/2
+i !
+(λ
+2
+)i
+fK +2i (x) (28.37)
+where fr (x) = xr /2−1e −x/2
+2r /2Γ(r /2)) is the χ2
+K density function.
+Theorem 28.16 The non-central chi-square density function (28.37) obeys the
+recursive relationship fK (x, λ) = K
+x fK +2(x, λ) + λ
+x fK +4(x, λ).
+The proof of Theorem 28.16 is a straightforward manipulation of the non-central chi-square density
+function (28.37).
+The second technical result is from Bock (1975, Theorems A&B).
+Theorem 28.17 If X ∼ N(θ, I K ) then for any function h (u)
+E
+[
+X h
+(
+X ′X
+)]
+= θE[h (QK +2)] (28.38)
+E
+[
+X ′X h
+(
+X ′X
+)]
+= K E[h (QK +2)] + λE[h (QK +4)] (28.39)
+where λ = θ′θ and Qr ∼ χ2
+r (λ), a non-central chi-square random variable with
+r degrees of freedom and non-centrality parameter λ.
+Proof of Theorem 28.17 To show (28.38) we ﬁrst show that forZ ∼ N(µ,1) then for any function g (u)
+E
+[
+Z g
+(
+Z 2)]
+= µE
+[
+g (Q3)
+]
+. (28.40)
+Assume µ > 0. Using the change-of-variables y = x2
+E
+[
+Z g
+(
+Z 2)]
+=
+∫ ∞
+−∞
+xp
+2π
+g
+(
+x2)
+exp
+(
+− 1
+2
+(
+x − µ
+)2
+)
+d x
+=
+∫ ∞
+0
+y
+2
+p
+2π
+e−(y+µ2)/2
+(
+e
+pyµ − e−pyµ
+)
+g
+(
+y
+)
+d y. (28.41)
+By expansion and Legendre’ s duplication formula
+e x − e−x = 2
+∞∑
+i =0
+x1+2i
+(1 + 2i )! =
+p
+πx
+∞∑
+i =0
+(x2/2)i
+2i i !Γ(i + 3/2) .
+Then (28.41) equals
+µ
+∫ ∞
+0
+ye −(y+µ2)/2
+∞∑
+i =0
+(µ2/2)i y i +1/2
+23/2+i i !Γ(i + 3/2) g
+(
+y
+)
+d y = µ
+∫ ∞
+0
+y f3(y, µ2)g
+(
+y
+)
+d y = µE
+[
+g (Q3)
+]
+
+
+--- page 49 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 907
+where f3(y, λ) is the non-central chi-square density (28.37) with 3 degrees of freedom. This is (28.40).
+Take the j t h row of (28.38). Write X ′X = X 2
+j + J, where X j ∼ N(θj ,1) and J ∼ χ2
+K −1(λ − θ2
+j ) are inde-
+pendent. Setting g (u) = h(u + J) and using (28.41)
+E
+[
+X j h
+(
+X ′X
+)]
+= E
+[
+X j h
+(
+X 2
+j + J
+)]
+= E
+[
+E
+[
+X j g
+(
+X 2
+j
+)
+|J
+]]
+= E
+[
+θj E
+[
+g (Q3) |J
+]]
+= θj E[h (Q3 + J)]
+= θj E[h (QK +2)]
+which is (28.38). The ﬁnal equality uses the fact thatQ3 + J ∼ QK +2.
+Observe that X ′X has density fK (x, λ). Using Theorem 28.16
+E
+[
+X ′X
+(
+X ′X
+)]
+=
+∫ ∞
+0
+xh (x)fK (x, λ)d x
+= K
+∫ ∞
+0
+h(x)fK +2(x, λ)d x + λ
+∫ ∞
+0
+h(x)fK +4(x, λ)d x
+= K E[h (QK +2)] + λE[h (QK +4)]
+which is (28.39). ■
+Proof of Theorem 28.10 By the quadratic structure we can calculate that
+MSE
+[ˆθ∗]
+= E
+[(ˆθ − θ − ˆθ1
+{ˆθ′ ˆθ ≤ c
+})′ (ˆθ − θ − ˆθ1
+{ˆθ′ ˆθ ≤ c
+})]
+= E
+[(ˆθ − θ
+)′ (ˆθ − θ
+)]
+− E
+[ˆθ′ ˆθ1
+{ˆθ′ ˆθ ≤ c
+}]
++ 2E
+[
+θ′ ˆθ1
+{ˆθ′ ˆθ ≤ c
+}]
+= K − K E
+[
+1
+{
+QK +2 ≤ c
+}]
+− λE
+[
+1
+{
+QK +4 ≤ c
+}]
++ 2λE
+[
+1
+{
+QK +2 ≤ c
+}]
+= K + (2λ − K )FK +2 (c, λ) − λFK +4 (c, λ).
+The third equality uses the two results from Theorem 28.17, setting h(u) = 1{u ≤ c}. ■
+_____________________________________________________________________________________________
+28.33 Exercises
+Exercise 28.1 Verify equations (28.1)-(28.2).
+Exercise 28.2 Find the Mallows criterion for the weighted least squares estimator of a linear regression
+Yi = X ′
+i β + ei with weights ωi (assume conditional homoskedasticity).
+Exercise 28.3 Backward Stepwise Regression. Verify the claim that for the case of AIC selection, step (b)
+of the algorithm can be implemented by calculating the classical (homoskedastic) t-ratio for each active
+regressor and ﬁnd the regressor with the smallest absolute t-ratio.
+Hint: Use the relationship between likelihood ratio and F statistics and the equality between F and
+Wald statistics to show that for tests on one coefﬁcient the smallest change in the AIC is identical to
+identifying the smallest squared t statistic.
+
+
+--- page 50 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 908
+Exercise 28.4 Forward Stepwise Regression. Verify the claim that for the case of AIC selection, step (b)
+of the algorithm can be implemented by identifying the regressor in the inactive set with the greatest
+absolute correlation with the residual from step (a).
+Hint: This is challenging. First show that the goal is to ﬁnd the regressor which will most decrease
+SSE = ˆe′ˆe = ∥ˆe∥2. Use a geometric argument to show that the regressor most parallel to ˆe will most
+decreases ∥ˆe∥. Show that this regressor has the greatest absolute correlation with ˆe.
+Exercise 28.5 An economist estimates several models and reports a single selected speciﬁcation, stat-
+ing that “the other speciﬁcations had insigniﬁcant coefﬁcients” . How should we interpret the reported
+parameter estimates and t-ratios?
+Exercise 28.6 Verify Theorem 28.11, including (28.21), (28.22), and (28.23).
+Exercise 28.7 Under the assumptions of Theorem 28.11, show that ˆλ = ˆθ′V −1 ˆθ − K is an unbiased esti-
+mator of λ = θ′V −1θ.
+Exercise 28.8 Prove Theorem 28.14 for the simpler case of the unadjusted (not positive part) Stein esti-
+mator ˜θ, V = I K and r = 0.
+Extra challenge: Show under these assumptions that
+wmse
+[˜θ
+]
+= K − (q − 2)2 Jq (λR)
+λR = θ′R
+(
+R ′R
+)−1 R ′θ.
+Exercise 28.9 Suppose you have two unbiased estimators ˆθ1 and ˆθ2 of a parameter vector ˆθ with covari-
+ance matrices V 1 and V 2. Take the goal of minimizing the unweighted mean squared error, e.g. trV 1 for
+ˆθ1. Assume that ˆθ1 and ˆθ2 are uncorrelated.
+(a) Show that the optimal weighted average estimator equals
+1
+trV 1
+ˆθ1 + 1
+trV 2
+ˆθ2
+1
+trV 1
++ 1
+trV 2
+.
+(b) Generalize to the case of M unbiased uncorrelated estimators.
+(c) Interpret the formulae.
+Exercise 28.10 You estimate M linear regressions Y = X ′
+mβm + em by least squares. Let ˆYmi = X ′
+mi
+ˆβm be
+the ﬁtted values.
+(a) Show that the Mallows averaging criterion is the same as
+n∑
+i =1
+(
+Yi − w1 ˆY1i − w2 ˆY2i − · · · −wM ˆYMi
+)2
++ 2σ2
+M∑
+m=1
+wmkm.
+(b) Assume the models are nested with M the largest model. If the previous criterion were minimized
+over w in the probability simplex but the penalty was omitted, what would be the solution? (What
+would be the minimizing weight vector?)
+
+
+--- page 51 ---
+
+CHAPTER 28. MODEL SELECTION, STEIN SHRINKAGE, AND MODEL AVERAGING 909
+Exercise 28.11 You estimate M linear regressions Y = X ′
+mβm + em by least squares. Let ˜Ymi = X ′
+mi
+ˆβm(−i )
+be the predicted values from the leave-one-out regressions. Show that the JMA criterion equals
+n∑
+i =1
+(
+Yi − w1 ˜Y1i − w2 ˜Y2i − · · · −wM ˜YMi
+)2
+.
+Exercise 28.12 Using the cps09mar dataset perform an analysis similar to that presented in Section
+28.18 but instead use the sub-sample of Hispanic women. This sample has 3003 observations. Which
+models are selected by BIC, AIC, CV and FIC? (The precise information criteria you examine may be lim-
+ited depending on your software.) How do you interpret the results? Which model/estimate would you
+select as your preferred choice?

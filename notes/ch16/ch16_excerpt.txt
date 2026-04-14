@@ -1,0 +1,4280 @@
+--- page 1 ---
+
+Chapter 16
+Non-Stationary Time Series
+16.1 Introduction
+At the beginning of Chapter 14 we displayed a set of economic time series. Several (real GDP , ex-
+change rate, interest rate, crude oil price) did not appear to be stationary. In Section 14.23 we intro-
+duced the non-stationary unit root process which is an autoregressive process with an autoregressive
+root at unity. Plots of two simulated examples (Figure 14.7) displayed time-paths with wandering be-
+havior similar to the economic time series. This suggests that perhaps a unit root autoregression is a
+reasonable model for these series. In this chapter we explore econometric estimation and inference for
+non-stationary unit root time series.
+16.2 Partial Sum Process and Functional Convergence
+Take the multivariate random walk
+Yt = Yt −1 + et
+where (et , Ft ) is a vector MDS with ﬁnite covariance matrixΣ. By back-substitution we ﬁnd Yt = Y0 + St
+where
+St =
+t∑
+i =1
+ei
+is the cumulative sum of the errors up to time t. We call St a partial sum process.
+The time index t ranges from 0 to n. Write1 t = ⌊nr ⌋ as a fraction r of the sample size n. This allows
+us to write S⌊nr ⌋ as a function of the fractionr . Divide by p
+n so that the variance is stabilized. With these
+modiﬁcations we deﬁne the standardized partial sum process.
+Sn(r ) = 1pn S⌊nr ⌋ = 1pn
+⌊nr ⌋∑
+t =1
+et .
+The random processSn(r ) is a scaled version of the time-seriesYt and is a function of the sample fraction
+r ∈ [0,1]. It is a stochastic process meaning that it is a random function. For any ﬁnite n, Sn(r ) is a step
+function with n jumps.
+Let’ s consider the behavior ofSn(r ) as n increases. It’ s largest discrete jump equalsn−1/2 max1≤t ≤n ∥et ∥.
+Theorem 6.16 shows that this is op(1). This suggests that the jumps in Sn(r ) asymptotically vanish. We
+would like to ﬁnd its asymptotic distribution. We expect the limit distribution to be a stochastic process
+as well.
+1The notation ⌊x⌋ means “round down to the nearest integer” .
+547
+
+
+--- page 2 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 548
+To do so we need to deﬁne the asymptotic distribution of a random function. The primary tool is the
+functional central limit theorem (FCLT) which is a component of empirical process theory (Chapter 18
+of Introduction to Econometrics). It turns out that the FCLT depends on how we measure the difference
+between two functions. The most commonly used measure is the uniform metric. On the space of
+functions from [0, 1] toRm it is
+ρ (ν1, ν2) = sup
+0≤r ≤1
+∥ν1(r ) − ν2(r )∥.
+Convergence in distribution for random processes (e.g. Deﬁnition 18.6 of Introduction to Econometrics)
+is deﬁned with respect to a speciﬁc metric. While we don’t repeat the details here the important conse-
+quence is that continuity is deﬁned with respect to this metric and this impacts applications such as the
+continuous mapping theorem.
+The Functional Central Limit Theorem (Theorem 18.9 of Introduction to Econometrics) states that
+Sn(r ) − →
+d
+S(r ) as a function over r ∈ [0,1] if two conditions hold:
+1. The limit distributions of Sn(r ) coincide with those of S(r ).
+2. Sn(r ) is stochastically equicontinuous.
+The ﬁrst condition means that for any ﬁxed r1,..., rm, (Sn(r1),..., Sn(rm)) − →
+d
+(S(r1),..., S(rm)). The
+second condition is technical but essentially requires that Sn(r ) is asymptotically continuous.
+We now characterize the limit distributions of Sn(r ). There are three important properties.
+1. Sn(0) = 0.
+2. For any r , Sn(r ) − →
+d
+N(0,r Σ).
+3. For r1 < r2, Sn(r1) and Sn(r2) − Sn(r1) are asymptotically independent.
+The ﬁrst property follows from the deﬁnition ofSn(r ). For the second, set N = ⌊nr ⌋. For r > 0, N → ∞
+as n → ∞. The MDS CLT (Theorem 14.11) implies that
+Sn(r ) =
+√
+⌊nr ⌋
+n
+1p
+N
+N∑
+t =1
+et − →
+d
+p
+r N(0, Σ) = N(0,r Σ)
+as claimed. For the third property the assumption thatet is a MDS implies that Sn(r1) and Sn(r2)−Sn(r1)
+are uncorrelated. An extension of the above previous asymptotic argument shows that they are jointly
+asymptotically normal with a zero covariance and hence are asymptotically independent.
+The above three limit properties of Sn(r ) are asymptotic versions of the deﬁnition of Brownian mo-
+tion.
+Deﬁnition 16.1 A vector Brownian motion B(r ) for r ≥ 0 is deﬁned by the
+properties:
+1. B(0) = 0.
+2. For any r , B(r ) ∼ N(0,r Σ).
+3. For any r1 ≤ r2, B(r1) and B(r2) − B(r1) are independent.
+We call Σ the covariance matrix of B(r ). If Σ = I m we say that B(r ) is a standard
+Brownian motion and denote it as W (r ). They satisfy B(r ) = Σ1/2W (r ).
+
+
+--- page 3 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 549
+A Brownian motion B(r ) is continuous with probability one but is nowhere differentiable. In physics
+Brownian motion is used to describe the movement of particles. The wandering properties of particles
+suspended in liquid was described as far back as the Roman poet Lucretius (On the Nature of the Universe,
+55 BCE). The name Brownian motion credits the pioneering observational studies of botanist Robert
+Brown. The mathematical process is often called aWiener process crediting the work of Norbert Wiener.
+The above discussion has shown that the limit distributions of the partial sum process Sn(r ) coin-
+cide with those of Brownian motion B(r ). In Section 16.22 we demonstrate that Sn(r ) is stochastically
+equicontinuous. Together with the FCLT this establishes thatSn(r ) converges in distribution to B(r ).
+Theorem 16.1 Weak Convergence of Partial Sum Process If (et , Ft ) is a
+strictly stationary and ergodic MDS and Σ = E
+[
+et e′
+t
+]
+< ∞ then as a function
+over r ∈ [0,1], Sn(r ) − →
+d
+B(r ), a Brownian motion with covariance matrix Σ.
+We extend Theorem 16.1 to serially correlated processes in Section 16.4.
+Let’ s connect our analysis ofSn(r ) with the random walk series Yt . Since Yt = Y0 + St , we ﬁnd
+1pn Y⌊nr ⌋ = Sn(r ) + 1pn Y0.
+The second term is op(1) when Y0 is ﬁnite with probability one. Thus under this latter assumption
+n−1/2Y⌊nr ⌋ = Sn(r ) + op(1) − →
+d
+B. For simplicity we will frequently implicitly assume Y0 = 0 to simplify
+the notation, as the case with Y0 ̸= 0 does not fundamentally change the analysis.
+16.3 Beveridge-Nelson Decomposition
+The previous section focused on random walk processes. A unit root process more broadly is an
+autoregression with a single root at unity, which means that the differenced process∆Yt is serially corre-
+lated but stationary.
+Beveridge and Nelson (1981) introduced a clever way to decompose a unit root process into a perma-
+nent (random walk) component and a transitory (stationary) component. This allows a straightforward
+generalization of Theorem 16.1 to incorporate serial correlation.
+Recall that a stationary process has a Wold representation ∆Yt = Θ(L)et where Θ(z) = ∑∞
+j =0 Θj z j .
+Assumption 16.1 ∆Yt is strictly stationary with no deterministic component,
+mean zero, and ﬁnite covariance matrix Σ. The coefﬁcients of its Wold repre-
+sentation ∆Yt = Θ(L)et satisfy
+∞∑
+j =0
+
+
+∞∑
+ℓ=j +1
+Θℓ
+
+
+ < ∞. (16.1)
+The condition (16.1) on the coefﬁcients is stronger than absolute summability but holds (for exam-
+ple) if ∆Yt is generated by a stationary AR process. It is similar to the condition used for the autoregressive
+Wold representation (Theorem 14.19).
+
+
+--- page 4 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 550
+Consider the following factorization of the lag polynomial
+Θ(z) = Θ(1) + (1 − z)Θ∗(z) (16.2)
+where Θ(1) = ∑∞
+ℓ=0 Θℓ and Θ∗(z) is the lag polynomial
+Θ∗(z) =
+∞∑
+j =0
+Θ∗
+j z j (16.3)
+Θ∗
+j = −
+∞∑
+ℓ=j +1
+Θℓ. (16.4)
+At the end of this section we demonstrate (16.2)-(16.4). Assumption (16.1) is the same as
+∞∑
+j =0
+Θ∗
+j
+ < ∞,
+which implies that Ut = Θ∗(L)et is convergent, strictly stationary, and ergodic (by Theorem 15.4).
+The factorization (16.2) means that we can write
+∆Yt = ξt +Ut −Ut −1.
+where ξt = Θ(1)et . This decomposes ∆Yt into the innovation et plus the ﬁrst-difference of the stochastic
+process Ut . Summing the differences we ﬁnd
+Yt = St +Ut +V0
+where St = ∑t
+i =1 ξt and V0 = Y0 −U0. This decomposes the unit root process Yt into the random walk St ,
+the stationary process Ut , and an initial condition V0.
+We have established the following.
+Theorem 16.2 Under Assumption 16.1 then (16.2)-(16.4) holds with
+∞∑
+j =0
+
+Θ∗
+j
+
+
+ < ∞. The process ∆Yt satisﬁes
+∆Yt = ξt +Ut −Ut −1
+and
+Yt = St +Ut +V0
+where St = ∑t
+i =1 ξt is a random walk,ξt is white noise with varianceΘ(1)ΣΘ(1)′,
+Ut is strictly stationary, and V0 is an initial condition.
+Beveridge and Nelson (1981) calledSt the permanent (trend) component of Yt and Ut the transitory
+component. They called St the permanent component since it determines the long-run behavior of Yt .
+As an example, take the MA(1) case ∆Yt = et + Θ1et −1. This has decomposition ∆Yt = (I m + Θ1)et −
+Θ1(et − et −1). In this case Ut = −Θ1et .
+The Beveridge-Nelson decomposition of a series is unique but it is not the only way to construct a
+permanent/transitory decomposition. The Beveridge-Nelson decomposition has the characteristic that
+the innovations driving the permanent and transitory componentsSt and Ut are identical, so the perma-
+nent and transitory components are correlated. For example, in the MA(1) case∆St = et and Ut = −Θ1et
+are perfectly correlated.
+
+
+--- page 5 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 551
+We close this section by verifying (16.2)-(16.4). Observe that the right-side of (16.2) is
+∞∑
+j =0
+Θj −
+∞∑
+j =0
+∞∑
+ℓ=j +1
+Θℓz j (1 − z) =
+∞∑
+j =0
+Θj −
+∞∑
+j =0
+∞∑
+ℓ=j +1
+Θℓz j +
+∞∑
+j =0
+∞∑
+ℓ=j +1
+Θℓz j +1
+= Θ0 −
+∞∑
+j =1
+∞∑
+ℓ=j +1
+Θℓz j +
+∞∑
+j =1
+∞∑
+ℓ=j
+Θℓz j
+= Θ0 +
+∞∑
+j =1
+Θj z j
+which is Θ(z) as claimed.
+16.4 Functional CLT
+Theorem 16.1 showed that a random walk process converges in distribution to a Brownian motion.
+We now extend this result to the case of a unit root process with correlated differences.
+Under Assumption 16.1 a unit root process can be written as Yt = St +Ut + V0 where St = ∑t
+i =1 ξt .
+Deﬁne the scaled processesZn(r ) = n−1/2Y⌊nr ⌋ and Sn(r ) = n−1/2S⌊nr ⌋. We ﬁnd
+Zn(r ) = Sn(r ) + 1pn V0 + 1pn U⌊nr ⌋.
+If the errors et are a MDS with covariance matrix Σ then by Theorem 16.1, Sn(r ) − →
+d
+B(r ), a vector Brow-
+nian motion with covariance matrix Ω = Θ(1)ΣΘ(1)′. The initial condition n−1/2V0 is op(1). The third
+term n−1/2U⌊nr ⌋ is op(1) if sup 1≤t ≤n
+⏐⏐
+⏐ 1
+pnUt
+⏐
+⏐
+⏐ = op(1), which holds under Theorem 6.16 if Ut has a ﬁnite
+variance. We now show that this holds under Assumption 16.1. The latter implies that ∑∞
+j =0
+Θ∗
+j
+ < ∞,
+as discussed before Theorem 16.2. This implies
+∥var[Ut ]∥ =
+
+
+
+∞∑
+j =0
+Θ∗
+j ΣΘ∗′
+j
+
+
+ ≤ ∥Σ∥
+∞∑
+j =0
+Θ∗
+j
+
+2
+≤ ∥Σ∥max
+j
+Θ∗
+j
+
+∞∑
+j =0
+Θ∗
+j
+ < ∞
+as needed.
+Together we ﬁnd that
+Zn(r ) = Sn(r ) + op(1) − →
+d
+B(r ).
+The variance of the limiting process is Ω = Θ(1)ΣΘ(1)′. This is the “long-run variance” of ∆Yt .
+Theorem 16.3 Under Assumption 16.1 and in addition (e t , Ft ) is a MDS with
+covariance matrix Σ, then as a function over r ∈ [0,1], Zn(r ) − →
+d
+B(r ) a vector
+Brownian motion with covariance matrix Ω.
+Our derivation used the assumption that the linear projection errors are a MDS. This is not essential
+for the basic result; the FCLT holds under a variety of dependence conditions. A ﬂexible version can be
+stated using mixing conditions.
+
+
+--- page 6 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 552
+Theorem 16.4 If ∆Yt is strictly stationary, E[∆Yt ] = 0, with mixing coefﬁcients
+α(ℓ), and for some r > 2, E ∥∆Yt ∥r < ∞ and ∑∞
+ℓ=1 α(ℓ)1−2/r < ∞, then as a func-
+tion over r ∈ [0,1], Zn(r ) − →
+d
+B(r ), a vector Brownian motion with covariance
+matrix
+Ω =
+∞∑
+ℓ=−∞
+E[∆Yt ∆Yt −ℓ]. (16.5)
+For a proof see Davidson (2020, Theorems 31.5 and 31.15). Interestingly, Theorem 16.4 employs ex-
+actly the same assumptions as for Theorem 14.15 (the CLT for mixing processes). This means that we
+obtain the stronger result (the FCLT) without stronger assumptions.
+The covariance matrix Ω appearing in (16.5) is the long-run covariance matrix of ∆Yt as deﬁned in
+Section 14.13. It is useful to observe that we can decompose the long-run variance as Ω = Σ + Λ + Λ′
+where Σ = var[∆Yt ] and
+Λ =
+∞∑
+ℓ=1
+E
+[
+∆Yt ∆Y ′
+t −ℓ
+]
+.
+This decomposes the long-run variance of ∆Yt into its static (one-period) variance Σ and a sum of co-
+variances Λ. The matrix Λ is not symmetric.
+16.5 Orders of Integration
+Take a univariate series Yt . Theorems 16.3 and 16.4 showed that if ∆Yt is stationary and mean zero
+then the level process Yt , suitably scaled, is asymptotically a Brownian motion with varianceω2. For this
+theory to be meaningful this variance should be strictly positive deﬁnite. To see why this is a potential
+restriction suppose that Yt = a(L)et where the coefﬁcients of a(z) are absolutely convergent and et is
+i.i.d. (0, σ2). Then ∆Yt = b(L)et where b(z) = (1 − z)a(z) so ω2 = b(1)2σ2 = 0. That is, ∆Yt has a long-run
+variance of 0. We can think of the process∆Yt as over-differenced, sinceYt is strictly stationary and does
+not require differencing to achieve stationarity.
+To meaningfully differentiate between processes which require differencing to achieve stationarity
+we use the following deﬁnition.
+Deﬁnition 16.2 Order of Integration.
+1. Yt ∈ R is Integrated of Order0, written I (0), if Yt is weakly stationary with
+positive long-run variance.
+2. Yt ∈ R is Integrated of Order d, written I (d), if ut = ∆d Yt is I (0).
+I (1) processes include random walks and unit root processes more broadly. I (2) processes require
+double differencing to achieve stationarity. I (−1) processes are stationary but their cumulative sums
+are also stationary. I (−1) processes are over-differenced stationary processes, e.g. ∆Yt when Yt is sta-
+tionary. I (0) processes are stationary processes which are not over-differenced. Many macroeconomic
+time series in log-levels are potentially I (1) processes. Economic time series which are potentially I (2)
+are log price indices, for their ﬁrst difference (inﬂation rates) are potentially non-stationary proceses.
+
+
+--- page 7 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 553
+In this textbook we focus on integer-valued orders of integration but fractional d are also well-deﬁned.
+In most applications economists presume that economic series are either I (0) or I (1) and often use the
+shorthand “integrated” to refer to I (1) series.
+The long-run variance of ARMA processes is straightforward to calculate. As we have seen, if ∆Yt =
+b(L)et where et is white noise with variance σ2, then ω2 = b(1)2σ2. Now suppose a(L)∆Yt = et where
+a(z) is invertible. Then b(z) = a(z)−1 and ω2 = σ2/a(1)2. For an ARMA process a(L)∆Yt = b(L)et with
+invertible a(z), then ω2 = σ2b(1)2/a(1)2. Hence, if ∆Yt satisﬁes the ARMA processa(L)∆Yt = b(L)et then
+Yt is I (1) if a(z) is invertible and b(1) ̸= 0.
+Consider vector processes. The long-run covariance matrix of ∆Yt = Θ(L)et is Ω = Θ(1)ΣΘ(1)′. The
+long-run covariance matrix of A(L)∆Yt = et is Ω = A(1)−1ΣA(1)−1′. It is conventional to describe the
+vector ∆Yt as I (0) if each element of ∆Yt is I (0) but this allows its covariance matrix to be singular. To
+exclude the latter we introduce the following.
+Deﬁnition 16.3 The vector process Yt is full rank I (0) if its long-run covari-
+ance matrix Ω is positive deﬁnite.
+16.6 Means, Local Means, and Trends
+Theorem 16.4 shows that Zn(r ) − →
+d
+B(r ). The continuous mapping theorem shows that if a function
+f (x) is continuous2 then f (Zn) − →
+d
+f (B). This can be used to obtain the asymptotic distribution of many
+statistics of interest. Simple examples are Zn(r )2 − →
+d
+B(r )2 and
+∫ 1
+0 Zn(r )dr − →
+d
+∫ 1
+0 B(r )dr . The latter
+produces the asymptotic distribution for the sample mean as we now show.
+Let Y n = n−1 ∑n
+t =1 Yt be the sample mean. For simplicity assume Y0 = 0. Note that for r ∈
+[ t
+n , t +1
+n
+)
+,
+1
+n1/2 Yt = Zn(r ) = n
+∫ (t +1)/n
+t/n
+Zn(r )dr .
+Taking the average for t = 0 to n − 1 we ﬁnd
+1
+n1/2 Y n = 1
+n3/2
+n−1∑
+t =0
+Yt =
+n−1∑
+t =0
+∫ (t +1)/n
+t/n
+Zn(r )dr =
+∫ 1
+0
+Zn(r )dr .
+This is the integral (or average) of Zn(r ) over [0,1].
+The continuous mapping theorem can be applied 3. The above expression converges in distribution
+to the random variable
+∫ 1
+0 B(r )dr . This is the average of the Brownian motion over [0, 1].
+Now consider sub-sample means. Let Y 1n = (n/2)−1 ∑n/2−1
+t =0 Yt and Y 2n = (n/2)−1 ∑n−1
+t =n/2 Yt be the
+sample means on the ﬁrst-half and second-half of the sample, respectively. By a similar analysis as for
+the full-sample mean
+1
+n1/2 Y 1n = 2
+n3/2
+n/2−1∑
+t =0
+Yt = 2
+∫ 1/2
+0
+Zn(r )dr − →
+d
+2
+∫ 1/2
+0
+B(r )dr
+1
+n1/2 Y 2n = 2
+n3/2
+n−1∑
+t =n/2
+Yt = 2
+∫ 1
+1/2
+Zn(r )dr − →
+d
+2
+∫ 1
+1/2
+B(r )dr
+2With respect to the uniform metric ρ.
+3The integral f (g ) =
+∫ 1
+0 g (r )dr is a continuous function of g with respect to the uniform metric. (Small changes in g result
+in small changes in f .)
+
+
+--- page 8 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 554
+which are the averages of B(r ) over the regions [0,1/2] and [1/2, 1]. These are distinct random variables.
+This gives rise to the prediction that if Yt is a unit root process, sample averages will not be constant
+(even approximately in large samples) and will vary across subsamples.
+Furthermore, observe that the limit distributions were obtained after dividing by n1/2. This means
+that without this standardization the sample mean would not be bounded in probability. This implies
+that the sample mean can be (randomly) large. This leads to the rather peculiar property that sample
+means will be large, random, and non-informative about population parameters. This means that inter-
+preting simple statistics such as means is treacherous when the series may be a unit root process.
+0 40 80 120 160 200 240
+−10 −8 −6 −4 −2 0 2 4 6 8
+Sample Mean
+0 40 80 120 160 200 240
+−10 −8 −6 −4 −2 0 2 4 6 8
+Mean, t ≤ 120
+Mean, t > 120(a) Fitted Means
+0 40 80 120 160 200 240
+−10 −8 −6 −4 −2 0 2 4 6 8
+Fitted Trend (b) Fitted Trend
+Figure 16.1: Random Walk with Fitted Mean, Sub-Sample Means, and Trend
+To illustrate, Figure 16.1(a) displays a simulated random walk withn = 240 observations. Also plotted
+is the sample mean Y n = −2.98, along with the sub-sample means Y 1n = −0.75 and Y 2n = −5.21. As pre-
+dicted, the mean and sub-sample means are large, variable, and uninformative regarding the population
+mean.
+Now consider a linear regression of Yt on a linear time trend. The model for estimation is
+Yt = β0 + β1t + et = X ′
+t β + et
+where Xt = (1, t)′. Again for simplicity assume that Y0 = 0. Take the least squares estimator ˆβ. Theorem
+14.36 shows that
+1
+n2
+n∑
+t =1
+t →
+∫ 1
+0
+r dr = 1
+2
+1
+n3
+n∑
+t =1
+t 2 →
+∫ 1
+0
+r 2dr = 1
+3 .
+
+
+--- page 9 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 555
+DeﬁneDn =
+[ 1 0
+0 n
+]
+. We calculate that
+D −1
+n
+1
+n
+n∑
+t =1
+Xt X ′
+t D −1
+n =
+
+
+
+1
+n
+n∑
+t =1
+1 1
+n2
+n∑
+t =1
+t
+1
+n2
+n∑
+t =1
+t 1
+n3
+n∑
+t =1
+t 2
+
+
+ →
+[
+1
+∫ 1
+0 r dr∫ 1
+0 r dr
+∫ 1
+0 r 2dr
+]
+=
+∫ 1
+0
+X (r )X (r )′dr
+where X (r ) = (1,r ).
+An application of the continuous mapping theorem with Theorem 16.1 yields
+D −1
+n
+1
+n3/2
+n∑
+t =1
+Xt Yt =
+∫ 1
+0
+X (r )Zn(r )dr − →
+d
+∫ 1
+0
+X (r )B(r )dr .
+Together we obtain
+Dnn−1/2 ˆβ = Dnn−1/2
+( n∑
+t =1
+Xt X ′
+t
+)−1 ( n∑
+t =1
+Xt Yt
+)
+=
+(
+D −1
+n
+1
+n
+n∑
+t =1
+Xt X ′
+t D −1
+n
+)−1 (
+D −1
+n
+1
+n3/2
+n∑
+t =1
+Xt Yt
+)
+− →
+d
+(∫ 1
+0
+X (r )X (r )′dr
+)−1 (∫ 1
+0
+X (r )B(r )dr
+)
+.
+This shows that the estimator ˆβ has an asymptotic distribution which is a transformation of the Brownian
+motion B(r ). For compactness we often write the ﬁnal expression as
+(∫ 1
+0 X X ′
+)−1 (∫ 1
+0 X B
+)
+.
+To illustrate, Figure 16.1(b) displays the random walk from panel (a) along with a ﬁtted trend line.
+The ﬁtted trend appears large and substantial. However it is purely random, a feature only of this spe-
+ciﬁc realization, is uninformative about the underlying parameters, and is dangerously misleading for
+prediction.
+16.7 Demeaning and Detrending
+A common preliminary step in time series analysis is demeaning (subtracting off a mean) and de-
+trending (subtracting off a linear trend). With stationary processes this does not affect asymptotic infer-
+ence. In contrast, an important property of unit root processes is that their behavior is altered by these
+transformations.
+Take demeaning. The demeaned version of Yt is Y ∗
+t = Yt −
+Y n. An important observation is that Y ∗
+t
+is invariant to the initial condition Y0, so without loss of generality we simply assume Y0 = 0.
+The normalized process is
+Z ∗
+n (r ) = 1pn Y⌊nr ⌋ − 1pn Y n = Zn(r ) − Zn(1) − →
+d
+B(r ) −
+∫ 1
+0
+B
+def
+= B ∗(r ).
+B ∗(r ) is demeaned Brownian motion. It has the property that
+∫ 1
+0 B ∗(r )dr = 0.
+Take linear detrending. Based on least squares estimation of a linear trend the detrended series is
+Y ∗∗
+t = Yt − X ′
+t ˆβ where Xt = (1, t)′. Like the demeaned series the detrended series is invariant to Y0. The
+
+
+--- page 10 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 556
+associated normalized process is
+Z ∗∗
+n (r ) = 1pn Y⌊nr ⌋ − 1pn X ′
+⌊nr ⌋ ˆβ
+= Zn(r ) − X (⌊nr ⌋/n)′ Dn
+1pn
+ˆβ
+− →
+d
+B(r ) − X (r )′
+(∫ 1
+0
+X X ′
+)−1 (∫ 1
+0
+X B
+)
+def
+= B ∗∗(r ).
+B ∗∗(r ) is the continuous-time residual of the Brownian motion B(r ) projected orthogonal to X (r ) =
+(1,r )′. We call B ∗∗(r ) detrended Brownian motion.
+There is another method of detrending through ﬁrst differencing. Suppose that Yt = β0 + β1t + Zt .
+The ﬁrst difference is∆Yt = β1 + ∆Zt . An estimator of β1 is the sample mean of ∆Yt :
+∆Y n = 1
+n
+n∑
+t =1
+∆Yt = Yn − Y0
+n .
+The normalization Z0 = 0 implies Y0 = β0 so an estimator of β0 is Y0. The detrended version of Yt is
+˜Yt = Yt − Y0 − (t/n)(Yn − Y0). The associated normalized process is
+˜Zn(r ) = Zn(r ) − ⌊nr ⌋
+n Zn(1) − →
+d
+B(r ) − r B(1)
+def
+= V (r ).
+V (r ) is called a Brownian Bridge. It is also known as a tied-down Brownian motion. It has the property
+that V (0) = V (1) = 0. It is also a detrended version of B(r ) but is distinct from the linearly detrended
+version B ∗(r ).
+We summarize the ﬁndings in the following theorem.
+Theorem 16.5 Under the conditions of either Theorem 16.3 or Theorem 16.4,
+then as n → ∞
+1. Z ∗
+n (r ) − →
+d
+B ∗(r )
+2. Z ∗∗
+n (r ) − →
+d
+B ∗∗(r )
+3. ˜Zn(r ) − →
+d
+V (r ).
+To illustrate, Figure 16.2 displays two detrended versions of the series from Figure 16.1. Panel (a)
+shows the linear detrended series Y ∗
+t . Panel (b) shows the ﬁrst-difference detrended series ˜Yt . They are
+visually similar to one another and to Figure 16.1 except that the strong linear trend has been removed.
+16.8 Stochastic Integrals
+The distribution of the least squares estimator in the regression model Yt = X ′
+t β + et requires the
+distribution of the sample moments n−1
+n−1∑
+t =1
+Xt et +1. When Xt is non-stationary the limit distribution is
+non-standard and equals a stochastic integral.
+
+
+--- page 11 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 557
+0 40 80 120 160 200 240
+−6 −4 −2 0 2 4 6 8 10
+(a) Linearly Detrended Y ∗∗
+t
+0 40 80 120 160 200 240
+−6 −4 −2 0 2 4 6 8 10 (b) First Difference Detrended ˜Yt
+Figure 16.2: Detrended Random Walk
+It may help to recall the deﬁnition of the Riemann-Stieltijes integral. Over the region [0,1] the integral
+of g (x) with respect to f (x) is
+∫ 1
+0
+g (x)d f (x) = lim
+N →∞
+N −1∑
+i =0
+g
+( i
+N
+) (
+f
+(i + 1
+N
+)
+− f
+( i
+N
+))
+.
+A stochastic integral is the case where the function f is random and is deﬁned as a probability limit.
+Deﬁnition 16.4 The stochastic integral of vector-valued X (r ) with respect to
+vector-valued Z (r ) over [0,1] is
+∫ 1
+0
+X d Z′ =
+∫ 1
+0
+X (r )d Z(r )′ = plim
+N →∞
+N −1∑
+i =0
+X
+( i
+N
+) (
+Z
+(i + 1
+N
+)
+− Z
+( i
+N
+))′
+.
+Now consider the following setting. Let ( Xt ,et ) be vector-valued sequences where et is a MDS with
+ﬁnite covariance andXt is non-stationary. Assume that for some scaling sequenceDn the scaled process
+Xn(r ) = D −1
+n X⌊nr ⌋ satisﬁesXn(r ) − →
+d
+X (r ) for some deterministic or stochastic process X (r ). Examples of
+Xt sequences include the partial sum process constructed fromet or another shock, a detrended version
+of a partial sum process, or a deterministic trend proceses. We desire the asymptotic distribution of∑n−1
+t =1 Xt e′
+t +1. Deﬁne the partial sum process for et as Sn(r ) = n−1/2 ∑⌊nr ⌋
+t =1 et . From Theorem 16.1, Sn − →
+d
+B. We calculate that
+1pn D −1
+n
+n−1∑
+t =0
+Xt e′
+t +1 =
+n−1∑
+t =0
+Xn
+( t
+n
+) (
+Sn
+(t + 1
+n
+)
+− Sn
+( t
+n
+))′
+=
+∫ 1
+0
+XndS ′
+n.
+The equalities hold because Sn(r ) and Xn(r ) are step functions with jumps at r = t/n. Since Xn(r ) and
+Sn(r ) converge to X (r ) and B(r ), by analogy we expect
+∫ 1
+0 XndS n to converge to
+∫ 1
+0 X dB . This is true,
+
+
+--- page 12 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 558
+but rather tricky to show since the stochastic integral is not a continuous function of B(r ). A general
+statement of the conditions has been provided by Kurtz and Protter (1991, Theorem 2.2). The following
+is a simpliﬁcation of their result.
+Theorem 16.6 If (et , Ft ) is a martingale difference sequence, E
+[
+et e′
+t
+]
+= Σ < ∞,
+Xt ∈ Ft , and (Xn(r ),Sn(r )) − →
+d
+(X (r ),B(r )) then
+∫ 1
+0
+XndS ′
+n = 1pn D −1
+n
+n−1∑
+t =1
+Xt et +1 − →
+d
+∫ 1
+0
+X dB ′
+where B(r ) is a Brownian motion with covariance matrix Σ.
+The basic application of Theorem 16.6 is to the case Xn(r ) = Sn(r ). Thus if St = ∑t
+i =1 et and et is a
+MDS with covariance matrix Σ then
+1
+n
+n−1∑
+t =1
+St e′
+t +1 − →
+d
+∫ 1
+0
+BdB ′.
+We can extend this result to the case of serially correlated errors.
+Theorem 16.7 If Zt satisﬁes the conditions of Theorem 16.4 and St = ∑t
+i =1 Zt
+then
+1
+n
+n−1∑
+t =1
+St Z ′
+t +1 − →
+d
+∫ 1
+0
+BdB ′ + Λ
+where B(r ) is a Brownian motion with covariance matrix Ω = Σ + Λ + Λ′ , Σ =
+E
+[
+Zt Z ′
+t
+]
+, and Λ = ∑∞
+j =1 E
+[
+Zt −j Z ′
+t
+]
+.
+The proof is presented in Section 16.22.
+16.9 Estimation of an AR(1)
+Consider least squares estimation of the AR(1) parameterα in the modelYt = αYt −1+et . The centered
+estimator is ˆα − α =
+(∑n−1
+t =1 Y 2
+t
+)−1 (∑n−1
+t =1 Yt et +1
+)
+. We use the scaling
+n ( ˆα − α) =
+1
+n
+n−1∑
+t =1
+Yt et +1
+1
+n2
+n−1∑
+t =1
+Y 2
+t
+.
+We examine the denominator and numerator separately under the assumption α = 1.
+Similarly to our analysis of the sample mean the denominator can be written as an integral. Thus
+1
+n2
+n−1∑
+t =1
+Y 2
+t = 1
+n
+n−1∑
+t =1
+( 1
+n1/2 Yt
+)2
+=
+∫ 1
+0
+Zn(r )2dr − →
+d
+∫ 1
+0
+B(r )2dr = σ2
+∫ 1
+0
+W (r )2dr .
+
+
+--- page 13 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 559
+The convergence is by the continuous mapping theorem 4. The ﬁnal equality recognizes that if B(r ) has
+variance σ2 then B(r )2 = σ2W (r )2 where W (r ) is standard Brownian motion. For conciseness we often
+write the ﬁnal integral as
+∫ 1
+0 W 2.
+For the numerator we appeal to Theorem 16.6.
+1
+n
+n−1∑
+t =1
+Yt et +1 =
+∫ 1
+0
+ZndS n − →
+d
+∫ 1
+0
+BdB = σ2
+∫ 1
+0
+W dW.
+This limiting stochastic integral is quite famous. It is known as Itô’ s integral.
+Theorem 16.8 Itô’s Integral
+∫ 1
+0 W dW = 1
+2
+(
+W (1)2 − 1
+)
+.
+If you are not surprised by Itô’ s integral take another look. The derivative of 1
+2W (r )2 is W (r )dW (r ).
+Thus by standard calculus and W (0) = 0 you might expect
+∫ 1
+0 W dW = 1
+2W (1)2. The presence of the extra
+term −1/2 is surprising. This arises because W (r ) has unbounded variation.
+The random variable W (1)2 is χ2
+1 which has expectation 1. Therefore the random variable
+∫ 1
+0 W dW
+is mean zero but skewed.
+The proof of Theorem 16.8 is presented in Section 16.22.
+Returning to the least squares estimation problem we have shown that when α = 1
+n ( ˆα − 1) − →
+d
+σ2
+2
+(
+W (1)2 − 1
+)
+σ2 ∫ 1
+0 W 2
+=
+∫ 1
+0 W dW
+∫ 1
+0 W 2
+.
+Theorem 16.9 Dickey-Fuller Coefﬁcient Distribution If Yt = αYt −1 + et with
+α = 1, and (et , Ft ) is a strictly stationary and ergodic martingale difference se-
+quence with a ﬁnite variance, then
+n ( ˆα − 1) − →
+d
+∫ 1
+0 W dW
+∫ 1
+0 W 2
+.
+The limit distribution in Theorem 16.9 is known as the Dickey-Fuller Distribution due to the work
+of Wayne Fuller and David Dickey. Theorem 16.9 shows that the least squares estimator is consistent
+for α = 1 and converges at the “super-consistent” rate Op
+(
+n−1)
+. The limit distribution is non-standard
+and is written as a function of the Brownian motion W (r ). There is not a closed-form expression for the
+distribution or density of the statistic. Most commonly it is calculated by simulation.
+The density of the Dickey-Fuller coefﬁcient distribution is displayed 5 as the solid line (labeled “No
+Constant or Trend”) in Figure 16.3(a). You can see that the density is high skewed with a long left tail.
+4The function g (f ) =
+∫ 1
+0 f (x)2d x is continuous with respect to the uniform metric.
+5The densities in Figure 16.3 were estimated from one million simulation draws of the ﬁnite sample distribution for a sample
+size n = 10,000. The densities were estimated using nonparametric kernel methods (see Chapter 17 of Introduction to Econo-
+metrics).
+
+
+--- page 14 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 560
+You can see that most of the probability mass of the distribution is over the negative region. This has the
+implication that the density has a negative mean and median. Hence the asymptotic distribution of the
+least squares estimator is biased negatively. This has the practical implication that when α = 1 the least
+squares estimator is biased away from one.
+We can also examine the limit distribution of the t-ratio. Let ˆet = Yt − ˆαYt −1 be the least squares
+residual, ˆσ2 = n−1 ∑ˆe2
+t the least squares variance estimator, and s ( ˆα) = ˆσ/
+√
+∑Y 2
+t the classical standard
+error for ˆα. The t-ratio for α is T = ( ˆα − 1)/s ( ˆα).
+Theorem 16.10 Dickey-Fuller T Distribution Under the assumptions of The-
+orem 16.9
+T = ˆα − 1
+s ( ˆα) − →
+d
+∫ 1
+0 W dW
+(∫ 1
+0 W 2
+)1/2 .
+The limit distribution in Theorem 16.10 is known as theDickey-Fuller T distribution. Theorem 16.10
+shows that the classical t-ratio converges to a non-standard asymptotic distribution. There is no closed-
+form expression for the distribution or density so it is typically calculated using simulation techniques.
+The proof is presented in Section 16.22.
+The density of the Dickey-Fuller T distribution is displayed as the solid line (labeled “No Constant or
+Trend”) in Figure 16.3(b). You can see that the density is skewed but much less so than the coefﬁcient
+distribution. The distribution appears to be a “fatter” version of the conventional student t distribution.
+An implication is that conventional inference (conﬁdence intervals and tests) will be inaccurate. We
+discuss testing in Section 16.13.
+−30 −25 −20 −15 −10 −5 0
+No Constant or Trend
+Constant Included
+Constant and Trend
+(a) DF Coefﬁcient Distribution
+−5 −4 −3 −2 −1 0 1 2 3
+No Constant or Trend
+Constant Included
+Constant and Trend (b) DF T Distribution
+0.0 0.1 0.2 0.3 0.4 0.5
+Constant Included
+Constant and Trend (c) KPSS Distribution
+Figure 16.3: Unit Root Test Distributions
+16.10 AR(1) Estimation with an Intercept
+Suppose that Yt is a random walk and we estimate an AR(1) model with an intercept. The estimated
+model is Yt = µ+αYt −1+et . By the Frisch-Waugh-Lovell Theorem (Theorem 3.5) the least squares estima-
+tor ˆα of α can be written as the simple regression using the demeaned series Y ∗
+t . That is, the normalized
+
+
+--- page 15 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 561
+estimator is
+n ( ˆα − 1) =
+1
+n
+n−1∑
+t =1
+Y ∗
+t et +1
+1
+n2
+n−1∑
+t =1
+Y ∗2
+t
+where Y ∗
+t = Yt − Y with Y = 1
+n
+n−1∑
+t =1
+Yt . By Theorems 16.5.1 and 16.6 the calculations from the previous
+section show that
+n ( ˆα − 1) − →
+d
+∫ 1
+0 W ∗dW
+∫ 1
+0 W ∗2
+.
+This is similar to the distribution in Theorem 16.9. This is known as the Dickey-Fuller coefﬁcient distri-
+bution for the case of an included constant.
+Similarly if we estimate an AR(1) model with an intercept and trend the estimated model is Yt =
+µ+βt +αYt −1+et . By the Frisch-Waugh-Lovell Theorem this is equivalent to regression on the detrended
+series Y ∗∗
+t . Applying Theorems 16.5.2 and 16.6, we ﬁnd
+n ( ˆα − 1) − →
+d
+∫ 1
+0 W ∗∗dW
+∫ 1
+0 W ∗∗2
+.
+This is known as the Dickey-Fuller coefﬁcient distribution for the case of an included constant and linear
+trend.
+Similar results arise for the t-ratios. We summarize the results in the following theorem.
+Theorem 16.11 Under the assumptions of Theorem 16.9, for the case of an es-
+timated AR(1) with an intercept
+n ( ˆα − 1) − →
+d
+∫ 1
+0 W ∗dW
+∫ 1
+0 W ∗2
+T − →
+d
+∫ 1
+0 W ∗dW
+(∫ 1
+0 W ∗2
+)1/2 .
+For the case of an estimated AR(1) with an intercept and linear time trend
+n ( ˆα − 1) − →
+d
+∫ 1
+0 W ∗∗dW
+∫ 1
+0 W ∗∗2
+T − →
+d
+∫ 1
+0 W ∗∗dW
+(∫ 1
+0 W ∗∗2
+)1/2 .
+The densities of the Dickey-Fuller coefﬁcient distributions are displayed in Figure 16.3(a). The den-
+sities are considerably affected by the inclusion of the constant or constant and trend. The effect is
+twofold: (1) the distributions shift substantially to the left; and (2) the distributions substantially widen.
+
+
+--- page 16 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 562
+Examining the “constant and trend” version we can see that there is very little probability mass above
+zero. This means that the asymptotic distribution is not only biased downward, the realization is nearly
+always negative. This has the practical implication that the least squares estimator is almost certainly
+less than the true coefﬁcient value. This is a strong form of bias.
+The densities of the Dickey-Fuller T distributions are displayed in Figure 16.3(b). The effect of de-
+trending on the T distributions is quite different from the effect on the coefﬁcient distirbutions. Here we
+see that the primary effect is a location shift with only a mild impact on dispersion. The strong location
+shift is a bias in the asymptotic T distribution, implying that conventional inferences will be incorrect.
+16.11 Sample Covariances of Integrated and Stationary Processes
+Let ( Xt ,ut ) be a sequence where Xt is non-stationary and ut is mean zero and strictly stationary.
+Assume that for some scaling sequence Dn the scaled process Xn(r ) = D −1
+n X⌊nr ⌋ satisﬁesXn(r ) − →
+d
+X (r )
+where X (r ) is continuous with probability one. Consider the scaled sample covariance
+Cn = 1
+n D −1
+n
+n∑
+t =1
+Xt ut .
+Theorem 16.12 Assume that Xn(r ) = D −1
+n X⌊nr ⌋ − →
+d
+X (r ) where X (r ) is almost
+surely continuous. Assume ut is mean zero, strictly stationary and ergodic, and
+E |ut |< ∞. Then Cn − →p 0 as n → ∞.
+The proof is presented in Section 16.22.
+16.12 AR(p) Models with a Unit Root
+Assume that Yt satisﬁesa(L)∆Yt = et where a(z) is a p − 1 order invertible lag polynomial and et is a
+stationary MDS with ﬁnite varianceσ2. Then Yt can be written as the AR(p) process
+Yt = a1Yt −1 + · · · +apYt −p + et (16.6)
+where the coefﬁcients satisfy a1 + · · · +ap = 1. Let ˆa be the least squares estimator of a = (a1,..., ap). We
+now describe its sampling distribution.
+Let B be the p × p matrix which transforms (Y t −1, ...,Yt −p) to (Y t −1, ∆Yt −1,..., ∆Yt −p+1), for example
+when p = 3 then B =
+
+
+1 0 0
+1 −1 0
+0 1 −1
+
+. Make the partition B −1′a = (ρ, β) where ρ ∈ R and β ∈ Rp−1. Then
+the AR(p) model can be written as
+Yt = ρYt −1 + β′Xt −1 + et (16.7)
+where Xt −1 = (∆Yt −1, ...,∆Yt −p+1). The leading coefﬁcient is ρ = a1 + · · · +ap = 1. This transformation
+separates the regressors into the unit root component Yt −1 and the stationary component Xt −1.
+
+
+--- page 17 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 563
+Consider the least squares estimators (ˆρ, ˆβ). They can be written under the assumption of a unit root
+as
+( n
+(
+ˆρ − 1
+)
+pn
+(ˆβ − β
+)
+)
+=
+
+
+
+1
+n2
+n∑
+t =1+p
+Y 2
+t −1
+1
+n3/2
+n∑
+t =1+p
+Yt −1X ′
+t −1
+1
+n3/2
+n∑
+t =1+p
+Xt −1Yt −1
+1
+n
+n∑
+t =1+p
+Xt −1X ′
+t −1
+
+
+
+−1 
+
+
+1
+n
+n∑
+t =1+p
+Yt −1et
+1pn
+n∑
+t =1+p
+Xt −1et
+
+
+.
+Theorems 16.4 and the CMT show that
+1
+n2
+n∑
+t =1+p
+Y 2
+t −1 − →
+d
+ω2
+∫ 1
+0
+W 2
+where ω2 is the long-run variance of ∆Yt which equals ω2 = σ2/a(1)2 > 0.
+Theorem 16.12 shows that
+1
+n3/2
+n∑
+t =1+p
+Xt −1Yt −1 − →p 0.
+Theorems 16.4 and 16.6 show that
+1
+n
+n∑
+t =1+p
+Yt −1et − →
+d
+ωσ
+∫ 1
+0
+W dW.
+The WLLN and the CLT for stationary processes show that
+1
+n
+n∑
+t =1+p
+Xt −1X ′
+t −1 − →p Q
+1pn
+n∑
+t =1+p
+Xt −1et − →
+d
+N(0, Ω)
+where Q = E
+[
+Xt −1X ′
+t −1
+]
+and Ω = E
+[
+Xt −1X ′
+t −1e2
+t
+]
+. Together we have established the following.
+Theorem 16.13 Assume that Yt satisﬁesa(L)∆Yt = et where a(z) is ap−1 order
+invertible lag polynomial and (e t , ℑt ) is a stationary MDS with ﬁnite variance
+σ2. Then
+( n
+(
+ˆρ − 1
+)
+pn
+(ˆβ − β
+)
+)
+− →
+d
+
+
+a(1)
+∫ 1
+0 W dW
+∫ 1
+0 W 2
+N(0,V )
+
+ (16.8)
+where V = Q −1ΩQ −1.
+This theorem provides an asymptotic distribution theory for the least squares estimators. The esti-
+mator ( ˆa, ˆβ) is consistent, the coefﬁcient ˆβ on the stationary variables is asymptotically normal, and the
+coefﬁcient ˆa on the unit root component has a scaled Dickey-Fuller distribution.
+The estimator of the representation (16.6) is the linear transformation B ′( ˆρ, ˆβ′)′, and therefore its
+asymptotic distribution is the transformation B ′ of (16.8). Since the unit root component converges at a
+faster Op(n−1) rate than the stationary component it drops out of the asymptotic distribution. We obtain
+p
+n ( ˆa − a) − →
+d
+N(0,GV G ′) (16.9)
+
+
+--- page 18 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 564
+where, in the p = 3 case
+G =
+
+
+1 0
+−1 1
+0 −1
+
+.
+The asymptotic covariance matrix GV G ′ is deﬁcient with rankp − 1. Hence this is only a partial charac-
+terization of the asymptotic distribution; equation (16.8) is a complete ﬁrst-order characterization. The
+implication of (16.9) is that individual coefﬁcient estimators and standard errors of (16.6) have conven-
+tional asymptotic interpretations. This extends to conventional hypothesis tests which do not include
+the sum of the coefﬁcients. For most purposes (except testing the unit root hypothesis) this means that
+asymptotic inference on the coefﬁcients of (16.6) can be based on the conventional normal approxima-
+tion and can ignore the possible presence of unit roots.
+16.13 Testing for a Unit Root
+The asymptotic properties of the time series process change discontinuously at the unit root ρ =
+a1 + · · · +ap = 1. It is therefore of standard interest to test the hypothesis of a unit root. We typically
+express this as the test of H0 : ρ = 1 against H1 : ρ < 1. We typically view the test as one-sided as we are
+interested in the alternative hypothesis that the series is stationary (not that it is explosive).
+The test for H0 vs. H1 is the t-statistic for a1 +· · ·+ap = 1 in the AR(p) model (16.6). This is identical to
+the t-statistic for ρ = 1 in reparameterized form (16.7). Since the latter is a simple t-ratio this is the most
+convenient implementation. It is typically called the Augmented Dickey-Fuller statistic. It equals
+ADF = ˆρ − 1
+s
+(
+ˆρ
+)
+where s
+(
+ˆρ
+)
+is a standard error for ˆρ. This t-ratio is typically calculated using a classical (homoskedastic)
+standard error, perhaps for historical reasons, and perhaps because the asymptotic distribution of ADF
+is invariant to conditional heteroskedasticity. The statistic is called the ADF statistic when the estimated
+model is an AR(p) model withp > 1; it is typically called the Dickey-Fuller statistic if the estimated model
+is an AR(1).
+The asymptotic distribution of ADF depends on the ﬁtted deterministic components. The test statis-
+tic is most typically calculated in a model with a ﬁtted intercept or a ﬁtted intercept and time trend,
+though the theory is also presented for the case with no ﬁtted intercept and extends to any polynomial
+order trend.
+Let Zα denote the αt h quantile of the Dickey-Fuller T distribution (from Theorem 16.10 or Theorem
+16.11).
+
+
+--- page 19 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 565
+Theorem 16.14 Assume that Yt satisﬁesa(L)∆Yt = et where a(z) is ap−1 order
+invertible lag polynomial and (e t , ℑt ) is a stationary MDS with ﬁnite variance
+σ2. Then
+ADF − →
+d
+∫ 1
+0 UdW
+(∫ 1
+0 U 2
+)1/2
+where W is Brownian motion. The process U depends on the ﬁtted determin-
+istic components:
+1. Case 1: No intercept or trend included. U (r ) = W (r ).
+2. Case 2: Fitted intercept (demeaned data). U (r ) = W (r ) − r
+∫ 1
+0 W .
+3. Case 3: Fitted intercept and trend (detrended data). U (r ) = W (r ) −
+X (r )′
+(∫ 1
+0 X X ′
+)−1 (∫ 1
+0 X W
+)
+where X (r ) = (1,r )′.
+The test “Reject H0 if ADF < Zα” has asymptotic size α.
+The asymptotic critical values 6 are displayed in Table 16.1. This is a one-sided hypothesis test so
+rejections occur when the test statistic is less than (more negative than) the critical value. Notice that the
+critical values are larger than the standard normal approximation. For the case of a ﬁtted intercept the
+5% critical value is −2.9. For the case of a ﬁtted trend it is −3.4. This means that a we need to be careful
+with our conventional intuition when interpreting ADF estimates and tests.
+In most applications an ADF test is implemented with at least a ﬁtted intercept (which is the middle
+line of the table). Many are implemented with a ﬁtted linear time trend (which is the third line). The
+choice depends on the nature of the alternative hypothesis. If H1 is that the series is stationary about
+a constant mean then the case of a ﬁtted intercept is appropriate. Example series for this context are
+unemployment and interest rates. If H1 is that the series is stationary about a linear trend then the case
+of a ﬁtted trend is appropriate. Examples for this context are levels or log-levels of macroeconomic ag-
+gregates.
+The ADF test depends on the autoregressive order p. The issue of selection of p is similar to that
+of autoregressive model selection. In general, if p is too small than the model is mis-speciﬁed and the
+ADF statistic has an asymptotic bias. If p is too large than the test coefﬁcient ˆa is imprecisely estimated
+reducing the power of the test. Since ˆρ is the sum of the p estimated AR coefﬁcients in the levels model
+the imprecision can be quite sensitive to the choice of p. A reasonable selection rule is to use the AIC-
+selected AR model. Improved rules have been studied by Ng and Perron (2001).
+We have argued that it is better to report asymptotic p-values than “accept/reject” . For this calcu-
+lation we need the asymptotic distribution function but this is not available in closed form. A simple
+approximation is interpolation of the critical values. For example, suppose ADF = −1.9 with a ﬁtted in-
+tercept. The two closest critical values are the 30% (−2.0) and 50% (−1.6). Linear interpolation between
+these values yields
+p = 0.30 × (1.9 − 1.6) + 0.50 × (2.0 − 1.9)
+2.0 − 1.6 = 0.35.
+Thus the asymptotic p-value is approximately 35%. Reporting a p-value instead of the “decision” of a test
+improves interpretation and communication.
+6Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+
+
+--- page 20 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 566
+How should unit root tests be used in empirical practice? The answer is subtle. A common mistake
+is “We use a unit root test to discover whether or not the series has a unit root.” This is a mistake because
+a test does not reveal the truth. Rather, it presents evidence whether or notH0 can be rejected. If the test
+fails to reject H0 this does not mean that “We have found a unit root” . Rather, the correct conclusion is
+“We cannot reject the hypothesis that it has a unit root” . Thus we do not know. If the test rejects H0 (if
+the p-value is very small) then we can conclude that the series is unlikely to be a unit root process; its
+behavior is more consistent with a stationary process. Another common mistake is to adopt the rule: “If
+the ADF test rejects then we work with Yt in levels; if the ADF test does not reject then we work with the
+differenced series ∆Yt .” This is a mistake because it assigns a modeling rule to the result of a statistical
+test while the test is only designed to answer the question if there is evidence against the hypothesis of a
+unit root. The choice of Yt versus ∆Yt is a model selection choice not a hypothesis testing decision.
+I believe a reasonable approach is to start with a hypothesis based on theory and context. Does
+economic theory lead you to treat a series as stationary or non-stationary? Is there a reason to believe that
+a series should be stationary – thus stable in the mean – or is there reason to believe the series will exhibit
+growth and change? If you have a clear answer to these questions that should be your starting place,
+your default. Use the unit root test to help conﬁrm your assumptions rather than to select a modeling
+approach. If your assumption is that Yt has a unit root but the unit root test strongly rejects, then you
+should re-appraise your theory. On the other hand if your assumption is that Yt is stationary but the
+unit root test fails to reject the null of a unit root, do not necessarily depart from your theoretical base.
+Consider the degree of evidence, the sample size, as well as the point estimates. Use all information
+together to base your decision.
+To illustrate application of the ADF test let’ s take the eight series displayed in Figures 14.1-14.4 using
+the variables measured in levels or log-levels. The variables and transformations are listed in Table 16.2.
+For six of the eight series (all but the interest and unemployment rates) we took the log transformation.
+We included an intercept and linear time trend in each regression and selected the autoregressive order
+by minimizing the AIC across AR(p) models with a linear time trend. For the quarterly series we examined
+AR(p) models up to p = 8, for the monthly series up to p = 12. The selected values of p are shown in the
+table. The point estimate of ˆa − 1, its standard error, the ADF t statistic, and its asymptotic p-value are
+shown. What we see is for for seven of the eight series (all but the unemployment rate) the p-values are far
+from the critical region indicating failure to reject the null hypothesis of a unit root. The p-value for the
+unemployment rate is 0.01, however, indicating rejection of a unit root. Overall, the results are consistent
+with the hypotheses that the unemployment rate is stationary and that the other seven variables are
+possibly (but not decisively) unit root processes.
+The ADF test came into popularity in economics with a seminar paper by Nelson and Plosser (1982).
+These authors applied the ADF to a set of standard macroeconomic variables (similar to those in Table
+16.2) and found that the unit root hypothesis could not be rejected in most series. This empirical ﬁnding
+had a substantial effect on applied economic time series. Before this paper the conventional wisdom
+was that economic series were stationary (possibly about linear time trends). After their work it became
+more accepted to assume that economic time series are better described as autoregressive unit root pro-
+cesses. Nelson and Plosser (1982) used this empirical ﬁnding to make a further and stronger claim. They
+argued that Keynesian macroeconomic models (which were standard at the time) imply that economic
+time series are stationary while real business cycle (RBC) models (which were new at the time) imply
+that economic time series are unit root processes. Nelson-Plosser argued that the empirical ﬁnding that
+the unit root tests do not reject was strong support for the RBC research program. Their argument was
+inﬂuential and was a factor motivating the rise of the RBC literature. With hindsight we can see that Nel-
+son and Plosser (1982) made a fundamental error in this latter argument. The unit root behavior in RBC
+models is not inherent to their structure; rather it is a by-product of the assumptions on the technology
+process. (If exogenous technology is a unit root process or a stationary process then macroeconomic
+
+
+--- page 21 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 567
+variables will also be unit root processes or stationary processes, respectively.) Similarly the stationary
+behavior of 1970s Keynesian models was not inherent to their structure but rather a by-product of as-
+sumptions about unobservables. Fundamentally the unit root/stationary distinction says little about
+the RBC/Keynesian debate.
+The ADF test with a ﬁtted intercept can be implemented in Stata by the command dfuller y,
+lags(q) regress. For a ﬁtted intercept and trend add the option trend. The number of lags “q” in
+the command is the number of ﬁrst differences in (16.7), hence q = p − 1 where p is the autoregressive
+order. The dfuller command reports the estimated regression, the ADF statistic, asymptotic critical
+values, and approximate asymptotic p-value.
+16.14 KPSS Stationarity Test
+Kwiatkowski, Phillips, Schmidt, and Shin (1992) developed a test of the null hypothesis of stationarity
+against the alternative of a unit root which has become known as the KPSS test. Many users ﬁnd this idea
+attractive as a useful counterpoint to the ADF test.
+The test is derived from what is known as a local level model. This is
+Yt = µ + θSt + et
+St = St −1 + ut
+where et is a mean zero stationary process and ut is i.i.d. (0, σ2
+u). When σ2
+u = 0 then Yt is stationary.
+When σ2
+u > 0 then Yt is a unit root process. Thus a test of the null of stationarity against the alternative
+of a unit root is a test of H0 : σ2
+u = 0 against H1 : σ2
+u > 0. Add the auxillary assumption that (e t ,ut ) are i.i.d
+normal. The Lagrange multiplier test can be shown to reject H0 in favor of H1 for large values of
+1
+n2 ˆσ2
+n∑
+i =1
+(
+i∑
+t =1
+ˆet
+)2
+where ˆet = Yt − Y are the residuals under the null and ˆσ2 is its sample variance. To generalize to the
+context of serially correlated et KPSS proposed the statistic
+KPSS1 = 1
+n2 ˆω2
+n∑
+i =1
+(
+i∑
+t =1
+ˆet
+)2
+where
+ˆω2 =
+M∑
+ℓ=−M
+(
+1 − |ℓ|
+M + 1
+) 1
+n
+n∑
+t =1
+ˆet ˆet −ℓ
+is the Newey-West estimator of the long-run variance ω2 of Yt .
+For contexts allowing for a linear time trend the local level model takes the form
+Yt = µ + βt + θSt + et
+which has null least squares estimator
+Yt = ˜µ + ˜βt + ˜et .
+Notice that ˜et is linearly detrended Yt . The KPSS test for H0 against H1 rejects for large values of
+KPSS2 = 1
+n2 ˜ω2
+n∑
+i =1
+(
+i∑
+t =1
+˜et
+)2
+where ˜ω2 is deﬁned as ˆω2 but with the detrended residuals ˜et .
+
+
+--- page 22 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 568
+Theorem 16.15 If Yt follows Assumption 16.1 then
+KPSS1 − →
+d
+∫ 1
+0
+V 2
+and
+KPSS2 − →
+d
+∫ 1
+0
+V 2
+2
+where V (r ) = W (r ) − r W(1) is a Brownian bridge, and V2(r ) = W (r ) −(∫ r
+0 X (s)d s
+)′ (∫ 1
+0 X X ′
+)′ ∫ 1
+0 X dW with X (s) = (1, s)′.
+The asymptotic distributions in Theorem 16.15 are non-standard and are typically calculated by sim-
+ulation. The process V2(r ) is known as a Second-level Brownian Bridge. The asymptotic distributions
+are displayed7 in Figure 16.3(c). The dashed line is the density of the KPSS1 asymptotic distribution. The
+solid line is the density of the KPSS 1 asymptotic distribution. The densities are skewed with a slowly-
+decaying right tail. The KPSS 2 distribution is substantially shifted towards the origin compared to the
+KPSS1 distribution, indicating a substantial effect of detrending.
+The asymptotic critical values are displayed 8 in Table 16.3. Rejections occur when the test statis-
+tic exceeds the critical value. As for the Dickey-Fuller tests an approximate asymptotic p-value can be
+calculated from this table by linear interpolation between adjacent critical values.
+The KPSS statistic critically depends on the lag order M used to estimate the long-run variance ω2.
+This is a challenge for test implementation. IfYt is stationary but highly persistent (for example, an AR(1)
+with a large autoregressive coefﬁcient) then the lag truncationM needs to be large in order to accurately
+estimate ω2. However, under the alternative that Yt is a unit root process, the estimator ˆω2 will increase
+roughly linearly with M so that for any given sample the KPSS statistic can be made arbitrarily small by
+selecting M sufﬁciently large.
+Recall that the Andrews (1991) reference rule (14.50) is
+M =
+(
+6 ρ2
+(
+1 − ρ2)2
+)1/3
+n1/3
+where ρ is the ﬁrst autocorrelation of Yt . For the KPSS test we should not replace ρ with an estimator ˆρ
+as the latter converges to 1 under H0, leading to M → ∞ rendering the test inconsistent. Instead we can
+use a default rule based on a reasonable alternative. Suppose we consider the alternativeρ = 0.8. The as-
+sociated Andrews’ reference rule is M = 3.1n1/3. This leads to a simple rule M = 3n1/3. An interpretation
+of this choice is that it should approximately control the size of the test when the truth is an AR(1) with
+coefﬁcient 0.8 but over-reject for more persistent AR processes.
+To illustrate, Table 16.2 reports the KPSS2 statistic for the same eight series as examined in the pre-
+vious section, using M = 3n1/3. For the ﬁrst two quarterly series n = 228 leading to M = 18. For the six
+monthly series n = 684 leading to M = 26. For six of the eight series (all but consumption and the unem-
+ployment rate) the KPSS statistic equals or exceeds the 1% critical value leading to a rejection of the null
+hypothesis of stationarity in favor of the alternative of a unit root. This is consistent with the ADF test
+which failed to reject a unit root for these series.
+For the consumption series the KPSS statistic has a p-value of 12%, which does not reject the hypoth-
+esis of stationarity. Recall that the ADF test failed to reject the hypothesis of a unit root. Thus neither test
+7Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+8Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+
+
+--- page 23 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 569
+Table 16.1: ADF Test Critical Values
+1% 2% 3% 4% 5% 7% 10% 15% 20% 30% 50% 70% 90%
+Case 1 (No Constant or Trend)
+−2.6 −2.3 −2.2 −2.0 −1.9 −1.8 −1.6 −1.4 −1.2 −1.0 −0.5 0.1 0.9
+Case 2 (Constant Included)
+−3.4 −3.2 −3.1 −3.0 −2.9 −2.7 −2.6 −2.4 −2.2 −2.0 −1.6 −1.1 −0.4
+Case 3 (Constant and Trend Included)
+−4.0 −3.7 −3.6 −3.5 −3.4 −3.3 −3.1 −2.9 −2.8 −2.6 −2.2 −1.8 −1.2
+Table 16.2: Unit Root and KPSS Test Applications
+p ˆa − 1 ADF p-value M KPSS2 p-value
+log(real GDP) 3 −0.017
+(.009) −1.8 0.71 18 0.23 0.01
+log(real consumption) 4 −0.029
+(.012) −2.4 0.37 18 0.113 0.12
+log(exchange rate) 11 −0.009
+(.004) −2.2 0.49 26 0.31 < .01
+interest rate 12 −0.005
+(.004) −1.5 0.52 26 0.56 < .01
+log(oil price) 2 −0.013
+(.005) −2.4 0.35 26 0.23 < .01
+unemployment rate 7 −0.014
+(.004) −3.4 0.01 26 0.14 0.06
+log(CPI) 11 −0.001
+(.001) −1.0 0.95 26 0.55 < .01
+log(stock price) 6 −0.010
+(.004) −2.2 0.47 26 0.30 < .01
+Table 16.3: KPSS Critical Values
+1% 2% 3% 4% 5% 7% 10% 15% 20% 30% 50% 70%
+KPSS1 (Constant Included)
+0.75 0.62 0.55 0.50 0.46 0.41 0.35 0.28 0.24 0.18 0.12 0.08
+KPSS2 (Constant and Trend Included)
+0.22 0.19 0.17 0.16 0.15 0.13 0.12 0.10 0.09 0.08 0.06 0.04
+
+
+--- page 24 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 570
+leads to a decisive result; as a pair the two tests are inconclusive. In this context I recommend staying
+with the prediction of economic theory (consumption is a martingale) as it is not rejected by a hypothesis
+test. The KPSS fails to reject stationarity but that does not mean that the series is stationary.
+An interesting case is the unemployment rate series. It has KPSS 2 = 0.14 with a p-value of 6%. This
+is borderline signiﬁcant for rejection of stationarity. On the other hand, recall that the ADF test had a p-
+value of 1% rejecting the unit root hypothesis. These results are borderline conﬂicting. To augment our
+information we calculate the KPSS 1 test as the unemployment rate does not appear to be trended. We
+ﬁnd KPSS1 = 0.19 with a p-value of 30%. This is clearly in the non-rejection region, failing to provide evi-
+dence against stationarity. As a whole, the ADF test (reject unit root), the KPSS1 test (accept stationarity),
+and the KPSS2 test (borderline reject stationarity), taken together are consistent with the interpretation
+that the unemployment rate is a stationary process.
+The KPSS 2 test can be implemented in Stata using the command 9 kpss y, maxlag(q). For the
+KPSS1 test add the option notrend. The command reports the KPSS statistics for M = 1, ...,q, as well as
+asymptotic critical values. Approximate asymptotic p-values are not reported.
+16.15 Spurious Regression
+One of the most empirically relevant discoveries from the theory of non-stationary time series is the
+phenomenon of spurious regression. This is the ﬁnding that two statistically independent series, if both
+unit root processes, are likely to fool traditional statistical analysis by appearing to be statistically related
+by both eyeball scrutiny and traditional statistical tests. The phenomenon was observed 10 and named
+by Granger and Newbold (1974) and explained using the theory of non-stationary time series by Phillips
+(1986). The primary lesson is that it is easy to be tricked by non-stationary time-series but the problem
+disappears if we pay suitable attention to dynamic speciﬁcation.
+1980 1985 1990 1995 2000 2005 2010 2015 2020
+Series 1
+Series 2
+(a) Two Unrelated Random Walks
+1960 1970 1980 1990 2000 2010 2020
+Labor Force Participation Rate
+Exchange Rate (b) Exchange and Labor Force Participation Rates
+Figure 16.4: Plots of Empirical Series
+To illustrate the problem examine Figure 16.4(a). Displayed are two time series, monthly for 1980-
+9The command kpss is not part of the standard package, but can be installed by typing ssc install kpss.
+10In numerical simulations.
+
+
+--- page 25 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 571
+2018. A casual review of the graphs shows that both series are generally increasing over 1980-2010 with
+a no-growth period around 2000, and the series display a downward trend for the ﬁnal decade. A more
+reﬁned perusal may appear to reveal that Series 2 leads Series 1 by about ﬁve years, in the sense that
+Series 2 reaches turning points about ﬁve years before Series 1. A casual observer is likely to deduce
+based on Figure 16.4(a) that the two time series are strongly related.
+However the truth is that Series 1 and Series 2 are statistically independent random walks generated
+by computer simulation, each standardized to have mean zero and unit variance for the purpose of visual
+comparison. The “fact” that both series are generally upward trended and have “similar” turning points
+are statistical accidents. Random walks have an uncanny ability to fool casual analysis. Newspaper (and
+other journalistic) articles containing plots of time series are routinely subject to the tricks of Figure
+16.4(a). Economists are also routinely tricked and fooled.
+Traditional statistical examination of the series in Figure 16.4(a) can also lead to a false inference of
+a strong relationship. A linear regression of Series 1 on Series 2 yields a slope coefﬁcient of 0.76 with
+classical standard error of 0.03. The t-ratio for the test of a zero slope is T = 26. The equation R2 is 0.59.
+These traditional statistics support the incorrect inference that the two series are strongly related.
+Spurious relationships of this form are commonplace in economic time series. An example is shown
+in Figure 16.4(b), which displays the U.S. labor force participation rate and U.S.-Canada exchange rate,
+quarterly for 1960-2018. As a visual aid both series have been normalized to have mean zero and unit
+variance. Both series appear to grow at a similar rate from 1960-2000, though the exchange rate is more
+volatile. From 2000-2018 they reverse course, with both series declining. The visual evidence is sup-
+ported by traditional statistics. A linear regression of labor participation on the exchange rate yields a
+slope coefﬁcient of 0.70 with a clasical standard error of 0.05. The t-ratio for the test of a zero slope is
+T = 15. The equation R2 is 0.49. The visual and statistical evidence support the inference that the two
+series are related.
+This empirical “ﬁnding” that the labor participation and exchange rates are related does not make
+economic sense. Is this an example of a spurious regression between non-stationary variables? A visual
+inspection of each series supports the contention that each is non-stationary and may be well charac-
+terized as a unit root process. We saw in Sections 16.13 and 16.14 that the ADF and KPSS tests support
+the hypothesis that the exchange rate is a unit root process. Similar tests reach the same conclusion for
+labor force participation. Thus the two series are reasonably characterized as unit root processes and
+these two series could be an empirical example of a spurious regression.
+For a formal framework assume that the series Yt and Xt are random walk processes
+Yt = Yt −1 + e1t (16.10)
+Xt = Xt −1 + e2t (16.11)
+where (e 1t ,e2t ) are i.i.d., mean zero, mutually uncorrelated, and normalized to have unit variance. Let
+Y ∗
+t and X ∗
+t denote demeaned versions of Yt and Xt . From the FCLT they satisfy
+( 1
+pn Y ∗
+⌊nr ⌋, 1pn X ∗
+⌊nr ⌋
+)
+− →
+d
+(
+W ∗
+1 (r ),W ∗
+2 (r )
+)
+where W ∗
+1 (r ) and W ∗
+2 (r ) are demeaned Brownian motions.
+Applying the CMT the sample correlation has the asymptotic distribution
+ˆρ =
+1
+n2
+∑n
+i =1 Y ∗
+i X ∗
+i
+( 1
+n2
+∑n
+i =1 Y ∗2
+i
+)1/2 ( 1
+n2
+∑n
+i =1 X ∗2
+i
+)1/2 − →
+d
+∫ 1
+0 W ∗
+1 W ∗
+2
+(∫ 1
+0 W ∗2
+1
+)1/2 (∫ 1
+0 W ∗2
+2
+)1/2 .
+The right-hand-side is a random variable. Furthermore it is also non-degenerate (indeed, it is non-zero
+with probability one). Thus the sample correlation ˆρ remains random in large samples.
+
+
+--- page 26 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 572
+To understand magnitudes, Figure 16.5(a) displays the asymptotic distributon11 of ˆρ. The density has
+most probability mass in the interval [−0.5, 0.5], over which the density is essentially ﬂat. This means that
+the sample correlation has a diffuse distribution. Above we saw that the two simulated random walks
+had a sample correlation 12 of 0.76 and the two empirical series a sample correlation of 0.70. We can
+now see that these results are consistent with the distribution shown in Figure 16.5(a) and are therefore
+uninformative regarding the underlying relationships.
+−1.0 −0.5 0.0 0.5 1.0
+(a) Asymptotic Density of Sample Correlation
+Sample Size
+0 50 100 150 200
+0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 (b) Coverage Probability of Nominal 95% Interval
+Figure 16.5: Properties of Spurious Regression
+We can also examine the regression estimators. The slope coefﬁcient from a regression of Yt on
+Xt has the asymptotic distribution
+ˆβ =
+1
+n2
+∑n
+i =1 Y ∗
+i X ∗
+i
+1
+n2
+∑n
+i =1 X ∗2
+i
+− →
+d
+∫ 1
+0 W ∗
+1 W ∗
+2
+∫ 1
+0 W ∗2
+2
+.
+This is a non-degenerate random variable. Thus the slope estimator remains random in large samples
+and does not converge in probability.
+Now consider the classical t-ratio T . It has the asymptotic distribution
+1
+n1/2 T =
+1
+n2
+∑n
+i =1 Y ∗
+i X ∗
+i
+( 1
+n2
+∑n
+i =1 X ∗2
+i
+)1/2 (
+1
+n2
+∑n
+i =1
+(
+Y ∗
+i − X ∗
+i
+ˆβ
+)2)1/2 − →
+d
+∫ 1
+0 W ∗
+1 W ∗
+2
+(∫ 1
+0 W ∗2
+2
+)1/2 (∫ 1
+0
+(
+W ∗
+1 −W ∗
+2
+∫ 1
+0 W ∗
+1 W ∗
+2∫ 1
+0 W ∗2
+2
+)2)1/2 .
+This is non-degenerate. Thus the t-ratio has an asymptotic distribution only after normalization byn1/2,
+meaning that the unnormalized t-ratio diverges in probability!
+To understand the utter failure of classical inference theory observe that the regression equation is
+Yt = α + βXt + ξt (16.12)
+11Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+12Since the variables have been standardized to have a unit variance the sample correlation equals the least squares slope
+coefﬁcient.
+
+
+--- page 27 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 573
+with true values α = 0 and β = 0. This means that the error ξt = Yt is a random walk. The latter is consid-
+erably more strongly autocorrelated than allowed by stationary regression theory, invalidating conven-
+tional standard errors. The latter are too small by an order of magnitude resulting in t-ratios which are
+misleadingly large.
+What this means in practice is that t-ratios from spurious regressions are random and large even
+when there is no relationship. This explains the large t-ratio T = 26 for the simulated series and shows
+that the valueT = 15 for the empirical series is uninformative. The reason for a large t-ratio is not because
+the series are related but is rather because the series are unit root processes so classical standard errors
+mis-characterize estimation variance.
+One of the features of the above theory is that it shows that the magnitude of the distortion of the
+t-ratio increases with sample size. Interestingly, the original Granger-Newbold (1974) analysis was a sim-
+ulation study which conﬁned attention to the casen = 50. Granger-Newbold found the (then surprising)
+result that t-tests substantially overreject under the null hypothesis of a zero coefﬁcient. It wasn’t until
+the theoretical analysis by Phillips (1986) that it was realized that this distortionworsened as sample size
+increased. These results illustrate the insight – and limitations – of simulation analysis. Using simulation
+Granger-Newbold pointed out that there was a problem. But by ﬁxing sample size at a single value they
+did not discover the surprising effect of sample size.
+The fact that the t-ratio diverges as n increases means that the coverage of classical conﬁdence in-
+tervals worses as n increases. To calibrate the magnitude of this distortion examine Figure 16.5(b). This
+plots13 the ﬁnite-sample coverage probability of classical nominal 95% conﬁdence intervals for the slope
+using student t critical values plotted as a function of sample size n. The observations were generated
+as independent random walks with normal innovations. You can see that the coverage ranges from 0.68
+(for n = 10) to 0.2 (for n = 200). These coverage rates are unacceptably below the nominal coverage level
+of 0.95.
+The above analysis focused on classical t-ratios and conﬁdence intervals constructed with old-fashioned
+homoskedastic standard errors. This may seem to be an out-of-date analysis as we have made the
+case that old-fashioned standard errors are not used in contemporary econometric practice. However
+the problem as described carries over to alternative standard error constructions. The common het-
+eroskedastic standard errors do not fundamentally change the asymptotic distribution. The Newey-West
+standard errors reduce the under-coverage but only partially. They are designed to consistently estimate
+the long-run variance of stationary series but fail when the series are non-stationary.
+At this point let us collect what we have learned. If we have two time-series which are independent
+unit root processes, then by time-series plots, correlation analysis, and simple linear regressions it is
+easy to make the false inference that they are related. Their sample correlations and regression slope
+estimates will be random, inconsistent, and uninformative.
+Our deduction is that it is inappropriate to use simple inference techniques when handling poten-
+tially non-stationary time series. We need to be more careful and use better inference methods.
+It turns out that a simple modiﬁcation is often sufﬁcient to fundamentally alter the inference prob-
+lem. Again, suppose we observe the independent series (16.10)-(16.11). A linear regression model is
+(16.12) with error ξt = Yt . We can write the latter as ξt = Yt −1 + et . This means that a correct dynamic
+specﬁcation of the regression model is
+Yt = α + βXt + δYt −1 + et (16.13)
+with α = β = 0 and δ = 1. If equation (16.13) is estimated the error is no longer a random walk and
+inference on β can proceed conventionally! In this simple example a solution is simply to include the
+lagged dependent variable Yt −1 in the estimated regression. More generally, if a trend component is
+13Calculated by simulation on a grid of values for n with one million simulation replications.
+
+
+--- page 28 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 574
+missing or ∆Yt is serially correlated it is necessary to include the trend terms and/or sufﬁcient lags ofYt
+in the estimated regression.
+For example, take the simulated random walk series from Figure 16.4(a). Estimating model (16.13)
+we ﬁnd ˆβ = 0.004 with a standard error of 0.005. Thus by adding the lagged dependent variable the
+spurious regression relationship has been broken. Now take the empirical series from Figure 16.4(b). We
+estimate an analog of (16.13) augmented with a linear trend. The estimate of β in this model is 0.16 with
+a standard error of 0.12. Once again the spurious regression relationship has been broken by a simple
+dynamic re-adjustment.
+This seems like a straightforward solution. If so, why does the spurious regression problem persist14
+in applied analysis? The reason is partially that non-specialists ﬁnd that the simple regression (16.12) is
+easy to interpret while the dynamic model (16.13) is challenging to interpret. One of the tasks of a skilled
+econometrician is to understand this failure of reasoning, to explain the problem to colleagues and users,
+and to present constructive useful alternative methods of analysis.
+16.16 NonStationary VARs
+Let Yt be an m × 1 time series. Suppose that Yt satisﬁes a VAR(p-1) in ﬁrst differences, thusD(L)∆Yt =
+et where D(z) is invertible and Σ = var[et ] > 0. Then ∆Yt has the long-run covariance matrix Ω =
+D(1)−1ΣD(1)−1′ > 0. In this case Yt is a vector I (1) process in the sense that each element of Yt is I (1)
+and so are all linear combinations of Yt .
+The model can be written as a VAR in levels as
+Yt = A1Yt −1 + A2Yt −2 + · · · +ApYt −p + et (16.14)
+where A1 + A2 + · · · +Ap = I m. It can also be written in the mixed format
+∆Yt = AYt −1 + D 1∆Yt −1 + · · · +D p−1∆Yt −p+1 + et (16.15)
+where A = 0. These are equivalent algebraic representations. Let d = vec
+((
+D 1, ...,D p−1
+)′)
+.
+Let
+(ˆA, ˆd
+)
+be the multivariate least squares estimator of (16.15). Set Xt = (∆Yt −1, ...,∆Yt −p+1).
+Theorem 16.16 Assume that ∆Yt follows the VAR(p-1) process D(L)∆Yt = et
+with invertible D(z), E[et |Ft −1] = 0, E ∥et ∥4 < ∞, and E
+[
+et e′
+t
+]
+= Σ > 0. Then as
+n → ∞
+( n ˆApn
+( ˆd − d
+)
+)
+− →
+d
+
+
+Σ1/2 ∫ 1
+0 dW W ′
+(∫ 1
+0 W W ′
+)−1
+Ω−1/2
+N(0,V )
+
+
+where W (r ) is vector Brownian motion and
+V =
+(
+I m ⊗ E
+[
+Xt X ′
+t
+])−1 Ω
+(
+I m ⊗ E
+[
+Xt X ′
+t
+])−1
+Ω = E
+[
+et e′
+t ⊗ Xt X ′
+t
+]
+.
+14An amusing exercise is to peruse newspaper/magazine articles for time series plots of historical series. More often than
+not the displayed series appear to be I (1), and more often than not the article describes the series as “related” based on a
+combination of eyeball analysis and simple correlation statistics.
+
+
+--- page 29 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 575
+The top component of the asymptotic distribution is a multivariate version of the Dickey-Fuller co-
+efﬁcient distribution. The bottom component is a conventional normal distribution. This shows that the
+coefﬁcient estimator ˆA is consistent at the Op(n−1) rate, converges to a non-standard (biased and non-
+normal) asymptotic distribution, and the coefﬁcient estimator ˆd has a conventional asymptotic normal
+distribution.
+Parameters of interest, including the coefﬁcients of the levels equation (16.14), impulse response
+functions, and forecast error decompositions, are linear combination of the estimators
+(ˆA, ˆd
+)
+. For VAR(p)
+models with p ≥ 2, unless the linear combination of interest is in the span of ˆA, the asymptotic distri-
+bution of estimators are dominated by the Op(n−1/2) component ˆd. Thus these coefﬁcient estimators
+have conventional asymptotic normal distributions. Consequently, for most purposes estimation and
+inference on a VAR model is robust to the presence of (multivariate) unit roots.
+There are two important exceptions. First, inference on the sum of levels coefﬁcientsA1+ A2+· · ·+Ap
+is non-standard as the estimator of this sum has the multivariate Dickey-Fuller coefﬁcient distribution.
+This includes questions concerning the presence of unit roots and many questions concerning the long-
+run properties of the series. Second, the long-run impulse matrix C = A−1 =
+(
+I − A1 − A2 − · · · −Ap
+)−1 is
+a (non-linear) function of this same sum and thus by the Delta Method is asymptotically a linear trans-
+formation of the multivariate Dickey-Fuller coefﬁcient distribution. This means that the least squares
+estimator of C is non-standard (biased and non-normal). As C is the limit of the CIRF as the horizon
+tends to inﬁnity this indicates that estimators of the CIRF at long horizons will be non-standard in ﬁ-
+nite samples. Consequently when a VAR model includes variables which are potentially unit root pro-
+cesses the conventional conﬁdence intervals for the CIRF at long horizons are not trustworthy. This is a
+widespread issue since macroeconomists routinely estimate VAR models with macroeconomic variables
+in levels (for example, the Blanchard-Perotti (2002) model presented in Section 15.25).
+16.17 Cointegration
+A fascinating topic is cointegration. The idea is due to Granger (1981) and was articulated in detail
+by Engle and Granger (1987). A pair of unit root processes are cointegrated if their difference (or some
+linear combination) is stationary. This means that the pair “hang together” over the long run.
+To visualize examine Figure 16.6(a). This shows two interest rate series. The solid line is the interest
+rate (quarterly for 1959-2017) on ten-year U.S. Treasury Bonds 15. The dashed line is the interest rate on
+3-month U.S. Treasury Bonds16. Over the 59-year period the two series move up and down together. The
+10-year rate exceeds the 3-month rate in most time periods. For some periods the two lines pull apart
+but they always come together again. This indicates that the two time series are tightly tied together.
+From our unit root analysis we have already determined that the 10-year interest rate is consistent with a
+unit root process; the same ﬁndings apply to the 3-month series. Thus it appears that these are two time
+series which are individually unit root processes but jointly track each other closely.
+To see this further deﬁne the interest rate spread as the difference between the two interest rates,
+long (10-year) minus short (3-month). This series is plotted in Figure 16.6(b). The mean of the series is
+displayed by the dashed line. What we can see is that the spread roughly appears to be mean reverting.
+With the possible exception of the ﬁrst decade of the plot we see that that the spread crosses its mean
+multiple times each decade. The ﬂuctuations appear to be stationary. Applying an ADF unit root test
+with no trend included to the spread yields ADF = −4.0 which is less than the 1% critical value, rejecting
+the null hypothesis of a unit root. Thus the levels of the two interest rates appear to be non-stationary
+while the spread is stationary. This suggests that the two interest rate series are cointegrated.
+15From FRED-QD, series gs10.
+16From FRED-QD, series tb3ms.
+
+
+--- page 30 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 576
+1960 1970 1980 1990 2000 20100 2 4 6 8 10 12 14 16
+10−Y ear Interest Rate
+3−Month Interest Rate
+(a) Interest Rates
+1960 1970 1980 1990 2000 2010−2 −1 0 1 2 3 4 (b) Interest Rate Spread
+●●
+●
+●
+●
+●
+●●●●●●
+●●●●●●
+●●●●●●●●●
+●
+●●
+●●
+●
+●
+●
+●
+●
+●
+●
+●
+●●
+●
+●●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●●
+●●
+●
+●
+●
+●
+●
+●●●
+●●●
+●
+●
+●●
+●
+●
+●●
+●
+●
+●
+●
+●
+●
+●
+● ●
+●
+●
+●
+●
+●●
+●
+●
+●
+●
+●
+●
+●
+●
+●
+●●
+●
+●
+●●● ●
+●●●
+●
+●
+●
+●●
+●●●●
+●
+●
+●
+●●
+●
+●●
+●●●●●●●
+●
+●
+●
+●●●●
+● ●●●●● ●●●●●
+●●●●
+●
+●●
+● ●
+●
+●
+●
+●●●●
+●●● ●● ●●
+●
+●
+●
+●
+●
+●
+●
+●●●●●
+●
+●
+●
+●●
+●● ●●●●●●● ●●●●●●●●●● ●●●●●●●●●●●●●●●
+●●●
+10−Y ear Interest Rate
+3−Month Interest Rate
+0 2 4 6 8 10 12 14 16
+0 2 4 6 8 10 12 14 16
+●
+●
+●
+● (c) Error Correction Effect
+Figure 16.6: Cointegration
+This concept is formalized in the following deﬁnition.
+Deﬁnition 16.5 The m × 1 non-deterministic series Yt is cointegrated if there
+exists a full rank m × m matrix
+[
+β, β⊥
+]
+such that β′Yt ∈ Rr and β′
+⊥∆Yt ∈ Rm−r
+are I (0). The r vectors in β are called the cointegrating vectors. The variable
+Zt = β′Yt is called the equilibrium error.
+In the interest rate example of Figure 16.6, there arem = 2 series andr = 1 cointegrating relationships.
+Our discussion assumes that the cointegrating vector is β = (1, −1)′.
+The cointegrating vectors β are not individually identiﬁed; only the space spanned by the vectors
+is identiﬁed so β is typically normalized. When r = 1 a common normalization is to set one non-zero
+element equal to one. Another common normalization is to set β to be orthonormal: β′β = I r .
+
+
+--- page 31 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 577
+Theorem 16.17 Granger Representation Theorem . If non-deterministic Yt ∈
+Rm is cointegrated with m × r cointegrating vectors β and (16.1) holds, then
+1. The coefﬁcients of the Wold representation
+∆Yt = θ + Θ(L)et (16.16)
+satisfy Θ(1) = β⊥η′ and θ = β⊥γ for some full-rank m × (m − r ) matrix η
+and some (m − r ) × 1 γ.
+2. The Beveridge-Nelson decomposition of Yt is
+Yt = β⊥
+(
+γt + η′St
+)
++Ut +V0 (16.17)
+where St = ∑t
+i =1 et , Ut = Θ∗(L)et is a stationary linear process, and V0 =
+Y0 −U0 is an initial condition.
+3. Suppose that (a) all complex solutions to det (Θ(z)) = 0 are either z = 1
+or |z|≥ 1 + δ for some δ > 0; (b) β′Θ∗(1)η⊥ is full rank, where η⊥ is a full
+rank m × r matrix such that η′η⊥ = 0. Then Yt has the (inﬁnite-order)
+convergent VAR representation
+A(L)Yt = a + et (16.18)
+where the coefﬁcients satisfy A(1) = −η ⊥
+(
+β′Θ∗(1)η⊥
+)−1 β′. All complex
+solutions to det(A(z)) = 0 are either z = 1 or |z|≥ 1 + δ for some δ > 0.
+4. Under the assumptions of part 3 plus ∑∞
+j =0
+∑∞
+k=0 kΘj +k
+2 < ∞ the VAR
+representation can be written in error-correction form
+∆Yt = αβ′Yt −1 + Γ(L)∆Yt −1 + a + et (16.19)
+where Γ(L) is a lag polynomial with absolutely summable coefﬁcient ma-
+trices and α = −η⊥
+(
+β′Θ∗(1)η⊥
+)−1.
+5. If θ = 0 in the Wold representation (16.16) then γ = 0 in (16.17) so there
+is no linear trend in (16.17). The intercept in (16.18) and (16.19) equals
+a = αµ where µ is r × 1. Equation (16.19) can be written as
+∆Yt = α
+(
+β′Yt −1 + µ
+)
++ Γ(L)∆Yt −1 + et . (16.20)
+The proof is presented in Section 16.22. The Granger Representation Theorem appears in Engle and
+Granger (1987). The assumption on β′Θ∗(1)η⊥ was introduced by Johansen (1995, Theorem 4.5).
+Part 1 shows that the coefﬁcients of the Wold representation sum to a singular matrix in the null
+space of the cointegrating vectors.
+Part 2 gives the Beveridge-Nelson permanent-transitory representation ofYt . It shows that the trend
+β⊥
+(
+γt + η′St
+)
+lies in the null space of the cointegrating vectors. Thus there is no trend in the range space
+of the cointegrating vectors. This shows that the cointegrated vector Yt can be thought of as possessing
+r “unit roots and linear trends” and m − r “stationary processes” .
+
+
+--- page 32 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 578
+Part 3 provides the VAR representation. It shows that the VAR coefﬁcients sum to a singular matrix
+which is in the range space of the cointegrating vectors.
+Part 4 is perhaps the most famous result. It shows that a cointegrated system satisﬁes equation
+(16.19) which is called the error-correction representation. The error-correction representation is a
+regression model in stationary transformations as the variables∆Yt and β′Yt −1 are stationary. The equa-
+tion shows that the change∆Yt relates to past changes∆Yt −1 (as in a standard VAR) as well as the equilib-
+rium error β′Yt −1. The full term αβ′Yt −1 is known as the “error-correction term” . It is the key component
+which governs how the cointegrated relationship is maintained.
+Part 5 examines the case of no linear trend. The condition θ = 0 arises when the variables ∆Yt are all
+mean zero. The theorem (unsuprisingly) shows that this implies that the linear trend does not appear in
+the Beveridge-Nelson decomposition. More interestingly the theorem shows that this condition implies
+that the error-correction model can be written to incorporate the intercept.
+To understand the error-correction effect examine Figure 16.6(c). This shows a scatter plot of the
+historical values of the two interest rate series from panel (a). Also plotted is an estimate 17 of the linear
+relation β′Y + µ displayed as the solid line. This is the attractor of the system. For values of Y on this
+line β′Y + µ = 0. For values to the southeast β′Y + µ < 0, and for values to the northwest β′Y + µ > 0.
+The components of α dictate how these values impact the expected direction of∆Y . The arrows indicate
+these directions18. When β′Y + µ > 0 the error correction decreases the 3-month rate and increases the
+10-year rate, pushing Y towards the line of attraction. When β′Y + µ < 0 the error correction increases
+the 3-month rate and decreases the 10-year rate, again pushing Y towards the line of attraction. In this
+particular example the two effects are similar in magnitude so the arrows show that both variables move
+towards the attractor in response to deviations.
+Theorem 16.17 shows that if Yt is cointegrated then it satisﬁes a VECM. The reverse is also the case.
+Theorem 16.18 Granger Representation Theorem, Part II. Suppose that Yt
+satisﬁes a VAR(∞) modelA(L)Yt = a + et with VECM representation
+∆Yt = αβ′Yt −1 + Γ(L)∆Yt −1 + a + et
+where β and α are m × r and full rank. Suppose that (a) All complex solutions
+to det(A(z)) = 0 are either z = 1 or |z|≥ 1 + δ for some δ > 0; (b) ∑∞
+j =0
+Γj
+
+ < ∞;
+(c) α′
+⊥ (I m − Γ(1)) β⊥ is full rank where α⊥ and β⊥ lie in the null spaces of α and
+β. Then Yt is cointegrated with cointegrating vectors β.The proof is presented in Section 16.22. This result for a ﬁnite-order VAR ﬁrst appeared in Johansen
+(1995, Theorem 4.2).
+The condition that α′
+⊥Γ(1)β⊥ is full rank is necessary to exclude the (somewhat pathological) possi-
+bility that the system is “multi-cointegrated” , meaning that a linear combination of β′Yt −1 and ∆Yt −1 is
+of reduced order of integration. Together, Theorems 16.17 and 16.18 show that a VECM representation is
+necessary and sufﬁcient for a vector time series to be cointegrated.
+17From Table 16.5.
+18From the estimates in Table 16.6.
+
+
+--- page 33 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 579
+16.18 Role of Intercept and Trend
+The role of intercepts and trends in cointegrating VECMs gives rise to distinct models. We list some
+major options.
+1. Trend Model 1. This speciﬁcation has no intercept or trend terms
+∆Yt = αβ′Yt −1 + Γ(L)∆Yt −1 + et .
+This is convenient for pedagogy but is not relevant for empirical applications. In Stata use option
+trend(none) .
+2. Trend Model 2. This speciﬁcation is appropriate for non-trended series such as interest rates. In
+this model the intercept is in the cointegrating relationship
+∆Yt = α
+(
+β′Yt −1 + µ
+)
++ Γ(L)∆Yt −1 + et .
+In Stata use option trend(rconstant).
+3. Trend Model 3. This is appropriate for series which have possible linear trends. This model has an
+unconstrained intercept
+∆Yt = αβ′Yt −1 + Γ(L)∆Yt −1 + a + et .
+In this model the level series Yt is the sum of a linear time trend and a unit root process. The equi-
+librium error β′Yt is stationary so eliminates the linear time trend and the unit root component.
+In Stata use option trend(constant) .
+4. Trend Model 4. This model extends the VECM model to allow a linear trend in the cointegrating
+relationship. This model is
+∆Yt = α
+(
+β′Yt −1 + µt
+)
++ Γ(L)∆Yt −1 + a + et .
+In this model the level series Yt is the sum of a linear time trend and a unit root process. The
+equilibrium error β′Yt contains a linear time trend and a stationary process. Thus the cointegrat-
+ing vector β only eliminates the unit root, not the time trend component. In Stata use option
+trend(rtrend).
+5. Trend Model 5. This is a further extension allowing an unconstrained trend term
+∆Yt = αβ′Yt −1 + Γ(L)∆Yt −1 + a + bt + et .
+In this model the unconstrained trend induces a quadratic time trend into the levels seriesYt . This
+is not a typical modeling choice for applied economic time series. In Stata use optiontrend(trend).
+16.19 Cointegrating Regression
+If Yt is cointegrated with a single cointegrating vector (r = 1) then it turns out thatβ can be estimated
+by a least squares regression of one component of Yt on the others. This approach may be fruitfully
+employed when the major focus is the cointegrating vector, the number of variables m is small (e.g.
+m = 2 or m = 3), and it is known that the number of cointegrating vectors r is at most one.
+
+
+--- page 34 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 580
+Partition Yt = (Y1t ,Y2t ) and reparameterize β as (1, −β). Thus the ﬁrst component of the cointegrat-
+ing vector has been normalized to one (this requires that the true value is non-zero) and the remainder
+multiplied by −1. The coefﬁcient of interest isβ. Least squares is ﬁt either to the equation
+Y1t = µ + β′Y2t + u1t (16.21)
+(for Trend Models 1 or 2) or to the equation
+Y1t = µ + θt + β′Y2t + u1t (16.22)
+(for Trend Models 3 or 4).
+Deﬁne u2t = ∆Y2t , ut = (u1t ,u′
+2t )′, and the long-run covariance matrix Ω = Σ + Λ + Λ′ where Σ =
+E
+[
+ut u′
+t −ℓ
+]
+and Λ = ∑∞
+ℓ=1 E
+[
+ut −ℓu′
+t
+]
+. Partition the covariance matrices conformably with Y , e.g.
+Ω =
+[ Ω11 Ω12
+Ω21 Ω22
+]
+.
+Theorem 16.19 If ut satisﬁes the conditions of Theorem 16.4 andΩ22 > 0 then
+the least squares estimator satisﬁes
+n
+(ˆβ − β
+)
+− →
+d
+(∫ 1
+0
+X X ′
+)−1 (∫ 1
+0
+X dB1 + Σ21 + Λ21
+)
+where B(r ) = (B1(r ),B2(r )) is a vector Brownian motion with covariance matrix
+Ω and X (r ) is determined by the model:
+Trend Model 1 or 2 estimated by (16.21): X = B ∗
+2 (demeaned B2(r )).
+Trend Model 3 or 4 estimated by (16.22): X = B ∗∗
+2 (detrended B2(r )).
+The proof is presented in Section 16.22.
+Theorem 16.19 shows that the estimator converges at the superconsistent Op(n−1) rate. This was
+discovered by Stock (1987) and the asymptotic distribution derived by Park and Phillips (1988). The
+asymptotic distribution is non-standard due to the serial correlation terms. Take our empirical example.
+A least squares regression of the 3-month interest rate on the 10-year interest rate yields the estimated
+equation ˆY1t = 1.03Y2t − 1.71.
+Modiﬁcations to the least squares estimator which eliminate the non-standard components were
+introduced by Phillips and B. E. Hansen (1990) and Stock and Watson (1993). The Phillips-Hansen es-
+timator, known as Fully Modiﬁed OLS (FM-OLS), eliminates the non-standard components through
+ﬁrst-stage estimation of the serial correlation terms. The Stock-Watson estimator, known as Dynamic
+OLS (DOLS), eliminates the non-standard components by estimating an augmented regression includ-
+ing leads and lags of ∆Y2t .
+We are often interested in testing the hypothesis of no cointegration:
+H0 : r = 0
+H1 : r > 0.
+Under H0 Zt = β′Yt is I (1) yet under H1 Zt is I (0). When β is known H0 can be tested by appying a
+univariate ADF test on Zt . Take the interest rate example. We already conjectured that the interest rate
+
+
+--- page 35 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 581
+spread is stationary which is the same as the hypothesis that β = 1 is the cointegrating coefﬁcient. Using
+this value we computed ADF = −4.0 with an asymptotic p-value less than 0.01. Hence we are able to
+reject the null hypothesis of a unit root in the spread, or equivalently reject the null hypothesis of no
+cointegration.
+When β is unknown, Engle and Granger (1987) proposed applying the ADF test to the least squares
+residual ˆu1t from either (16.21) or (16.22). The asymptotic null distribution is different from the Dickey-
+Fuller distribution since under H0 the estimated regression is spurious so the least squares estimator is
+inconsistent. The asymptotic distribution of the statistic was worked out by Phillips and Ouliaris (1990)
+by combining the theory of spurious regression with Dickey-Fuller distribution theory. Let EG p denote
+the Engle-Granger ADF statistic with p autoregressive lags in the ADF regression.
+Theorem 16.20 Assume that (∆Y 1t , ∆Y2t ) satisﬁes the conditions of Theorem
+16.4 and Ω > 0. If p → ∞ as n → ∞ such that p3/n → 0 then
+EGp − →
+d
+(∫ 1
+0 V dV
+)
+(∫ 1
+0 V 2
+)1/2
+(1 + ζ′ζ)1/2
+where, V (r ) = W ∗
+1 (r ) − ζ′W ∗
+2 (r ) and ζ =
+(∫ 1
+0 W ∗
+2 W ∗′
+2
+)−1 (∫ 1
+0 W ∗
+2 W ∗
+1
+)
+, W (r ) =
+(W1(r ),W2(r )) is vector standard Brownian motion, and W ∗(r ) is demeaned
+W (r ) if (16.21) is estimated or detrended W (r ) if (16.22) is estimated.
+For a proof see Phillips and Ouliaris (1990).
+An unusual feature of this Theorem is that it requires p → ∞ as n → ∞ even if the true process is
+a ﬁnite order AR process because the ﬁrst stage spurious regression induces serial correlation into the
+ﬁrst-stage residuals which needs to be handled in the second stage ADF test. Another unusual feature
+is the component 1 + ζ′ζ in the denominator. This is due to the variance estimator component which
+asymptotically is random because of the ﬁrst stage spurious regression.
+Table 16.4: Engle-Granger Cointegration Test Critical Values
+m 1% 2% 3% 4% 5% 7% 10% 15% 20% 30% 50% 70%
+Regression with Intercept
+2 −3.9 −3.7 −3.5 −3.4 −3.3 −3.2 −3.0 −2.8 −2.7 −2.5 −2.1 −1.7
+3 −4.3 −4.1 −4.0 −3.9 −3.8 −3.6 −3.5 −3.3 −3.1 −2.9 −2.5 −2.1
+4 −4.6 −4.4 −4.3 −4.2 −4.1 −4.0 −3.8 −3.6 −3.5 −3.2 −2.8 −2.4
+Regression with Intercept and Trend
+2 −4.3 −4.1 −4.0 −3.9 −3.8 −3.6 −3.5 −3.3 −3.2 −2.9 −2.5 −2.2
+3 −4.7 −4.4 −4.3 −4.2 −4.1 −4.0 −3.8 −3.6 −3.5 −3.3 −2.9 −2.5
+4 −5.0 −4.7 −4.6 −4.5 −4.4 −4.3 −4.1 −4.0 −3.8 −3.6 −3.2 −2.8
+The asymptotic critical values 19 are displayed in Table 16.4. The EG test is one-sided, so rejections
+occur when the test statistic is less than (more negative than) the critical value. The critical values are a
+function of the number of variables m and the detrending method.
+19Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+
+
+--- page 36 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 582
+An important question is which trend model to ﬁt. If the observations are untrended then the in-
+tercept regression (16.21) should be ﬁt and the “Regression with Intercept” critical values used. If the
+observations are trended and no constraints are imposed then the trend regression (16.22) should be ﬁt
+and the “Regression with Intercept and Trend” critical values used. A complication arises in the case of
+Model 3, which allows the observations to be trended but the trend is excluded from the cointegrating
+regression. In this cases there are two options. One is to treat the situation as Model 4: estimate re-
+gression (16.22) and use the associated critical values. The other option is to estimate (16.21) since the
+linear trend is not in the cointegrating relationship. In this case the appropriate critical values are from
+the “Regression with Intercept and Trend” section of the table, but with the row corresponding to m − 1.
+This is because one of the unit root processes in regression (16.22) is dominated by a linear trend. For
+example, if there are m = 3 variables in the system and (16.21) is estimated, then use the critical values
+for “Regression with Intercept and Trend” and m = 2. If there are m = 2 variables then use the “Case 3”
+ADF critical values from Table 16.1.
+To illustrate, take the interest rate application. These variables are non-trended so we use model
+(16.21) with the “Regression with Intercept” critical values. The least squares residuals are ˆu1t = ˆY1t −
+1.03Y2t − 1.7. Applying an ADF test with p = 8 we obtain EG = −4.0. This is smaller than the 1% asymp-
+totic critical value of −3.9 from Table 16.4. We therefore reject the hypothesis of no cointegration, sup-
+porting the hypothesis that the pair are cointegrated.
+16.20 VECM Estimation
+The Granger Representation Theorem (Theorems 16.17 and 16.18) showed that Yt is cointegrated if
+(and only if) Yt satisﬁes an error-correction model. A VECM(p) model is
+∆Yt = αβ′Yt −1 + Γ1∆Yt −1 + · · · +Γp−1∆Yt −p+1 + a + et . (16.23)
+This is a reduced rank regression as introduced in Section 11.11. The standard estimation method is
+maximum likelihood under the auxilary assumption that et is i.i.d. N(0, Σ), described in Theorem 11.7.
+We repeat this result here for the VECM model.
+Theorem 16.21 The MLE for the VECM (16.23) under e ∼ N(0, Σ) is given as
+follows. First, regress∆Yt and Yt −1 on ∆Yt −1, ...,∆Yt −p+1 and an intercept to ob-
+tain the residual vectors ˆu0t and ˆu1t , organized in matrices as ˆU 0 and ˆU 1. The
+MLE ˆβ equals the ﬁrstr generalized eigenvectors of 1
+n ˆU
+′
+1 ˆU 0
+(
+1
+n ˆU
+′
+0 ˆU 0
+)−1 1
+n ˆU
+′
+0 ˆU 1
+with respect to 1
+n ˆU
+′
+1 ˆU 1 corresponding to the r largest eigenvalues ˆλj . This uses
+the normalization ˆβ′ 1
+n ˆU
+′
+1 ˆU 1 ˆβ = I r . The MLE for the remaining coefﬁcients ˆα,
+ˆΓ1,..., ˆΓp−1, and ˆa are obtained by the least squares regression of∆Yt on ˆβ′Yt −1,
+∆Yt −1,..., ∆Yt −p+1, and an intercept. The maximized log-likelhood function is
+ℓn(r ) = m
+2
+(
+n log(2π) − 1
+)
+− n
+2 det
+( 1
+n
+ˆU
+′
+0 ˆU 0
+)
+− n
+2
+r∑
+j =1
+log
+(
+1 − ˆλj
+)
+.
+This estimation method was developed by Johansen (1988, 1991, 1995) as an extension of the reduced
+rank regression of Anderson (1951).
+
+
+--- page 37 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 583
+The VECM is a constrained VAR so the VECM estimates can be used for any purpose for which a VAR is
+used. An advantage of the VECM estimation approach is that it provides a coherent model of the system,
+is computationally straightforward, and can handle multiple cointegrating vectors. A disadvantage is
+that when there are multiple cointegrating vectors (r > 1) then interpretation of the cointegrating space
+(the space spanned by β) is difﬁcult.
+The VECM model assumes that the VAR orderp and cointegrating rankr are known. In practice data-
+based selection rules are used. AIC minimization may be used for selection ofp. A simple approach is to
+select p by estimating unrestricted VAR models. Selection of r is typically done by testing methods; this
+is reviewed in the next section.
+We illustrate with the two interest rate series already introduced. AIC selection on levels VARs selects
+a VAR(8); we report here a VAR(4) as it yields similar results. This implies a VECM with 3 dynamic lags.
+Since interest rates are not a trended series we use Trend Model 2. The estimated model is reported in
+Tables 16.5 and 16.6.
+Table 16.5: VECM Cointegrating Vector
+β s.e.
+3-Month 1
+10-Year −1.01 0.07
+Intercept 1.58 0.46
+Table 16.6: Vector Error Correction Model
+∆3-Montht ∆10-Yeart
+Zt −1 −0.09 0.07
+(0.04) (0.03)
+∆3-Montht −1 0.37 0.04
+(0.08) (0.06)
+∆3-Montht −2 −0.20 −0.08
+(0.08) (0.06)
+∆3-Montht −3 0.28 0.07
+(0.08) (0.06)
+∆10-Yeart −1 0.06 0.21
+(0.07) (0.08)
+∆10-Yeart −2 −0.19 −0.09
+(0.12) (0.08)
+∆10-Yeart −3 0.10 0.06
+(0.12) (0.08)
+Table 16.5 reports the estimated cointegrating vector β. The coefﬁcient on the 3-month interest rate
+is normalized to one. The estimated coefﬁcient on the 10-year rate is near −1 and the estimated inter-
+cept is about 1.6. The latter means that the 3-month rate is on average 1.6 percentage points below the
+10-year rate. The coefﬁcients of the estimated VECM are reported in Table 16.6, one column for each
+variable. The ﬁrst reported coefﬁcient is ˆα, the error-correction term. The coefﬁcient for the 3-month
+rate is negative and that for the 10-year rate is positive and they are of similar magnitude. Thus when the
+3-month rate exceeds the 10-year rate by more than the typical 1.6, the 3-month rate tends to fall and
+the 10-year rate tends to rise, moving the two rates closer to the cointegrating relation. The following six
+coefﬁcients are the dynamic coefﬁcients of the VECM. We can see that each variable tends to respond
+
+
+--- page 38 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 584
+mostly to its own lagged changes. The 3-month interest rate has considerably larger coefﬁcients than the
+10-year rate indicating that it has stronger serial correlation. The varying signs of the coefﬁcients reveal
+complicated dynamics..
+An asymptotic distribution of the VECM estimator requires a normalization for the cointegrating vec-
+tors. A popular choice is β = (I r , β∗′)′. Johansen (1995, Theorem 13.5) shows that under the assumption
+that the errors et are i.i.d. with covariance matrix Σ, the coefﬁcient estimatorsˆθ = ( ˆα, ˆΓ) satisfy
+p
+n
+(ˆθ − θ
+)
+− →
+d
+N
+(
+0, Σ ⊗Q −1)
+where Q = E
+[
+Xt X ′
+t
+]
+with Xt = (β′Yt −1, ∆Yt −1, ...,∆Yt −p+1), the regressors given β. This is a classical (ho-
+moskedastic) asymptotic distribution for multivariate regression. This result shows that inference on the
+coefﬁcientsθ can proceed using conventional methods. The homoskedastic covariance matrix is due to
+the assumption that the errors are homoskedastic. If the latter assumption is relaxed then the asymptotic
+distribution generalizes to the case of an unrestricted covariance matrix.
+Johansen (1995, Theorem 13.3) presents the asymptotic distribution of ˆβ. He shows that the asymp-
+totic distribution is normal with a random covariance matrix. The latter is known as a mixed Gaussian
+distribution. From a practical point of view this means that we can treat the asymptotic distribution
+as normal since when scaled by an appropriate standard error the asymptotic distribution is standard
+normal. For brevity we do not present the details.
+In Stata use the command vec to estimate a VECM with given cointegrating rank r and VAR order p.
+16.21 Testing for Cointegration in a VECM
+Take the model
+∆Yt = ΠYt −1 + Γ1∆Yt −1 + · · · +Γp−1∆Yt −p+1 + a + et . (16.24)
+The Granger Representation Theorem shows that Yt is cointegrated with r cointegrating vectors if and
+only if the rank of Π equals r . Thus testing for cointegration is equal to testing hypotheses on the rank of
+Π. Write the hypothesis that there are r cointegrating vectors as H(r ) : rank(Π)= r .
+Cointegration is a restriction on the unrestricted model H(m). A test for r cointegrating vectors
+against an unrestricted alternative is a test of H(r ) against H(m). The likelihood ratio statistic for H(r )
+against H(m) is
+LR(r ) = 2(ℓn(m) − ℓn(r )) = −n
+m∑
+j =1
+log
+(
+1 − ˆλj
+)
++ n
+r∑
+j =1
+log
+(
+1 − ˆλj
+)
+= −n
+m∑
+j =r +1
+log
+(
+1 − ˆλj
+)
+where ˆλj are the eigenvalues from the estimation problem (16.21). The test acceptsH(r ) for small values
+of LR(r ); the test rejects H(r ) for large values of LR(r ).
+The asymptotic distribution theory was developed by Johansen (1988, 1991, 1995).
+
+
+--- page 39 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 585
+Theorem 16.22 Assume that the ﬁnite-lag VECM (16.24) is correctly speciﬁed,
+the conditions of Theorem 16.18 hold, and the errors et are a MDS. Under the
+hypothesis that Π has rank r
+LR(r ) − →
+d
+tr
+[(∫ 1
+0
+dW X ′
+) (∫ 1
+0
+X X ′
+)−1 (∫ 1
+0
+X dW ′
+)]
+where W (r ) is a m − r dimensional standard Brownian motion and X (r ) is a
+stochastic process which is a function of W (r ) depending on the trend model.
+1. Trend Model 1. X (r ) = W (r )
+2. Trend Model 2. X (r ) = (W (r ),1)
+3. Trend Model 3. X (r ) = (W ∗
+1 (r ),r − 1/2)
+4. Trend Model 4. X (r ) = (W ∗(r ),r − 1/2)
+where W ∗(r ) = W (r ) −
+∫ 1
+0 W is demeaned W (r ), and W ∗
+1 (r ) is the ﬁrstm −r −1
+components of W ∗(r ).
+A proof of Theorem 16.22 is algebraically tedious. We provide a sketch in Section 16.22. See Johansen
+(1995, Chapter 11) for full details.
+Theorem 16.22 provides the asymptotic distribution of the LR test for cointegration rank. Because
+the asymptotic distribution equals the trace of a multivariate Dickey-Fuller distribution the statistic LR
+is often referred to as the “trace test” or “Johansen’ s trace test” . The asymptotic distribution is a func-
+tion of the stochastic process X (r ) which equals the trend components of Yt (under the hypothesis of r
+cointegrating vectors) projected orthogonal to the other regressors. For Trend Model 2 the intercept is
+included in the cointegrating relationship so it is a component of X (r ). For Trend Model 3 the variables
+are trended which dominates the other components so appears in the asymptotic distribution. Since the
+intercept is excluded from the cointegrating relationship the components of X (r ) are all demeaned. For
+Trend Model 4 the linear trend is included in the cointegrating relationship so it is added to the trend
+components while the intercept is excluded so the X (r ) process is demeaned.
+The asymptotic distribution is a function only of m − r and the trend speciﬁcation. The asymptotic
+critical values20 are displayed in Table 16.7 form − r up to 12 for Trend Models 2, 3, and 4.
+How are the test statistics LR(r) used in practice? When the cointegrating rank is unknown the statis-
+tics can be used to determiner . The conventional procedure is a sequential test. Start withH(0) (the null
+hypothesis of no cointegration) and the associated statistic LR(0) which hasm degrees of freedom. If the
+test rejects (if LR(0) exceeds the rowm critical value) this is evidence that there is at least one cointegrat-
+ing vector, or r ≥ 1. Next, take H(1) (the null hypothesis of one cointegrating vector) and the associated
+statistic LR(1) which has m − 1 degrees of freedom. If this test also rejects (if LR(1) exceeds the row m − 1
+critical value) this is evidence that there is at least two cointegrating vectors, or r ≥ 2. Continue this
+sequence of tests until one fails to reject.
+For example, when there are two variables (m = 2) compare the statistic LR(0) against the m = 2
+critical value. If the test rejects (if the statistic exceeds the critical value) this is evidence that the series
+are cointegrated. If the test fails to reject the inference is uncertain.
+20Calculated by simulation from one million simulation draws for a sample of size n = 10,000.
+
+
+--- page 40 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 586
+Table 16.7: VECM Cointegration Rank Critical Values
+m − r 50% 30% 20% 15% 10% 7% 5% 4% 3% 2% 1%
+Trend Model 2
+1 3.5 4.9 5.9 6.6 7.6 8.4 9.2 9.7 10.4 11.3 12.7
+2 11.4 13.9 15.5 16.6 18.0 19.2 20.3 21.0 21.9 23.1 25.1
+3 23.4 26.8 29.0 30.4 32.3 33.8 35.2 36.1 37.2 38.7 41.3
+4 39.4 43.7 46.5 48.3 50.6 52.5 54.1 55.2 56.5 58.4 61.3
+5 59.4 64.6 67.9 70.1 72.8 75.0 77.0 78.3 79.8 82 85
+6 83 89 93 96 99 102 104 105 107 110 113
+7 111 118 123 126 129 132 135 136 138 141 145
+8 143 151 156 159 163 167 170 171 174 177 182
+9 179 188 194 197 202 205 208 210 213 216 222
+10 219 229 235 239 244 248 251 254 256 260 266
+11 263 274 281 285 290 295 298 301 304 307 314
+12 311 323 330 335 341 345 349 352 355 359 366
+Trend Model 3
+1 0.5 1.1 1.6 2.1 2.7 3.3 3.8 4.2 4.7 5.4 6.6
+2 7.7 9.7 11.2 12.1 13.4 14.5 15.5 16.1 17.0 18.1 19.9
+3 18.9 22.0 24.0 25.3 27.1 28.5 29.8 30.7 31.7 33.2 35.5
+4 34.0 38.0 40.7 42.3 44.5 46.3 47.9 48.9 50.2 51.9 54.7
+5 53.1 58.0 61.2 63.2 65.8 67.9 69.8 71.0 72.5 74.5 77.9
+6 76 82 86 88 91 94 96 97 99 101 105
+7 103 110 114 117 120 123 126 127 129 132 136
+8 134 142 147 150 154 157 159 161 163 166 171
+9 169 178 183 187 191 194 197 199 202 205 210
+10 208 218 224 227 232 236 239 241 244 247 253
+11 251 262 269 272 277 282 285 287 290 294 300
+12 298 310 317 321 327 331 335 338 341 345 351
+Trend Model 4
+1 5.7 7.4 8.7 9.5 10.7 11.7 12.5 13.1 13.8 14.9 16.6
+2 15.9 18.7 20.5 21.7 23.3 24.7 25.9 26.7 27.6 29.0 31.2
+3 30.0 33.8 36.2 37.7 39.8 41.4 42.9 43.9 45.1 46.7 49.4
+4 48.1 52.8 55.7 57.6 60.1 62.1 63.9 65.0 66.4 68.4 71.5
+5 70.2 75.7 79.2 81 84 87 89 90 92 94 98
+6 96 103 107 109 113 115 118 119 121 124 128
+7 126 134 138 141 145 148 150 152 154 157 162
+8 160 168 174 177 181 184 187 189 192 195 200
+9 198 207 213 217 221 225 228 230 233 236 242
+10 240 250 257 261 266 270 273 275 278 282 288
+11 286 297 304 308 314 318 322 325 328 331 338
+12 336 348 356 360 366 371 375 378 381 385 392
+
+
+--- page 41 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 587
+This testing procedure is appealing when m is small (e.g. m ≤ 4) but is less appealing for large m.
+With large m the procedure has several challenges. Sequential testing requires multiple testing for which
+it is difﬁcult to control Type I error. Simultaneously the test can have low power implying that the proce-
+dure is likely to “identify” an inappropriately low value of r .
+An alternative approach is to use cointegration tests to verify a selected speciﬁcation. Start with
+economic modeling to motivate the cointegrating rank r . The likelihood ratio LR(r ) can be used to test
+this assumption against the unrestricted VAR. If the test rejects H(r ) this is evidence that the proposed
+model is incorrect.
+We illustrate using the interest rate series with a VAR(4) and Trend Model 2. The value of LR(0) is 31.6.
+To compute the p-value we use Table 16.7 for Trend Model 2 with m − r = 2. The value 31.6 exceeds the
+1% critical value of 25.1 so the asymptotic p-value of the test is less than 1%. Thus the null hypothesis of
+no cointegration is strongly rejected in favor of at least one cointegrating vector. The value of LR(1) is 2.8.
+The p-value is calculated using m −r = 1. The value 2.8 is smaller than the 50% critical value of 3.5 so the
+p-value is larger than 50%. The statistic does not reject the hypothesis of H(1). Together the statistics are
+consistent with the modeling assumption that the series are I (1) and mutually cointegrated.
+For a broader application we expand to ﬁve Treasury interest rates21: 3-month, 6-month, 1-year, 5-
+year, and 10-year. If the four spreads are mutually stationary then the system should have four coingrat-
+ing vectors, thus r = 4. However if the the distribution of the spreads change over time the cointegrating
+rank could be less than four.
+We report the likelihood ratio tests for cointegration rank in Table 16.8. The LR test for r = 0 is 120
+which exceeds the 1% critical value of 85.4, and the LR test for r = 1 is 68.3 which exceeds the 1% critical
+value of 61.3, so we safely reject the hypotheses of r = 0 and r = 1. This suggests that r ≥ 2. The LR
+test for r = 2 is 33.6 with a p-value of 0.07, which is borderline signiﬁcant. The tests for r = 3 and r = 4
+are insigniﬁcant. In sum, we cannot reject the models H(2), H(3), or H(4), but H(2) is doubtful. Our
+recommendation in this context is to use either H(3) or H(4).
+Table 16.8: Tests for Cointegrating Rank
+LR(r) p-value
+0 120 < 0.01
+1 68.3 < 0.01
+2 33.6 0.07
+3 10.8 > 0.50
+4 2.9 > 0.50
+In Stata use vecrank to calculate the LR tests for cointegrating rank. The output is a table displaying
+LR(r) for r = 0, ...,m − 1 along with the asymptotic 5% critical values. The p-value can be calculated from
+Table 16.7.
+16.22 Technical Proofs*
+Proof of Theorem 16.1. In the text we showed that the limit distributions of Sn coincide with those of B.
+To appeal to the Functional Central Limit Theorem (Theorem 18.9 of Introduction to Econometrics) we
+need to verify that Sn is stochastically equicontinuous. For simplicity we focus on the scalar case et ∈ R.
+Assume without loss of generality that σ2 = 1. Take any 0 < η < 1 and 0 < ϵ < 1. Set δ ≤ ϵη4/482. Note
+21FRED-MD series TB3MS, TB6MS, GS1, GS5, and GS10.
+
+
+--- page 42 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 588
+that
+sup
+|r2−r1|≤δ
+|Sn(r2) − Sn(r1)|≤ 2 sup
+0≤j ≤⌊1/δ⌋
+sup
+0≤r ≤δ
+⏐⏐Sn(j δ + r ) − Sn
+(
+j δ
+)⏐
+⏐.
+Then
+P
+[
+sup
+|r2−r1|≤δ
+|Sn(r2) − Sn(r1)|> η
+]
+≤ P
+[
+⌊1/δ⌋⋃
+j =0
+sup
+0≤r ≤δ
+⏐
+⏐Sn(j δ + r ) − Sn
+(
+j δ
+)⏐
+⏐ > η
+2
+]
+≤
+⌊1/δ⌋∑
+j =0
+P
+[
+sup
+0≤r ≤δ
+⏐
+⏐Sn(j δ + r ) − Sn
+(
+j δ
+)⏐
+⏐ > η
+2
+]
+≤
+(1
+δ + 1
+)
+P
+[
+sup
+0≤r ≤δ
+|Sn(r )|> η
+2
+]
+=
+(1
+δ + 1
+)
+P
+[
+max
+i ≤⌊nδ⌋
+⏐
+⏐
+⏐
+⏐⏐
+1
+pn
+i∑
+t =1
+et
+⏐⏐
+⏐
+⏐⏐ > η
+2
+]
+≤ 2
+(1
+δ + 1
+)
+P
+[⏐
+⏐⏐
+⏐
+⏐
+1
+pn
+⌊nδ⌋∑
+t =1
+et
+⏐⏐⏐
+⏐
+⏐ > η
+4
+]
+.
+The ﬁnal inequality is Billingsley’ s (B.52) which holds sinceδ < η/4
+p
+2 under the assumptions. Our state-
+ment (B.52) of Billingsley’ s inequality assumes thatet is an i.i.d. sequence; the result can be extended to
+a MDS sequence.
+The CLT implies that n−1/2 ∑⌊nδ⌋
+t =1 et − →
+d
+Zδ ∼ N(0, δ). For n sufﬁciently large the ﬁnal line is bounded
+by
+3
+δ P
+[
+|Zδ|> η
+4
+]
+= 3
+δ P
+[
+Z 4
+δ > η4
+162
+]
+≤ 3
+δ
+162
+η4 E
+[
+Z 4]
+= 482
+η4 δ = ϵ. (16.25)
+The ﬁrst inequality is Markov’ s, the following equalityE
+[
+Z 4
+δ
+]
+= 3δ2, and the ﬁnal equality is the assump-
+tion δ = ϵη4/482. This shows that Sn satisﬁes the deﬁnition of stochastic equicontinuity. ■
+Proof of Theorem 16.7. Zt has the Wold decomposition Zt = Θ(L)et . We add the additional assumption
+that et is a MDS to simplify the proof. By the Beveridge-Nelson decomposition Zt = ξt +Ut −Ut −1 where
+ξt = Θ(1)et and Ut = Θ∗(L)et . Then
+1
+n
+n∑
+t =1
+St −1Z ′
+t = 1
+n
+n∑
+t =1
+St −1ξ′
+t + 1
+n
+n∑
+t =1
+St −1U ′
+t − 1
+n
+n∑
+t =1
+St −1U ′
+t −1
+= 1
+n
+n∑
+t =1
+St −1ξ′
+t − 1
+n
+n−1∑
+t =1
+ZtU ′
+t + op(1).
+The ﬁrst term converges to
+∫ 1
+0 BdB ′ by Theorem 16.6. The Brownian motion has covariance matrix equal
+to the long-run variance of Zt , which is Ω. The second term converges in probability to E
+[
+ZtU ′
+t
+]
+. Making
+the substitutions Ut = ξt +1 +Ut +1 − Zt +1 and E
+[
+Zt ξ′
+t +1
+]
+= 0 this can be written as
+E
+[
+ZtU ′
+t
+]
+= E
+[
+Zt ξ′
+t +1
+]
++ E
+[
+ZtU ′
+t +1
+]
+− E
+[
+Zt Z ′
+t +1
+]
+= E
+[
+ZtU ′
+t +1
+]
+− E
+[
+Zt Z ′
+t +1
+]
+= E
+[
+ZtU ′
+t +2
+]
+− E
+[
+Zt Z ′
+t +2
+]
+− E
+[
+Zt Z ′
+t +1
+]
+= · · ·
+= −
+∞∑
+j =1
+E
+[
+Zt Z ′
+t +j
+]
+= −
+∞∑
+j =1
+E
+[
+Zt −j Z ′
+t
+]
+= −Λ.
+
+
+--- page 43 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 589
+The third line makes the substitutionsUt +1 = ξt +2 +Ut +2 − Zt +2 and E
+[
+Zt ξ′
+t +2
+]
+= 0, and the substitutions
+are repeated until inﬁnity. We have shown the result as claimed. ■
+Proof of Theorem 16.8. By the deﬁnition of the stochastic integral
+∫ 1
+0
+W dW = plim
+N →∞
+N −1∑
+i =0
+W
+( i
+N
+) (
+W
+(i + 1
+N
+)
+−W
+( i
+N
+))
+. (16.26)
+Take any positive integer N and any j < N . Observe that
+W
+( j + 1
+N
+)
+= W
+( j
+N
+)
++
+(
+W
+( j + 1
+N
+)
+−W
+( j
+N
+))
+.
+Squaring we obtain
+W
+( j + 1
+N
+)2
+−W
+( j
+N
+)2
+= 2W
+( j
+N
+) (
+W
+( j + 1
+N
+)
+−W
+( j
+N
+))
++ 1
+N χj N.
+where χj N = N
+(
+W
+( j +1
+N
+)
+−W
+( j
+N
+))2
+. Notice that χj N are i.i.d. across j , distributed as χ2
+1, and have expec-
+tation 1. Summing over j = 0 to N − 1 we obtain
+W (1)2 = 2
+N −1∑
+i =0
+W
+( i
+N
+) (
+W
+(i + 1
+N
+)
+−W
+( i
+N
+))
++ 1
+N
+N −1∑
+i =0
+χ2
+i N.
+Rewriting
+N −1∑
+i =0
+W
+( i
+N
+) (
+W
+(i + 1
+N
+)
+−W
+( i
+N
+))
+= 1
+2
+(
+W (1)2 − 1
+N
+N −1∑
+i =0
+χ2
+i N
+)
+.
+By (16.26),
+∫ 1
+0 W dW is the probability limit of the right side. By the WLLN this is1
+2
+(
+W (1)2 − 1
+)
+as claimed. ■
+Proof of Theorem 16.10.
+ˆσ2 = 1
+n
+n−1∑
+t =1
+ˆe2
+t +t = 1
+n
+n−1∑
+t =1
+e2
+t +t − 1
+n
+(
+1
+n
+n−1∑
+t =1
+Yt et +1
+)2
+1
+n2
+n−1∑
+t =1
+Y 2
+t
+= 1
+n
+n−1∑
+t =1
+e2
+t +t + op(1) − →p σ2.
+Then
+T =
+1
+n
+n−1∑
+t =1
+Yt et +1
+(
+1
+n2
+n−1∑
+t =1
+Y 2
+t
+)1/2
+ˆσ
+− →
+d
+σ2 ∫ 1
+0 W dW
+(
+σ2 ∫ 1
+0 W 2
+)1/2
+σ
+=
+∫ 1
+0 W dW
+(∫ 1
+0 W 2
+)1/2 .
+■
+Proof of Theorem 16.12. Pick η > 0 and ϵ > 0. Pick δ such that
+P
+(
+sup
+|r −s|≤δ
+|X (r ) − X (s)|> ϵ
+)
+≤ η (16.27)
+
+
+--- page 44 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 590
+which is possible since X (r ) is almost surely continuous. Set N = ⌊1/δ⌋ and tk = kn /N . Write Xnt =
+D −1
+n Xt . Then
+Cn = 1
+n
+N∑
+k=0
+tk+1−1∑
+t =tk
+Xnt ut = 1
+n
+N∑
+k=0
+Xn,tk
+tk+1−1∑
+t =tk
+ut + 1
+n
+N∑
+k=0
+tk+1−1∑
+t =tk
+(
+Xnt − Xn,tk
+)
+ut
+and
+|Cn|≤ sup
+0≤r ≤1
+|Xn(r )|An + sup
+|r −s|≤δ
+|Xn(r ) − Xn(s)|Bn
+where
+An = N
+n max
+k≤N
+⏐⏐
+⏐
+⏐
+⏐
+tk+1−1∑
+t =tk
+ut
+⏐
+⏐
+⏐
+⏐
+⏐
+Bn = 1
+n
+n∑
+t =1
+|ut |.
+Since Xn − →
+d
+X and X is continuous,
+sup
+0≤r ≤1
+|Xn(r )|− →
+d
+sup
+0≤r ≤1
+|X (r )|< ∞
+almost surely. Thus sup0≤r ≤1 |Xn(r )|= Op(1). Since Xn − →
+d
+X ,
+sup
+|r −s|≤δ
+|Xn(r ) − Xn(s)|− →
+d
+sup
+|r −s|≤δ
+|X (r ) − X (s)|≤ ϵ
+where the inequality holds with probability exceeding 1 − η by (16.27). Thus for sufﬁciently large n the
+left hand side is bounded by 2ϵ with the same probability, and hence is op(1).
+For ﬁxedN , An − →p 0 by the ergodic theorem. The assumption thatE |ut |< ∞ implies that Bn = Op(1).
+Together, we have shown that
+|Cn|≤ Op(1)op(1) + op(1)Op(1) = op(1)
+as stated. ■
+Proof of Theorem 16.17.
+Part 1: The deﬁnition of cointegration implies that ∆Yt is stationary with a ﬁnite covariance matrix. By
+the multivariate Wold representation (Theorem 15.2), ∆Yt = θ + Θ(L)et with the errors white noise. Pre-
+multiplication by β′ yields β′∆Yt = β′θ + β′Θ(L)et which has long-run variance β′Θ(1)ΣΘ(1)′β where Σ is
+the covariance matrix of et . The assumption that β′Yt is I (0) implies that β′θ = 0 (else β′Yt will have a
+time trend). This implies θ lies in the range space of β⊥, hence θ = β⊥γ for some γ. Also, the assumption
+that β′Yt is I (0) implies that β′∆Yt is I (−1), which implies that its long-run covariance matrix equals zero.
+This implies that β′Θ(1) = 0 and hence Θ(1) = β⊥η′ for some matrix η. The assumption that β′
+⊥∆Yt is I (0)
+implies that β′
+⊥Θ(1)ΣΘ(1)′β⊥ > 0 which implies that Θ(1) must have rank m − r and hence so does the
+matrix η.
+Part 2: The Beveridge-Nelson decomposition plus Θ(1) = β⊥η′ implies Θ(L) = β⊥η′ + Θ∗(L)(1 − L). Ap-
+plied to the Wold representation we obtain ∆Yt = β⊥γ + β⊥η′et + Θ∗(L)∆et . Summing we ﬁnd the stated
+representation.
+
+
+--- page 45 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 591
+Part 3: Without loss of generality assume that H =
+[
+β, β⊥
+]
+is orthonormal. Also deﬁne the orthonormal
+matrix Hη =
+[
+η⊥, η
+]
+where η = η(η′η)−1/2. Deﬁne Xt = H ′Yt . The Wold representation implies ∆Xt =( 0
+γ
+)
++C (L)et where using the Beveridge-Nelson decomposition
+C (L) = H ′ (
+β⊥η′ + Θ∗(L)(1 − L)
+)
+=
+( β′Θ∗(L)(1 − L)
+η′ + β′
+⊥Θ∗(L)(1 − L)
+)
+.
+Partition Xt = (X1t , X2t ) comformably with H. We see that
+( ∆X1t
+∆X2t
+)
+=
+( β′Θ∗(L)(1 − L)et
+γ + η′et + β′
+⊥Θ∗(L)(1 − L)et
+)
+.
+Summing the ﬁrst equation we obtain
+( X1t
+∆X2t
+)
+=
+( µ
+γ
+)
++ D(L)H ′
+ηet (16.28)
+where µ = X1,0 − β′Θ∗(L)e0 and
+D(L) =
+( β′Θ∗(L)
+η′ + β′
+⊥Θ∗(L)(1 − L)
+)
+Hη =
+(
+β′Θ∗(L)η⊥ β′Θ∗(L)
+η
+β′
+⊥Θ∗(L)η⊥(1 − L)
+(
+η′η
+)1/2 + β′
+⊥Θ∗(L)
+η(1 − L)
+)
+.
+This is an invertible matrix polynomial. To see this, ﬁrst observe that
+D(1) =
+(
+β′Θ∗(1)η⊥ β′Θ∗(1)η
+0
+(
+η′η
+)1/2
+)
+which is full rank under the assumption that β′Θ∗(1)η⊥ is full rank. This means that det (D(z)) has no
+unit roots. Second, (16.28) and the deﬁnition ofXt imply that
+D(z) =
+( 1 − z 0
+0 1
+)
+H Θ(z)Hη.
+Since H and Hη are full rank this implies that the solutions to det(D(z)) = 0 are solutions to det(Θ(z)) = 0
+and hence satisfy |z|≥ 1 + δ (since z ̸= 1) by the assumption on Θ(z). Together we have shown that D(L)
+is invertible. Thus (16.28) implies
+HηD(L)−1
+( X1t
+∆X2t
+)
+= a + et (16.29)
+where
+a = HηD(1)−1
+( µ
+γ
+)
+.
+(16.29) is a VAR representation for
+(
+β′Yt , β′
+⊥∆Yt
+)
+with all roots satisfying |z|≥ 1 + δ. This implies a VAR
+representation for Yt which is equation (16.18) with
+A(z) = HηD(z)−1
+( β′
+β′
+⊥(1 − z)
+)
+.
+
+
+--- page 46 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 592
+By partitioned matrix inversion we calculate
+A(1) = HηD(1)−1
+( β′
+0
+)
+=
+[
+η⊥, η
+]
+( (
+β′Θ∗(1)η⊥
+)−1 −
+(
+β′Θ∗(1)η⊥
+)−1 β′Θ∗(1)η
+0
+(
+η′η
+)−1/2
+) ( β′
+0
+)
+= η⊥
+(
+β′Θ∗(1)η⊥
+)−1 β′
+= −αβ′.
+as claimed.
+Part 4. Under the assumption ∑∞
+j =0
+∑∞
+k=0 kΘj +k
+2 < ∞, Theorem 15.3 implies that the coefﬁcientsA∗
+k =∑∞
+j =0 A j +k are absolutely summable. We can then apply the Beveridge-Nelson decomposition A(z) =
+A(1) + A∗(z)(1 − z). Applying A(1) = −αβ′ and a little rewriting yields
+A(z) = I m(1 − z) − αβ′z −
+(
+I m + αβ′ − A∗(z)
+)
+(1 − z).
+Applied to (16.18) we obtain the stated result with Γ(L) = I m + αβ′ − A∗(z). The coefﬁcients of Γ(L) are
+absolutely summable because the coefﬁcientsA∗
+k are.
+Part 5. The assumption θ = 0 direct implies γ = 0. This implies
+a = HηD(1)−1
+( µ
+0
+)
+=
+[
+η⊥,
+η
+]
+( (
+β′Θ∗(1)η⊥
+)−1 −
+(
+β′Θ∗(1)η⊥
+)−1 β′Θ∗(1)η
+0
+(
+η′η
+)−1/2
+) ( µ
+0
+)
+= η⊥
+(
+β′Θ∗(1)η⊥
+)−1 µ
+= αµ
+as claimed. ■
+Proof of Theorem 16.18. Write the VECM as Γ∗(L)∆Yt − αβ′Yt −1 = a + et where Γ∗(z) = I m − Γ(z). Set
+α = α
+(
+α′α
+)−1/2 and orthonormal H =
+[
+α, α⊥
+]
+. Assume that
+[
+β, β⊥
+]
+is orthonormal. DeﬁneZt = β′Yt and
+Ut = β′
+⊥∆Yt . Our goal is to show that (Zt ,Ut ) is I (0) which is the same as showing that Yt is cointegrated
+with cointegrating vectors β.
+Premultiplying the VECM model by H ′ we ﬁnd the system
+H ′ (
+Γ∗(L)∆Yt − αβ′Yt −1
+)
+= H ′a + H ′et .
+Using the identity I m = ββ′ + β⊥β′
+⊥ we see that ∆Yt = β∆Zt + β⊥Ut . Making this substitution and setting
+a = H ′a v t = H ′et we obtain the system
+D(L)
+( Zt
+Ut
+)
+= a + vt
+where
+D(z) =
+[ α′Γ∗(z)β(1 − z) − I m α′Γ∗(z)β⊥
+α′
+⊥Γ∗(z)β(1 − z) α′
+⊥Γ∗(z)β⊥
+]
+.
+We now show that this is a stationary system. First, note that
+D(1) =
+[ −I m
+α′Γ∗(1)β⊥
+0 α′
+⊥Γ∗(1)β⊥
+]
+
+
+--- page 47 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 593
+which is full rank under the assumption that α′
+⊥Γ∗(1)β⊥ is full rank. That means that det (D(z)) = 0 has
+no solutions z = 1. Second, D(z) relates to A(z) by the relationship
+D(z) = H ′ A(z)
+[
+β, β⊥(1 − z)
+]
+.
+Thus the solutions z ̸= 1 to
+det(D(z)) = det(H)det(A(z))det
+([
+β, β⊥(1 − z)
+])
+= 0
+are all solutions to det (A(z)) = 0, which all satisfy |z|≥ 1 + δ by assumption. Thus D(z) is invertible with
+summable moving average coefﬁcient matrices. This implies the VAR system for (Zt ,Ut ) is stationary.
+As discussed above, this shows that (Zt ,Ut ) is a stationary process and hence Yt is cointegrated with
+cointegrating vector β. ■
+Proof of Theorem 16.19. Set Y ∗
+2t = Y2t − Y 2. The estimator satisﬁes
+n
+(ˆβ − β
+)
+=
+( 1
+n2
+n∑
+t =1
+Y ∗
+2t Y ∗′
+2t
+)−1 ( 1
+n
+n∑
+t =1
+Y ∗
+2t u1t
+)
+.
+Set St = ∑t
+i =1 ut . Theorems 16.4 and 16.5 imply S⌊nr ⌋ − →
+d
+B(r ) and Y ∗
+2⌊nr ⌋ − →
+d
+B ∗
+2 (r ). By the continuous
+mapping theorem
+1
+n2
+n∑
+t =1
+Y ∗
+2t Y ∗′
+2t − →
+d
+∫ 1
+0
+B ∗
+2 B ∗′
+2 .
+By Theorem 16.7 and the WLLN
+1
+n
+n∑
+t =1
+Y ∗
+2t u1t = 1
+n
+n∑
+t =1
+Y ∗
+2t −1u1t + 1
+n
+n∑
+t =1
+u2t u1t + op(1) − →
+d
+∫ 1
+0
+B ∗
+2 dB 1 + Λ21 + Σ21.
+Together we obtain the stated result. ■
+Proof of Theorem 16.22(sketch). For simplicity abstract from the dynamic and trend coefﬁcients so that
+the unconstrained model is
+∆Yt = αβ′Yt −1 + et .
+where et is a MDS with covariance matrix Σ. We examine two cases in detail. First, the case H(0) (which
+is relatively straightforward) and second the case H(r ) (which is algebraically more tedious).
+First, take H(0), in which case the process is ∆Yt = et . The statistic is
+LR(0) = −n
+m∑
+j =1
+log
+(
+1 − ˆλj
+)
+≃ n
+m∑
+j =1
+ˆλj
+= tr
+[( 1
+n
+n∑
+t =1
+Yt −1e′
+t
+) (1
+n
+n∑
+t =1
+et e′
+t
+)−1 ( 1
+n
+n∑
+t =1
+et Y ′
+t −1
+) ( 1
+n2
+n∑
+t =1
+Yt −1Y ′
+t −1
+)−1]
+− →
+d
+tr
+[(∫ 1
+0
+dBB ′
+) (∫ 1
+0
+BB ′
+)−1 (∫ 1
+0
+BdB ′
+)]
+= tr
+[(∫ 1
+0
+dW W ′
+) (∫ 1
+0
+W W ′
+)−1 (∫ 1
+0
+W dW ′
+)]
+where B(r ) is a Brownian motion with covariance matrix Σ, and W (r ) = Σ−1/2B(r ) is standard Brownian
+motion. This is the stated result.
+
+
+--- page 48 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 594
+Second, take H(r ) for 1 < r < m. Deﬁne Zt = β′Yt . The process under H(r ) is ∆Yt = αZt −1 + et .
+Normalize β so that E
+[
+Zt Z ′
+t
+]
+= I r . The test statistic is invariant to linear transformations of Yt so we can
+rescale the data so that E
+[
+∆Yt ∆Y ′
+t
+]
+= I m. Notice that Σ = E
+[
+et e′
+t
+]
+= E
+[
+∆Yt ∆Y ′
+t
+]
+− αE
+[
+Zt Z ′
+t
+]
+α′ = I m − αα′.
+The likelihood ratio statistic is
+LR(r ) = −n
+m∑
+j =r +1
+log
+(
+1 − ˆλj
+)
+≃
+m∑
+j =r +1
+ˆρ j
+where ˆρ j = n ˆλj are the m − r smallest roots of the equation det
+(
+S(ρ)
+)
+= 0 where
+S(ρ) = ρ 1
+n2
+n∑
+t =1
+Yt −1Y ′
+t −1 − 1
+n
+n∑
+t =1
+Yt −1∆Y ′
+t
+( 1
+n
+n∑
+t =1
+∆Yt ∆Y ′
+t
+)−1 1
+n
+n∑
+t =1
+∆Yt Y ′
+t −1.
+Deﬁne a full-rank matrixH = [β, β⊥] whereβ′β⊥ = 0. The roots of ˆρ j are the same as those of det
+(
+S∗(ρ)
+)
+=
+0 where S∗(ρ) = H ′S(ρ)H, which replaces Yt −1 with (Zt −1, Xt −1) where Xt = β′
+⊥Yt . We calculate that
+S∗(ρ) = ρ
+[ 1
+n2
+∑n
+t =1 Zt −1Z ′
+t −1
+1
+n2
+∑n
+t =1 Zt −1X ′
+t −11
+n2
+∑n
+t =1 Xt −1Z ′
+t −1
+1
+n2
+∑n
+t =1 Xt −1X ′
+t −1
+]
+−
+[ 1
+n
+∑n
+t =1 Zt −1∆Y ′
+t
+1
+n
+∑n
+t =1 Xt −1∆Y ′
+t
+] (1
+n
+n∑
+t =1
+∆Yt ∆Y ′
+t
+)−1 [ 1
+n
+∑n
+t =1 Zt −1∆Y ′
+t
+1
+n
+∑n
+t =1 Xt −1∆Y ′
+t
+]′
+.
+We now apply the asymptotic theory for non-stationary theory to each component. The process Xt =
+β′
+⊥Yt is non-stationary and satisﬁes the FCLTn−1X⌊nr ⌋ − →
+d
+X (r ) ∼ B M
+(
+β′
+⊥Ωβ⊥
+)
+where Ω is the long-run
+covariance matrix of ∆Yt . The sum of the errors satisfy n−1/2 ∑⌊nr ⌋
+t =1 et − →
+d
+B(r ) ∼ B M(Σ). The process
+X (r ) is a linear function of B(r ).
+We ﬁnd that 1
+n2
+∑n
+t =1 Xt −1X ′
+t −1 − →
+d
+∫ 1
+0 X X ′, 1
+n2
+∑n
+t =1 Xt −1et − →
+d
+∫ 1
+0 X dB ′, 1
+n
+∑n
+t =1 Zt −1Z ′
+t −1 − →p I r , 1
+n
+∑n
+t =1 ∆Yt ∆Y ′
+t − →p
+I m, 1
+n
+∑n
+t =1 Zt −1∆Y ′
+t − →p α′, 1
+n
+∑n
+t =1 Xt −1Z ′
+t −1 − →
+d
+ζ for some random matrix by Theorem 16.7, and1
+n
+∑n
+t =1 Xt −1∆Y ′
+t − →
+d
+ζ′α′ +
+∫ 1
+0 X dB ′. Together we ﬁnd that
+S∗(ρ) − →
+d
+ρ
+[ 0
+0
+∫ 1
+0 X X ′
+]
+−
+
+ α′α α′
+(
+αζ +
+∫ 1
+0 dB X ′
+)
+(
+ζ′α′ +
+∫ 1
+0 X dB ′
+)
+α
+(
+ζ′α′ +
+∫ 1
+0 X dB ′
+) (
+αζ +
+∫ 1
+0 dB X ′
+)
+
+.
+Thus det
+(
+S∗(ρ)
+)
+converges in distribution to the determinant of the right-hand-side, which equals (using
+Theorem A.1.5) det
+(
+α′α
+)
+multiplied by the determinant of
+ρ
+∫ 1
+0
+X X ′ −
+(
+ζ′α′ +
+∫ 1
+0
+X dB ′
+) (
+I m − α
+(
+α′α
+)−1 α′
+)(
+αζ +
+∫ 1
+0
+dB X ′
+)
+= ρ
+∫ 1
+0
+X X ′ −
+∫ 1
+0
+X dB ′Mα
+∫ 1
+0
+dB X ′
+= ρ
+∫ 1
+0
+X X ′ −
+∫ 1
+0
+X dW ′H ′
+1
+∫ 1
+0
+H1dW X ′
+= ρ
+∫ 1
+0
+X X ′ −
+∫ 1
+0
+X dW ′
+∫ 1
+0
+dW X ′ (16.30)
+where Mα = I m − α
+(
+α′α
+)−1 α′ and
+MαB(r ) ∼ B M
+(
+Mα
+(
+I m − αα′)
+Mα
+)
+= B M(Mα) = H1W (r )
+
+
+--- page 49 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 595
+where Mα = H1H ′
+1, H ′
+1H1 = I m−r and W (r ) ∼ B M(I m−r ).
+The determinant of (16.30) has m − r roots and their sum equals
+tr
+[(∫ 1
+0
+dW X ′
+) (∫ 1
+0
+X X ′
+)−1 (∫ 1
+0
+X dW ′
+)]
+= tr
+[(∫ 1
+0
+dW W ′
+) (∫ 1
+0
+W W ′
+)−1 (∫ 1
+0
+W dW ′
+)]
+since X (r ) is a linear rotation of W (r ). This is the stated result. ■
+_____________________________________________________________________________________________
+16.23 Exercises
+Exercise 16.1 Take St = St −1 + et with S0 = 0 and et i.i.d. (0, σ2).
+(a) Calculate E[St ] and var[St ].
+(b) Set Yt = (St − E[St ])/pvar[St ]. By construction E[Yt ] = 0 and var[Yt ] = 1. Is Yt stationary?
+(c) Find the asymptotic distribution of Y⌊nr ⌋ for r ∈ [δ,1].
+Exercise 16.2 Find the Beveridge-Nelson decomposition of ∆Yt = et + Θ1et −1 + Θ2et −2.
+Exercise 16.3 Suppose Yt = Xt + ut where Xt = Xt −1 + et with (et ,ut ) ∼ I (0).
+(a) Is Yt I (0) or I (1)?.
+(b) Find the asymptotic functional distribution of n −1/2Y⌊nr ⌋.
+Exercise 16.4 Let Yt = et be i.i.d. and Xt = ∆Yt .
+(a) Show that Yt is stationary and I (0).
+(b) Show that Xt is stationary but not I (0).
+Exercise 16.5 Let Ut = Ut −1 + et , Yt = Ut + vt and Xt = 2Ut + wt , where (e t , vt , wt ) is an i.i.d. sequence.
+Find the cointegrating vector for (Yt , Xt ).
+Exercise 16.6 Take the AR(1) model Yt = αYt −1 + et with i.i.d. et and the least squares estimator ˆα. In
+Chaper 14 we learned that the asymptotic distribution when |α|< 1 is pn ( ˆα − α) − →
+d
+N
+(
+0, 1− α2)
+. How
+do you reconcile this with Theorem 16.9, especially for α close to one?
+Exercise 16.7 Take the VECM(1) model∆Yt = αβ′Yt −1+et . Show that Zt = β′Yt follows an AR(1) process.
+Exercise 16.8 An economist estimates the modelYt = αYt −1 +et and ﬁndsˆα = 0.9 with s ( ˆα) = 0.05. They
+assert: “The t-statistic for testing α = 1 is 2, so α = 1 is rejected.” Is there an error in their reasoning?
+Exercise 16.9 An economist estimates the model Yt = αYt −1 + et and ﬁnds ˆα = 0.9 with s ( ˆα) = 0.04.
+They assert: “The 95% conﬁdence interval for α is [0.82,0.98] which does not contain 1. So α = 1 is not
+consistent with the data.” Is there an error in their reasoning?
+Exercise 16.10 An economist takes Yt , detrends to obtain the detrended series Zt , applies a ADF test to
+Zt and ﬁnds ADF = −2.5. They assert: “Stata provides the 5% critical value −1.9 with p-value less than
+1%. Thus we reject the null hypothesis of a unit root.” Is there an error in their reasoning?
+
+
+--- page 50 ---
+
+CHAPTER 16. NON-STATIONARY TIME SERIES 596
+Exercise 16.11 An economist wants to build an autoregressive model for the number of daily tweets by
+a prominant politician. For a model with an intercept they obtain ADF = −2.0. They assert “The number
+of tweets is a unit root process.” Is there an error in their reasoning?
+Exercise 16.12 For each of the following monthly series fromFRED-MD implement the Dickey-Fuller unit
+root test. For each, you need to consider the AR order p and the trend speciﬁcation.
+(a) log real personal income: log(rpi )
+(b) industrial production index: indpro
+(c) housing starts: houst
+(d) help-wanted index: hwi
+(e) civilian labor force: clf16ov
+(f) initial claims: claims
+(g) industrial production index (fuels): ipfuels
+Exercise 16.13 For each of the series in the previous exercise implement the KPSS test of stationarity.
+For each, you need consider the lag truncation M and the trend speciﬁcation.
+Exercise 16.14 For each of the following monthly pairs from FRED-MD test the hypothesis of no coin-
+tegration using the Johansen trace test. For each, you need to consider the VAR order p and the trend
+speciﬁcation.
+(a) 3-month treasury interest rate (tb3ms ) and 10-year treasury interest rate (gs10 ). Note: In the text
+we implemented the test on the quarterly series, not monthly.
+(b) interest rate on AAA bonds (aaa ) and interest rate on BAA bonds (baa).
+(c) log(industrial production durable consumer goods) and log(industrial production nondurable con-
+sumer goods) (log of ipdcongd and ipncongd).

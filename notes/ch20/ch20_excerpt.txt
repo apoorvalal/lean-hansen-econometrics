@@ -1,0 +1,3101 @@
+--- page 1 ---
+
+Chapter 20
+Series Regression
+20.1 Introduction
+Chapter 19 studied nonparametric regression by kernel smoothing methods. In this chapter we study
+an alternative class of nonparametric regression methods known as series regression.
+The basic model is identical to that examined in Chapter 19. We assume that there are random
+variables (Y , X ) such that E
+[
+Y 2]
+< ∞ and satisfy the regression model
+Y = m(X ) + e (20.1)
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= σ2 (X ).
+The goal is to estimate the conditional mean function m(x). We start with the simple setting where X is
+scalar and consider more general cases later.
+A series regression model is a sequence K = 1, 2, ..., of approximating models mK (x) with K param-
+eters. In this chapter we exclusively focus on linear series models, and in particular polynomials and
+splines. This is because these are simple, convenient, and cover most applications of series methods
+in applied economics. Other series models include trigonometric polynomials, wavelets, orthogonal
+wavelets, B-splines, and neural networks. For a detailed review see Chen (2007).
+Linear series regression models take the form
+Y = X ′
+K βK + eK (20.2)
+where XK = XK (X ) is a vector of regressors obtained by making transformations of X and βK is a coefﬁ-
+cient vector. There are multiple possible deﬁnitions of the coefﬁcientβK . We deﬁne1 it by projection
+βK = E
+[
+XK X ′
+K
+]−1 E[XK Y ] = E
+[
+XK X ′
+K
+]−1 E[XK m(X )]. (20.3)
+The series regression error eK is deﬁned by (20.2) and (20.3), is distinct from the regression error e in
+(20.1), and is indexed by K since it depends on the regressors XK . The series approximation to m(x) is
+mK (x) = XK (x)′βK . (20.4)
+The coefﬁcient is typically2 estimated by least squares
+ˆβK =
+(
+n∑
+i =1
+XK i X ′
+K i
+)−1 (
+n∑
+i =1
+XK iYi
+)
+=
+(
+X ′
+K X K
+)−1 (
+X ′
+K Y
+)
+. (20.5)
+1An alternative is to deﬁneβK as the best uniform approximation as in (20.8). It is not critical so long as we are careful to be
+consistent with our notation.
+2Penalized estimators have also been recommended. We do not review these methods here.
+700
+
+
+--- page 2 ---
+
+CHAPTER 20. SERIES REGRESSION 701
+The estimator for m(x) is
+ˆmK (x) = XK (x)′ ˆβK . (20.6)
+The difference between speciﬁc models arises due to the different choices of transformationsXK (x).
+The theoretical issues we will explore in this chapter are: (1) Approximation properties of polynomi-
+als and splines; (2) Consistent estimation of m(x); (3) Asymptotic normal approximations; (4) Selection
+of K ; (5) Extensions.
+For a textbook treatment of series regression see Li and Racine (2007). For an advanced treatment see
+Chen (2007). Two seminal contributions are Andrews (1991a) and Newey (1997). Two recent important
+papers are Belloni, Chernozhukov, Chetverikov, and Kato (2015) and Chen and Christensen (2015).
+20.2 Polynomial Regression
+The prototypical series regression model for m(x) is a p t h order polynomial
+mK (x) = β0 + β1x + β2x2 + · · · +βp x p.
+We can write it in vector notation as (20.4) where
+XK (x) =
+
+
+
+
+1
+x
+..
+.
+x p
+
+
+
+
+.
+The number of parameters is K = p +1. Notice that we index XK (x) and βK by K as their dimensions and
+values vary with K .
+The implied polynomial regression model for the random pair (Y , X ) is (20.2) with
+XK = XK (X ) =
+
+
+
+
+1
+X
+..
+.
+X p
+
+
+
+
+.
+The degree of ﬂexibility of a polynomial regression is controlled by the polynomial order p. A larger
+p yields a more ﬂexible model while a smaller p typically results in a estimator with a smaller variance.
+In general, a linear series regression model takes the form
+mK (x) = β1τ1(x) + β2τ2(x) + · · · +βK τK (x)
+where the functions τj (x) are called the basis transformations. The polynomial regression model uses
+the power basis τj (x) = x j −1. The model mK (x) is called a series regression because it is obtained by
+sequentially adding the series of variables τj (x).
+20.3 Illustrating Polynomial Regression
+Consider the cps09mar dataset and a regression of log wages onexperience for women with a college
+education (education= 16), separately for white women and Black women. The classical Mincer model
+uses a quadratic in experience. Given the large sample sizes (4682 for white women and 517 for Black
+
+
+--- page 3 ---
+
+CHAPTER 20. SERIES REGRESSION 702
+women) we can consider higher order polynomials. In Figure 20.1 we plot least squares estimates of the
+conditional mean functions using polynomials of order 2, 4, 8, and 12.
+Examine panel (a) which shows the estimates for the sub-sample of white women. The quadratic
+speciﬁcation appears mis-speciﬁed with a shape noticably different from the other estimates. The dif-
+ference between the polynomials of order 4, 8, and 12 is relatively minor, especially for experience levels
+below 20.
+Now examine panel (b) which shows the estimates for the sub-sample of Black women. This panel
+is quite different from panel (a). The estimates are erratic and increasingly so as the polynomial order
+increases. Assuming we are expecting a concave (or nearly concave) experience proﬁle the only estimate
+which satisﬁes this is the quadratic.
+Why the difference between panels (a) and (b)? The most likely explanation is the different sample
+sizes. The sub-sample of Black women has much fewer observations so the mean function is much less
+precisely estimated, giving rise to the erratic plots. This suggests (informally) that it may be preferred to
+use a smaller polynomial order p in the second sub-sample, or equivalently to use a larger p when the
+sample size n is larger. The idea that model complexity – the number of coefﬁcientsK – should vary with
+sample size n is an important feature of series regression.
+The erratic nature of the estimated polynomial regressions in Figure 20.1(b) is a common feature of
+higher-order estimated polynomial regressions. Better results can sometimes be obtained by a spline
+regression which is described in Section 20.5.
+0 10 20 30 40
+2.4 2.6 2.8 3.0 3.2
+Labor Market Experience (Y ears)
+Log Dollars per Hour
+polynomial (2)
+polynomial (4)
+polynomial (8)
+polynomial (12)
+(a) White Women
+0 10 20 30 40
+2.4 2.6 2.8 3.0 3.2
+Labor Market Experience (Y ears)
+Log Dollars per Hour
+polynomial (2)
+polynomial (4)
+polynomial (8)
+polynomial (12) (b) Black Women
+Figure 20.1: Polynomial Estimates of Experience Proﬁle, College-Educated Women
+20.4 Orthogonal Polynomials
+Standard implementation of the least squares estimator (20.5) of a polynomial regression may return
+a computational error message when p is large. (See Section 3.24.) This is because the moments of X j
+can be highly heterogeneous across j and because the variables X j can be highly correlated. These two
+factors imply in practice that the matrix X ′
+K X K can be ill-conditioned (the ratio of the largest to smallest
+eigenvalue can be quite large) and some packages will return error messages rather than compute ˆβK .
+
+
+--- page 4 ---
+
+CHAPTER 20. SERIES REGRESSION 703
+In most cases the condition of X ′
+K X K can be dramatically improved by rescaling the observations.
+As discussed in Section 3.24 a simple method for non-negative regressors is to rescale each by its sam-
+ple mean, e.g. replace X j
+i with X j
+i /
+(
+n−1 ∑n
+i =1 X j
+i
+)
+. Even better conditioning can often be obtained by
+rescaling Xi to lie in [−1, 1] before applying powers. In most applications one of these methods will be
+sufﬁcient for a well-conditioned regression.
+A computationally more robust implementation can be obtained by using orthogonal polynomials.
+These are linear combinations of the polynomial basis functions and produce identical regression esti-
+mators (20.6). The goal of orthogonal polynomials is to produce regressors which are either orthogonal
+or close to orthogonal and have similar variances so that X ′
+K X K is close to diagonal with similar diago-
+nal elements. These orthogonalized regressors X ∗
+K = AK XK can be written as linear combinations of the
+original variables XK . If the regressors are orthogonalized then the regression estimator (20.6) is modi-
+ﬁed by replacingXK (x) with X ∗
+K (x) = AK XK (x).
+One approach is to use sample orthogonalization. This is done by a sequence of regressions ofX j
+i on
+the previously orthogonalized variables and then rescaling. This will result in perfectly orthogonalized
+variables. This is what is implemented in many statistical packages under the label “orthogonal poly-
+nomials” , for example, the functionpoly in R. If this is done then the least squares coefﬁcients have no
+meaning outside this speciﬁc sample and it is not convenient for calculation of ˆmK (x) for values of x
+other than sample values. This is the approach used for the examples presented in the previous section.
+Another approach is to use an algebraic orthogonal polynomial. This is a polynomial which is or-
+thogonal with respect to a known weight function w(x). Speciﬁcally, it is a sequence p j (x), j = 0, 1, 2, ...,
+with the property that
+∫
+p j (x)pℓ(x)w(x)d x = 0 for j ̸= ℓ. This means that if w(x) = f (x), the marginal
+density of X , then the basis transformations p j (X ) will be mutually orthogonal (in expectation). Since
+we do now know the density of X this is not feasible in practice, but if w(x) is close to the density of X
+then we can expect that the basis transformations will be close to mutually orthogonal. To implement an
+algebraic orthogonal polynomial you ﬁrst should rescale your X variable so that it satisﬁes the support
+for the weight function w(x).
+The following three choices are most relevant for economic applications.
+Legendre Polynomial. These are orthogonal with respect to the uniform density on [− 1, 1]. (So
+should be applied to regressors scaled to have support in [−1, 1].)
+p j (x) = 1
+2j
+j∑
+ℓ=0
+(
+j
+ℓ
+)2
+(x − 1)j −ℓ (x + 1)ℓ .
+For example, the ﬁrst four are p0(x) = 1, p1(x) = x, p2(x) =
+(
+3x2 − 1
+)
+/2, and p3(x) =
+(
+5x3 − 3x
+)
+/2. The
+best computational method is the recurrence relationship
+p j +1(x) =
+(
+2j + 1
+)
+xp j (x) − j pj −1(x)
+j + 1 .
+Laguerre Polynomial. These are orthogonal with respect to the exponential density e−x on [0, ∞).
+(So should be applied to non-negative regressors scaled if possible to have approximately unit mean
+and/or variance.)
+p j (x) =
+j∑
+ℓ=0
+(
+j
+ℓ
+)
+(−x)ℓ
+ℓ! .
+For example, the ﬁrst four arep0(x) = 1, p1(x) = 1−x, p2(x) =
+(
+x2 − 4x + 2
+)
+/2, and p3(x) =
+(
+−x3 + 9x2 − 18x + 6
+)
+/6.
+The best computational method is the recurrence relationship
+p j +1(x) =
+(
+2j + 1 − x
+)
+p j (x) − j pj −1(x)
+j + 1 .
+
+
+--- page 5 ---
+
+CHAPTER 20. SERIES REGRESSION 704
+Hermite Polynomial. These are orthogonal with respect to the standard normal density on (−∞, ∞).
+(So should be applied to regressors scaled to have mean zero and variance one.)
+p j (x) = j !
+⌊j /2⌋∑
+ℓ=0
+(−1/2)ℓ xℓ−2j
+ℓ!
+(
+j − 2ℓ!
+) .
+For example, the ﬁrst four arep0(x) = 1, p1(x) = x, p2(x) = x2 − 1, and p3(x) = x3 − 3x. The best compu-
+tational method is the recurrence relationship
+p j +1(x) = xp j (x) − j pj −1(x).
+The R package orthopolynom provides a convenient set of commands to compute many orthogonal
+polynomials including the above.
+20.5 Splines
+A spline is a piecewise polynomial. Typically the order of the polynomial is pre-selected to be linear,
+quadratic, or cubic. The ﬂexibility of the model is determined by the number of polynomial segments.
+The join points between the segments are called knots.
+To impose smoothness and parsimony it is common to constrain the spline function to have con-
+tinuous derivatives up to the order of the spline. Thus a linear spline is constrained to be continuous, a
+quadratic spline is constrained to have a continuous ﬁrst derivative, and a cubic spline is constrained to
+have continuous ﬁrst and second derivatives.
+A simple way to construct a regression spline is as follows. A linear spline with one knot τ is
+mK (x) = β0 + β1x + β2 (x − τ)1{x ≥ τ}.
+To see that this is a linear spline, observe that forx ≤ τ the function mK (x) = β0 + β1x is linear with slope
+β1; for x ≥ τ the function mK (x) is linear with slopeβ1 +β2 ; and the function is continuous atx = τ. Note
+that β2 is the change in the slope at τ. A linear spline with two knots τ1 < τ2 is
+mK (x) = β0 + β1x + β2 (x − τ1)1{x ≥ τ2} + β3 (x − τ2)1{x ≥ τ2}.
+A quadratic spline with one knot is
+mK (x) = β0 + β1x + β2x2 + β3 (x − τ)2 1{x ≥ τ}.
+To see that this is a quadratic spline, observe that for x ≤ τ the function is the quadratic β0 + β1x + β2x2
+with second derivative m′′
+K (τ) = 2β2; for x ≥ τ the second derivative is m′′
+K (τ) = 2
+(
+β2 + β3
+)
+; so 2β 3 is the
+change in the second derivative at τ. The ﬁrst derivative at x = τ is the continuous function m′
+K (τ) =
+β1 + 2β2τ.
+In general, a p t h-order spline with N knots τ1 < τ2 < · · · <τN is
+mK (x) =
+p∑
+j =0
+βj x j +
+N∑
+k=1
+βp+k (x − τk)p 1{x ≥ τk}
+which has K = N + p + 1 coefﬁcients.
+
+
+--- page 6 ---
+
+CHAPTER 20. SERIES REGRESSION 705
+The implied spline regression model for the random pair (Y , X ) is (20.2) where
+XK = XK (X ) =
+
+
+
+
+
+
+
+
+
+1
+X
+..
+.
+X p
+(X − τ1)p 1{X ≥ τ1}
+.
+.
+.
+(X − τN )p 1{X ≥ τN }
+
+
+
+
+
+
+
+
+
+.
+In practice a spline will depend critically on the choice of the knots τk. When X is bounded with
+an approximately uniform distribution it is common to space the knots evenly so all segments have the
+same length. When the distribution of X is not uniform an alternative is to set the knots at the quantiles
+j /(N + 1) so that the probability mass is equalized across segments. A third alternative is to set the knots
+at the points where m(x) has the greatest change in curvature (see Schumaker (2007), Chapter 7). In all
+cases the set of knots τj can change with K . Therefore a spline is a special case of an approximation of
+the form
+mK (x) = β1τ1K (x) + β2τ2K (x) + · · · +βK τK K (x)
+where the basis transformations τj K(x) depend on both j and K . Many authors call such approxima-
+tions a sieve rather than a series because the basis transformations change with K . This distinction is
+not critical to our treatment so for simplicity we refer to splines as series regression models.
+20.6 Illustrating Spline Regression
+In Section 20.3 we illustrated regressions of log wages onexperience for white and Black women with
+a college education. Now we consider a similar regression for Black men with a college education, a
+sub-sample with 394 observations.
+We use a quadratic spline with four knots at experience levels of 10, 20, 30, and 40. This is a regres-
+sion model with seven coefﬁcients. The estimated regression function is displayed in Figure 20.2(a). An
+estimated 6t h order polynomial regression is also displayed for comparison (a 6t h order polynomial is an
+appropriate comparison because it also has seven coefﬁcients).
+While the spline is a quadratic over each segment, what you can see is that the ﬁrst two segments
+(experience levels between 0-10 and 10-20 years) are essentially linear. Most of the curvature occurs in
+the third and fourth segments (20-30 and 30-40 years) where the estimated regression function peaks
+and twists into a negative slope. The estimated regression function is smooth.
+A quadratic or cubic spline is useful when it is desired to impose smoothness as in Figure 20.2(a). In
+contrast, a linear spline is useful when it is desired to allow for sharp changes in slope.
+To illustrate we consider the data set CHJ2004 which is a sample of 8684 urban Phillipino house-
+holds from Cox, B. E. Hansen, and Jimenez (2004). This paper studied the crowding-out impact of a
+family’ s income on non-governmental (e.g., extended family) income transfers 3. A model of altruistic
+transfers predicts that extended families will make gifts (transfers) when the recipient family’ s income
+is sufﬁciently low, but will not make transfers if the recipient family’ s income exceeds a threshold. A
+pure altruistic model predicts that the regression of transfers received on family income should have a
+slope of −1 up to this threshold and be ﬂat above this threshold. We estimated this regression (including
+3Deﬁned as the sum of transfers received domestically, from abroad, and in-kind, less gifts.
+
+
+--- page 7 ---
+
+CHAPTER 20. SERIES REGRESSION 706
+●
+●
+●
+●
+0 10 20 30 40
+2.4 2.6 2.8 3.0 3.2 3.4
+Labor Market Experience (Y ears)
+Log Dollars per Hour
+● knots
+quadratic spline
+polynomial (6)
+(a) Experience Proﬁle
+0 50000 100000 150000 200000
+4000 6000 8000 10000 12000 14000
+Total Income (Pesos)
+Transfers (Pesos)
+knots
+linear spline (b) Effect of Income on Transfers
+Figure 20.2: Spline Regression Estimates
+the same controls as the authors 4) using a linear spline with knots at 10000, 20000, 50000, 100000, and
+150000 pesos. These knots were selected to give ﬂexibility for low income levels where there are more
+observations. This model has a total of 22 coefﬁcients.
+The estimated regression function (as a function of household income) is displayed in Figure 20.2(b).
+For the ﬁrst two segments (incomes levels below 20000 pesos) the regression function is negatively sloped
+as predicted with a slope about−0.7 from 0 to 10000 pesos, and−0.3 from 10000 to 20000 pesos. The esti-
+mated regression function is effectively ﬂat for income levels above 20000 pesos. This shape is consistent
+with the pure altruism model. A linear spline model is particularly well suited for this application as it
+allows for discontinuous changes in slope.
+Linear spline models with a single knot have been recently popularized by Card, Lee, Pei, and Weber
+(2015) with the label regression kink design.
+20.7 The Global/Local Nature of Series Regression
+Recall from Section 19.18 that we described kernel regression as inherently local in nature. The
+Nadaraya-Watson, Local Linear, and Local Polynomial estimators of the conditional mean m(x) are
+weighted averages of Yi for observations for which Xi is close to x.
+In contrast, series regression is typically described as global in nature. The estimatorˆmK (x) = XK (x)′ ˆβK
+is a function of the entire sample. The coefﬁcients of a ﬁtted polynomial (or spline) are affected by the
+global shape of the function m(x) and thus affect the estimator ˆmK (x) at any point x.
+While this description has some merit it is not a complete description. As we now show, series regres-
+sion estimators share the local smoothing property of kernel regression. As the number of series terms
+K increase a series estimator ˆmK (x) = XK (x)′ ˆβK also becomes a local weighted average estimator.
+4The controls are: age of household head, education (5 dummy categories), married, female, married female, number of
+children (3 dummies), size of household, employment status (2 dummies).
+
+
+--- page 8 ---
+
+CHAPTER 20. SERIES REGRESSION 707
+To see this, observe that we can write the estimator as
+ˆmK (x) = XK (x)′ (
+X ′
+K X K
+)−1 (
+X ′
+K Y
+)
+= 1
+n
+n∑
+i =1
+XK (x)′ ˆQ
+−1
+K XK (Xi )Yi
+= 1
+n
+n∑
+i =1
+ˆwK (x, Xi )Yi
+where ˆQK = n−1X ′
+K X K and ˆwK (x,u) = xK (x)′ ˆQ
+−1
+K xK (u). Thus ˆmK (x) is a weighted average of Yi using
+the weights ˆwK (x, Xi ). The weight function ˆwK (x, Xi ) appears to be maximized at Xi = x, so ˆm(x) puts
+more weight on observations for which Xi is close to x, similarly to kernel regression.
+0.0 0.2 0.4 0.6 0.8 1.0
+−2 0 2 4 6 8
+u
+w(x,u)
+x
+p=4
+p=8
+p=12
+(a) x = 0.5
+0.0 0.2 0.4 0.6 0.8 1.0
+−4 −2 0 2 4 6 8
+u
+w(x,u)
+x
+p=4
+p=12 (b) x = 0.25
+Figure 20.3: Kernel Representation of Polynomial Weight Function
+To see this more precisely, observe that since ˆQK will be close in large samples to QK = E
+[
+XK X ′
+K
+]
+,
+ˆwK (x,u) will be close to the deterministic weight function
+wK (x,u) = XK (x)′Q −1
+K XK (u).
+Take the case X ∼ U [0,1]. In Figure 20.3 we plot the weight function wK (x,u) as a funtion of u for x =
+0.5 (panel (a)) and x = 0.25 (panel (b)) for p = 4, 8, 12 in panel (a) and p = 4, 12 in panel (b). First,
+examine panel (a). Here you can see that the weight function w(x,u) is symmetric in u about x. For
+p = 4 the weight function appears similar to a quadratic in u, and as p increases the weight function
+concentrates its main weight around x. However, the weight function is not non-negative. It is quite
+similar in shape to what are known as higher-order (or bias-reducing) kernels, which were not reviewed
+in the previous chapter but are part of the kernel estimation toolkit. Second, examine panel (b). Again
+the weight function is maximized at x, but now it is asymmetric in u about the point x. Still, the general
+features from panel (a) carry over to panel (b). Namely, as p increases the polynomial estimator puts
+most weight on observations for which X is close to x (just as for kernel regression), but is different from
+conventional kernel regression in that the weight function is not non-negative. Qualitatively similar plots
+are obtained for spline regression.
+
+
+--- page 9 ---
+
+CHAPTER 20. SERIES REGRESSION 708
+There is little formal theory (of which I am aware) which makes a formal link between series regres-
+sion and kernel regression so the comments presented here are illustrative 5. However, the point is that
+statements of the form “Series regession is a global method; Kernel regression is a local method” may
+not be complete. Both are global in nature when h is large (kernels) or K is small (series), and are local
+in nature when h is small (kernels) or K is large (series).
+20.8 Stone-Weierstrass and Jackson Approximation Theory
+A good series approximation mK (x) has the property that it gets close to the true CEF m(x) as the
+complexity K increases. Formal statements can be derived from the mathematical theory of the approx-
+imation of functions.
+An elegant and famous theorem is the Stone-Weierstrass Theorem (Weierstrass, 1885, Stone, 1948)
+which states that any continuous function can be uniformly well approximated by a polynomial of sufﬁ-
+ciently high order. Speciﬁcally, the theorem states that ifm(x) is continuous on a compact set S then for
+any ϵ > 0 there is some K sufﬁciently large such that
+inf
+β
+sup
+x∈S
+⏐⏐m(x) − XK (x)′β
+⏐
+⏐ ≤ ϵ. (20.7)
+Thus the true unknown m(x) can be arbitrarily well approximated by selecting a suitable polynomial.
+Jackson (1912) strengthened this result to give convergence rates which depend on the smoothness
+of m(x). The basic result has been extended to spline functions. The following notation will be useful.
+Deﬁne theβ which minimizes the left-side of (20.7) as
+β∗
+K = argmin
+β
+sup
+x∈S
+⏐⏐m(x) − XK (x)′β
+⏐
+⏐, (20.8)
+deﬁne the approximation error
+r ∗
+K (x) = m(x) − XK (x)′β∗
+K , (20.9)
+and deﬁne the minimized value of (20.7)
+δ∗
+K
+def
+= inf
+β
+sup
+x∈S
+⏐⏐m(x)XK (x)′β
+⏐
+⏐ = sup
+x∈S
+⏐
+⏐m(x) − XK (x)′β∗
+K
+⏐⏐ = sup
+x∈S
+⏐
+⏐r ∗
+K (x)
+⏐
+⏐. (20.10)
+Theorem 20.1 If for someα ≥ 0, m(α)(x) is uniformly continuous on a compact
+set S and XK (x) is either a polynomial basis or a spline basis (with uniform knot
+spacing) of order s ≥ α, then as K → ∞
+δ∗
+K ≤ o
+(
+K −α)
+. (20.11)
+Furthermore, if m(2)(x) is uniformly continuous on S and XK (x) is a linear
+spline basis, then δ∗
+K ≤ O
+(
+K −2)
+.
+For a proof for the polynomial case see Theorem 4.3 of Lorentz (1986) or Theorem 3.12 of Schumaker
+(2007) plus his equations (2.119) and (2.121). For the spline case see Theorem 6.27 of Schumaker (2007)
+5Similar connections are made in the appendix of Chen, Liao, and Sun (2012).
+
+
+--- page 10 ---
+
+CHAPTER 20. SERIES REGRESSION 709
+plus his equations (2.119) and (2.121). For the linear spline case see Theorem 6.15 of Schumaker, equa-
+tion (6.28).
+Theorem 20.1 is more useful than the classic Stone-Weierstrass Theorem as it gives an approximation
+rate which depends on the smoothness order α. The rate o(K −α) in (20.11) means that the approxima-
+tion error (20.10) decreases as K increases and decreases at a faster rate when α is large. The standard
+interpretation is that when m(x) is smoother it is possible to approximate it with fewer terms.
+It will turn out that for our distribution theory it is sufﬁcient to consider the case that m(2)(x) is
+uniformly continuous. For this case Theorem 20.1 shows that polynomials and quadratic/cubic splines
+achieve the rate o(K −2) and linear splines achieve the rate O(K −2). For most of of our results the latter
+bound will be sufﬁcient.
+More generally, Theorem 20.1 makes a distinction between polynomials and splines as polynomials
+achieve the rate o (K −α) adaptively (without input from the user) while splines achieve the rate o (K −α)
+only if the spline order s is appropriately chosen. This is an advantage for polynomials. However, as
+emphasized by Schumaker (2007), splines simultaneously approximate the derivatives m(q)(x) for q <
+α. Thus, for example, a quadratic spline simultaneously approximates the function m(x) and its ﬁrst
+derivative m′(x). There is no comparable result for polynomials. This is an advantage for quadratic and
+cubic splines. Since economists are often more interested in marginal effects (derivatives) than in levels
+this may be a good reason to prefer splines over polynomials.
+Theorem 20.1 is a bound on the best uniform approximation error. The coefﬁcient β∗
+K which mini-
+mizes (20.11) is not, however, the projection coefﬁcientβK as deﬁned in (20.3). Thus Theorem 20.1 does
+not directly inform us concerning the approximation error obtained by series regression. It turns out,
+however, that the projection error can be easily deduced from (20.11).
+Deﬁnition 20.1 The projection approximation error is
+rK (x) = m(x) − XK (x)′βK (20.12)
+where the coefﬁcient βK is the projection coefﬁcient (20.3). The realized pro-
+jection approximation error is rK = rK (X ). The expected squared projection
+error is
+δ2
+K = E
+[
+r 2
+K
+]
+. (20.13)
+The projection approximation error is similar to (20.9) but evaluated using the projection coefﬁcient
+rather than the minimizing coefﬁcient β∗
+K (20.8). Assuming that X has compact support S the expected
+squared projection error satisﬁes
+δK =
+(∫
+S
+(
+m(x) − XK (x)′βK
+)2 dF (x)
+)1/2
+≤
+(∫
+S
+(
+m(x) − XK (x)′β∗
+K
+)2 dF (x)
+)1/2
+≤
+(∫
+S
+δ∗2
+K dF (x)
+)1/2
+= δ∗
+K . (20.14)
+The ﬁrst inequality holds since the projection coefﬁcientβK minimizes the expected squared projection
+error (see Section 2.25). The second inequality is the deﬁnition of δ∗
+K . Combined with Theorem 20.1 we
+have established the following result.
+
+
+--- page 11 ---
+
+CHAPTER 20. SERIES REGRESSION 710
+Theorem 20.2 If X has compact support S, for some α ≥ 0 m(α)(x) is uniformly
+continuous on S, and XK (x) is either a polynomial basis or a spline basis of
+order s ≥ α, then as K → ∞
+δK ≤ δ∗
+K ≤ o
+(
+K −α)
+.
+Furthermore, if m(2)(x) is uniformly continuous on S and XK (x) is a linear
+spline basis, then δK ≤ O
+(
+K −2)
+.
+The available theory of the approximation of functions goes beyond the results described here. For
+example, there is a theory of weighted polynomial approximation (Mhaskar, 1996) which provides an
+analog of Theorem 20.2 for the unbounded real line when X has a density with exponential tails.
+20.9 Regressor Bounds
+The approximation result in Theorem 20.2 assumes that the regressors X have bounded support S.
+This is conventional in series regression theory as it greatly simpliﬁes the analysis. Bounded support
+implies that the regressor function XK (x) is bounded. Deﬁne
+ζK (x) =
+(
+XK (x)′Q −1
+K XK (x)
+)1/2
+(20.15)
+ζK = sup
+x
+ζK (x) (20.16)
+where QK = E
+[
+XK X ′
+K
+]
+is the population design matrix given the regressors XK . This implies that for all
+realizations of XK (
+X ′
+K Q −1
+K XK
+)1/2
+≤ ζK . (20.17)
+The constant ζK (x) is the normalized length of the regressor vector XK (x). The constant ζK is the
+maximum normalized length. Their values are determined by the basis function transformations and
+the distribution of X . They are invariant to rescaling XK or linear rotations.
+For polynomials and splines we have explicit expressions for the rate at which ζK grows with K .
+Theorem 20.3 If X has compact support S with a strictly positive density f (x)
+on S then
+1. ζK ≤ O (K ) for polynomials
+2. ζK ≤ O
+(
+K 1/2)
+for splines
+For a proof of Theorem 20.3 see Newey (1997, Theorem 4).
+Furthermore, when X is uniformly distributed then we can explicitly calculate for polynomials that
+ζK = K , so the polynomial bound ζK ≤ O (K ) cannot be improved.
+To illustrate, we plot in Figure 20.4(a) the values ζK (x) for the case X ∼ U [0,1]. We plot ζK (x) for a
+polynomial of degree p = 9 and a quadratic spline withN = 7 knots (both satisfyK = 10). You can see that
+
+
+--- page 12 ---
+
+CHAPTER 20. SERIES REGRESSION 711
+the values of ζK (x) are close to 3 for both basis transformations and most values ofx, but ζK (x) increases
+sharply for x near the boundary. The maximum values areζK = 10 for the polynomial andζK = 7.4 for the
+quadratic spline. While Theorem 20.3 shows the two have different rates for largeK , we see for moderate
+K that the differences are relatively minor.
+0.0 0.2 0.4 0.6 0.8 1.0
+0 2 4 6 8 10
+x
+Length of Regressor Vector
+Polynomial
+Quadratic Spline
+(a) ζK (x),K = 10
+1 2 3 4 5 6 7 8
+0.0 0.2 0.4 0.6 0.8 1.0
+K
+ISE(K)
+K−4 + K 10
+K−4 + K 30
+K−4 + K 150
+●
+●
+● (b) Integrated Squared Error
+Figure 20.4: Normalized Regressor Lengths and Integrated Squared Error
+20.10 Matrix Convergence
+One of the challenges which arise when developing a theory for the least squares estimator is how to
+describe the large-sample behavior of the sample design matrix
+ˆQK = 1
+n
+n∑
+i =1
+XK i X ′
+K i
+as K → ∞. The difﬁculty is that its dimension changes withK so we cannot apply a standard WLLN.
+It turns out to be convenient if we ﬁrst rotate the regressor vector so that the elements are orthogonal
+in expectation. Thus we deﬁne the standardized regressors and design matrix as
+˜XK i = Q −1/2
+K XK i (20.18)
+˜QK = 1
+n
+n∑
+i =1
+˜XK i ˜X ′
+K i.
+Note that E
+[˜XK ˜X ′
+K
+]
+= I K . The standardized regressors are not used in practice; they are introduced only
+to simplify the theoretical derivations.
+Our convergence theory will require the following fundamental rate bound on the number of coefﬁ-
+cients K .
+
+
+--- page 13 ---
+
+CHAPTER 20. SERIES REGRESSION 712
+Assumption 20.1
+1. λmin
+(
+QK
+)
+≥ λ > 0
+2. ζ2
+K log(K )/n → 0 as n,K → ∞.
+Assumption 20.1.1 ensures that the transformation (20.18) is well deﬁned6. Assumption 20.1.2 states
+that the squared maximum regressor length ζ2
+K grows slower than n. Since ζK increases with K this is a
+bound on the rate at which K can increase with n. By Theorem 20.2 the rate in Assumption 20.1.2 holds
+for polynomials if K 2 log(K )/n → 0 and for splines if K log(K )/n → 0. In either case, this means that the
+number of coefﬁcientsK is growing at a rate slower than n.
+We are now in a position to describe a convergence result for the standardized design matrix. The
+following is Lemma 6.2 of Belloni, Chernozhukov, Chetverikov, and Kato (2015).
+Theorem 20.4 If Assumption 20.1 holds then
+ ˜QK − I K
+
+ p
+− →0. (20.19)A proof of Theorem 20.4 using a stronger condition than Assumption 20.1 can be found in Section
+20.31. The norm in (20.19) is the spectral norm
+∥A∥ =
+(
+λmax
+(
+A′ A
+))1/2
+where λmax (B) denotes the largest eigenvalue of the matrix B. For a full description see Section A.23.
+For the least squares estimator what is particularly important is the inverse of the sample design
+matrix. Fortunately we can easily deduce consistency of its inverse from (20.19) when the regressors
+have been orthogonalized as described.
+Theorem 20.5 If Assumption 20.1 holds then
+ ˜Q
+−1
+K − I K
+
+p
+− →0 (20.20)
+and
+λmax
+(
+˜Q
+−1
+K
+)
+= 1/λmin
+(˜QK
+) p
+− →1. (20.21)
+The proof of Theorem 20.5 can be found in Section 20.31.
+6Technically, what is required is thatλmin
+(
+B K QK B ′
+K
+)
+≥ λ > 0 for some K × K sequence of matrices B K , or equivalently that
+Assumption 20.1.1 holds after replacing XK with B K XK .
+
+
+--- page 14 ---
+
+CHAPTER 20. SERIES REGRESSION 713
+20.11 Consistent Estimation
+In this section we give conditions for consistent estimation of m(x) by the series estimator ˆmK (x) =
+XK (x)′ ˆβK .
+We know from standard regression theory that for any ﬁxedK , ˆβK
+p
+− →βK and thus ˆmK (x) = XK (x)′ ˆβK
+p
+− →
+XK (x)′βK as n → ∞. Furthermore, from the Stone-Weierstrass Theorem we know that XK (x)′βK → m(x)
+as K → ∞. It therefore seems reasonable to expect that ˆmK (x)
+p
+− →m(x) as both n → ∞ and K → ∞
+together. Making this argument rigorous, however, is technically challenging, in part because the di-
+mensions of ˆβK and its components are changing with K .
+Since ˆmK (x) and m(x) are functions, convergence should be deﬁned with respect to an appropriate
+metric. For kernel regression we focused on pointwise convergence (for each value of x separately) as
+that is the simplest to analyze. For series regression it turns out to be simplest to describe convergence
+with respect to integrated squared error (ISE). We deﬁne the latter as
+ISE(K ) =
+∫
+( ˆmK (x) − m(x))2 dF (x) (20.22)
+where F is the marginal distribution of X . ISE(K ) is the average squared distance between ˆmK (x) and
+m(x), weighted by the marginal distribution of X . The ISE is random, depends on both sample size n
+and model complexity K , and its distribution is determined by the joint distribution of (Y , X ). We can
+establish the following.
+Theorem 20.6 Under Assumption 20.1 and δK = o(1), then as n,K → ∞,
+ISE(K ) = op (1). (20.23)
+The proof of Theorem 20.6 can be found in Section 20.31.
+Theorem 20.6 shows that the series estimator ˆmK (x) is consistent in the ISE norm under mild con-
+ditions. The assumption δK = o(1) holds for polynomials and splines if K → ∞ and m(x) is uniformly
+continuous. This result is analogous to Theorem 19.8 which showed that kernel regression estimator is
+consistent if m(x) is continuous.
+20.12 Convergence Rate
+We now give a rate of convergence.
+Theorem 20.7 Under Assumption 20.1 and σ2 (x) ≤ σ2 < ∞, then as n,K → ∞,
+ISE(K ) ≤ Op
+(
+δ2
+K + K
+n
+)
+(20.24)
+where δ2
+K is the expected squared prediction error (20.13). Furthermore, if
+m′′(x) is uniformly continuous then for polynomial or spline basis functions
+ISE(K ) ≤ Op
+(
+K −4 + K
+n
+)
+. (20.25)
+
+
+--- page 15 ---
+
+CHAPTER 20. SERIES REGRESSION 714
+The proof of Theorem 20.7 can be found in Section 20.31. It is based on Newey (1997).
+The bound (20.25) is particularly useful as it gives an explicit rate in terms of K and n. The result
+shows that the integrated squared error is bounded in probability by two terms. The ﬁrst K −4 is the
+squared bias. The second K /n is the estimation variance. This is analogous to the AIMSE for kernel
+regression (19.5). We can see that increasing the number of series termsK affects the integrated squared
+error by decreasing the bias but increasing the variance. The fact that the estimation variance is of order
+K /n can be intuitively explained by the fact that the regression model is estimating K coefﬁcients.
+For polynomials and quadratic splines the bound (20.25) can be written as op
+(
+K −4)
++Op (K /n).
+We are interested in the sequenceK which minimizes the trade-off in (20.25). By examining the ﬁrst-
+order condition we ﬁnd that the sequence which minimizes this bound is K ∼ n1/5. With this choice we
+obtain the optimal integrated squared error ISE(K ) ≤ Op
+(
+n−4/5)
+. This is the same convergence rate as
+obtained by kernel regression under similar assumptions.
+It is interesting to contrast the optimal rateK ∼ n1/5 for series regression with h ∼ n−1/5 for kernel re-
+gression. Essentially, one can viewK −1 in series regression as a “bandwidth” similar to kernel regression,
+or one can view 1/h in kernel regression as the effective number of coefﬁcients.
+The rate K ∼ n1/5 means that the optimal K increases very slowly with the sample size. For example,
+doubling your sample size implies a 15% increase in the optimal number of coefﬁcients K . To obtain a
+doubling in the optimal number of coefﬁcients you need to multiply the sample size by 32.
+To illustrate, Figure 20.4(b) displays the ISE rate bounds K −4 + K /n as a function of K for n = 10,
+30, 150. The ﬁlled circles mark the ISE-minimizing K , which are K = 2, 3, and 4 for the three functions.
+Notice that the ISE functions are steeply downward sloping for small K and nearly ﬂat for large K (when
+n is large). This is because the bias term K −4 dominates for small values of K while the variance term
+K /n dominates for large values of K and the latter ﬂattens as n increases.
+20.13 Asymptotic Normality
+Take a parameter θ = a (m) which is a real-valued linear function of the regression function. This
+includes the regression function m(x) at a given point x, derivatives of m(x), and integrals over m(x).
+Given ˆmK (x) = XK (x)′ ˆβK as an estimator for m(x), the estimator for θ is ˆθK = a ( ˆmK ) = a′
+K
+ˆβK for some
+K × 1 vector of constants aK ̸= 0. (The relationship a ( ˆmK ) = a′
+K
+ˆβK follows since a is linear in m and ˆmK
+is linear in ˆβK .)
+If K were ﬁxed as n → ∞ then by standard asymptotic theory we would expect ˆθK to be asymptot-
+ically normal with variance VK = a′
+K Q −1
+K ΩK Q −1
+K aK where ΩK = E
+[
+XK X ′
+K e2]
+. The standard justiﬁcation,
+however, is not valid in the nonparametric case. This is in part because VK may diverge as K → ∞, and
+in part due to the ﬁnite sample bias due to the approximation error. Therefore a new theory is required.
+Interestingly, it turns out that in the nonparametric case ˆθK is still asymptotically normal and VK is still
+the appropriate variance for ˆθK . The proof is different than the parametric case as the dimensions of
+the matrices are increasing with K and we need to be attentive to the estimator’ s bias due to the series
+approximation.
+
+
+--- page 16 ---
+
+CHAPTER 20. SERIES REGRESSION 715
+Assumption 20.2 In addition to Assumption 20.1
+1. lim
+B →∞
+sup
+x
+E
+[
+e21
+{
+e2 > B
+}
+|X = x
+]
+= 0
+2. E
+[
+e2 |X
+]
+≥ σ2 > 0
+3. ζK δK = o(1) as K → ∞
+Assumption 20.2.1 is conditional square integrability. It implies that the conditional varianceE
+[
+e2 |X
+]
+is bounded. It is used to verify the Lindeberg condition for the CLT .
+Assumption 20.2.2 states that the conditional variance is nowhere degenerate. Thus there is noX for
+which Y is perfectly predictable. This is a technical condition used to bound VK from below.
+Assumption 20.2.3 states that approximation error δK declines faster than the maximal regressor
+length ζK . For polynomials a sufﬁcient condition for this assumption is that m′′(x) is uniformly contin-
+uous. For splines a sufﬁcient condition is thatm′(x) is uniformly continuous.
+Theorem 20.8 Under Assumption 20.2, as n → ∞,
+pn
+(ˆθK − θ + a (rK )
+)
+V 1/2
+K
+− →
+d
+N(0, 1). (20.26)
+The proof of Theorem 20.8 can be found in Section 20.31.
+Theorem 20.8 shows that the estimator ˆθK is approximately normal with bias −a (rK ) and variance
+VK /n. The variance is the same as in the parametric case. The asymptotic bias is similar to that found in
+kernel regression.
+One useful message from Theorem 20.8 is that the classical variance formula VK for ˆθK applies to
+series regression. This justiﬁes conventional estimators forVK as will be discussed in Section 20.18.
+Theorem 20.8 shows that the estimator ˆθK has a bias a (rK ). What is this? It is the same transforma-
+tion of the function rK (x) as θ = a (m) is of the regression function m(x). For example, if θ = m(x) is the
+regression at a ﬁxed pointx then a (rK ) = rK (x), the approximation error at the same point. If θ = m′(x)
+is the regression derivative then a (rK ) = r ′
+K (x) is the derivative of the approximation error.
+This means that the bias in the estimatorˆθK for θ shown in Theorem 20.8 is simply the approximation
+error transformed by the functional of interest. If we are estimating the regression function then the bias
+is the error in approximating the regression function; if we are estimating the regression derivative then
+the bias is the error in the derivative in the approximation error for the regression function.
+20.14 Regression Estimation
+A special yet important example of a linear estimator is the regression function at a ﬁxed point x.
+In the notation of the previous section, a (m) = m(x) and aK = XK (x). The series estimator of m(x) is
+ˆθK = ˆmK (x) = XK (x)′ ˆβK . As this is a key problem of interest we restate the asymptotic result of Theorems
+20.8 for this estimator.
+
+
+--- page 17 ---
+
+CHAPTER 20. SERIES REGRESSION 716
+Theorem 20.9 Under Assumption 20.2, as n → ∞,
+pn ( ˆmK (x) − m(x) + rK (x))
+V 1/2
+K (x)
+− →
+d
+N(0, 1) (20.27)
+where VK (x) = XK (x)′Q −1
+K ΩK Q −1
+K XK (x).There are several important features about the asymptotic distribution (20.27).
+First, as mentioned in the previous section it shows that the classical variance formulaVK (x) applies
+for the series estimator ˆmK (x). Second, (20.27) shows that the estimator has the asymptotic bias rK (x).
+This is due to the fact that the ﬁnite order series is an approximation to the unknown regression function
+m(x) and this results in ﬁnite sample bias.
+There is another fascinating connection between the asymptotic variance of Theorem 20.9 and the
+regression lengths ζK (x) of (20.15). Under conditional homoskedasticity we have the simpliﬁcation
+VK (x) = σ2ζK (x)2. Thus the asymptotic variance of the regression estimator is proportional to the squared
+regression lengths. From Figure 20.4(a) we learned that the regression lengthζK (x) is much higher at the
+edge of the support of the regressors, especially for polynomials. This means that the precision of the
+series regression estimator is considerably degraded at the edge of the support.
+20.15 Undersmoothing
+An unpleasant aspect about Theorem 20.9 is the bias term. An interesting trick is that this bias term
+can be made asymptotically negligible if we assume that K increases with n at a sufﬁciently fast rate.
+Theorem 20.10 Under Assumption 20.2, if in addition nδ∗2
+K → 0 then
+pn ( ˆmK (x) − m(x))
+V 1/2
+K (x)
+− →
+d
+N(0, 1). (20.28)
+The condition nδ∗2
+K → 0 implies that the squared bias converges faster than the estimation variance
+so the former is asymptotically negligible. If m′′(x) is uniformly continuous then a sufﬁcient condition
+for polynomials and quadratic splines is K ∼ n1/4. For linear splines a sufﬁcient condition is for K to
+diverge faster than K 1/4. The rate K ∼ n1/4 is somewhat faster than the ISE-optimal rate K ∼ n1/5.
+The assumption nδ∗2
+K → 0 is often stated by authors as an innocuous technical condition. This is
+misleading as it is a technical trick and should be discussed explicitly. The reason why the assumption
+eliminates the bias from (20.28) is that the assumption forces the estimation variance to dominate the
+squared bias so that the latter can be ignored. This means that the estimator itself is inefﬁcient.
+Because nδ∗2
+K → 0 means that K is larger than optimal we say that ˆmK (x) is undersmoothed relative
+to the optimal series estimator.
+Many authors like to focus their asymptotic theory on the assumptions in Theorem 20.10 as the
+distribution (20.28) appears cleaner. However, it is a poor use of asymptotic theory. There are three
+problems with the assumption nδ∗2
+K → 0 and the approximation (20.28). First, the estimator ˆmK (x) is
+inefﬁcient. Second, while the assumption nδ∗2
+K → 0 makes the bias of lower order than the variance it
+
+
+--- page 18 ---
+
+CHAPTER 20. SERIES REGRESSION 717
+only makes the bias of slightly lower order, meaning that the accuracy of the asymptotic approximation
+is poor. Effectively, the estimator is still biased in ﬁnite samples. Third, nδ∗2
+K → 0 is an assumption not
+a rule for empirical practice. It is unclear what the statement “ Assume nδ∗2
+K → 0” means in a practical
+application. From this viewpoint the difference between (20.26) and (20.28) is in the assumptions not
+in the actual reality nor in the actual empirical practice. Eliminating a nuisance (the asymptotic bias)
+through an assumption is a trick not a substantive use of theory. My strong view is that the result (20.26)
+is more informative than (20.28). It shows that the asymptotic distribution is normal but has a non-trivial
+ﬁnite sample bias.
+20.16 Residuals and Regression Fit
+The ﬁtted regression at x = Xi is ˆmK (Xi ) = X ′
+K i
+ˆβK and the ﬁtted residual is ˆeK i = Yi − ˆmK (Xi ). The
+leave-one-out prediction errors are
+˜eK i = Yi − ˆmK ,−i (Xi ) = Yi − X ′
+K i ˆβK ,−i
+where ˆβK ,−i is the least squares coefﬁcient with the i t h observation omitted. Using (3.44) we have the
+simple computational formula
+˜eK i = ˆeK i(1 − X ′
+K i
+(
+X ′
+K X K
+)−1 XK i)−1. (20.29)
+As for kernel regression the prediction errors ˜eK i are better estimators of the errors than the ﬁtted
+residuals ˆeK i as the former do not have the tendency to over-ﬁt when the number of series terms is large.
+20.17 Cross-Validation Model Selection
+A common method for selection of the number of series terms K is cross-validation. The cross-
+validation criterion is sum7 of squared prediction errors
+CV(K ) =
+n∑
+i =1
+˜e2
+K i =
+n∑
+i =1
+ˆe2
+K i(1 − X ′
+K i
+(
+X ′
+K X K
+)−1 XK i)−2. (20.30)
+The CV-selected value of K is the integer which minimizes CV(K ).
+As shown in Theorem 19.7 CV(K ) is an approximately unbiased estimator of the integrated mean-
+squared error (IMSE), which is the expected integrated squared error (ISE). The proof of the result is
+the same for all nonparametric estimators (series as well as kernels) so does not need to be repeated
+here. Therefore, ﬁnding the K which produces the smallest value of CV(K ) is a good indicator that the
+estimator ˆmK (x) has small IMSE.
+For practical implementation we ﬁrst designate a set of models (sets of basis transformations and
+number of variables K ) over which to search. (For example, polynomials of order 1 through Kmax for
+some pre-selected Kmax.) For each, there is a set of regressors XK which are obtained by transformations
+of the original variables X . For each set we estimate the regression by least squares, calculate the leave-
+one-out prediction errors, and the CV criterion. Since the errors are a linear operation this is a simple
+calculation. The CV-selected K is the integer which produces the smallest value of CV(K). Plots of CV(K )
+against K can aid assessment and interpretation. Since the model order K is an integer the CV criterion
+for series regression is a discrete function, unlike the case of kernel regression.
+If it is desired to produce an estimator ˆmK (x) with reduced bias it may be preferred to select a value
+of K slightly higher than that selected by CV alone.
+7Some authors deﬁne CV(K) as the average rather than the sum.
+
+
+--- page 19 ---
+
+CHAPTER 20. SERIES REGRESSION 718
+1 2 3 4 5 6 7 8
+1225 1230 1235 1240 1245 1250 1255 1260
+Polynomial Order
+CV(K)
+(a) White Women
+1 2 3 4 5 6 7 8
+125 126 127 128 129
+Polynomial Order
+CV(K) (b) Black Women
+Figure 20.5: Cross-Validation Functions for Polynomial Estimates of Experience Proﬁle, College-
+Educated Women
+To illustrate, in Figure 20.5 we plot the cross-validation functions for the polynomial regression es-
+timates from Figure 20.1. The lowest point marks the polynomial order which minimizes the cross-
+validation function. In panel (a) we plot the CV function for the sub-sample of white women. Here we
+see that the CV-selected order is p = 3, a cubic polynomial. In panel (b) we plot the CV function for the
+sub-sample of Black women, and ﬁnd that the CV-selected order isp = 2, a quadratic. As expected from
+visual examination of Figure 20.1, the selected model is more parsimonious for panel (b), most likely be-
+cause it has a substantially smaller sample size. What may be surprising is that even for panel (a), which
+has a large sample and smooth estimates, the CV-selected model is still relatively parsimonious.
+A user who desires a reduced bias estimator might increase the polynomial orders to p = 4 or even
+p = 5 for the subsample of white women and to p = 3 or p = 4 for the subsample of Black women. Both
+CV functions are relatively similar across these values.
+20.18 Variance and Standard Error Estimation
+The exact conditional variance of the least squares estimator ˆβK under independent sampling is
+V ˆβ =
+(
+X ′
+K X K
+)−1
+(
+n∑
+i =1
+XK i X ′
+K iσ2 (Xi )
+)
+(
+X ′
+K X K
+)−1 . (20.31)
+The exact conditional variance for the conditional mean estimator ˆmK (x) = XK (x)′ ˆβK is
+VK (x) = XK (x)′ (
+X ′
+K X K
+)−1
+(
+n∑
+i =1
+XK i X ′
+K iσ2 (Xi )
+)
+(
+X ′
+K X K
+)−1 XK (x).
+Using the notation of Section 20.7 this equals
+1
+n2
+n∑
+i =1
+ˆwK (x, Xi )2σ2 (Xi ).
+
+
+--- page 20 ---
+
+CHAPTER 20. SERIES REGRESSION 719
+In the case of conditional homoskedasticity the latter simpliﬁes to
+1
+n ˆwK (x, x)σ2 ≃ 1
+n ζK (x)2σ2.
+where ζK (x) is the normalized regressor length deﬁned in (20.15). Under conditional heteroskedasticty,
+large samples, and K large (so that ˆwK (x, Xi ) is a local kernel) it approximately equals
+1
+n wK (x, x)σ2(x) = 1
+n ζK (x)2σ2(x).
+In either case we ﬁnd that the variance is approximately
+VK (x) ≃ 1
+n ζK (x)2σ2(x).
+This shows that the variance of the series regression estimator is a scale of ζK (x)2 and the conditional
+variance. From the plot of ζK (x) shown in Figure 20.4 we can deduce that the series regression estimator
+will be relatively imprecise at the boundary of the support of X .
+The estimator of (20.31) recommended by Andrews (1991a) is the HC3 estimator
+ˆV ˆβ =
+(
+X ′
+K X K
+)−1
+(
+n∑
+i =1
+XK i X ′
+K i ˜e2
+K i
+)
+(
+X ′
+K X K
+)−1 (20.32)
+where ˜eK i is the leave-one-out prediction error (20.29). Alternatives include the HC1 or HC2 estimators.
+Given (20.32) a variance estimator for ˆmK (x) = XK (x)′ ˆβK is
+ˆVK (x) = XK (x)′ (
+X ′
+K X K
+)−1
+(
+n∑
+i =1
+XK i X ′
+K i ˜e2
+K i
+)
+(
+X ′
+K X K
+)−1 XK (x). (20.33)
+A standard error for ˆm(x) is its square root.
+20.19 Clustered Observations
+Clustered observations are (Yi g, Xi g) for individuals i = 1, ...,ng in cluster g = 1, ...,G. The model is
+Yi g = m
+(
+Xi g
+)
++ ei g
+E
+[
+ei g |X g
+]
+= 0
+where X g is the stacked Xi g. Stack Yi g and ei g into cluster-level variables Y g and e g .
+The series regression model using cluster-level notation is Y g = X g βK + eK g. We can write the series
+estimator as
+ˆβK =
+(
+G∑
+g =1
+X ′
+g X g
+)−1 (
+G∑
+g =1
+X ′
+g Y g
+)
+.
+The cluster-level residual vector is ˆe g = Y g − X g ˆβK .
+As for parametric regression with clustered observations the standard assumption is that the clusters
+are mutually independent but dependence within each cluster is unstructured. We therefore use the
+same variance formulae as used for parametric regression. The standard estimator is
+ˆV
+CR1
+ˆβ =
+( G
+G − 1
+) (
+X ′
+K X K
+)−1
+(
+G∑
+g =1
+X ′
+g ˆe g ˆe′
+g X g
+)
+(
+X ′
+K X K
+)−1 .
+
+
+--- page 21 ---
+
+CHAPTER 20. SERIES REGRESSION 720
+An alternative is to use the delete-cluster prediction error ˜e g = Y g − X g ˜βK ,−g where
+˜βK ,−g =
+(
+∑
+j ̸=g
+X ′
+j X j
+)−1 (
+∑
+j ̸=g
+X ′
+j Y j
+)
+leading to the estimator
+ˆV
+CR3
+ˆβ =
+(
+X ′
+K X K
+)−1
+(
+G∑
+g =1
+X ′
+g ˜e g ˜e′
+g X g
+)
+(
+X ′
+K X K
+)−1 .
+There is no current theory on how to select the number of series terms K for clustered observations.
+A reasonable choice is to minimize the delete-cluster cross-validation criterion CV(K ) = ∑G
+g =1 ˜e′
+g ˜e g .
+20.20 Conﬁdence Bands
+When displaying nonparametric estimators such as ˆmK (x) it is customary to display conﬁdence in-
+tervals. An asymptotic pointwise 95% conﬁdence interval for m(x) is ˆmK (x) ± 1.96 ˆV 1/2
+K (x). These conﬁ-
+dence intervals can be plotted along with ˆmK (x).
+To illustrate, Figure 20.6 plots polynomial estimates of the regression of log(wage) on experience using
+the selected estimates from Figure 20.1, plus 95% conﬁdence bands. Panel (a) plots the estimate for the
+subsample of white women using p = 5. Panel (b) plots the estimate for the subsample of Black women
+using p = 3. The standard errors are calculated using the formula (20.33). You can see that the conﬁdence
+bands widen at the boundaries. The conﬁdence bands are tight for the larger subsample of white women,
+and signiﬁcantly wider for the smaller subsample of Black women. Regardless, both plots indicate that
+the average wage rises for experience levels up to about 20 years and then ﬂattens for experience levels
+above 20 years.
+0 10 20 30 40
+2.4 2.6 2.8 3.0 3.2
+Labor Market Experience (Y ears)
+Log Dollars per Hour
+(a) White Women
+0 10 20 30 40
+2.4 2.6 2.8 3.0 3.2
+Labor Market Experience (Y ears)
+Log Dollars per Hour (b) Black Women
+Figure 20.6: Polynomial Estimates with 95% Conﬁdence Bands, College-Educated Women
+There are two deﬁciencies with these conﬁdence bands. First, they do not take into account the
+bias rK (x) of the series estimator. Consequently, we should interpret the conﬁdence bounds as valid for
+the pseudo-true regression (the best ﬁnite K approximation) rather than the true regression function
+
+
+--- page 22 ---
+
+CHAPTER 20. SERIES REGRESSION 721
+m(x). Second, the above conﬁdence intervals are based on a pointwise (in x) asymptotic distribution
+theory. Consequently we should interpret their coverage as having pointwise validity and be cautious
+about interpreting global shapes from the conﬁdence bands.
+20.21 Uniform Approximations
+Since ˆmK (x) is a function it is desirable to have a distribution theory which applies to the entire
+function, not just the estimator at a point. This can be used, for example, to construct conﬁdence bands
+with uniform (in x) coverage properties.
+For those familiar with empirical process theory, it might be hoped that the stochastic process
+ηK (x) =
+pn ( ˆmK (x) − m(x))
+V 1/2
+K (x)
+might converge to a stochastic (Gaussian) process, but this is not the case. Effectively, the process ηK (x)
+is not stochastically equicontinuous so conventional empirical process theory does not apply.
+To develop a uniform theory, Belloni, Chernozhukov, Chetverikov, and Kato (2015) have introduced
+what are known as strong approximations. Their method shows that ηK (x) is equal in distribution to a
+sequence of Gaussian processes plus a negligible error. Their theory (Theorem 4.4) takes the following
+form. Under stronger conditions than Assumption 20.2
+ηK (x) =d
+XK (x)′ (
+Q −1
+K ΩK Q −1
+K
+)1/2
+V 1/2
+K (x)
+GK + op(1)
+uniformly in x, where “=d ” means “equality in distribution” and GK ∼ N(0, I K ).
+This shows the distributional result in Theorem 20.10 can be interpreted as holding uniformly in x.
+It can also be used to develop conﬁdence bands (different from those from the previous section) with
+asymptotic uniform coverage.
+20.22 Partially Linear Model
+A common use of a series regression is to allowm(x) to be nonparametric with respect to one variable
+yet linear in the other variables. This allows ﬂexibility in a particular variable of interest. A partially linear
+model with vector-valued regressor X1 and real-valued continuous X2 takes the form
+m (x1, x2) = x′
+1β1 + m2(x2).
+This model is common when X1 are discrete (e.g. binary) and X2 is continuously distributed.
+Series methods are convenient for partially linear models as we can replace the unknown function
+m2(x2) with a series expansion to obtain
+m (X ) ≃ mK (X ) = X ′
+1β1 + X2K (X2)′β2K = X ′
+K βK
+where X2K = X2K (x2) are basis transformations of x2 (typically polynomials or splines). After transfor-
+mation the regressors are XK = (X ′
+1, X ′
+2K ) with coefﬁcientsβK = (β′
+1, β′
+2K )′.
+
+
+--- page 23 ---
+
+CHAPTER 20. SERIES REGRESSION 722
+20.23 Panel Fixed Effects
+The one-way error components nonparametric regression model is
+Yi t = m(Xi t) + ui + εi t
+for i = 1, ...,N and t = 1, ...,T . It is standard to treat the individual effect ui as a ﬁxed effect. This model
+can be interpreted as a special case of the partially linear model from the previous section though the
+dimension of ui is increasing with N .
+A series estimator approximates the function m(x) with mK (x) = XK (x)′βK as in (20.4). This leads to
+the series regression model Yi t = X ′
+K i tβK + ui + εK i t where XK i t = XK (Xi t).
+The ﬁxed effects estimator is the same as in linear panel data regression. First, the within transfor-
+mation is applied to Yi t and to the elements of the basis transformations XK i t. These are ˙Yi t = Yi t − Y i
+and ˙XK i t = XK i t − X K i t. The transformed regression equation is ˙Yi t = ˙X ′
+K i tβK + ˙εK i t. What is important
+about the within transformation for the regressors is that it is applied to the transformed variables ˙XK i t
+not the original regressor Xi t. For example, in a polynomial regression the within transformation is ap-
+plied to the powers X j
+i t. It is inappropriate to apply the within transformation to Xi t and then construct
+the basis transformations.
+The coefﬁcient is estimated by least squares on the within transformed variables
+ˆβK =
+(
+n∑
+i =1
+T∑
+t =1
+˙XK i t ˙X ′
+K i t
+)−1 (
+n∑
+i =1
+T∑
+t =1
+˙XK i t ˙Yi t
+)
+.
+Variance estimators should be calculated using the clustered variance formulas, clustered at the level of
+the individual i , as described in Section 20.19.
+For selection of the number of series terms K there is no current theory. A reasonable method is to
+use delete-cluster cross-validation as described in Section 20.19.
+20.24 Multiple Regressors
+Suppose X ∈ Rd is vector-valued and continuously distributed. A multivariate series approximation
+can be obtained as follows. Construct a set of basis transformations for each variable separately. Take
+their tensor cross-products. Use these as regressors. For example, a p t h-order polynomial is
+mK (x) = β0 +
+p∑
+j1=1
+· · ·
+p∑
+jd =1
+x j1
+1 · · ·x jd
+d βj1,...,jd K .
+This includes all powers and cross-products. The coefﬁcient vector has dimensionK = 1 + pd .
+The inclusion of cross-products greatly increases the number of coefﬁcients relative to the univariate
+case. Consequently series applications with multiple regressors typically require large sample sizes.
+20.25 Additively Separable Models
+As discussed in the previous section, when X ∈ Rd a full series expansion requires a large number of
+coefﬁcients, which means that estimation precision will be low unless the sample size is quite large. A
+common simpliﬁcation is to treat the regression functionm (x) as additively separable in the individual
+regressors. This means that
+m (x) = m1 (x1) + m2 (x2) + · · · +md (xd ).
+
+
+--- page 24 ---
+
+CHAPTER 20. SERIES REGRESSION 723
+We then apply series expansions (polynomials or splines) separately for each component m j
+(
+x j
+)
+.
+Essentially, this is the same as the expansions discussed in the previous section but omitting the interac-
+tion terms.
+The advantage of additive separability is the reduction in dimensionality. While an unconstrained
+p t h order polynomial has 1 + pd coefﬁcients, an additively separable polynomial model has only 1+ d p
+coefﬁcients. This is a major reduction.
+The disadvantage of additive separability is that the interaction effects have been eliminated. This is
+a substantive restriction on m (x).
+The decision to impose additive separability can be based on an economic model which suggests the
+absence of interaction effects, or can be a model selection decision similar to the selection of the number
+of series terms.
+20.26 Nonparametric Instrumental Variables Regression
+The basic nonparametric instrumental variables (NPIV) model takes the form
+Y = m(X ) + e (20.34)
+E[e |Z ] = 0
+where Y , X and Z are real valued. Here, Z is an instrumental variable and X an endogenous regressor.
+In recent years there have been many papers in the econometrics literature examining the NPIV
+model, exploring identiﬁcation, estimation, and inference. Many of these papers are mathematically ad-
+vanced. Two important and accessible contributions are Newey and Powell (2003) and Horowitz (2011).
+Here we describe some of the primary results.
+A series estimator approximates the function m(x) with mK (x) = XK (x)′βK as in (20.4). This leads to
+the series structural equation
+Y = X ′
+K βK + eK (20.35)
+where XK = XK (X ). For example, if a polynomial basis is used then XK = (1, X ,..., X K −1).
+Since X is endogenous so is the entire vector XK . Thus we need at least K instrumental varibles. It is
+useful to consider the reduced form equation for X . A nonparametric speciﬁcation is
+X = g (Z ) + u
+E[u |Z ] = 0.
+We can appropriate g (z) by the series expansion
+g (z) ≃ gL(z) = ZL(z)′γL
+where ZL(z) is an L × 1 vector of basis transformations and γL is an L × 1 coefﬁcient vector. For example,
+if a polynomial basis is used then ZL(z) = (1, z, ...,zL−1). Most of the literature for simplicity focuses on
+the case L = K , but this is not essential to the method.
+If L ≥ K we can then use ZL = ZL(Z ) as instruments for XK . The 2SLS estimator ˆβK ,L of βK is
+ˆβK ,L =
+(
+X ′
+K Z L
+(
+Z ′
+L Z L
+)−1 Z ′
+L X K
+)−1 (
+X ′
+K Z L
+(
+Z ′
+L Z L
+)−1 Z ′
+LY
+)
+.
+The estimator ofm(x) is ˆmK (x) = XK (x)′ ˆβK ,L. If L > K the linear GMM estimator can be similarly deﬁned.
+
+
+--- page 25 ---
+
+CHAPTER 20. SERIES REGRESSION 724
+One way to think about the choice of instruments is to realize that we are actually estimating reduced
+form equations for each element of XK . The reduced form system is
+XK = Γ′
+K ZL + uK
+ΓK = E
+[
+ZL Z ′
+L
+]−1 E
+[
+ZL X ′
+K
+]
+.
+For example, suppose we use a polynomial basis withK = L = 3. Then the reduced form system (ignoring
+intercepts) is 
+
+X
+X 2
+X 3
+
+ =
+
+
+Γ11 Γ21 Γ31
+Γ12 Γ22 Γ32
+Γ13 Γ13 Γ23
+
+
+
+
+Z
+Z 2
+Z 3
+
+ +
+
+
+u1
+u2
+u3
+
+. (20.36)
+This is modeling the conditional mean of X , X 2 and X 3 as linear functions of Z , Z 2 and Z 3.
+To understand if the coefﬁcientβK is identiﬁed it is useful to consider the simple reduced form equa-
+tion X = γ0 + γ1Z + u. Assume that γ1 ̸= 0 so that the equation is strongly identiﬁed and assume for sim-
+plicity that u is independent of Z with mean zero and variance σ2
+u. The identiﬁcation properties of the
+reduced form are invariant to rescaling and recentering X and Z so without loss of generality we can set
+γ0 = 0 and γ1 = 1. Then we can calculate that the coefﬁcient matrix in (20.36) is
+
+
+Γ11 Γ21 Γ31
+Γ12 Γ22 Γ32
+Γ13 Γ13 Γ23
+
+ =
+
+
+1 0 0
+0 1 0
+3σ2
+u 0 1
+
+.
+Notice that this is lower triangular and full rank. It turns out that this property holds for any values of
+K = L so the coefﬁcient matrix in (20.36) is full rank for any choice of K = L. This means that identi-
+ﬁcation of the coefﬁcientβK is strong if the reduced form equation for X is strong. Thus to check the
+identiﬁcation condition forβK it is sufﬁcient to check the reduced form equation for X . A critically im-
+portant caveat, however, as discussed in the following section, is that identiﬁcation ofβK does not mean
+that the structural function m(x) is identiﬁed.
+A simple method for pointwise inference is to use conventional methods to estimateVK ,L = var
+[ˆβK ,L
+]
+and then estimate var [ ˆmK (x)] by XK (x)′ ˆVK ,L XK (x) as in series regression. Bootstrap methods are typi-
+cally advocated to achieve better coverage. See Horowitz (2011) for details. For state-of-the-art inference
+methods see Chen and Pouzo (2015) and Chen and Christensen (2018).
+20.27 NPIV Identiﬁcation
+In the previous section we discussed identication of the pseudo-true coefﬁcient βK . In this section
+we discuss identiﬁcation of the structural functionm(x). This is considerably more challenging.
+To understand how the function m(x) is determined, apply the expectation operator E[· |Z = z] to
+(20.34). We ﬁnd
+E[Y |Z = z] = E[m(X ) |Z = z]
+with the remainder equal to zero because E[e |Z ] = 0. We can write this equation as
+µ(z) =
+∫
+m(x)f (x |z)d x (20.37)
+where µ(z) = E[Y |Z = z] is the conditional mean of Y given Z = z and f (x |z) is the conditional density
+of X given Z . These two functions are identiﬁed 8 from the joint distribution of (Y , X , Z ). This means
+8Technically, ifE |Y |< ∞, the joint density of (Z , X ) exists, and the marginal density of Z is positive.
+
+
+--- page 26 ---
+
+CHAPTER 20. SERIES REGRESSION 725
+that the unknown function m(x) is the solution to the integral equation (20.37). Conceptually, you can
+imagine estimating µ(z) and f (x |z) using standard techniques and then ﬁnding the solution m(x). In
+essence, this is howm(x) is deﬁned and is the nonparametric analog of the classical relationship between
+the structural and reduced forms.
+Unfortunately the solution m(x) may not be unique even in situations where a linear IV model is
+strongly identiﬁed. It is related to what is known as the ill-posed inverse problem. The latter means
+that the solution m(x) is not necessarily a continuous function of µ(z). Identiﬁcation requires restricting
+the class of allowable functions f (x |z). This is analogous to the linear IV model where identiﬁcation re-
+quires restrictions on the reduced form equations. Specifying and understanding the needed restrictions
+is more subtle than in the linear case.
+The function m(x) is identiﬁed if it is the unique solution to (20.37). Equivalently,m(x) is not identi-
+ﬁed if we can replacem(x) in (20.37) with m(x) + δ(x) for some non-trivial function δ(x) yet the solution
+does not change. The latter occurs when
+∫
+δ(x)f (x |z)d x = 0 (20.38)
+for all z. Equivalently, m(x) is identiﬁed if (and only if) (20.38) holds only for the trivial functionδ(x) = 0.
+Newey and Powell (2003) deﬁned this fundamental condition ascompleteness.
+Proposition 20.1 Completeness . m(x) is identiﬁed if (and only if) the com-
+pleteness condition holds: (20.38) for all z implies δ(x) = 0.
+Completeness is a property of the reduced form conditional density f (x |z). It is unaffected by the
+structural equation m(x). This is analogous to the linear IV model where identiﬁcation is a property of
+the reduced form equations, not a property of the structural equation.
+As we stated above, completeness may not be satisﬁed even if the reduced form relationship is strong.
+This may be easiest to see by a constructed example 9. Suppose that the reduced form is X = Z + u,
+var[Z ] = 1, u is independent of Z , and u is distributed U [−1, 1]. This reduced form equation has R2 =
+0.75 so is strong. The reduced form conditional density is f (x |z) = 1/2 on [−1 + z,1 + z]. Consider
+δ(x) = sin(x/π). We calculate that
+∫
+δ(x)f (x |z)d x =
+∫ 1+z
+−1+z
+sin(x/π)d x = 0
+for every z, since sin (x/π) is periodic on intervals of length 2 and integrates to zero over [ −1, 1]. This
+means that equation (20.37) holds10 for m(x) + sin(x/π). Thus m(x) is not identiﬁed. This is despite the
+fact that the reduced form equation is strong.
+While identiﬁcation fails for some conditional distributions f (x |z), it does not fail for all distribu-
+tions. Andrews (2017) provides classes of distributions which satisfy the completeness condition and
+shows that these distribution classes are quite general.
+What does this mean in practice? If completeness fails then the structural equation is not identiﬁed
+and cannot be consistently estimated. Furthermore, by analogy with the weak instruments literature,
+we expect that if the conditional distribution is close to incomplete then the structural equation will be
+9This example was suggested by Joachim Freyberger.
+10In fact, (20.38) holds for m(x) + δ(x) for any function δ(x) which is periodic on intervals of length 2 and integrates to zero
+on [−1, 1].
+
+
+--- page 27 ---
+
+CHAPTER 20. SERIES REGRESSION 726
+poorly identiﬁed and our estimators will be imprecise. Since whether or not the conditional distribution
+is complete is unknown (and more difﬁcult to assess than in the linear model) this is troubling for empir-
+ical research. Effectively, in any given application we do not know whether or not the structural function
+m(x) is identiﬁed.
+A partial answer is provided by Freyberger (2017). He shows that the joint hypothesis of incomplete-
+ness and small asymptotic bias can be tested. By applying the test proposed in Freyberger (2017) a user
+can obtain evidence that their NPIV estimator is well-behaved in the sense of having low bias. Unlike
+Stock and Yogo (2005), however, Freyberger’ s result does not address inference.
+20.28 NPIV Convergence Rate
+As described in Horowitz (2011) the convergence rate of ˆmK (x) for m(x) is
+|ˆmK (x) − m(x)|= Op
+(
+K −s + K r
+(K
+n
+)1/2)
+(20.39)
+where s is the smoothness11 of m(x) and r is the smoothness of the joint density f X Z (x, z) of (X , Z ). The
+ﬁrst termK −s is the bias due to the approximation ofm(x) by mK (x) and takes the same form as for series
+regression. The second term K r (K /n)1/2 is the standard deviation of ˆmK (x). The component (K /n)1/2 is
+the same as for series regression. The extra component K r is due to the ill-posed inverse problem (see
+the previous section).
+From the rate (20.39) we can calculate that the optimal number of series terms is K ∼ n1/(2r +2s+1).
+Given this rate the best possible convergence rate in (20.39) is Op
+(
+n−s/(2r +2s+1))
+. For r > 0 these rates
+are slower than for series regression. If we consider the case s = 2 these rates are K ∼ n1/(2r +5) and
+Op
+(
+n−2/(2r +5))
+, which are slower than the K ∼ n1/5 and Op
+(
+n−2/5)
+rates obtained by series regression.
+A very unusual aspect of the rate (20.39) is that smoothness of f X Z (x, z) adversely affects the conver-
+gence rate. Larger r means a slower rate of convergence. The limiting case as r → ∞ (for example, joint
+normality of X and Z ) results in a logarithmic convergence rate. This seems very strange. The reason
+is that when the density f X Z (x, z) is very smooth the data contain little information about the function
+m(x). This is not intuitive and requires a deeper mathematical treatment.
+A practical implication of the convergence rate (20.39) is that the number of series terms K should
+be much smaller than for regression estimation. Estimation variance increases quickly as K increases.
+Therefore K should not be taken to be too large. In practice, however, it is unclear how to select the series
+order K as standard cross-validation methods do not apply.
+20.29 Nonparametric vs Parametric Identiﬁcation
+One of the insights from the nonparametric identiﬁcation literature is that it is important to under-
+stand which features of a model are nonparametrically identiﬁed, meaning which are identiﬁed with-
+out functional form assumptions, and which are only identiﬁed based on functional form assumptions.
+Since functional form assumptions are dubious in most economic applications the strong implication is
+that researchers should strive to work only with models which are nonparametrically identiﬁed.
+Even if a model is determined to be nonparametrically identiﬁed a researcher may estimate a linear
+(or another simple parametric) model. This is valid because it can be viewed as an approximation to the
+nonparametric structure. If, however, the model is identiﬁed only under a parametric assumption, then
+it cannot be viewed as an approximation and it is unclear how to interpret the model more broadly.
+11The number of bounded derivatives.
+
+
+--- page 28 ---
+
+CHAPTER 20. SERIES REGRESSION 727
+For example, in the regression model Y = m(X ) + e with E[e |X ] = 0 the conditional mean is non-
+parametrically identiﬁed by Theorem 2.14. This means that researchers who estimate linear regressions
+(or other low-dimensional regressions) can interpret their estimated model as an approximation to the
+underlying conditional mean function.
+As another example, in the NPIV model where E[e |Z ] = 0 the structural function m(x) is identiﬁed
+under the completeness condition. This means that researchers who estimate linear 2SLS regressions
+can interpret their estimated model as an approximation to m(x) (subject to the caveat that it is difﬁcult
+to know if completeness holds).
+But the analysis can also point out simple yet subtle mistakes. Take the simple IV model with one
+exogenous regressor X1 and one endogenous regressor X2
+Y = β0 + β1X1 + β2X2 + e (20.40)
+E[e |X1] = 0
+with no additional instruments. Suppose that an enterprising researcher suggests using the instrument
+X 2
+1 for X2, using the reasoning that the assumptions imply that E
+[
+X 2
+1 e
+]
+= 0 so X 2
+1 is a valid instrument.
+The trouble is that the basic model is not nonparametrically identiﬁed. If we write (20.40) as a partially
+linear nonparametric IV problem
+Y = m(X1) + β2X2 + e (20.41)
+E[e |X1] = 0
+then we can see that this model is not identiﬁed. We need a valid excluded instrument Z . Since (20.41)
+is not identiﬁed, then (20.40) cannot be viewed as a valid approximation. The apparent identiﬁcation of
+(20.40) critically rests on the unknown truth of the linearity in (20.40).
+The point of this example is that (20.40) should never be estimated by 2SLS using the instrument X 2
+1
+for X2, fundamentally because the nonparametric model (20.41) is not identiﬁed.
+Another way to describe the mistake is to observe that X 2
+1 is a valid instrument in (20.40) only if it
+is a valid exclusion restriction from the structural equation (20.40). Viewed in the context of (20.41) we
+can see that this is a functional form restriction. As stated above, identiﬁcation based on functional form
+restrictions alone is highly undesirable since functional form assumptions are dubious.
+20.30 Example: Angrist and Lavy (1999)
+To illustrate nonparametric instrumental variables in practice we follow Horowitz (2011) by extend-
+ing the empirical work reported in Angrist and Lavy (1999). Their paper is concerned with measuring the
+causal effect of the number of students in an elementary school classroom on academic achievement.
+They address this using a sample of 4067 Israeli 4 t h and 5t h grade classrooms. The dependent variable
+is the classroom average score on an achievement test. Here we consider the reading score avgverb. The
+explanatory variables are the number of students in the classroom (classize ), the number of students
+in the grade at the school (enrollment ), and a school-level index of students’ socioeconomic status that
+the authors call percent disadvantaged. The variables enrollment and disadvantaged are treated as ex-
+ogenous but classize is treated as endogenous since wealthier schools may be able to offer smaller class
+sizes.
+The authors suggest the following instrumental variable for classsize. Israeli regulations specify that
+class sizes must be capped at 40. This means that classize should be perfectly predictable from enroll-
+ment. If the regulation is followed a school with up to 40 students will have one classroom in the grade
+
+
+--- page 29 ---
+
+CHAPTER 20. SERIES REGRESSION 728
+and schools with 41-80 students will have two classrooms. The precise prediction is that classsize equals
+p = enrollment
+1 + ⌊1− enrollment/40⌋ (20.42)
+where ⌊a⌋ is the integer part of a. Angrist and Lavy use p as an instrumental variable for classize.
+They estimate several speciﬁcations. We focus on equation (6) from their Table VII which speciﬁes
+avgverb as a linear function of classize, disadvantaged, enrollment, grade4, and the interaction of classize
+and disadvantaged, where grade4 is a dummy indicator for 4 t h grade classrooms. The equation is esti-
+mated by instrumental variables, using p and p×disadvantaged as instruments. The observations are
+treated as clustered at the level of the school. Their estimates show a negative and statistically signiﬁcant
+impact of classsize on reading test scores.
+We are interested in a nonparametric version of their equation. To keep the speciﬁcation reasonably
+parsimonious yet ﬂexible we use the following equation.
+avgverb = β1
+(classize
+40
+)
++ β2
+(classize
+40
+)2
++ β3
+(classize
+40
+)3
++ β4
+(disadvantaged
+14
+)
++ β5
+(disadvantaged
+14
+)2
++ β6
+(disadvantaged
+14
+)3
++ β7
+(classize
+40
+) (disadvantaged
+14
+)
++ β8enrollment + β9grade4 + β10 + e.
+This is a cubic equation inclassize and disadvantaged, with a single interaction term, and linear inenroll-
+ment and grade4. The cubic indisadvantaged was selected by a delete-cluster cross-validation regression
+without classize. The cubic in classize was selected to allow for a minimal degree of nonparametric ﬂexi-
+bility without overparameterization. The variables classize and disadvantaged were scaled by 40 and 14,
+respectively, so that the regression is well conditioned. The scaling for classize was selected so that the
+variable essentially falls in [0,1] and the scaling for disadvantaged was selected so that its mean is 1.
+The equation is estimated by 2SLS using ( p/40), ( p/40)2, ( p/40)3 and (p/40) × (disadvantaged/14)
+as instruments for the four variables involving classize. The parameter estimates are reported in Table
+20.1. The standard errors are clustered at the level of the school. Most of the individual coefﬁcients do
+not have interpretable meaning except the positive coefﬁcient on enrollment shows that larger schools
+achieve slightly higher testscores, and the negative coefﬁcient on grade4 shows that 4t h grade students
+have somewhat lower testscores than 5t h grade students.
+To obtain a better interpretation of the results we display the estimated regression functions in Figure
+20.7. Panel (a) displays the estimated effect of classize on reading test scores. Panel (b) displays the
+estimated effect of disadvantaged. In both ﬁgures the other variables are set at their sample means12.
+In panel (a) we can see that increasing class size decreases the average test score. This is consistent
+with the results from the linear model estimated by Angrist and Lavy (1999). The estimated effect is
+remarkably close to linear.
+In panel (b) we can see that increasing the percentage of disadvantaged students greatly decreases
+the average test score. This effect is substantially greater in magnitude than the effect of classsize. The
+effect also appears to be nonlinear. The effect is precisely estimated with tight pointwise conﬁdence
+bands.
+We can also use the estimated model for hypothesis testing. The question addressed by Angrist and
+Lavy was whether or not classsize has an effect on test scores. Within the nonparametric model esti-
+mated here this hypothesis holds under the linear restriction H0 : β1 = β2 = β3 = β7 = 0. Examining the
+individual coefﬁcient estimates and standard errors it is unclear if this is a signiﬁcant effect as none of
+12If they are set at other values it does not change the qualitative nature of the plots.
+
+
+--- page 30 ---
+
+CHAPTER 20. SERIES REGRESSION 729
+Table 20.1: Nonparametric Instrumental Variable Regression for Reading Test Score
+classize/40 34.2
+(33.4)
+(classize/40)2 −61.2
+(53.0)
+(classize/40)3 29.0
+(26.8)
+disadvantaged/14 −12.4
+(1.7)
+(disadvantaged/14)2 3.33
+(0.54)
+(disadvantaged/14)3 −0.377
+(0.078)
+(classize/40)(disadvantaged/14) 0.81
+(1.77)
+enrollment 0.015
+(0.007)
+grade 4 −1.96
+(0.16)
+Intercept 77.0
+(6.9)
+these four coefﬁcient estimates is statistically different from zero. This hypothesis is better tested by a
+Wald test (using cluster-robust variance estimates). This statistic is 12.7 which has an asymptotic p-value
+of 0.013. This suppports the hypothesis that class size has a negative effect on student performance.
+We can also use the model to quantify the impact of class size on test scores. Consider the impact of
+increasing a class from 20 to 40 students. In the above model the predicted impact on test scores is
+θ = 1
+2 β1 + 3
+4 β2 + 7
+8 β3 + 1
+2 β4.
+This is a linear function of the coefﬁcients. The point estimate is ˆθ = −2.96 with a standard error of 1.21.
+(The point estimate is identical to the difference between the endpoints of the estimated function shown
+in panel (a).) This is a small but substantive impact.
+20.31 Technical Proofs*
+Proof of Theorem 20.4. We provide a proof under the stronger assumption ζ2
+K K /n → 0. (The proof
+presented by Belloni, Chernozhukov, Chetverikov, and Kato (2015) requires a more advanced treatment.)
+Let ∥A∥F denote the Frobenius norm (see Section A.23), and write the j t h element of ˜XK i as ˜X j K i. Using
+(A.18),
+ ˜QK − I K
+
+2
+≤
+
+ ˜QK − I K
+
+2
+F =
+K∑
+j =1
+K∑
+ℓ=1
+(
+1
+n
+n∑
+i =1
+(˜X j K i ˜XℓK i − E
+[˜X j K i ˜XℓK i
+])
+)2
+.
+
+
+--- page 31 ---
+
+CHAPTER 20. SERIES REGRESSION 730
+20 25 30 35 40
+65 70 75 80
+Class Size
+Reading Test Score
+(a) Effect of Classize
+0 10 20 30 40 50
+65 70 75 80
+Percentage Disadvantaged
+Reading Test Score (b) Effect of Percent Disadvantaged
+Figure 20.7: Nonparametric Instrumental Variables Estimates of the Effect of Classize and Disadvantaged
+on Reading Test Scores
+Then
+E
+[ ˜QK − I K
+
+2]
+≤
+K∑
+j =1
+K∑
+ℓ=1
+var
+[
+1
+n
+n∑
+i =1
+˜X j K i ˜XℓK i
+]
+= 1
+n
+K∑
+j =1
+K∑
+ℓ=1
+var
+[˜X j K i ˜XℓK i
+]
+≤ 1
+n E
+[
+K∑
+j =1
+˜X 2
+j K i
+K∑
+ℓ=1
+˜X 2
+ℓK i
+]
+= 1
+n E
+[(˜X ′
+K i ˜XK i
+)2]
+≤
+ζ2
+K
+n E
+[˜X ′
+K i ˜XK i
+]
+=
+ζ2
+K K
+n → 0
+where ﬁnal lines use (20.17),E
+[˜X ′
+K i ˜XK i
+]
+= K , and ζ2
+K K /n → 0. Markov’ s inequality implies (20.19). ■
+Proof of Theorem 20.5. By the spectral decomposition we can write ˜QK = H ′ΛH where H ′H = I K and
+Λ = diag(λ1, ...,λK ) are the eigenvalues. Then
+ ˜QK − I K
+
+ =
+
+H ′ (Λ − I K ) H
+
+ = ∥Λ − I K ∥ = max
+j ≤K
+⏐
+⏐λj − 1
+⏐
+⏐ − →p 0
+
+
+--- page 32 ---
+
+CHAPTER 20. SERIES REGRESSION 731
+by Theorem 20.4. This implies min
+j ≤K
+⏐⏐λj
+⏐
+⏐ − →p 1 which is (20.21). Similarly
+
+ ˜Q
+−1
+K − I K
+
+ =
+
+H ′ (
+Λ−1 − I K
+)
+H
+
+
+=
+
+Λ−1 − I K
+
+
+= max
+j ≤K
+⏐
+⏐
+⏐λ−1
+j − 1
+⏐
+⏐
+⏐
+≤
+maxj ≤K
+⏐
+⏐1 − λj
+⏐
+⏐
+minj ≤K
+⏐
+⏐λj
+⏐
+⏐ − →p 0.
+■
+Proof of Theorem 20.6. Using (20.12) we can write
+ˆmK (x) − m(x) = XK (x)′ (ˆβK − βK
+)
+− rK (x). (20.43)
+Since eK = rK + e is a projection error it satisﬁes E[XK eK ] = 0. Since e is a regression error it satisﬁes
+E[XK e] = 0. We deduce E[XK rK ] = 0. Hence
+∫
+XK (x)rK (x)f (x)d x = E[XK rK ] = 0. Also observe that∫
+XK (x)XK (x)′dF (x) = QK and
+∫
+rK (x)2dF (x) = E
+[
+r 2
+K
+]
+= δ2
+K . Then
+ISE(K ) =
+∫ (
+XK (x)′ (ˆβK − βK
+)
+− rK (x)
+)2
+dF (x)
+=
+(ˆβK − βK
+)′
+(∫
+XK (x)XK (x)′dF (x)
+) (ˆβK − βK
+)
+− 2
+(ˆβK − βK
+)′
+(∫
+XK (x)rK (x)dF (x)
+)
++
+∫
+rK (x)2dF (x)
+=
+(ˆβK − βK
+)′
+QK
+(ˆβK − βK
+)
++ δ2
+K . (20.44)
+We calculate that
+(ˆβK − βK
+)′
+QK
+(ˆβK − βK
+)
+=
+(
+e′
+K X K
+) (
+X ′
+K X K
+)−1 QK
+(
+X ′
+K X K
+)−1 (
+X ′
+K eK
+)
+=
+(
+e′
+K ˜X K
+)(
+˜X
+′
+K ˜X K
+)−1 (
+˜X
+′
+K ˜X K
+)−1 (
+˜X
+′
+K eK
+)
+= n−2 (
+e′
+K ˜X K
+) ˜Q
+−1
+K ˜Q
+−1
+K
+(
+˜X
+′
+K eK
+)
+≤
+(
+λmax
+(
+˜Q
+−1
+K
+))2 (
+n−2e′
+K ˜X K ˜X
+′
+K eK
+)
+≤ Op(1)
+(
+n−2e′
+K X K Q −1
+K X ′
+K eK
+)
+(20.45)
+where ˜X K and ˜QK are the orthogonalized regressors as deﬁned in (20.18). The ﬁrst inequality is the
+Quadratic Inequality (B.18), the second is (20.21).
+Using the fact that XK eK are mean zero and uncorrelated, (20.17), E
+[
+e2
+K
+]
+≤ E
+[
+Y 2]
+< ∞, and Assump-
+tion 20.1.2,
+E
+[
+n−2e′
+K X K Q −1
+K X ′
+K eK
+]
+= n−1E
+[
+X ′
+K Q −1
+K XK e2
+K
+]
+(20.46)
+≤
+ζ2
+K
+n E
+[
+e2
+K
+]
+≤ o(1).
+This shows that (20.45) is op(1). Combined with (20.44) we ﬁnd ISE(K) = op(1) as claimed. ■
+
+
+--- page 33 ---
+
+CHAPTER 20. SERIES REGRESSION 732
+Proof of Theorem 20.7. The assumption σ2 (x) ≤ σ2 implies that
+E
+[
+e2
+K |X
+]
+= E
+[
+(rK + e)2 |X
+]
+= r 2
+K + σ2(X ) ≤ r 2
+K + σ2.
+Thus (20.46) is bounded by
+n−1E
+[
+X ′
+K Q −1
+K XK r 2
+K
+]
++ n−1E
+[
+X ′
+K Q −1
+K XK
+]
+σ2 ≤
+ζ2
+K
+n E
+[
+r 2
+K
+]
++ n−1E
+[
+tr
+(
+Q −1
+K XK X ′
+K
+)]
+σ2
+=
+ζ2
+K
+n δ2
+K + n−1 tr(I K )
+σ2
+≤ o
+(
+δ2
+K
+)
++ K
+n σ2
+where the inequality is Assumption 20.1.2. This implies (20.45) is op
+(
+δ2
+K
+)
++ Op (K /n). Combined with
+(20.44) we ﬁnd ISE(K) = Op
+(
+δ2
+K + K /n
+)
+as claimed. ■
+Proof of Theorem 20.8. Using (20.12) and linearity
+θ = a (m) = a
+(
+ZK (x)′βK
+)
++ a (rK ) = a′
+K βK + a (rK ).
+Thus
+√
+n
+VK
+(ˆθK − θ + a (rK )
+)
+=
+√ n
+VK
+a′
+K
+(ˆβK − βK
+)
+=
+√
+1
+nVK
+a′
+K ˆQ
+−1
+K X ′
+K eK
+= 1pnVK
+a′
+K Q −1
+K X ′
+K e (20.47)
++ 1
+pnVK
+a′
+K
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+X ′
+K e (20.48)
++ 1
+pnVK
+a′
+K ˆQ
+−1
+K X ′
+K r K (20.49)
+where we have used eK = e + r K . We take the terms in (20.47)-(20.49) separately. We show that (20.47) is
+asymptotically normal and (20.48)-(20.49) are asymptotically negligible.
+First, take (20.47). We can write
+1pnVK
+a′
+K Q −1
+K X ′
+K e = 1
+pn
+n∑
+i =1
+1pVK
+a′
+K Q −1
+K XK iei . (20.50)
+Observe that a′
+K Q −1
+K XK iei /p
+VK are independent across i , mean zero, and have variance 1. We will apply
+Theorem 6.4, for which it is sufﬁcient to verify Lindeberg’ s condition: For allϵ > 0
+E
+[ (
+a′
+K Q −1
+K XK e
+)2
+VK
+1
+{ (
+a′
+K Q −1
+K XK e
+)2
+VK
+≥ nϵ
+}]
+→ 0. (20.51)
+Pick η > 0. Set B sufﬁciently large so that E
+[
+e21
+{
+e2 > B
+}
+|X
+]
+≤ σ2η which is feasible by Assumption
+20.2.1. Pick n sufﬁciently large so thatζ2
+K /n ≤ ϵσ2/B, which is feasible under Assumption 20.1.2.
+
+
+--- page 34 ---
+
+CHAPTER 20. SERIES REGRESSION 733
+By Assumption 20.2.2
+VK = E
+[(
+a′
+K Q −1
+K XK
+)2
+e2
+]
+= E
+[(
+a′
+K Q −1
+K XK
+)2
+σ(X 2)
+]
+≥ E
+[(
+a′
+K Q −1
+K XK
+)2
+σ2
+]
+= a′
+K Q −1
+K E
+[
+XK X ′
+K
+]
+Q −1
+K aK σ
+2
+= a′
+K Q −1
+K aK σ
+2. (20.52)
+Then by the Schwarz Inequality, (20.17), (20.52), and ζ2
+K /n ≤ ϵσ
+2/B
+(
+a′
+K Q −1
+K XK
+)2
+VK
+≤
+(
+a′
+K Q −1
+K aK
+) (
+X ′
+K Q −1
+K XK
+)
+VK
+≤
+ζ2
+K
+σ2 ≤ ϵ
+B n.
+Then the left-side of (20.51) is smaller than
+E
+[ (
+a′
+K Q −1
+K XK
+)2
+VK
+e21
+{
+e2 ≥ B
+}
+]
+= E
+[ (
+a′
+K Q −1
+K XK
+)2
+VK
+E
+[
+e21
+{
+e2 ≥ B
+}
+|X
+]
+]
+≤ E
+[ (
+a′
+K Q −1
+K XK
+)2
+VK
+]
+σ2η
+≤
+a′
+K Q −1
+K aK
+VK
+σ2η ≤ η
+the ﬁnal inequality by (20.52). Sinceη is arbitrary this veriﬁes (20.51) and we conclude
+1pnVK
+a′
+K Q −1
+K X ′
+K e − →
+d
+N(0, 1). (20.53)
+Second, take (20.48). Assumption 20.2 implies E
+[
+e2 |X
+]
+≤
+σ2 < ∞ . Since E[e |X ] = 0, applying
+E
+[
+e2 |X
+]
+≤ σ2, the Schwarz and Norm Inequalities, (20.52), and Theorems 20.4 and 20.5,
+E
+[ ( 1pnVK
+a′
+K
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+X ′
+K e
+)2⏐⏐
+⏐
+⏐ X
+]
+= 1
+nVK
+a′
+K
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+X ′
+K E
+[
+ee ′ |X
+]
+X K
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+aK
+≤
+σ2
+VK
+a′
+K
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+ˆQK
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+aK
+≤
+σ2a′
+K Q −1
+K aK
+VK
+
+
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+ˆQK
+(
+ˆQ
+−1
+K −Q −1
+K
+)
+
+=
+σ2a′
+K Q −1
+K aK
+VK
+
+
+(
+I K − ˜QK
+)(
+˜Q
+−1
+K − I K
+)
+
+≤
+σ2
+σ2
+
+I K − ˜QK
+
+
+
+
+ ˜Q
+−1
+K − I K
+
+
+≤
+σ2
+σ2 op(1).
+This establishes that (20.48) is op(1).
+
+
+--- page 35 ---
+
+CHAPTER 20. SERIES REGRESSION 734
+Third, take (20.49). By the Cauchy-Schwarz inequality, the Quadratic Inequality, (20.52), and (20.21),
+( 1
+pnv K
+a′
+K ˆQ
+−1
+K X ′
+K r K
+)2
+≤
+a′
+K Q −1
+K aK
+nv K
+r ′
+K X K ˆQ
+−1
+K QK ˆQ
+−1
+K X ′
+K r K
+≤ 1
+σ2
+(
+λmax ˜Q
+−1
+K
+)2 1
+n r ′
+K X K Q −1
+K X ′
+K r K
+≤ Op(1) 1
+n r ′
+K X K Q −1
+K X ′
+K r K . (20.54)
+Observe that since the observations are independent, E[XK rK ] = 0, X ′
+K iQ −1
+K XK i ≤ ζ2
+K , and E
+[
+r 2
+K
+]
+= δ2
+K ,
+E
+[ 1
+n r ′
+K X K Q −1
+K X ′
+K r K
+]
+= E
+[
+1
+n
+n∑
+i =1
+rK i X ′
+K iQ −1
+K
+n∑
+i j =1
+XK j rK j
+]
+= E
+[
+X ′
+K Q −1
+K XK r 2
+K
+]
+≤ ζ2
+K E
+[
+r 2
+K
+]
+= ζ2
+K δ2
+K = o(1)
+under Assumption 20.2.3. Thus 1
+n r ′
+K X K Q −1
+K X ′
+K r K = op(1), (20.54) is op(1), and (20.49) is op(1).
+Together, we have shown that
+√ n
+VK
+(ˆθK − θK + a (rK )
+)
+− →
+d
+N(0, 1)
+as claimed. ■
+Proof of Theorem 20.10. It is sufﬁcient to show that
+pn
+V 1/2
+K (x)
+rK (x) = o(1). (20.55)
+Notice that by Assumption 20.2.2
+VK (x) = XK (x)′Q −1
+K ΩK Q −1
+K XK (x)
+= E
+[(
+XK (x)′Q −1
+K XK
+)2
+e2
+]
+= E
+[(
+XK (x)′Q −1
+K XK
+)2
+σ2(X )
+]
+≥ E
+[(
+XK (x)′Q −1
+K XK
+)2]
+σ
+2
+= XK (x)′Q −1
+K E
+[
+XK X ′
+K
+]
+Q −1
+K XK (x)σ
+2
+= XK (x)′Q −1
+K XK (x)σ2
+= ζK (x)2σ2. (20.56)
+Using the deﬁnitions forβ∗
+K , r ∗
+K (x), and δ∗
+K from Section 20.8, note that
+rK (x) = m(x) − X ′
+K (x)βK = r ∗
+K (x) + X ′
+K (x)
+(
+β∗
+K − βK
+)
+.
+By the Triangle Inequality, the deﬁnition (20.10), the Schwarz Inequality, and deﬁnition (20.15)
+|rK (x)|≤
+⏐⏐r ∗
+K (x)
+⏐
+⏐ +
+⏐
+⏐X ′
+K (x)
+(
+β∗
+K − βK
+)⏐⏐
+≤ δ∗
+K +
+⏐⏐X ′
+K (x)Q −1
+K X ′
+K (x)
+⏐⏐1/2 ⏐
+⏐
+⏐
+(
+β∗
+K − βK
+)′ QK
+(
+β∗
+K − βK
+)⏐⏐
+⏐
+1/2
+= δ∗
+K + ζK (x)
+⏐⏐
+⏐
+(
+β∗
+K − βK
+)′ QK
+(
+β∗
+K − βK
+)⏐⏐
+⏐
+1/2
+.
+
+
+--- page 36 ---
+
+CHAPTER 20. SERIES REGRESSION 735
+The coefﬁcients satisfy the relationship
+βK = E
+[
+XK X ′
+K
+]−1 E[XK m (X )] = β∗
+K + E
+[
+XK X ′
+K
+]−1 E
+[
+XK r ∗
+K
+]
+.
+Thus (
+β∗
+K − βK
+)′ QK
+(
+β∗
+K − βK
+)
+= E
+[
+r ∗
+K X ′
+K
+]
+E
+[
+XK X ′
+K
+]−1 E
+[
+XK r ∗
+K
+]
+≤ E
+[
+r 2∗
+K
+]
+≤ δ∗2
+K .
+The ﬁrst inequality is because E
+[
+r ∗
+K X ′
+K
+]
+E
+[
+XK X ′
+K
+]−1 E
+[
+XK r ∗
+K
+]
+is a projection. The second inequality fol-
+lows from the deﬁnition (20.10). We deduce that
+|rK (x)|≤ (1 + ζK (x)) δ∗
+K ≤ 2ζK (x)δ∗
+K . (20.57)
+Equations (20.56), (20.57), and nδ∗2
+K = o(1) together imply that
+n
+VK (x) r 2
+K (x) ≤ 4
+σ2 nδ∗2
+K = o(1)
+which is (20.55), as required. ■
+_____________________________________________________________________________________________
+20.32 Exercises
+Exercise 20.1 Take the estimated model
+Y = −1 + 2X + 5(X − 1)1{X ≥ 1} − 3(X − 2)1{X ≥ 2} + e.
+What is the estimated marginal effect of X on Y for X = 3?
+Exercise 20.2 Take the linear spline with three knots
+mK (x) = β0 + β1x + β2 (x − τ1)1{x ≥ τ1} + β3 (x − τ2)1{x ≥ τ2} + β4 (x − τ3)1{x ≥ τ3}.
+Find the inequality restrictions on the coefﬁcientsβj so that mK (x) is non-decreasing.
+Exercise 20.3 Take the linear spline from the previous question. Find the inequality restrictions on the
+coefﬁcientsβj so that mK (x) is concave.
+Exercise 20.4 Take the quadratic spline with three knots
+mK (x) = β0 + β1x + β2x3 + β3 (x − τ1)2 1{x ≥ τ1} + β4 (x − τ2)2 1{x ≥ τ2} + β5 (x − τ3)2 1{x ≥ τ3}.
+Find the inequality restrictions on the coefﬁcientsβj so that mK (x) is concave.
+Exercise 20.5 Consider spline estimation with one knot τ. Explain why the knot τ must be within the
+sample support of X . [Explain what happens if you estimate the regression with the knot placed outside
+the support of X ].
+Exercise 20.6 You estimate the polynomial regression model:
+ˆmK (x) = ˆβ0 + ˆβ1x + ˆβ2x2 + · · · +ˆβp x p.
+You are interested in the regression derivativem′(x) at x.
+
+
+--- page 37 ---
+
+CHAPTER 20. SERIES REGRESSION 736
+(a) Write out the estimator ˆm′
+K (x) of m′(x).
+(b) Is ˆm′
+K (x) is a linear function of the coefﬁcient estimates?
+(c) Use Theorem 20.8 to obtain the asymptotic distribution of ˆm′
+K (x).
+(d) Show how to construct standard errors and conﬁdence intervals for ˆm′
+K (x).
+Exercise 20.7 Does rescaling Y or X (multiplying by a constant) affect the CV(K) function? The K which
+minimizes it?
+Exercise 20.8 Take the NPIV approximating equation (20.35) and erroreK .
+(a) Does it satisfy E[eK |Z ] = 0?
+(b) If L = K can you deﬁneβK so that E[ZK eK ] = 0?
+(c) If L > K does E[ZK eK ] = 0?
+Exercise 20.9 Take the cps09mar dataset (full sample).
+(a) Estimate a 6 t h order polynomial regression of log(wage) on experience. To reduce the ill-conditioned
+problem ﬁrst rescaleexperience to lie in the interval [0, 1] before estimating the regression.
+(b) Plot the estimated regression function along with 95% pointwise conﬁdence intervals.
+(c) Interpret the ﬁndings. How do you interpret the estimated function for experience levels above 65?
+Exercise 20.10 Continuing the previous exercise, compute the cross-validation function (or alterna-
+tively the AIC) for polynomial orders 1 through 8.
+(a) Which order minimizes the function?
+(b) Plot the estimated regression function along with 95% pointwise conﬁdence intervals.
+Exercise 20.11 Take the cps09mar dataset (full sample).
+(a) Estimate a 6 t h order polynomial regression of log(wage) on education. To reduce the ill-conditioned
+problem ﬁrst rescaleeducation to lie in the interval [0, 1].
+(b) Plot the estimated regression function along with 95% pointwise conﬁdence intervals.
+Exercise 20.12 Continuing the previous exercise, compute the cross-validation function (or alterna-
+tively the AIC) for polynomial orders 1 through 8.
+(a) Which order minimizes the function?
+(b) Plot the estimated regression function along with 95% pointwise conﬁdence intervals.
+Exercise 20.13 Take the cps09mar dataset (full sample).
+(a) Estimate quadratic spline regressions of log( wage) on experience. Estimate four models: (1) no
+knots (a quadratic); (2) one knot at 20 years; (3) two knots at 20 and 40; (4) four knots at 10, 20, 30,
+& 40. Plot the four estimates. Intrepret your ﬁndings.
+
+
+--- page 38 ---
+
+CHAPTER 20. SERIES REGRESSION 737
+(b) Compare the four splines models using either cross-validation or AIC. Which is the preferred spec-
+iﬁcation?
+(c) For your selected speciﬁcation plot the estimated regression function along with 95% pointwise
+conﬁdence intervals. Intrepret your ﬁndings.
+(d) If you also estimated a polynomial speciﬁcation do you prefer the polynomial or the quadratic
+spline estimates?
+Exercise 20.14 Take the cps09mar dataset (full sample).
+(a) Estimate quadratic spline regressions of log(wage ) on education. Estimate four models: (1) no
+knots (a quadratic); (2) one knot at 10 years; (3) three knots at 5, 10, and 15; (4) four knots at 4, 8,
+12, & 16. Plot the four estimates. Intrepret your ﬁndings.
+(b) Compare the four splines models using either cross-validation or AIC. Which is the preferred spec-
+iﬁcation?
+(c) For your selected speciﬁcation plot the estimated regression function along with 95% pointwise
+conﬁdence intervals. Intrepret your ﬁndings.
+(d) If you also estimated a polynomial speciﬁcation do you prefer the polynomial or the quadratic
+spline estimates?
+Exercise 20.15 The RR2010 dataset is from Reinhart and Rogoff (2010). It contains observations on an-
+nual U.S. GDP growth rates, inﬂation rates, and the debt/gdp ratio for the long time span 1791-2009. The
+paper made the strong claim that GDP growth slows as debt/gdp increases, and in particular that this
+relationship is nonlinear with debt negatively affecting growth for debt ratios exceeding 90%. Their full
+dataset includes 44 countries, our extract only includes the United States. LetYt denote GDP growth and
+let Dt denote debt/gdp. We will estimate the partially linear speciﬁcation
+Yt = αYt −1 + m(Dt −1) + et
+using a linear spline for m(D).
+(a) Estimate (1) linear model; (2) linear spline with one knot at Dt −1 = 60; (3) linear spline with two
+knots at 40 and 80. Plot the three estimates.
+(b) For the model with one knot plot with 95% conﬁdence intervals.
+(c) Compare the three splines models using either cross-validation or AIC. Which is the preferred
+speciﬁcation?
+(d) Interpret the ﬁndings.
+Exercise 20.16 Take theDDK2011 dataset (full sample). Use a quadratic spline to estimate the regression
+of testscore on percentile.
+(a) Estimate ﬁve models: (1) no knots (a quadratic); (2) one knot at 50; (3) two knots at 33 and 66;
+(4) three knots at 25, 50 & 75; (5) knots at 20, 40, 60, & 80. Plot the ﬁve estimates. Intrepret your
+ﬁndings.
+
+
+--- page 39 ---
+
+CHAPTER 20. SERIES REGRESSION 738
+(b) Select a model. Consider using leave-cluster-one CV.
+(c) For your selected speciﬁcation plot the estimated regression function along with 95% pointwise
+conﬁdence intervals. [Use cluster-robust standard errors.] Intrepret your ﬁndings.
+Exercise 20.17 The CHJ2004 dataset is from Cox, Hansen and Jimenez (2004). As described in Section
+20.6 it contains a sample of 8684 urban Phillipino households. This paper studied the crowding-out
+impact of a family’ sincome on non-governmental transfers. Estimate an analog of Figure 20.2(b) using
+polynomial regression. Regress transfers on a high-order polynomial in income, and possibly a set of
+regression controls. Ideally, select the polynomial order by cross-validation. You will need to rescale the
+variable income before taking polynomial powers. Plot the estimated function along with 95% pointwise
+conﬁdence intervals. Comment on the similarities and differences with Figure 20.2(b). For the regression
+controls consider the following options: (a) Include no additional controls; (b) Follow the original paper
+and Figure 20.2(b) by including the variables 12-26 listed in the data description ﬁle; (c) Make a different
+selection, possibly based on cross-validation.
+Exercise 20.18 The AL1999 dataset is from Angrist and Lavy (1999). It contains 4067 observations on
+classroom test scores and explanatory variables including those described in Section 20.30. In Section
+20.30 we report a nonparametric instrumental variables regression of reading test scores (avgverb) on
+classize, disadvantaged, enrollment, and a dummy for grade=4, using the Angrist-Levy variable (20.42)
+as an instrument. Repeat the analysis but instead of reading test scores use math test scores (avgmath )
+as the dependent variable. Comment on the similarities and differences with the results for reading test
+scores.

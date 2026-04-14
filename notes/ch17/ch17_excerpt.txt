@@ -1,0 +1,5036 @@
+--- page 1 ---
+
+Chapter 17
+Panel Data
+17.1 Introduction
+Economists traditionally use the term panel data to refer to data structures consisting of observa-
+tions on individuals for multiple time periods. Other ﬁelds such as statistics typically call this structure
+longitudinal data. The observed “individuals” can be, for example, people, households, workers, ﬁrms,
+schools, production plants, industries, regions, states, or countries. The distinguishing feature relative
+to cross-sectional data sets is the presence of multiple observations for each individual. More broadly,
+panel data methods can be applied to any context with cluster-type dependence.
+There are several distinct advantages of panel data relative to cross-section data. One is the possibil-
+ity of controlling for unobserved time-invariant endogeneity without the use of instrumental variables.
+A second is the possibility of allowing for broader forms of heterogeneity. A third is modeling dynamic
+relationships and effects.
+There are two broad categories of panel data sets in economic applications: micro panels and macro
+panels. Micro panels are typically surveys or administrative records on individuals and are characterized
+by a large number of individuals (often in the 1000’ s or higher) and a relatively small number of time
+periods (often 2 to 20 years). Macro panels are typically national or regional macroeconomic variables
+and are characterized by a moderate number of individuals (e.g. 7-20) and a moderate number of time
+periods (20-60 years).
+Panel data was once relatively esoteric in applied economic practice. Now, it is a dominant feature of
+applied research.
+A typical maintained assumption for micro panels (which we follow in this chapter) is that the in-
+dividuals are mutually independent while the observations for a given individual are correlated across
+time periods. This means that the observations follow a clustered dependence structure. Because of
+this, current econometric practice is to use cluster-robust covariance matrix estimators when possible.
+Similar assumptions are often used for macro panels though the assumption of independence across
+individuals (e.g. countries) is much less compelling.
+The application of panel data methods in econometrics started with the pioneering work of Mundlak
+(1961) and Balestra and Nerlove (1966).
+Several excellent monographs and textbooks have been written on panel econometrics, including
+Arellano (2003), Hsiao (2003), Wooldridge (2010), and Baltagi (2013). This chapter will summarize some
+of the main themes but for a more in-depth treatment see these references.
+One challenge arising in panel data applications is that the computational methods can require
+meticulous attention to detail. It is therefore advised to use established packages for routine applica-
+tions. For most panel data applications in economics Stata is the standard package.
+597
+
+
+--- page 2 ---
+
+CHAPTER 17. PANEL DATA 598
+17.2 Time Indexing and Unbalanced Panels
+It is typical to index observations by both the individual i and the time period t, thus Yi t denotes a
+variable for individual i in period t. We index individuals as i = 1, ...,N and time periods as t = 1, ...T .
+Thus N is the number of individuals in the panel and T is the number of time series periods.
+Panel data sets can involve data at any time series frequency though the typical application involves
+annual data. The observations in a data set will be indexed by calendar time which for the case of annual
+observations is the year. For notational convenience it is customary to denote the time periods as t =
+1, ...,T , so that t = 1 is the ﬁrst time period observed andT is the ﬁnal time period.
+When observations are available on all individuals for the same time periods we say that the panel
+is balanced. In this case there are an equal number T of observations for each individual and the total
+number of observations is n = N T.
+When different time periods are available for the individuals in the sample we say that the panel is
+unbalanced. This is the most common type of panel data set. It does not pose a problem for applications
+but does make the notation cumbersome and also complicates computer programming.
+To illustrate, consider the data setInvest1993 on the textbook webpage. This is a sample of 1962 U.S.
+ﬁrms extracted from Compustat, assembled by Bronwyn Hall, and used in the empirical work in Hall and
+Hall (1993). In Table 17.1 we display a set of variables from the data set for the ﬁrst 13 observations. The
+ﬁrst variable is the ﬁrm code number. The second variable is the year of the observation. These two
+variables are essential for any panel data analysis. In Table 17.1 you can see that the ﬁrst ﬁrm (#32) is
+observed for the years 1970 through 1977. The second ﬁrm (#209) is observed for 1987 through 1991.
+You can see that the years vary considerably across the ﬁrms so this is an unbalanced panel.
+For unbalanced panels the time index t = 1, ...,T denotes the full set of time periods. For example, in
+the data set Invest1993 there are observations for the years 1960 through 1991, so the total number of
+time periods is T = 32. Each individual is observed for a subset of Ti periods. The set of time periods for
+individual i is denoted as Si so that individual-speciﬁc sums (over time periods) are written as∑
+t ∈Si .
+The observed time periods for a given individual are typically contiguous (for example, in Table 17.1,
+ﬁrm #32 is observed for each year from 1970 through 1977) but in some cases are non-continguous (if, for
+example, 1973 was missing for ﬁrm #32). The total number of observations in the sample isn = ∑N
+i =1 Ti .
+Table 17.1: Observations from Investment Data Set
+Firm Code Number Year Ii t I i ˙Ii t Qi t Qi ˙Qi t ˆei t
+32 1970 0.122 0.155 -0.033 1.17 0.62 0.55 .
+32 1971 0.092 0.155 -0.063 0.79 0.62 0.17 -0.005
+32 1972 0.094 0.155 -0.061 0.91 0.62 0.29 -0.005
+32 1973 0.116 0.155 -0.039 0.29 0.62 -0.33 0.014
+32 1974 0.099 0.155 -0.057 0.30 0.62 -0.32 -0.002
+32 1975 0.187 0.155 0.032 0.56 0.62 -0.06 0.086
+32 1976 0.349 0.155 0.194 0.38 0.62 -0.24 0.248
+32 1977 0.182 0.155 0.027 0.57 0.62 -0.05 0.081
+209 1987 0.095 0.071 0.024 9.06 21.57 -12.51 .
+209 1988 0.044 0.071 -0.027 16.90 21.57 -4.67 -0.244
+209 1989 0.069 0.071 -0.002 25.14 21.57 3.57 -0.257
+209 1990 0.113 0.071 0.042 25.60 21.57 4.03 -0.226
+209 1991 0.034 0.071 -0.037 31.14 21.57 9.57 -0.283
+
+
+--- page 3 ---
+
+CHAPTER 17. PANEL DATA 599
+17.3 Notation
+This chapter focuses on panel data regression models whose observations are pairs (Y i t, Xi t) where
+Yi t is the dependent variable andXi t is a k-vector of regressors. These are the observations on individual
+i for time period t.
+It will be useful to cluster the observations at the level of the individual. We borrow the notation from
+Section 4.23 to writeY i as the Ti × 1 stacked observations onYi t for t ∈ Si , stacked in chronological order.
+Similarly, we write X i as the Ti × k matrix of stacked X ′
+i t for t ∈ Si , stacked in chronological order.
+We will also sometimes use matrix notation for the full sample. To do so, let Y = (Y ′
+1,..., Y ′
+N )′ denote
+the n × 1 vector of stacked Y i , and set X = (X ′
+1,..., X ′
+N )′ similarly.
+17.4 Pooled Regression
+The simplest model in panel regresion is pooled regresssion
+Yi t = X ′
+i tβ + ei t
+E[Xi tei t] = 0. (17.1)
+where β is a k × 1 coefﬁcient vector and ei t is an error. The model can be written at the level of the
+individual as
+Y i = X i β + ei
+E
+[
+X ′
+i ei
+]
+= 0
+where ei is Ti × 1. The equation for the full sample is Y = X β + e where e is n × 1.
+The standard estimator of β in the pooled regression model is least squares, which can be written as
+ˆβpool =
+(
+N∑
+i =1
+∑
+t ∈Si
+Xi tX ′
+i t
+)−1 (
+N∑
+i =1
+∑
+t ∈Si
+Xi tYi t
+)
+=
+(
+N∑
+i =1
+X ′
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Y i
+)
+=
+(
+X ′X
+)−1 (
+X ′Y
+)
+.
+In the context of panel data ˆβpool is called the pooled regression estimator. The vector of residuals for
+the i t h individual is ˆei = Y i − X i ˆβpool.
+The pooled regression model is ideally suited for the context where the errors ei t satisfy strict mean
+independence:
+E[ei t |X i ] = 0. (17.2)
+This occurs when the errorsei t are mean independent of all regressorsXi j for all time periods j = 1, ...,T .
+Strict mean independence is stronger than pairwise mean independence E[ei t |Xi t] = 0 as well as pro-
+jection (17.1). Strict mean independence requires that neither lagged nor future values of Xi t help to
+forecast ei t. It excludes lagged dependent variables (such as Yi t−1) from Xi t (otherwise ei t would be
+predictable given Xi t+1). It also requires that Xi t is exogenous in the sense discussed in Chapter 12.
+We now describe some statistical properties of ˆβpool under (17.2). First, notice that by linearity and
+the cluster-level notation we can write the estimator as
+ˆβpool =
+(
+N∑
+i =1
+X ′
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i
+(
+X i β + ei
+)
+)
+= β +
+(
+N∑
+i =1
+X ′
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i ei
+)
+.
+
+
+--- page 4 ---
+
+CHAPTER 17. PANEL DATA 600
+Using (17.2)
+E
+[ˆβpool |X
+]
+= β +
+(
+N∑
+i =1
+X ′
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i E[ei |X i ]
+)
+= β
+so ˆβpool is unbiased for β.
+Under the additional assumption that the error ei t is serially uncorrelated and homoskedastic the
+covariance estimator takes a classical form and the classical homoskedastic variance estimator can be
+used. If the error ei t is heteroskedastic but serially uncorrelated then a heteroskedasticity-robust covari-
+ance matrix estimator can be used.
+In general, however, we expect the errors ei t to be correlated across time t for a given individual.
+This does not necessarily violate (17.2) but invalidates classical covariance matrix estimation. The con-
+ventional solution is to use a cluster-robust covariance matrix estimator which allows arbitrary within-
+cluster dependence. Cluster-robust covariance matrix estimators for pooled regression equal
+ˆV pool =
+(
+X ′X
+)−1
+(
+N∑
+i =1
+X ′
+i ˆei ˆe′
+i X i
+)
+(
+X ′X
+)−1 .
+As in (4.50) this can be multiplied by a degree-of-freedom adjustment. The adjustment used by the Stata
+regress command is
+ˆV pool =
+( n − 1
+n − k
+) ( N
+N − 1
+) (
+X ′X
+)−1
+(
+N∑
+i =1
+X ′
+i ˆei ˆe′
+i X i
+)
+(
+X ′X
+)−1 .
+The pooled regression estimator with cluster-robust standard errors can be obtained using the Stata
+command regress cluster(id) where id indicates the individual.
+When strict mean independence (17.2) fails the pooled least squares estimatorˆβpool is not necessarily
+consistent for β. Since strict mean independence is a strong and undesirable restriction it is typically
+preferred to adopt one of the alternative estimators described in the following sections.
+To illustrate the pooled regression estimator consider the data setInvest1993 described earlier. We
+consider a simple investment model
+Ii t = β1Qi t−1 + β2Di t−1 + β3C Fi t−1 + β4Ti + ei t (17.3)
+where I is investment/assets,Q is market value/assets,D is long term debt/assets,C F is cash ﬂow/assets,
+and T is a dummy variable indicating if the corporation’ s stock is traded on the NYSE or AMEX. The
+regression also includes 19 dummy variables indicating an industry code. The Q theory of investment
+suggests that β1 > 0 while β2 = β3 = 0. Theories of liquidity constraints suggest that β2 < 0 and β3 > 0.
+We will be using this example throughout this chapter. The values ofI and Q for the ﬁrst 13 observations
+are also displayed in Table 17.1.
+In Table 17.2 we present the pooled regression estimates of (17.3) in the ﬁrst column with cluster-
+robust standard errors.
+17.5 One-Way Error Component Model
+One approach to panel data regression is to model the correlation structure of the regression error
+ei t. The most common choice is an error-components structure. The simplest takes the form
+ei t = ui + εi t (17.4)
+
+
+--- page 5 ---
+
+CHAPTER 17. PANEL DATA 601
+Table 17.2: Estimates of Investment Equation
+Pooled Random Effects Fixed Effects Two-Way Hausman-Taylor
+Qi t−1
+0.0024
+(0.0010)
+0.0019
+(0.0009)
+0.0017
+(0.0008)
+0.0016
+(0.0008)
+0.0017
+(0.0008)
+Di t−1
+0.0096
+(0.0041)
+−0.0092
+(0.0039)
+−0.0139
+(0.0049)
+−0.0140
+(0.0051)
+0.0132
+(0.0050)
+C Fi t−1
+0.0261
+(0.0111)
+0.0412
+(0.0125)
+0.0491
+(0.0132)
+0.0476
+(0.0129)
+0.0408
+(0.0119)
+Ti
+−0.0167
+(0.0024)
+−0.0181
+(0.0028)
+−0.0348
+(0.0048)
+Industry Dummies Yes Yes No No Yes
+Time Effects No No No Yes Yes
+Cluster-robust standard errors in parenthesis.
+where ui is an individual-speciﬁc effect and εi t are idiosyncratic (i.i.d.) errors. This is known as a one-
+way error component model.
+In vector notation we can write ei = 1i ui + εi where 1i is a Ti × 1 vector of 1’ s.
+The one-way error component regression model is
+Yi t = X ′
+i tβ + ui + εi t
+written at the level of the observation, or Y i = X i β + 1i ui + εi written at the level of the individual.
+To illustrate why an error-component structure such as (17.4) might be appropriate, examine Table
+17.1. In the ﬁnal column we have included the pooled regression residuals ˆei t for these observations.
+(There is no residual for the ﬁrst year for each ﬁrm due to the lack of lagged regressors for this obser-
+vation.) What is quite striking is that the residuals for the second ﬁrm (#209) are all negative, clustering
+around −0.25. While informal, this suggests that it may be appropriate to model these errors using (17.4),
+expecting that ﬁrm #209 has a large negative value for its individual effectu.
+17.6 Random Effects
+The random effects model assumes that the errors ui and εi t in (17.4) are conditionally mean zero,
+uncorrelated, and homoskedastic.
+Assumption 17.1 Random Effects . Model (17.4) holds with
+E[εi t |X i ] = 0 (17.5)
+E
+[
+ε2
+i t |X i
+]
+= σ2
+ε (17.6)
+E
+[
+εi tεj s |X i
+]
+= 0 (17.7)
+E[ui |X i ] = 0 (17.8)
+E
+[
+u2
+i |X i
+]
+= σ2
+u (17.9)
+E[ui εi t |X i ] = 0 (17.10)
+where (17.7) holds for all s ̸= t.
+
+
+--- page 6 ---
+
+CHAPTER 17. PANEL DATA 602
+Assumption 17.1 is known as arandom effects speciﬁcation. It implies that the vector of errorsei for
+individual i has the covariance structure
+E[ei |X i ] = 0
+E
+[
+ei e′
+i |X i
+]
+= 1i 1′
+i σ2
+u + I i σ2
+ε
+=
+
+
+
+
+σ2
+u + σ2
+ε σ2
+u · · · σ2
+u
+σ2
+u σ2
+u + σ2
+ε · · · σ2
+u
+..
+. .
+.
+. ... .
+.
+.
+σ2
+u σ2
+u · · · σ2
+u + σ2
+ε
+
+
+
+= σ2
+εΩi ,
+say, where I i is an identity matrix of dimension Ti . The matrix Ωi depends on i since its dimension
+depends on the number of observed time periods Ti .
+Assumptions 17.1.1 and 17.1.4 state that the idiosyncratic error εi t and individual-speciﬁc error ui
+are strictly mean independent so the combined error ei t is strictly mean independent as well.
+The random effects model is equivalent to anequi-correlation model. That is, suppose that the error
+ei t satisﬁes
+E[ei t |X i ] = 0
+E
+[
+e2
+i t |X i
+]
+= σ2
+and
+E[ei sei t |X i ] = ρσ2
+for s ̸= t. These conditions imply that ei t can be written as (17.4) with the components satisfying As-
+sumption 17.1 with σ2
+u = ρσ2 and σ2
+ε = (1−ρ)σ2. Thus random effects and equi-correlation are identical.
+The random effects regression model is
+Yi t = X ′
+i tβ + ui + εi t
+or Y i = X i β + 1i ui + εi where the errors satisfy Assumption 17.1.
+Given the error structure the natural estimator for β is GLS. Suppose σ2
+u and σ2
+ε are known. The GLS
+estimator of β is
+ˆβgls =
+(
+N∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Ω−1
+i Y i
+)
+.
+A feasible GLS estimator replaces the unknown σ2
+u and σ2
+ε with estimators. See Section 17.15.
+We now describe some statistical properties of the estimator under Assumption 17.1. By linearity
+ˆβgls − β =
+(
+N∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Ω−1
+i ei
+)
+.
+Thus
+E
+[ˆβgls − β |X
+]
+=
+(
+N∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Ω−1
+i E[ei |X i ]
+)
+= 0.
+Thus ˆβgls is conditionally unbiased for β. The conditional variance of ˆβgls is
+V gls =
+(
+n∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1
+. (17.11)
+
+
+--- page 7 ---
+
+CHAPTER 17. PANEL DATA 603
+Now let’ s compare ˆβgls with the pooled estimator ˆβpool. Under Assumption 17.1 the latter is also
+conditionally unbiased for β and has conditional variance
+V pool =
+(
+n∑
+i =1
+X ′
+i X i
+)−1 (
+n∑
+i =1
+X ′
+i Ωi X i
+)−1 (
+n∑
+i =1
+X ′
+i X i
+)−1
+. (17.12)
+Using the algebra of the Gauss-Markov Theorem we deduce that
+V gls ≤ V pool (17.13)
+and thus the random effects estimator ˆβgls is more efﬁcient than the pooled estimator ˆβpool under As-
+sumption 17.1. (See Exercise 17.1.) The two variance matrices are identical when there is no individual-
+speciﬁc effect (whenσ2
+u = 0) for then V gls = V pool =
+(
+X ′X
+)−1 σ2
+ε.
+Under the assumption that the random effects model is a useful approximation but not literally true
+then we may consider a cluster-robust covariance matrix estimator such as
+ˆV gls =
+(
+N∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Ω−1
+i ˆei ˆe′
+i Ω−1
+i X i
+) (
+n∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1
+(17.14)
+where ˆei = Y i − X i ˆβgls. This may be re-scaled by a degree of freedom adjustment if desired.
+The random effects estimator ˆβgls can be obtained using the Stata command xtreg. The default
+covariance matrix estimator is (17.11). For the cluster-robust covariance matrix estimator (17.14) use the
+command xtreg vce(robust). (The xtset command must be used ﬁrst to declare the group identiﬁer.
+For example, cusip is the group identiﬁer in Table 17.1.)
+To illustrate, in the second column of Table 17.2 we present the random effect regression estimates
+of the investment model (17.3) with cluster-robust standard errors (17.14). The point estimates are rea-
+sonably different from the pooled regression estimator. The coefﬁcient on debt switches from positive
+to negative (the latter consistent with theories of liquidity constraints) and the coefﬁcient on cash ﬂow
+increases signiﬁcantly in magnitude. These changes appear to be greater in magnitude than would be
+expected if Assumption 17.1 were correct. In the next section we consider a less restrictive speciﬁcation.
+17.7 Fixed Effect Model
+Consider the one-way error component regression model
+Yi t = X ′
+i tβ + ui + εi t (17.15)
+or
+Y i = X i β + 1i ui + εi . (17.16)
+In many applications it is useful to interpret the individual-speciﬁc effect ui as a time-invariant unob-
+served missing variable. For example, in a wage regressionui may be the unobserved ability of individual
+i . In the investment model (17.3) ui may be a ﬁrm-speciﬁc productivity factor.
+When ui is interpreted as an omitted variable it is natural to expect it to be correlated with the re-
+gressors Xi t. This is especially the case when Xi t includes choice variables.
+To illustrate, consider the entries in Table 17.1. The ﬁnal column displays the pooled regression resid-
+uals ˆei t for the ﬁrst 13 observations which we interpret as estimates of the errorei t = ui +εi t. As described
+before, what is particularly striking about the residuals is that they are all strongly negative for ﬁrm #209,
+clustering around −0.25. We can interpret this as an estimate of ui for this ﬁrm. Examining the values
+
+
+--- page 8 ---
+
+CHAPTER 17. PANEL DATA 604
+of the regressor Q for the two ﬁrms we can see that ﬁrm #209 has very large values (in all time periods)
+for Q. (The average value Qi for the two ﬁrms appears in the seventh column.) Thus it appears (though
+we are only looking at two observations) that ui and Qi t are correlated. It is not reasonable to infer too
+much from these limited observations, but the relevance is that such correlation violates strict mean
+independence.
+In the econometrics literature if the stochastic structure of ui is treated as unknown and possibly
+correlated with Xi t then ui is called a ﬁxed effect.
+Correlation between ui and Xi t will cause both pooled and random effect estimators to be biased.
+This is due to the classic problems of omitted variables bias and endogeneity. To see this in a generated
+example view Figure 17.1. This shows a scatter plot of three observations ( Yi t, Xi t) from three ﬁrms.
+The true model is Yi t = 9 − Xi t + ui . (The true slope coefﬁcient is −1 .) The variables ui and Xi t are
+highly correlated so the ﬁtted pooled regression line through the nine observations has a slope close to
++1. (The random effects estimator is identical.) The apparent positive relationship between Y and X is
+driven entirely by the positive correlation between X and u. Conditional on u, however, the slope is −1.
+Thus regression techniques which do not control forui will produce biased and inconsistent estimators.
+x
+y
+●
+●
+●
+0 5 10 15
+0 5 10 15
+●
+Firm 1
+Firm 2
+Firm 3
+Least Squares Fit
+True Slope
+Figure 17.1: Scatter Plot and Pooled Regression Line
+The presence of the unstructured individual effectui means that it is not possible to identifyβ under
+a simple projection assumption such as E[Xi tεt ] = 0. It turns out that a sufﬁcient condition for identiﬁ-
+cation is the following.
+Deﬁnition 17.1 The regressor Xi t is strictly exogenous for the error εi t if
+E[Xi sεi t] = 0 (17.17)
+for all s = 1, ...,T .
+Strict exogeneity is a strong projection condition, meaning that if Xi s for any s ̸= t is added to (17.15)
+
+
+--- page 9 ---
+
+CHAPTER 17. PANEL DATA 605
+it will have a zero coefﬁcient. Strict exogeneity is a projection analog of strict mean independence
+E[εi t |X i ] = 0. (17.18)
+(17.18) implies (17.17) but not conversely. While (17.17) is sufﬁcient for identiﬁcation and asymptotic
+theory we will also use the stronger condition (17.18) for ﬁnite sample analysis.
+While (17.17) and (17.18) are strong assumptions they are much weaker than (17.2) or Assumption
+17.1, which require that the individual effect ui is also strictly mean independent. In contrast, (17.17)
+and (17.18) make no assumptions about ui .
+Strict exogeneity (17.17) is typically inappropriate in dynamic models. In Section 17.41 we discuss
+estimation under the weaker assumption of predetermined regressors.
+17.8 Within Transformation
+In the previous section we showed that if ui and Xi t are correlated then pooled and random-effects
+estimators will be biased and inconsistent. If we leave the relationship betweenui and Xi t fully unstruc-
+tured then the only way to consistently estimate the coefﬁcientβ is by an estimator which is invariant to
+ui . This can be achieved by transformations which eliminate ui .
+One such transformation is the within transformation. In this section we describe this transforma-
+tion in detail.
+Deﬁne the mean of a variable for a given individual as
+Y i = 1
+Ti
+∑
+t ∈Si
+Yi t.
+We call this the individual-speciﬁc meansince it is the mean of a given individual. Contrarywise, some
+authors call this the time-average or time-mean since it is the average over the time periods.
+Subtracting the individual-speciﬁc mean from the variable we obtain the deviations
+˙Yi t = Yi t − Y i .
+This is known as the within transformation. We also refer to ˙Yi t as the demeaned values or deviations
+from individual means. Some authors refer to ˙Yi t as deviations from time means. What is important is
+that the demeaning has occured at the individual level.
+Some algebra may also be useful. We can write the individual-speciﬁc mean as Y i =
+(
+1′
+i 1i
+)−1 1′
+i Y i .
+Stacking the observations for individual i we can write the within transformation using the notation
+˙Y i = Y i − 1i
+Y i
+= Y i − 1i
+(
+1′
+i 1i
+)−1 1′
+i Y i
+= M i Y i
+where M i = I i − 1i
+(
+1′
+i 1i
+)−1 1′
+i is the individual-speciﬁc demeaning operator. Notice that M i is an idem-
+potent matrix.
+Similarly for the regressors we deﬁne the individual-speciﬁc means and demeaned values:
+X i = 1
+Ti
+∑
+t ∈Si
+Xi t
+˙Xi t = Xi t − X i
+˙X i = M i X i .
+
+
+--- page 10 ---
+
+CHAPTER 17. PANEL DATA 606
+We illustrate demeaning in Table 17.1. In the fourth and seventh columns we display the ﬁrm-speciﬁc
+means I i and Qi and in the ﬁfth and eighth columns the demeaned values ˙Ii t and ˙Qi t.
+We can also deﬁne the full-sample within operator. Deﬁne D = diag
+{
+1T1,..., 1TN
+}
+and M D = I n −
+D
+(
+D ′D
+)−1 D ′. Note that M D = diag{M 1, ...,M N }. Thus
+M D Y = ˙Y =
+
+
+˙Y 1
+..
+.
+˙Y N
+
+, M D X = ˙X =
+
+
+˙X 1
+...
+˙X N
+
+. (17.19)
+Now apply these operations to equation (17.15). Taking individual-speciﬁc averages we obtain
+Y i = X
+′
+i β + ui + εi (17.20)
+where εi = 1
+Ti
+∑
+t ∈Si εi t. Subtracting from (17.15) we obtain
+˙Yi t = ˙X ′
+i tβ + ˙εi t (17.21)
+where ˙εi t = εi t − εi t. The individual effect ui has been eliminated!
+We can alternatively write this in vector notation. Applying the demeaning operatorM i to (17.16) we
+obtain
+˙Y i = ˙X i β + ˙εi . (17.22)
+The individual-effect ui is eliminated since M i 1i = 0. Equation (17.22) is a vector version of (17.21).
+The equation (17.21) is a linear equation in the transformed (demeaned) variables. As desired the
+individual effect ui has been eliminated. Consequently estimators constructed from (17.21) (or equiva-
+lently (17.22)) will be invariant to the values ofui . This means that the the endogeneity bias described in
+the previous section will be eliminated.
+Another consequence, however, is that all time-invariant regressors are also eliminated. That is, if
+the original model (17.15) had included any regressors Xi t = Xi which are constant over time for each
+individual then for these regressors the demeaned values are identically 0. What this means is that if
+equation (17.21) is used to estimate β it will be impossible to estimate (or identify) a coefﬁcient on any
+regressor which is time invariant. This is not a consequence of the estimation method but rather a conse-
+quence of the model assumptions. In other words, if the individual effectui has no known structure then
+it is impossible to disentangle the effect of any time-invariant regressorXi . The two have observationally
+equivalent effects and cannot be separately identiﬁed.
+The within transformation can greatly reduce the variance of the regressors. This can be seen in
+Table 17.1 where you can see that the variation between the elements of the transformed variables ˙Ii t
+and ˙Qi t is less than that of the untransformed variables since much of the variation is captured by the
+ﬁrm-speciﬁc means.
+It is not typically needed to directly program the within transformation, but if it is desired the follow-
+ing Stata commands easily do so.
+Stata Commands for Within Transformation
+* x is the original variable
+* id is the group identiﬁer
+* xdot is the within-transformed variable
+egen xmean = mean(x), by(id)
+gen xdot = x - xmean
+
+
+--- page 11 ---
+
+CHAPTER 17. PANEL DATA 607
+17.9 Fixed Effects Estimator
+Consider least squares applied to the demeaned equation (17.21) or equivalently (17.22). This is
+ˆβfe =
+(
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙X ′
+i t
+)−1 (
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙Yi t
+)
+=
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1 (
+N∑
+i =1
+˙X
+′
+i ˙Y i
+)
+=
+(
+N∑
+i =1
+X ′
+i M i X i
+)−1 (
+N∑
+i =1
+X ′
+i M i Y i
+)
+.
+This is known as theﬁxed-effectsor within estimator of β. It is called the ﬁxed-effects estimator because
+it is appropriate for the ﬁxed effects model (17.15). It is called the within estimator because it is based on
+the variation of the data within each individual.
+The above deﬁnition implicitly assumes that the matrix ∑N
+i =1 ˙X
+′
+i ˙X i is full rank. This requires that all
+components of Xi t have time variation for at least some individuals in the sample.
+The ﬁxed effects residuals are
+ˆεi t = ˙Yi t − ˙X ′
+i t ˆβfe
+ˆεi = ˙Y i − ˙X i ˆβfe. (17.23)
+Let us describe some of the statistical properties of the estimator under strict mean independence
+(17.18). By linearity and the fact M i 1i = 0, we can write
+ˆβfe − β =
+(
+N∑
+i =1
+X ′
+i M i X i
+)−1 (
+N∑
+i =1
+X ′
+i M i εi
+)
+.
+Then (17.18) implies
+E
+[ˆβfe − β |X
+]
+=
+(
+N∑
+i =1
+X ′
+i M i X i
+)−1 (
+N∑
+i =1
+X ′
+i M i E[εi |X i ]
+)
+= 0.
+Thus ˆβfe is unbiased for β under (17.18).
+Let Σi = E
+[
+εi ε′
+i |X i
+]
+denote the Ti × Ti conditional covariance matrix of the idiosyncratic errors. The
+variance of ˆβfe is
+V fe = var
+[ˆβfe |X
+]
+=
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1 (
+N∑
+i =1
+˙X
+′
+i Σi ˙X i
+) (
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1
+. (17.24)
+This expression simpliﬁes when the idiosyncratic errors are homoskedastic and serially uncorrelated:
+E
+[
+ε2
+i t |X i
+]
+= σ2
+ε (17.25)
+E
+[
+εi j εi t |X i
+]
+= 0 (17.26)
+for all j ̸= t. In this case, Σi = I i σ2
+ε and (17.24) simpliﬁes to
+V 0
+fe = σ2
+ε
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1
+. (17.27)
+
+
+--- page 12 ---
+
+CHAPTER 17. PANEL DATA 608
+It is instructive to compare the variances of the ﬁxed-effects and pooled estimators under (17.25)-
+(17.26) and the assumption that there is no individual-speciﬁc effectui = 0. In this case we see that
+V 0
+fe = σ2
+ε
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1
+≥ σ2
+ε
+(
+N∑
+i =1
+X ′
+i X i
+)−1
+= V pool. (17.28)
+The inequality holds since the demeaned variables ˙X i have reduced variation relative to the original
+observations X i . (See Exercise 17.28.) This shows the cost of using ﬁxed effects relative to pooled esti-
+mation. The estimation variance increases due to reduced variation in the regressors. This reduction in
+efﬁciency is a necessary by-product of the robustness of the estimator to the individual effectsui .
+17.10 Differenced Estimator
+The within transformation is not the only transformation which eliminates the individual-speciﬁc
+effect. Another important transformation which does the same is ﬁrst-differencing.
+The ﬁrst-differencing transformation is ∆Yi t = Yi t − Yi t−1. This can be applied to all but the ﬁrst
+observation (which is essentially lost). At the level of the individual this can be written as ∆Y i = D i Y i
+where D i is the (Ti − 1) × Ti matrix differencing operator
+D i =
+
+
+
+−1 1 0 · · · 0 0
+0 −1 1 0 0
+..
+. ... .
+.
+.
+0 0 0 · · · −1 1
+
+
+
+.
+Applying the transformation ∆ to (17.15) or (17.16) we obtain ∆Yi t = ∆X ′
+i tβ + ∆εi t or
+∆Y i = ∆X i β + ∆εi . (17.29)
+Least squares applied to the differenced equation is
+ˆβ∆ =
+(
+N∑
+i =1
+∑
+t ≥2
+∆Xi t∆X ′
+i t
+)−1 (
+N∑
+i =1
+∑
+t ≥2
+∆Xi t∆Yi t
+)
+=
+(
+N∑
+i =1
+∆X ′
+i ∆X i
+)−1 (
+N∑
+i =1
+∆X ′
+i ∆Y i
+)
+=
+(
+N∑
+i =1
+X ′
+i D ′
+i D i X i
+)−1 (
+N∑
+i =1
+X ′
+i D ′
+i D i Y i
+)
+. (17.30)
+(17.30) is called the differenced estimator. For T = 2, ˆβ∆ = ˆβfe equals the ﬁxed effects estimator. See
+Exercise 17.6. They differ, however, forT > 2.
+When the errors εi t are serially uncorrelated and homoskedastic then the error ∆εi = D i εi in (17.29)
+has covariance matrix H σ2
+ε where
+H = D i D ′
+i =
+
+
+
+
+2 −1 0 0
+−1 2 ... 0
+0 ... ... −1
+0 0 −1 2
+
+
+
+
+. (17.31)
+
+
+--- page 13 ---
+
+CHAPTER 17. PANEL DATA 609
+We can reduce estimation variance by using GLS, which is
+ˆβ∆ =
+(
+N∑
+i =1
+∆X ′
+i H −1∆X i
+)−1 (
+N∑
+i =1
+∆X ′
+i H −1∆Y i
+)
+=
+(
+N∑
+i =1
+X ′
+i D ′
+i
+(
+D i D ′
+i
+)−1 D i X i
+)−1 (
+N∑
+i =1
+X ′
+i D ′
+i
+(
+D i D ′
+i
+)−1 D i Y i
+)
+=
+(
+N∑
+i =1
+X ′
+i M i X i
+)−1 (
+N∑
+i =1
+X ′
+i M i Y i
+)
+where M i = D ′
+i
+(
+D i D ′
+i
+)−1 D i . Recall, the matrix D i is (Ti − 1)× Ti with rank Ti −1 and is orthogonal to the
+vector of ones 1i . This means M i projects orthogonally to 1i and thus equals the within transformation
+matrix. Hence ˆβ
+∆ = ˆβfe, the ﬁxed effects estimator!
+What we have shown is that GLS applied to the ﬁrst-differenced equation precisely equals the ﬁxed
+effects estimator. Since the Gauss-Markov theorem shows that GLS has lower variance than least squares,
+this means that the ﬁxed effects estimator is more efﬁcient than ﬁrst differencing under the assumption
+that εi t is i.i.d.
+This argument extends to any other transformation which eliminates the ﬁxed effect. GLS applied
+after such a transformation is equal to the ﬁxed effects estimator and is more efﬁcient than least squares
+applied after the same transformation. This shows that the ﬁxed effects estimator is Gauss-Markov efﬁ-
+cient in the class of estimators which eliminate the ﬁxed effect.
+17.11 Dummy Variables Regression
+An alternative way to estimate the ﬁxed effects model is by least squares ofYi t on Xi t and a full set of
+dummy variables, one for each individual in the sample. It turns out that this is algebraically equivalent
+to the within estimator.
+To see this start with the error-component model without a regressor:
+Yi t = ui + εi t. (17.32)
+Consider least squares estimation of the vector of ﬁxed effects u = (u1,..., uN )′. Since each ﬁxed effect
+ui is an individual-speciﬁc mean and the least squares estimate of the intercept is the sample mean it
+follows that the least squares estimate of ui is ˆui =
+Y i . The least squares residual is then ˆεi t = Yi t − Y i =
+˙Yi t, the within transformation.
+If you would prefer an algebraic argument, let di be a vector of N dummy variables where the i t h
+element indicates the i t h individual. Thus the i t h element of di is 1 and the remaining elements are
+zero. Notice that ui = d ′
+i u and (17.32) equals Yi t = d ′
+i u + εi t. This is a regression with the regressors di
+and coefﬁcientsu. We can also write this in vector notation at the level of the individual asY i = 1i d ′
+i u+εi
+or using full matrix notation as Y = Du + ε where D = diag
+{
+1T1,..., 1TN
+}
+.
+The least squares estimate of u is
+ˆu =
+(
+D ′D
+)−1 (
+D ′Y
+)
+= diag
+(
+1′
+i 1i
+)−1 vec
+(
+1′
+i Y i
+)
+= vec
+((
+1′
+i 1i
+)−1 1′
+i Y i
+)
+= vec
+(
+Y i
+)
+.
+
+
+--- page 14 ---
+
+CHAPTER 17. PANEL DATA 610
+The least squares residuals are
+ˆε =
+(
+I n − D
+(
+D ′D
+)−1 D ′
+)
+Y = ˙Y
+as shown in (17.19). Thus the least squares residuals from the simple error-component model are the
+within transformed variables.
+Now consider the error-component model with regressors, which can be written as
+Yi t = X ′
+i tβ + d ′
+i u + εi t (17.33)
+since ui = d ′
+i u as discussed above. In matrix notation
+Y = X β + Du + ε. (17.34)
+We consider estimation of (β,u) by least squares and write the estimates as Y = X ˆβ + D ˆu + ˆε. We call
+this the dummy variable estimator of the ﬁxed effects model.
+By the Frisch-Waugh-Lovell Theorem (Theorem 3.5) the dummy variable estimator ˆβ and residuals
+ˆε may be obtained by the least squares regression of the residuals from the regression of Y on D on the
+residuals from the regression of X on D. We learned above that the residuals from the regression on D
+are the within transformations. Thus the dummy variable estimator ˆβ and residuals ˆε may be obtained
+from least squares regression of the within transformed ˙Y on the within transformed ˙X . This is exactly
+the ﬁxed effects estimator ˆβfe. Thus the dummy variable and ﬁxed effects estimators ofβ are identical.
+This is sufﬁciently important that we state this result as a theorem.
+Theorem 17.1 The ﬁxed effects estimator ofβ algebraically equals the dummy
+variable estimator of β. The two estimators have the same residuals.
+This may be the most important practical application of the Frisch-Waugh-Lovell Theorem. It shows
+that we can estimate the coefﬁcients either by applying the within transformation or by inclusion of
+dummy variables (one for each individual in the sample). This is important because in some cases one
+approach is more convenient than the other and it is important to know that the two methods are alge-
+braically equivalent.
+When N is large it is advisable to use the within transformation rather than the dummy variable ap-
+proach. This is because the latter requires considerably more computer memory. To see this consider
+the matrix D in (17.34) in the balanced case. It has T N2 elements which must be created and stored in
+memory. When N is large this can be excessive. For example, if T = 10 and N = 10,000, the matrix D
+has one billion elements! Whether or not a package can technically handle a matrix of this dimension
+depends on several particulars (system RAM, operating system, package version), but even if it can ex-
+ecute the calculation the computation time is slow. Hence for ﬁxed effects estimation with large N it is
+recommended to use the within transformation rather than dummy variable regression.
+The dummy variable formulation may add insight about how the ﬁxed effects estimator achieves
+invariance to the ﬁxed effects. Given the regression equation (17.34) we can write the least squares esti-
+mator of β using the residual regression formula:
+ˆβfe =
+(
+X ′M D X
+)−1 (
+X ′M D Y
+)
+=
+(
+X ′M D X
+)−1 (
+X ′M D
+(
+X β + Du + ε
+))
+= β +
+(
+X ′M D X
+)−1 (
+X ′M D ε
+)
+(17.35)
+since M D D = 0. The expression (17.35) is free of the vectoru and thus ˆβfe is invariant tou. This is another
+demonstration that the ﬁxed effects estimator is invariant to the actual values of the ﬁxed effects, and
+thus its statistical properties do not rely on assumptions about ui .
+
+
+--- page 15 ---
+
+CHAPTER 17. PANEL DATA 611
+17.12 Fixed Effects Covariance Matrix Estimation
+First consider estimation of the classical covariance matrix V 0
+fe as deﬁned in (17.27). This is
+ˆV
+0
+fe = ˆσ2
+ε
+(
+˙X
+′ ˙X
+)−1
+(17.36)
+with
+ˆσ2
+ε = 1
+n − N − k
+n∑
+i =1
+∑
+t ∈Si
+ˆε2
+i t = 1
+n − N − k
+n∑
+i =1
+ˆε′
+i ˆεi . (17.37)
+The N + k degree of freedom adjustment is motivated by the dummy variable representation. You can
+verify that ˆσ2
+ε is unbiased for σ2
+ε under assumptions (17.18), (17.25) and (17.26). See Exercise 17.8.
+Notice that the assumptions (17.18), (17.25), and (17.26) are identical to (17.5)-(17.7) of Assumption
+17.1. The assumptions (17.8)-(17.10) are not needed. Thus the ﬁxed effect model weakens the random
+effects model by eliminating the assumptions on ui but retaining those on εi t.
+The classical covariance matrix estimator (17.36) for the ﬁxed effects estimator is valid when the er-
+rors εi t are homoskedastic and serially uncorrelated but is invalid otherwise. A covariance matrix estima-
+tor which allows εi t to be heteroskedastic and serially correlated acrosst is the cluster-robust covariance
+matrix estimator, clustered by individual
+ˆV
+cluster
+fe =
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i ˆεi ˆε′
+i ˙X i
+) (
+˙X
+′ ˙X
+)−1
+(17.38)
+where ˆεi as the ﬁxed effects residuals as deﬁned in (17.23). (17.38) was ﬁrst proposed by Arellano (1987).
+As in (4.50) ˆV
+cluster
+fe can be multiplied by a degree-of-freedom adjustment. The adjustment recommended
+by the theory of C. Hansen (2007) is
+ˆV
+cluster
+fe =
+( N
+N − 1
+) (
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i ˆεi ˆε′
+i ˙X i
+) (
+˙X
+′ ˙X
+)−1
+(17.39)
+and that corresponding to (4.50) is
+ˆV
+cluster
+fe =
+( n − 1
+n − N − k
+) ( N
+N − 1
+) (
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i ˆεi ˆε′
+i ˙X i
+) (
+˙X
+′ ˙X
+)−1
+. (17.40)
+These estimators are convenient because they are simple to apply and allow for unbalanced panels.
+In typical micropanel applications N is very large and k is modest. Thus the adjustment in (17.39)
+is minor while that in (17.40) is approximately T /(T − 1) where T = n/N is the average number of time
+periods per individual. When T is small this can be a very large adjustment. Hence the choice between
+(17.38), (17.39), and (17.40) can be substantial.
+To understand if the degree of freedom adjustment in (17.40) is appropriate, consider the simpliﬁed
+setting where the residuals are constructed with the true β but estimated ﬁxed effectsui . This is a useful
+approximation since the number of estimated slope coefﬁcients β is small relative to the sample size n.
+Then ˆεi = ˙εi = M i εi so ˙X
+′
+i ˆεi = ˙X
+′
+i εi and (17.38) equals
+ˆV
+cluster
+fe =
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i εi ε′
+i ˙X i
+) (
+˙X
+′ ˙X
+)−1
+which is the idealized estimator with the true errors rather than the residuals. Since E
+[
+εi ε′
+i |X i
+]
+= Σi it
+follows that E
+[
+ˆV
+cluster
+fe |X
+]
+= V fe and ˆV
+cluster
+fe is unbiased for V fe! Thus no degree of freedom adjustment
+
+
+--- page 16 ---
+
+CHAPTER 17. PANEL DATA 612
+is required. This is despite the fact thatN ﬁxed effects have been estimated. While this analysis concerns
+the idealized case where the residuals have been constructed with the true coefﬁcients β so does not
+translate into a direct recommendation for the feasible estimator, it still suggests that the strong ad hoc
+adjustment in (17.40) is unwarranted.
+This (crude) analysis suggests that for the cluster robust covariance estimator for ﬁxed effects re-
+gression the adjustment recommended by C. Hansen (17.39) is the most appropriate. It is typically well
+approximated by the unadjusted estimator (17.38). Based on current theory there is no justiﬁcation for
+the ad hoc adjustment (17.40). The main argument for the latter is that it produces the largest standard
+errors and is thus the most conservative choice.
+In current practice the estimators (17.38) and (17.40) are the most commonly used covariance matrix
+estimators for ﬁxed effects estimation.
+In Sections 17.22 and 17.23 we discuss covariance matrix estimation under heteroskedasticity but no
+serial correlation.
+To illustrate, in Table 17.2 we present the ﬁxed effect regression estimates of the investment model
+(17.3) in the third column with cluster-robust standard errors. The trading indicator Ti and the industry
+dummies cannot be included as they are time-invariant. The point estimates are similar to the random
+effects estimates, though the coefﬁcients on debt and cash ﬂow increase in magnitude.
+17.13 Fixed Effects Estimation in Stata
+There are several methods to obtain the ﬁxed effects estimator ˆβfe in Stata.
+The ﬁrst method is dummy variable regression. This can be obtained by the Stata regress com-
+mand, for example reg y x i.id, cluster(id) where id is the group (individual) identiﬁer. In most
+cases, as discussed in Section 17.11, this is not recommended due to the excessive computer memory
+requirements and slow computation. If this command is done it may be useful to suppress display of
+the full list of coefﬁcient estimates. To do so, type quietly reg y x i.id, cluster(id) followed by
+estimates table, keep(x _cons) be se . The second command will report the coefﬁcient(s) on x
+only, not those on the index variable id . (Other statistics can be reported as well.)
+The second method is to manually create the within transformed variables as described in Section
+17.8, and then use regress.
+The third method is xtreg fe which is speciﬁcally written for panel data. This estimates the slope
+coefﬁcients using the partialling-out approach. The default covariance matrix estimator is classical
+as deﬁned in (17.36). The cluster-robust covariance matrix (17.38) can be obtained using the option
+vce(robust) or r.
+The fourth method isareg absorb(id). This command is an alternative implementation of partialling-
+out regression. The default covariance matrix estimator is the classical (17.36). The cluster-robust covari-
+ance matrix estimator (17.40) can be obtained using the cluster(id) option. The heteroskedasticity-
+robust covariance matrix is obtained when r or vce(robust) is speciﬁed but this is not recommended
+unless Ti is large as will be discussed in Section 17.22.
+An important difference between the Stata xtreg and areg commands is that they implement dif-
+ferent cluster-robust covariance matrix estimators: (17.38) in the case ofxtreg and (17.40) in the case of
+areg. As discussed in the previous section the adjustment used by areg is ad hoc and not well-justiﬁed
+but produces the largest and hence most conservative standard errors.
+Another difference between the commands is how they report the equation R2. This difference can
+be huge and stems from the fact that they are estimating distinct population counter-parts. Full dummy
+variable regression and the areg command calculate R2 the same way: the squared correlation between
+Yi t and the ﬁtted regression with all predictors including the individual dummy variables. Thextreg fe
+
+
+--- page 17 ---
+
+CHAPTER 17. PANEL DATA 613
+command reports three values for R2: within, between, and overall. The “within” R2 is identical to what
+is obtained from a second stage regression using the within transformed variables. (The second method
+described above.) The “overall” R2 is the squared correlation between Yi t and the ﬁtted regression ex-
+cluding the individual effects.
+Which R2 should be reported? The answer depends on the baseline model before regressors are
+added. If we view the baseline as an individual-speciﬁc mean, then thewithin calculation is appropriate.
+If the baseline is a single mean for all observations then the full regression (areg) calculation is appropri-
+ate. The latter (areg) calculation is typically much higher than the within calculation, as the ﬁxed effects
+typically “explain” a large portion of the variance. In any event as there is not a single deﬁnition of R2 it
+is important to be explicit about the method if it is reported.
+In current econometric practice both xtreg and areg are used, though areg appears to be the more
+popular choice. Since the latter typically produces a much higher value of R2, reported R2 values should
+be viewed skeptically unless their calculation method is documented by the author.
+17.14 Between Estimator
+The between estimator is calculated from the individual-mean equation (17.20)
+Y i = X
+′
+i β + ui + εi . (17.41)
+Estimation can be done at the level of individuals or at the level of observations. Least squares ap-
+plied to (17.41) at the level of the N individuals is
+ˆβbe =
+(
+N∑
+i =1
+X i X
+′
+i
+)−1 (
+N∑
+i =1
+X i Y i
+)
+.
+Least squares applied to (17.41) at the level of observations is
+˜βbe =
+(
+N∑
+i =1
+∑
+t ∈Si
+X i X
+′
+i
+)−1 (
+N∑
+i =1
+∑
+t ∈Si
+X i Y i
+)
+=
+(
+N∑
+i =1
+Ti X i X
+′
+i
+)−1 (
+N∑
+i =1
+Ti
+X i Y i
+)
+.
+In balanced panels ˜βbe = ˆβbe but they differ on unbalanced panels. ˜βbe equals weighted least squares
+applied at the level of individuals with weight Ti .
+Under the random effects assumptions (Assumption 17.1) ˆβbe is unbiased for β and has variance
+V be = var
+[ˆβbe |X
+]
+=
+(
+N∑
+i =1
+X i X
+′
+i
+)−1 (
+N∑
+i =1
+X i X
+′
+i σ2
+i
+) (
+N∑
+i =1
+X i X
+′
+i
+)−1
+where
+σ2
+i = var
+[
+ui + εi
+]
+= σ2
+u + σ2
+ε
+Ti
+is the variance of the error in (17.41). When the panel is balanced the variance formula simpliﬁes to
+V be = var
+[ˆβbe |X
+]
+=
+(
+N∑
+i =1
+X i X
+′
+i
+)−1 (
+σ2
+u + σ2
+ε
+T
+)
+.
+Under the random effects assumption the between estimator ˆβbe is unbiased for β but is less efﬁ-
+cient than the random effects estimator ˆβgls. Consequently there seems little direct use for the between
+estimator in linear panel data applications.
+
+
+--- page 18 ---
+
+CHAPTER 17. PANEL DATA 614
+Instead, its primary application is to construct an estimate of σ2
+u. First, consider estimation of
+σ2
+b = 1
+N
+N∑
+i =1
+σ2
+i = σ2
+u + 1
+N
+N∑
+i =1
+σ2
+ε
+Ti
+= σ2
+u + σ2
+ε
+T
+where T = N / ∑N
+i =1 T −1
+i is the harmonic mean of Ti . (In the case of a balanced panel T = T .) A natural
+estimator of σ2
+b is
+ˆσ2
+b = 1
+N − k
+N∑
+i =1
+ˆe2
+bi . (17.42)
+where ˆebi = Y i − X
+′
+i ˆβbe are the between residuals. (Either ˆβbe or ˜βbe can be used.)
+From the relation σ2
+b = σ2
+u + σ2
+ε/
+T and (17.42) we can deduce an estimator for σ2
+u. We have already
+described an estimator ˆσ2
+ε for σ2
+ε in (17.37) for the ﬁxed effects model. Since the ﬁxed effects model holds
+under weaker conditions than the random effects model, ˆσ2
+ε is valid for the latter as well. This suggests
+the following estimator for σ2
+u
+ˆσ2
+u = ˆσ2
+b − ˆσ2
+ε
+T
+. (17.43)
+To summarize, the ﬁxed effect estimator is used for ˆσ2
+ε, the between estimator for ˆσ2
+b, and ˆσ2
+u is con-
+structed from the two.
+It is possible for (17.43) to be negative. It is typical to use the constrained estimator
+ˆσ2
+u = max
+[
+0, ˆσ2
+b − ˆσ2
+ε
+T
+]
+. (17.44)
+(17.44) is the most common estimator for σ2
+u in the random effects model.
+The between estimator ˆβbe can be obtained using the Stata command xtreg be . The estimator ˜βbe
+can be obtained by xtreg be wls.
+17.15 Feasible GLS
+The random effects estimator can be written as
+ˆβre =
+(
+N∑
+i =1
+X ′
+i Ω−1
+i X i
+)−1 (
+N∑
+i =1
+X ′
+i Ω−1
+i Y i
+)
+=
+(
+N∑
+i =1
+˜X
+′
+i ˜X i
+)−1 (
+N∑
+i =1
+˜X
+′
+i ˜Y i
+)
+(17.45)
+where ˜X i = Ω−1/2
+i X i and ˜Y i = Ω−1/2
+i Y i . It is instructive to study these transformations.
+DeﬁneP i = 1i
+(
+1′
+i 1i
+)−1 1′
+i so that M i = I i − P i . Thus while M i is the within operator, P i can be called
+the individual-mean operator since P i Y i = 1i
+Y i . We can write
+Ωi = I i + 1i 1′
+i σ2
+u/σ2
+ε = I i + Ti σ2
+u
+σ2
+ε
+P i = M i + ρ−2
+i P i
+where
+ρi = σε
+√
+σ2
+ε + Ti σ2
+u
+. (17.46)
+Since the matrices M i and P i are idempotent and orthogonal we ﬁnd thatΩ−1
+i = M i + ρ2
+i P i and
+Ω−1/2
+i = M i + ρi P i = I i −
+(
+1 − ρi
+)
+P i . (17.47)
+
+
+--- page 19 ---
+
+CHAPTER 17. PANEL DATA 615
+Therefore the transformation used by the GLS estimator is
+˜Y i =
+(
+I i −
+(
+1 − ρi
+)
+P i
+)
+Y i = Y i −
+(
+1 − ρi
+)
+1i Y i
+which is a partial within transformation.
+The transformation as written depends on ρi which is unknown. It can be replaced by the estimator
+ˆρi = ˆσε
+√
+ˆσ2
+ε + Ti ˆσ2
+u
+(17.48)
+where the estimators ˆσ2
+ε and ˆσ2
+u are given in (17.37) and (17.44). We obtain the feasible transformations
+˜Y i = Y i −
+(
+1 − ˆρi
+)
+1i
+Y i (17.49)
+and
+˜X i = X i −
+(
+1 − ˆρi
+)
+1i X
+′
+i . (17.50)
+The feasible random effects estimator is (17.45) using (17.49) and (17.50).
+In the previous section we noted that it is possible for ˆσ2
+u = 0. In this case ˆρi = 1 and ˆβre = ˆβpool.
+What this shows is the following. The random effects estimator (17.45) is least squares applied to
+the transformed variables ˜X i and ˜Y i deﬁned in (17.50) and (17.49). When ˆρi = 0 these are the within
+transformations, so ˜X i = ˙X i , ˜Y i = ˙Y i , and ˆβre = ˆβfe is the ﬁxed effects estimator. When ˆρi = 1 the data
+are untransformed ˜X i = X i , ˜Y i = Y i , and ˆβre = ˆβpool is the pooled estimator. In general, ˜X i and ˜Y i can
+be viewed as partial within transformations.
+Recalling the deﬁnition ˆρi = ˆσε/
+√
+ˆσ2
+ε + Ti ˆσ2
+u we see that when the idiosyncratic error variance ˆσ2
+ε
+is large relative to Ti ˆσ2
+u then ˆρi ≈ 1 and ˆβre ≈ ˆβpool. Thus when the variance estimates suggest that the
+individual effect is relatively small the random effect estimator simpliﬁes to the pooled estimator. On the
+other hand when the individual effect error variance ˆσ2
+u is large relative to ˆσ2
+ε then ˆρi ≈ 0 and ˆβre ≈ ˆβfe.
+Thus when the variance estimates suggest that the individual effect is relatively large the random effect
+estimator is close to the ﬁxed effects estimator.
+17.16 Intercept in Fixed Effects Regression
+The ﬁxed effect estimator does not apply to any regressor which is time-invariant for all individuals.
+This includes an intercept. Yet some authors and packages (e.g. Amemiya (1971) and xtreg in Stata)
+report an intercept. To see how to construct an estimator of an intercept take the components regression
+equation adding an explicit intercept
+Yi t = α + X ′
+i tβ + ui + εi t.
+We have already discussed estimation of β by ˆβfe. Replacing β in this equation with ˆβfe and then esti-
+mating α by least squares, we obtain
+ˆαfe =
+Y − X
+′ ˆβfe
+where Y and X are averages from the full sample. This is the estimator reported by xtreg.
+
+
+--- page 20 ---
+
+CHAPTER 17. PANEL DATA 616
+17.17 Estimation of Fixed Effects
+For most applications researchers are interested in the coefﬁcients β not the ﬁxed effects ui . But
+in some cases the ﬁxed effects themselves are interesting. This arises when we want to measure the
+distribution of ui to understand its heterogeneity. It also arises in the context of prediction. As discussed
+in Section 17.11 the ﬁxed effects estimateˆu is obtained by least squares applied to the regression (17.33).
+To ﬁnd their solution, replaceβ in (17.33) with the least squares minimizer ˆβfe and apply least squares.
+Since this is the individual-speciﬁc intercept the solution is
+ˆui = 1
+Ti
+∑
+t ∈Si
+(
+Yi t − X ′
+i t ˆβfe
+)
+= Y i − X
+′
+i ˆβfe. (17.51)
+Alternatively, using (17.34) this is
+ˆu =
+(
+D ′D
+)−1 D ′ (
+Y − X ˆβfe
+)
+= diag
+{
+T −1
+i
+} N∑
+i =1
+di 1′
+i
+(
+Y i − X i ˆβfe
+)
+=
+N∑
+i =1
+di
+(
+Y i − X
+′
+i ˆβfe
+)
+= ( ˆu1,..., ˆuN )′ .
+Thus the least squares estimates of the ﬁxed effects can be obtained from the individual-speciﬁc
+means and does not require a regression with N + k regressors.
+If an intercept has been estimated (as discussed in the previous section) it should be subtracted from
+(17.51). In this case the estimated ﬁxed effects are
+ˆui = Y i − X
+′
+i ˆβfe − ˆαfe. (17.52)
+With either estimator when the number of time series observationsTi is small ˆui will be an imprecise
+estimator of ui . Thus calculations based on ˆui should be interpreted cautiously.
+The ﬁxed effects (17.52) may be obtained in Stata after ivreg, fe using the predict u command
+or after areg using the predict d command.
+17.18 GMM Interpretation of Fixed Effects
+We can also interpret the ﬁxed effects estimator through the generalized method of moments.
+Take the ﬁxed effects model after applying the within transformation (17.21). We can view this as a
+system of T equations, one for each time period t. This is a multivariate regression model. Using the
+notation of Chapter 11 deﬁne theT × kT regressor matrix
+X i =
+
+
+˙X ′
+i 1 0 · · · 0
+..
+. ˙X ′
+i 2
+.
+.
+.
+0 0 · · · ˙X ′
+i T
+
+. (17.53)
+If we treat each time period as a separate equation we have the kT moment conditions
+E
+[
+X
+′
+i
+( ˙Y i − ˙X i β
+)]
+= 0.
+
+
+--- page 21 ---
+
+CHAPTER 17. PANEL DATA 617
+This is an overidentiﬁed system of equations when T ≥ 3 as there are k coefﬁcients and kT moments.
+(However, the moments are collinear due to the within transformation. There are k(T − 1) effective mo-
+ments.) Interpreting this model in the context of multivariate regression, overidentiﬁcation is achieved
+by the restriction that the coefﬁcient vectorβ is constant across time periods.
+This model can be interpreted as a regression of ˙Y i on ˙X i using the instruments X i . The 2SLS esti-
+mator using matrix notation is
+ˆβ =
+((
+˙X
+′
+X
+) (
+X
+′
+X
+)−1 (
+X
+′ ˙X
+))−1 ((
+˙X
+′
+X
+) (
+X
+′
+X
+)−1 (
+X
+′ ˙Y
+))
+.
+Notice that
+X
+′
+X =
+n∑
+i =1
+
+
+˙Xi 1 0 · · · 0
+..
+. ˙Xi 2
+.
+.
+.
+0 0 · · · ˙Xi T
+
+
+
+
+˙X ′
+i 1 0 · · · 0
+..
+. ˙X ′
+i 2
+.
+.
+.
+0 0 · · · ˙X ′
+i T
+
+
+=
+
+
+∑n
+i =1 ˙Xi 1 ˙X ′
+i 1 0 · · · 0
+..
+. ∑n
+i =1 ˙Xi 2 ˙X ′
+i 2
+..
+.
+0 0 · · · ∑n
+i =1 ˙Xi T ˙X ′
+i T
+
+,
+X
+′ ˙X =
+
+
+∑n
+i =1 ˙Xi 1 ˙X ′
+i 1
+..
+.∑n
+i =1 ˙Xi T ˙X ′
+i T
+
+,
+and
+X
+′ ˙Y =
+
+
+∑n
+i =1 ˙Xi 1 ˙Yi 1
+..
+.∑n
+i =1 ˙Xi T ˙Yi T
+
+.
+Thus the 2SLS estimator simpliﬁes to
+ˆβ2sls =
+(
+T∑
+t =1
+(
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+) (
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+)−1 (
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+)) −1
+×
+(
+T∑
+t =1
+(
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+) (
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+)−1 (
+n∑
+i =1
+˙Xi t ˙Yi t
+))
+=
+(
+T∑
+t =1
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+)−1 (
+T∑
+t =1
+n∑
+i =1
+˙Xi t ˙Yi t
+)
+= ˆβfe
+the ﬁxed effects estimator!
+This shows that if we treat each time period as a separate equation with its separate moment equa-
+tion so that the system is over-identiﬁed, and then estimate by GMM using the 2SLS weight matrix, the
+resulting GMM estimator equals the simple ﬁxed effects estimator. There is no change by adding the
+additional moment conditions.
+The 2SLS estimator is the appropriate GMM estimator when the equation error is serially uncorre-
+lated and homoskedastic. If we use a two-step efﬁcient weight matrix which allows for heteroskedasticity
+
+
+--- page 22 ---
+
+CHAPTER 17. PANEL DATA 618
+and serial correlation the GMM estimator is
+ˆβgmm =
+(
+T∑
+t =1
+(
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+) (
+n∑
+i =1
+˙Xi t ˙X ′
+i t ˆe2
+i t
+)−1 (
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+)) −1
+×
+(
+T∑
+t =1
+(
+n∑
+i =1
+˙Xi t ˙X ′
+i t
+) (
+n∑
+i =1
+˙Xi t ˙X ′
+i t ˆe2
+i t
+)−1 (
+n∑
+i =1
+˙Xi t ˙Yi t
+))
+where ˆei t are the ﬁxed effects residuals.
+Notationally, this GMM estimator has been written for a balanced panel. For an unbalanced panel
+the sums over i need to be replaced by sums over individuals observed during time period t. Otherwise
+no changes need to be made.
+17.19 Identiﬁcation in the Fixed Effects Model
+The identiﬁcation of the slope coefﬁcient β in ﬁxed effects regression is similar to that in conven-
+tional regression but somewhat more nuanced.
+It is most useful to consider the within-transformed equation, which can be written as˙Yi t = ˙X ′
+i tβ+ ˙εi t
+or ˙Y i = ˙X i β + ˙εi .
+From regression theory we know that the coefﬁcient β is the linear effect of ˙Xi t on ˙Yi t. The variable
+˙Xi t is the deviation of the regressor from its individual-speciﬁc mean and similarly for˙Yi t. Thus the ﬁxed
+effects model does not identify the effect of the average level of Xi t on the average level of Yi t, but rather
+the effect of the deviations in Xi t on Yi t.
+In any given sample the ﬁxed effects estimator is only deﬁned if∑N
+i =1 ˙X
+′
+i ˙X i is full rank. The popula-
+tion analog (when individuals are i.i.d.) is
+E
+[
+˙X
+′
+i ˙X i
+]
+> 0. (17.54)
+Equation (17.54) is the identiﬁcation condition for the ﬁxed effects estimator. It requires that the re-
+gressor matrix is full-rank in expectation after application of the within transformation. The regressors
+cannot contain any variable which does not have time-variation at the individual level nor a set of re-
+gressors whose time-variation at the individual level is collinear.
+17.20 Asymptotic Distribution of Fixed Effects Estimator
+In this section we present an asymptotic distribution theory for the ﬁxed effects estimator in bal-
+anced panels. Unbalanced panels are considered in the following section.
+We use the following assumptions.
+
+
+--- page 23 ---
+
+CHAPTER 17. PANEL DATA 619
+Assumption 17.2
+1. Yi t = X ′
+i tβ + ui + εi t for i = 1, ...,N and t = 1, ...,T with T ≥ 2.
+2. The variables (ε i , X i ), i = 1, ...,N , are independent and identically dis-
+tributed.
+3. E[Xi sεi t] = 0 for all s = 1, ...,T.
+4. QT = E
+[
+˙X
+′
+i ˙X i
+]
+> 0.
+5. E
+[
+ε4
+i t
+]
+< ∞.
+6. E ∥Xi t∥4 < ∞.
+Given Assumption 17.2 we can establish asymptotic normality for ˆβfe.
+Theorem 17.2 Under Assumption 17.2, as N → ∞,
+p
+N
+(ˆβfe − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where V β = Q −1
+T ΩT Q −1
+T and ΩT = E
+[
+˙X
+′
+i εi ε′
+i ˙X i
+]
+.This asymptotic distribution is derived as the number of individuals N diverges to inﬁnity while the
+time number of time periods T is held ﬁxed. Therefore the normalization is
+p
+N rather than pn (though
+either could be used sinceT is ﬁxed). This approximation is appropriate for the context of a large number
+of individuals. We could alternatively derive an approximation for the case where both N and T diverge
+to inﬁnity but this would not be a stronger result. One way of thinking about this is that Theorem 17.2
+does not require T to be large.
+Theorem 17.2 may appear standard given our arsenal of asymptotic theory but in a fundamental
+sense it is quite different from any other result we have introduced. Fixed effects regression is effectively
+estimating N + k coefﬁcients – the k slope coefﬁcients β plus the N ﬁxed effects u – and the theory
+speciﬁes that N → ∞. Thus the number of estimated parameters is diverging to inﬁnity at the same
+rate as sample size yet the the estimator obtains a conventional mean-zero sandwich-form asymptotic
+distribution. In this sense Theorem 17.2 is new and special.
+We now discuss the assumptions.
+Assumption 17.2.2 states that the observations are independent across individuals i . This is com-
+monly used for panel data asymptotic theory. An important implied restriction is that it means that we
+exclude from the regressors any serially correlated aggregate time series variation.
+Assumption 17.2.3 imposes that Xi t is strictly exogeneous for εi t. This is stronger than simple pro-
+jection but is weaker than strict mean independence (17.18). It does not impose any condition on the
+individual-speciﬁc effectsui .
+Assumption 17.2.4 is the identiﬁcation condition discussed in the previous section.
+Assumptions 17.2.5 and 17.2.6 are needed for the central limit theorem.
+We now prove Theorem 17.2. The assumptions imply that the variables ( ˙X i , εi ) are i.i.d. across i and
+have ﬁnite fourth moments. Thus by the WLLN
+1
+N
+N∑
+i =1
+˙X
+′
+i ˙X i − →p E
+[
+˙X
+′
+i ˙X i
+]
+= QT .
+
+
+--- page 24 ---
+
+CHAPTER 17. PANEL DATA 620
+Assumption 17.2.3 implies
+E
+[
+˙X
+′
+i εi
+]
+=
+T∑
+t =1
+E
+[ ˙Xi tεi t
+]
+=
+T∑
+t =1
+E[Xi tεi t] −
+T∑
+t =1
+T∑
+j =1
+E
+[
+Xi j εi t
+]
+= 0
+so they are mean zero. Assumptions 17.2.5 and 17.2.6 imply that ˙X
+′
+i εi has a ﬁnite covariance matrixΩT .
+The assumptions for the CLT (Theorem 6.3) hold, thus
+1
+p
+N
+N∑
+i =1
+˙X
+′
+i εi − →
+d
+N(0, ΩT ).
+Together we ﬁnd
+p
+N
+(ˆβfe − β
+)
+=
+(
+1
+N
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1 (
+1
+p
+N
+N∑
+i =1
+˙X
+′
+i εi
+)
+− →
+d
+Q −1
+T N(0, ΩT ) = N
+(
+0,V β
+)
+as stated.
+17.21 Asymptotic Distribution for Unbalanced Panels
+In this section we extend the theory of the previous section to cover unbalanced panels under ran-
+dom selection. Our presentation is built on Section 17.1 of Wooldridge (2010).
+Think of an unbalanced panel as a shortened version of an idealized balanced panel where the short-
+ening is due to “missing” observations due to random selection. Thus suppose that the underlying (po-
+tentially latent) variables are Y i = (Yi 1, ...,Yi T)′ and X i = (Xi 1, ...,Xi T)′. Let si = (si 1,..., si T)′ be a vector
+of selection indicators, meaning that si t = 1 if the time period t is observed for individual i and si t = 0
+otherwise. Then we can describe the estimators algebraically as follows.
+Let Si = diag(si ) and M i = Si − si
+(
+s′
+i si
+)−1 s′
+i , which is idempotent. The within transformations can
+be written as ˙Y i = M i Y i and ˙X i = M i X i . They have the property that if si t = 0 (so that time period t is
+missing) then the t t h element of ˙Y i and the t t h row of ˙X i are all zeros. The missing observations have
+been replaced by zeros. Consequently, they do not appear in matrix products and sums.
+The ﬁxed effects estimator ofβ based on the observed sample is
+ˆβfe =
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1 (
+N∑
+i =1
+˙X
+′
+i ˙Y i
+)
+.
+Centered and normalized,
+p
+N
+(ˆβfe − β
+)
+=
+(
+1
+N
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1 (
+1
+p
+N
+N∑
+i =1
+˙X
+′
+i εi
+)
+.
+Notationally this appears to be identical to the case of a balanced panel but the difference is that the
+within operator M i incorporates the sample selection induced by the unbalanced panel structure.
+To derive a distribution theory for ˆβfe we need to be explicit about the stochastic nature of si . That
+is, why are some time periods observed and some not? We could take several approaches:
+1. We could treat si as ﬁxed (non-random). This is the easiest approach but the most unsatisfactory.
+
+
+--- page 25 ---
+
+CHAPTER 17. PANEL DATA 621
+2. We could treat si as random but independent of (Yi , X i ). This is known as “missing at random” and
+is a common assumption used to justify methods with missing observations. It is justiﬁed when
+the reason why observations are not observed is independent of the observations. This is appro-
+priate, for example, in panel data sets where individuals enter and exit in “waves” . The statistical
+treatment is not substantially different from the case of ﬁxedsi .
+3. We could treat (Y i , X i , si ) as jointly random but impose a condition sufﬁcient for consistent esti-
+mation of β. This is the approach we take below. The condition turns out to be a form of mean
+independence. The advantage of this approach is that it is less restrictive than full independence.
+The disadvantage is that we must use a conditional mean restriction rather than uncorrelatedness
+to identify the coefﬁcients.
+The speciﬁc assumptions we impose are as follows.
+Assumption 17.3
+1. Yi t = X ′
+i tβ + ui + εi t for i = 1, ...,N with Ti ≥ 2.
+2. The variables (ε i , X i , si ), i = 1, ...,N , are independent and identically dis-
+tributed.
+3. E[εi t |X i , si ] = 0.
+4. QT = E
+[
+˙X
+′
+i ˙X i
+]
+> 0.
+5. E
+[
+ε4
+i t
+]
+< ∞.
+6. E ∥Xi t∥4 < ∞.
+The primary difference with Assumption 17.2 is that we have strengthened strict exogeneity to strict
+mean independence. This imposes that the regression model is properly speciﬁed and that selection
+does not affect the mean of εi t. It is less restrictive than full independence since si can affect other
+moments of εi t and more importantly does not restrict the joint dependence between si and X i .
+Given the above development it is straightforward to establish asymptotic normality.
+Theorem 17.3 Under Assumption 17.3, as N → ∞,
+p
+N
+(ˆβfe − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where V β = Q −1
+T ΩT Q −1
+T and ΩT = E
+[
+˙X
+′
+i εi ε′
+i ˙X i
+]
+.We now prove Theorem 17.3. The assumptions imply that the variables ( ˙X i , εi ) are i.i.d. across i and
+have ﬁnite fourth moments. By the WLLN
+1
+N
+N∑
+i =1
+˙X
+′
+i ˙X i − →p E
+[
+˙X
+′
+i ˙X i
+]
+= QT .
+
+
+--- page 26 ---
+
+CHAPTER 17. PANEL DATA 622
+The random vectors ˙X
+′
+i εi are i.i.d. The matrix ˙X i is a function of (X i , si ) only. Assumption 17.3.3 and the
+law of iterated expectations implies
+E
+[
+˙X
+′
+i εi
+]
+= E
+[
+˙X
+′
+i E[εi |X i , si ]
+]
+= 0.
+so that ˙X
+′
+i εi is mean zero. Assumptions 17.3.5 and 17.3.6 and the fact that si is bounded implies that
+˙X
+′
+i εi has a ﬁnite covariance matrix, which isΩT . The assumptions for the CLT hold, thus
+1
+p
+N
+N∑
+i =1
+˙X
+′
+i εi − →
+d
+N(0, ΩT ).
+Together we obtain the stated result.
+17.22 Heteroskedasticity-Robust Covariance Matrix Estimation
+We have introduced two covariance matrix estimators for the ﬁxed effects estimator. The classical
+estimator (17.36) is appropriate for the case where the idiosyncratic errors εi t are homoskedastic and
+serially uncorrelated. The cluster-robust estimator (17.38) allows for heteroskedasticity and arbitrary
+serial correlation. In this and the following section we consider the intermediate case where εi t is het-
+eroskedastic but serially uncorrelated.
+Assume that (17.18) and (17.26) hold but not necessarily (17.25). Deﬁne the conditional variances
+E
+[
+ε2
+i t |X i
+]
+= σ2
+i t. (17.55)
+Then Σi = E
+[
+εi ε′
+i |X i
+]
+= diag
+(
+σ2
+i t
+)
+. The covariance matrix (17.24) can be written as
+V fe =
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙X ′
+i tσ2
+i t
+) (
+˙X
+′ ˙X
+)−1
+. (17.56)
+A natural estimator of σ2
+i t is ˆε2
+i t. Replacing σ2
+i t with ˆε2
+i t in (17.56) and making a degree-of-freedom
+adjustment we obtain a White-type covariance matrix estimator
+ˆV fe = n
+n − N − k
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙X ′
+i tˆε2
+i t
+) (
+˙X
+′ ˙X
+)−1
+.
+Following the insight of White (1980) it may seem appropriate to expect ˆV fe to be a reasonable esti-
+mator of V fe. Unfortunately this is not the case as discovered by Stock and Watson (2008). The problem
+is that ˆV fe is a function of the individual-speciﬁc means
+εi which are negligible only if the number of
+time series observations Ti are large.
+We can see this by a simple bias calculation. Assume that the sample is balanced and that the resid-
+uals are constructed with the true β. Then
+ˆεi t = ˙εi t = εi t − 1
+T
+T∑
+t =1
+εi j .
+Using (17.26) and (17.55)
+E
+[
+ˆε2
+i t |X i
+]
+=
+(T − 2
+T
+)
+σ2
+i t +
+σ2
+i
+T (17.57)
+
+
+--- page 27 ---
+
+CHAPTER 17. PANEL DATA 623
+where σ2
+i = T −1 ∑T
+t =1 σ2
+i t. (See Exercise 17.10.) Using (17.57) and setting k = 0 we obtain
+E
+[ˆV fe |X
+]
+= T
+T − 1
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙X ′
+i tE
+[
+ˆε2
+i t |X i
+]
+) (
+˙X
+′ ˙X
+)−1
+=
+(T − 2
+T − 1
+)
+V fe + 1
+T − 1
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i ˙X i σ2
+i
+) (
+˙X
+′ ˙X
+)−1
+.
+Thus ˆV fe is biased of order O
+(
+T −1)
+. Unless T → ∞ this bias will persist as N → ∞. ˆV fe is unbiased in
+two contexts. The ﬁrst is when the errorsεi t are homoskedastic. The second is when T = 2. (To show the
+latter requires some algebra so is omitted.)
+To correct the bias for the caseT > 2, Stock and Watson (2008) proposed the estimator
+˜V fe =
+(T − 1
+T − 2
+)
+ˆV fe − 1
+T − 1
+ˆB fe (17.58)
+ˆB fe =
+(
+˙X
+′ ˙X
+)−1
+(
+N∑
+i =1
+˙X
+′
+i ˙X i ˆσ2
+i
+) (
+˙X
+′ ˙X
+)−1
+ˆσ2
+i = 1
+T − 1
+T∑
+t =1
+ˆε2
+i t. (17.59)
+You can check that E
+[
+ˆσ2
+i |X i
+]
+=
+σ2
+i and E
+[˜V fe |X i
+]
+= V fe so ˜V fe is unbiased for V fe. (See Exercise 17.11.)
+Stock and Watson (2008) show that ˜V fe is consistent with T ﬁxed and N → ∞. In simulations they
+show that ˜V fe has excellent performance.
+Because of the Stock-Watson analysis Stata no longer calculates the heteroskedasticity-robust covari-
+ance matrix estimator ˆV fe when the ﬁxed effects estimator is calculated using the xtreg command. In-
+stead, the cluster-robust estimator ˆV
+cluster
+fe is reported when robust standard errors are requested. How-
+ever, ﬁxed effects is often implemented using theareg command which reports the biased estimator ˆV fe
+if robust standard errors are requested. These leads to the practical recommendation that areg should
+be used with the cluster(id) option.
+At present the corrected estimator (17.58) has not been programmed as a Stata option.
+17.23 Heteroskedasticity-Robust Estimation – Unbalanced Case
+A limitation with the bias-corrected robust covariance matrix estimator of Stock and Watson (2008)
+is that it was only derived for balanced panels. In this section we generalize their estimator to cover
+unbalanced panels.
+The estimator is
+˜V fe =
+(
+˙X
+′ ˙X
+)−1
+˜Ωfe
+(
+˙X
+′ ˙X
+)−1
+(17.60)
+˜Ωfe =
+N∑
+i =1
+∑
+t ∈Si
+˙Xi t ˙X ′
+i t
+[(
+Ti ˆε2
+i t − ˆσ2
+i
+Ti − 2
+)
+1{Ti > 2} +
+(
+Ti ˆε2
+i t
+Ti − 1
+)
+1{Ti = 2}
+]
+where
+ˆσ2
+i = 1
+Ti − 1
+∑
+t ∈Si
+ˆε2
+i t.
+To justify this estimator, as in the previous section make the simplifying assumption that the residuals
+are constructed with the true β. We calculate that
+
+
+--- page 28 ---
+
+CHAPTER 17. PANEL DATA 624
+E
+[
+ˆε2
+i t |X i
+]
+=
+(Ti − 2
+Ti
+)
+σ2
+i t +
+σ2
+i
+Ti
+(17.61)
+E
+[
+ˆσ2
+i |X i
+]
+=
+σ2
+i . (17.62)
+You can show that under these assumptions, E
+[˜V fe |X
+]
+= V fe and thus ˜V fe is unbiased for V fe. (See
+Exercise 17.12.)
+In balanced panels the estimator ˜V fe simpliﬁes to the Stock-Watson estimator (withk = 0).
+17.24 Hausman Test for Random vs Fixed Effects
+The random effects model is a special case of the ﬁxed effects model. Thus we can test the null
+hypothesis of random effects against the alternative of ﬁxed effects. The Hausman test is typically used
+for this purpose. The statistic is a quadratic in the difference between the ﬁxed effects and random effects
+estimators. The statistic is
+H =
+(ˆβfe − ˆβre
+)′
+ˆvar
+[ˆβfe − ˆβre
+]−1 (ˆβfe − ˆβre
+)
+=
+(ˆβfe − ˆβre
+)′ (ˆV fe − ˆV re
+)−1 (ˆβfe − ˆβre
+)
+where both ˆV fe and ˆV re take the classical (non-robust) form.
+The test can be implemented on a subset of the coefﬁcients β. In particular this needs to be done if
+the regressors Xi t contain time-invariant elements so that the random effects estimator contains more
+coefﬁcients than the ﬁxed effects estimator. In this case the test should be implemented only on the
+coefﬁcients on the time-varying regressors.
+An asymptotic 100α% test rejects if H exceeds the 1 − αt h quantile of the χ2
+k distribution where k =
+dim(β). If the test rejects this is evidence that the individual effect ui is correlated with the regressors so
+the random effects model is not appropriate. On the other hand if the test fails to reject this evidence
+says that the random effects hypothesis cannot be rejected.
+It is tempting to use the Hausman test to select whether to use the ﬁxed effects or random effects
+estimator. One could imagine using the random effects estimator if the Hausman test fails to reject the
+random effects hypothesis and using the ﬁxed effects estimator otherwise. This is not, however, a wise
+approach. This procedure – selecting an estimator based on a test – is known as apretest estimator and
+is biased. The bias arises because the result of the test is random and correlated with the estimators.
+Instead, the Hausman test can be used as a speciﬁcation test. If you are planning to use the random
+effects estimator (and believe that the random effects assumptions are appropriate in your context) the
+Hausman test can be used to check this assumption and provide evidence to support your approach.
+17.25 Random Effects or Fixed Effects?
+We have presented the random effects and ﬁxed effects estimators of the regression coefﬁcients.
+Which should be used in practice? How should we view the difference?
+The basic distinction is that the random effects estimator requires the individual error ui to satisfy
+the conditional mean assumption (17.8). The ﬁxed effects estimator does not require (17.8) and is robust
+to its violation. In particular, the individual effect ui can be arbitrarily correlated with the regressors. On
+the other hand the random effects estimator is efﬁcient under random effects (Assumption 17.1).
+Current econometric practice is to prefer robustness over efﬁciency. Consequently, current practice
+is (nearly uniformly) to use the ﬁxed effects estimator for linear panel data models. Random effects
+
+
+--- page 29 ---
+
+CHAPTER 17. PANEL DATA 625
+estimators are only used in contexts where ﬁxed effects estimation is unknown or challenging (which
+occurs in many nonlinear models).
+The labels “random effects” and “ﬁxed effects” are misleading. These are labels which arose in the
+early literature and we are stuck with these labels today. In a previous era regressors were viewed as
+“ﬁxed” . Viewing the individual effect as an unobserved regressor leads to the label of the individual effect
+as “ﬁxed” . Today, we rarely refer to regressors as “ﬁxed” when dealing with observational data. We view
+all variables as random. Consequently describingui as “ﬁxed” does not make much sense and it is hardly
+a contrast with the “random effect” label since under either assumption ui is treated as random. Once
+again, the labels are unfortunate but the key difference is whether ui is correlated with the regressors.
+17.26 Time Trends
+In general we expect that economic agents will experience common shocks during the same time
+period. For example, business cycle ﬂuctations, inﬂation, and interest rates affect all agents in the econ-
+omy. Therefore it is often desirable to include time effects in a panel regression model.
+The simplest speciﬁcation is a linear time trend
+Yi t = X ′
+i tβ + γt + ui + εi t.
+For a introduction to time trends see Section 14.42. More ﬂexible speciﬁcations (such as a quadratic) can
+also be used. For estimation it is appropriate to include the time trend t as an element of the regressor
+vector Xi t and then apply ﬁxed effects.
+In some cases the time trends may be individual-speciﬁc. Series may be growing or declining at dif-
+ferent rates. A linear time trend speciﬁcation only extracts a common time trend. To allow for individual-
+speciﬁc time trends we need to include an interaction effect. This can be written as
+Yi t = X ′
+i tβ + γi t + ui + εi t.
+In a ﬁxed effects speciﬁcation the coefﬁcients (γi ,ui ) are treated as possibly correlated with the re-
+gressors. To eliminate them from the model we treat them as unknown parameters and estimate all by
+least squares. By the FWL theorem the estimator for β equals least squares of ˙Y on ˙X where their ele-
+ments are the residuals from the least squares regressions on a linear time trend ﬁt separately for each
+individual and variable.
+17.27 Two-Way Error Components
+In the previous section we discussed inclusion of time trends and individual-speciﬁc time trends.
+The functional forms imposed by linear time trends are restrictive. There is no economic reason to expect
+the “trend” of a series to be linear. Business cycle “trends” are cyclic. This suggests that it is desirable to
+be more ﬂexible than a linear (or even polynomial) speciﬁcations. In this section we consider the most
+ﬂexible speciﬁcation where the trend is allowed to take any arbitrary shape but will require that it is
+common rather than individual-speciﬁc.
+The model we consider is the two-way error component model
+Yi t = X ′
+i tβ + vt + ui + εi t. (17.63)
+In this model ui is an unobserved individual-speciﬁc effect,vt is an unobserved time-speciﬁc effect, and
+εi t is an idiosyncratic error.
+
+
+--- page 30 ---
+
+CHAPTER 17. PANEL DATA 626
+The two-way model (17.63) can be handled either using random effects or ﬁxed effects. In a random
+effects framework the errors vt and ui are modeled as in Assumption 17.1. When the panel is balanced
+the covariance matrix of the error vector e = v ⊗ 1N + 1T ⊗ u + ε is
+var[e] = Ω =
+(
+I T ⊗ 1N 1′
+N
+)
+σ2
+v +
+(
+1T 1′
+T ⊗ I N
+)
+σ2
+u + I nσ2
+ε. (17.64)
+When the panel is unbalanced a similar but cumbersome expression for (17.64) can be derived. This
+variance (17.64) can be used for GLS estimation of β.
+More typically (17.63) is handled using ﬁxed effects. The two-way within transformation subtracts
+both individual-speciﬁc means and time-speciﬁc means to eliminate both vt and ui from the two-way
+model (17.63). For a variable Yi t we deﬁne the time-speciﬁc mean as follows. LetSt be the set of individ-
+uals i for which the observationt is included in the sample and letNt be the number of these individuals.
+Then the time-speciﬁc mean at timet is
+˜Yt = 1
+Nt
+∑
+i ∈St
+Yi t.
+This is the average across all values of Yi t observed at time t.
+For the case of balanced panels the two-way within transformation is
+¨Yi t = Yi t − Y i − ˜Yt + Y (17.65)
+where Y = n−1 ∑N
+i =1
+∑T
+t =1 Yi t is the full-sample mean. If Yi t satisﬁes the two-way component model
+Yi t = vt + ui + εi t
+then Y i = v + ui + εi , ˜Yt = vt + u + ˜εt and Y = v + u + ε. Hence
+¨Yi t = vt + ui + εi t −
+(
+v + ui + εi
+)
+−
+(
+vt + u + ˜εt
+)
++ v + u + ε
+= εi t − εi − ˜εt + ε = ¨εi t
+so the individual and time effects are eliminated.
+The two-way within transformation applied to (17.63) yields
+¨Yi t = ¨X ′
+i tβ + ¨εi t (17.66)
+which is invariant to both vt and ui . The two-way within estimator is least squares applied to (17.66).
+For the unbalanced case there are two computational approaches to implement the estimator. Both
+are based on the realization that the estimator is equivalent to including dummy variables for all time
+periods. Let τt be a set of T dummy variables where the t t h indicates the t t h time period. Thus the t t h
+element of τt is 1 and the remaining elements are zero. Set v = (v1, ...,vT )′ as the vector of time ﬁxed
+effects. Notice that vt = τ′
+t v. We can write the two-way model as
+Yi t = X ′
+i tβ + τ′
+t v + ui + εi t. (17.67)
+This is the dummy variable representation of the two-way error components model.
+Model (17.67) can be estimated by one-way ﬁxed effects with regressors Xi t and τt and coefﬁcient
+vectors β and v. This can be implemented by standard one-way ﬁxed effects methods including xtreg
+or areg in Stata. This produces estimates of the slopes β as well as the time effects v. To achieve identi-
+ﬁcation one time dummy variable is omitted from τt so the estimated time effects are all relative to this
+baseline time period. This is the most common method in practice to estimate a two-way ﬁxed effects
+model. As the number of time periods is typically modest this is a computationally attractive approach.
+
+
+--- page 31 ---
+
+CHAPTER 17. PANEL DATA 627
+The second computational approach is to eliminate the time effects by residual regression. This is
+done by the following steps. First, subtract individual-speciﬁc means for (17.67). This yields
+˙Yi t = ˙X ′
+i tβ + ˙τ′
+t v + ˙εi t.
+Second, regress ˙Yi t on ˙τt to obtain a residual ¨Yi t and regress each element of ˙Xi t on ˙τt to obtain a residual
+¨Xi t. Third, regress ¨Yi t on ¨Xi t to obtain the within estimator of β. These steps eliminate the ﬁxed effects
+vt so the estimator is invariant to their value. What is important about this two-step procedure is that
+the second step is not a within transformation across the time index but rather standard regression.
+If the two-way within estimator is used then the regressors Xi t cannot include any time-invariant
+variables Xi or common time series variables Xt . Both are eliminated by the two-way within transfor-
+mation. Coefﬁcients are only identiﬁed for regressors which have variation both across individuals and
+across time.
+If desired the relevance of the time effects can be tested by an exclusion test on the coefﬁcients v. If
+the test rejects the hypothesis of zero coefﬁcients then this indicates that the time effects are relevant in
+the regression model.
+The ﬁxed effects estimator of (17.63) is invariant to the values ofvt and ui , thus no assumptions need
+to be made concerning their stochastic properties.
+To illustrate, the fourth column of Table 17.2 presents ﬁxed effects estimates of the investment equa-
+tion, augmented to included year dummy indicators, and is thus a two-way ﬁxed effects model. In this
+example the coefﬁcient estimates and standard errors are not greatly affected by the inclusion of the year
+dummy variables.
+17.28 Instrumental Variables
+Take the ﬁxed effects model
+Yi t = X ′
+i tβ + ui + εi t. (17.68)
+We say Xi t is exogenous for εi t if E[Xi tεi t] = 0, and we say Xi t is endogenous for εi t if E[Xi tεi t] ̸= 0.
+In Chapter 12 we discussed several economic examples of endogeneity and the same issues apply in
+the panel data context. The primary difference is that in the ﬁxed effects model we only need to be
+concerned if the regressors are correlated with the idiosyncratic errorεi t, as correlation between Xi t and
+ui is allowed.
+As in Chapter 12 if the regressors are endogenous the ﬁxed effects estimator will be biased and in-
+consistent for the structural coefﬁcient β. The standard approach to handling endogeneity is to specify
+instrumental variables Zi t which are both relevant (correlated with Xi t) yet exogenous (uncorrelated
+with εi t).
+Let Zi t be an ℓ × 1 instrumental variable where ℓ ≥ k. As in the cross-section case, Zi t may con-
+tain both included exogenous variables (variables in Xi t that are exogenous) and excluded exogenous
+variables (variables not in Xi t). Let Z i be the stacked instruments by individual and Z be the stacked
+instruments for the full sample.
+The dummy variable formulation of the ﬁxed effects model is Yi t = X ′
+i tβ + d ′
+i u + εi t where di is an
+N × 1 vector of dummy variables, one for each individual in the sample. The model in matrix notation
+for the full sample is
+Y = X β + Du + ε. (17.69)
+Theorem 17.1 shows that the ﬁxed effects estimator for β can be calculated by least squares estimation
+of (17.69). Thus the dummies D should be viewed as included exogenous variables.
+
+
+--- page 32 ---
+
+CHAPTER 17. PANEL DATA 628
+Consider 2SLS estimation of β using the instruments Z for X . Since D is an included exogenous
+variable it should also be used as an instrument. Thus 2SLS estimation of the ﬁxed effects model (17.68)
+is algebraically 2SLS of the regression (17.69) of Y on (X , D) using the pair (Z , D) as instruments.
+Since the dimension of D can be excessively large, as discussed in Section 17.11, it is advisable to use
+residual regression to compute the 2SLS estimator as we now describe.
+In Section 12.12, we described several alternative representations for the 2SLS estimator. The ﬁfth
+(equation (12.32)) shows that the 2SLS estimator for β equals
+ˆβ2sls =
+(
+X ′M D Z
+(
+Z ′M D Z
+)−1 Z ′M D X
+)−1 (
+X ′M D Z
+(
+Z ′M D Z
+)−1 Z ′M D Y
+)
+where M D = I n − D
+(
+D ′D
+)−1 D ′. The latter is the matrix within operator, thus M D Y = ˙Y , M D X = ˙X , and
+M D Z = ˙Z . It follows that the 2SLS estimator is
+ˆβ2sls =
+(
+˙X
+′ ˙Z
+(
+˙Z
+′ ˙Z
+)−1
+˙Z
+′ ˙X
+)−1 (
+˙X
+′ ˙Z
+(
+˙Z
+′ ˙Z
+)−1
+˙Z
+′ ˙Y
+)
+.
+This is convenient. It shows that the 2SLS estimator for the ﬁxed effects model can be calculated by
+applying 2SLS to the within-transformed Yi t, Xi t, and Zi t. The 2SLS residuals are ˆe = ˙Y − ˙X ˆβ2sls.
+This estimator can be obtained using the Stata command xtivreg fe. It can also be obtained using
+the Stata command ivregress after making the within transformations.
+The presentation above focused for clarity on the one-way ﬁxed effects model. There is no substantial
+change in the two-way ﬁxed effects model
+Yi t = X ′
+i tβ + ui + vt + εi t.
+The easiest way to estimate the two-way model is to add T − 1 time-period dummies to the regression
+model and include these dummy variables as both regressors and instruments.
+17.29 Identiﬁcation with Instrumental Variables
+To understand the identiﬁcation of the structural slope coefﬁcient β in the ﬁxed effects model it is
+necessary to examine the reduced form equation for the endogenous regressors Xi t. This is
+Xi t = ΓZi t +Wi + ζi t
+where Wi is a k × 1 vector of ﬁxed effects for thek regressors and ζi t is an idiosyncratic error.
+The coefﬁcient matrix Γ is the linear effect of Zi t on Xi t holding the ﬁxed effectsWi constant. Thus
+Γ has a similar interpretation as the coefﬁcient β in the ﬁxed effects regression model. It is the effect of
+the variation in Zi t about its individual-speciﬁc mean onXi t.
+The 2SLS estimator is a function of the within transformed variables. Applying the within transforma-
+tion to the reduced form we ﬁnd˙Xi t = Γ ˙Zi t + ˙ζi t. This shows that Γ is the effect of the within-transformed
+instruments on the regressors. If there is no time-variation in the within-transformed instruments or
+there is no correlation between the instruments and the regressors after removing the individual-speciﬁc
+means then the coefﬁcientΓ will be either not identiﬁed or singular. In either case the coefﬁcientβ will
+not be identiﬁed.
+Thus for identiﬁcation of the ﬁxed effects instrumental variables model we need
+E
+[
+˙Z
+′
+i ˙Z i
+]
+> 0 (17.70)
+
+
+--- page 33 ---
+
+CHAPTER 17. PANEL DATA 629
+and
+rank
+(
+E
+[
+˙Z
+′
+i ˙X i
+])
+= k. (17.71)
+Condition (17.70) is the same as the condition for identiﬁcation in ﬁxed effects regression – the instru-
+ments must have full variation after the within transformation. Condition (17.71) is analogous to the
+relevance condition for identiﬁcation of instrumental variable regression in the cross-section context
+but applies to the within-transformed instruments and regressors.
+Condition (17.71) shows that to examine instrument validity in the context of ﬁxed effects 2SLS it is
+important to estimate the reduced form equation using ﬁxed effects (within) regression. Standard tests
+for instrument validity (F tests on the excluded instruments) can be applied. However, since the correla-
+tion structure of the reduced form equation is in general unknown it is appropriate to use a cluster-robust
+covariance matrix, clustered at the level of the individual.
+17.30 Asymptotic Distribution of Fixed Effects 2SLS Estimator
+In this section we present an asymptotic distribution theory for the ﬁxed effects estimator. We pro-
+vide a formal theory for the case of balanced panels and discuss an extension to the unbalanced case.
+We use the following assumptions for balanced panels.
+Assumption 17.4
+1. Yi t = X ′
+i tβ + ui + εi t for i = 1, ...,N and t = 1, ...,T with T ≥ 2.
+2. The variables (ε i , X i , Z i ), i = 1, ...,N , are independent and identically dis-
+tributed.
+3. E[Zi sεi t] = 0 for all s = 1, ...,T.
+4. Q Z Z = E
+[
+˙Z
+′
+i ˙Z i
+]
+> 0.
+5. rank
+(
+Q Z X
+)
+= k where Q Z X = E
+[
+˙Z
+′
+i ˙X i
+]
+.
+6. E
+[
+ε4
+i t
+]
+< ∞.
+7. E ∥Xi t∥2 < ∞.
+8. E ∥Zi t∥4 < ∞.
+Given Assumption 17.4 we can establish asymptotic normality for ˆβ2sls.
+Theorem 17.4 Under Assumption 17.4, as N → ∞,
+p
+N
+(ˆβ2sls − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where
+V β =
+(
+Q ′
+Z X Ω−1
+Z ZQ Z X
+)−1 (
+Q ′
+Z X Ω−1
+Z Z ΩZ εΩ−1
+Z ZQ Z X
+) (
+Q ′
+Z X Ω−1
+Z ZQ Z X
+)−1
+ΩZ ε = E
+[
+˙Z
+′
+i εi ε′
+i ˙Z i
+]
+.
+
+
+--- page 34 ---
+
+CHAPTER 17. PANEL DATA 630
+The proof of the result is similar to Theorem 17.2 so is omitted. The key condition is Assumption
+17.4.3, which states that the instruments are strictly exogenous for the idiosyncratic errors. The identiﬁ-
+cation conditions are Assumptions 17.4.4 and 17.4.5, which were discussed in the previous section.
+The theorem is stated for balanced panels. For unbalanced panels we can modify the theorem as in
+Theorem 17.3 by adding the selection indicators si and replacing Assumption 17.4.3 with E[εi t |Z i , si ] =
+0, which states that the idiosyncratic errors are mean independent of the instruments and selection.
+If the idiosyncratic errorsεi t are homoskedastic and serially uncorrelated then the covariance matrix
+simpliﬁes to
+V β =
+(
+Q ′
+Z X Ω−1
+Z ZQ Z X
+)−1
+σ2
+ε.
+In this case a classical homoskedastic covariance matrix estimator can be used. Otherwise a cluster-
+robust covariance matrix estimator can be used, and takes the form
+ˆV ˆβ =
+(
+˙X
+′ ˙Z
+(
+˙Z
+′ ˙Z
+)−1
+˙Z
+′ ˙X
+)−1 (
+˙X
+′ ˙Z
+) (
+˙Z
+′ ˙Z
+)−1
+(
+N∑
+i =1
+˙Z
+′
+i ˆεi ˆε′
+i ˙Z i
+)
+×
+(
+˙Z
+′ ˙Z
+)−1 (
+˙Z
+′ ˙X
+)(
+˙X
+′ ˙Z
+(
+˙Z
+′ ˙Z
+)−1
+˙Z
+′ ˙X
+)−1
+.
+As for the case of ﬁxed effects regression, the heteroskedasticity-robust covariance matrix estimator is
+not recommended due to bias when T is small, and a bias-corrected version has not been developed.
+The Stata command xtivreg, fe by default reports the classical homoskedastic covariance matrix
+estimator. To obtain a cluster-robust covariance matrix use optionvce(robust) or vce(cluster id).
+17.31 Linear GMM
+Consider the just-identiﬁed 2SLS estimator. It solves the equation ˙Z
+′ ( ˙Y − ˙X β
+)
+= 0. These are sample
+analogs of the population moment condition E
+[
+˙Z
+′
+i
+( ˙Y i − ˙X i β
+)]
+= 0. These population conditions hold
+at the true β since ˙Z
+′
+u = Z ′MD u = 0 since u lies in the null space of D, and E
+[
+˙Z
+′
+i ε
+]
+= 0 is implied by
+Assumption 17.4.3.
+The population orthogonality conditions hold in the overidentiﬁed case as well. In this case an alter-
+native to 2SLS is GMM. Let ˆΩi be an estimator of W = E
+[
+˙Z
+′
+i εi ε′
+i ˙Z i
+]
+, for example
+ˆW = 1
+N
+N∑
+i =1
+˙Z
+′
+i ˆεi ˆε′
+i ˙Z i (17.72)
+where ˆεi are the 2SLS ﬁxed effects residuals. The GMM ﬁxed effects estimator is
+ˆβgmm =
+(
+˙X
+′ ˙Z ˆW
+−1 ˙Z
+′ ˙X
+)−1 (
+˙X
+′ ˙Z ˆW
+−1 ˙Z
+′ ˙Y
+)
+. (17.73)
+The estimator (17.73)-(17.72) does not have a Stata command but can be obtained by generating the
+within transformed variables ˙X , ˙Z and ˙Y , and then estimating by GMM a regression of ˙Y on ˙X using ˙Z
+as instruments using a weight matrix clustered by individual.
+17.32 Estimation with Time-Invariant Regressors
+One of the disappointments with the ﬁxed effects estimator is that it cannot estimate the effect of
+regressors which are time-invariant. They are not identiﬁed separately from the ﬁxed effect and are elim-
+inated by the within transformation. In contrast, the random effects estimator allows for time-invariant
+
+
+--- page 35 ---
+
+CHAPTER 17. PANEL DATA 631
+regressors but does so only by assuming strict exogeneity which is stronger than typically desired in eco-
+nomic applications.
+It turns out that we can consider an intermediate case which maintains the ﬁxed effects assumptions
+for the time-varying regressors but uses stronger assumptions on the time-invariant regressors. For our
+exposition we will denote the time-varying regressors by the k × 1 vector Xi t and the time-invariant re-
+gressors by the ℓ × 1 vector Zi .
+Consider the linear regression model
+Yi t = X ′
+i tβ + Z ′
+i γ + ui + εi t.
+At the level of the individual this can be written as
+Y i = X i β + Z i γ + ı i ui + εi
+where Z i = ı i Z ′
+i . For the full sample in matrix notation we can write this as
+Y = X β + Z γ + u + ε. (17.74)
+We maintain the assumption that the idiosyncratic errors εi t are uncorrelated with both Xi t and Zi
+at all time horizons:
+E[Xi sεi t] = 0 (17.75)
+E[Zi εi t] = 0. (17.76)
+In this section we consider the case where Zi is uncorrelated with the individual-level error ui , thus
+E[Zi ui ] = 0, (17.77)
+but the correlation of Xi t and ui is left unrestricted. In this context we say that Zi is exogenous with
+respect to the ﬁxed effect ui while Xi t is endogenous with respect to ui . Note that this is a different
+type of endogeneity than considered in the sections on instrumental variables: there endogeneity meant
+correlation with the idiosyncratic error εi t. Here endogeneity means correlation with the ﬁxed effectui .
+We consider estimation of (17.74) by instrumental variables and thus need instruments which are
+uncorrelated with the error ui +εi t. The time-invariant regressors Zi satisfy this condition due to (17.76)
+and (17.77), thus
+E
+[
+Z ′
+i
+(
+Y i − X i β − Z i γ
+)]
+= 0.
+While the time-varying regressors Xi t are correlated with ui the within transformed variables ˙Xi t are
+uncorrelated with ui + εi t under (17.75), thus
+E
+[
+˙X
+′
+i
+(
+Y i − X i β − Z i γ
+)]
+= 0.
+Therefore we can estimate (β , γ) by instrumental variable regression using the instrument set ( ˙X , Z ).
+Speciﬁcally, regression ofY on X and Z treating X as endogenous, Z as exogenous, and using the instru-
+ment ˙X . Write this estimator as ( ˆβ, ˆγ). This can be implemented using the Stata ivregress command
+after constructing the within transformed ˙X .
+This instrumental variables estimator is algebraically equal to a simple two-step estimator. The ﬁrst
+step ˆβ = ˆβfe is the ﬁxed effects estimator. The second step sets ˆγ =
+(
+Z ′Z
+)−1 (
+Z ′ ˆu
+)
+, the least squares
+coefﬁcient from the regression of the estimated ﬁxed effect ˆui on Zi . To see this equivalence observe
+that the instrumental variables estimator estimator solves the sample moment equations
+˙X
+′ (
+Y − X β − Z γ
+)
+= 0 (17.78)
+Z ′ (
+Y − X β − Z γ
+)
+= 0. (17.79)
+
+
+--- page 36 ---
+
+CHAPTER 17. PANEL DATA 632
+Notice that ˙X
+′
+i Z i = ˙X
+′
+i ı i Z ′
+i = 0 so ˙X
+′
+Z = 0. Thus (17.78) is the same as ˙X
+′ (
+Y − X β
+)
+= 0 whose solution is
+ˆβfe. Plugging this into the left-side of (17.79) we obtain
+Z ′ (
+Y − X ˆβfe − Z γ
+)
+= Z ′
+(
+Y − X ˆβfe − Z γ
+)
+= Z ′ (
+ˆu − Z γ
+)
+where Y and X are the stacked individual means ı i Y i and ı i X
+′
+i . Set equal to 0 and solving we obtain the
+least squares estimator ˆγ =
+(
+Z ′Z
+)−1 (
+Z ′ ˆu
+)
+as claimed. This equivalence was ﬁrst observed by Hausman
+and Taylor (1981).
+For standard error calculation it is recommended to estimate (β , γ) jointly by instrumental variable
+regression and use a cluster-robust covariance matrix clustered at the individual level. Classical and
+heteroskedasticity-robust estimators are misspeciﬁed due to the individual-speciﬁc effectui .
+The estimator ( ˆβ, ˆγ) is a special case of the Hausman-Taylor estimator described in the next section.
+(For an unknown reason the above estimator cannot be estimated using Stata’ sxthtaylor command.)
+17.33 Hausman-Taylor Model
+Hausman and Taylor (1981) consider a generalization of the previous model. Their model is
+Yi t = X ′
+1i tβ1 + X ′
+2i tβ2 + Z ′
+1i γ1 + Z ′
+2i γ2 + ui + εi t
+where X1i t and X2i t are time-varying and Z1i and Z2i are time-invariant. Let the dimensions of X1i t,
+X2i t, Z1i , and Z2i be k1, k2, ℓ1, and ℓ2, respectively.
+Write the model in matrix notation as
+Y = X 1β1 + X 2β2 + Z 1γ1 + Z 2γ2 + u + ε. (17.80)
+Let X 1 and X 2 denote conformable matrices of individual-speciﬁc means and let ˙X 1 = X 1 − X 1 and
+˙X 2 = X 2 − X 2 denote the within-transformed variables.
+The Hausman-Taylor model assumes that all regressors are uncorrelated with the idiosyncratic error
+εi t at all time horizons and that X1i t and Z1i are exogenous with respect to the ﬁxed effectui so that
+E[X1i tui ] = 0
+E[Z1i ui ] = 0.
+The regressors X2i t and Z2i , however, are allowed to be correlated withui .
+Set X = (X 1, X 2, Z 1, Z 2) and β =
+(
+β1, β2, γ1, γ2
+)
+. The assumptions imply the following population
+moment conditions
+E
+[
+˙X
+′
+1
+(
+Y − X β
+)]
+= 0
+E
+[
+˙X
+′
+2
+(
+Y − X β
+)]
+= 0
+E
+[
+X
+′
+1
+(
+Y − X β
+)]
+= 0
+E
+[
+Z ′
+1
+(
+Y − X β
+)]
+= 0.
+There are 2k1+k2+ℓ1 moment conditions andk1+k2+ℓ1+ℓ2 coefﬁcients. Identiﬁcation requiresk1 ≥ ℓ2:
+that there are at least as many exogenous time-varying regressors as endogenous time-invariant regres-
+sors. (This includes the model of the previous section where k1 = ℓ2 = 0.)
+
+
+--- page 37 ---
+
+CHAPTER 17. PANEL DATA 633
+Given the moment conditions the coefﬁcientsβ =
+(
+β1, β2, γ1, γ2
+)
+can be estimated by 2SLS regression
+of (17.80) using the instruments Z = ( ˙X 1, ˙X 2, X 1, Z 1) or equivalently Z = (X 1, ˙X 2, X 1, Z 1). This is 2SLS re-
+gression treating X 1 and Z 1 as exogenous and X 2 and Z 2 as endogenous using the excluded instruments
+˙X 2 and X 1.
+It is recommended to use cluster-robust covariance matrix estimation clustered at the individual
+level. Neither conventional nor heteroskedasticity-robust covariance matrix estimators should be used
+as they are misspeciﬁed due to the individual-speciﬁc effectui .
+When the model is just-identiﬁed the estimators simplify as follows. ˆβ1 and ˆβ2 are the ﬁxed effects
+estimator. ˆγ1 and ˆγ2 equal the 2SLS estimator from a regression of ˆui on Z1i and Z2i using X 1i as an
+instrument for Z2i . (See Exercise 17.14.)
+When the model is over-identiﬁed the equation can also be estimated by GMM with a cluster-robust
+weight matrix using the same equations and instruments.
+This estimator with cluster-robust standard errors can be calculated using the Stataivregress cluster(id)
+command after constructing the transformed variables ˙X 2 and X 1.
+The 2SLS estimator described above corresponds with the Hausman and Taylor (1981) estimator in
+the just-identiﬁed case with a balanced panel.
+Hausman and Taylor derived their estimator under the stronger assumption that the errors εi t and
+ui are strictly mean independent and homoskedastic and consequently proposed a GLS-type estima-
+tor which is more efﬁcient when these assumptions are correct. Deﬁne Ω = diag(Ωi ) where Ωi = I i +
+1i 1′
+i σ2
+u/σ2
+ε and σ2
+ε and σ2
+u are the variances of the error components εi t and ui . Deﬁne as well the trans-
+formed variables ˜Y = Ω−1/2Y , ˜X = Ω−1/2X and ˜Z = Ω−1/2Z . The Hausman-Taylor estimator is
+ˆβht =
+(
+X ′Ω−1Z
+(
+Z ′Ω−1Z
+)−1
+Z ′Ω−1X
+)−1 (
+X ′Ω−1Z
+(
+Z ′Ω−1Z
+)−1
+Z ′Ω−1Y
+)
+=
+(
+˜X
+′ ˜Z
+(
+˜Z
+′ ˜Z
+)−1
+˜Z
+′ ˜X
+)−1 (
+˜X
+′ ˜Z
+(
+˜Z
+′ ˜Z
+)−1
+˜Z
+′ ˜Y
+)
+.
+Recall from (17.47) that Ω−1/2
+i = M i + ρi P i where ρi is deﬁned in (17.46). Thus
+˜Yi = Yi −
+(
+1 − ρi
+)
+Y i
+˜X1i = X1i −
+(
+1 − ρi
+)
+X 1i
+˜X2i = X2i −
+(
+1 − ρi
+)
+X 2i
+˜Z1i = ρi Z1i
+˜Z2i = ρi Z2i
+˜˙X1i = ˙X1i
+˜˙X2i = ˙X2i .
+It follows that the Hausman-Taylor estimator can be calculated by 2SLS regression of˜Y i on (˜X 1i , ˜X 2i , ρi Z 1i , ρi Z 2i )
+using the instruments
+(
+˙X 1i , ˙X 2i , ρi X 1i , ρi Z 2i
+)
+.
+When the panel is balanced the coefﬁcients ρi all equal and scale out from the instruments. Thus
+the estimator can be calculated by 2SLS regression of ˜Y i on ( ˜X 1i , ˜X 2i , Z 1i , Z 2i ) using the instruments(
+˙X 1i , ˙X 2i , X 1i , Z 2i
+)
+.
+In practice ρi is unknown. It can be estimated as in (17.48) with the modiﬁcation that the error vari-
+ance is estimated from the untransformed 2SLS regression. Under the homoskedasticity assumptions
+used by Hausman and Taylor the estimatorˆβht has a classical asymptotic covariance matrix. When these
+assumptions are relaxed the covariance matrix can be estimated using cluster-robust methods.
+
+
+--- page 38 ---
+
+CHAPTER 17. PANEL DATA 634
+The Hausman-Taylor estimator with cluster-robust standard errors can be implemented in Stata by
+the command xthtaylor vce(robust). This Stata command, for an unknown reason, requires that
+there is at least one exogenous time-invariant variable ( ℓ1 ≥ 1) and at least one exogenous time-varying
+variable (k1 ≥ 1), even when the model is identiﬁed. Otherwise, the estimator can be implemented using
+the instrumental variable method described above.
+The Hausman-Taylor estimator was reﬁned by Amemiya and MaCurdy (1986) and Breusch, Mizon
+and Schmidt (1989) who proposed more efﬁcient versions using additional instruments which are valid
+under stronger orthogonality conditions. The observation that in the unbalanced case the instruments
+should be weighted by ρi was made by Gardner (1998).
+In the over-identiﬁed case it is unclear if it is preferred to use the simpler 2SLS estimator ˆβ2sls or
+the GLS-type Hausman-Taylor estimator ˆβht. The advantages of ˆβht are that it is asymptotically efﬁcient
+under their stated homoskedasticity and serial correlation conditions and that there is an available pro-
+gram in Stata. The advantage of ˆβ2sls is that it is much simpler to program (if doing so yourself), may
+have better ﬁnite sample properties (since it avoids variance-component estimation), and is the natural
+estimator from the the modern GMM viewpoint.
+To illustrate, the ﬁnal column of Table 17.2 contains Hausman-Taylor estimates of the investment
+model treating Qi t−1, Di t−1, and Ti as endogenous for ui and C Fi t−1 and the industry dummies as ex-
+ogenous. Relative to the ﬁxed effects models this allows estimation of the coefﬁcients on the trading
+indicator Ti . The most interesting change relative to the previous estimates is that the coefﬁcient on the
+trading indicator Ti doubles in magnitude relative to the random effects estimate. This is consistent with
+the hypothesis that Ti is correlated with the ﬁxed effect and hence the random effects estimate is biased.
+17.34 Jackknife Covariance Matrix Estimation
+As an alternative to asymptotic inference the delete-cluster jackknife can be used for covariance ma-
+trix calculation. In the context of ﬁxed effects estimation the delete-cluster estimators take the form
+ˆβ(−i ) =
+(
+∑
+j ̸=i
+˙X
+′
+j ˙X j
+)−1 (
+∑
+j ̸=i
+˙X
+′
+j ˙Y j
+)
+= ˆβfe −
+(
+N∑
+i =1
+˙X
+′
+i ˙X i
+)−1
+˙X
+′
+i ˜ei .
+where
+˜ei =
+(
+I i − ˙X i
+(
+˙X
+′
+i ˙X i
+)−1
+˙X
+′
+i
+)−1
+ˆei
+ˆei = ˙Y i − ˙X i ˆβfe.
+The delete-cluster jackknife estimator of the variance of ˆβfe is
+ˆV
+jack
+ˆβ = N − 1
+N
+N∑
+i =1
+(
+ˆβ(−i ) − β
+) (
+ˆβ(−i ) − β
+)′
+β = 1
+N
+N∑
+i =1
+ˆβ(−i ).
+The delete-cluster jackknife estimator ˆV
+jack
+ˆβ is similar to the cluster-robust covariance matrix estimator.
+For parameters which are functions ˆθfe = r ( ˆβfe) of the ﬁxed effects estimator the delete-cluster jack-
+
+
+--- page 39 ---
+
+CHAPTER 17. PANEL DATA 635
+knife estimator of the variance of ˆθfe is
+ˆV
+jack
+ˆθ = N − 1
+N
+N∑
+i =1
+(
+ˆθ(−i ) − θ
+) (
+ˆθ(−i ) − θ
+)′
+ˆθ(−i ) = r ( ˆβ(−i ))
+θ = 1
+N
+N∑
+i =1
+ˆθ(−i ).
+The estimator ˆV
+jack
+ˆθ is similar to the delta-method cluster-robust covariance matrix estimator for ˆθ.
+As in the context of i.i.d. samples one advantage of the jackknife covariance matrix estimators is that
+they do not require the user to make a technical calculation of the asymptotic distribution. A down-
+side is an increase in computation cost as N separate regressions are effectively estimated. This can be
+particularly costly in micro panels which have a large number N of individuals.
+In Stata jackknife standard errors for ﬁxed effects estimators are obtained by using either xtreg fe
+vce(jackknife) or areg absorb(id) cluster(id) vce(jackknife) where id is the cluster vari-
+able. For the ﬁxed effects 2SLS estimator usextivreg fe vce(jackknife).
+17.35 Panel Bootstrap
+Bootstrap methods can also be applied to panel data by a straightforward application of the pairs
+cluster bootstrap which samples entire individuals rather than single observations. In the context of
+panel data we call this the panel nonparametric bootstrap.
+The panel nonparametric bootstrap samples N individual histories (Y i , X i ) to create the bootstrap
+sample. Fixed effects (or any other estimation method) is applied to the bootstrap sample to obtain
+the coefﬁcient estimates. By repeating B times, bootstrap standard errors for coefﬁcients estimates, or
+functions of the coefﬁcient estimates, can be calculated. Percentile-type and percentile-t conﬁdence
+intervals can be calculated. The BCa interval requires an estimator of the acceleration coefﬁcienta which
+is a scaled jackknife estimate of the third moment of the estimator. In panel data the delete-cluster
+jackknife should be used for estimation of a.
+In Stata, to obtain bootstrap standard errors and conﬁdence intervals use eitherxtreg, vce(bootstrap,
+reps(#)) or areg, absorb(id) cluster(id) vce(bootstrap, reps(#)) where id is the cluster vari-
+able and # is the number of bootstrap replications. For the ﬁxed effects 2SLS estimator usextivreg, fe
+vce(bootstrap, reps(#)).
+17.36 Dynamic Panel Models
+The models so far considered in this chapter have been static with no dynamic relationships. In many
+economic contexts it is natural to expect that behavior and decisions are dynamic, explicitly depending
+on past behavior. In our investment equation, for example, economic models predict that a ﬁrm’ s invest-
+ment in any given year will depend on investment decisions from previous years. These considerations
+lead us to consider explicitly dynamic models.
+The workhorse dynamic model in a panel framework is the p t h-order autoregression with regressors
+and a one-way error component structure. This is
+Yi t = α1Yi ,t −1 + · · · +αpYi ,t −p + X ′
+i tβ + ui + εi t. (17.81)
+where αj are the autoregressive coefﬁcients, Xi t is a k vector of regressors, ui is an individual effect,
+and εi t is an idiosyncratic error. It is conventional to assume that the errors ui and εi t are mutually
+
+
+--- page 40 ---
+
+CHAPTER 17. PANEL DATA 636
+independent and the εi t are serially uncorrelated and mean zero. For the present we will assume that
+the regressors Xi t are strictly exogenous (17.17). In Section 17.41 we discuss predetermined regressors.
+For many illustrations we will focus on the AR(1) model
+Yi t = αYi ,t −1 + ui + εi t (17.82)
+The dynamics should be interpreted individual-by-individual. The coefﬁcient α in (17.82) equals the
+ﬁrst-order autocorrelation. When α = 0 the series is serially uncorrelated (conditional on ui ). α > 0
+means Yi t is positively serially correlated. α < 0 means Yi t is negatively serially correlated. An autore-
+gressive unit root holds when α = 1, which means that Yi t follows a random walk with possible drift.
+Since ui is constant for a given individual it should be treated as an individual-speciﬁc intercept. The
+idiosyncratic error εi t plays the role of the error in a standard time series autoregression.
+If |α|< 1 the model (17.82) is stationary. By standard autoregressive backwards recursion we calculate
+that
+Yi t =
+∞∑
+j =0
+αj (ui + εi t) = (1 − α)−1 ui +
+∞∑
+j =0
+αj εi ,t −j . (17.83)
+Thus conditional on ui the mean and variance of Yi t are (1 − α)−1 ui and
+(
+1 − α2)−1 σ2
+ε, respectively. The
+k t h autocorrelation (conditional on ui ) is αk. Notice that the effect of cross-section variation in ui is to
+shift the mean but not the variance or serial correlation. This implies that if we view time series plots
+of Yi t against time for a set of individuals i , the series Yi t will appear to have different means but have
+similar variances and serial correlation.
+As with the case with time series data, serial correlation (large α) can proxy for other factors such
+as time trends. Thus in applications it will often be useful to include time effects to eliminate spurious
+serial correlation.
+17.37 The Bias of Fixed Effects Estimation
+To estimate the panel autoregression (17.81) it may appear natural to use the ﬁxed effects (within)
+estimator. Indeed, the within transformation eliminates the individual effect ui . The trouble is that the
+within operator induces correlation between the AR(1) lag and the error. The result is that the within
+estimator is inconsistent for the coefﬁcients whenT is ﬁxed. A thorough explanation appears in Nickell
+(1981). We describe the basic problem in this section focusing on the AR(1) model (17.82).
+Applying the within operator to (17.82) we obtain
+˙Yi t = α ˙Yi t−1 + ˙εi t
+for t ≥ 2. As expected the individual effect is eliminated. The difﬁculty is that E
+[ ˙Yi t−1 ˙εi t
+]
+̸= 0 since both
+˙Yi t−1 and ˙εi t are functions of the entire time series.
+To see this clearly in a simple example, suppose we have a balanced panel with T = 3. There are
+two observed pairs (Y i t,Yi t−1) per individual so the within estimator equals the differenced estimator.
+Applying the differencing operator to (17.82) for t = 3 we ﬁnd
+∆Yi 3 = α∆Yi 2 + ∆εi 3. (17.84)
+Because of the lagged dependent variable and differencing there is effectively one observation per indi-
+vidual. Notice that the individual effect has been eliminated.
+The ﬁxed effects estimator ofα is equal to the least squares estimator applied to (17.84), which is
+ˆαfe =
+(
+N∑
+i =1
+∆Y 2
+i 2
+)−1 (
+N∑
+i =1
+∆Yi 2∆Yi 3
+)
+= α +
+(
+N∑
+i =1
+∆Y 2
+i 2
+)−1 (
+N∑
+i =1
+∆Yi 2∆εi 3
+)
+.
+
+
+--- page 41 ---
+
+CHAPTER 17. PANEL DATA 637
+The differenced regressor and error are negatively correlated. Indeed
+E[∆Yi 2∆εi 3] = E[(Yi 2 − Yi 1)( εi 3 − εi 2)]
+= E[Yi 2εi 3] − E[Yi 1εi 3] − E[Yi 2εi 2] + E[Yi 1εi 2]
+= 0 − 0 − σ2
+ε + 0
+= −σ2
+ε.
+Using the variance formula for AR(1) models (assuming |α|< 1) we calculate that E
+[
+(∆Yi 2)2]
+= 2σ2
+ε/(1 +
+α). It follows that the probability limit of the ﬁxed effects estimator ˆαfe of α in (17.84) is
+plim
+N →∞
+( ˆαfe − α) = E[∆Yi 2∆εi 3]
+E
+[
+(∆Yi 2)2] = −1 + α
+2 . (17.85)
+It is typical to call (17.85) the “bias” of ˆαfe, though it is technically a probability limit.
+The bias found in (17.85) is large. For α = 0 the bias is −1/2 and increases towards 1 as α → 1. Thus
+for any α < 1 the probability limit of ˆαfe is negative! This is extreme bias.
+From Nickell’ s (1981) expressions and some algebra, we can calculate that the probability limit of the
+ﬁxed effects estimator for|α|< 1 and general T is
+plim
+N →∞
+( ˆαfe − α) = 1 + α
+2α
+1 − α − T − 1
+1 − αT −1
+. (17.86)
+It follows that the bias is of order O(1/T ).
+It is often asserted that it is okay to use ﬁxed effects if T is sufﬁciently large, e.g. T ≥ 30. However,
+from (17.86) we can calculate that forT = 30 the bias of the ﬁxed effects estimator is−0.056 when α = 0.5
+and the bias is −0.15 when α = 0.9. For T = 60 and α = 0.9 the bias is −0.05. These magnitudes are
+unacceptably large. This includes the longer time series encountered in macro panels. Thus the Nickell
+bias problem applies to both micro and macro panel applications.
+The conclusion from this analysis is that the ﬁxed effects estimator should not be used for models
+with lagged dependent variables even if the time series dimension T is large.
+17.38 Anderson-Hsiao Estimator
+Anderson and Hsiao (1982) made an important breakthrough by showing that a simple instrumental
+variables estimator is consistent for the parameters of (17.81).
+The method ﬁrst eliminates the individual effectui by ﬁrst-differencing (17.81) fort ≥ p + 1
+∆Yi t = α1∆Yi ,t −1 + α2∆Yi ,t −2 + · · · +αp ∆Yi ,t −p + ∆X ′
+i tβ + ∆εi t. (17.87)
+This eliminates the individual effect ui . The challenge is that ﬁrst-differencing induces correlation be-
+tween ∆Yi t−1 and ∆εi t:
+E
+[
+∆Yi ,t −1∆εi t
+]
+= E
+[(
+Yi ,t −1 − Yi ,t −2
+)
+(εi t − εi t−1)
+]
+= −σ2
+ε.
+The other regressors are not correlated with ∆εi t. For s > 1, E[∆Yi t−s∆εi t] = 0, and when Xi t is strictly
+exogenous E[∆Xi t∆εi t] = 0.
+The correlation between ∆Yi t−1 and ∆εi t is endogeneity. One solution to endogeneity is to use an in-
+strument. Anderson-Hsiao pointed out that Yi t−2 is a valid instrument since it is correlated with ∆Yi ,t −1
+yet uncorrelated with ∆εi t.
+E
+[
+Yi ,t −2∆εi t
+]
+= E
+[
+Yi ,t −2εi t
+]
+− E
+[
+Yi ,t −2εi t−1
+]
+= 0. (17.88)
+
+
+--- page 42 ---
+
+CHAPTER 17. PANEL DATA 638
+The Anderson-Hsiao estimator is IV using Yi ,t −2 as an instrument for ∆Yi ,t −1. Equivalently, this is IV
+using the instruments (Yi ,t −2,..., Yi ,t −p−1) for (∆Yi ,t −1, ...,∆Yi ,t −p). The estimator requires T ≥ p + 2.
+To show that this estimator is consistent, for simplicity assume we have a balanced panel withT = 3,
+p = 1, and no regressors. In this case the Anderson-Hsiao IV estimator is
+ˆαiv =
+(
+N∑
+i =1
+Yi 1∆Yi 2
+)−1 (
+N∑
+i =1
+Yi 1∆Yi 3
+)
+= α +
+(
+N∑
+i =1
+Yi 1∆Yi 2
+)−1 (
+N∑
+i =1
+Yi 1∆εi 3
+)
+.
+Under the assumption that εi t is serially uncorrelated, (17.88) shows that E[Yi 1∆εi 3] = 0. In general,
+E[Yi 1∆Yi 2] ̸= 0. As N → ∞
+ˆαiv − →p α − E[Yi 1∆εi 3]
+E[Yi 1∆Yi 2] = α.
+Thus the IV estimator is consistent for α.
+The Anderson-Hsiao IV estimator relies on two critical assumptions. First, the validity of the instru-
+ment (uncorrelatedness with the equation error) relies on the assumption that the dynamics are correctly
+speciﬁed so thatεi t is serially uncorrelated. For example, many applications use an AR(1). If instead the
+true model is an AR(2) then Yi t−2 is not a valid instrument and the IV estimates will be biased. Second,
+the relevance of the instrument (correlatedness with the endogenous regressor) requires E[Yi 1∆Yi 2] ̸= 0.
+This turns out to be problematic and is explored further in Section 17.40. These considerations suggest
+that the validity and accuracy of the estimator are likely to be sensitive to these unknown features.
+17.39 Arellano-Bond Estimator
+The orthogonality condition (17.88) is one of many implied by the dynamic panel model. Indeed, all
+lags Yi t−2,Yi t−3,... are valid instruments. If T > p +2 these can be used to potentially improve estimation
+efﬁciency. This was ﬁrst pointed out by Holtz-Eakin, Newey and Rosen (1988) and further developed by
+Arellano and Bond (1991).
+Using these extra instruments has a complication that there are a different number of instruments
+for each time period. The solution is to view the model as a system of T equations as in Section 17.18.
+It will be useful to ﬁrst write the model in vector notation. Stack the differenced regressors (∆Yi ,t −1, ...∆Yi ,t −p, ∆X ′
+i t)
+into a matrix ∆X i and the coefﬁcients into a vectorθ. We can write (17.87) as∆Y i = ∆X i θ+∆εi . Stacking
+all N individuals this can be written as ∆Y = ∆X θ + ∆ε.
+For period t = p + 2 we have p + k valid instruments
+[
+Yi 1...,Yi p, ∆Xi ,p+2
+]
+. For period t = p + 3 there
+are p +1 +k valid instruments
+[
+Yi 1...,Yi p+1, ∆Xi ,p+3
+]
+. For period t = p +4 there are p +2 +k instruments.
+In general, for any t ≥ p + 2 there are t − 2 instruments
+[
+Yi 1, ...,Yi ,t −2, ∆Xi t
+]
+. Similarly to (17.53) we can
+deﬁne the instrument matrix for individuali as
+Z i =
+
+
+
+
+
+[
+Yi 1...,Yi p, ∆X ′
+i ,p+2
+]
+0 0
+0
+[
+Yi 1...,Yi ,p+1, ∆X ′
+i ,p+3
+]
+0
+...
+0 0
+[
+Yi 1,Yi 2, ...,Yi ,T −2, ∆X ′
+i ,T
+]
+
+
+
+
+
+. (17.89)
+This is
+(
+T − p − 1
+)
+× ℓ where ℓ = k
+(
+T − p − 1
+)
++
+(
+(T − 2)(T − 1) −
+(
+p − 2
+) (
+p − 1
+))
+/2. This instrument matrix
+consists of all lagged valuesYi ,t −2,Yi ,t −3, ... which are available in the data set plus the differenced strictly
+exogenous regressors.
+The ℓ moment conditions are
+E
+[
+Z ′
+i (∆Y i − ∆X i α)
+]
+= 0. (17.90)
+
+
+--- page 43 ---
+
+CHAPTER 17. PANEL DATA 639
+If T > p + 2 then ℓ > p and the model is overidentiﬁed. Deﬁne the ℓ × ℓ covariance matrix for the
+moment conditions
+Ω = E
+[
+Z ′
+i ∆εi ∆ε′
+i Z i
+]
+.
+Let Z denote Z i stacked into a
+(
+T − p − 1
+)
+N × ℓ matrix. The efﬁcient GMM estimator ofα is
+ˆαgmm =
+(
+∆X ′Z Ω−1Z ′∆X
+)−1 (
+∆X ′Z Ω−1Z ′∆Y
+)
+.
+If the errors εi t are conditionally homoskedastic then
+Ω = E
+[
+Z ′
+i H Z i
+]
+σ2
+ε
+where H is given in (17.31). In this case set
+ˆΩ1 =
+N∑
+i =1
+Z ′
+i H Z i
+as a (scaled) estimate of Ω. Under these assumptions an asymptotically efﬁcient GMM estimator is
+ˆα1 =
+(
+∆X ′Z ˆΩ−1
+1 Z ′∆X
+)−1 (
+∆X ′Z ˆΩ−1
+1 Z ′∆Y
+)
+. (17.91)
+Estimator (17.91) is known as the one-step Arellano-Bond GMM estimator.
+Under the assumption that the error εi t is homoskedastic and serially uncorrelated, a classical co-
+variance matrix estimator for ˆα1 is
+ˆV
+0
+1 =
+(
+∆X ′Z ˆΩ−1
+1 Z ′∆X
+)−1
+ˆσ2
+ε (17.92)
+where ˆσ2
+ε is the sample variance of the one-step residualsˆεi = ∆Y i −∆X i ˆα. A covariance matrix estimator
+which is robust to violation of these assumptions is
+ˆV 1 =
+(
+∆X ′Z ˆΩ−1
+1 Z ′∆X
+)−1 (
+∆X ′Z ˆΩ−1
+1 Z ′ ˆΩ2Z ˆΩ−1
+1 Z ′∆X
+) (
+∆X ′Z ˆΩ−1
+1 Z ′∆X
+)−1
+(17.93)
+where
+ˆΩ2 =
+N∑
+i =1
+Z ′
+i ˆεi ˆε′
+i Z i
+is a (scaled) cluster-robust estimator of Ω using the one-step residuals.
+An asymptotically efﬁcient two-step GMM estimator which allows heterskedasticity is
+ˆα2 =
+(
+∆X ′Z ˆΩ−1
+2 Z ′∆X
+)−1 (
+∆X ′Z ˆΩ−1
+2 Z ′∆Y
+)
+. (17.94)
+Estimator (17.94) is known as the two-step Arellano-Bond GMM estimator. An appropriate robust co-
+variance matrix estimator for ˆα2 is
+ˆV 2 =
+(
+∆X ′Z ˆΩ−1
+2 Z ′∆X
+)−1 (
+∆X ′Z ˆΩ−1
+2 Z ′ ˆΩ3Z ˆΩ−1
+2 Z ′∆X
+) (
+∆X ′Z ˆΩ−1
+2 Z ′∆X
+)−1
+(17.95)
+where
+ˆΩ3 =
+N∑
+i =1
+Z ′
+i ˆεi ˆε′
+i Z i
+is a (scaled) cluster-robust estimator ofΩ using the two-step residualsˆεi = ∆Y i −∆X i ˆα2. Asymptotically,
+ˆV 2 is equivalent to
+˜V 2 =
+(
+∆X ′Z ˆΩ−1
+2 Z ′∆X
+)−1
+. (17.96)
+
+
+--- page 44 ---
+
+CHAPTER 17. PANEL DATA 640
+The GMM estimator can be iterated until convergence to produce an iterated GMM estimator.
+The advantage of the Arellano-Bond estimator over the Anderson-Hsiao estimator is that when T >
+p +2 the additional (overidentiﬁed) moment conditions reduce the asymptotic variance of the estimator
+and stabilize its performance. The disadvantage is that when T is large using the full set of lags as instru-
+ments may cause a “many weak instruments” problem. The advised compromise is to limit the number
+of lags used as instruments.
+The advantage of the one-step Arellano-Bond estimator is that the weight matrixˆΩ1 does not depend
+on residuals and is therefore less random than the two-step weight matrix ˆΩ2. This can result in better
+performance by the one-step estimator in small to moderate samples especially when the errors are
+approximately homoskedastic. The advantage of the two-step estimator is that it achieves asymptotic
+efﬁciency allowing for heteroskedasticity and is thus expected to perform better in large samples with
+non-homoskedastic errors.
+To summarize, the Arellano-Bond estimator applies GMM to the ﬁrst-differenced equation (17.87)
+using a set of available lags Yi ,t −2,Yi ,t −3,... as instruments for ∆Yi ,t −1, ...,∆Yi ,t −p.
+The Arellano-Bond estimator may be obtained in Stata using either thextabond or xtdpd command.
+The default setting is the one-step estimator (17.91) and non-robust standard errors (17.92). For the two-
+step estimator and robust standard errors use the twostep vce(robust) options. Reported standard
+errors in Stata are based on Windmeijer’ s (2005) ﬁnite-sample correction to the asymptotic estimator
+(17.96). The robust covariance matrix (17.95) nor the iterated GMM estimator are implemented.
+17.40 Weak Instruments
+Blundell and Bond (1998) pointed out that the Anderson-Hsiao and Arellano-Bond estimators suffer
+from weak instruments. This can be seen easiest in the AR(1) model with the Anderson-Hsiao estimator
+which uses Yi ,t −2 as an instrument for ∆Yi ,t −1. The reduced form equation for ∆Yi t−1 is
+∆Yi ,t −1 = Yi ,t −2γ + vi t.
+The reduced form coefﬁcient γ is deﬁned by projection. Using ∆Yi ,t −1 = (α − 1)Yi ,t −2 + ui + εi ,t −1 and
+E
+[
+Yi t−2εi ,t −1
+]
+= 0 we calculate that
+γ =
+E
+[
+Yi ,t −2∆Yi ,t −1
+]
+E
+[
+Y 2
+i t−2
+] = (α − 1) +
+E
+[
+Yi ,t −2ui
+]
+E
+[
+Y 2
+i ,t −2
+] .
+Assuming stationarity so that (17.83) holds,
+E
+[
+Yi ,t −2ui
+]
+= E
+[(
+ui
+1 − α +
+∞∑
+j =0
+αj εi ,t −2−j
+)
+ui
+]
+= σ2
+u
+1 − α
+and
+E
+[
+Y 2
+i ,t −2
+]
+= E
+[(
+ui
+1 − α +
+∞∑
+j =0
+αj εi t−2−j
+)2]
+= σ2
+u
+(1 − α)2 + σ2
+ε
+(
+1 − α2)
+where σ2
+u = E
+[
+u2
+i
+]
+and σ2
+ε = E
+[
+ε2
+i t
+]
+. Using these expressions and a fair amount of algebra, Blundell and
+Bond (1998) found that the reduced form coefﬁcient equals
+γ = (α − 1)
+( k
+k + σ2
+u/σ2
+ε
+)
+(17.97)
+where k = (1 − α)/(1 + α).
+
+
+--- page 45 ---
+
+CHAPTER 17. PANEL DATA 641
+The Anderson-Hsiao instrument Yi ,t −2 is weak if γ is close to zero. From (17.97) we see that γ = 0
+when either α = 1 (a unit root) or σ2
+u/σ2
+ε = ∞ (the idiosyncratic effect is small relative to the individual-
+speciﬁc effect). In either case the coefﬁcient α is not identiﬁed. We know from our earlier study of the
+weak instruments problem (Section 12.36) that when γ is close to zero then α is weakly identiﬁed and
+the estimators will perform poorly. This means that when the autoregressive coefﬁcientα is large or the
+individual-speciﬁc effect dominates the idiosyncratic effect these estimators will be weakly identiﬁed,
+have poor performance, and conventional inference methods will be misleading. Since the value of α
+and the relative variances are unknown a priori this means that we should generically treat this class of
+estimators as weakly identiﬁed.
+An alternative estimator which has improved performance is discussed in Section 17.42.
+17.41 Dynamic Panels with Predetermined Regressors
+The assumption that regressors are strictly exogenous is restrictive. A less restrictive assumption is
+that the regressors are predetermined. Dynamic panel methods can be modiﬁed to handle predeter-
+mined regressors by using their lags as instruments.
+Deﬁnition 17.2 The regressor Xi t is predetermined for the error εi t if
+E
+[
+Xi ,t −sεi t
+]
+= 0 (17.98)
+for all s ≥ 0.
+The difference between strictly exogenous and predetermined regressors is that for the former (17.98)
+holds for all s not just s ≥ 0. One way of interpreting a regression model with predetermined regressors
+is that the model is a projection on the complete past history of the regressors.
+Under (17.98), leads of Xi t can be correlated with εi t, that is E[Xi t+sεi t] ̸= 0 for s ≥ 1, or equivalently
+Xi t can be correlated with lags of εi j , that is E[Xi tεi t−s] ̸= 0 for s ≥ 1. This means that Xi t can respond
+dynamically to past values of Yi t, as in, for example, an unrestricted vector autoregression.
+Consider the differenced equation (17.87)
+∆Yi t = α1∆Yi ,t −1 + α2∆Yi ,t −2 + · · · +αp ∆Yi ,t −p + ∆X ′
+i tβ + ∆εi t.
+When the regressors are predetermined but not strictly exogenous Xi t and εi t are uncorrelated but ∆Xi t
+and ∆εi t are correlated. To see this,
+E[∆Xi t∆εi t] = E[Xi tεi t] − E
+[
+Xi ,t −1εi t
+]
+− E
+[
+Xi tεi ,t −1
+]
++ E
+[
+Xi ,t −1εi ,t −1
+]
+= −E
+[
+Xi tεi ,t −1
+]
+̸= 0.
+This means that if we treat ∆Xi t as exogenous the coefﬁcient estimates will be biased.
+To solve the correlation problem we can use instruments for ∆Xi t. A valid instrument is Xi ,t −1 since
+it is generally correlated with ∆Xi t yet uncorrelated with ∆εi t. Indeed, for any s ≥ 1
+E
+[
+Xi ,t −s∆εi t
+]
+= E
+[
+Xi ,t −sεi t
+]
+− E
+[
+Xi ,t −sεi ,t −1
+]
+= 0.
+Consequently, Arellano and Bond (1991) recommend the instrument set (Xi 1, Xi 2, ...,Xi t−1). When the
+number of time periods is large it is advised to limit the number of instrument lags to avoid the many
+weak instruments problem.
+
+
+--- page 46 ---
+
+CHAPTER 17. PANEL DATA 642
+Algebraically, GMM estimation is the same as the estimators described in Section 17.39, except that
+the instrument matrix (17.89) is modiﬁed to
+Z i =
+
+
+
+
+
+[
+Yi 1, ...,Yi p, X ′
+i 1,.., X ′
+i ,p+1
+]
+0 0
+0
+[
+Yi 1,..., Yi ,p+1, X ′
+i 1, ..,X ′
+i ,p+2
+]
+0
+...
+0 0
+[
+Yi 1, ...,Yi ,T −2, X ′
+i 1, ..,X ′
+i ,T −1
+]
+
+
+
+
+
+.
+(17.99)
+To understand how the model is identiﬁed we examine the reduced form equation for the regressor.
+For t = p + 2 and using the ﬁrst lag as an instrument the reduced form is
+∆Xi t = γ1Yi ,t −2 + Γ2Xi ,t −1 + ζi t.
+The model is identiﬁed if Γ2 is full rank. This is valid (in general) when Xi t is stationary. Identiﬁcation
+fails, however, when Xi t has a unit root. This indicates that the model will be weakly identiﬁed when the
+predetermined regressors are highly persistent.
+The method generalizes to handle multiple lags of the predetermined regressors. To see this, write
+the model explicitly as
+Yi t = α1Yi ,t −1 + · · · +αpYi ,t −p + X ′
+i tβ1 + · · · +X ′
+i ,t −q βq + ui + εi t.
+In ﬁrst differences the model is
+∆Yi t = α1∆Yi ,t −1 + · · · +αp ∆Yi ,t −p + ∆X ′
+i tβ1 + · · · +∆X ′
+i ,t −q βq + ∆εi t.
+A sufﬁcient set of instruments for the regressors are (Xi t−1, ∆Xi ,t −1,..., ∆Xi ,t −q ) or equivalently (Xi ,t −1, Xi ,t −2,..., Xi ,t −q−1).
+In many cases it is more reasonable to assume that Xi t−1 is predetermined but not Xi t, since Xi t
+and εi t may be endogenous. This, for example, is the standard assumption in vector autoregressions. In
+this case the estimation method is modiﬁed to use the instruments (Xi ,t −2, Xi ,t −3, ...,Xi ,t −q−1). While this
+weakens the exogeneity assumption it also weakens the instrument set as now the reduced form uses the
+second lag Xi ,t −2 to predict ∆Xi t.
+The advantage obtained by treating a regressor as predetermined (rather than strictly exogenous) is
+that it is a substantial relaxation of the dynamic assumptions. Otherwise the parameter estimates will be
+inconsistent due to endogeneity.
+The major disadvantage of treating a regressor as predetermined is that it substantially reduces the
+strength of identiﬁcation especially when the predetermined regressors are highly persistent.
+In Stata the xtabond command by default treats independent regressors as strictly exogenous. To
+treat the regressors as predetermined use the option pre. By default all regressor lags are used as instru-
+ments, but the number can be limited if speciﬁed.
+17.42 Blundell-Bond Estimator
+Arellano and Bover (1995) and Blundell and Bond (1998) introduced a set of orthogonality conditions
+which reduce the weak instrument problem discussed in the Section 17.40 and improve performance in
+ﬁnite samples.
+Consider the levels AR(1) model with no regressors (17.82). Recall, least squares (pooled) regres-
+sion is inconsistent because the regressor Yi ,t −1 is correlated with the error ui . This raises the question:
+Is there an instrument Zi t which solves this problem in the sense that Zi t is correlated with Yi ,t −1 yet
+
+
+--- page 47 ---
+
+CHAPTER 17. PANEL DATA 643
+uncorrelated with ui t + εi t? Blundell-Bond propose the instrument ∆Yi ,t −1. Clearly, ∆Yi ,t −1 and Yi ,t −1
+are correlated so ∆Yi ,t −1 satisﬁes the relevance condition. Also,∆Yi ,t −1 is uncorrelated with the idiosyn-
+cratic error εi t when the latter is serially uncorrelated. Thus the key to the Blundell-Bond instrument is
+whether or not
+E[∆Yi t−1ui ] = 0. (17.100)
+Blundell and Bond (1998) show that a sufﬁcient condition for (17.100) is
+E
+[(
+Yi 1 − ui
+1 − α
+)
+ui
+]
+= 0. (17.101)
+Recall that ui /(1 − α) is the conditional mean of Yi t under stationarity. Condition (17.101) states that
+the deviation of the initial condition Yi 1 from this conditional mean is uncorrelated with the individual
+effect ui . Condition (17.101) is implied by stationarity but is somewhat weaker.
+To see that (17.101) implies (17.100), by applying recursion to (17.87) we ﬁnd that
+∆Yi ,t −1 = αt −3∆Yi 2 +
+t −3∑
+j =0
+αj ∆εi ,t −1−j .
+Also,
+∆Yi 2 = (α − 1)Yi 1 + ui + εi 2 = (α − 1)
+(
+Yi 1 − ui
+1 − α
+)
++ εi 2.
+Hence
+E
+[
+∆Yi ,t −1ui
+]
+= E
+[(
+αt −3 (α − 1)
+(
+Yi 1 − ui
+1 − α
+)
++ αt −3εi 2 +
+t −3∑
+j =0
+αj ∆εi ,t −1−j
+)
+ui
+]
+= αt −3 (α − 1) E
+[(
+Yi 1 − ui
+1 − α
+)
+ui
+]
+= 0
+under (17.101), as claimed.
+Now consider the full model (17.81) with predetermined regressors. Consider the assumption that
+the regressors have constant correlation with the individual effect
+E[Xi tui ] = E[Xi sui ]
+for all s. This implies
+E[∆Xi tui ] = 0 (17.102)
+which means that the differenced predetermined regressors∆Xi t can also be used as instruments for the
+level equation.
+Using (17.100) and (17.102) Blundell and Bond propose the following moment conditions for GMM
+estimation
+E
+[
+∆Yi ,t −1
+(
+Yi t − α1Yi ,t −1 − · · · −αpYi ,t −p − X ′
+i tβ
+)]
+= 0 (17.103)
+E
+[
+∆Xi ,t
+(
+Yi t − α1Yi ,t −1 − · · · −αpYi ,t −p − X ′
+i tβ
+)]
+= 0 (17.104)
+for t = p + 2, ...,T . Notice that these are for the levels (undifferenced) equation while the Arellano-Bond
+(17.90) moments are for the differenced equation (17.87). We can write (17.103)-(17.104) in vector nota-
+tion if we set Z 2i = diag(∆Yi 2,..., ∆Yi T−1, ∆Xi 3,..., ∆Xi T). Then (17.103)-(17.104) equals
+E[Z 2i (Y i − X i θ)] = 0. (17.105)
+
+
+--- page 48 ---
+
+CHAPTER 17. PANEL DATA 644
+Blundell and Bond proposed combining the ℓ Arellano-Bond moments with the levels moments.
+This can be done by stacking the moment conditions (17.90) and (17.105). Recall from Section 17.39
+the variables ∆Y i , ∆X i , and Z i . Deﬁne the stacked variables Y i =
+(
+∆Y ′
+i , Y ′
+i
+)′,
+X i =
+(
+∆X ′
+i , X ′
+i
+)′ and
+Z i =
+diag(Z i , Z 2i ). The stacked moment conditions are
+E
+[
+Z i
+(
+Y i − X i θ
+)]
+= 0.
+The Blundell-Bond estimator is found by applying GMM to this equation. They call this a systems
+GMM estimator. Let Y , X , and Z denote Y i , X i , and Z i stacked into matrices. DeﬁneH = diag(H, I T −2)
+where H is from (17.31) and set
+ˆΩ1 =
+N∑
+i =1
+Z
+′
+i H Z i .
+The Blundell-Bond one-step GMM estimator is
+ˆθ1 =
+(
+X
+′
+Z ˆΩ−1
+1 Z
+′
+X
+)−1 (
+X
+′
+Z ˆΩ−1
+1
+Z
+′
+Y
+)
+. (17.106)
+The systems residuals are ˆεi = Y i − X i ˆθ1. A robust covariance matrix estimator is
+ˆV 1 =
+(
+X
+′
+Z ˆΩ−1
+1
+Z
+′
+X
+)−1 (
+X
+′
+Z ˆΩ−1
+1
+Z
+′ ˆΩ2Z ˆΩ−1
+1
+Z
+′
+X
+) (
+X
+′
+Z ˆΩ−1
+1
+Z
+′
+X
+)−1
+(17.107)
+where
+ˆΩ2 =
+N∑
+i =1
+Z
+′
+i ˆεi ˆε′
+i Z i .
+The Blundell-Bond two-step GMM estimator is
+ˆθ2 =
+(
+X
+′
+Z ˆΩ−1
+2 Z
+′
+X
+)−1 (
+X
+′
+Z ˆΩ−1
+2
+Z
+′
+Y
+)
+. (17.108)
+The two-step systems residuals are ˆεi = Y i − X i ˆθ2. A robust covariance matrix estimator is
+ˆV 2 =
+(
+X
+′
+Z ˆΩ−1
+2
+Z
+′
+X
+)−1 (
+X
+′
+Z ˆΩ−1
+2
+Z
+′ ˆΩ3Z ˆΩ−1
+2
+Z
+′
+X
+) (
+X
+′
+Z ˆΩ−1
+2
+Z
+′
+X
+)−1
+(17.109)
+where
+ˆΩ3 =
+N∑
+i =1
+Z
+′
+i ˆεi ˆε′
+i Z i .
+Asymptotically, ˆV 2 is equivalent to
+˜V 2 =
+(
+X
+′
+Z ˆΩ−1
+2 Z
+′
+X
+)−1
+. (17.110)
+The GMM estimator can be iterated until convergence to produce an iterated GMM estimator.
+Simulation experiments reported in Blundell and Bond (1998) indicate that their systems GMM esti-
+mator performs substantially better than the Arellano-Bond estimator, especially when α is close to one
+or the variance ratioσ2
+u/σ2
+ε is large. The explanation is that the orthogonality condition (17.103) does not
+suffer the weak instrument problem in these cases.
+The advantage of the Blundell-Bond estimator is that the added orthogonality condition (17.103)
+greatly improves performance relative to the Arellano-Bond estimator when the latter is weakly identi-
+ﬁed. A disadvantage of the Blundell-Bond estimator is that their orthogonality condition is justiﬁed by a
+stationarity condition (17.101) and violation of the latter may induce estimation bias.
+The advantages and disadvantages of the one-step versus two-step Blundell-Bond estimators are the
+same as described for the Arellano-Bond estimator as described in Section 17.39. Also as described there
+
+
+--- page 49 ---
+
+CHAPTER 17. PANEL DATA 645
+when T is large it may be desired to limit the number of lags to use as instruments in order to avoid the
+many weak instruments problem.
+The Blundell-Bond estimator may be obtained in Stata using either the xtdpdsys or xtdpd com-
+mand. The default setting is the one-step estimator (17.106) and non-robust standard errors. For the
+two-step estimator and robust standard errors use the twostep vce(robust) options. Stata standard
+errors are Windmeijer’ s (2005) ﬁnite-sample correction to the asymptotic estimate (17.110). The robust
+covariance matrix estimator (17.109) nor the iterated GMM estimator are implemented.
+17.43 Forward Orthogonal Transformation
+Arellano and Bover (1995) proposed an alternative transformation which eliminates the individual-
+speciﬁc effect and may have advantages in dynamic panel models. The forward orthogonal transfor-
+mation is
+Y ∗
+i t = ci t
+(
+Yi t − 1
+Ti − t
+(
+Yi ,t +1 + · · · +Yi Ti
+))
+(17.111)
+where c2
+i t = (Ti − t)/(Ti − t + 1). This can be applied to all but the ﬁnal observation (which is lost). Essen-
+tially, Y ∗
+i t subtracts from Yi t the average of the remaining values and then rescales so that the variance
+is constant under the assumption of homoskedastic errors. The transformation (17.111) was originally
+proposed for time-series observations by Hayashi and Sims (1983).
+At the level of the individual this can be written as Y ∗
+i = Ai Y i where Ai is the (Ti − 1) × Ti orthogonal
+deviation operator
+Ai = diag
+(√
+Ti − 1
+Ti
+, ...,
+√
+1
+2
+)
+
+
+
+
+
+
+1 − 1
+Ti −1 − 1
+Ti −1 · · · − 1
+Ti −1 − 1
+Ti −1 − 1
+Ti −1
+0 1 − 1
+Ti −2 · · · − 1
+Ti −2 − 1
+Ti −2 − 1
+Ti −2
+..
+. .
+.
+. .
+.
+. .
+.
+. .
+.
+. .
+.
+.
+0 0 0 · · · 1 − 1
+2 − 1
+2
+0 0 .
+.. 0 · · · 0 −1 1
+
+
+
+
+
+
+.
+Important properties of the matrix Ai are that Ai 1i = 0 (so it eliminates individual effects), A′
+i Ai = M i ,
+and Ai A′
+i = I Ti −1. These can be veriﬁed by direct multiplication.
+Applying the transformation Ai to (17.81) we obtain
+Y ∗
+i t = α1Y ∗
+i ,t −1 + · · · +αpY ∗
+i ,t −p + X ∗′
+i t β + ε∗
+i t. (17.112)
+for t = p + 1, ...,T − 1. This is equivalent to ﬁrst differencing (17.87) whenT = 3 but differs for T > 3.
+What is special about the transformed equation (17.112) is that under the assumption that εi t are
+serially uncorrelated and homoskedastic the error vector ε∗
+i has variance σ2
+ε Ai A′
+i = σ2
+εI Ti −1. This means
+that ε∗
+i has the same covariance structure asεi . Thus the orthogonal transformation operator eliminates
+the ﬁxed effect while preserving the covariance structure. This is in contrast to (17.87) which has serially
+correlated errors ∆εi t.
+The transformed error ε∗
+i t is a function of εi t, εi t+1, ...,εi T. Thus valid instruments are Yi t−1,Yi t−2, ....
+Using the instrument matrix Z i from (17.89) in the case of strictly exogenous regressors or (17.99) with
+predetermined regressors the ℓ moment conditions can be written using matrix notation as
+E
+[
+Z ′
+i
+(
+Y ∗
+i − X ∗
+i θ
+)]
+= 0. (17.113)
+Deﬁne theℓ × ℓ covariance matrix
+Ω = E
+[
+Z ′
+i ε∗
+i ε∗′
+i Z i
+]
+.
+
+
+--- page 50 ---
+
+CHAPTER 17. PANEL DATA 646
+If the errors εi t are conditionally homoskedastic then Ω = E
+[
+Z ′
+i Z i
+]
+σ2
+ε. Thus an asymptotically efﬁcient
+GMM estimator is 2SLS applied to the orthogonalized equation using Z i as an instrument. In matrix
+notation,
+ˆθ1 =
+(
+X ∗′Z
+(
+Z ′Z
+)−1 Z ′X ∗
+)−1
+Y ∗
+This is the one-step GMM estimator.
+Given the residualsˆεi = Y ∗
+i −X ∗
+i
+ˆθ1 the two-step GMM estimator which is robust to heteroskedasticity
+and arbitrary serial correlation is
+ˆθ2 =
+(
+X ∗′Z ˆΩ−1
+2 Z ′X ∗)−1 (
+X ∗′Z ˆΩ−1
+2 Z ′Y ∗)
+where
+ˆΩ2 =
+N∑
+i =1
+Z ′
+i ˆεi ˆε′
+i Z i .
+Standard errors for ˆθ1 and ˆθ2 can be obtained using cluster-robust methods.
+Forward orthogonalization may have advantages over ﬁrst differencing. First, the equation errors in
+(17.112) have a scalar covariance structure under i.i.d. idiosyncratic errors which is expected to improve
+estimation precision. It also implies that the one-step estimator is 2SLS rather than GMM. Second, while
+there has not been a formal analysis of the weak instrument properties of the estimators after forward
+orthogonalization it appears that if T > p + 2 the method is less affected by weak instruments than ﬁrst
+differencing. The disadvantages of forward orthogonalization are that it treats early observations asym-
+metrically from late observations, it is less thoroughly studied than ﬁrst differencing, and is not available
+with several popular estimation methods.
+The Stata command xtdpd includes forward orthogonalization as an option but not when levels
+(Blundell-Bond) instruments are included or if there are gaps in the data. An alternative is the down-
+loadable Stata package xtabond2.
+17.44 Empirical Illustration
+We illustrate the dynamic panel methods with the investment model (17.3). Estimates from two
+models are presented in Table 17.3. Both are estimated by Blundell-Bond two-step GMM with lags 2
+through 6 as instruments, a cluster-robust weight matrix, and clustered standard errors.
+The ﬁrst column presents estimates of an AR(2) model. The estimates show that the series has a
+moderate amount of positive serial correlation but appears to be well modeled as an AR(1) as the AR(2)
+coefﬁcient is close to zero. This pattern of serial correlation is consistent with the presence of investment
+projects which span two years.
+The second column presents estimates of the dynamic version of the investment regression (17.3)
+excluding the trading indicator. Two lags are included of the dependent variable and each regressor. The
+regressors are treated as predetermined in contrast to the ﬁxed effects regressions which treated the re-
+gressors as strictly exogenous. The regressors are not contemporaneous with the dependent variable but
+lagged one and two periods. This is done so that they are valid predetermined variables. Contempora-
+neous variables are likely endogenous so should not be treated as predetermined.
+The estimates in the second column of Table 17.3 complement the earlier results. The evidence
+shows that investment has a moderate degree of serial dependence, is positively related to the ﬁrst lag of
+Q, and is negatively related to lagged debt. Investment appears to be positively related to change in cash
+ﬂow, rather than the level. Thus an increase in cash ﬂow in year t − 1 leads to investment in year t.
+_____________________________________________________________________________________________
+
+
+--- page 51 ---
+
+CHAPTER 17. PANEL DATA 647
+Table 17.3: Estimates of Dynamic Investment Equation
+AR(2) AR(2) with Regressors
+Ii t−1
+0.3191
+(0.0172)
+0.2519
+(0.0220)
+Ii t−2
+0.0309
+(0.0112)
+0.0137
+(0.0125)
+Qi t−1
+0.0018
+(0.0007)
+Qi t−2
+−0.0000
+(0.0003)
+Di t−1
+−0.0154
+(0.0058)
+Di t−2
+−0.0043
+(0.0054)
+C Fi t−1
+0.0400
+(0.0091)
+C Fi t−2
+−0.0290
+(0.0051)
+Two-step GMM estimates. Cluster-robust standard errors in parenthesis.
+All regressions include time effects. GMM instruments include lags 2 through 6.
+17.45 Exercises
+Exercise 17.1
+(a) Show (17.11) and (17.12).
+(b) Show (17.13).
+Exercise 17.2 Is E[εi t |Xi t] = 0 sufﬁcient for ˆβfe to be unbiased for β? Explain why or why not.
+Exercise 17.3 Show that var
+[ ˙Xi t
+]
+≤ var[Xi t].
+Exercise 17.4 Show (17.24).
+Exercise 17.5 Show (17.28).
+Exercise 17.6 Show that when T = 2 the differenced estimator equals the ﬁxed effects estimator.
+Exercise 17.7 In Section 17.14 it is described how to estimate the individual-effect varianceσ2
+u using the
+between residuals. Develop an alternative estimator of σ2
+u only using the ﬁxed effects error variance ˆσ2
+ε
+and the levels error variance ˆσ2
+e = n−1 ∑N
+i =1
+∑
+t ∈Si ˆe2
+i t where ˆei t = Yi t −X ′
+i t
+ˆβfe are computed from the levels
+variables.
+Exercise 17.8 Verify that ˆσ2
+ε deﬁned in (17.37) is unbiased forσ2
+ε under (17.18), (17.25) and (17.26).
+
+
+--- page 52 ---
+
+CHAPTER 17. PANEL DATA 648
+Exercise 17.9 Develop a version of Theorem 17.2 for the differenced estimator ˆβ∆. Can you weaken
+Assumption 17.2.3? State an appropriate version which is sufﬁcient for asymptotic normality.
+Exercise 17.10 Show (17.57).
+Exercise 17.11
+(a) For ˆσ2
+i deﬁned in (17.59) showE
+[
+ˆσ2
+i |X i
+]
+=
+σ2
+i .
+(b) For ˜V fe deﬁned in (17.58) showE
+[˜V fe |X
+]
+= V fe.
+Exercise 17.12
+(a) Show (17.61).
+(b) Show (17.62).
+(c) For ˜V fe deﬁned in (17.60) showE
+[˜V fe |X
+]
+= V fe.
+Exercise 17.13 Take the ﬁxed effects model Yi t = Xi tβ1 + X 2
+i tβ2 + ui + εi t. A researcher estimates the
+model by ﬁrst obtaining the within transformed ˙Yi t and ˙Xi t and then regressing ˙Yi t on ˙Xi t and ˙X 2
+i t. Is
+the correct estimation method? If not, describe the correct ﬁxed effects estimator.
+Exercise 17.14 In Section 17.33 verify that in the just-identiﬁed case the 2SLS estimator ˆβ2sls simpliﬁes
+as claimed: ˆβ1 and ˆβ2 are the ﬁxed effects estimator.ˆγ1 and ˆγ2 equal the 2SLS estimator from a regression
+of ˆu on Z 1 and Z 2 using
+X 1 as an instrument for Z 2.
+Exercise 17.15 In this exercise you will replicate and extend the empirical work reported in Arellano and
+Bond (1991) and Blundell and Bond (1998). Arellano-Bond gathered a dataset of 1031 observations from
+an unbalanced panel of 140 U.K. companies for 1976-1984 and is in the dataﬁle AB1991 on the textbook
+webpage. The variables we will be using are log employment (N), log real wages (W), and log capital (K ).
+See the description ﬁle for deﬁnitions.
+(a) Estimate the panel AR(1) Ki t = αKi t−1 +ui +vt +εi t using Arellano-Bond one-step GMM with clus-
+tered standard errors. Note that the model includes year ﬁxed effects.
+(b) Re-estimate using Blundell-Bond one-step GMM with clustered standard errors.
+(c) Explain the difference in the estimates.
+Exercise 17.16 This exercise uses the same dataset as the previous question. Blundell and Bond (1998)
+estimated a dynamic panel regression of log employment N on log real wages W and log capital K. The
+following speciﬁcation1 used the Arellano-Bond one-step estimator, treating Wi ,t −1 and Ki ,t −1 as prede-
+termined.
+Ni t = .7075
+(.0842)
+Ni ,t −1 − .7088
+(.1171)
+Wi t + .5000
+(.1113)
+Wi ,t −1 + .4660
+(.1010)
+Ki t − .2151
+(.0859)
+Ki ,t −1. (17.114)
+This equation also included year dummies and the standard errors are clustered.
+1Blundell and Bond (1998), Table 4, column 3.
+
+
+--- page 53 ---
+
+CHAPTER 17. PANEL DATA 649
+(a) Estimate (17.114) using the Arellano-Bond one-step estimator treating Wi t and Ki t as strictly ex-
+ogenous.
+(b) Estimate (17.114) treating Wi ,t −1 and Ki ,t −1 as predetermind to verify the results in (17.114). What
+is the difference between the estimates treating the regressors as strictly exogenous versus prede-
+termined?
+(c) Estimate the equation using the Blundell-Bond one-step systems GMM estimator.
+(d) Interpret the coefﬁcient estimates viewing (17.114) as a ﬁrm-level labor demand equation.
+(e) Describe the impact on the standard errors of the Blundell-Bond estimates in part (c) if you forget
+to use clustering. (You do not have to list all the standard errors, but describe the magnitude of the
+impact.)
+Exercise 17.17 Use the dataﬁleInvest1993 on the textbook webpage. You will be estimating the panel
+AR(1) Di t = αDi ,t −1 + ui + εi t for D =debt/assets (this is debta in the dataﬁle). See the description ﬁle for
+deﬁnitions.
+(a) Estimate the model using Arellano-Bond twostep GMM with clustered standard errors.
+(b) Re-estimate using Blundell-Bond twostep GMM.
+(c) Experiment with your results, trying twostep versus onestep, AR(1) versus AR(2), number of lags
+used as instruments, and classical versus robust standard errors. What makes the most difference
+for the coefﬁcient estimates? For the standard errors?
+Exercise 17.18 Use the dataﬁleInvest1993 on the textbook webpage. You will be estimating the model
+Di t = αDi ,t −1 + β1Ii ,t −1 + β2Qi ,t −1 + β3C Fi ,t −1 + ui + εi t.
+The variables are debta, inva, vala, and cfa in the dataﬁle. See the description ﬁle for deﬁnitions.
+(a) Estimate the above regression using Arellano-Bond two-step GMM with clustered standard errors
+treating all regressors as predetermined.
+(b) Re-estimate using Blundell-Bond two-step GMM treating all regressors as predetermined.
+(c) Experiment with your results, trying two-step versus one-step, number of lags used as instruments,
+and classical versus robust standard errors. What makes the most difference for the coefﬁcient
+estimates? For the standard errors?

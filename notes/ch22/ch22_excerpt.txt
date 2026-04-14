@@ -1,0 +1,722 @@
+--- page 1 ---
+
+Chapter 22
+M-Estimators
+22.1 Introduction
+So far in this textbook we have primarily focused on estimators which have explicit algebraic ex-
+pressions. However, many econometric estimators need to be calculated by numerical methods. These
+estimators are collectively described as nonlinear. Many fall in a broad class known asm-estimators. In
+this part of the textbook we describe a number of m-estimators in wide use in econometrics. They have
+a common structure which allows for a uniﬁed treatment of estimation and inference.
+An m-estimator is deﬁned as a minimizer of a sample average
+ˆθ = argmin
+θ∈Θ
+Sn(θ)
+Sn(θ) = 1
+n
+n∑
+i =1
+ρi (θ)
+where ρi (θ) = ρ (Yi , Xi , θ) is some function of the i t h observation and a parameter θ ∈ Θ. The function
+Sn(θ) is called the criterion function or objective function.
+This includes maximum likelihood when ρi (θ) is the negative log-density function. “m-estimators”
+are a broader class; the preﬁx “m” stands for “maximum likelihood-type” .
+The issues we focus on in this chaper are: (1) identiﬁcation; (2) estimation; (3) consistency; (4)
+asymptotic distribution; and (5) covariance matrix estimation.
+22.2 Examples
+There are many m-estimators in common econometric usage. Some examples include the following.
+1. Ordinary Least Squares: ρi (θ) =
+(
+Yi − X ′
+i θ
+)2.
+2. Nonlinear Least Squares: ρi (θ) = (Yi − m (Xi , θ))2 (Chapter 23).
+3. Least Absolute Deviations: ρi (θ) =
+⏐⏐Yi − X ′
+i θ
+⏐
+⏐ (Chapter 24).
+4. Quantile Regression: ρi (θ) =
+(
+Yi − X ′
+i θ
+) (
+τ − 1
+{(
+Yi − X ′
+i θ
+)
+< 0
+})
+(Chapter 24).
+5. Maximum Likelihood: ρi (θ) = −log f (Yi |Xi , θ).
+753
+
+
+--- page 2 ---
+
+CHAPTER 22. M-ESTIMATORS 754
+The ﬁnal category – Maximum Likelihood Estimation – includes many estimators as special cases.
+This includes many standard estimators of limited-dependent-variable models (Chapters 25-27). To il-
+lustrate, the probit model for a binary dependent variable is
+P[Y = 1 |X ] = Φ
+(
+X ′θ
+)
+where Φ(u) is the normal cumulative distribution function. We will study probit estimation in detail in
+Chapter 25. The negative log-density function is
+ρi (θ) = −Yi log
+(
+Φ
+(
+X ′
+i θ
+))
+− (1 − Yi )log
+(
+1 − Φ
+(
+X ′
+i θ
+))
+.
+Not all nonlinear estimators are m-estimators. Examples include method of moments, GMM, and
+minimum distance.
+22.3 Identiﬁcation and Estimation
+A parameter vector θ is identiﬁedif it is uniquely determined by the probability distribution of the
+observations. This is a property of the probability distribution, not of the estimator.
+However, when discussing a speciﬁc estimator it is common to describe identiﬁcation in terms of the
+criterion function. Assume E
+⏐⏐ρ (Y , X , θ)
+⏐
+⏐ < ∞. Deﬁne
+S(θ) = E[Sn(θ)] = E
+[
+ρ (Y , X , θ)
+]
+and its population minimizer
+θ0 = argmin
+θ∈Θ
+S(θ).
+We say that θ is identiﬁed(or point identiﬁed) by S(θ) if the minimizer θ0 is unique.
+In nonlinear models it is difﬁcult to provide general conditions under which a parameter is identiﬁed.
+Identiﬁcation needs to be examined on a model-by-model basis.
+An m-estimator ˆθ by deﬁnition minimizes Sn(θ). When there is no explicit algebraic expression for
+the solution the minimization is done numerically. Such numerical methods are reviewed in Chapter 12
+of Introduction to Econometrics.
+We illustrate using the probit model of the previous section. We use the CPS dataset forY equal to an
+indicator that the individual is married1, and set the regressors equal to years of education, age, and age
+squared. We obtain the following estimates
+P[married = 1] = Φ
+
+ 0.031
+(.002)
+education + 16.4
+(0.3)
+(age
+100
+)
+− 16.7
+(0.4)
+(age
+100
+)2
++ 3.73
+(0.07)
+
+.
+Standard error calculation will be discussed in Section 22.7. In this application we see that the probability
+of marriage is increasing in years of education and is an increasing yet concave function of age.
+22.4 Consistency
+It seems reasonable to expect that if a parameter is identiﬁed then we should be able to estimate the
+parameter consistently. For linear estimators we demonstrated consistency by applying the WLLN to the
+1We deﬁnemarried=1 if marital equals 1, 2, or 3.
+
+
+--- page 3 ---
+
+CHAPTER 22. M-ESTIMATORS 755
+explicit algebraic expressions for the estimators. This is not possible for nonlinear estimators since they
+do not have explicit algebraic expressions.
+Instead, what is available to us is that an m-estimator minimizes the criterion functionSn (θ) which is
+itself a sample average. For any given θ the WLLN shows that Sn (θ) − →p S (θ). It is intuitive that the min-
+imizer of Sn (θ) (the m-estimator ˆθ) will converge in probability to the minimizer of S (θ) (the parameter
+θ0). However, the WLLN by itself is not sufﬁcient to make this extension.
+S(θ)
+Sn1(θ)
+Sn2(θ)
+Sn3(θ)
+θ0 θ^
+n1 θ^
+n2 θ^
+n3
+(a) Non-Uniform Convergence
+S(θ) + ε
+S(θ) − ε
+S(θ)
+Sn(θ) (b) Uniform Convergence
+●
+●
+●
+●
+S(θ0)
+Sn(θ0)
+Sn(θ^)
+S(θ^) (c) Consistency
+Figure 22.1: Consistency of m-Estimators
+To see the problem examine Figure 22.1(a). This displays a sequence of functions Sn(θ) (the dashed
+lines) for three values of n. What is illustrated is that for each θ the function Sn(θ) converges towards the
+limit function S(θ). However for each n the function Sn(θ) has a severe dip in the right-hand region. The
+result is that the sample minimizer ˆθn converges to the right-limit of the parameter space. In contrast,
+the minimizer θ0 of the limit criterion S(θ) is in the interior of the parameter space. What we observe is
+that Sn(θ) converges to S(θ) for each θ but the minimizer ˆθn does not converge to θ0.
+A sufﬁcient condition to exclude this pathological behavior is uniform convergence – uniformity over
+the parameter spaceΘ. As we show in Theorem 22.1, uniform convergence in probability ofSn (θ) to S (θ)
+is sufﬁcient to establish that the m-estimatorˆθ is consistent for θ0.
+Deﬁnition 22.1 Sn (θ) converges in probability to S (θ) uniformly over θ ∈ Θ if
+sup
+θ∈Θ
+|Sn (θ) − S (θ)|− →p 0
+as n→ ∞.
+Uniform convergence excludes erratic wiggles in Sn (θ) uniformly across θ and n (e.g., what occurs
+in Figure 22.1(a)). The idea is illustrated in Figure 22.1(b). The heavy solid line is the function S (θ).
+The dashed lines are S (θ) + ε and S (θ) − ε. The thin solid line is the sample criterion Sn (θ). The ﬁgure
+illustrates a situation where the sample criterion satisifes supθ∈Θ |Sn (θ) − S (θ)|< ε. The sample criterion
+as displayed weaves up and down but stays within ε of S(θ). Uniform convergence holds if the event
+shown in Figure 22.1(b) holds with high probability for n sufﬁciently large, for any arbitrarily smallε.
+
+
+--- page 4 ---
+
+CHAPTER 22. M-ESTIMATORS 756
+Theorem 22.1 Assume
+1. Sn (θ) converges in probability to S (θ) uniformly over θ ∈ Θ.
+2. θ0 uniquely minimizes S(θ) in the sense that for all ϵ > 0,
+inf
+θ:∥θ−θ0∥≥ϵ
+S(θ) > S(θ0).
+Then ˆθ − →p θ0 as n → ∞.
+Theorem 22.1 shows that an m-estimator is consistent for its population parameter. There are only
+two conditions. First, the criterion function converges uniformly in probability to its expected value, and
+second, the minimizer θ0 is unique. The assumption excludes the possibility that lim j S(θj ) = S(θ0) for
+some sequence θj ∈ Θ not converging to θ0.
+The proof of Theorem 22.1 is provided in Section 22.8.
+22.5 Uniform Law of Large Numbers
+The uniform convergence of Deﬁnition 22.1 is a high-level assumption. In this section we provide
+lower level sufﬁcient conditions.
+Theorem 22.2 Uniform Law of Large Numbers (ULLN) Assume
+1. (Yi , Xi ) are i.i.d.
+2. E
+⏐⏐ρ (Y , X , θ)
+⏐
+⏐ < ∞ for all θ ∈ Θ.
+3. Θ is bounded.
+4. For some A < ∞ and α > 0, E
+⏐⏐ρ (Y , X , θ1) − ρ (Y , X , θ2)
+⏐
+⏐ ≤ A ∥θ1 − θ2∥α for
+all θ1, θ2 ∈ Θ.
+Then supθ∈Θ |Sn (θ) − S (θ)|− →p 0.
+Theorem 22.2 is established in Theorem 18.7 of Introduction to Econometrics.
+The critical assumption is the fourth. It is a continuity requirement on the expectation of the sum-
+mands ρ (Y , X , θ). This holds if the summands themselves are Hölder continuous but is considerably
+broader as it allows for discontinuous functions. Expectation is a smoothing operation so whileρ (Y , X , θ)
+may be discontinuous in θ its expectation is typically continuous.
+The ULLN extends to time series and clustered samples. See B. E. Hansen and S. Lee (2019) for clus-
+tered samples.
+
+
+--- page 5 ---
+
+CHAPTER 22. M-ESTIMATORS 757
+22.6 Asymptotic Distribution
+We now establish an asymptotic distribution theory. We start by an informal demonstration, present
+a general result under high-level conditions, and then discuss the assumptions and conditions. Deﬁne
+ψi (θ) = ∂
+∂θ ρi (θ)
+ψn (θ) = ∂
+∂θ Sn (θ)
+ψ(θ) = ∂
+∂θ S (θ)
+ψi = ψi (θ0).
+Since the m-estimator ˆθ minimizes Sn (θ) it satisﬁes2 the ﬁrst-order condition 0= ψn
+(ˆθ
+)
+. Expand the
+right-hand side as a ﬁrst order Taylor expansion about θ0. This is valid when ˆθ is in a neighborhood of
+θ0, which holds for n sufﬁciently large by Theorem 22.1. This yields
+0 = ψn
+(ˆθ
+)
+≃ ψn (θ0) + ∂2
+∂θ∂θ′ Sn (θ0)
+(ˆθ − θ0
+)
+. (22.1)
+Rewriting, we obtain
+p
+n
+(ˆθ − θ0
+)
+≃ −
+( ∂2
+∂θ∂θ′ Sn (θ0)
+)−1 (p
+n ψn (θ0)
+)
+.
+Consider the two components. First, by the WLLN
+∂2
+∂θ∂θ′ Sn (θ0) = 1
+n
+n∑
+i =1
+∂2
+∂θ∂θ′ ρi (θ0) − →p E
+[ ∂2
+∂θ∂θ′ ρi (θ0)
+]
+def
+= Q.
+Second,
+p
+n ψn (θ0) = 1pn
+n∑
+i =1
+ψi . (22.2)
+Since θ0 minimizes S (θ) = E
+[
+ρi (θ)
+]
+it satisﬁes the ﬁrst-order condition
+0 = ψ(θ0) = E
+[
+ψi
+]
+. (22.3)
+Thus the summands in (22.2) are mean zero. Applying a CLT this sum converges in distribution to N(0, Ω)
+where Ω = E
+[
+ψi ψ′
+i
+]
+. We deduce that
+p
+n
+(ˆθ − θ0
+)
+− →
+d
+Q −1N(0, Ω) = N
+(
+0,Q −1ΩQ −1)
+.
+The technical hurdle to make this derivation rigorous is justifying the Taylor expansion (22.1). This
+can be done through smoothness of the second derivative of ρi (θ0). An alternative (more advanced)
+argument based on empirical process theory uses weaker assumptions. Set
+Q (θ) = ∂2
+∂θ∂θ′ S (θ)
+Q = Q (θ0).
+Let N be some neighborhood of θ0.
+2If ˆθ is an interior solution. Since ˆθ is consistent this occurs with probability approaching one if θ0 is in the interior of the
+parameter space Θ.
+
+
+--- page 6 ---
+
+CHAPTER 22. M-ESTIMATORS 758
+Theorem 22.3 Assume the conditions of Theorem 22.1 hold, plus
+1. E
+ψi
+
+2 < ∞.
+2. Q (θ) is continuous in θ ∈ N .
+3. For some A < ∞ and α > 0, E
+
+ψi (θ1) − ψi (θ2)
+
+2 ≤ A ∥θ1 − θ2∥α for all
+θ1, θ2 ∈ N .
+4. Q > 0.
+5. θ0 is in the interior of Θ.
+Then as n → ∞, p
+n
+(ˆθ − θ0
+)
+− →
+d
+N(0,V ) where V = Q −1ΩQ −1.
+The proof of Theorem 22.3 is presented in Section 22.8.
+In some cases the asymptotic covariance matrix simpliﬁes. The leading case is correctly speciﬁed
+maximum likelihood estimation, where Q = Ω so V = Q −1 = Ω−1.
+Assumption 1 states that the scores ψi have a ﬁnite second moment. This is necessary in order to
+apply the CLT . A sufﬁcient condition for Assumption 2 is that the scores ψi (θ) are continuously differ-
+entiable but this is not necessary. Assumption 2 is broader, allowing for discontinuous ψi (θ), so long as
+its expectation is continuous and differentiable. Assumption 3 is similar. It holds if ψi (θ) has a bounded
+derivative but this is not necessary. Assumption 4 is a full-rank condition and is related to identiﬁcation.
+Assumption 5 is required in order to justify the application of the mean-value expansion.
+22.7 Covariance Matrix Estimation
+The standard estimator for V takes the sandwich form. We estimate Ω by
+ˆΩ = 1
+n
+n∑
+i =1
+ˆψi ˆψ′
+i .
+where ˆψi = ∂
+∂θ ρi
+(ˆθ
+)
+. When ρi (θ) is twice differentiable an estimator of Q is
+ˆQ = 1
+n
+n∑
+i =1
+∂2
+∂θ∂θ′ ρi
+(ˆθ
+)
+.
+When ρi (θ) is not second differentiable then estimators of Q are constructed on a case-by-case basis.
+Given ˆΩ and ˆQ an estimator for V is
+ˆV = ˆQ
+−1 ˆΩ ˆQ
+−1
+. (22.4)
+It is possible to adjust ˆV by multiplying by a degree-of-freedom scaling such as n/(n − k) where k =
+dim(θ). There is no formal guidance.
+For maximum likelihood estimators the standard covariance matrix estimator isˆV = ˆQ
+−1
+. This choice
+is not robust to misspeciﬁcation. Therefore it is recommended to use the robust version (22.4), for ex-
+ample by using the “,r ” option in Stata. This is unfortunately not uniformly done in practice.
+For clustered and time-series observations the estimator ˆQ is unaltered but the estimator ˆΩ changes.
+For clustered samples it is
+ˆΩ = 1
+n
+G∑
+g =1
+( ng∑
+ℓ=1
+ˆψℓg
+) ( ng∑
+ℓ=1
+ˆψℓg
+)′
+.
+
+
+--- page 7 ---
+
+CHAPTER 22. M-ESTIMATORS 759
+For time-series data the estimator ˆΩ is unaltered if the scores ψi are serially uncorrelated (which occurs
+when a model is dynamically correctly speciﬁed). Otherwise a Newey-West covariance matrix estimator
+can be used and equals
+ˆΩ =
+M∑
+ℓ=−M
+(
+1 − |ℓ|
+M + 1
+) 1
+n
+∑
+1≤t −ℓ≤n
+ˆψt −ℓ ˆψ′
+t .
+Standard errors for the parameter estimates are formed by taking the square roots of the diagonal
+elements of n−1 ˆV .
+22.8 Technical Proofs*
+Proof of Theorem 22.1 The proof proceeds in two steps. First, we show that S(ˆθ) − →p S(θ). Second we
+show that this implies ˆθ − →p θ.
+Since θ0 minimizes S(θ), S (θ0) ≤ S
+(ˆθ
+)
+. Hence
+0 ≤ S
+(ˆθ
+)
+− S(θ0)
+= S
+(ˆθ
+)
+− Sn
+(ˆθ
+)
++ Sn (θ0) − S (θ0) + Sn
+(ˆθ
+)
+− Sn (θ0)
+≤ 2 sup
+θ∈Θ
+∥Sn(θ) − S(θ)∥ − →p 0.
+The second inequality uses the fact that ˆθ minimizes Sn(θ) so Sn
+(ˆθ
+)
+≤ Sn(θ0) and replaces the other two
+pairwise comparisons by the supremum. The ﬁnal convergence is the assumed uniform convergence in
+probability.
+The preceeding argument is illustrated in Figure 22.1(c). The ﬁgure displays the expected criterion
+S(θ) with the solid line, and the sample criterion Sn(θ) is displayed with the dashed line. The distances
+between the two functions at the true value θ0 and the estimator ˆθ are marked by the two dash-dotted
+lines. The sum of these two lengths is greater than the vertical distance between S
+(ˆθ
+)
+and S (θ0) because
+the latter distance equals the sum of the two dash-dotted lines plus the vertical height of the thick section
+of the dashed line (between Sn (θ0) and Sn
+(ˆθ
+)
+) which is positive since Sn
+(ˆθ
+)
+≤ Sn (θ0). The lengths of the
+dotted lines converge to zero under the assumption of uniform convergence. Hence S
+(ˆθ
+)
+converges to
+S (θ0). This completes the ﬁrst step.
+In the second step of the proof we show ˆθ − →p θ. Fix ϵ > 0. The unique minimum assumption implies
+there is a δ > 0 such that ∥θ0 − θ∥ > ϵ implies S(θ) − S(θ0) ≥ δ. This means that
+θ0 − ˆθ
+
+ > ϵ implies
+S
+(ˆθ
+)
+− S (θ0) ≥ δ. Hence
+P
+[
+θ0 − ˆθ
+ > ϵ
+]
+≤ P
+[
+S
+(ˆθ
+)
+− S (θ0) ≥ δ
+]
+.
+The right-hand-side converges to zero since S
+(ˆθ
+)
+− →p S(θ). Thus the left-hand-side converges to zero as
+well. Since ϵ is arbitrary this implies that ˆθ − →p θ as stated.
+To illustrate, again examine Figure 22.1(c). We see S
+(ˆθ
+)
+marked on the graph of S(θ). Since S
+(ˆθ
+)
+converges to S (θ0) this means that S
+(ˆθ
+)
+slides down the graph of S(θ) towards the minimum. The only
+way for ˆθ to not converge to θ0 would be if the function S(θ) were ﬂat at the minimum. This is excluded
+by the assumption of a unique minimum. ■
+Proof of Theorem 22.3 Expanding the population ﬁrst-order condition 0= ψ(θ0) around θ = ˆθ using the
+mean value theorem we ﬁnd
+0 = ψ
+(ˆθ
+)
++Q(θ∗
+n)
+(
+θ0 − ˆθ
+)
+
+
+--- page 8 ---
+
+CHAPTER 22. M-ESTIMATORS 760
+where θ∗
+n is intermediate3 between θ0 and ˆθ. Solving, we ﬁnd
+p
+n
+(ˆθ − θ0
+)
+= Q(θ∗
+n)−1p
+nψ
+(ˆθ
+)
+.
+The assumption that ψ(θ) is continuously differentiable means thatQ (θ) is continuous in N . Since θ∗
+n is
+intermediate between θ0 and ˆθ and the latter converges in probability to θ0, it follows that θ∗
+n converges
+in probability to θ0 as well. Thus by the continuous mapping theorem Q
+(
+θ∗
+n
+)
+− →p Q (θ0) = Q.
+We next examine the asymptotic distribution of pnψ
+(ˆθ
+)
+. Deﬁne
+vn (θ) =
+p
+n
+(
+ψn (θ) − ψ(θ)
+)
+.
+An implication of the sample ﬁrst-order conditionψn
+(ˆθ
+)
+= 0 is
+p
+nψ
+(ˆθ
+)
+=
+p
+n
+(
+ψ
+(ˆθ
+)
+− ψn
+(ˆθ
+))
+= −vn
+(ˆθ
+)
+= −vn (θ0) + rn
+where rn = vn (θ0) − vn
+(ˆθ
+)
+.
+Since ψi is mean zero (see (22.3)) and has a ﬁnite covariance matrix Ω by assumption it satisﬁes the
+multivariate central limit theorem. Thus
+p
+nψn (θ) = 1pn
+n∑
+i =1
+ψi − →
+d
+N(0, Ω).
+The ﬁnal step is to show that rn = op(1). Pick any η > 0 and ϵ > 0. As shown by Theorem 18.6 of
+Introduction to Econometrics, Assumption 3 implies that vn (θ) is stochastically equicontinuous, which
+means that (see Deﬁnition 18.4 inIntroduction to Econometrics) given ϵ and η there is a δ > 0 such that
+limsup
+n→∞
+P
+[
+sup
+∥θ−θ0∥≤δ
+∥vn (θ0) − vn (θ)∥ > η
+]
+≤ ϵ. (22.5)
+Theorem 22.1 implies that ˆθ − →p θ0 or
+limsup
+n→∞
+P
+[ˆθ − θ0
+
+ > δ
+]
+≤ ϵ. (22.6)
+We calculate that
+limsup
+n→∞
+P
+[
+rn > η
+]
+≤ limsup
+n→∞
+P
+[
+vn (θ0) − vn
+(ˆθ
+)
+ > η,
+
+ˆθ − θ0
+
+ ≤ δ
+]
++ limsup
+n→∞
+P
+[
+ˆθ − θ0
+
+ > δ
+]
+≤ limsup
+n→∞
+P
+[
+sup
+∥θ−θ0∥≤δ
+∥vn (θ0) − vn (θ)∥ > η
+]
++ ϵ ≤ 2ϵ.
+The second inequality is (22.6) and the ﬁnal inequality is (22.5). Since η and ϵ are arbitrary we deduce
+that rn = op(1). We conclude that
+p
+nψ
+(ˆθ
+)
+= −vn (θ0) + rn − →
+d
+N(0, Ω).
+Together, we have shown that
+p
+n
+(ˆθ − θ0
+)
+= Q(θ∗
+n)−1p
+nψ
+(ˆθ
+)
+− →
+d
+Q −1N(0, Ω) ∼ N
+(
+0,Q −1ΩQ −1)
+as claimed. ■
+_____________________________________________________________________________________________
+3Technically, sinceψ
+(ˆθ
+)
+is a vector, the expansion is done separately for each element of the vector so the intermediate value
+varies by the rows of Q(θ∗n). This doesn’t affect the conclusion.
+
+
+--- page 9 ---
+
+CHAPTER 22. M-ESTIMATORS 761
+22.9 Exercises
+Exercise 22.1 Take the model Y = X ′θ + e where e is independent of X and has known density function
+f (e) which is continuously differentiable.
+(a) Show that the conditional density of Y given X = x is f
+(
+y − x′θ
+)
+.
+(b) Find the functions ρi (θ) and ψi (θ).
+(c) Calculate the asymptotic covariance matrix.
+Exercise 22.2 Take the modelY = X ′θ +e. Consider the m-estimator of θ with ρi (θ) = g
+(
+Yi − X ′
+i θ
+)
+where
+g (u) is a known function.
+(a) Find the functions ρi (θ) and ψi (θ).
+(b) Calculate the asymptotic covariance matrix.
+Exercise 22.3 For the estimator described in Exercise 22.2 set g (u) = 1
+4 u4.
+(a) Sketch g (u). Is g (u) continuous? Differentiable? Second differentiable?
+(b) Find the functions ρi (θ) and ψi (θ).
+(c) Calculate the asymptotic covariance matrix.
+Exercise 22.4 For the estimator described in Exercise 22.2 set g (u) = 1 − cos(u).
+(a) Sketch g (u). Is g (u) continuous? Differentiable? Second differentiable?
+(b) Find the functions ρi (θ) and ψi (θ).
+(c) Calculate the asymptotic covariance matrix.

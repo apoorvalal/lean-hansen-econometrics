@@ -1,0 +1,2972 @@
+--- page 1 ---
+
+Chapter 7
+Asymptotic Theory for Least Squares
+7.1 Introduction
+It turns out that the asymptotic theory of least squares estimation applies equally to the projection
+model and the linear CEF model. Therefore the results in this chapter will be stated for the broader
+projection model described in Section 2.18. Recall that the model isY = X ′β+e with the linear projection
+coefﬁcientβ =
+(
+E
+[
+X X ′])−1 E[X Y ].
+Maintained assumptions in this chapter will be random sampling (Assumption 1.2) and ﬁnite second
+moments (Assumption 2.1). We restate these here for clarity.
+Assumption 7.1
+1. The variables (Y i , Xi ), i = 1, ...,n, are i.i.d.
+2. E
+[
+Y 2]
+< ∞.
+3. E ∥X ∥2 < ∞.
+4. Q X X = E
+[
+X X ′]
+is positive deﬁnite.
+The distributional results will require a strengthening of these assumptions to ﬁnite fourth moments.
+We discuss the speciﬁc conditions in Section 7.3.
+7.2 Consistency of Least Squares Estimator
+In this section we use the weak law of large numbers (WLLN, Theorem 6.1 and Theorem 6.2) and con-
+tinuous mapping theorem (CMT , Theorem 6.6) to show that the least squares estimator ˆβ is consistent
+for the projection coefﬁcientβ.
+This derivation is based on three key components. First, the OLS estimator can be written as a con-
+tinuous function of a set of sample moments. Second, the WLLN shows that sample moments converge
+in probability to population moments. And third, the CMT states that continuous functions preserve
+convergence in probability. We now explain each step in brief and then in greater detail.
+162
+
+
+--- page 2 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 163
+First, observe that the OLS estimator
+ˆβ =
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+1
+n
+n∑
+i =1
+Xi Yi
+)
+= ˆQ
+−1
+X X ˆQ X Y
+is a function of the sample moments ˆQ X X = 1
+n
+∑n
+i =1 Xi X ′
+i and ˆQ X Y = 1
+n
+∑n
+i =1 Xi Yi .
+Second, by an application of the WLLN these sample moments converge in probability to their pop-
+ulation expectations. Speciﬁcally, the fact that (Yi , Xi ) are mutually i.i.d. implies that any function of
+(Yi , Xi ) is i.i.d., including Xi X ′
+i and Xi Yi . These variables also have ﬁnite expectations under Assump-
+tion 7.1. Under these conditions, the WLLN (Theorem 6.2) implies that as n → ∞,
+ˆQ X X = 1
+n
+n∑
+i =1
+Xi X ′
+i − →p E
+[
+X X ′]
+= Q X X (7.1)
+and
+ˆQ X Y = 1
+n
+n∑
+i =1
+Xi Yi − →p E[X Y ] = Q X Y .
+Third, the CMT (Theorem 6.6) allows us to combine these equations to show that ˆβ converges in
+probability to β. Speciﬁcally, asn → ∞,
+ˆβ = ˆQ
+−1
+X X ˆQ X Y − →p Q −1
+X X Q X Y = β. (7.2)
+We have shown that ˆβ − →p β as n → ∞. In words, the OLS estimator converges in probability to the
+projection coefﬁcient vectorβ as the sample size n gets large.
+To fully understand the application of the CMT we walk through it in detail. We can write
+ˆβ = g
+(ˆQ X X , ˆQ X Y
+)
+where g (A, b) = A−1b is a function of A and b. The function g (A, b) is a continuous function of A and b
+at all values of the arguments such thatA−1 exists. Assumption 7.1 speciﬁes thatQ X X is positive deﬁnite,
+which means that Q −1
+X X exists. Thus g (A, b) is continuous at A = Q X X . This justiﬁes the application of
+the CMT in (7.2).
+For a slightly different demonstration of (7.2) recall that (4.6) implies that
+ˆβ − β = ˆQ
+−1
+X X ˆQ X e (7.3)
+where
+ˆQ X e = 1
+n
+n∑
+i =1
+Xi ei .
+The WLLN and (2.25) imply
+ˆQ X e − →p E[X e] = 0.
+Therefore
+ˆβ − β = ˆQ
+−1
+X X ˆQ X e − →p Q −1
+X X 0 = 0
+which is the same as ˆβ − →p β.
+
+
+--- page 3 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 164
+Theorem 7.1 Consistency of Least Squares. Under Assumption 7.1, ˆQ X X − →p
+Q X X , ˆQ X Y − →p Q X Y , ˆQ
+−1
+X X − →p Q −1
+X X , ˆQ X e − →p 0, and ˆβ − →p β as n → ∞.
+Theorem 7.1 states that the OLS estimator ˆβ converges in probability to β as n increases and thus ˆβ
+is consistent for β. In the stochastic order notation, Theorem 7.1 can be equivalently written as
+ˆβ = β + op(1). (7.4)
+To illustrate the effect of sample size on the least squares estimator consider the least squares regres-
+sion
+log(wage) = β1education + β2experience + β3experience2 + β4 + e.
+We use the sample of 24,344 white men from the March 2009 CPS. We randomly sorted the observations
+and sequentially estimated the model by least squares starting with the ﬁrst 5 observations and contin-
+uing until the full sample is used. The sequence of estimates are displayed in Figure 7.1. You can see
+how the least squares estimate changes with the sample size. As the number of observations increases it
+settles down to the full-sample estimate ˆβ1 = 0.114.
+Number of Observations
+β^
+1
+5000 10000 15000 20000
+0.110 0.115 0.120 0.125
+Figure 7.1: The Least-Squares Estimator ˆβ1 as a Function of Sample Size n
+7.3 Asymptotic Normality
+We started this chapter discussing the need for an approximation to the distribution of the OLS esti-
+mator ˆβ. In Section 7.2 we showed that ˆβ converges in probability to β. Consistency is a good ﬁrst step,
+but in itself does not describe the distribution of the estimator. In this section we derive an approxima-
+tion typically called the asymptotic distribution.
+
+
+--- page 4 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 165
+The derivation starts by writing the estimator as a function of sample moments. One of the moments
+must be written as a sum of zero-mean random vectors and normalized so that the central limit theorem
+can be applied. The steps are as follows.
+Take equation (7.3) and multiply it by pn. This yields the expression
+p
+n
+(ˆβ − β
+)
+=
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)−1 (
+1pn
+n∑
+i =1
+Xi ei
+)
+. (7.5)
+This shows that the normalized and centered estimator pn
+(ˆβ − β
+)
+is a function of the sample average
+n−1 ∑n
+i =1 Xi X ′
+i and the normalized sample average n−1/2 ∑n
+i =1 Xi ei .
+The random pairs (Y i , Xi ) are i.i.d., meaning that they are independent across i and identically dis-
+tributed. Any function of (Yi , Xi ) is also i.i.d. This includes ei = Yi − X ′
+i β and the product Xi ei . The latter
+is mean-zero (E[X e] = 0) and has k × k covariance matrix
+Ω = E
+[
+(X e)( X e)′]
+= E
+[
+X X ′e2]
+.
+We show below that Ω has ﬁnite elements under a strengthening of Assumption 7.1. Since Xi ei is i.i.d.,
+mean zero, and ﬁnite variance, the central limit theorem (Theorem 6.3) implies
+1
+pn
+n∑
+i =1
+Xi ei − →
+d
+N(0, Ω).
+We state the required conditions here.
+Assumption 7.2
+1. The variables (Y i , X i ), i = 1, ...,n, are i.i.d..
+2. E
+[
+Y 4]
+< ∞.
+3. E ∥X ∥4 < ∞.
+4. Q X X = E
+[
+X X ′]
+is positive deﬁnite.
+Assumption 7.2 implies that Ω < ∞. To see this, take the j ℓt h element of Ω, E
+[
+X j Xℓe2]
+. First, Theo-
+rem 2.9.6 shows that E
+[
+e4]
+< ∞. By the expectation inequality (B.30) the j ℓt h element of Ω is bounded
+by ⏐⏐E
+[
+X j Xℓe2]⏐
+⏐ ≤ E
+⏐
+⏐X j Xℓe2⏐
+⏐ = E
+[⏐
+⏐X j
+⏐
+⏐ |Xℓ|e2]
+.
+By two applications of the Cauchy-Schwarz inequality (B.32) this is smaller than
+(
+E
+[
+X 2
+j X 2
+ℓ
+])1/2 (
+E
+[
+e4])1/2
+≤
+(
+E
+[
+X 4
+j
+])1/4 (
+E
+[
+X 4
+ℓ
+])1/4 (
+E
+[
+e4])1/2
+< ∞
+where the ﬁniteness holds under Assumption 7.2.2 and 7.2.3. ThusΩ < ∞.
+An alternative way to show that the elements of Ω are ﬁnite is by using a matrix norm ∥·∥ (See Ap-
+pendix A.23). Then by the expectation inequality, the Cauchy-Schwarz inequality, Assumption 7.2.3, and
+E
+[
+e4]
+< ∞,
+∥Ω∥ ≤ E
+X X ′e2
+ = E
+[
+∥X ∥2 e2]
+≤
+(
+E ∥X ∥4)1/2 (
+E
+[
+e4])1/2
+< ∞.
+
+
+--- page 5 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 166
+This is a more compact argument (often described as more elegant) but such manipulations should not
+be done without understanding the notation and the applicability of each step of the argument.
+Regardless, the ﬁniteness of the covariance matrix means that we can then apply the multivariate
+CLT (Theorem 6.3).
+Theorem 7.2 Assumption 7.2 implies that
+Ω < ∞ (7.6)
+and
+1pn
+n∑
+i =1
+Xi ei − →
+d
+N(0, Ω) (7.7)
+as n → ∞.
+Putting together (7.1), (7.5), and (7.7),
+p
+n
+(ˆβ − β
+)
+− →
+d
+Q −1
+X X N(0, Ω) = N
+(
+0,Q −1
+X X ΩQ −1
+X X
+)
+as n → ∞. The ﬁnal equality follows from the property that linear combinations of normal vectors are
+also normal (Theorem 5.2).
+We have derived the asymptotic normal approximation to the distribution of the least squares esti-
+mator.
+Theorem 7.3 Asymptotic Normality of Least Squares Estimator
+Under Assumption 7.2, as n → ∞
+p
+n
+(ˆβ − β
+)
+− →
+d
+N
+(
+0,V β
+)
+where Q X X = E
+[
+X X ′]
+, Ω = E
+[
+X X ′e2]
+, and
+V β = Q −1
+X X ΩQ −1
+X X . (7.8)
+In the stochastic order notation, Theorem 7.3 implies that ˆβ = β + Op(n−1/2) which is stronger than
+(7.4).
+The matrix V β = Q −1
+X X ΩQ −1
+X X is the variance of the asymptotic distribution of pn
+(ˆβ − β
+)
+. Conse-
+quently,V β is often referred to as theasymptotic covariance matrixof ˆβ. The expressionV β = Q −1
+X X ΩQ −1
+X X
+is called a sandwich form as the matrix Ω is sandwiched between two copies of Q −1
+X X .
+It is useful to compare the variance of the asymptotic distribution given in (7.8) and the ﬁnite-sample
+conditional variance in the CEF model as given in (4.10):
+V ˆβ = var
+[ˆβ |X
+]
+=
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1 . (7.9)
+
+
+--- page 6 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 167
+Notice that V ˆβ is the exact conditional variance of ˆβ and V β is the asymptotic variance of pn
+(ˆβ − β
+)
+.
+Thus V β should be (roughly) n times as large as V ˆβ, or V β ≈ nV ˆβ. Indeed, multiplying (7.9) by n and
+distributing we ﬁnd
+nV ˆβ =
+( 1
+n X ′X
+)−1 ( 1
+n X ′D X
+) (1
+n X ′X
+)−1
+which looks like an estimator of V β. Indeed, as n → ∞, nV ˆβ − →p V β. The expression V ˆβ is useful for
+practical inference (such as computation of standard errors and tests) since it is the variance of the es-
+timator ˆβ , while V β is useful for asymptotic theory as it is well deﬁned in the limit as n goes to inﬁnity.
+We will make use of both symbols and it will be advisable to adhere to this convention.
+There is a special case where Ω and V β simplify. Suppose that
+cov(X X ′,e2) = 0. (7.10)
+Condition (7.10) holds in the homoskedastic linear regression model but is somewhat broader. Under
+(7.10) the asymptotic variance formulae simplify as
+Ω = E
+[
+X X ′]
+E
+[
+e2]
+= Q X X σ2
+V β = Q −1
+X X ΩQ −1
+X X = Q −1
+X X σ2 ≡ V 0
+β. (7.11)
+In (7.11) we deﬁneV 0
+β = Q −1
+X X σ2 whether (7.10) is true or false. When (7.10) is true then V β = V 0
+β, other-
+wise V β ̸= V 0
+β. We call V 0
+β the homoskedastic asymptotic covariance matrix.
+Theorem 7.3 states that the sampling distribution of the least squares estimator, after rescaling, is
+approximately normal when the sample size n is sufﬁciently large. This holds true for all joint distribu-
+tions of (Y , X ) which satisfy the conditions of Assumption 7.2. Consequently, asymptotic normality is
+routinely used to approximate the ﬁnite sample distribution ofp
+n
+(ˆβ − β
+)
+.
+A difﬁculty is that for any ﬁxedn the sampling distribution of ˆβ can be arbitrarily far from the normal
+distribution. The normal approximation improves as n increases, but how large should n be in order for
+the approximation to be useful? Unfortunately, there is no simple answer to this reasonable question.
+The trouble is that no matter how large is the sample size the normal approximation is arbitrarily poor for
+some data distribution satisfying the assumptions. We illustrate this problem using a simulation. LetY =
+β1X +β2 +e where X is N(0, 1) and e is independent of X with the Double Pareto density f (e) = α
+2 |e|−α−1 ,
+|e|≥ 1. If α > 2 the error e has zero mean and variance α/(α−2). As α approaches 2, however, its variance
+diverges to inﬁnity. In this context the normalized least squares slope estimator
+√
+n α−2
+α
+(ˆβ1 − β1
+)
+has
+the N(0,1) asymptotic distribution for any α > 2. In Figure 7.2(a) we display the ﬁnite sample densities
+of the normalized estimator
+√
+n α−2
+α
+(ˆβ1 − β1
+)
+, setting n = 100 and varying the parameter α. For α =
+3.0 the density is very close to the N(0,1) density. As α diminishes the density changes signiﬁcantly,
+concentrating most of the probability mass around zero.
+Another example is shown in Figure 7.2(b). Here the model is Y = β + e where
+e = ur − E[ur ]
+(
+E
+[
+u2r ]
+− (E[ur ])2)1/2 (7.12)
+and u ∼ N(0,1). We show the sampling distribution of pn
+(ˆβ − β
+)
+for n = 100, varying r = 1, 4, 6 and 8. As
+r increases, the sampling distribution becomes highly skewed and non-normal. The lesson from Figure
+7.2 is that the N(0,1) asymptotic approximation is never guaranteed to be accurate.
+
+
+--- page 7 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 168
+−2 −1 0 1 2
+0.0 0.2 0.4 0.6 0.8 1.0
+N(0, 1)
+α=3
+α=2.4
+α=2.2
+α=2.1
+α=2.05
+(a) Double Pareto Error
+−2 −1 0 1 2
+N(0,1)
+N(0,1)4
+N(0,1)6
+N(0,1)8 (b) Error Process (7.12)
+Figure 7.2: Density of Normalized OLS Estimator
+7.4 Joint Distribution
+Theorem 7.3 gives the joint asymptotic distribution of the coefﬁcient estimators. We can use the
+result to study the covariance between the coefﬁcient estimators. For simplicity, take the case of two
+regressors, no intercept, and homoskedastic error. Assume the regressors are mean zero, variance one,
+with correlation ρ. Then using the formula for inversion of a 2 × 2 matrix,
+V 0
+β = σ2Q −1
+X X = σ2
+1 − ρ2
+[ 1 −ρ
+−ρ 1
+]
+.
+Thus if X1 and X2 are positively correlated (ρ > 0) then ˆβ1 and ˆβ2 are negatively correlated (and vice-
+versa).
+For illustration, Figure 7.3(a) displays the probability contours of the joint asymptotic distribution of
+ˆβ1 − β1 and ˆβ2 − β2 when β1 = β2 = 0 and ρ = 0.5. The coefﬁcient estimators are negatively correlated
+since the regressors are positively correlated. This means that if ˆβ1 is unusually negative, it is likely that
+ˆβ2 is unusually positive, or conversely. It is also unlikely that we will observe both ˆβ1 and ˆβ2 unusually
+large and of the same sign.
+This ﬁnding that the correlation of the regressors is of opposite sign of the correlation of the coefﬁ-
+cient estimates is sensitive to the assumption of homoskedasticity. If the errors are heteroskedastic then
+this relationship is not guaranteed.
+This can be seen through a simple constructed example. Suppose that X1 and X2 only take the
+values {−1, +1}, symmetrically, with P[X1 = X2 = 1] = P[X1 = X2 = −1] = 3/8, and P[X1 = 1, X2 = −1] =
+P[X1 = −1, X2 = 1] = 1/8. You can check that the regressors are mean zero, unit variance and correlation
+0.5, which is identical with the setting displayed in Figure 7.3(a).
+Now suppose that the error is heteroskedastic. Speciﬁcally, suppose that E
+[
+e2 |X1 = X2
+]
+= 5
+4 and
+
+
+--- page 8 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 169
+β1
+β2
+−3 −2 −1 0 1 2 3
+−3 −2 −1 0 1 2 3
+(a) Homoskedastic Case
+β1
+β2
+−3 −2 −1 0 1 2 3
+−3 −2 −1 0 1 2 3 (b) Heteroskedastic Case
+Figure 7.3: Contours of Joint Distribution of ( ˆβ1, ˆβ2)
+E
+[
+e2 |X1 ̸= X2
+]
+= 1
+4 . You can check that E
+[
+e2]
+= 1, E
+[
+X 2
+1 e2]
+= E
+[
+X 2
+2 e2]
+= 1 and E
+[
+X1X2e2
+i
+]
+= 7
+8 . Therefore
+V β = Q −1
+X X ΩQ −1
+X X
+= 9
+16
+
+
+1 − 1
+2
+− 1
+2 1
+
+
+
+
+1 7
+87
+8 1
+
+
+
+
+1 − 1
+2
+− 1
+2 1
+
+
+= 4
+3
+
+
+1 1
+41
+4 1
+
+.
+Thus the coefﬁcient estimators ˆβ1 and ˆβ2 are positively correlated (their correlation is 1/4.) The joint
+probability contours of their asymptotic distribution is displayed in Figure 7.3(b). We can see how the
+two estimators are positively associated.
+What we found through this example is that in the presence of heteroskedasticity there is no simple
+relationship between the correlation of the regressors and the correlation of the parameter estimators.
+We can extend the above analysis to study the covariance between coefﬁcient sub-vectors. For ex-
+ample, partitioning X ′ =
+(
+X ′
+1, X ′
+2
+)
+and β′ =
+(
+β′
+1, β′
+2
+)
+, we can write the general model as
+Y = X ′
+1β1 + X ′
+2β2 + e
+and the coefﬁcient estimates as ˆβ′ =
+(ˆβ′
+1, ˆβ′
+2
+)
+. Make the partitions
+Q X X =
+[ Q11 Q12
+Q21 Q22
+]
+, Ω =
+[ Ω11 Ω12
+Ω21 Ω22
+]
+.
+From (2.43)
+Q −1
+X X =
+[ Q −1
+11·2 −Q −1
+11·2Q12Q −1
+22
+−Q −1
+22·1Q21Q −1
+11 Q −1
+22·1
+]
+
+
+--- page 9 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 170
+where Q11·2 = Q11 −Q12Q −1
+22 Q21 and Q22·1 = Q22 −Q21Q −1
+11 Q12. Thus when the error is homoskedastic
+cov
+(ˆβ1, ˆβ2
+)
+= −σ2Q −1
+11·2Q12Q −1
+22
+which is a matrix generalization of the two-regressor case.
+In general you can show that (Exercise 7.5)
+V β =
+[ V 11 V 12
+V 21 V 22
+]
+(7.13)
+where
+V 11 = Q −1
+11·2
+(
+Ω11 −Q12Q −1
+22 Ω21 − Ω12Q −1
+22 Q21 +Q12Q −1
+22 Ω22Q −1
+22 Q21
+)
+Q −1
+11·2 (7.14)
+V 21 = Q −1
+22·1
+(
+Ω21 −Q21Q −1
+11 Ω11 − Ω22Q −1
+22 Q21 +Q21Q −1
+11 Ω12Q −1
+22 Q21
+)
+Q −1
+11·2 (7.15)
+V 22 = Q −1
+22·1
+(
+Ω22 −Q21Q −1
+11 Ω12 − Ω21Q −1
+11 Q12 +Q21Q −1
+11 Ω11Q −1
+11 Q12
+)
+Q −1
+22·1. (7.16)
+Unfortunately, these expressions are not easily interpretable.
+7.5 Consistency of Error Variance Estimators
+Using the methods of Section 7.2 we can show that the estimatorsˆσ2 = 1
+n
+∑n
+i =1 ˆe2
+i and s2 = 1
+n−k
+∑n
+i =1 ˆe2
+i
+are consistent for σ2.
+The trick is to write the residual ˆei as equal to the error ei plus a deviation
+ˆei = Yi − X ′
+i ˆβ = ei − X ′
+i
+(ˆβ − β
+)
+.
+Thus the squared residual equals the squared error plus a deviation
+ˆe2
+i = e2
+i − 2ei X ′
+i
+(ˆβ − β
+)
++
+(ˆβ − β
+)′
+Xi X ′
+i
+(ˆβ − β
+)
+. (7.17)
+So when we take the average of the squared residuals we obtain the average of the squared errors, plus
+two terms which are (hopefully) asymptotically negligible.
+ˆσ2 = 1
+n
+n∑
+i =1
+e2
+i − 2
+(
+1
+n
+n∑
+i =1
+ei X ′
+i
+)
+(ˆβ − β
+)
++
+(ˆβ − β
+)′
+(
+1
+n
+n∑
+i =1
+Xi X ′
+i
+)
+(ˆβ − β
+)
+. (7.18)
+Indeed, the WLLN shows that
+1
+n
+n∑
+i =1
+e2
+i − →p σ2
+1
+n
+n∑
+i =1
+ei X ′
+i − →p E
+[
+e X′]
+= 0
+1
+n
+n∑
+i =1
+Xi X ′
+i − →p E
+[
+X X ′]
+= Q X X .
+Theorem 7.1 shows that ˆβ − →p β. Hence (7.18) converges in probability to σ2 as desired.
+Finally, since n/(n − k) → 1 as n → ∞ it follows that s2 =
+( n
+n−k
+)
+ˆσ2 − →p σ2. Thus both estimators are
+consistent.
+Theorem 7.4 Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞.
+
+
+--- page 10 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 171
+7.6 Homoskedastic Covariance Matrix Estimation
+Theorem 7.3 shows that pn
+(ˆβ − β
+)
+is asymptotically normal with asymptotic covariance matrix V β.
+For asymptotic inference (conﬁdence intervals and tests) we need a consistent estimator of V β. Under
+homoskedasticity V β simpliﬁes toV 0
+β = Q −1
+X X σ2 and in this section we consider the simpliﬁed problem
+of estimating V 0
+β.
+The standard moment estimator of Q X X is ˆQ X X deﬁned in (7.1) and thus an estimator for Q −1
+X X is
+ˆQ
+−1
+X X . The standard estimator of σ2 is the unbiased estimator s2 deﬁned in (4.26). Thus a natural plug-in
+estimator for V 0
+β = Q −1
+X X σ2 is ˆV
+0
+β = ˆQ
+−1
+X X s2.
+Consistency of ˆV
+0
+β for V 0
+β follows from consistency of the moment estimators ˆQ X X and s2 and an
+application of the continuous mapping theorem. Speciﬁcally, Theorem 7.1 established ˆQ X X − →p Q X X ,
+and Theorem 7.4 established s2 − →p σ2. The function V 0
+β = Q −1
+X X σ2 is a continuous function of Q X X and
+σ2 so long as Q X X > 0, which holds true under Assumption 7.1.4. It follows by the CMT that
+ˆV
+0
+β = ˆQ
+−1
+X X s2 − →p Q −1
+X X σ2 = V 0
+β
+so that ˆV
+0
+β is consistent for V 0
+β.
+Theorem 7.5 Under Assumption 7.1, ˆV
+0
+β − →p V 0
+β as n → ∞.
+It is instructive to notice that Theorem 7.5 does not require the assumption of homoskedasticity. That
+is, ˆV
+0
+β is consistent for V 0
+β regardless if the regression is homoskedastic or heteroskedastic. However,
+V 0
+β = V β = avar
+[ˆβ
+]
+only under homoskedasticity. Thus, in the general case ˆV
+0
+β is consistent for a well-
+deﬁned but non-useful object.
+7.7 Heteroskedastic Covariance Matrix Estimation
+Theorems 7.3 established that the asymptotic covariance matrix of pn
+(ˆβ − β
+)
+is V β = Q −1
+X X ΩQ −1
+X X .
+We now consider estimation of this covariance matrix without imposing homoskedasticity. The standard
+approach is to use a plug-in estimator which replaces the unknowns with sample moments.
+As described in the previous section a natural estimator for Q −1
+X X is ˆQ
+−1
+X X where ˆQ X X deﬁned in (7.1).
+The moment estimator for Ω is
+ˆΩ = 1
+n
+n∑
+i =1
+Xi X ′
+i ˆe2
+i ,
+leading to the plug-in covariance matrix estimator
+ˆV
+HC0
+β = ˆQ
+−1
+X X ˆΩ ˆQ
+−1
+X X . (7.19)
+You can check that ˆV
+HC0
+β = n ˆV
+HC0
+ˆβ where ˆV
+HC0
+ˆβ is the HC0 covariance matrix estimator from (4.31).
+As shown in Theorem 7.1, ˆQ
+−1
+X X − →p Q −1
+X X , so we just need to verify the consistency of ˆΩ. The key is to
+replace the squared residual ˆe2
+i with the squared error e2
+i , and then show that the difference is asymptot-
+ically negligible.
+
+
+--- page 11 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 172
+Speciﬁcally, observe that
+ˆΩ = 1
+n
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+= 1
+n
+n∑
+i =1
+Xi X ′
+i e2
+i + 1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+.
+The ﬁrst term is an average of the i.i.d. random variables Xi X ′
+i e2
+i , and therefore by the WLLN converges
+in probability to its expectation, namely,
+1
+n
+n∑
+i =1
+Xi X ′
+i e2
+i − →p E
+[
+X X ′e2]
+= Ω.
+Technically, this requires thatΩ has ﬁnite elements, which was shown in (7.6).
+To establish that ˆΩ is consistent for Ω it remains to show that
+1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+− →p 0. (7.20)
+There are multiple ways to do this. A reasonable straightforward yet slightly tedious derivation is to start
+by applying the triangle inequality (B.16) using a matrix norm:
+
+
+
+
+1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+
+
+
+
+ ≤ 1
+n
+n∑
+i =1
+
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+
+= 1
+n
+n∑
+i =1
+∥Xi ∥2 ⏐
+⏐ˆe2
+i − e2
+i
+⏐
+⏐. (7.21)
+Then recalling the expression for the squared residual (7.17), apply the triangle inequality (B.1) and then
+the Schwarz inequality (B.12) twice
+⏐⏐ˆe2
+i − e2
+i
+⏐
+⏐ ≤ 2
+⏐
+⏐ei X ′
+i
+(ˆβ − β
+)⏐
+⏐ +
+(ˆβ − β
+)′
+Xi X ′
+i
+(ˆβ − β
+)
+= 2 |ei |
+⏐
+⏐X ′
+i
+(ˆβ − β
+)⏐
+⏐ +
+⏐
+⏐
+⏐
+(ˆβ − β
+)′
+Xi
+⏐
+⏐
+⏐
+2
+≤ 2 |ei | ∥Xi ∥
+
+ ˆβ − β
+
+ + ∥Xi ∥2 
+ ˆβ − β
+
+2
+. (7.22)
+Combining (7.21) and (7.22), we ﬁnd
+
+
+
+1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+
+
+ ≤ 2
+(
+1
+n
+n∑
+i =1
+∥Xi ∥3 |ei |
+)
+ ˆβ − β
+
+ +
+(
+1
+n
+n∑
+i =1
+∥Xi ∥4
+)
+
+ ˆβ − β
+
+2
+= op(1). (7.23)
+The expression is op(1) because
+ ˆβ − β
+
+ − →p 0 and both averages in parenthesis are averages of random
+variables with ﬁnite expectation under Assumption 7.2 (and are thusOp(1)). Indeed, by Hölder’ s inequal-
+ity (B.31)
+E
+[
+∥X ∥3 |e|
+]
+≤
+(
+E
+[(
+∥X ∥3)4/3])3/4 (
+E
+[
+e4])1/4
+=
+(
+E ∥X ∥4)3/4 (
+E
+[
+e4])1/4
+< ∞.
+We have established (7.20) as desired.
+Theorem 7.6 Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV
+HC0
+β − →p V β.
+For an alternative proof of this result, see Section 7.20.
+
+
+--- page 12 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 173
+7.8 Summary of Covariance Matrix Notation
+The notation we have introduced may be somewhat confusing so it is helpful to write it down in one
+place.
+The exact variance of ˆβ (under the assumptions of the linear regression model) and the asymptotic
+variance of pn
+(ˆβ − β
+)
+(under the more general assumptions of the linear projection model) are
+V ˆβ = var
+[ˆβ |X
+]
+=
+(
+X ′X
+)−1 (
+X ′D X
+) (
+X ′X
+)−1
+V β = avar
+[p
+n
+(ˆβ − β
+)]
+= Q −1
+X X ΩQ −1
+X X .
+The HC0 estimators of these two covariance matrices are
+ˆV
+HC0
+ˆβ =
+(
+X ′X
+)−1
+(
+n∑
+i =1
+Xi X ′
+i ˆe2
+i
+)
+(
+X ′X
+)−1
+ˆV
+HC0
+β = ˆQ
+−1
+X X ˆΩ ˆQ
+−1
+X X
+and satisfy the simple relationship ˆV
+HC0
+β = n ˆV
+HC0
+ˆβ .
+Similarly, under the assumption of homoskedasticity the exact and asymptotic variances simplify to
+V 0
+ˆβ =
+(
+X ′X
+)−1 σ2
+V 0
+β = Q −1
+X X σ2.
+Their standard estimators are
+ˆV
+0
+ˆβ =
+(
+X ′X
+)−1 s2
+ˆV
+0
+β = ˆQ
+−1
+X X s2
+which also satisfy the relationship ˆV
+0
+β = n ˆV
+0
+ˆβ.
+The exact formula and estimators are useful when constructing test statistics and standard errors.
+However, for theoretical purposes the asymptotic formula (variances and their estimates) are more use-
+ful as these retain non-generate limits as the sample sizes diverge. That is why both sets of notation are
+useful.
+7.9 Alternative Covariance Matrix Estimators*
+In Section 7.7 we introduced ˆV
+HC0
+β as an estimator of V β. ˆV
+HC0
+β is a scaled version of ˆV
+HC0
+ˆβ from
+Section 4.16, where we also introduced the alternative HC1, HC2 and HC3 heteroskedasticity-robust
+covariance matrix estimators. We now discuss the consistency properties of these estimators.
+To do so we introduce their scaled versions, e.g. ˆV
+HC1
+β = n ˆV
+HC1
+ˆβ , ˆV
+HC2
+β = n ˆV
+HC2
+ˆβ , and ˆV
+HC3
+β = n ˆV
+HC3
+ˆβ .
+These are (alternative) estimators of the asymptotic covariance matrix V β.
+First, consider ˆV
+HC1
+β . Notice that ˆV
+HC1
+β = n ˆV
+HC1
+ˆβ = n
+n−k ˆV
+HC0
+β where ˆV
+HC0
+β was deﬁned in (7.19) and
+shown consistent for V β in Theorem 7.6. If k is ﬁxed asn → ∞, then n
+n−k → 1 and thus
+ˆV
+HC1
+β = (1 + o(1)) ˆV
+HC0
+β − →p V β.
+Thus ˆV
+HC1
+β is consistent for V β.
+
+
+--- page 13 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 174
+The alternative estimators ˆV
+HC2
+β and ˆV
+HC3
+β take the form (7.19) but with ˆΩ replaced by
+˜Ω = 1
+n
+n∑
+i =1
+(1 − hi i)−2 Xi X ′
+i ˆe2
+i
+and
+Ω = 1
+n
+n∑
+i =1
+(1 − hi i)−1 Xi X ′
+i ˆe2
+i ,
+respectively. To show that these estimators also consistent for V β given ˆΩ − →p Ω it is sufﬁcient to show
+that the differences ˜Ω − ˆΩ and Ω − ˆΩ converge in probability to zero as n → ∞.
+The trick is the fact that the leverage values are asymptotically negligible:
+h∗
+n = max
+1≤i ≤n
+hi i = op(1). (7.24)
+(See Theorem 7.17 in Section 7.21.) Then using the triangle inequality (B.16)
+Ω − ˆΩ
+ ≤ 1
+n
+n∑
+i =1
+Xi X ′
+i
+
+ ˆe2
+i
+⏐
+⏐(1 − hi i)−1 − 1
+⏐
+⏐
+≤
+(
+1
+n
+n∑
+i =1
+∥Xi ∥2 ˆe2
+i
+) ⏐⏐
+⏐
+(
+1 − h∗
+n
+)−1 − 1
+⏐
+⏐
+⏐.
+The sum in parenthesis can be shown to be Op(1) under Assumption 7.2 by the same argument as in in
+the proof of Theorem 7.6. (In fact, it can be shown to converge in probability toE
+[
+∥X ∥2 e2]
+.) The term in
+absolute values is op(1) by (7.24). Thus the product is op(1) which means that
+Ω = ˆΩ + op(1) − →p Ω.
+Similarly,
+
+ ˜Ω − ˆΩ
+
+ ≤ 1
+n
+n∑
+i =1
+
+Xi X ′
+i
+
+ ˆe2
+i
+⏐
+⏐(1 − hi i)−2 − 1
+⏐
+⏐
+≤
+(
+1
+n
+n∑
+i =1
+∥Xi ∥2 ˆe2
+i
+) ⏐
+⏐
+⏐
+(
+1 − h∗
+n
+)−2 − 1
+⏐
+⏐
+⏐
+= op(1).
+Theorem 7.7 Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV
+HC1
+β − →p
+V β, ˆV
+HC2
+β − →p V β, and ˆV
+HC3
+β − →p V β.Theorem 7.7 shows that the alternative covariance matrix estimators are also consistent for the asymp-
+totic covariance matrix.
+To simplify notation, for the remainder of the chapter we will use the notation ˆV β and ˆV ˆβ to refer
+to any of the heteroskedasticity-consistent covariance matrix estimators HC0, HC1, HC2 and HC3, since
+they all have the same asymptotic limits.
+
+
+--- page 14 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 175
+7.10 Functions of Parameters
+In most serious applications a researcher is actually interested in a speciﬁc transformation of the
+coefﬁcient vectorβ = (β1,..., βk). For example, the researcher may be interested in a single coefﬁcientβj
+or a ratio βj /βl . More generally, interest may focus on a quantity such as consumer surplus which could
+be a complicated function of the coefﬁcients. In any of these cases we can write the parameter of interest
+θ as a function of the coefﬁcients, e.g.θ = r (β) for some function r : Rk → Rq . The estimate of θ is
+ˆθ = r ( ˆβ).
+By the continuous mapping theorem (Theorem 6.6) and the fact ˆβ − →p β we can deduce that ˆθ is
+consistent for θ if the function r (·) is continuous.
+Theorem 7.8 Under Assumption 7.1, if r (β) is continuous at the true value of
+β then as n → ∞, ˆθ − →p θ.
+Furthermore, if the transformation is sufﬁciently smooth, by the Delta Method (Theorem 6.8) we can
+show that ˆθ is asymptotically normal.
+Assumption 7.3 r (β) : Rk → Rq is continuously differentiable at the true value
+of β and R = ∂
+∂β r (β)′ has rank q.
+Theorem 7.9 Asymptotic Distribution of Functions of Parameters
+Under Assumptions 7.2 and 7.3, as n → ∞,
+p
+n
+(ˆθ − θ
+)
+− →
+d
+N(0,V θ) (7.25)
+where V θ = R ′V βR.
+In many cases the function r (β) is linear:
+r (β) = R ′β
+for some k × q matrix R. In particular if R is a “selector matrix”
+R =
+( I
+0
+)
+then we can partition β = (β′
+1, β′
+2)′ so that R ′β = β1. Then
+V θ =
+(
+I 0
+)
+V β
+( I
+0
+)
+= V 11,
+
+
+--- page 15 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 176
+the upper-left sub-matrix of V 11 given in (7.14). In this case (7.25) states that
+p
+n
+(ˆβ1 − β1
+)
+− →
+d
+N(0,V 11).
+That is, subsets of ˆβ are approximately normal with variances given by the conformable subcomponents
+of V .
+To illustrate the case of a nonlinear transformation take the example θ = βj /βl for j ̸= l. Then
+R = ∂
+∂β r (β) =
+
+
+
+
+
+
+
+
+
+
+∂
+∂β1
+(
+βj /βl
+)
+..
+.
+∂
+∂βj
+(
+βj /βl
+)
+.
+.
+.
+∂
+∂βℓ
+(
+βj /βl
+)
+.
+.
+.
+∂
+∂βk
+(
+βj /βl
+)
+
+
+
+
+
+
+
+
+
+
+=
+
+
+
+
+
+
+
+
+0
+..
+.
+1/βl
+...
+−βj /β2
+l
+..
+.
+0
+
+
+
+
+
+
+
+
+(7.26)
+so
+V θ = V j j /β2
+l + V l lβ2
+j /β4
+l − 2V j lβj /β3
+l
+where V ab denotes the ab t h element of V β.
+For inference we need an estimator of the asymptotic covariance matrix V θ = R ′V βR. For this it is
+typical to use the plug-in estimator
+ˆR = ∂
+∂β r ( ˆβ)′. (7.27)
+The derivative in (7.27) may be calculated analytically or numerically. By analytically, we mean working
+out for the formula for the derivative and replacing the unknowns by point estimates. For example, ifθ =
+βj /βl then ∂
+∂β r (β) is (7.26). However in some cases the functionr (β) may be extremely complicated and
+a formula for the analytic derivative may not be easily available. In this case numerical differentiation
+may be preferable. Let δl = (0 · · · 1 · · · 0)′ be the unit vector with the “1” in thel t h place. The j lt h element
+of a numerical derivative ˆR is
+ˆR j l =
+r j ( ˆβ + δl ϵ) − r j ( ˆβ)
+ϵ
+for some small ϵ.
+The estimator of V θ is
+ˆV θ = ˆR
+′ ˆV β ˆR. (7.28)
+Alternatively, the homoskedastic covariance matrix estimator could be used leading to a homoskedastic
+covariance matrix estimator for θ.
+ˆV
+0
+θ = ˆR
+′ ˆV
+0
+β ˆR = ˆR
+′ ˆQ
+−1
+X X ˆR s2. (7.29)
+Given (7.27), (7.28) and (7.29) are simple to calculate using matrix operations.
+As the primary justiﬁcation for ˆV θ is the asymptotic approximation (7.25), ˆV θ is often called an
+asymptotic covariance matrix estimator.
+The estimator ˆV θ is consistent for V θ under the conditions of Theorem 7.9 since ˆV β − →p V β by The-
+orem 7.6 and
+ˆR = ∂
+∂β r ( ˆβ)′ − →p
+∂
+∂β r (β)′ = R
+since ˆβ − →p β and the function ∂
+∂β r (β)′ is continuous in β.
+
+
+--- page 16 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 177
+Theorem 7.10 Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ.
+Theorem 7.10 shows that ˆV θ is consistent for V θ and thus may be used for asymptotic inference. In
+practice we may set
+ˆV ˆθ = ˆR
+′ ˆV ˆβ ˆR = n−1 ˆR
+′ ˆV β ˆR (7.30)
+as an estimator of the variance of ˆθ.
+7.11 Asymptotic Standard Errors
+As described in Section 4.17 a standard error is an estimator of the standard deviation of the distri-
+bution of an estimator. Thus if ˆV ˆβ is an estimator of the covariance matrix of ˆβ then standard errors are
+the square roots of the diagonal elements of this matrix. These take the form
+s( ˆβj ) =
+√
+ˆV ˆβj
+=
+√[
+ˆV ˆβ
+]
+j j
+.
+Standard errors for ˆθ are constructed similarly. Supposing that θ = h(β) is real-valued then the standard
+error for ˆθ is the square root of (7.30)
+s(ˆθ) =
+√
+ˆR
+′ ˆV ˆβ ˆR =
+√
+n−1 ˆR
+′ ˆV β ˆR.
+When the justiﬁcation is based on asymptotic theory we calls( ˆβj ) or s(ˆθ) an asymptotic standard error
+for ˆβj or ˆθ. When reporting your results it is good practice to report standard errors for each reported
+estimate and this includes functions and transformations of your parameter estimates. This helps users
+of the work (including yourself) assess the estimation precision.
+We illustrate using the log wage regression
+log(wage) = β1 education + β2 experience + β3 experience2/100 + β4 + e.
+Consider the following three parameters of interest.
+1. Percentage return to education:
+θ1 = 100β1
+(100 times the partial derivative of the conditional expectation of log(wage) with respect to educa-
+tion.)
+2. Percentage return to experience for individuals with 10 years of experience:
+θ2 = 100β2 + 20β3
+(100 times the partial derivative of the conditional expectation of log wages with respect to experi-
+ence, evaluated at experience= 10.)
+
+
+--- page 17 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 178
+3. Experience level which maximizes expected log wages:
+θ3 = −50β2/β3
+(The level of experience at which the partial derivative of the conditional expectation of log(wage)
+with respect to experience equals 0.)
+The 4 × 1 vector R for these three parameters is
+R =
+
+
+
+100
+0
+0
+0
+
+
+,
+
+
+
+0
+100
+20
+0
+
+
+,
+
+
+
+0
+−50/β3
+50β2/β2
+3
+0
+
+
+,
+respectively.
+We use the subsample of married Black women (all experience levels) which has 982 observations.
+The point estimates and standard errors are
+álog(wage) = 0.118
+(0.008)
+education + 0.016
+(0.006)
+experience − 0.022
+(0.012)
+experience2/100 + 0.947
+(0.157)
+. (7.31)
+The standard errors are the square roots of the HC2 covariance matrix estimate
+V ˆβ =
+
+
+
+0.632 0.131 −0.143 −11.1
+0.131 0.390 −0.731 −6.25
+−0.143 −0.731 1.48 9.43
+−11.1 −6.25 9.43 246
+
+
+ × 10−4. (7.32)
+We calculate that
+ˆθ1 = 100 ˆβ1 = 100 × 0.118 = 11.8
+s(ˆθ1) =
+√
+1002 × 0.632 × 10−4 = 0.8
+ˆθ2 = 100 ˆβ2 + 20 ˆβ3 = 100 × 0.016 − 20 × 0.022 = 1.16
+s(ˆθ2) =
+√
+(
+100 20
+)( 0.390 −0.731
+−0.731 1.48
+) ( 100
+20
+)
+× 10−4 = 0.55
+ˆθ3 = −50 ˆβ2/ ˆβ3 = 50 × 0.016/0.022 = 35.2
+s(ˆθ3) =
+√
+(
+−50/ ˆβ3 50 ˆβ2/ ˆβ2
+3
+)( 0.390 −0.731
+−0.731 1.48
+) ( −50/ ˆβ3
+50 ˆβ2/ ˆβ2
+3
+)
+× 10−4 = 7.0.
+The calculations show that the estimate of the percentage return to education (for married Black
+women) is 12% per year with a standard error of 0.8. The estimate of the percentage return to experience
+for those with 10 years of experience is 1.2% per year with a standard error of 0.6. The estimate of the
+experience level which maximizes expected log wages is 35 years with a standard error of 7.
+In Stata the nlcom command can be used after estimation to perform the same calculations. To illus-
+trate, after estimation of (7.31) use the commands given below. In each case, Stata reports the coefﬁcient
+estimate, asymptotic standard error, and 95% conﬁdence interval.
+
+
+--- page 18 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 179
+Stata Commands
+nlcom 100*_b[education]
+nlcom 100*_b[experience]+20*_b[exp2]
+nlcom -50*_b[experience]/_b[exp2]
+7.12 t-statistic
+Let θ = r (β) : Rk → R be a parameter of interest,ˆθ its estimator, ands(ˆθ) its asymptotic standard error.
+Consider the statistic
+T (θ) =
+ˆθ − θ
+s(ˆθ)
+. (7.33)
+Different writers have called (7.33) a t-statistic, a t-ratio, a z-statistic or a studentized statistic, some-
+times using the different labels to distinguish between ﬁnite-sample and asymptotic inference. As the
+statistics themselves are always (7.33) we won’t make this distinction and will simply refer to T (θ) as a
+t-statistic or a t-ratio. We also often suppress the parameter dependence, writing it asT. The t-statistic is
+a function of the estimator, its standard error, and the parameter.
+By Theorems 7.9 and 7.10, p
+n
+(ˆθ − θ
+)
+− →
+d
+N(0,Vθ) and ˆVθ − →p Vθ. Thus
+T (θ) =
+ˆθ − θ
+s(ˆθ)
+=
+pn
+(ˆθ − θ
+)
+√
+ˆVθ
+− →
+d
+N(0,Vθ)√
+Vθ
+= Z ∼ N(0, 1).
+The last equality is the property that afﬁne functions of normal variables are normal (Theorem 5.2).
+This calculation requires that Vθ > 0, otherwise the continuous mapping theorem cannot be em-
+ployed. In practice this is an innocuous requirement as it only excludes degenerate sampling distribu-
+tions. Formally we add the following assumption.
+Assumption 7.4 V θ = R ′V βR > 0.
+Assumption 7.4 states that V θ is positive deﬁnite. Since R is full rank under Assumption 7.3 a sufﬁ-
+cient condition is that V β > 0. Since Q X X > 0 a sufﬁcient condition isΩ > 0. Thus Assumption 7.4 could
+be replaced by the assumption Ω > 0. Assumption 7.4 is weaker so this is what we use.
+Thus the asymptotic distribution of the t-ratio T (θ) is standard normal. Since this distribution does
+not depend on the parameters we say that T (θ) is asymptotically pivotal. In ﬁnite samples T (θ) is not
+necessarily pivotal but the property means that the dependence on unknowns diminishes asn increases.
+
+
+--- page 19 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 180
+It is also useful to consider the distribution of the absolute t-ratio |T (θ)|. Since T (θ) − →
+d
+Z the con-
+tinuous mapping theorem yields |T (θ)|− →
+d
+|Z |. Letting Φ(u) = P[Z ≤ u] denote the standard normal
+distribution function we calculate that the distribution of |Z |is
+P[|Z |≤ u] = P[−u ≤ Z ≤ u]
+= P[Z ≤ u] − P[Z < −u]
+= Φ(u) − Φ(−u)
+= 2Φ(u) − 1. (7.34)
+Theorem 7.11 Under Assumptions 7.2, 7.3, and 7.4, T (θ) − →
+d
+Z ∼ N(0, 1) and
+|T (θ)|− →
+d
+|Z |.
+The asymptotic normality of Theorem 7.11 is used to justify conﬁdence intervals and tests for the
+parameters.
+7.13 Conﬁdence Intervals
+The estimator ˆθ is a point estimator for θ meaning that ˆθ is a single value in Rq . A broader concept
+is a set estimator ˆC which is a collection of values in Rq . When the parameter θ is real-valued then it is
+common to focus on sets of the form ˆC = [ˆL, ˆU ] which is called an interval estimator for θ.
+An interval estimate ˆC is a function of the data and hence is random. Thecoverage probability of the
+interval ˆC = [ˆL, ˆU ] is P
+[
+θ ∈ ˆC
+]
+. The randomness comes from ˆC as the parameter θ is treated as ﬁxed. In
+Section 5.10 we introduced conﬁdence intervals for the normal regression model which used the ﬁnite
+sample distribution of the t-statistic. When we are outside the normal regression model we cannot rely
+on the exact normal distribution theory but instead use asymptotic approximations. A beneﬁt is that we
+can construct conﬁdence intervals for general parameters of interestθ not just regression coefﬁcients.
+An interval estimator ˆC is called a conﬁdence interval when the goal is to set the coverage prob-
+ability to equal a pre-speciﬁed target such as 90% or 95%. ˆC is called a 1 − α conﬁdence interval if
+infθ Pθ
+[
+θ ∈ ˆC
+]
+= 1 − α.
+When ˆθ is asymptotically normal with standard error s(ˆθ) the conventional conﬁdence interval forθ
+takes the form
+ˆC =
+[ˆθ − c × s(ˆθ), ˆθ + c × s(ˆθ)
+]
+(7.35)
+where c equals the 1−α quantile of the distribution of|X |. Using (7.34) we calculate thatc is equivalently
+the 1 − α/2 quantile of the standard normal distribution. Thus, c solves
+2Φ(c) − 1 = 1 − α.
+This can be computed by, for example, norminv(1- α/2) in MATLAB. The conﬁdence interval (7.35) is
+symmetric about the point estimator ˆθ and its length is proportional to the standard error s(ˆθ).
+Equivalently, (7.35) is the set of parameter values for θ such that the t-statistic T (θ) is smaller (in
+absolute value) than c, that is
+ˆC = {θ : |T (θ)|≤ c} =
+{
+θ : −c ≤
+ˆθ − θ
+s(ˆθ)
+≤ c
+}
+.
+
+
+--- page 20 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 181
+The coverage probability of this conﬁdence interval is
+P
+[
+θ ∈ ˆC
+]
+= P[|T (θ)|≤ c] → P[|Z |≤ c] = 1 − α
+where the limit is taken as n → ∞, and holds since T (θ) is asymptotically |X |by Theorem 7.11. We call
+the limit the asymptotic coverage probability and call ˆC an asymptotic 1 − α% conﬁdence interval for
+θ. Since the t-ratio is asymptotically pivotal the asymptotic coverage probability is independent of the
+parameter θ.
+It is useful to contrast the conﬁdence interval (7.35) with (5.8) for the normal regression model. They
+are similar but there are differences. The normal regression interval (5.8) only applies to regression co-
+efﬁcientsβ not to functions θ of the coefﬁcients. The normal interval (5.8) also is constructed with the
+homoskedastic standard error, while (7.35) can be constructed with a heteroskedastic-robust standard
+error. Furthermore, the constants c in (5.8) are calculated using the student t distribution, while c in
+(7.35) are calculated using the normal distribution. The difference between the student t and normal
+values are typically small in practice (since sample sizes are large in typical economic applications).
+However, since the student t values are larger it results in slightly larger conﬁdence intervals which is
+reasonable. (A practical rule of thumb is that if the sample sizes are sufﬁciently small that it makes a
+difference then neither (5.8) nor (7.35) should be trusted.) Despite these differences the coincidence of
+the intervals means that inference on regression coefﬁcients is generally robust to using either the exact
+normal sampling assumption or the asymptotic large sample approximation, at least in large samples.
+Stata by default reports 95% conﬁdence intervals for each coefﬁcient where the critical values c are
+calculated using the tn−k distribution. This is done for all standard error methods even though it is only
+exact for homoskedastic standard errors and under normality.
+The standard coverage probability for conﬁdence intervals is 95%, leading to the choice c = 1.96 for
+the constant in (7.35). Rounding 1.96 to 2, we obtain the most commonly used conﬁdence interval in
+applied econometric practice
+ˆC =
+[ˆθ − 2s(ˆθ), ˆθ + 2s(ˆθ)
+]
+.
+This is a useful rule-of thumb. This asymptotic 95% conﬁdence interval ˆC is simple to compute and
+can be roughly calculated from tables of coefﬁcient estimates and standard errors. (Technically, it is an
+asymptotic 95.4% interval due to the substitution of 2.0 for 1.96 but this distinction is overly precise.)
+Theorem 7.12 Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with
+c = Φ−1(1 − α/2), P
+[
+θ ∈ ˆC
+]
+→ 1 − α. For c = 1.96, P
+[
+θ ∈ ˆC
+]
+→ 0.95.
+Conﬁdence intervals are a simple yet effective tool to assess estimation uncertainty. When reading
+a set of empirical results look at the estimated coefﬁcient estimates and the standard errors. For a pa-
+rameter of interest compute the conﬁdence interval ˆC and consider the meaning of the spread of the
+suggested values. If the range of values in the conﬁdence interval are too wide to learn about θ then do
+not jump to a conclusion about θ based on the point estimate alone.
+For illustration, consider the three examples presented in Section 7.11 based on the log wage regres-
+sion for married Black women.
+Percentage return to education. A 95% asymptotic conﬁdence interval is 11.8 ± 1.96 × 0.8 = [10.2,
+13.3].
+Percentage return to experience for individuals with 10 years experience. A 90% asymptotic conﬁ-
+dence interval is 1.1 ± 1.645 × 0.4 = [0.5, 1.8].
+Experience level which maximizes expected log wages. An 80% asymptotic conﬁdence interval is
+35 ± 1.28 × 7 = [26, 44].
+
+
+--- page 21 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 182
+7.14 Regression Intervals
+In the linear regression model the conditional expectation of Y given X = x is
+m(x) = E[Y |X = x] = x′β.
+In some cases we want to estimate m(x) at a particular point x. Notice that this is a linear function of
+β. Letting r (β) = x′β and θ = r (β) we see that ˆm(x) = ˆθ = x′ ˆβ and R = x so s(ˆθ) =
+√
+x′ ˆV ˆβx. Thus an
+asymptotic 95% conﬁdence interval form(x) is
+[
+x′ ˆβ ± 1.96
+√
+x′ ˆV ˆβx
+]
+.
+It is interesting to observe that if this is viewed as a function of x the width of the conﬁdence interval is
+dependent on x.
+To illustrate we return to the log wage regression (3.12) of Section 3.7. The estimated regression
+equation is
+álog(wage) = x′ ˆβ = 0.155x + 0.698
+where x =education. The covariance matrix estimate from (4.38) is
+ˆV ˆβ =
+( 0.001 −0.015
+−0.015 0.243
+)
+.
+Thus the 95% conﬁdence interval for the regression is
+0.155x + 0.698 ± 1.96
+√
+0.001x2 − 0.030x + 0.243.
+The estimated regression and 95% intervals are shown in Figure 7.4(a). Notice that the conﬁdence
+bands take a hyperbolic shape. This means that the regression line is less precisely estimated for large
+and small values of education.
+1.0 1.5 2.0 2.5 3.0 3.5 4.0
+Education
+log(wage)
+6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+(a) Wage on Education
+2.2 2.3 2.4 2.5 2.6 2.7 2.8
+Experience
+log(wage)
+0 5 10 15 20 25 30 35 40 45 50 55 60 (b) Wage on Experience
+Figure 7.4: Wage on Education Regression Intervals
+
+
+--- page 22 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 183
+Plots of the estimated regression line and conﬁdence intervals are especially useful when the regres-
+sion includes nonlinear terms. To illustrate consider the log wage regression (7.31) which includes expe-
+rience and its square and covariance matrix estimate (7.32). We are interested in plotting the regression
+estimate and regression intervals as a function of experience. Since the regression also includes educa-
+tion, to plot the estimates in a simple graph weﬁx education at a speciﬁc value. We select education=12.
+This only affects the level of the estimated regression since education enters without an interaction. De-
+ﬁne the points of evaluation
+z(x) =
+
+
+
+12
+x
+x2/100
+1
+
+
+
+where x =experience.
+The 95% regression interval for education=12 as a function of x =experience is
+0.118 × 12 + 0.016 x − 0.022 x2/100 + 0.947
+± 1.96
+
+
+
+
+√
+z(x)′
+
+
+
+0.632 0.131 −0.143 −11.1
+0.131 0.390 −0.731 −6.25
+−0.143 −0.731 1.48 9.43
+−11.1 −6.25 9.43 246
+
+
+ z(x) × 10−4
+= 0.016 x − .00022 x2 + 2.36
+± 0.0196
+√
+70.608 − 9.356 x + 0.54428 x2 − 0.01462 x3 + 0.000148 x4.
+The estimated regression and 95% intervals are shown in Figure 7.4(b). The regression interval widens
+greatly for small and large values of experience indicating considerable uncertainty about the effect of
+experience on mean wages for this population. The conﬁdence bands take a more complicated shape
+than in Figure 7.4(a) due to the nonlinear speciﬁcation.
+7.15 Forecast Intervals
+Suppose we are given a value of the regressor vector Xn+1 for an individual outside the sample and
+we want to forecast (guess) Yn+1 for this individual. This is equivalent to forecasting Yn+1 given Xn+1 = x
+which will generally be a function of x. A reasonable forecasting rule is the conditional expectation m(x)
+as it is the mean-square minimizing forecast. A point forecast is the estimated conditional expectation
+ˆm(x) = x′ ˆβ. We would also like a measure of uncertainty for the forecast.
+The forecast error is ˆen+1 = Yn+1 − ˆm(x) = en+1 − x′ (ˆβ − β
+)
+. As the out-of-sample error en+1 is inde-
+pendent of the in-sample estimator ˆβ this has conditional variance
+E
+[
+ˆe2
+n+1 |Xn+1 = x
+]
+= E
+[
+e2
+n+1 − 2x′ (ˆβ − β
+)
+en+1 + x′ (ˆβ − β
+) (ˆβ − β
+)′
+x |Xn+1 = x
+]
+= E
+[
+e2
+n+1 |Xn+1 = x
+]
++ x′E
+[(ˆβ − β
+) (ˆβ − β
+)′]
+x
+= σ2(x) + x′V ˆβx (7.36)
+Under homoskedasticity E
+[
+e2
+n+1 |Xn+1
+]
+= σ2. In this case a simple estimator of (7.36) is ˆσ2 + x′V ˆβx so a
+standard error for the forecast is ˆs(x) =
+√
+ˆσ2 + x′V ˆβx. Notice that this is different from the standard error
+for the conditional expectation.
+
+
+--- page 23 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 184
+The conventional 95% forecast interval forYn+1 uses a normal approximation and equals
+[
+x′ ˆβ ± 2ˆs(x)
+]
+.
+It is difﬁcult, however, to fully justify this choice. It would be correct if we have a normal approximation
+to the ratio
+en+1 − x′ (ˆβ − β
+)
+ˆs(x) .
+The difﬁculty is that the equation error en+1 is generally non-normal and asymptotic theory cannot be
+applied to a single observation. The only special exception is the case where en+1 has the exact distribu-
+tion N(0, σ2) which is generally invalid.
+An accurate forecast interval would use the conditional distribution of en+1 given Xn+1 = x, which is
+more challenging to estimate. Due to this difﬁculty many applied forecasters use the simple approximate
+interval
+[
+x′ ˆβ ± 2ˆs(x)
+]
+despite the lack of a convincing justiﬁcation.
+7.16 Wald Statistic
+Let θ = r (β) : Rk → Rq be any parameter vector of interest, ˆθ its estimator, and ˆV ˆθ its covariance
+matrix estimator. Consider the quadratic form
+W (θ) =
+(ˆθ − θ
+)′ ˆV
+−1
+ˆθ
+(ˆθ − θ
+)
+= n
+(ˆθ − θ
+)′ ˆV
+−1
+θ
+(ˆθ − θ
+)
+. (7.37)
+where ˆV θ = n ˆV ˆθ. When q = 1, then W (θ) = T (θ)2 is the square of the t-ratio. Whenq > 1, W (θ) is typically
+called a Wald statistic as it was proposed by Wald (1943). We are interested in its sampling distribution.
+The asymptotic distribution of W (θ) is simple to derive given Theorem 7.9 and Theorem 7.10. They
+show that p
+n
+(ˆθ − θ
+)
+− →
+d
+Z ∼ N(0,V θ) and ˆV θ − →p V θ. It follows that
+W (θ) =
+p
+n
+(ˆθ − θ
+)′ ˆV
+−1
+θ
+p
+n
+(ˆθ − θ
+)
+− →
+d
+Z ′V −1
+θ Z
+a quadratic in the normal random vector Z . As shown in Theorem 5.3.5 the distribution of this quadratic
+form is χ2
+q , a chi-square random variable with q degrees of freedom.
+Theorem 7.13 Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − →
+d
+χ2
+q .
+Theorem 7.13 is used to justify multivariate conﬁdence regions and multivariate hypothesis tests.
+7.17 Homoskedastic Wald Statistic
+Under the conditional homoskedasticity assumptionE
+[
+e2 |X
+]
+= σ2 we can construct the Wald statis-
+tic using the homoskedastic covariance matrix estimator ˆV
+0
+θ deﬁned in (7.29). This yields a homoskedas-
+tic Wald statistic
+W 0(θ) =
+(ˆθ − θ
+)′ (
+ˆV
+0
+ˆθ
+)−1 (ˆθ − θ
+)
+= n
+(ˆθ − θ
+)′ (
+ˆV
+0
+θ
+)−1 (ˆθ − θ
+)
+. (7.38)
+Under the additional assumption of conditional homoskedasticity it has the same asymptotic distri-
+bution as W (θ).
+
+
+--- page 24 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 185
+Theorem 7.14 Under Assumptions 7.2, 7.3, and E
+[
+e2 |X
+]
+= σ2 > 0, as n → ∞,
+W 0(θ) − →
+d
+χ2
+q .
+7.18 Conﬁdence Regions
+A conﬁdence region ˆC is a set estimator for θ ∈ Rq when q > 1. A conﬁdence region ˆC is a set in Rq
+intended to cover the true parameter value with a pre-selected probability 1−α. Thus an ideal conﬁdence
+region has the coverage probability P
+[
+θ ∈ ˆC
+]
+= 1 − α. In practice it is typically not possible to construct a
+region with exact coverage but we can calculate its asymptotic coverage.
+When the parameter estimator satisﬁes the conditions of Theorem 7.13 a good choice for a conﬁ-
+dence region is the ellipse
+ˆC = {θ : W (θ) ≤ c1−α}
+with c1−α the 1 − α quantile of the χ2
+q distribution. (Thus Fq (c1−α) = 1 − α.) It can be computed by, for
+example, chi2inv(1- α,q)in MATLAB.
+Theorem 7.13 implies
+P
+[
+θ ∈ ˆC
+]
+→ P
+[
+χ2
+q ≤ c1−α
+]
+= 1 − α
+which shows that ˆC has asymptotic coverage 1− α.
+To illustrate the construction of a conﬁdence region, consider the estimated regression (7.31) of
+álog(wage) = β1 education + β2 experience + β3 experience2/100 + β4.
+Suppose that the two parameters of interest are the percentage return to education θ1 = 100β1 and the
+percentage return to experience for individuals with 10 years experience θ2 = 100β2 + 20β3. These two
+parameters are a linear transformation of the regression parameters with point estimates
+ˆθ =
+( 100 0 0 0
+0 100 20 0
+)
+ˆβ =
+( 11.8
+1.2
+)
+,
+and have the covariance matrix estimate
+ˆV ˆθ =
+( 0 100 0 0
+0 0 100 20
+)
+ˆV ˆβ
+
+
+0 0
+100 0
+0 100
+0 20
+
+
+ =
+( 0.632 0.103
+0.103 0.157
+)
+with inverse
+ˆV
+−1
+ˆθ =
+( 1.77 −1.16
+−1.16 7.13
+)
+.
+Thus the Wald statistic is
+W (θ) =
+(ˆθ − θ
+)′ ˆV
+−1
+ˆθ
+(ˆθ − θ
+)
+=
+( 11.8 − θ1
+1.2 − θ2
+)′ ( 1.77 −1.16
+−1.16 7.13
+) ( 11.8 − θ1
+1.2 − θ2
+)
+= 1.77(11.8 − θ1)2 − 2.32(11.8 − θ1)(1.2 − θ2) + 7.13(1.2 − θ2)2 .
+
+
+--- page 25 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 186
+The 90% quantile of the χ2
+2 distribution is 4.605 (we use the χ2
+2 distribution as the dimension of θ is
+two) so an asymptotic 90% conﬁdence region for the two parameters is the interior of the ellipseW (θ) =
+4.605 which is displayed in Figure 7.5. Since the estimated correlation of the two coefﬁcient estimates is
+modest (about 0.3) the region is modestly elliptical.
+●
+0.0 0.5 1.0 1.5 2.0 2.5
+Return to Education (%)
+Return to Experience (%)
+10 11 12 13 14
+● β^
+Figure 7.5: Conﬁdence Region for Return to Experience and Return to Education
+7.19 Edgeworth Expansion*
+Theorem 7.11 showed that the t-ratio T (θ) is asymptotically normal. In practice this means that
+we use the normal distribution to approximate the ﬁnite sample distribution of T . How good is this
+approximation? Some insight into the accuracy of the normal approximation can be obtained by an
+Edgeworth expansion which is a higher-order approximation to the distribution of T . The following
+result is an application of Theorem 9.11 of Introduction to Econometrics.
+Theorem 7.15 Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 <
+∞, g
+(
+β
+)
+has ﬁve continuous derivatives in a neighborhood of β, and
+E
+[
+exp
+(
+t
+(
+∥e∥4 + ∥X ∥4))]
+≤ B < 1, as n → ∞
+P[T (θ) ≤ x] = Φ(x) + n−1/2p1(x)φ(x) + n−1p2(x)φ(x) + o
+(
+n−1)
+uniformly in x, where p1(x) is an even polynomial of order 2 and p2(x) is an
+odd polynomial of degree 5 with coefﬁcients depending on the moments of e
+and X up to order 16.
+Theorem 7.15 shows that the ﬁnite sample distribution of the t-ratio can be approximated up to
+o(n−1) by the sum of three terms, the ﬁrst being the standard normal distribution, the second aO
+(
+n−1/2)
+adjustment, and the third a O
+(
+n−1)
+adjustment.
+
+
+--- page 26 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 187
+Consider a one-sided conﬁdence interval ˆC =
+[ˆθ − z1−αs(ˆθ), ∞
+)
+where z1−α is the 1 − αt h quantile of
+Z ∼ N(0, 1), thus Φ(z1−α) − 1 − α. Then
+P
+[
+θ ∈ ˆC
+]
+= P[T (θ) ≤ z1−α]
+= Φ(z1−α) + n−1/2p1(z1−α)φ(z1−α) +O
+(
+n−1)
+= 1 − α +O
+(
+n−1/2)
+.
+This means that the actual coverage is within O
+(
+n−1/2)
+of the desired 1 − α level.
+Now consider a two-sided interval ˆC =
+[ˆθ − z1−α/2s(ˆθ), ˆθ + z1−α/2s(ˆθ)
+]
+. It has coverage
+P
+[
+θ ∈ ˆC
+]
+= P[|T (θ)|≤ z1−α/2]
+= 2Φ(z1−α/2) − 1 + n−12p2(z1−α/2)φ(z1−α/2) + o
+(
+n−1)
+= 1 − α +O
+(
+n−1)
+.
+This means that the actual coverage is within O
+(
+n−1)
+of the desired 1 − α level. The accuracy is better
+than the one-sided interval because theO
+(
+n−1/2)
+term in the Edgeworth expansion has offsetting effects
+in the two tails of the distribution.
+7.20 Uniformly Consistent Residuals*
+It seems natural to view the residuals ˆei as estimators of the unknown errors ei . Are they consistent?
+In this section we develop a convergence result.
+We can write the residual as
+ˆei = Yi − X ′
+i ˆβ = ei − X ′
+i
+(ˆβ − β
+)
+. (7.39)
+Since ˆβ − β − →p 0 it seems reasonable to guess that ˆei will be close to ei if n is large.
+We can bound the difference in (7.39) using the Schwarz inequality (B.12) to ﬁnd
+|ˆei − ei |=
+⏐⏐X ′
+i
+(ˆβ − β
+)⏐
+⏐ ≤ ∥Xi ∥
+
+ ˆβ − β
+
+. (7.40)
+To bound (7.40) we can use
+ ˆβ − β
+
+ = Op
+(
+n−1/2)
+from Theorem 7.3 but we also need to bound the
+random variable ∥Xi ∥. If the regressor is bounded, that is, ∥Xi ∥ ≤ B < ∞, then |ˆei − ei |≤ B
+
+ ˆβ − β
+
+ =
+Op
+(
+n−1/2)
+. However if the regressor does not have bounded support then we have to be more careful.
+The key is Theorem 6.16 which shows that E ∥X ∥r < ∞ implies Xi = op
+(
+n1/r )
+uniformly in i , or
+n−1/r max
+1≤i ≤n
+∥Xi ∥ − →p 0.
+Applied to (7.40) we obtain
+max
+1≤i ≤n
+|ˆei − ei |≤ max
+1≤i ≤n
+∥Xi ∥
+
+ ˆβ − β
+
+ = op
+(
+n−1/2+1/r )
+.
+We have shown the following.
+Theorem 7.16 Under Assumption 7.2 and E ∥X ∥r < ∞, then
+max
+1≤i ≤n
+|ˆei − ei |= op
+(
+n−1/2+1/r )
+. (7.41)
+
+
+--- page 27 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 188
+The rate of convergence in (7.41) depends on r. Assumption 7.2 requires r ≥ 4 so the rate of conver-
+gence is at least op
+(
+n−1/4)
+. As r increases the rate improves.
+We mentioned in Section 7.7 that there are multiple ways to prove the consistency of the covariance
+matrix estimator ˆΩ. We now show that Theorem 7.16 provides one simple method to establish (7.23) and
+thus Theorem 7.6. Let qn = max1≤i ≤n |ˆei − ei |= op
+(
+n−1/4)
+. Since ˆe2
+i − e2
+i = 2ei (ˆei − ei ) + (ˆei − ei )2, then
+
+
+
+
+1
+n
+n∑
+i =1
+Xi X ′
+i
+(
+ˆe2
+i − e2
+i
+)
+
+
+
+
+ ≤ 1
+n
+n∑
+i =1
+
+Xi X ′
+i
+
+ ⏐
+⏐ˆe2
+i − e2
+i
+⏐
+⏐
+≤ 2
+n
+n∑
+i =1
+∥Xi ∥2 |ei | |ˆei − ei |+ 1
+n
+n∑
+i =1
+∥Xi ∥2 |ˆei − ei |2
+≤ 2
+n
+n∑
+i =1
+∥Xi ∥2 |ei |qn + 1
+n
+n∑
+i =1
+∥Xi ∥2 q2
+n
+≤ op
+(
+n−1/4)
+.
+7.21 Asymptotic Leverage*
+Recall the deﬁnition of leverage from (3.40) hi i = X ′
+i
+(
+X ′X
+)−1 Xi . These are the diagonal elements of
+the projection matrix P and appear in the formula for leave-one-out prediction errors and HC2 and HC3
+covariance matrix estimators. We can show that under i.i.d. sampling the leverage values are uniformly
+asymptotically small.
+Let λmin(A) and λmax(A) denote the smallest and largest eigenvalues of a symmetric square matrix A
+and note that λmax(A−1) = (λmin(A))−1 .
+Since 1
+n X ′X − →p Q X X > 0, by the CMT λmin
+(1
+n X ′X
+)
+− →p λmin
+(
+Q X X
+)
+> 0. (The latter is positive since
+Q X X is positive deﬁnite and thus all its eigenvalues are positive.) Then by the Quadratic Inequality (B.18)
+hi i = X ′
+i
+(
+X ′X
+)−1 Xi
+≤ λmax
+((
+X ′X
+)−1)(
+X ′
+i Xi
+)
+=
+(
+λmin
+( 1
+n X ′X
+))−1 1
+n ∥Xi ∥2
+≤
+(
+λmin
+(
+Q X X
+)
++ op(1)
+)−1 1
+n max
+1≤i ≤n
+∥Xi ∥2 . (7.42)
+Theorem 6.16 shows that E ∥X ∥r < ∞ implies max
+1≤i ≤n
+∥Xi ∥2 =
+(
+max
+1≤i ≤n
+∥Xi ∥
+)2
+= op
+(
+n2/r )
+and thus (7.42) is
+op
+(
+n2/r −1)
+.
+Theorem 7.17 If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then
+max
+1≤i ≤n
+hi i = op
+(
+n2/r −1)
+.
+For any r ≥ 2 then hi i = op (1) (uniformly in i ≤ n). Larger r implies a stronger rate of convergence.
+For example r = 4 implies hi i = op
+(
+n−1/2)
+.
+
+
+--- page 28 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 189
+Theorem (7.17) implies that under random sampling with ﬁnite variances and large samples no indi-
+vidual observation should have a large leverage value. Consequently individual observations should not
+be inﬂuential unless one of these conditions is violated.
+_____________________________________________________________________________________________
+7.22 Exercises
+Exercise 7.1 Take the modelY = X ′
+1β1 +X ′
+2β2 +e with E[X e] = 0. Suppose that β1 is estimated by regress-
+ing Y on X1 only. Find the probability limit of this estimator. In general, is it consistent for β1? If not,
+under what conditions is this estimator consistent for β1?
+Exercise 7.2 Take the model Y = X ′β + e with E[X e] = 0. Deﬁne theridge regression estimator
+ˆβ =
+(
+n∑
+i =1
+Xi X ′
+i + λI k
+)−1 (
+n∑
+i =1
+Xi Yi
+)
+(7.43)
+here λ > 0 is a ﬁxed constant. Find the probability limit of ˆβ as n → ∞. Is ˆβ consistent for β?
+Exercise 7.3 For the ridge regression estimator (7.43), set λ = cn where c > 0 is ﬁxed asn → ∞. Find the
+probability limit of ˆβ as n → ∞.
+Exercise 7.4 Verify some of the calculations reported in Section 7.4. Speciﬁcally, suppose thatX1 and X2
+only take the values {−1, +1}, symmetrically, with
+P[X1 = X2 = 1] = P[X1 = X2 = −1] = 3/8
+P[X1 = 1, X2 = −1] = P[X1 = −1, X2i = 1] = 1/8
+E
+[
+e2
+i |X1 = X2
+]
+= 5
+4
+E
+[
+e2
+i |X1 ̸= X2
+]
+= 1
+4 .
+Verify the following:
+(a) E[X1] = 0
+(b) E
+[
+X 2
+1
+]
+= 1
+(c) E[X1X2] = 1
+2
+(d) E
+[
+e2]
+= 1
+(e) E
+[
+X 2
+1 e2]
+= 1
+(f) E
+[
+X1X2e2]
+= 7
+8 .
+Exercise 7.5 Show (7.13)-(7.16).
+
+
+--- page 29 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 190
+Exercise 7.6 The model is
+Y = X ′β + e
+E[X e] = 0
+Ω = E
+[
+X X ′e2]
+.
+Find the method of moments estimators ( ˆβ, ˆΩ) for
+(
+β, Ω
+)
+.
+Exercise 7.7 Of the variables (Y ∗,Y , X ) only the pair (Y , X ) are observed. In this case we say that Y ∗ is a
+latent variable. Suppose
+Y ∗ = X ′β + e
+E[X e] = 0
+Y = Y ∗ + u
+where u is a measurement error satisfying
+E[X u] = 0
+E
+[
+Y ∗u
+]
+= 0.
+Let ˆβ denote the OLS coefﬁcient from the regression ofY on X .
+(a) Is β the coefﬁcient from the linear projection ofY on X ?
+(b) Is ˆβ consistent for β as n → ∞?
+(c) Find the asymptotic distribution of pn
+(ˆβ − β
+)
+as n → ∞.
+Exercise 7.8 Find the asymptotic distribution of pn
+(
+ˆσ2 − σ2)
+as n → ∞.
+Exercise 7.9 The model is Y = X β + e with E[e |X ] = 0 and X ∈ R. Consider the two estimators
+ˆβ =
+∑n
+i =1 Xi Yi
+∑n
+i =1 X 2
+i
+˜β = 1
+n
+n∑
+i =1
+Yi
+Xi
+.
+(a) Under the stated assumptions are both estimators consistent for β?
+(b) Are there conditions under which either estimator is efﬁcient?
+Exercise 7.10 In the homoskedastic regression model Y = X ′β + e with E[e |x] = 0 and E
+[
+e2 |X
+]
+= σ2
+suppose ˆβ is the OLS estimator of β with covariance matrix estimator ˆV ˆβ based on a sample of sizen. Let
+ˆσ2 be the estimator of σ2. You wish to forecast an out-of-sample value of Yn+1 given that Xn+1 = x. Thus
+the available information is the sample, the estimates (ˆβ, ˆV ˆβ, ˆσ2), the residuals ˆei , and the out-of-sample
+value of the regressors Xn+1.
+(a) Find a point forecast of Yn+1.
+(b) Find an estimator of the variance of this forecast.
+
+
+--- page 30 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 191
+Exercise 7.11 Take a regression model with i.i.d. observations (Yi , Xi ) with X ∈ R
+Y = X β + e
+E[e |X ] = 0
+Ω = E
+[
+X 2e2]
+.
+Let ˆβ be the OLS estimator of β with residuals ˆei = Yi − Xi ˆβ. Consider the estimators of Ω
+˜Ω = 1
+n
+n∑
+i =1
+X 2
+i e2
+i
+ˆΩ = 1
+n
+n∑
+i =1
+X 2
+i ˆe2
+i .
+(a) Find the asymptotic distribution of pn
+(˜Ω − Ω
+)
+as n → ∞.
+(b) Find the asymptotic distribution of pn
+(ˆΩ − Ω
+)
+as n → ∞.
+(c) How do you use the regression assumption E[ei |Xi ] = 0 in your answer to (b)?
+Exercise 7.12 Consider the model
+Y = α + βX + e
+E[e] = 0
+E[X e] = 0
+with both Y and X scalar. Assuming α > 0 and β < 0 suppose the parameter of interest is the area under
+the regression curve (e.g. consumer surplus), which is A = −α2/2β.
+Let ˆθ = ( ˆα, ˆβ)′ be the least squares estimators of θ = (α, β)′ so that pn
+(ˆθ − θ
+)
+→d N (0,V θ) and let ˆV θ
+be a standard estimator for V θ.
+(a) Given the above, describe an estimator of A.
+(b) Construct an asymptotic 1 − η conﬁdence interval forA.
+Exercise 7.13 Consider an i.i.d. sample {Yi , Xi } i = 1, ...,n where Y and X are scalar. Consider the reverse
+projection model X = Y γ + u with E[Y u] = 0 and deﬁne the parameter of interest asθ = 1/γ.
+(a) Propose an estimator ˆγ of γ.
+(b) Propose an estimator ˆθ of θ.
+(c) Find the asymptotic distribution of ˆθ.
+(d) Find an asymptotic standard error for ˆθ.
+Exercise 7.14 Take the model
+Y = X1β1 + X2β2 + e
+E[X e] = 0
+with both β1 ∈ R and β2 ∈ R, and deﬁne the parameterθ = β1β2.
+
+
+--- page 31 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 192
+(a) What is the appropriate estimator ˆθ for θ?
+(b) Find the asymptotic distribution of ˆθ under standard regularity conditions.
+(c) Show how to calculate an asymptotic 95% conﬁdence interval for θ.
+Exercise 7.15 Take the linear model Y = X β + e with E[e |X ] = 0 and X ∈ R. Consider the estimator
+ˆβ =
+∑n
+i =1 X 3
+i Yi
+∑n
+i =1 X 4
+i
+.
+Find the asymptotic distribution of p
+n
+(ˆβ − β
+)
+as n → ∞.
+Exercise 7.16 From an i.i.d. sample (Y i , Xi ) of size n you randomly take half the observations. You esti-
+mate a least squares regression of Y on X using only this sub-sample. Is the estimated slope coefﬁcient
+ˆβ consistent for the population projection coefﬁcient? Explain your reasoning.
+Exercise 7.17 An economist reports a set of parameter estimates, including the coefﬁcient estimates
+ˆβ1 = 1.0, ˆβ2 = 0.8, and standard errors s( ˆβ1) = 0.07 and s( ˆβ2) = 0.07. The author writes “The estimates
+show that β1 is larger than β2.”
+(a) Write down the formula for an asymptotic 95% conﬁdence interval for θ = β1 − β2, expressed as a
+function of ˆβ1, ˆβ2, s( ˆβ1), s( ˆβ2) and ˆρ, where ˆρ is the estimated correlation between ˆβ1 and ˆβ2.
+(b) Can ˆρ be calculated from the reported information?
+(c) Is the author correct? Does the reported information support the author’ s claim?
+Exercise 7.18 Suppose an economic model suggests
+m(x) = E[Y |X = x] = β0 + β1x + β2x2
+where X ∈ R. You have a random sample (Yi , Xi ), i = 1, ...,n.
+(a) Describe how to estimate m(x) at a given value x.
+(b) Describe (be speciﬁc) an appropriate conﬁdence interval for m(x).
+Exercise 7.19 Take the modelY = X ′β+e with E[X e] = 0 and suppose you have observationsi = 1, ...,2n.
+(The number of observations is 2n .) You randomly split the sample in half, (each has n observations),
+calculate ˆβ1 by least squares on the ﬁrst sample, and ˆβ2 by least squares on the second sample. What is
+the asymptotic distribution of pn
+(ˆβ1 − ˆβ2
+)
+?
+Exercise 7.20 The variables {Yi , Xi ,Wi } are a random sample. The parameterβ is estimated by minimiz-
+ing the criterion function
+S(β) =
+n∑
+i =1
+Wi
+(
+Yi − X ′
+i β
+)2
+That is ˆβ = argminβ S(β).
+(a) Find an explicit expression for ˆβ.
+
+
+--- page 32 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 193
+(b) What population parameter β is ˆβ estimating? Be explicit about any assumptions you need to
+impose. Do not make more assumptions than necessary.
+(c) Find the probability limit for ˆβ as n → ∞.
+(d) Find the asymptotic distribution of pn
+(ˆβ − β
+)
+as n → ∞.
+Exercise 7.21 Take the model
+Y = X ′β + e
+E[e |X ] = 0
+E
+[
+e2 |X
+]
+= Z ′γ
+where Z is a (vector) function of X . The sample is i = 1, ...,n with i.i.d. observations. Assume that Z ′γ > 0
+for all Z . Suppose you want to forecast Yn+1 given Xn+1 = x and Zn+1 = z for an out-of-sample observa-
+tion n + 1. Describe how you would construct a point forecast and a forecast interval for Yn+1.
+Exercise 7.22 Take the model
+Y = X ′β + e
+E[e |X ] = 0
+Z = X ′βγ + u
+E[u |X ] = 0
+where X is a k vector and Z is scalar. Your goal is to estimate the scalar parameter γ. You use a two-step
+estimator:
+• Estimate ˆβ by least squares of Y on X .
+• Estimate ˆγ by least squares of Z on X ′ ˆβ.
+(a) Show that ˆγ is consistent for γ.
+(b) Find the asymptotic distribution of ˆγ when γ = 0.
+Exercise 7.23 The model is Y = X + e with E[e |X ] = 0 and X ∈ R. Consider the estimator
+˜β = 1
+n
+n∑
+i =1
+Yi
+Xi
+.
+Find conditions under which ˜β is consistent for β as n → ∞.
+Exercise 7.24 The parameter β is deﬁned in the model Y = X ∗β + e where e is independent of X ∗ ≥ 0,
+E[e] = 0, E
+[
+e2]
+= σ2. The observables are (Y , X ) where X = X ∗v and v > 0 is random scale measurement
+error, independent of X ∗ and e. Consider the least squares estimator ˆβ for β.
+(a) Find the plim of ˆβ expressed in terms of β and moments of (X , v,e).
+(b) Can you ﬁnd a non-trivial condition under which ˆβ is consistent for β? (By non-trivial we mean
+something other than v = 1.)
+
+
+--- page 33 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 194
+Exercise 7.25 Take the projection model Y = X ′β + e with E[X e] = 0. For a positive function w(x) let
+Wi = w(Xi ). Consider the estimator
+˜β =
+(
+n∑
+i =1
+Wi Xi X ′
+i
+)−1 (
+n∑
+i =1
+Wi Xi Yi
+)
+.
+Find the probability limit (as n → ∞) of ˜β. Do you need to add an assumption? Is ˜β consistent for ˜β? If
+not, under what assumption is ˜β consistent for β?
+Exercise 7.26 Take the regression model
+Y = X ′β + e
+E[e |X ] = 0
+E
+[
+e2 |X = x
+]
+= σ2(x)
+with X ∈ Rk. Assume that P[e = 0] = 0. Consider the infeasible estimator
+˜β =
+(
+n∑
+i =1
+e−2
+i Xi X ′
+i
+)−1 (
+n∑
+i =1
+e−2
+i Xi Yi
+)
+.
+This is a WLS estimator using the weights e−2
+i .
+(a) Find the asymptotic distribution of ˜β.
+(b) Contrast your result with the asymptotic distribution of infeasible GLS.
+Exercise 7.27 The model is Y = X ′β+e with E[e |X ] = 0. An econometrician is worried about the impact
+of some unusually large values of the regressors. The model is thus estimated on the subsample for which
+|Xi |≤ c for some ﬁxedc. Let ˜β denote the OLS estimator on this subsample. It equals
+˜β =
+(
+n∑
+i =1
+Xi X ′
+i 1{|Xi |≤ c}
+)−1 (
+n∑
+i =1
+Xi Yi 1{|Xi |≤ c}
+)
+.
+(a) Show that ˜β − →p β.
+(b) Find the asymptotic distribution of pn
+(˜β − β
+)
+.
+Exercise 7.28 As in Exercise 3.26, use the cps09mar dataset and the subsample of white male Hispanics.
+Estimate the regression
+álog(wage) = β1 education + β2 experience + β3 experience2/100 + β4.
+(a) Report the coefﬁcient estimates and robust standard errors.
+(b) Let θ be the ratio of the return to one year of education to the return to one year of experience for
+experience= 10. Write θ as a function of the regression coefﬁcients and variables. Computeˆθ from
+the estimated model.
+(c) Write out the formula for the asymptotic standard error for ˆθ as a function of the covariance matrix
+for ˆβ. Compute s(ˆθ) from the estimated model.
+
+
+--- page 34 ---
+
+CHAPTER 7. ASYMPTOTIC THEORY FOR LEAST SQUARES 195
+(d) Construct a 90% asymptotic conﬁdence interval for θ from the estimated model.
+(e) Compute the regression function at education= 12 and experience= 20. Compute a 95% conﬁdence
+interval for the regression function at this point.
+(f) Consider an out-of-sample individual with 16 years of education and 5 years experience. Construct
+an 80% forecast interval for their log wage and wage. [To obtain the forecast interval for the wage,
+apply the exponential function to both endpoints.]
