@@ -99,7 +99,8 @@ Planned next within Chapter 2:
 - later chapter 2 identification / existence statements where worthwhile
 
 See also:
-- `notes/theorem_inventory.md`
+- `notes/ch02/theorem_inventory.md`
+- `notes/ch03/inventory.md`
 
 ## Philosophy
 
