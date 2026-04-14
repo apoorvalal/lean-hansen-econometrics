@@ -49,8 +49,8 @@ Legend:
 | ch | title | status | notes |
 |---:|---|---|---|
 | 01 | Introduction | not started | mostly exposition; probably little to formalize directly |
-| 02 | Conditional Expectation and Projection | partial | first conditional-expectation theorem layer completed |
-| 03 | The Algebra of Least Squares | in progress | OLS closed form, normal equations, residual orthogonality landed |
+| 02 | Conditional Expectation and Projection | partial | conditional expectation core + variance layer completed |
+| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator matrix core landed |
 | 04 | Least Squares Regression | not started | finite-sample regression theory |
 | 05 | Normal Regression | not started | distributional finite-sample results |
 | 06 | A Review of Large Sample Asymptotics | not started | likely prerequisite for later asymptotics chapters |
@@ -80,7 +80,7 @@ Legend:
 
 ## Current Chapter 2 progress
 
-Completed in `HansenEconometrics/Chapter2CondExp.lean`:
+Completed in `HansenEconometrics/Chapter2CondExp.lean` and `HansenEconometrics/Chapter2Variance.lean`:
 - simple law of iterated expectations
 - tower property for nested sigma-algebras
 - tower property in the `X₁, X₂` then `X₁` form
@@ -88,9 +88,12 @@ Completed in `HansenEconometrics/Chapter2CondExp.lean`:
 - CEF error has conditional mean zero
 - CEF error has unconditional mean zero
 - orthogonality of CEF error to measurable functions
+- integral conditional variance = integral squared CEF error
+- law of total variance
+- rearranged variance decomposition
+- variance of the conditional expectation bounded by total variance
 
 Planned next within Chapter 2:
-- variance decomposition / total variance
 - conditional expectation as best predictor
 - linear projection / best linear predictor
 - later chapter 2 identification / existence statements where worthwhile
