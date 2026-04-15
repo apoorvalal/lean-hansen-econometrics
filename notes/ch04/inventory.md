@@ -24,8 +24,11 @@ These are deterministic algebraic statements underlying the expectation proof of
 7. show conditional unbiasedness, `E[β̂ | X] = β`, from equation (4.6)
 8. use the law of iterated expectations for unconditional unbiasedness when integrability holds
 
-Status: pending. This should reuse the Chapter 2 conditional-expectation package, but it needs a
-clean representation of conditioning on the random design matrix.
+Status: landed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`.
+The conditional-unbiasedness bridge now exists in three forms: coordinatewise, uniformly over
+coordinates, and as a fully vector-valued statement. Under coordinatewise conditional mean-zero
+assumptions on the error vector, Lean now proves both `E[β̂ | X] = β` and `E[β̂] = β` in the finite-
+dimensional function-space representation used for coefficient vectors.
 
 ### Layer 3: conditional variance
 9. define vector covariance and conditional covariance matrices
@@ -51,8 +54,6 @@ The positive-semidefinite Gauss-Markov lower-bound proof and the stochastic cova
 bridge are still pending.
 
 ## Immediate target
-Continue Chapter 4 with the conditional-unbiasedness bridge: encode the right conditional-mean-zero
-assumption for the finite-sample error vector and prove that equation (4.6) implies Theorem 4.1 in
-Lean-native conditional-expectation notation, then connect the Chapter 4.2 covariance matrix algebra
-to a matrix-valued conditional covariance statement. After that, return to the positive-semidefinite
-Gauss-Markov lower-bound proof and the generalized covariance lower bound.
+Connect the Chapter 4.2 covariance matrix algebra to a matrix-valued conditional covariance statement.
+After that, return to the positive-semidefinite Gauss-Markov lower-bound proof and the generalized
+covariance lower bound.
