@@ -284,6 +284,260 @@ theorem ols_integral_eq_beta
         (f := f) (hf := fun j => Integrable.eval hf_int j) j
     _ = β j := ols_integral_coordinate_eq_beta (μ := μ) (m := m) X β e j hm he_int he_zero
 
+/-- Coordinatewise conditional covariance bridge for OLS. -/
+theorem ols_condExp_centered_mul_eq_variance_entry
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (j l : k)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, μ[fun ω => e ω i * e ω r | m] =ᵐ[μ] fun _ => D i r) :
+    μ[fun ω => (olsBeta X (X *ᵥ β + e ω) j - β j) *
+        (olsBeta X (X *ᵥ β + e ω) l - β l) | m] =ᵐ[μ]
+      fun _ => olsConditionalVarianceMatrix X D j l := by
+  let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+  have hj : (fun ω => olsBeta X (X *ᵥ β + e ω) j - β j) = fun ω => ∑ i, w j i * e ω i := by
+    funext ω
+    rw [olsBeta_linear_decomposition]
+    simp [w, Matrix.mulVec, dotProduct]
+  have hl : (fun ω => olsBeta X (X *ᵥ β + e ω) l - β l) = fun ω => ∑ r, w l r * e ω r := by
+    funext ω
+    rw [olsBeta_linear_decomposition]
+    simp [w, Matrix.mulVec, dotProduct]
+  have hprod :
+      (fun ω => (olsBeta X (X *ᵥ β + e ω) j - β j) *
+        (olsBeta X (X *ᵥ β + e ω) l - β l)) =
+      fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+    funext ω
+    rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by exact congrFun hj ω]
+    rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by exact congrFun hl ω]
+    calc
+      (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
+          = ∑ r, (∑ i, w j i * e ω i) * (w l r * e ω r) := by rw [Finset.mul_sum]
+      _ = ∑ r, ∑ i, (w j i * e ω i) * (w l r * e ω r) := by simp [Finset.sum_mul]
+      _ = ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+            rw [Finset.sum_comm]
+            simp [mul_assoc, mul_left_comm, mul_comm]
+  rw [hprod]
+  have hint : Integrable (fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r)) μ := by
+    simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+      (f := fun i ω => ∑ r, (w j i * w l r) * (e ω i * e ω r))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+          (fun r _ => (hee_int i r).const_mul (w j i * w l r)))
+  have hsum1 :
+      μ[(fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r)) | m] =ᵐ[μ]
+        ∑ i, μ[(fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r)) | m] := by
+    have hrepr :
+        (fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r)) =
+          ∑ i, fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+      funext ω
+      simp
+    rw [hrepr]
+    simpa using MeasureTheory.condExp_finset_sum (μ := μ) (m := m)
+      (s := Finset.univ)
+      (f := fun i ω => ∑ r, (w j i * w l r) * (e ω i * e ω r))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+          (fun r _ => (hee_int i r).const_mul (w j i * w l r)))
+  have hsum2 :
+      (∑ i, μ[(fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r)) | m]) =ᵐ[μ]
+        ∑ i, ∑ r, (fun ω => (w j i * w l r) * D i r) := by
+    have hinner : ∀ i,
+        μ[(fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r)) | m] =ᵐ[μ]
+          ∑ r, μ[(fun ω => (w j i * w l r) * (e ω i * e ω r)) | m] := by
+      intro i
+      have hrepr :
+          (fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r)) =
+            ∑ r, fun ω => (w j i * w l r) * (e ω i * e ω r) := by
+        funext ω
+        simp
+      rw [hrepr]
+      simpa using MeasureTheory.condExp_finset_sum (μ := μ) (m := m)
+        (s := Finset.univ)
+        (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+        (fun r _ => (hee_int i r).const_mul (w j i * w l r))
+    have hcoord : ∀ i r,
+        μ[(fun ω => (w j i * w l r) * (e ω i * e ω r)) | m] =ᵐ[μ]
+          (fun ω => (w j i * w l r) * D i r) := by
+      intro i r
+      refine (MeasureTheory.condExp_smul (μ := μ) (m := m) (w j i * w l r)
+        (fun ω => e ω i * e ω r)).trans ?_
+      filter_upwards [hD i r] with ω hω
+      simp [Pi.smul_apply, smul_eq_mul, hω]
+    have hall1 : ∀ᵐ ω ∂μ, ∀ i, μ[(fun ω => ∑ r, (w j i * w l r) * (e ω i * e ω r)) | m] ω =
+        ∑ r, μ[(fun ω => (w j i * w l r) * (e ω i * e ω r)) | m] ω := by
+      exact ae_all_iff.2 fun i => by simpa [Filter.EventuallyEq] using hinner i
+    have hall2 : ∀ᵐ ω ∂μ, ∀ i, ∀ r,
+        μ[(fun ω => (w j i * w l r) * (e ω i * e ω r)) | m] ω = (w j i * w l r) * D i r := by
+      exact ae_all_iff.2 fun i => ae_all_iff.2 fun r => hcoord i r
+    filter_upwards [hall1, hall2] with ω h1 h2
+    simp [h1, h2]
+  have hvar_repr : olsConditionalVarianceMatrix X D = w * D * wᵀ := by
+    unfold olsConditionalVarianceMatrix w
+    rw [Matrix.transpose_mul, Matrix.transpose_transpose, inv_gram_transpose]
+    simp [Matrix.mul_assoc]
+  have hentry : olsConditionalVarianceMatrix X D j l = ∑ i, ∑ r, (w j i * w l r) * D i r := by
+    rw [hvar_repr, Matrix.mul_apply]
+    calc
+      ∑ t, (w * D) j t * wᵀ t l = ∑ t, (w * D) j t * w l t := by
+        simp [Matrix.transpose_apply]
+      _ = ∑ t, (∑ r, w j r * D r t) * w l t := by
+        simp [Matrix.mul_apply]
+      _ = ∑ t, ∑ r, w j r * D r t * w l t := by
+        simp [Finset.sum_mul, mul_assoc]
+      _ = ∑ r, ∑ t, w j r * D r t * w l t := by
+        rw [Finset.sum_comm]
+      _ = ∑ i, ∑ r, (w j i * w l r) * D i r := by
+        simp [mul_assoc, mul_comm]
+  exact (hsum1.trans hsum2).trans <| by
+    filter_upwards [] with ω
+    simp [hentry]
+
+/-- Matrix-valued conditional covariance bridge for OLS. -/
+theorem ols_condExp_centered_mul_eq_variance_matrix
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, μ[fun ω => e ω i * e ω r | m] =ᵐ[μ] fun _ => D i r) :
+    μ[(fun ω => fun j l =>
+      (olsBeta X (X *ᵥ β + e ω) j - β j) *
+        (olsBeta X (X *ᵥ β + e ω) l - β l)) | m] =ᵐ[μ]
+      fun _ => olsConditionalVarianceMatrix X D := by
+  let f : Ω → k → k → ℝ := fun ω j l =>
+    (olsBeta X (X *ᵥ β + e ω) j - β j) *
+      (olsBeta X (X *ᵥ β + e ω) l - β l)
+  have hf_eval_int : ∀ j l, Integrable (fun ω => f ω j l) μ := by
+    intro j l
+    let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+    have hrepr :
+        (fun ω => f ω j l) =
+          fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+      funext ω
+      dsimp [f]
+      rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      calc
+        (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
+            = ∑ r, (∑ i, w j i * e ω i) * (w l r * e ω r) := by rw [Finset.mul_sum]
+        _ = ∑ r, ∑ i, (w j i * e ω i) * (w l r * e ω r) := by simp [Finset.sum_mul]
+        _ = ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+              rw [Finset.sum_comm]
+              simp [mul_assoc, mul_left_comm, mul_comm]
+    rw [hrepr]
+    simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+      (f := fun i ω => ∑ r, (w j i * w l r) * (e ω i * e ω r))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+          (fun r _ => (hee_int i r).const_mul (w j i * w l r)))
+  have hf_int : Integrable f μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    refine Integrable.of_eval ?_
+    intro l
+    exact hf_eval_int j l
+  rw [Filter.EventuallyEq]
+  change ∀ᵐ ω ∂μ, μ[f | m] ω = olsConditionalVarianceMatrix X D
+  have hcoord : ∀ j l : k, ∀ᵐ ω ∂μ, μ[f | m] ω j l = olsConditionalVarianceMatrix X D j l := by
+    intro j l
+    have happly_j : (fun ω => μ[f | m] ω j) =ᵐ[μ] μ[(fun ω => f ω j) | m] := by
+      simpa [f] using
+        (ContinuousLinearMap.proj (R := ℝ) j).comp_condExp_comm (μ := μ) (m := m)
+          (f := f) hf_int
+    have happly_l : (fun ω => μ[(fun ω => f ω j) | m] ω l) =ᵐ[μ] μ[(fun ω => f ω j l) | m] := by
+      simpa [f] using
+        (ContinuousLinearMap.proj (R := ℝ) l).comp_condExp_comm (μ := μ) (m := m)
+          (f := fun ω => f ω j) (Integrable.eval hf_int j)
+    have happly_jl : (fun ω => μ[f | m] ω j l) =ᵐ[μ] fun ω => μ[(fun ω => f ω j) | m] ω l := by
+      filter_upwards [happly_j] with ω hω
+      exact congrFun hω l
+    exact happly_jl.trans <| happly_l.trans <|
+      ols_condExp_centered_mul_eq_variance_entry
+        (μ := μ) (m := m) X β e D j l hm hee_int hD
+  have hall : ∀ᵐ ω ∂μ, ∀ j l : k, μ[f | m] ω j l = olsConditionalVarianceMatrix X D j l := by
+    exact ae_all_iff.2 fun j => ae_all_iff.2 fun l => hcoord j l
+  exact hall.mono fun ω hω => by
+    funext j l
+    exact hω j l
+
+/-- Matrix-valued unconditional covariance bridge for OLS. -/
+theorem ols_integral_centered_mul_eq_variance_matrix
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, μ[fun ω => e ω i * e ω r | m] =ᵐ[μ] fun _ => D i r) :
+    ∫ ω, (fun j l =>
+      (olsBeta X (X *ᵥ β + e ω) j - β j) *
+        (olsBeta X (X *ᵥ β + e ω) l - β l)) ∂μ =
+      olsConditionalVarianceMatrix X D := by
+  let f : Ω → k → k → ℝ := fun ω j l =>
+    (olsBeta X (X *ᵥ β + e ω) j - β j) *
+      (olsBeta X (X *ᵥ β + e ω) l - β l)
+  have hf_eval_int : ∀ j l, Integrable (fun ω => f ω j l) μ := by
+    intro j l
+    let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+    have hrepr :
+        (fun ω => f ω j l) =
+          fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+      funext ω
+      dsimp [f]
+      rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      calc
+        (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
+            = ∑ r, (∑ i, w j i * e ω i) * (w l r * e ω r) := by rw [Finset.mul_sum]
+        _ = ∑ r, ∑ i, (w j i * e ω i) * (w l r * e ω r) := by simp [Finset.sum_mul]
+        _ = ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+              rw [Finset.sum_comm]
+              simp [mul_assoc, mul_left_comm, mul_comm]
+    rw [hrepr]
+    simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+      (f := fun i ω => ∑ r, (w j i * w l r) * (e ω i * e ω r))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+          (fun r _ => (hee_int i r).const_mul (w j i * w l r)))
+  have hf_int : Integrable f μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    refine Integrable.of_eval ?_
+    intro l
+    exact hf_eval_int j l
+  funext j l
+  have houter : (∫ ω, f ω ∂μ) j = ∫ ω, f ω j ∂μ := by
+    simpa using MeasureTheory.eval_integral (μ := μ)
+      (f := f) (hf := fun j => Integrable.eval hf_int j) j
+  have hinner : (∫ ω, f ω j ∂μ) l = ∫ ω, f ω j l ∂μ := by
+    simpa using MeasureTheory.eval_integral (μ := μ)
+      (f := fun ω => f ω j) (hf := fun l => hf_eval_int j l) l
+  calc
+    (∫ ω, f ω ∂μ) j l = (∫ ω, f ω j ∂μ) l := by rw [houter]
+    _ = ∫ ω, f ω j l ∂μ := by rw [hinner]
+    _ = olsConditionalVarianceMatrix X D j l := by
+      calc
+        ∫ ω, f ω j l ∂μ = ∫ ω, μ[(fun ω => f ω j l) | m] ω ∂μ := by
+          symm
+          exact MeasureTheory.integral_condExp (μ := μ) (m := m) (m₀ := m₀)
+            (f := fun ω => f ω j l) hm
+        _ = ∫ ω, olsConditionalVarianceMatrix X D j l ∂μ := by
+          refine MeasureTheory.integral_congr_ae ?_
+          simpa [f] using
+            ols_condExp_centered_mul_eq_variance_entry
+              (μ := μ) (m := m) X β e D j l hm hee_int hD
+        _ = olsConditionalVarianceMatrix X D j l := by simp
+
 end ConditionalUnbiasedness
 
 /-- Generalized least squares estimator with weight matrix `Ω⁻¹`. -/

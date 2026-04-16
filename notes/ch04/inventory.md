@@ -36,9 +36,15 @@ dimensional function-space representation used for coefficient vectors.
 11. prove Hansen equation (4.10), `var[β̂ | X] = (Xᵀ X)⁻¹ Xᵀ D X (Xᵀ X)⁻¹`
 12. specialize to homoskedastic errors, `D = σ² I`, giving `σ² (Xᵀ X)⁻¹`
 
-Status: deterministic matrix core landed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
-the `Aᵀ D A` expression and homoskedastic simplification are proved. The stochastic
-conditional-covariance bridge is still pending.
+Status: landed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`.
+The deterministic matrix core is proved, together with the stochastic bridge in both
+coordinatewise and matrix-valued form. Chapter 4 now contains:
+- `ols_condExp_centered_mul_eq_variance_entry`
+- `ols_condExp_centered_mul_eq_variance_matrix`
+- `ols_integral_centered_mul_eq_variance_matrix`
+This packages Hansen equation (4.10) as a conditional covariance statement for the finite-
+dimensional OLS coefficient object used in the formalization, and also gives the
+unconditional matrix identity by integration.
 
 ### Layer 4: efficiency and covariance estimators
 13. Gauss-Markov lower bound among linear unbiased estimators
@@ -50,10 +56,12 @@ conditional-covariance bridge is still pending.
 Status: partially landed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`.
 The deterministic GLS coefficient algebra now exists: definition of `glsBeta`, the decomposition
 `β̂_GLS = β + (Xᵀ Ω⁻¹ X)⁻¹ Xᵀ Ω⁻¹ e`, and the weighted-orthogonality specialization.
-The positive-semidefinite Gauss-Markov lower-bound proof and the stochastic covariance / expectation
-bridge are still pending.
+The positive-semidefinite Gauss-Markov lower-bound proof has also landed.
+Still pending are the generalized covariance lower bound and the covariance-estimator layer
+(residual variance, homoskedastic/heteroskedastic covariance estimators, clustered covariance).
 
 ## Immediate target
-Connect the Chapter 4.2 covariance matrix algebra to a matrix-valued conditional covariance statement.
-After that, return to the positive-semidefinite Gauss-Markov lower-bound proof and the generalized
-covariance lower bound.
+Resume from Layer 4. The main remaining Chapter 4 work is to extend the deterministic GLS /
+Gauss-Markov material into the generalized covariance lower bound, then formalize the estimator
+layer: residual variance, homoskedastic and heteroskedastic covariance estimators, and clustered
+covariance.
