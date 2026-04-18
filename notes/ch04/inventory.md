@@ -56,16 +56,28 @@ unconditional matrix identity by integration.
 Status: partially landed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`.
 The deterministic GLS coefficient algebra now exists: definition of `glsBeta`, the decomposition
 `β̂_GLS = β + (Xᵀ Ω⁻¹ X)⁻¹ Xᵀ Ω⁻¹ e`, and the weighted-orthogonality specialization.
-The positive-semidefinite Gauss-Markov lower-bound proof has also landed. For covariance estimators,
+The positive-semidefinite Gauss-Markov lower-bound proof has also landed, and the generalized
+weighted lower bound is now formalized as
+`generalizedGaussMarkov_variance_gap_posSemidef`.
+For covariance estimators,
 the chapter now includes the core heteroskedastic-robust objects:
 - `olsIdealVarianceEstimator`
 - `olsHuberWhiteVarianceEstimator` (HC0 / White)
 - `olsHuberWhiteHC1VarianceEstimator`
 plus the linear-model rewrite `olsHuberWhiteVarianceEstimator_linear_model`.
-Still pending are the generalized covariance lower bound, residual variance estimators, and the more
-refined covariance-estimator layer (HC2/HC3 and clustered covariance).
+Still pending are residual variance estimators and the more refined covariance-estimator layer
+(HC2/HC3 and clustered covariance).
+
+## Deferred / won't do for now
+For the current pass we are intentionally not pushing Chapter 4 to applied-completeness.
+The following are explicitly deferred unless they become prerequisite later:
+- residual variance estimators
+- HC2 / HC3
+- clustered covariance estimators
+
+Reason: these are lower-priority bookkeeping compared with moving on to the more theoretically central
+finite-sample normal-model results in Chapter 5.
 
 ## Immediate target
-Resume from Layer 4. The main remaining Chapter 4 work is to extend the deterministic GLS /
-Gauss-Markov material into the generalized covariance lower bound, then continue the estimator
-layer beyond HC0/HC1: residual variance, HC2/HC3, and clustered covariance.
+Move on to Chapter 5 (Normal Regression): conditional and unconditional distribution theory for OLS,
+residuals, variance estimators, t statistics, confidence intervals, and classical tests under normality.

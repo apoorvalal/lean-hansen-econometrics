@@ -603,4 +603,66 @@ theorem glsBeta_eq_of_weighted_regressors_orthogonal_error
   rw [glsBeta_linear_decomposition, he]
   simp
 
+/-- Deterministic core of the generalized Gauss-Markov theorem: the weighted variance gap is
+positive semidefinite. -/
+theorem generalizedGaussMarkov_variance_gap_posSemidef
+    (X A : Matrix n k ℝ) (Ω : Matrix n n ℝ)
+    [DecidableEq n] [Invertible Ω] [Invertible (Xᵀ * ⅟Ω * X)]
+    (hΩ : Ω.PosSemidef)
+    (hAX : Aᵀ * X = (1 : Matrix k k ℝ)) :
+    (Aᵀ * Ω * A - ⅟ (Xᵀ * ⅟Ω * X)).PosSemidef := by
+  let M : Matrix k k ℝ := ⅟ (Xᵀ * ⅟Ω * X)
+  let C : Matrix k n ℝ := Aᵀ * Ω - M * Xᵀ
+  have hXA : Xᵀ * A = (1 : Matrix k k ℝ) := by
+    simpa using congrArg Matrix.transpose hAX
+  have hΩsym : Ωᵀ = Ω := by
+    simpa [Matrix.IsHermitian] using hΩ.1
+  have hsymW : (Xᵀ * ⅟Ω * X)ᵀ = Xᵀ * ⅟Ω * X := by
+    rw [Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.transpose_invOf]
+    simpa [hΩsym, Matrix.mul_assoc]
+  have hMtranspose : Mᵀ = M := by
+    dsimp [M]
+    rw [Matrix.transpose_invOf]
+    simpa [hsymW] using congrArg Inv.inv hsymW
+  have hCtranspose : Cᵀ = Ω * A - X * M := by
+    dsimp [C]
+    rw [Matrix.transpose_sub, Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose]
+    simp [hMtranspose, hΩsym, Matrix.mul_assoc]
+  have hgap : C * ⅟Ω * Cᵀ = Aᵀ * Ω * A - M := by
+    calc
+      C * ⅟Ω * Cᵀ = ((Aᵀ * Ω - M * Xᵀ) * ⅟Ω) * (Ω * A - X * M) := by
+        rw [hCtranspose, Matrix.mul_assoc]
+      _ = (Aᵀ * Ω * ⅟Ω - M * Xᵀ * ⅟Ω) * (Ω * A - X * M) := by
+        rw [Matrix.sub_mul]
+      _ = (Aᵀ * Ω * ⅟Ω - M * Xᵀ * ⅟Ω) * (Ω * A)
+            - (Aᵀ * Ω * ⅟Ω - M * Xᵀ * ⅟Ω) * (X * M) := by
+        rw [Matrix.mul_sub]
+      _ = (Aᵀ * Ω * ⅟Ω * (Ω * A) - M * Xᵀ * ⅟Ω * (Ω * A))
+            - (Aᵀ * Ω * ⅟Ω * (X * M) - M * Xᵀ * ⅟Ω * (X * M)) := by
+        rw [Matrix.sub_mul, Matrix.sub_mul]
+      _ = (Aᵀ * Ω * A - M) - (Aᵀ * (X * M) - M * (Xᵀ * (⅟Ω * (X * M)))) := by
+        simp [M, hXA, Matrix.mul_assoc]
+      _ = (Aᵀ * Ω * A - M) - (M - M) := by
+        have hAXM : Aᵀ * (X * M) = M := by
+          calc
+            Aᵀ * (X * M) = (Aᵀ * X) * M := by rw [Matrix.mul_assoc]
+            _ = M := by simp [hAX]
+        have hMXM : M * (Xᵀ * (⅟Ω * (X * M))) = M := by
+          have hinner : Xᵀ * (⅟Ω * (X * M)) = (1 : Matrix k k ℝ) := by
+            calc
+              Xᵀ * (⅟Ω * (X * M)) = (Xᵀ * ⅟Ω * X) * M := by
+                rw [Matrix.mul_assoc, Matrix.mul_assoc]
+              _ = 1 := by
+                simpa [M] using (mul_invOf_self (Xᵀ * ⅟Ω * X))
+          rw [hinner]
+          simp
+        rw [hAXM, hMXM]
+      _ = Aᵀ * Ω * A - M := by abel_nf
+  have hΩinv : (⅟Ω).PosSemidef := by
+    simpa using (Matrix.PosSemidef.inv hΩ)
+  have hpsd : (C * ⅟Ω * Cᵀ).PosSemidef := by
+    simpa [Matrix.conjTranspose, Matrix.transpose_transpose, Matrix.mul_assoc] using
+      (Matrix.PosSemidef.mul_mul_conjTranspose_same hΩinv C)
+  exact hgap ▸ hpsd
+
 end HansenEconometrics

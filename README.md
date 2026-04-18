@@ -51,8 +51,8 @@ Legend:
 | 01 | Introduction | not started | text extracted and inventoried; mostly exposition |
 | 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, and linear projection algebra completed |
 | 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator/FWL coefficient and residual core landed |
-| 04 | Least Squares Regression | partial | deterministic regression and variance-matrix algebra landed |
-| 05 | Normal Regression | inventoried | distributional finite-sample results |
+| 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
+| 05 | Normal Regression | inventoried | next target: finite-sample normal-model distributions and classical inference |
 | 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
 | 07 | Asymptotic Theory for Least Squares | inventoried | consistency / asymptotic normality targets |
 | 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
@@ -140,13 +140,19 @@ Completed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
 - the orthogonal-error specialization `Xᵀ e = 0 -> β̂ = β`
 - fitted values as signal plus projected error
 - residuals as the annihilator applied to the model error
-- Theorem 4.2 matrix core: `Aᵀ D A = (Xᵀ X)⁻¹ Xᵀ D X (Xᵀ X)⁻¹`
-- homoskedastic simplification `D = σ² I -> σ² (Xᵀ X)⁻¹`
+- conditional and unconditional unbiasedness bridges
+- conditional covariance identity and its homoskedastic specialization
+- classical Gauss-Markov lower bound
+- GLS algebra and the generalized Gauss-Markov weighted lower bound
+- HC0 / White and HC1 covariance estimators
 
-Planned next within Chapter 4:
-- conditional-unbiasedness bridge for Theorem 4.1
-- stochastic conditional covariance bridge for Theorem 4.2
-- Gauss-Markov algebra once covariance matrices are in place
+Explicitly deferred for now within Chapter 4:
+- residual variance estimators
+- HC2 / HC3
+- clustered covariance estimators
+
+Next target after Chapter 4:
+- Chapter 5 normal-model finite-sample distribution theory and classical inference results
 
 ## Philosophy
 
