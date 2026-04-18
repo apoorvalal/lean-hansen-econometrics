@@ -9,3 +9,4 @@ import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter3FWL
 
 import HansenEconometrics.Chapter4LeastSquaresRegression
+import HansenEconometrics.Chapter5NormalRegression

@@ -54,10 +54,18 @@
 - Exercise 5.12 In the normal regression model let s2 be the unbiased estimator of the error variance σ2
 
 ## First-pass formalization order
-1. Review the extracted candidates against the PDF text.
-2. Separate deterministic algebra from probability, asymptotic, and distributional statements.
-3. Formalize the deterministic algebra first when it can reuse earlier chapter infrastructure.
-4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
+1. Define the normal regression model and the variance-estimator objects.
+2. Prove the conditional distribution of the OLS coefficient vector.
+3. Prove the conditional distribution of the OLS residual vector.
+4. Prove the chi-square law for the residual variance estimator.
+5. Prove the key independence statements (`β̂` from residual quadratic forms / `s²`).
+6. Prove the exact t-statistic distribution.
+7. Package confidence intervals and classical tests as corollaries.
+
+Deferred for now unless needed:
+- likelihood / MLE derivations
+- Kinal (1980) style unconditional normality refinements
+- likelihood-ratio / F-test equivalence beyond the basic t-statistic route
 
 ## Status
-- not started
+- in progress
