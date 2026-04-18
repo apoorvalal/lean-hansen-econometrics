@@ -38,6 +38,27 @@ theorem olsResidualVarianceEstimator_linear_model
       congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
   rw [Matrix.mulVec_add, hMXβ, zero_add]
 
+/-- The residual sum of squares in the linear model is the annihilator quadratic form `e'Me`. -/
+theorem residual_quadratic_form_of_linear_model
+    (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
+      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
+  have hvec : Matrix.vecMul e (annihilatorMatrix X) = annihilatorMatrix X *ᵥ e := by
+    simpa [annihilatorMatrix_transpose] using
+      (Matrix.vecMul_transpose (annihilatorMatrix X) e)
+  have h := Matrix.dotProduct_mulVec e (annihilatorMatrix X) (annihilatorMatrix X *ᵥ e)
+  rw [hvec, Matrix.mulVec_mulVec, annihilatorMatrix_idempotent] at h
+  exact h.symm
+
+/-- Under the linear model, the residual variance estimator is the annihilator quadratic form divided
+by `n-k`. This is the deterministic identity underlying the chi-square step. -/
+theorem olsResidualVarianceEstimator_linear_model_quadratic_form
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
+          (Fintype.card n - Fintype.card k : ℝ) := by
+  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]
+
 /-- If the error vector has a Gaussian law, then the OLS coefficient vector is Gaussian as an affine
 image of the error vector. -/
 theorem olsBeta_hasGaussianLaw_of_error

@@ -69,3 +69,8 @@ Deferred for now unless needed:
 
 ## Status
 - in progress
+- landed a deterministic step-4 scaffold in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `residual_quadratic_form_of_linear_model`
+  - `olsResidualVarianceEstimator_linear_model_quadratic_form`
+- these rewrite the residual sum of squares as the annihilator quadratic form `e'Me` and then rewrite `s²` accordingly, which is the clean algebraic setup for the later chi-square argument.
+- next target: connect this quadratic form to whatever Mathlib support exists for Gaussian quadratic forms / orthogonal projections; if that support is too thin, the fallback is to formalize the finite-dimensional orthogonal decomposition first and push the distribution theorem through independent standard normals.
