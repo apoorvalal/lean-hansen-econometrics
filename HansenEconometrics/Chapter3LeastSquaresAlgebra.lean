@@ -1,5 +1,6 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter2CondExp
 
 open scoped Matrix
@@ -89,11 +90,11 @@ theorem residual_sum_zero_of_one_mem_colspan
       rw [dotProduct_one]
     _ = residual X y ⬝ᵥ (X *ᵥ c) := by
       rw [hc]
-    _ = (residual X y ᵥ* X) ⬝ᵥ c := by
+    _ = (Matrix.vecMul (residual X y) X) ⬝ᵥ c := by
       rw [Matrix.dotProduct_mulVec]
     _ = 0 := by
-      have h := normal_equations X y
-      rw [Matrix.mulVec_transpose] at h
+      have h : Matrix.vecMul (residual X y) X = 0 := by
+        simpa [vecMul_eq_mulVec_transpose] using (normal_equations X y)
       rw [h]
       simp
 

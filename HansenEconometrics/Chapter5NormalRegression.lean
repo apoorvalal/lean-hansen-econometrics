@@ -1,5 +1,6 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter4LeastSquaresRegression
 
@@ -43,12 +44,12 @@ theorem residual_quadratic_form_of_linear_model
     (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
       = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
-  have hvec : Matrix.vecMul e (annihilatorMatrix X) = annihilatorMatrix X *ᵥ e := by
-    simpa [annihilatorMatrix_transpose] using
-      (Matrix.vecMul_transpose (annihilatorMatrix X) e)
-  have h := Matrix.dotProduct_mulVec e (annihilatorMatrix X) (annihilatorMatrix X *ᵥ e)
-  rw [hvec, Matrix.mulVec_mulVec, annihilatorMatrix_idempotent] at h
-  exact h.symm
+  symm
+  exact quadratic_form_eq_dotProduct_of_symm_idempotent
+    (annihilatorMatrix X)
+    (annihilatorMatrix_transpose X)
+    (annihilatorMatrix_idempotent X)
+    e
 
 /-- Under the linear model, the residual variance estimator is the annihilator quadratic form divided
 by `n-k`. This is the deterministic identity underlying the chi-square step. -/

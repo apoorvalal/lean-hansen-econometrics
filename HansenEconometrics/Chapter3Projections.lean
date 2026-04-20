@@ -1,5 +1,6 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 
 open scoped Matrix
@@ -186,7 +187,7 @@ theorem fitted_dot_residual
     fitted X y ⬝ᵥ residual X y = 0 := by
   rw [dotProduct_comm]
   unfold fitted
-  rw [Matrix.dotProduct_mulVec, ← Matrix.mulVec_transpose]
+  rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
   rw [normal_equations]
   simp
 
