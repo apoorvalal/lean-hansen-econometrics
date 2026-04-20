@@ -50,7 +50,7 @@ Legend:
 |---:|---|---|---|
 | 01 | Introduction | not started | text extracted and inventoried; mostly exposition |
 | 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, and linear projection algebra completed |
-| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator/FWL coefficient and residual core landed |
+| 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator (incl. rank) / FWL coefficient and residual core landed |
 | 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
 | 05 | Normal Regression | partial | normal-model scaffolding, Gaussian laws for `β̂` and residuals, and residual-quadratic-form setup for `s²` landed |
 | 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
@@ -90,16 +90,17 @@ Completed in `HansenEconometrics/Chapter2CondExp.lean`,
 - CEF error has unconditional mean zero
 - orthogonality of CEF error to measurable functions
 - integral conditional variance = integral squared CEF error
+- Theorem 2.5: CEF error has finite second moment when `Y ∈ L²`
 - law of total variance
 - rearranged variance decomposition
 - variance of the conditional expectation bounded by total variance
+- Theorem 2.6: residual-variance monotonicity for nested conditioning sigma-algebras
 - Definition 2.5 / Theorem 2.9 linear projection coefficient algebra
 - population normal equations and orthogonality for the best linear projection
 - uniqueness from the population normal equations
 - quadratic projection criterion simplification at the projection coefficient
 
 Planned next within Chapter 2:
-- full Theorem 2.6 residual-variance monotonicity for nested conditioning sets
 - conditional expectation as best predictor
 - full best-linear-predictor minimization statement
 - later chapter 2 identification / existence statements where worthwhile
@@ -115,6 +116,8 @@ Completed in `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`,
 - projection / hat matrix definition and `P X = X`
 - Theorem 3.3.1-3: `P` symmetric/idempotent and `tr(P) = k`
 - annihilator matrix definition, `M X = 0`, `M Y = ê`, `M` symmetric/idempotent, and `tr(M) = n-k`
+- general lemma: rank of a real symmetric idempotent matrix equals its trace
+- Theorem 3.3 rank parts: `rank(P) = k` and `rank(M) = n - k`
 - range projection facts and `M P = P M = 0`
 - fitted/residual orthogonality and the dot-product Pythagorean decomposition
 - FWL: partitioned normal equations, residualized regressors `M₁ X₂`, the sequential residual-maker
@@ -122,7 +125,6 @@ Completed in `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`,
 
 Planned next within Chapter 3:
 - Theorem 3.4 partitioned coefficient formulae
-- rank/eigenvalue parts of Theorem 3.3
 - centered analysis-of-variance / `R²` identities
 
 See also:
