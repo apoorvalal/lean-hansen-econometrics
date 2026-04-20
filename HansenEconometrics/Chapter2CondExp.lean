@@ -132,4 +132,115 @@ theorem integral_mul_cefError_zero
     simp [hω])]
   simp
 
+/-- Conditional expectation in `L²` is the orthogonal projection onto the space of
+`m`-measurable square-integrable functions, hence it minimizes `L²` distance. -/
+theorem condExpL2_minimal
+    {Y g : Ω → ℝ}
+    (hm : m ≤ m₀)
+    [IsFiniteMeasure μ]
+    (hY : MemLp Y 2 μ)
+    (hg : MemLp g 2 μ)
+    (hg_m : AEStronglyMeasurable[m] g μ) :
+    ‖hY.toLp Y - (MeasureTheory.condExpL2 ℝ ℝ hm (hY.toLp Y) : Ω →₂[μ] ℝ)‖ ≤
+      ‖hY.toLp Y - hg.toLp g‖ := by
+  haveI : Fact (m ≤ m₀) := ⟨hm⟩
+  haveI : Fact (1 ≤ (2 : ℝ≥0∞)) := ⟨by norm_num⟩
+  let g_m_lp : MeasureTheory.lpMeas ℝ ℝ m 2 μ :=
+    ⟨hg.toLp g,
+      MeasureTheory.mem_lpMeas_iff_aestronglyMeasurable.mpr <|
+        AEStronglyMeasurable.congr hg_m (MemLp.coeFn_toLp hg).symm⟩
+  calc
+    ‖hY.toLp Y - (MeasureTheory.condExpL2 ℝ ℝ hm (hY.toLp Y) : Ω →₂[μ] ℝ)‖ =
+        ‖hY.toLp Y - (MeasureTheory.lpMeas ℝ ℝ m 2 μ).starProjection (hY.toLp Y)‖ := by
+          rfl
+    _ = ⨅ x : MeasureTheory.lpMeas ℝ ℝ m 2 μ, ‖hY.toLp Y - x‖ := by
+          simpa [MeasureTheory.condExpL2]
+            using
+              (Submodule.starProjection_minimal
+                (U := MeasureTheory.lpMeas ℝ ℝ m 2 μ) (y := hY.toLp Y))
+    _ ≤ ‖hY.toLp Y - g_m_lp‖ := by
+          have h_bdd :
+              BddBelow (Set.range
+                (fun x : MeasureTheory.lpMeas ℝ ℝ m 2 μ => ‖hY.toLp Y - x‖)) := by
+            refine ⟨0, ?_⟩
+            rintro y ⟨x, rfl⟩
+            exact norm_nonneg _
+          simpa using
+            (ciInf_le h_bdd g_m_lp)
+    _ = ‖hY.toLp Y - hg.toLp g‖ := by
+          rfl
+
+/-- Hansen Theorem 2.7 in sigma-algebra form: the conditional mean minimizes mean squared
+prediction error among `m`-measurable square-integrable predictors. -/
+theorem integral_sq_sub_condExp_le_integral_sq_sub
+    {Y g : Ω → ℝ}
+    (hm : m ≤ m₀)
+    [SigmaFinite (μ.trim hm)]
+    [IsFiniteMeasure μ]
+    (hY : MemLp Y 2 μ)
+    (hg : MemLp g 2 μ)
+    (hg_m : AEStronglyMeasurable[m] g μ) :
+    ∫ ω, (Y ω - (μ[Y | m]) ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by
+  let d : Ω → ℝ := fun ω => (μ[Y | m]) ω - g ω
+  have hY_int : Integrable Y μ :=
+    memLp_one_iff_integrable.1 <| hY.mono_exponent one_le_two
+  have hd_m : AEStronglyMeasurable[m] d μ := by
+    exact stronglyMeasurable_condExp.aestronglyMeasurable.sub hg_m
+  have he2 : Integrable (fun ω => (cefError (μ := μ) Y m ω) ^ 2) μ := by
+    simpa [cefError] using (hY.sub hY.condExp).integrable_sq
+  have hd2 : Integrable (fun ω => (d ω) ^ 2) μ := by
+    exact (hY.condExp.sub hg).integrable_sq
+  have hde : Integrable (fun ω => d ω * cefError (μ := μ) Y m ω) μ := by
+    simpa [cefError, d] using
+      memLp_one_iff_integrable.1 <| (hY.sub hY.condExp).mul (hY.condExp.sub hg)
+  have horth :
+      ∫ ω, d ω * cefError (μ := μ) Y m ω ∂μ = 0 :=
+    integral_mul_cefError_zero (m := m) (m₀ := m₀) (μ := μ) (g := d) (Y := Y) hm hd_m hde hY_int
+  have h_expand :
+      (fun ω => (Y ω - g ω) ^ 2) =ᵐ[μ]
+        fun ω =>
+          (cefError (μ := μ) Y m ω) ^ 2 + (d ω) ^ 2 +
+            2 * (d ω * cefError (μ := μ) Y m ω) := by
+    filter_upwards [] with ω
+    dsimp [cefError, d]
+    ring
+  have hnonneg : 0 ≤ ∫ ω, (d ω) ^ 2 ∂μ := by
+    refine integral_nonneg ?_
+    intro ω
+    exact sq_nonneg _
+  calc
+    ∫ ω, (Y ω - (μ[Y | m]) ω) ^ 2 ∂μ
+        = ∫ ω, (cefError (μ := μ) Y m ω) ^ 2 ∂μ := by
+            simp [cefError]
+    _ ≤ ∫ ω, (cefError (μ := μ) Y m ω) ^ 2 ∂μ + ∫ ω, (d ω) ^ 2 ∂μ := by
+          linarith
+    _ = ∫ ω, (cefError (μ := μ) Y m ω) ^ 2 + (d ω) ^ 2 ∂μ := by
+          rw [integral_add he2 hd2]
+    _ = ∫ ω, (cefError (μ := μ) Y m ω) ^ 2 + (d ω) ^ 2 ∂μ +
+          ∫ ω, 2 * (d ω * cefError (μ := μ) Y m ω) ∂μ := by
+          rw [integral_const_mul, horth]
+          ring
+    _ = ∫ ω, (cefError (μ := μ) Y m ω) ^ 2 + (d ω) ^ 2 +
+          2 * (d ω * cefError (μ := μ) Y m ω) ∂μ := by
+          simpa [add_assoc] using
+            (integral_add (he2.add hd2) (hde.const_mul 2)).symm
+    _ = ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by
+          rw [integral_congr_ae h_expand.symm]
+
+/-- Hansen Theorem 2.7 written as `E[Y | X]` minimizes mean squared prediction error among
+predictors measurable with respect to `X`. -/
+theorem integral_sq_sub_condExp_le_integral_sq_sub_X
+    {Y g : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim hX.comap_le)]
+    [IsFiniteMeasure μ]
+    (hY : MemLp Y 2 μ)
+    (hg : MemLp g 2 μ)
+    (hg_X : AEStronglyMeasurable[mβ.comap X] g μ) :
+    ∫ ω, (Y ω - (μ[Y | mβ.comap X]) ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by
+  simpa using
+    (integral_sq_sub_condExp_le_integral_sq_sub
+      (m := mβ.comap X) (m₀ := m₀) (μ := μ) (Y := Y) (g := g)
+      hX.comap_le hY hg hg_X)
+
 end HansenEconometrics

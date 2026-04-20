@@ -59,12 +59,15 @@ Then prove:
   `QXY - QXX β = 0`
 - uniqueness from the normal equations
 - quadratic criterion simplification at `β`
+- quadratic completion:
+  `S(b) = S(β) + (b - β)' QXX (b - β)`
+- best-linear-predictor minimization statement
+- textbook moment wrapper:
+  `β = (E[XX'])⁻¹ E[XY]` minimizes the population criterion
 
 ## Later chapter targets (not yet formalized)
 - **T2.5** finite regression-error variance from `E[Y²] < ∞`
 - **T2.6** monotonic decrease of residual variance under larger conditioning sets
-- conditional expectation as best predictor
-- full best-linear-predictor minimization statement
 - finite-second-moment consequences
 
 ## Files
