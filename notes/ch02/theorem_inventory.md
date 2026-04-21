@@ -64,12 +64,15 @@ Then prove:
 - best-linear-predictor minimization statement
 - textbook moment wrapper:
   `β = (E[XX'])⁻¹ E[XY]` minimizes the population criterion
+- **T2.10**:
+  separating the constant gives
+  `α = μY - μX' β`
+  and
+  `β = var[X]⁻¹ cov(X, Y)`
 
 ## Later chapter targets (not yet formalized)
 - **T2.5** finite regression-error variance from `E[Y²] < ∞` (PGP has done this in `Chapter2Variance`)
 - **T2.6** monotonic decrease of residual variance under larger conditioning sets (PGP has done this in `Chapter2Variance` -- `variance_cefError_antitone`)
-- conditional expectation as best predictor
-- full best-linear-predictor minimization statement
 - finite-second-moment consequences
 
 ## Files
