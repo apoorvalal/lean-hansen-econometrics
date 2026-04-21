@@ -269,6 +269,17 @@ theorem hasLaw_sq_chiSquared_one
     HasLaw (fun ω => (W ω)^2) (chiSquared 1) := by
   exact HasLaw.comp ⟨by fun_prop, gaussianReal_map_sq_eq_chiSquared_one⟩ hLaw
 
+/-! ### Gamma convolution lemma -/
+
+/-- The convolution of two Gamma measures with the same rate parameter is another Gamma measure.
+Specifically, `Gamma(a, r) ∗ Gamma(b, r) = Gamma(a+b, r)`. -/
+lemma gammaMeasure_mconv_same_rate_eq {a b r : ℝ} (hr : 0 < r) (ha : 0 < a) (hb : 0 < b) :
+    gammaMeasure a r ∗ₘ gammaMeasure b r = gammaMeasure (a + b) r := by
+  -- This follows from the fact that the sum of independent Gamma(a,r) and Gamma(b,r) random
+  -- variables is Gamma(a+b, r), which translates to the convolution of their measures.
+  -- For now, we defer the proof to the characteristic function approach or density computation.
+  sorry
+
 theorem hasLaw_add_chiSquared
     {a b : ℕ} (ha : 0 < a) (hb : 0 < b)
     {Ω : Type*} [MeasureSpace Ω]
@@ -276,6 +287,10 @@ theorem hasLaw_add_chiSquared
     (hX : HasLaw X (chiSquared a)) (hY : HasLaw Y (chiSquared b))
     (hIndep : IndepFun X Y) :
     HasLaw (fun ω => X ω + Y ω) (chiSquared (a + b)) := by
+  -- The proof follows from:
+  -- 1. IndepFun.hasLaw_add: X + Y has the convolution of the two measures
+  -- 2. Gamma convolution with the same rate: Gamma(a,r) ∗ Gamma(b,r) = Gamma(a+b,r)
+  -- The technical details require SigmaFinite instances which we defer.
   sorry
 
 theorem hasLaw_sum_sq_chiSquared
@@ -285,6 +300,15 @@ theorem hasLaw_sum_sq_chiSquared
     (hLaw : ∀ i, HasLaw (W i) (gaussianReal 0 1))
     (hIndep : ProbabilityTheory.iIndepFun W) :
     HasLaw (fun ω => ∑ i, (W i ω)^2) (chiSquared k) := by
+  -- Proof by induction on k.
+  -- Base case: k = 1, i.e., a single squared standard normal is χ²(1).
+  -- Inductive case: sum of (k+1) squared standard normals is χ²(k+1).
+  -- The key steps are:
+  -- 1. Decompose the sum as (∑ i < k, (W i)²) + (W_k)²
+  -- 2. By induction, the first part is χ²(k)
+  -- 3. The second part is χ²(1) by hasLaw_sq_chiSquared_one
+  -- 4. They are independent, so apply hasLaw_add_chiSquared
+  -- The technical challenge is extracting independence for the subsums from iIndepFun.
   sorry
 
 end HansenEconometrics
