@@ -52,7 +52,7 @@ Legend:
 | 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, and linear projection algebra completed |
 | 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator (incl. rank) / FWL coefficient and residual core landed |
 | 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
-| 05 | Normal Regression | partial | normal-model scaffolding, Gaussian laws for `β̂` and residuals, and residual-quadratic-form setup for `s²` landed |
+| 05 | Normal Regression | partial | normal-model scaffolding, chi-square distribution wrapper, Gaussian laws for `β̂` and residuals, and residual-quadratic-form setup for `s²` landed |
 | 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
 | 07 | Asymptotic Theory for Least Squares | inventoried | consistency / asymptotic normality targets |
 | 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
@@ -145,8 +145,13 @@ Completed in `HansenEconometrics/Chapter5NormalRegression.lean`:
 - residual sum of squares rewritten as the annihilator quadratic form `e'Me`
 - `s²` rewritten as `e'Me / (n-k)`, which is the deterministic setup for the chi-square step
 
+Completed in `HansenEconometrics/ChiSquared.lean`:
+- chi-square distribution defined as a Gamma distribution with shape `k/2` and rate `1/2`
+- basic probability-measure instance for positive degrees of freedom
+- negative-support vanishing lemma inherited from the Gamma density
+
 Planned next within Chapter 5:
-- prove the chi-square law for the residual variance estimator
+- connect the residual quadratic form to the new chi-square distribution definition
 - prove the key independence statements between `β̂` and residual quadratic forms / `s²`
 - derive the exact t-statistic law
 - package confidence intervals and classical tests as corollaries
