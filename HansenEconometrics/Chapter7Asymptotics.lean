@@ -134,7 +134,7 @@ theorem stackRegressors_transpose_mul_self_eq_sum
 omit [Fintype k] [DecidableEq k] in
 /-- The sample Gram matrix of the stacked design equals the sample mean of rank-1
 outer products `Xᵢ Xᵢᵀ`. -/
-theorem sampleGram_stackRegressors_eq_avg_sum
+theorem sampleGram_stackRegressors_eq_avg
     (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) :
     sampleGram (stackRegressors X n ω) =
       (n : ℝ)⁻¹ • ∑ i : Fin n, Matrix.vecMulVec (X i.val ω) (X i.val ω) := by
@@ -150,8 +150,7 @@ theorem stackRegressors_transpose_mulVec_stackErrors_eq_sum
     (stackRegressors X n ω)ᵀ *ᵥ stackErrors e n ω =
       ∑ i : Fin n, e i.val ω • X i.val ω := by
   funext a
-  simp [stackRegressors, stackErrors, Matrix.mulVec, Matrix.transpose_apply,
-        Matrix.of_apply, dotProduct, Pi.smul_apply, mul_comm]
+  simp [stackRegressors, stackErrors, Matrix.mulVec, dotProduct, mul_comm]
 
 omit [Fintype k] [DecidableEq k] in
 /-- The sample cross moment of the stacked design with stacked errors equals the
