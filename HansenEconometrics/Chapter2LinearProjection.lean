@@ -133,4 +133,146 @@ theorem linearProjectionBeta_eq_of_MSE_eq
   rw [linearProjectionMSE_eq_at_beta_add_quadratic_form QXX QXY QYY b hQXXt] at hb
   linarith
 
+section MeanCovariance
+
+open scoped MeasureTheory ProbabilityTheory
+open MeasureTheory ProbabilityTheory
+
+variable {Ω : Type*}
+variable {mΩ : MeasurableSpace Ω}
+variable {μ : Measure Ω}
+
+/-- Population mean of a finite-dimensional random vector. -/
+noncomputable def meanVec (μ : Measure Ω) (X : Ω → k → ℝ) : k → ℝ :=
+  ∫ ω, X ω ∂μ
+
+/-- Population covariance vector between a regressor vector `X` and a scalar outcome `Y`. -/
+noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → ℝ) : k → ℝ :=
+  fun i => cov[fun ω => X ω i, Y; μ]
+
+/-- Population covariance matrix of a finite-dimensional regressor vector `X`. -/
+noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
+  fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
+
+/-- Integrating a linear form equals applying that linear form to the vector mean. -/
+theorem integral_dotProduct_eq_meanVec_dotProduct
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, Integrable (fun ω => X ω i) μ) :
+    ∫ ω, dotProduct (X ω) b ∂μ = meanVec μ X ⬝ᵥ b := by
+  simp_rw [dotProduct]
+  rw [integral_finset_sum]
+  · simp_rw [integral_mul_const]
+    refine Finset.sum_congr rfl ?_
+    intro i hi
+    rw [show (∫ ω, X ω i ∂μ) = (meanVec μ X) i by
+      simpa [meanVec] using (MeasureTheory.eval_integral (μ := μ) (f := X) (hf := hX) i).symm]
+  · intro i hi
+    exact (hX i).mul_const (b i)
+
+/-- The covariance vector with a linear form equals the covariance matrix times the coefficient
+vector. -/
+theorem covVec_dotProduct_eq_covMat_mulVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
+    covVec μ X (fun ω => dotProduct (X ω) b) = covMat μ X *ᵥ b := by
+  ext i
+  change cov[fun ω => X ω i, fun ω => ∑ j, X ω j * b j; μ] =
+    ∑ j, cov[fun ω => X ω i, fun ω => X ω j; μ] * b j
+  rw [ProbabilityTheory.covariance_fun_sum_right
+      (X := fun j ω => X ω j * b j) (Y := fun ω => X ω i)]
+  · simp_rw [ProbabilityTheory.covariance_mul_const_right]
+  · intro j
+    exact (hX j).mul_const (b j)
+  · exact hX i
+
+/-- Covariances in the linear projection model decompose into the fitted part and the residual
+part. -/
+theorem covVec_linearProjectionModel
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ) :
+    covVec μ X (fun ω => α + dotProduct (X ω) β + e ω) =
+      covMat μ X *ᵥ β + covVec μ X e := by
+  have hlin : MemLp (fun ω => dotProduct (X ω) β) 2 μ := by
+    classical
+    convert (memLp_finset_sum' (s := Finset.univ) (f := fun j ω => X ω j * β j)
+      (fun j _ => (hX j).mul_const (β j))) using 1
+    ext ω
+    simp [dotProduct]
+  ext i
+  change cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β + e ω; μ] =
+    (covMat μ X *ᵥ β) i + cov[fun ω => X ω i, e; μ]
+  calc
+    cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β + e ω; μ]
+        = cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β; μ] +
+            cov[fun ω => X ω i, e; μ] := by
+              change cov[fun ω => X ω i, (fun ω => α + dotProduct (X ω) β) + e; μ] = _
+              simpa using
+                (ProbabilityTheory.covariance_add_right (X := fun ω => X ω i)
+                  (Y := fun ω => α + dotProduct (X ω) β) (Z := e)
+                  (hX i) ((memLp_const α).add hlin) he)
+    _ = cov[fun ω => X ω i, fun ω => dotProduct (X ω) β; μ] +
+          cov[fun ω => X ω i, e; μ] := by
+            simpa using
+              (ProbabilityTheory.covariance_const_add_right (X := fun ω => X ω i)
+                (Y := fun ω => dotProduct (X ω) β) (μ := μ)
+                (hlin.integrable (by norm_num)) α)
+    _ = (covMat μ X *ᵥ β) i + cov[fun ω => X ω i, e; μ] := by
+          rw [show cov[fun ω => X ω i, fun ω => dotProduct (X ω) β; μ] =
+              (covMat μ X *ᵥ β) i by
+                simpa [covVec] using
+                  congrFun (covVec_dotProduct_eq_covMat_mulVec (μ := μ) X β hX) i]
+
+/-- Hansen Theorem 2.10 intercept formula in the linear projection model. -/
+theorem linearProjectionIntercept_eq_mean_sub_dotProduct
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ)
+    (hmodel : Y = fun ω => α + dotProduct (X ω) β + e ω)
+    (he_zero : ∫ ω, e ω ∂μ = 0) :
+    α = ∫ ω, Y ω ∂μ - meanVec μ X ⬝ᵥ β := by
+  have hX_int : ∀ i, Integrable (fun ω => X ω i) μ := fun i => hX i |>.integrable (by norm_num)
+  have he_int : Integrable e μ := he.integrable (by norm_num)
+  have hlin_int : Integrable (fun ω => dotProduct (X ω) β) μ := by
+    classical
+    convert (MeasureTheory.integrable_finset_sum (s := Finset.univ) (f := fun j ω => X ω j * β j)
+      (fun j _ => (hX_int j).mul_const (β j))) using 1
+  have hmean :
+      ∫ ω, Y ω ∂μ = α + meanVec μ X ⬝ᵥ β := by
+    rw [hmodel]
+    calc
+      ∫ ω, (α + dotProduct (X ω) β + e ω) ∂μ
+          = ∫ ω, (α + dotProduct (X ω) β) ∂μ + ∫ ω, e ω ∂μ := by
+              simpa [Pi.add_apply, add_assoc] using
+                integral_add ((integrable_const α).add hlin_int) he_int
+      _ = α + meanVec μ X ⬝ᵥ β := by
+            rw [integral_add (integrable_const α) hlin_int, integral_const, probReal_univ, one_smul,
+              integral_dotProduct_eq_meanVec_dotProduct (μ := μ) X β hX_int, he_zero]
+            ring
+  linarith
+
+/-- Hansen Theorem 2.10 slope formula in the linear projection model. -/
+theorem linearProjectionBeta_eq_covMat_inv_covVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
+    [Invertible (covMat μ X)]
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ)
+    (hmodel : Y = fun ω => α + dotProduct (X ω) β + e ω)
+    (horth : covVec μ X e = 0) :
+    β = linearProjectionBeta (covMat μ X) (covVec μ X Y) := by
+  symm
+  apply linearProjectionBeta_eq_of_normal_equations
+  have hcov :
+      covVec μ X Y = covMat μ X *ᵥ β + covVec μ X e := by
+    rw [hmodel]
+    exact covVec_linearProjectionModel (μ := μ) X e α β hX he
+  calc
+    covMat μ X *ᵥ β = covMat μ X *ᵥ β + covVec μ X e := by rw [horth]; simp
+    _ = covVec μ X Y := by rw [hcov]
+
+end MeanCovariance
 end HansenEconometrics

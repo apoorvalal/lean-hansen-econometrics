@@ -1,7 +1,7 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.Chapter3Projections
-import HansenEconometrics.Chapter2CondExp
 
 open scoped Matrix
 
@@ -265,11 +265,7 @@ theorem ols_condExp_eq_beta
   change ∀ᵐ ω ∂μ, μ[f | m] ω = β
   have hcoord : ∀ j : k, ∀ᵐ ω ∂μ, μ[f | m] ω j = β j := by
     intro j
-    have happly : (fun ω => μ[f | m] ω j) =ᵐ[μ] μ[(fun ω => f ω j) | m] := by
-      simpa [f] using
-        (ContinuousLinearMap.proj (R := ℝ) j).comp_condExp_comm (μ := μ) (m := m)
-          (f := f) hf_int
-    exact happly.trans <|
+    exact (condExp_apply (m := m) (μ := μ) (f := f) hf_int j).trans <|
       ols_condExp_coordinate_eq_beta (μ := μ) (m := m) X β e j hm he_int he_zero
   have hall : ∀ᵐ ω ∂μ, ∀ j : k, μ[f | m] ω j = β j := by
     exact ae_all_iff.2 hcoord
@@ -313,9 +309,130 @@ theorem ols_integral_eq_beta
   funext j
   calc
     (∫ ω, olsBeta X (X *ᵥ β + e ω) ∂μ) j = ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ := by
-      simpa [f] using MeasureTheory.eval_integral (μ := μ)
-        (f := f) (hf := fun j => Integrable.eval hf_int j) j
+      simpa [f] using integral_apply (μ := μ) (f := f) hf_int j
     _ = β j := ols_integral_coordinate_eq_beta (μ := μ) (m := m) X β e j hm he_int he_zero
+
+/-- Componentwise conditional unbiasedness of OLS stated by conditioning on a random variable. -/
+theorem ols_condExp_coordinate_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ) (j : k)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    condExpOn μ (fun ω => olsBeta X (X *ᵥ β + e ω) j) Z =ᵐ[μ] fun _ => β j := by
+  simpa [condExpOn, conditioningSpace] using
+    ols_condExp_coordinate_eq_beta
+      (μ := μ)
+      (m := conditioningSpace Z)
+      (m₀ := inferInstance)
+      X β e j
+      (conditioningSpace_le hZ)
+      he_int
+      (fun i => by simpa [condExpOn, conditioningSpace] using he_zero i)
+
+/-- Vector-valued conditional unbiasedness of OLS stated by conditioning on a random variable. -/
+theorem ols_condExp_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    condExpOn μ (fun ω => olsBeta X (X *ᵥ β + e ω)) Z =ᵐ[μ] fun _ => β := by
+  simpa [condExpOn, conditioningSpace] using
+    ols_condExp_eq_beta
+      (μ := μ)
+      (m := conditioningSpace Z)
+      (m₀ := inferInstance)
+      X β e
+      (conditioningSpace_le hZ)
+      he_int
+      (fun i => by simpa [condExpOn, conditioningSpace] using he_zero i)
+
+/-- Componentwise unconditional unbiasedness of OLS from a random-variable conditioning
+assumption. -/
+theorem ols_integral_coordinate_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ) (j : k)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ = β j := by
+  calc
+    ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ =
+        ∫ ω, condExpOn μ (fun ω => olsBeta X (X *ᵥ β + e ω) j) Z ω ∂μ := by
+          symm
+          exact simple_law_iterated_expectation_rv
+            (μ := μ) (Y := fun ω => olsBeta X (X *ᵥ β + e ω) j)
+            hZ
+    _ = ∫ ω, β j ∂μ := by
+          refine MeasureTheory.integral_congr_ae ?_
+          exact ols_condExp_coordinate_eq_beta_rv (μ := μ) X β e Z j hZ he_int he_zero
+    _ = β j := by simp
+
+/-- Uniform coordinatewise conditional unbiasedness of OLS stated by conditioning on a random
+variable. -/
+theorem ols_condExp_all_coordinates_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    ∀ j, condExpOn μ (fun ω => olsBeta X (X *ᵥ β + e ω) j) Z =ᵐ[μ] fun _ => β j := by
+  intro j
+  exact ols_condExp_coordinate_eq_beta_rv (μ := μ) X β e Z j hZ he_int he_zero
+
+/-- Uniform coordinatewise unconditional unbiasedness of OLS from a random-variable conditioning
+assumption. -/
+theorem ols_integral_all_coordinates_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    ∀ j, ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ = β j := by
+  intro j
+  exact ols_integral_coordinate_eq_beta_rv (μ := μ) X β e Z j hZ he_int he_zero
+
+/-- Vector-valued unconditional unbiasedness of OLS from a random-variable conditioning
+assumption. -/
+theorem ols_integral_eq_beta_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (he_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0) :
+    ∫ ω, olsBeta X (X *ᵥ β + e ω) ∂μ = β := by
+  let f : Ω → k → ℝ := fun ω => olsBeta X (X *ᵥ β + e ω)
+  have hf_int : Integrable f μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+    have hrepr : (fun ω => f ω j) = fun ω => β j + ∑ i, w j i * e ω i := by
+      funext ω
+      simp [f, olsBeta_linear_decomposition, w, Matrix.mulVec, dotProduct]
+    rw [hrepr]
+    have hsum_int : Integrable (fun ω => ∑ i, w j i * e ω i) μ := by
+      simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+        (f := fun i ω => w j i * e ω i)
+        (fun i _ => (he_int i).const_mul (w j i))
+    exact (integrable_const (β j)).add hsum_int
+  funext j
+  calc
+    (∫ ω, olsBeta X (X *ᵥ β + e ω) ∂μ) j = ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ := by
+      simpa [f] using integral_apply (μ := μ) (f := f) hf_int j
+    _ = β j := ols_integral_coordinate_eq_beta_rv (μ := μ) X β e Z j hZ he_int he_zero
 
 /-- Coordinatewise conditional covariance bridge for OLS. -/
 theorem ols_condExp_centered_mul_eq_variance_entry
@@ -480,18 +597,7 @@ theorem ols_condExp_centered_mul_eq_variance_matrix
   change ∀ᵐ ω ∂μ, μ[f | m] ω = olsConditionalVarianceMatrix X D
   have hcoord : ∀ j l : k, ∀ᵐ ω ∂μ, μ[f | m] ω j l = olsConditionalVarianceMatrix X D j l := by
     intro j l
-    have happly_j : (fun ω => μ[f | m] ω j) =ᵐ[μ] μ[(fun ω => f ω j) | m] := by
-      simpa [f] using
-        (ContinuousLinearMap.proj (R := ℝ) j).comp_condExp_comm (μ := μ) (m := m)
-          (f := f) hf_int
-    have happly_l : (fun ω => μ[(fun ω => f ω j) | m] ω l) =ᵐ[μ] μ[(fun ω => f ω j l) | m] := by
-      simpa [f] using
-        (ContinuousLinearMap.proj (R := ℝ) l).comp_condExp_comm (μ := μ) (m := m)
-          (f := fun ω => f ω j) (Integrable.eval hf_int j)
-    have happly_jl : (fun ω => μ[f | m] ω j l) =ᵐ[μ] fun ω => μ[(fun ω => f ω j) | m] ω l := by
-      filter_upwards [happly_j] with ω hω
-      exact congrFun hω l
-    exact happly_jl.trans <| happly_l.trans <|
+    exact (condExp_apply_apply (m := m) (μ := μ) (f := f) hf_int j l).trans <|
       ols_condExp_centered_mul_eq_variance_entry
         (μ := μ) (m := m) X β e D j l hm hee_int hD
   have hall : ∀ᵐ ω ∂μ, ∀ j l : k, μ[f | m] ω j l = olsConditionalVarianceMatrix X D j l := by
@@ -499,6 +605,122 @@ theorem ols_condExp_centered_mul_eq_variance_matrix
   exact hall.mono fun ω hω => by
     funext j l
     exact hω j l
+
+/-- Coordinatewise conditional covariance bridge for OLS stated by conditioning on a random
+variable. -/
+theorem ols_condExp_centered_mul_eq_variance_entry_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (Z : Ω → ζ) (j l : k)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, condExpOn μ (fun ω => e ω i * e ω r) Z =ᵐ[μ] fun _ => D i r) :
+    condExpOn μ
+        (fun ω => (olsBeta X (X *ᵥ β + e ω) j - β j) *
+          (olsBeta X (X *ᵥ β + e ω) l - β l))
+        Z =ᵐ[μ]
+      fun _ => olsConditionalVarianceMatrix X D j l := by
+  simpa [condExpOn, conditioningSpace] using
+    ols_condExp_centered_mul_eq_variance_entry
+      (μ := μ)
+      (m := conditioningSpace Z)
+      (m₀ := inferInstance)
+      X β e D j l
+      (conditioningSpace_le hZ)
+      hee_int
+      (fun i r => by simpa [condExpOn, conditioningSpace] using hD i r)
+
+/-- Matrix-valued conditional covariance bridge for OLS stated by conditioning on a random
+variable. -/
+theorem ols_condExp_centered_mul_eq_variance_matrix_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, condExpOn μ (fun ω => e ω i * e ω r) Z =ᵐ[μ] fun _ => D i r) :
+    condExpOn μ
+        (fun ω => fun j l =>
+          (olsBeta X (X *ᵥ β + e ω) j - β j) *
+            (olsBeta X (X *ᵥ β + e ω) l - β l))
+        Z =ᵐ[μ]
+      fun _ => olsConditionalVarianceMatrix X D := by
+  simpa [condExpOn, conditioningSpace] using
+    ols_condExp_centered_mul_eq_variance_matrix
+      (μ := μ)
+      (m := conditioningSpace Z)
+      (m₀ := inferInstance)
+      X β e D
+      (conditioningSpace_le hZ)
+      hee_int
+      (fun i r => by simpa [condExpOn, conditioningSpace] using hD i r)
+
+/-- Matrix-valued unconditional covariance bridge for OLS from a random-variable conditioning
+assumption. -/
+theorem ols_integral_centered_mul_eq_variance_matrix_rv
+    {ζ : Type*} [MeasurableSpace ζ]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (Z : Ω → ζ)
+    [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hZ : Measurable Z)
+    [SigmaFinite (μ.trim (conditioningSpace_le hZ))]
+    (hee_int : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ)
+    (hD : ∀ i r, condExpOn μ (fun ω => e ω i * e ω r) Z =ᵐ[μ] fun _ => D i r) :
+    ∫ ω, (fun j l =>
+      (olsBeta X (X *ᵥ β + e ω) j - β j) *
+        (olsBeta X (X *ᵥ β + e ω) l - β l)) ∂μ =
+      olsConditionalVarianceMatrix X D := by
+  let f : Ω → k → k → ℝ := fun ω j l =>
+    (olsBeta X (X *ᵥ β + e ω) j - β j) *
+      (olsBeta X (X *ᵥ β + e ω) l - β l)
+  have hf_eval_int : ∀ j l, Integrable (fun ω => f ω j l) μ := by
+    intro j l
+    let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
+    have hrepr :
+        (fun ω => f ω j l) =
+          fun ω => ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+      funext ω
+      dsimp [f]
+      rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
+          rw [olsBeta_linear_decomposition]
+          simp [w, Matrix.mulVec, dotProduct]]
+      calc
+        (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
+            = ∑ r, (∑ i, w j i * e ω i) * (w l r * e ω r) := by rw [Finset.mul_sum]
+        _ = ∑ r, ∑ i, (w j i * e ω i) * (w l r * e ω r) := by simp [Finset.sum_mul]
+        _ = ∑ i, ∑ r, (w j i * w l r) * (e ω i * e ω r) := by
+              rw [Finset.sum_comm]
+              simp [mul_assoc, mul_left_comm, mul_comm]
+    rw [hrepr]
+    simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+      (f := fun i ω => ∑ r, (w j i * w l r) * (e ω i * e ω r))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun r ω => (w j i * w l r) * (e ω i * e ω r))
+          (fun r _ => (hee_int i r).const_mul (w j i * w l r)))
+  have hf_int : Integrable f μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    refine Integrable.of_eval ?_
+    intro l
+    exact hf_eval_int j l
+  funext j l
+  calc
+    (∫ ω, f ω ∂μ) j l = ∫ ω, f ω j l ∂μ := by
+      simpa using integral_apply_apply (μ := μ) (f := f) hf_int j l
+    _ = ∫ ω, condExpOn μ (fun ω => f ω j l) Z ω ∂μ := by
+          symm
+          exact simple_law_iterated_expectation_rv (μ := μ) (Y := fun ω => f ω j l) hZ
+    _ = ∫ ω, olsConditionalVarianceMatrix X D j l ∂μ := by
+          refine MeasureTheory.integral_congr_ae ?_
+          simpa [f] using
+            ols_condExp_centered_mul_eq_variance_entry_rv
+              (μ := μ) X β e D Z j l hZ hee_int hD
+    _ = olsConditionalVarianceMatrix X D j l := by simp
 
 /-- Matrix-valued unconditional covariance bridge for OLS. -/
 theorem ols_integral_centered_mul_eq_variance_matrix
@@ -549,15 +771,9 @@ theorem ols_integral_centered_mul_eq_variance_matrix
     intro l
     exact hf_eval_int j l
   funext j l
-  have houter : (∫ ω, f ω ∂μ) j = ∫ ω, f ω j ∂μ := by
-    simpa using MeasureTheory.eval_integral (μ := μ)
-      (f := f) (hf := fun j => Integrable.eval hf_int j) j
-  have hinner : (∫ ω, f ω j ∂μ) l = ∫ ω, f ω j l ∂μ := by
-    simpa using MeasureTheory.eval_integral (μ := μ)
-      (f := fun ω => f ω j) (hf := fun l => hf_eval_int j l) l
   calc
-    (∫ ω, f ω ∂μ) j l = (∫ ω, f ω j ∂μ) l := by rw [houter]
-    _ = ∫ ω, f ω j l ∂μ := by rw [hinner]
+    (∫ ω, f ω ∂μ) j l = ∫ ω, f ω j l ∂μ := by
+      simpa using integral_apply_apply (μ := μ) (f := f) hf_int j l
     _ = olsConditionalVarianceMatrix X D j l := by
       calc
         ∫ ω, f ω j l ∂μ = ∫ ω, μ[(fun ω => f ω j l) | m] ω ∂μ := by

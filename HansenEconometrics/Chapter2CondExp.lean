@@ -1,4 +1,4 @@
-import Mathlib
+import HansenEconometrics.ProbabilityUtils
 
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory
 open MeasureTheory
@@ -242,5 +242,162 @@ theorem integral_sq_sub_condExp_le_integral_sq_sub_X
     (integral_sq_sub_condExp_le_integral_sq_sub
       (m := mβ.comap X) (m₀ := m₀) (μ := μ) (Y := Y) (g := g)
       hX.comap_le hY hg hg_X)
+
+section ProbabilityOnRandomVars
+
+/-- The public CEF error wrapper is the existing sigma-algebra CEF error specialized to `σ(X)`. -/
+@[simp] theorem cefErrorOn_eq_cefError
+    {Y : Ω → ℝ} {X : Ω → β} :
+    cefErrorOn μ Y X = cefError μ Y (conditioningSpace X) := by
+  funext ω
+  rfl
+
+/-- Simple law of iterated expectations stated in terms of a conditioning variable. -/
+theorem simple_law_iterated_expectation_rv
+    {Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))] :
+    ∫ ω, condExpOn μ Y X ω ∂μ = ∫ ω, Y ω ∂μ := by
+  simpa [condExpOn, conditioningSpace] using
+    simple_law_iterated_expectation
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (conditioningSpace_le hX)
+
+/-- Tower property for conditional expectations stated in terms of conditioning variables. -/
+theorem tower_property_rv
+    {Y : Ω → ℝ} {X₁ : Ω → β} {X₂ : Ω → γ}
+    (hX : conditioningSpace X₁ ≤ conditioningSpace X₂)
+    (hX₂ : Measurable X₂)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX₂))] :
+    condExpOn μ (condExpOn μ Y X₂) X₁ =ᵐ[μ] condExpOn μ Y X₁ := by
+  simpa [condExpOn, conditioningSpace] using
+    tower_property
+      (m₁ := conditioningSpace X₁)
+      (m₂ := conditioningSpace X₂)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      hX
+      (conditioningSpace_le hX₂)
+
+/-- Pull an `X`-measurable factor out of conditional expectation. -/
+theorem conditioning_theorem_ae_rv
+    {g Y : Ω → ℝ} {X : Ω → β}
+    (hg : XMeasurable μ X g)
+    (hgY : Integrable (fun ω => g ω * Y ω) μ)
+    (hY : Integrable Y μ) :
+    condExpOn μ (fun ω => g ω * Y ω) X =ᵐ[μ]
+      fun ω => g ω * condExpOn μ Y X ω := by
+  simpa [XMeasurable, condExpOn, conditioningSpace] using
+    conditioning_theorem_ae
+      (m := conditioningSpace X)
+      (μ := μ)
+      (g := g)
+      (Y := Y)
+      hg
+      hgY
+      hY
+
+/-- Integrated pull-out theorem for a conditioning variable `X`. -/
+theorem conditioning_theorem_integral_rv
+    {g Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    (hg : XMeasurable μ X g)
+    (hgY : Integrable (fun ω => g ω * Y ω) μ)
+    (hY : Integrable Y μ) :
+    ∫ ω, g ω * Y ω ∂μ = ∫ ω, g ω * condExpOn μ Y X ω ∂μ := by
+  simpa [XMeasurable, condExpOn, conditioningSpace] using
+    conditioning_theorem_integral
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (g := g)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hg
+      hgY
+      hY
+
+/-- The conditional expectation error has conditional mean zero after conditioning on `X`. -/
+theorem condExp_cefErrorOn_zero
+    {Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    (hY : Integrable Y μ) :
+    condExpOn μ (cefErrorOn μ Y X) X =ᵐ[μ] 0 := by
+  simpa [cefErrorOn_eq_cefError, condExpOn, conditioningSpace] using
+    condExp_cefError_zero
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hY
+
+/-- The conditional expectation error has unconditional mean zero after conditioning on `X`. -/
+theorem integral_cefErrorOn_zero
+    {Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    (hY : Integrable Y μ) :
+    ∫ ω, cefErrorOn μ Y X ω ∂μ = 0 := by
+  simpa [cefErrorOn_eq_cefError, conditioningSpace] using
+    integral_cefError_zero
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hY
+
+/-- The conditional expectation error is orthogonal to any square-integrable function of `X`. -/
+theorem integral_mul_cefErrorOn_zero
+    {g Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    (hg : XMeasurable μ X g)
+    (hgE : Integrable (fun ω => g ω * cefErrorOn μ Y X ω) μ)
+    (hY : Integrable Y μ) :
+    ∫ ω, g ω * cefErrorOn μ Y X ω ∂μ = 0 := by
+  simpa [XMeasurable, cefErrorOn_eq_cefError, conditioningSpace] using
+    integral_mul_cefError_zero
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (g := g)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hg
+      hgE
+      hY
+
+/-- Conditional expectation given `X` is the best square-integrable predictor among functions of
+`X`. -/
+theorem best_predictor_rv
+    {Y g : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    [IsFiniteMeasure μ]
+    (hY : MemLp Y 2 μ)
+    (hg : MemLp g 2 μ)
+    (hgX : XMeasurable μ X g) :
+    ∫ ω, (Y ω - condExpOn μ Y X ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by
+  simpa [condExpOn, XMeasurable, conditioningSpace] using
+    integral_sq_sub_condExp_le_integral_sq_sub_X
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (g := g)
+      (X := X)
+      hX
+      hY
+      hg
+      hgX
+
+end ProbabilityOnRandomVars
 
 end HansenEconometrics

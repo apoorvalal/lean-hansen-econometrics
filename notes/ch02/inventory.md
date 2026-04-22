@@ -98,5 +98,6 @@
 ## Status
 - partial
 - The curated progress map for formalized Chapter 2 results is `notes/ch02/theorem_inventory.md`.
+- A theorem-by-theorem LaTeX/Lean crosswalk lives in [latex_links.md](./latex_links.md).
 - Lean files currently cover conditional expectation, conditional variance, total variance, and
   population linear-projection algebra.

@@ -1,10 +1,12 @@
 import Mathlib.Probability.Distributions.Gamma
 import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.Probability.Distributions.Beta
 import Mathlib.Probability.HasLaw
 import Mathlib.Probability.Independence.Basic
 import Mathlib.MeasureTheory.Measure.WithDensity
 import Mathlib.Analysis.LConvolution
+import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
@@ -749,5 +751,198 @@ theorem hasLaw_sum_sq_chiSquared_fintype
     (fun i : Fin (Fintype.card ι) => (W (e i) ω)^2)
     (fun i : ι => (W i ω)^2)
     fun i => rfl
+
+/-! ### Chi-squared distribution of quadratic forms with symmetric idempotent matrices -/
+
+section QuadraticFormChiSquared
+
+open Matrix
+
+/-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
+Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
+lemma quadForm_eq_sum_eigenvalues
+    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ (Fin n)) :
+    (z : Fin n → ℝ) ⬝ᵥ (M *ᵥ (z : Fin n → ℝ))
+      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
+  set b := hH.eigenvectorBasis with hb_def
+  -- Write (z : Fin n → ℝ) as a sum in the eigenbasis.
+  have hz_coord : (z : Fin n → ℝ) = ∑ i, b.repr z i • ((b i : Fin n → ℝ)) := by
+    have hsum : z = ∑ i, b.repr z i • b i := (b.sum_repr z).symm
+    have : ((z : EuclideanSpace ℝ (Fin n)) : Fin n → ℝ)
+        = (((∑ i, b.repr z i • b i) : EuclideanSpace ℝ (Fin n)) : Fin n → ℝ) :=
+      congrArg _ hsum
+    rw [this, WithLp.ofLp_sum]
+    rfl
+  -- Apply M to that sum; linearity + eigenvector identity.
+  have hMz_coord : M *ᵥ (z : Fin n → ℝ)
+      = ∑ i, (b.repr z i * hH.eigenvalues i) • ((b i : Fin n → ℝ)) := by
+    rw [hz_coord, Matrix.mulVec_sum]
+    refine Finset.sum_congr rfl (fun i _ => ?_)
+    rw [Matrix.mulVec_smul, hH.mulVec_eigenvectorBasis, smul_smul]
+  -- Orthonormality of the eigenbasis as `Fin n → ℝ` vectors.  For real scalars the inner
+  -- product coincides with the (flipped) dot product: ⟪x, y⟫_ℝ = y ⬝ᵥ x.
+  have hinner_eq_dot : ∀ x y : EuclideanSpace ℝ (Fin n),
+      @inner ℝ (EuclideanSpace ℝ (Fin n)) _ x y = ((y : Fin n → ℝ)) ⬝ᵥ ((x : Fin n → ℝ)) :=
+    fun _ _ => rfl
+  have horth : ∀ i j : Fin n,
+      ((b i : Fin n → ℝ)) ⬝ᵥ ((b j : Fin n → ℝ)) = if i = j then (1 : ℝ) else 0 := by
+    intro i j
+    rw [dotProduct_comm, ← hinner_eq_dot]
+    have := (orthonormal_iff_ite.mp b.orthonormal) i j
+    simpa using this
+  -- Expand the dot product step by step.
+  rw [hMz_coord, hz_coord, sum_dotProduct]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  rw [smul_dotProduct, dotProduct_sum, smul_eq_mul]
+  have step : ∀ j, (b i : Fin n → ℝ) ⬝ᵥ ((b.repr z j * hH.eigenvalues j) • (b j : Fin n → ℝ))
+      = (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0) := by
+    intro j; rw [dotProduct_smul, horth, smul_eq_mul]
+  simp_rw [step]
+  rw [Finset.sum_congr rfl (fun j _ => show
+    (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0)
+      = if i = j then b.repr z i * hH.eigenvalues i else 0 by
+    split_ifs with hij
+    · rw [hij]; ring
+    · ring)]
+  rw [Finset.sum_ite_eq Finset.univ i]
+  simp
+  ring
+
+/-- For a Hermitian idempotent real matrix, the number of indices whose eigenvalue is `1`
+equals the rank of the matrix. -/
+lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
+    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ}
+    (hH : M.IsHermitian) (hI : IsIdempotentElem M) :
+    (Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)).card = M.rank := by
+  -- Eigenvalues of a Hermitian idempotent real matrix are 0 or 1.
+  have heig : ∀ i : Fin n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
+    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+    simpa using hmem
+  -- So the "= 1" predicate coincides with the "≠ 0" predicate.
+  have hfilter_eq : Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)
+      = Finset.univ.filter (fun i : Fin n => hH.eigenvalues i ≠ 0) := by
+    ext i
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    constructor
+    · intro h; rw [h]; norm_num
+    · exact (heig i).resolve_left
+  rw [hfilter_eq, hH.rank_eq_card_non_zero_eigs, Fintype.card_subtype]
+
+/-- The coordinates of a standard Gaussian vector in an orthonormal basis are i.i.d. standard
+normal. -/
+lemma hasLaw_coords_of_stdGaussian
+    {n : ℕ} {Ω : Type*} [MeasureSpace Ω] [IsProbabilityMeasure (volume : Measure Ω)]
+    {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
+    (b : OrthonormalBasis (Fin n) ℝ E)
+    {Z : Ω → E} (hZ : HasLaw Z (stdGaussian E)) :
+    (∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1)) ∧
+      iIndepFun (fun i ω => b.repr (Z ω) i) := by
+  -- Package `b.repr` as a HasLaw via Mathlib's `stdGaussian_map`.
+  have hRepr : HasLaw (fun x : E => (b.repr x : EuclideanSpace ℝ (Fin n)))
+      (stdGaussian (EuclideanSpace ℝ (Fin n))) (stdGaussian E) :=
+    ⟨b.repr.continuous.aemeasurable, stdGaussian_map b.repr⟩
+  have hbZ : HasLaw (fun ω => b.repr (Z ω)) (stdGaussian (EuclideanSpace ℝ (Fin n))) :=
+    hRepr.comp hZ
+  -- Bridge from `stdGaussian` on `EuclideanSpace` to `Measure.pi (fun _ => gaussianReal 0 1)`
+  -- via the `ofLp` coercion (inverse of `toLp 2`).
+  have hm_of : Measurable (WithLp.ofLp : EuclideanSpace ℝ (Fin n) → (Fin n → ℝ)) := by fun_prop
+  have hm_to : Measurable (WithLp.toLp 2 : (Fin n → ℝ) → EuclideanSpace ℝ (Fin n)) := by fun_prop
+  have hOfLp_map : (stdGaussian (EuclideanSpace ℝ (Fin n))).map
+        (WithLp.ofLp : EuclideanSpace ℝ (Fin n) → (Fin n → ℝ))
+      = Measure.pi (fun _ : Fin n => gaussianReal 0 1) := by
+    rw [← map_pi_eq_stdGaussian (ι := Fin n), Measure.map_map hm_of hm_to]
+    simp [Function.comp_def]
+  have hOfLp : HasLaw (fun x : EuclideanSpace ℝ (Fin n) => (x : Fin n → ℝ))
+      (Measure.pi (fun _ : Fin n => gaussianReal 0 1))
+      (stdGaussian (EuclideanSpace ℝ (Fin n))) :=
+    ⟨hm_of.aemeasurable, hOfLp_map⟩
+  have hbZ_coord : HasLaw (fun ω => ((b.repr (Z ω)) : Fin n → ℝ))
+      (Measure.pi (fun _ : Fin n => gaussianReal 0 1)) :=
+    hOfLp.comp hbZ
+  -- Per-coordinate laws via projection through the product measure.
+  have hLaw : ∀ i : Fin n, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1) := by
+    intro i
+    refine ⟨hbZ_coord.aemeasurable.eval i, ?_⟩
+    have h1 : (volume : Measure Ω).map (fun ω => b.repr (Z ω) i)
+        = ((volume : Measure Ω).map (fun ω => ((b.repr (Z ω)) : Fin n → ℝ))).map
+            (fun f : Fin n → ℝ => f i) := by
+      rw [AEMeasurable.map_map_of_aemeasurable (measurable_pi_apply i).aemeasurable
+        hbZ_coord.aemeasurable]
+      rfl
+    rw [h1, hbZ_coord.map_eq]
+    exact (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
+  -- Independence via the product-measure characterization.
+  refine ⟨hLaw, ?_⟩
+  rw [iIndepFun_iff_map_fun_eq_pi_map (fun i => (hLaw i).aemeasurable)]
+  rw [show (fun (ω : Ω) (i : Fin n) => b.repr (Z ω) i)
+      = (fun ω => ((b.repr (Z ω)) : Fin n → ℝ)) from rfl]
+  rw [hbZ_coord.map_eq]
+  congr 1
+  funext i
+  exact ((hLaw i).map_eq).symm
+
+/-- **Quadratic-form chi-squared theorem.** If `Z` is a standard Gaussian vector in
+`EuclideanSpace ℝ (Fin n)` and `M` is a symmetric idempotent real `n × n` matrix of rank `r > 0`,
+then the quadratic form `Z ⬝ᵥ M *ᵥ Z` has a chi-squared distribution with `r` degrees of freedom.
+
+This is the key distributional fact underlying the finite-sample theory of least-squares variance
+estimation in the homoskedastic normal regression model (Hansen, Chapter 5). -/
+theorem hasLaw_quadForm_symmIdem_chiSquared
+    {n : ℕ} {Ω : Type*} [MeasureSpace Ω] [IsProbabilityMeasure (volume : Measure Ω)]
+    {Z : Ω → EuclideanSpace ℝ (Fin n)}
+    {M : Matrix (Fin n) (Fin n) ℝ}
+    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ (Fin n))))
+    (hH : M.IsHermitian) (hI : IsIdempotentElem M) (hr : 0 < M.rank) :
+    HasLaw (fun ω => (Z ω : Fin n → ℝ) ⬝ᵥ (M *ᵥ (Z ω : Fin n → ℝ))) (chiSquared M.rank) := by
+  -- Step A: eigenbasis coordinates are iid N(0,1).
+  obtain ⟨hLaw, hIndep⟩ := hasLaw_coords_of_stdGaussian hH.eigenvectorBasis hZ
+  set b := hH.eigenvectorBasis with hb_def
+  -- Step B: spectral expansion of the quadratic form.
+  have hQF : ∀ ω, (Z ω : Fin n → ℝ) ⬝ᵥ (M *ᵥ (Z ω : Fin n → ℝ))
+      = ∑ i, hH.eigenvalues i * (b.repr (Z ω) i) ^ 2 :=
+    fun ω => quadForm_eq_sum_eigenvalues hH (Z ω)
+  -- Step C: eigenvalues are 0 or 1; collapse to a sum over `S = {i : λᵢ = 1}`.
+  have heig : ∀ i : Fin n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
+    simpa using hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+  set S : Finset (Fin n) := Finset.univ.filter (fun i => hH.eigenvalues i = 1) with hS_def
+  have hS_card : S.card = M.rank :=
+    card_eigenvalue_one_eq_rank_of_isHermitian_idempotent hH hI
+  have hQF' : ∀ ω, (Z ω : Fin n → ℝ) ⬝ᵥ (M *ᵥ (Z ω : Fin n → ℝ))
+      = ∑ i ∈ S, (b.repr (Z ω) i) ^ 2 := by
+    intro ω
+    rw [hQF ω]
+    have htransform : (∑ i, hH.eigenvalues i * (b.repr (Z ω) i) ^ 2)
+        = ∑ i, if hH.eigenvalues i = 1 then (b.repr (Z ω) i) ^ 2 else 0 := by
+      refine Finset.sum_congr rfl (fun i _ => ?_)
+      rcases heig i with h0 | h1
+      · rw [h0, if_neg (by norm_num : (0 : ℝ) ≠ 1)]; ring
+      · rw [h1, if_pos rfl]; ring
+    rw [htransform, ← Finset.sum_filter]
+  -- Step D: reindex `S` by `Fin M.rank`, inherit iid N(0,1) on the subfamily.
+  let eqn : Fin M.rank ≃ { x // x ∈ S } :=
+    (finCongr hS_card.symm).trans S.equivFin.symm
+  let σ : Fin M.rank → Fin n := fun i => (eqn i).val
+  have hσ_inj : Function.Injective σ := fun i j h =>
+    eqn.injective (Subtype.ext h)
+  let W : Fin M.rank → Ω → ℝ := fun i ω => b.repr (Z ω) (σ i)
+  have hLawW : ∀ i, HasLaw (W i) (gaussianReal 0 1) := fun i => hLaw (σ i)
+  have hIndepW : iIndepFun W := hIndep.precomp hσ_inj
+  -- Step E: rewrite the target sum via the reindexing, then apply `hasLaw_sum_sq_chiSquared`.
+  have hSumReindex : ∀ ω, ∑ i ∈ S, (b.repr (Z ω) i) ^ 2
+      = ∑ i : Fin M.rank, (W i ω) ^ 2 := by
+    intro ω
+    rw [← Finset.sum_attach S (fun j => (b.repr (Z ω) j) ^ 2)]
+    symm
+    exact Fintype.sum_equiv eqn (fun i => (W i ω) ^ 2)
+      (fun j => (b.repr (Z ω) j.val) ^ 2) (fun _ => rfl)
+  have hTarget : (fun ω => (Z ω : Fin n → ℝ) ⬝ᵥ (M *ᵥ (Z ω : Fin n → ℝ)))
+      = (fun ω => ∑ i : Fin M.rank, (W i ω) ^ 2) := by
+    funext ω; rw [hQF' ω, hSumReindex ω]
+  rw [hTarget]
+  exact hasLaw_sum_sq_chiSquared hr hLawW hIndepW
+
+end QuadraticFormChiSquared
 
 end HansenEconometrics
