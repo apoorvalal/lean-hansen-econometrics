@@ -110,14 +110,36 @@ open scoped Matrix.Norms.Elementwise
 
 variable {k : Type*} [Fintype k] [DecidableEq k]
 
+/-- **Measurability of the matrix inverse.** If `A : α → Matrix k k ℝ`
+is strongly measurable a.e., so is `fun ω => (A ω)⁻¹`. Derived from
+`Matrix.inv_def` (`A⁻¹ = Ring.inverse A.det • A.adjugate`) and measurability
+of scalar reciprocal / continuity of det and adjugate. -/
+theorem aestronglyMeasurable_matrix_inv
+    {A : α → Matrix k k ℝ} (hmeas : AEStronglyMeasurable A μ) :
+    AEStronglyMeasurable (fun ω => (A ω)⁻¹) μ := by
+  have hdet : AEStronglyMeasurable (fun ω => (A ω).det) μ :=
+    (Continuous.matrix_det continuous_id).comp_aestronglyMeasurable hmeas
+  have hadj : AEStronglyMeasurable (fun ω => (A ω).adjugate) μ :=
+    (Continuous.matrix_adjugate continuous_id).comp_aestronglyMeasurable hmeas
+  have hrinv : AEStronglyMeasurable (fun ω => Ring.inverse ((A ω).det)) μ := by
+    have heq : (fun ω => Ring.inverse ((A ω).det)) = (fun ω => ((A ω).det)⁻¹) := by
+      funext ω
+      exact Ring.inverse_eq_inv _
+    rw [heq]
+    exact (measurable_inv.comp_aemeasurable hdet.aemeasurable).aestronglyMeasurable
+  have heq : (fun ω => (A ω)⁻¹) =
+      (fun ω => Ring.inverse ((A ω).det) • (A ω).adjugate) := by
+    funext ω
+    exact Matrix.inv_def (A ω)
+  rw [heq]
+  exact hrinv.smul hadj
+
 /-- **CMT for matrix inversion.** If `A n →ₚ A'` in measure and `A' ω` is nonsingular
 for every `ω`, then `(A n)⁻¹ →ₚ (A')⁻¹` in measure.
 
-Proof strategy: measurability of the inverse sequence follows from `Matrix.inv_def`
-(`A⁻¹ = Ring.inverse A.det • A.adjugate`), combined with the fact that `det` and
-`adjugate` are continuous polynomials and that scalar `Inv.inv : ℝ → ℝ` is measurable.
 Pointwise a.s. convergence follows from Mathlib's `continuousAt_matrix_inv`, which
-gives continuity of matrix inversion at each nonsingular limit point. -/
+gives continuity of matrix inversion at each nonsingular limit point. Measurability
+of the inverse sequence reuses `aestronglyMeasurable_matrix_inv`. -/
 theorem tendstoInMeasure_matrix_inv
     [IsFiniteMeasure μ]
     {A : ℕ → α → Matrix k k ℝ} {A' : α → Matrix k k ℝ}
@@ -125,24 +147,8 @@ theorem tendstoInMeasure_matrix_inv
     (hconv : TendstoInMeasure μ A atTop A')
     (hinv : ∀ ω, IsUnit (A' ω).det) :
     TendstoInMeasure μ (fun n ω => (A n ω)⁻¹) atTop (fun ω => (A' ω)⁻¹) := by
-  have hmeas_inv : ∀ n, AEStronglyMeasurable (fun ω => (A n ω)⁻¹) μ := by
-    intro n
-    have hdet : AEStronglyMeasurable (fun ω => (A n ω).det) μ :=
-      (Continuous.matrix_det continuous_id).comp_aestronglyMeasurable (hmeas n)
-    have hadj : AEStronglyMeasurable (fun ω => (A n ω).adjugate) μ :=
-      (Continuous.matrix_adjugate continuous_id).comp_aestronglyMeasurable (hmeas n)
-    have hrinv : AEStronglyMeasurable (fun ω => Ring.inverse ((A n ω).det)) μ := by
-      have heq : (fun ω => Ring.inverse ((A n ω).det)) = (fun ω => ((A n ω).det)⁻¹) := by
-        funext ω
-        exact Ring.inverse_eq_inv _
-      rw [heq]
-      exact (measurable_inv.comp_aemeasurable hdet.aemeasurable).aestronglyMeasurable
-    have heq : (fun ω => (A n ω)⁻¹) =
-        (fun ω => Ring.inverse ((A n ω).det) • (A n ω).adjugate) := by
-      funext ω
-      exact Matrix.inv_def (A n ω)
-    rw [heq]
-    exact hrinv.smul hadj
+  have hmeas_inv : ∀ n, AEStronglyMeasurable (fun ω => (A n ω)⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (hmeas n)
   rw [exists_seq_tendstoInMeasure_atTop_iff hmeas_inv]
   intro ns hns
   obtain ⟨ns', hns', hae⟩ :=

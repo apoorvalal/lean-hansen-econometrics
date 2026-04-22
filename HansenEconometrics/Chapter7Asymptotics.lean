@@ -280,6 +280,70 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
     (fun i ω => e i ω • X i ω)
     h.int_cross h.indep_cross h.ident_cross
 
+/-- **Hansen Theorem 7.1 core — convergence of the OLS-error transform.**
+Under Assumption 7.1, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the deterministic
+RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` (valid on the
+event `{Q̂ₙ invertible}`) — converges in probability to `0`.
+
+Proof chain:
+* Task 9: `Q̂ₙ →ₚ Q`.
+* Task 7: composed with Task 9 and `h.Q_nonsing`, this gives `Q̂ₙ⁻¹ →ₚ Q⁻¹`.
+* Task 10: `ĝₙ(e) →ₚ 0`.
+* `tendstoInMeasure_mulVec` joins these to `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ Q⁻¹ *ᵥ 0 = 0`.
+
+The remaining step to close the textbook Theorem 7.1 (`olsBetaStar →ₚ β`) is a
+probabilistic invertibility argument: by CMT on `det`, `(Q̂ₙ).det →ₚ Q.det ≠ 0`,
+so the event `{ω : Q̂ₙ(ω) is singular}` has measure → 0. On its complement, the
+Phase 1 identity applies; off it, measure shrinks. That step is mechanical but
+verbose and is left as a follow-up. -/
+theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleAssumption71 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun _ => (0 : k → ℝ)) := by
+  have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram h
+  have hCross := sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero h
+  -- Measurability of sampleGram via (1/n) • ∑ Xᵢ Xᵢᵀ
+  have hGram_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hCross_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω)
+          (stackErrors e n ω)) =
+        (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
+      funext ω
+      rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+          sum_fin_eq_sum_range_smul]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+  have hInv : TendstoInMeasure μ
+      (fun n ω => (sampleGram (stackRegressors X n ω))⁻¹)
+      atTop (fun _ => (popGram μ X)⁻¹) :=
+    tendstoInMeasure_matrix_inv hGram_meas hGram (fun _ => h.Q_nonsing)
+  have hInv_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (hGram_meas n)
+  have hmulVec := tendstoInMeasure_mulVec hInv_meas hCross_meas hInv hCross
+  simpa using hmulVec
+
 end Assumption71
 
 end HansenEconometrics
