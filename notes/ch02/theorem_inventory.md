@@ -16,6 +16,9 @@ Formalization focus so far:
 
 These are the cleanest early results to formalize because Mathlib already has strong conditional-expectation infrastructure.
 
+Crosswalk:
+- The Chapter 2 LaTeX/Lean side-by-side notes live in [latex_links.md](./latex_links.md).
+
 ## Dependency graph
 
 ### Level 0: imported Mathlib primitives

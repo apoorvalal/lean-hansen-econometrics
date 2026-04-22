@@ -113,4 +113,79 @@ theorem variance_cefError_antitone
           variance_condExp_le_variance (m := m₁) (m₀ := m₀) hm₁₀ hce₂
   linarith
 
+section ProbabilityOnRandomVars
+
+variable {β γ : Type*}
+variable [MeasurableSpace β] [MeasurableSpace γ]
+
+/-- Law of total variance stated in terms of a conditioning variable `X`. -/
+theorem law_total_variance_rv
+    {Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [IsProbabilityMeasure μ]
+    (hY : MemLp Y 2 μ) :
+    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ] := by
+  simpa [condVarOn, condExpOn, conditioningSpace] using
+    law_total_variance
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hY
+
+/-- The explained variance from conditioning on `X` is bounded by the total variance. -/
+theorem variance_condExpOn_le_variance
+    {Y : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [IsProbabilityMeasure μ]
+    (hY : MemLp Y 2 μ) :
+    Var[condExpOn μ Y X; μ] ≤ Var[Y; μ] := by
+  simpa [condExpOn, conditioningSpace] using
+    variance_condExp_le_variance
+      (m := conditioningSpace X)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (conditioningSpace_le hX)
+      hY
+
+/-- Richer conditioning variables weakly reduce the residual variance. -/
+theorem residualVarOn_antitone
+    {Y : Ω → ℝ} {X₁ : Ω → β} {X₂ : Ω → γ}
+    (hX : conditioningSpace X₁ ≤ conditioningSpace X₂)
+    (hX₂ : Measurable X₂)
+    [IsProbabilityMeasure μ]
+    (hY : MemLp Y 2 μ) :
+    residualVarOn μ Y X₂ ≤ residualVarOn μ Y X₁ := by
+  simpa [residualVarOn, conditioningSpace] using
+    variance_cefError_antitone
+      (m₁ := conditioningSpace X₁)
+      (m₂ := conditioningSpace X₂)
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      hX
+      (conditioningSpace_le hX₂)
+      hY
+
+/-- If `X₁ = f(X₂)` for a measurable `f`, then conditioning on `X₂` weakly reduces residual
+variance relative to conditioning on `X₁`. -/
+theorem residualVarOn_antitone_of_factor
+    {Y : Ω → ℝ} {X₁ : Ω → β} {X₂ : Ω → γ} {f : γ → β}
+    (hf : Measurable f)
+    (hX₂ : Measurable X₂)
+    (hX : X₁ = f ∘ X₂)
+    [IsProbabilityMeasure μ]
+    (hY : MemLp Y 2 μ) :
+    residualVarOn μ Y X₂ ≤ residualVarOn μ Y X₁ :=
+  residualVarOn_antitone
+    (μ := μ)
+    (Y := Y)
+    (conditioningSpace_le_of_factor (hf := hf) hX)
+    hX₂
+    hY
+
+end ProbabilityOnRandomVars
+
 end HansenEconometrics
