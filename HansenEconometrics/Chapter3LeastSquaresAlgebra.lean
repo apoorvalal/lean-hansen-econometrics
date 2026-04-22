@@ -20,6 +20,19 @@ noncomputable def sumSquaredErrors (X : Matrix n k ℝ) (y : n → ℝ) (b : k �
 noncomputable def olsBeta (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : k → ℝ :=
   (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)
 
+/-- Total version of `olsBeta`: uses `Matrix.nonsingInv` so it is defined on *every*
+design matrix, agreeing with `olsBeta` when `Xᵀ * X` is invertible and returning `0`
+otherwise. Required for the Chapter 7 stochastic story, where the invertibility of
+`Xᵀ * X` holds only a.s., not by typeclass. -/
+noncomputable def olsBetaStar (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
+  (Xᵀ * X)⁻¹ *ᵥ (Xᵀ *ᵥ y)
+
+theorem olsBetaStar_eq_olsBeta
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsBetaStar X y = olsBeta X y := by
+  unfold olsBetaStar olsBeta
+  rw [← invOf_eq_nonsing_inv]
+
 /-- Hansen Section 3.10: fitted values `X β̂`. -/
 noncomputable def fitted (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : n → ℝ :=
   X *ᵥ olsBeta X y
