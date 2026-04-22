@@ -36,7 +36,8 @@ In practice this means we will often restate Hansen’s results in more Lean-nat
 ## Repository structure
 
 - `HansenEconometrics/` — Lean source files
-- `notes/` — theorem inventories / progress notes
+- `textbook/` — chapter excerpts and chapter-local redirect notes
+- `inventory/` — canonical chapter inventories and crosswalks
 - `AGENTS.md` — repo style guide for contributors and coding agents
 - `HansenEconometrics.lean` — root imports
 - `lakefile.toml`, `lake-manifest.json`, `lean-toolchain` — Lean project config
@@ -136,13 +137,13 @@ Planned next within Chapter 3:
 - centered analysis-of-variance / `R²` identities
 
 See also:
-- `notes/ch02/theorem_inventory.md`
-- `notes/ch02/latex_links.md`
-- `notes/ch02/ch2_excerpt.txt`
-- `notes/ch03/inventory.md`
-- `notes/ch03/ch3_excerpt.txt`
-- `notes/ch04/inventory.md`
-- `notes/ch04/ch4_excerpt.txt`
+- `inventory/ch2-inventory.md`
+- `textbook/ch02/latex_links.md`
+- `textbook/ch02/ch2_excerpt.txt`
+- `inventory/ch3-inventory.md`
+- `textbook/ch03/ch3_excerpt.txt`
+- `inventory/ch4-inventory.md`
+- `textbook/ch04/ch4_excerpt.txt`
 
 ## Current Chapter 5 progress
 

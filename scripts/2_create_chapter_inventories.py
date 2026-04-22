@@ -3,7 +3,8 @@ from pathlib import Path
 
 
 CHAPTERS_DIR = Path("chapters")
-NOTES_DIR = Path("notes")
+TEXTBOOK_DIR = Path("textbook")
+INVENTORY_DIR = Path("inventory")
 CANDIDATE_RE = re.compile(
     r"^(?:"
     r"\d+\.\d+\s+.+|"
@@ -27,11 +28,11 @@ def chapter_title(pdf_path: Path) -> str:
 
 
 def excerpt_path(chapter: str) -> Path:
-    return NOTES_DIR / f"ch{chapter}" / f"ch{int(chapter)}_excerpt.txt"
+    return TEXTBOOK_DIR / f"ch{chapter}" / f"ch{int(chapter)}_excerpt.txt"
 
 
 def inventory_path(chapter: str) -> Path:
-    return NOTES_DIR / f"ch{chapter}" / "inventory.md"
+    return INVENTORY_DIR / f"ch{int(chapter)}-inventory.md"
 
 
 def candidate_lines(text: str) -> list[str]:
@@ -77,6 +78,7 @@ def inventory_text(pdf_path: Path, chapter: str, candidates: list[str]) -> str:
 
 
 def main() -> None:
+    INVENTORY_DIR.mkdir(parents=True, exist_ok=True)
     for pdf_path in sorted(CHAPTERS_DIR.glob("[0-9][0-9]-*.pdf")):
         chapter = chapter_number(pdf_path)
         inv_path = inventory_path(chapter)

@@ -117,7 +117,9 @@ Examples:
 
 ## Crosswalk policy
 
-Each chapter now has a local `notes/chXX/latex_links.md`.
+Each chapter now has a canonical root inventory file `inventory/chN-inventory.md`.
+Chapter-local `textbook/chXX/latex_links.md` files are lightweight redirects into that canonical
+inventory.
 
 Purpose:
 - map textbook statements to Lean theorems or definitions
@@ -141,12 +143,14 @@ Recommended structure:
 
 ## Documentation policy
 
-- `notes/chXX/inventory.md` is for planning, status, and dependency notes.
-- `notes/chXX/latex_links.md` is for theorem-by-theorem statement mapping.
-- Do not overload the inventory with full side-by-side theorem presentations.
-- When a new theorem lands, update both:
+- `inventory/chN-inventory.md` is the canonical chapter note for planning, status, dependency notes,
+  and theorem-by-theorem mapping.
+- `textbook/chXX/latex_links.md` should stay as a redirect into the canonical inventory rather than a
+  separate source of truth.
+- Keep the crosswalk inside the chapter inventory rather than splitting it into another primary file.
+- When a new theorem lands, update:
   - the relevant Lean file docstring if needed
-  - the chapter crosswalk
+  - the canonical chapter inventory
 
 ## Theorem-writing policy
 
@@ -179,7 +183,7 @@ Before opening or updating a PR, check:
 - For probability results, is the public theorem variable-facing unless there is a good reason not to
   be?
 - Does the result belong in an existing module rather than a new file?
-- Did the corresponding `latex_links.md` file get updated?
+- Did the corresponding chapter inventory get updated?
 - Are all new markdown links relative?
 
 ## Current examples
