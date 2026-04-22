@@ -27,6 +27,7 @@ otherwise. Required for the Chapter 7 stochastic story, where the invertibility 
 noncomputable def olsBetaStar (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
   (Xᵀ * X)⁻¹ *ᵥ (Xᵀ *ᵥ y)
 
+/-- Under invertibility of `Xᵀ * X`, the total `olsBetaStar` agrees with `olsBeta`. -/
 theorem olsBetaStar_eq_olsBeta
     (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
     olsBetaStar X y = olsBeta X y := by
