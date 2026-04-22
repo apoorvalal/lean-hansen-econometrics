@@ -198,9 +198,9 @@ Hansen's notation and the Lean formalization.
   $\int \operatorname{Var}(Y \mid \mathcal{G}) \, d\mu = \int e^2 \, d\mu$.
 - [`linearProjectionBeta_eq_of_normal_equations`](../../HansenEconometrics/Chapter2LinearProjection.lean#L41):
   solves $Q_{XX} b = Q_{XY}$ as $b = Q_{XX}^{-1} Q_{XY}$.
-- [`integral_dotProduct_eq_meanVec_dotProduct`](../../HansenEconometrics/Chapter2LinearProjection.lean#L158):
+- [`integral_dotProduct_eq_meanVec_dotProduct`](../../HansenEconometrics/ProbabilityUtils.lean):
   $\int X' b \, d\mu = (\int X \, d\mu)' b$.
-- [`covVec_dotProduct_eq_covMat_mulVec`](../../HansenEconometrics/Chapter2LinearProjection.lean#L174):
+- [`covVec_dotProduct_eq_covMat_mulVec`](../../HansenEconometrics/ProbabilityUtils.lean):
   $\operatorname{cov}(X, X' b) = \operatorname{covMat}(X) b$.
 - [`covVec_linearProjectionModel`](../../HansenEconometrics/Chapter2LinearProjection.lean#L191):
   $\operatorname{cov}(X, \alpha + X' \beta + e) = \operatorname{covMat}(X)\beta +
