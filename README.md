@@ -27,7 +27,7 @@ The intended workflow is:
 5. commit frequently as each theorem cluster turns green.
 
 In practice this means we will often restate Hansen’s results in more Lean-native language:
-- reusable random-variable conditioning helpers in `HansenEconometrics/Probability/RandomVars.lean`,
+- reusable random-variable conditioning helpers in `HansenEconometrics/ProbabilityUtils.lean`,
 - variable-based wrappers for chapter-facing probability statements in the chapter files,
 - sigma-algebras in the backend support layer when that matches Mathlib,
 - almost-everywhere equality where that is mathematically correct,
@@ -85,7 +85,7 @@ Legend:
 
 Completed in `HansenEconometrics/Chapter2CondExp.lean`,
 `HansenEconometrics/Chapter2Variance.lean`,
-`HansenEconometrics/Probability/RandomVars.lean`,
+`HansenEconometrics/ProbabilityUtils.lean`,
 and `HansenEconometrics/Chapter2LinearProjection.lean`:
 - reusable helper definitions `conditioningSpace`, `XMeasurable`, `condExpOn`, `cefErrorOn`,
   `condVarOn`, and `residualVarOn`

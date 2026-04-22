@@ -8,7 +8,7 @@ Conventions:
 - The left column gives a compact LaTeX rendering of the formalized statement.
 - The right column gives the corresponding Lean conclusion, not the full proof script.
 - Reusable helper definitions and bridge lemmas live in
-  [Probability/RandomVars.lean](../../HansenEconometrics/Probability/RandomVars.lean).
+  [ProbabilityUtils.lean](../../HansenEconometrics/ProbabilityUtils.lean).
 - Public Chapter 2 probability theorems point to
   [Chapter2CondExp.lean](../../HansenEconometrics/Chapter2CondExp.lean) and
   [Chapter2Variance.lean](../../HansenEconometrics/Chapter2Variance.lean).
@@ -83,7 +83,7 @@ Links:
 Links:
 - [Hansen excerpt](./ch2_excerpt.txt#L691)
 - [Backend theorem](../../HansenEconometrics/Chapter2Variance.lean#L28)
-- [Public CEF error wrapper](../../HansenEconometrics/Probability/RandomVars.lean)
+- [Public CEF error wrapper](../../HansenEconometrics/ProbabilityUtils.lean)
 
 | LaTeX | Lean conclusion |
 | --- | --- |
@@ -183,13 +183,13 @@ Notes:
 These theorems are not direct textbook labels, but they are the key translation lemmas between
 Hansen's notation and the Lean formalization.
 
-- [`condExp_apply`](../../HansenEconometrics/Probability/RandomVars.lean):
+- [`condExp_apply`](../../HansenEconometrics/ProbabilityUtils.lean):
   coordinate projection commutes with conditional expectation.
-- [`condExp_apply_apply`](../../HansenEconometrics/Probability/RandomVars.lean):
+- [`condExp_apply_apply`](../../HansenEconometrics/ProbabilityUtils.lean):
   entrywise conditional expectation for finite-dimensional arrays.
-- [`integral_apply`](../../HansenEconometrics/Probability/RandomVars.lean):
+- [`integral_apply`](../../HansenEconometrics/ProbabilityUtils.lean):
   coordinate projection commutes with integration.
-- [`integral_apply_apply`](../../HansenEconometrics/Probability/RandomVars.lean):
+- [`integral_apply_apply`](../../HansenEconometrics/ProbabilityUtils.lean):
   entrywise integration for finite-dimensional arrays.
 - [`condExpL2_minimal`](../../HansenEconometrics/Chapter2CondExp.lean#L137):
   $\lVert Y - \mathbb{E}[Y \mid m] \rVert_2 \le \lVert Y - g \rVert_2$ in the $L^2$ projection language

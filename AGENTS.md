@@ -15,7 +15,7 @@ review.
   Mathlib-facing theorem and add a thin Hansen-facing wrapper if the chapter benefits from it.
 
 Examples:
-- [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean)
+- [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
   reuses Mathlib's conditional-expectation machinery and exposes reusable conditioning helpers on
   random variables.
 - Chapter 2.10 reuses the earlier normal-equations theorem instead of reproving the algebra from
@@ -37,7 +37,7 @@ Examples:
   chapter-facing variable wrappers proved in
   [HansenEconometrics/Chapter2CondExp.lean](./HansenEconometrics/Chapter2CondExp.lean) and
   [HansenEconometrics/Chapter2Variance.lean](./HansenEconometrics/Chapter2Variance.lean), while
-  [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean)
+  [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
   supplies the shared helper layer
 - abstract `QXX` / `QXY` theorems first, moment or covariance wrappers second
 
@@ -53,7 +53,7 @@ Examples:
 
 Examples:
 - `condExpOn`, `cefErrorOn`, `condVarOn`, and `residualVarOn` live in the reusable helper layer
-  [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean).
+  [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean).
 - textbook-facing Chapter 2 wrappers such as `tower_property_rv`, `best_predictor_rv`, and
   `law_total_variance_rv` belong in the chapter files
   [HansenEconometrics/Chapter2CondExp.lean](./HansenEconometrics/Chapter2CondExp.lean) and
@@ -91,7 +91,7 @@ Examples:
 
 ## Module boundary policy
 
-- Extend [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean)
+- Extend [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
   when the result is a reusable variable-conditioned helper fact likely to be used across multiple
   Chapter 2+ proofs.
 - Extend an existing chapter file when the theorem is chapter-local, tightly tied to nearby results,
@@ -105,7 +105,7 @@ Examples:
 - Prefer adding a few bridge lemmas before splitting into a new file.
 
 Examples:
-- [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean)
+- [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
   merits its own module because it is a reusable helper layer with a distinct audience from the
   chapter-facing theorems and the backend sigma-algebra files.
 - The Chapter 2 sigma-algebra files stay separate because they are backend support for multiple
@@ -184,7 +184,7 @@ Before opening or updating a PR, check:
 
 ## Current examples
 
-- [HansenEconometrics/Probability/RandomVars.lean](./HansenEconometrics/Probability/RandomVars.lean)
+- [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
   is the current model for a reusable helper layer over random-variable conditioning.
 - [HansenEconometrics/Chapter2CondExp.lean](./HansenEconometrics/Chapter2CondExp.lean) and
   [HansenEconometrics/Chapter2Variance.lean](./HansenEconometrics/Chapter2Variance.lean) are the

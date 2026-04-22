@@ -1,4 +1,4 @@
-import HansenEconometrics.Probability.RandomVars
+import HansenEconometrics.ProbabilityUtils
 
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory
 open MeasureTheory
