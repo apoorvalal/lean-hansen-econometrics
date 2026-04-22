@@ -1,7 +1,9 @@
 import Mathlib
 
 open MeasureTheory ProbabilityTheory
+open Matrix
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory
+open scoped Matrix
 
 namespace HansenEconometrics
 
@@ -87,6 +89,61 @@ theorem integral_apply_apply
       exact integral_apply (μ := μ) (f := fun ω => f ω i) (Integrable.eval hf i) j
 
 end ConditionalExpectationHelpers
+
+section MeanCovarianceHelpers
+
+variable {Ω k : Type*}
+variable [Fintype k]
+variable {mΩ : MeasurableSpace Ω}
+variable {μ : Measure Ω}
+
+/-- Population mean of a finite-dimensional random vector. -/
+noncomputable def meanVec (μ : Measure Ω) (X : Ω → k → ℝ) : k → ℝ :=
+  ∫ ω, X ω ∂μ
+
+/-- Population covariance vector between a regressor vector `X` and a scalar outcome `Y`. -/
+noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → ℝ) : k → ℝ :=
+  fun i => cov[fun ω => X ω i, Y; μ]
+
+/-- Population covariance matrix of a finite-dimensional random vector `X`. -/
+noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
+  fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
+
+/-- Integrating a linear form equals applying that linear form to the vector mean. -/
+theorem integral_dotProduct_eq_meanVec_dotProduct
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, Integrable (fun ω => X ω i) μ) :
+    ∫ ω, dotProduct (X ω) b ∂μ = meanVec μ X ⬝ᵥ b := by
+  classical
+  simp_rw [dotProduct]
+  rw [integral_finset_sum]
+  · simp_rw [integral_mul_const]
+    refine Finset.sum_congr rfl ?_
+    intro i hi
+    rw [show (∫ ω, X ω i ∂μ) = (meanVec μ X) i by
+      simpa [meanVec] using (MeasureTheory.eval_integral (μ := μ) (f := X) (hf := hX) i).symm]
+  · intro i hi
+    exact (hX i).mul_const (b i)
+
+/-- The covariance vector with a linear form equals the covariance matrix times the coefficient
+vector. -/
+theorem covVec_dotProduct_eq_covMat_mulVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
+    covVec μ X (fun ω => dotProduct (X ω) b) = covMat μ X *ᵥ b := by
+  classical
+  ext i
+  change cov[fun ω => X ω i, fun ω => ∑ j, X ω j * b j; μ] =
+    ∑ j, cov[fun ω => X ω i, fun ω => X ω j; μ] * b j
+  rw [ProbabilityTheory.covariance_fun_sum_right
+      (X := fun j ω => X ω j * b j) (Y := fun ω => X ω i)]
+  · simp_rw [ProbabilityTheory.covariance_mul_const_right]
+  · intro j
+    exact (hX j).mul_const (b j)
+  · exact hX i
+
+end MeanCovarianceHelpers
 
 section ConditioningSpaces
 
