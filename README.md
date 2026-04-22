@@ -27,7 +27,9 @@ The intended workflow is:
 5. commit frequently as each theorem cluster turns green.
 
 In practice this means we will often restate Hansen’s results in more Lean-native language:
-- sigma-algebras instead of only pointwise `E[Y | X = x]` notation,
+- reusable random-variable conditioning helpers in `HansenEconometrics/ProbabilityUtils.lean`,
+- variable-based wrappers for chapter-facing probability statements in the chapter files,
+- sigma-algebras in the backend support layer when that matches Mathlib,
 - almost-everywhere equality where that is mathematically correct,
 - projection and orthogonality statements in forms that line up with Mathlib.
 
@@ -35,6 +37,7 @@ In practice this means we will often restate Hansen’s results in more Lean-nat
 
 - `HansenEconometrics/` — Lean source files
 - `notes/` — theorem inventories / progress notes
+- `AGENTS.md` — repo style guide for contributors and coding agents
 - `HansenEconometrics.lean` — root imports
 - `lakefile.toml`, `lake-manifest.json`, `lean-toolchain` — Lean project config
 
@@ -81,28 +84,33 @@ Legend:
 ## Current Chapter 2 progress
 
 Completed in `HansenEconometrics/Chapter2CondExp.lean`,
-`HansenEconometrics/Chapter2Variance.lean`, and `HansenEconometrics/Chapter2LinearProjection.lean`:
+`HansenEconometrics/Chapter2Variance.lean`,
+`HansenEconometrics/ProbabilityUtils.lean`,
+and `HansenEconometrics/Chapter2LinearProjection.lean`:
+- reusable helper definitions `conditioningSpace`, `XMeasurable`, `condExpOn`, `cefErrorOn`,
+  `condVarOn`, and `residualVarOn`
+- coordinatewise conditional-expectation / integral bridge lemmas for finite-dimensional random
+  vectors and arrays
 - simple law of iterated expectations
 - tower property for nested sigma-algebras
-- tower property in the `X₁, X₂` then `X₁` form
-- conditioning / pull-out theorem
-- CEF error has conditional mean zero
-- CEF error has unconditional mean zero
-- orthogonality of CEF error to measurable functions
+- tower property in variable-facing form in `Chapter2CondExp.lean`
+- conditioning / pull-out theorem in variable-facing form in `Chapter2CondExp.lean`
+- CEF error has conditional mean zero in `Chapter2CondExp.lean`
+- CEF error has unconditional mean zero in `Chapter2CondExp.lean`
+- orthogonality of CEF error to measurable functions of `X` in `Chapter2CondExp.lean`
 - integral conditional variance = integral squared CEF error
 - Theorem 2.5: CEF error has finite second moment when `Y ∈ L²`
-- law of total variance
+- law of total variance in sigma-algebra and variable-facing form
 - rearranged variance decomposition
 - variance of the conditional expectation bounded by total variance
-- Theorem 2.6: residual-variance monotonicity for nested conditioning sigma-algebras
+- Theorem 2.6: residual-variance monotonicity for richer conditioning information
 - Definition 2.5 / Theorem 2.9 linear projection coefficient algebra
 - population normal equations and orthogonality for the best linear projection
 - uniqueness from the population normal equations
 - quadratic projection criterion simplification at the projection coefficient
 
 Planned next within Chapter 2:
-- conditional expectation as best predictor
-- full best-linear-predictor minimization statement
+- additional best-linear-predictor corollaries beyond the current conditional-mean result
 - later chapter 2 identification / existence statements where worthwhile
 
 ## Current Chapter 3 progress
@@ -129,6 +137,7 @@ Planned next within Chapter 3:
 
 See also:
 - `notes/ch02/theorem_inventory.md`
+- `notes/ch02/latex_links.md`
 - `notes/ch02/ch2_excerpt.txt`
 - `notes/ch03/inventory.md`
 - `notes/ch03/ch3_excerpt.txt`
@@ -183,5 +192,6 @@ The point is not to force Hansen’s prose into Lean line by line. The point is 
 
 That means:
 - proving reusable infrastructure first,
+- keeping public APIs close to the variable-based notation that applied econometricians expect,
 - preferring mathematically canonical formulations,
 - and being honest about what is already in Mathlib versus what we are adding on top.
