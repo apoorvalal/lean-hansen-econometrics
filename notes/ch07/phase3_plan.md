@@ -450,9 +450,24 @@ Before proceeding to Task 8:
 1. Verify the committed `tendstoInMeasure_matrix_inv` actually builds (not just
    typechecks with `sorry`).
 2. Confirm the finalized signature still matches what Tasks 9 and 11 call. If the
-   hypothesis shape drifted (e.g. pointwise `IsUnit (A∞ ω).det` became
+   hypothesis shape drifted (e.g. pointwise `IsUnit (A' ω).det` became
    `∀ᵐ ω`, or measurability packaging changed), update the downstream proof sketches
    in this plan *before* starting Task 8.
+
+**Resolution (Task 7 done, commit `0581c89`):**
+- Final signature is the one drafted in Step 1, with `A'` substituted for `A∞`
+  (Lean's parser rejects `∞` in identifiers). Pointwise `IsUnit (A' ω).det` is
+  preserved.
+- `AsymptoticUtils.lean` opens `Matrix.Norms.Elementwise` at section scope to
+  make `EDist (Matrix k k ℝ)` available — without it, `TendstoInMeasure` on
+  matrix-valued functions does not even typecheck. **Tasks 8–11 will need the
+  same `open scoped Matrix.Norms.Elementwise` at the top of their section in
+  `Chapter7Asymptotics.lean`.** This is a non-obvious prerequisite that would
+  otherwise surface as cryptic `EDist` synthesis errors.
+- Proof uses `Matrix.inv_def` (A⁻¹ = Ring.inverse A.det • A.adjugate) for
+  measurability; `continuousAt_matrix_inv` + `Ring.inverse_eq_inv'` +
+  `continuousAt_inv₀` for pointwise continuity at the nonsingular limit. No
+  fallback to Cramer-from-scratch was needed.
 
 ---
 
