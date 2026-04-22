@@ -1,7 +1,12 @@
 import Mathlib.Probability.Distributions.Gamma
 import Mathlib.Probability.Distributions.Gaussian.Real
+import Mathlib.Probability.Distributions.Beta
 import Mathlib.Probability.HasLaw
 import Mathlib.Probability.Independence.Basic
+import Mathlib.MeasureTheory.Measure.WithDensity
+import Mathlib.Analysis.LConvolution
+import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 open MeasureTheory ProbabilityTheory
 
@@ -357,26 +362,226 @@ private lemma gammaPDF_lconvolution_eq {a b r : ℝ} (hr : 0 < r) (ha : 0 < a) (
     · -- y < 0: the first factor is 0.
       left
       exact gammaPDF_of_neg (lt_of_not_ge hy)
-  -- Helper: pointwise equality for `x > 0` (the analytic core, currently unfinished).
+  -- Helper: pointwise equality for `x > 0` (the analytic core).
   have hpos : ∀ {x : ℝ}, 0 < x →
       (gammaPDF a r ⋆ₗ[volume] gammaPDF b r) x = gammaPDF (a + b) r x := by
-    -- TODO[positive case]: see docstring above.  Concrete plan:
-    --  (i) After `rw [lconvolution_def]`, restrict the integrand to `Ioo 0 x` via
-    --      `setLIntegral_congr_set` (the integrand is 0 outside).
-    --  (ii) Convert to a Bochner integral via `ofReal_integral_eq_lintegral_ofReal`
-    --       using `gammaPDFReal_nonneg ha hr` and integrability on `Ioo 0 x`.
-    --  (iii) Substitute `y = x · u` via `intervalIntegral.integral_comp_mul_left`,
-    --        mapping `Ioo 0 x → Ioo 0 1`.  The integrand becomes
-    --        `r^a/Γa · (xu)^(a-1) · exp(-rxu) · r^b/Γb · (x(1-u))^(b-1) · exp(-rx(1-u)) · x`.
-    --        Simplify exponents and exponentials to extract `x^(a+b-1) · exp(-rx)`.
-    --  (iv) Identify the residual `∫ u in (0,1), u^(a-1) (1-u)^(b-1) du` with
-    --       `(Complex.betaIntegral a b).re`.  Lift each `^` via `Complex.ofReal_cpow`
-    --       (need `0 ≤ u` and `0 ≤ 1 - u`), apply `Complex.Gamma_mul_Gamma_eq_betaIntegral`,
-    --       and use `Real.Gamma` ↔ `Complex.Gamma` via `Complex.Gamma_ofReal`.
-    --       Or equivalently, use `ProbabilityTheory.beta_eq_betaIntegralReal` directly.
-    --  (v) Conclude `r^(a+b)/Γ(a+b) · x^(a+b-1) · exp(-rx) = gammaPDFReal (a+b) r x`.
     intro x hx
-    sorry
+    -- Abbreviations for positivity facts.
+    have hΓa_pos : 0 < Real.Gamma a := Real.Gamma_pos_of_pos ha
+    have hΓb_pos : 0 < Real.Gamma b := Real.Gamma_pos_of_pos hb
+    have hΓab_pos : 0 < Real.Gamma (a + b) := Real.Gamma_pos_of_pos (add_pos ha hb)
+    have hra_pos : 0 < r ^ a := Real.rpow_pos_of_pos hr a
+    have hrb_pos : 0 < r ^ b := Real.rpow_pos_of_pos hr b
+    have hab_pos : 0 < a + b := add_pos ha hb
+    -- Step A: prove the residual real integral identity.
+    -- ∫ y in 0..x, y^(a-1) * (x-y)^(b-1) = x^(a+b-1) * beta a b.
+    have hbeta_real :
+        ∫ y in (0:ℝ)..x, y ^ (a - 1) * (x - y) ^ (b - 1) =
+          x ^ (a + b - 1) * ProbabilityTheory.beta a b := by
+      -- Use the complex version `Complex.betaIntegral_scaled` and lift via ofReal.
+      have hC :
+          ∫ y in (0:ℝ)..x, ((y : ℂ) ^ ((a : ℂ) - 1) * (((x : ℂ) - (y : ℂ)) ^ ((b : ℂ) - 1))) =
+            ((x : ℂ)) ^ ((a : ℂ) + (b : ℂ) - 1) * Complex.betaIntegral a b :=
+        Complex.betaIntegral_scaled (a : ℂ) (b : ℂ) hx
+      -- Identify the complex integrand on (0, x) with ofReal of the real integrand.
+      have hreal_to_complex :
+          ∫ y in (0:ℝ)..x, ((y : ℂ) ^ ((a : ℂ) - 1) * (((x : ℂ) - (y : ℂ)) ^ ((b : ℂ) - 1))) =
+            ((∫ y in (0:ℝ)..x, y ^ (a - 1) * (x - y) ^ (b - 1) : ℝ) : ℂ) := by
+        rw [← intervalIntegral.integral_ofReal]
+        refine intervalIntegral.integral_congr_ae ?_
+        refine ae_of_all _ (fun y hy => ?_)
+        rw [Set.uIoc_of_le hx.le] at hy
+        have hy0 : 0 ≤ y := hy.1.le
+        have hxy : 0 ≤ x - y := by linarith [hy.2]
+        have hxy_eq : ((x : ℂ) - (y : ℂ)) = (((x - y : ℝ)) : ℂ) := by push_cast; ring
+        rw [hxy_eq]
+        have ha1 : ((a : ℂ) - 1) = ((a - 1 : ℝ) : ℂ) := by push_cast; ring
+        have hb1 : ((b : ℂ) - 1) = ((b - 1 : ℝ) : ℂ) := by push_cast; ring
+        rw [ha1, hb1, ← Complex.ofReal_cpow hy0, ← Complex.ofReal_cpow hxy,
+          ← Complex.ofReal_mul]
+      rw [hreal_to_complex] at hC
+      -- Identify ((x : ℂ))^((a+b-1 : ℝ) : ℂ) with ofReal of x^(a+b-1).
+      have hxc : ((x : ℂ)) ^ ((a : ℂ) + (b : ℂ) - 1) = (((x ^ (a + b - 1) : ℝ)) : ℂ) := by
+        have heq : ((a : ℂ) + (b : ℂ) - 1) = ((a + b - 1 : ℝ) : ℂ) := by push_cast; ring
+        rw [heq, ← Complex.ofReal_cpow hx.le]
+      rw [hxc] at hC
+      -- Identify Complex.betaIntegral a b with ofReal of beta a b via Gamma identity.
+      have hbeta_id : Complex.betaIntegral (a : ℂ) (b : ℂ) =
+          (((ProbabilityTheory.beta a b) : ℝ) : ℂ) := by
+        have hbg : Complex.betaIntegral (a : ℂ) (b : ℂ) =
+            Complex.Gamma a * Complex.Gamma b / Complex.Gamma ((a : ℂ) + (b : ℂ)) := by
+          rw [Complex.betaIntegral_eq_Gamma_mul_div]
+          all_goals simp [ha, hb]
+        rw [hbg]
+        have hsum : ((a : ℂ) + (b : ℂ)) = ((a + b : ℝ) : ℂ) := by push_cast; ring
+        rw [hsum, Complex.Gamma_ofReal, Complex.Gamma_ofReal, Complex.Gamma_ofReal]
+        rw [ProbabilityTheory.beta]
+        push_cast; ring
+      rw [hbeta_id] at hC
+      -- Now hC : ofReal LHS = ofReal RHS_const * ofReal RHS_beta. Combine and use injectivity.
+      rw [← Complex.ofReal_mul] at hC
+      exact Complex.ofReal_injective hC
+    -- Step B: prove integrability of the polynomial integrand on Ioo 0 x.
+    -- Split at x/2: on [0, x/2], use rpow integrability of y^(a-1) and continuity of (x-y)^(b-1).
+    -- On [x/2, x], symmetric (use rpow integrability of (x-y)^(b-1) via change of variable).
+    have hpoly_int : IntegrableOn
+        (fun y => y ^ (a - 1) * (x - y) ^ (b - 1)) (Set.Ioo 0 x) volume := by
+      have hxh_pos : 0 < x / 2 := by linarith
+      have hxh_lt : x / 2 < x := by linarith
+      -- Integrability on [0, x/2]: y^(a-1) integrable; (x-y)^(b-1) continuous on [0, x/2].
+      have hII_left : IntervalIntegrable
+          (fun y : ℝ => y ^ (a - 1) * (x - y) ^ (b - 1)) volume 0 (x / 2) := by
+        apply IntervalIntegrable.mul_continuousOn
+        · exact intervalIntegral.intervalIntegrable_rpow' (by linarith : -1 < a - 1)
+        · -- (x - y)^(b-1) is continuous on [0, x/2] because x - y > 0 there.
+          apply ContinuousOn.rpow_const
+          · fun_prop
+          · intro y hy
+            rw [Set.uIcc_of_le hxh_pos.le] at hy
+            left
+            linarith [hy.2]
+      -- Integrability on [x/2, x]: change of variable z = x - y reduces to rpow on [0, x/2].
+      have hII_right : IntervalIntegrable
+          (fun y : ℝ => y ^ (a - 1) * (x - y) ^ (b - 1)) volume (x / 2) x := by
+        have hII_sym : IntervalIntegrable
+            (fun z : ℝ => (x - z) ^ (a - 1) * z ^ (b - 1)) volume 0 (x / 2) := by
+          apply IntervalIntegrable.continuousOn_mul
+            (intervalIntegral.intervalIntegrable_rpow' (by linarith : -1 < b - 1))
+          · apply ContinuousOn.rpow_const
+            · fun_prop
+            · intro z hz
+              rw [Set.uIcc_of_le hxh_pos.le] at hz
+              left; linarith [hz.2]
+        -- Apply comp_sub_left with c = x: gives integrability of (fun y => f(x - y)) on (x, x/2).
+        have key := hII_sym.comp_sub_left x
+        -- key : IntervalIntegrable (fun y => (x - (x-y))^(a-1) * (x-y)^(b-1)) volume (x-0) (x-x/2)
+        -- The function (x - (x-y))^(a-1) * (x-y)^(b-1) = y^(a-1) * (x-y)^(b-1).
+        have hfun_eq :
+            (fun y : ℝ => (x - (x - y)) ^ (a - 1) * (x - y) ^ (b - 1)) =
+            (fun y : ℝ => y ^ (a - 1) * (x - y) ^ (b - 1)) := by
+          funext y
+          have : x - (x - y) = y := by ring
+          rw [this]
+        rw [hfun_eq] at key
+        -- key : IntervalIntegrable ... volume (x - 0) (x - x/2) = (x, x/2)
+        -- IntervalIntegrable is symmetric in endpoints.
+        have hxsub : x - 0 = x := by ring
+        have hxsub2 : x - x / 2 = x / 2 := by ring
+        rw [hxsub, hxsub2] at key
+        exact key.symm
+      -- Combine the two IntervalIntegrable pieces.
+      have hII : IntervalIntegrable
+          (fun y : ℝ => y ^ (a - 1) * (x - y) ^ (b - 1)) volume 0 x :=
+        hII_left.trans hII_right
+      -- Convert IntervalIntegrable on [0, x] to IntegrableOn (Ioo 0 x).
+      rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hx.le] at hII
+      exact hII.mono_set Set.Ioo_subset_Ioc_self
+    -- Step 1: unfold lconvolution and reduce to support Ioo 0 x.
+    rw [lconvolution_def]
+    -- The integrand vanishes a.e. outside Ioo 0 x (pointwise on `Iio 0 ∪ Ioi x`,
+    -- and the boundary `{0, x}` has measure zero).
+    have hint_restrict :
+        ∫⁻ y, gammaPDF a r y * gammaPDF b r (-y + x) =
+          ∫⁻ y in Set.Ioo 0 x, gammaPDF a r y * gammaPDF b r (-y + x) := by
+      rw [← lintegral_indicator measurableSet_Ioo]
+      apply lintegral_congr_ae
+      have hboundary_null : (volume : Measure ℝ) ({(0 : ℝ), x} : Set ℝ) = 0 := by
+        rw [show (({(0 : ℝ), x} : Set ℝ)) = {(0:ℝ)} ∪ {x} from rfl]
+        exact measure_union_null (measure_singleton 0) (measure_singleton x)
+      have h_outside : ∀ y, y ∉ ({(0 : ℝ), x} : Set ℝ) → y ∉ Set.Ioo 0 x →
+          gammaPDF a r y * gammaPDF b r (-y + x) = 0 := by
+        intro y hne hyout
+        have hne0 : y ≠ 0 := fun h => hne (by simp [h])
+        have hnex : y ≠ x := fun h => hne (by simp [h])
+        rcases lt_or_ge y 0 with hlt | hge
+        · rw [gammaPDF_of_neg hlt]; ring
+        · rcases eq_or_lt_of_le hge with hzeroy | hpos
+          · exact absurd hzeroy.symm hne0
+          · -- y > 0; since y ∉ Ioo 0 x and y ≠ x, must have y > x.
+            have hxy : x < y := by
+              by_contra hc
+              push Not at hc
+              rcases eq_or_lt_of_le hc with hyx | hyltx
+              · exact hnex hyx
+              · exact hyout ⟨hpos, hyltx⟩
+            have hneg : -y + x < 0 := by linarith
+            rw [gammaPDF_of_neg hneg]; ring
+      have hae : ∀ᵐ y ∂volume, y ∉ ({(0 : ℝ), x} : Set ℝ) := by
+        rw [ae_iff]
+        simp only [not_not]
+        exact hboundary_null
+      filter_upwards [hae] with y hyc
+      by_cases hy : y ∈ Set.Ioo 0 x
+      · rw [Set.indicator_of_mem hy]
+      · rw [Set.indicator_of_notMem hy, h_outside y hyc hy]
+    rw [hint_restrict]
+    -- Step 2: identify integrand with ofReal of nonneg.
+    have hpdf_eq_pos : ∀ y ∈ Set.Ioo 0 x,
+        gammaPDF a r y * gammaPDF b r (-y + x) =
+          ENNReal.ofReal (gammaPDFReal a r y * gammaPDFReal b r (-y + x)) := by
+      intro _ _
+      simp only [gammaPDF]
+      rw [← ENNReal.ofReal_mul (gammaPDFReal_nonneg ha hr _)]
+    rw [setLIntegral_congr_fun measurableSet_Ioo hpdf_eq_pos]
+    -- Step 3: identify the integrand on Ioo 0 x with constant * polynomial.
+    have hsimp_integrand : ∀ y ∈ Set.Ioo 0 x,
+        gammaPDFReal a r y * gammaPDFReal b r (-y + x) =
+          (r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) * Real.exp (-(r * x))) *
+            (y ^ (a - 1) * (x - y) ^ (b - 1)) := by
+      intro y hy
+      have hy_pos : 0 < y := hy.1
+      have hxy_pos' : 0 < -y + x := by linarith [hy.2]
+      simp only [gammaPDFReal, if_pos hy_pos.le, if_pos hxy_pos'.le]
+      have hsub_eq : (-y + x) ^ (b - 1) = (x - y) ^ (b - 1) := by
+        congr 1; ring
+      rw [hsub_eq]
+      calc r ^ a / Real.Gamma a * y ^ (a - 1) * Real.exp (-(r * y)) *
+            (r ^ b / Real.Gamma b * (x - y) ^ (b - 1) * Real.exp (-(r * (-y + x))))
+          = r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) *
+            (y ^ (a - 1) * (x - y) ^ (b - 1)) *
+            (Real.exp (-(r * y)) * Real.exp (-(r * (-y + x)))) := by ring
+        _ = r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) *
+            (y ^ (a - 1) * (x - y) ^ (b - 1)) * Real.exp (-(r * x)) := by
+              rw [← Real.exp_add]; congr 1; ring
+        _ = r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) * Real.exp (-(r * x)) *
+            (y ^ (a - 1) * (x - y) ^ (b - 1)) := by ring
+    -- Step 4: conclude via constant pull-out.
+    -- Integrability follows from hpoly_int.
+    have hint_real_int : Integrable
+        (fun y => gammaPDFReal a r y * gammaPDFReal b r (-y + x))
+        (volume.restrict (Set.Ioo 0 x)) := by
+      have hC_int : Integrable
+          (fun y => (r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) * Real.exp (-(r * x))) *
+            (y ^ (a - 1) * (x - y) ^ (b - 1)))
+          (volume.restrict (Set.Ioo 0 x)) := hpoly_int.const_mul _
+      apply hC_int.congr
+      refine (ae_restrict_iff' measurableSet_Ioo).mpr ?_
+      exact ae_of_all _ (fun y hy => (hsimp_integrand y hy).symm)
+    have hint_real_ae_nn : 0 ≤ᵐ[volume.restrict (Set.Ioo 0 x)]
+        fun y => gammaPDFReal a r y * gammaPDFReal b r (-y + x) :=
+      ae_of_all _ (fun y => mul_nonneg (gammaPDFReal_nonneg ha hr _)
+        (gammaPDFReal_nonneg hb hr _))
+    rw [← ofReal_integral_eq_lintegral_ofReal hint_real_int hint_real_ae_nn]
+    -- Pull out constant from Bochner integral.
+    have hint_split :
+        ∫ y in Set.Ioo 0 x, gammaPDFReal a r y * gammaPDFReal b r (-y + x) =
+          (r ^ a / Real.Gamma a * (r ^ b / Real.Gamma b) * Real.exp (-(r * x))) *
+            ∫ y in Set.Ioo 0 x, y ^ (a - 1) * (x - y) ^ (b - 1) := by
+      rw [← integral_const_mul]
+      apply setIntegral_congr_fun measurableSet_Ioo
+      exact hsimp_integrand
+    rw [hint_split]
+    -- Convert ∫ in Ioo 0 x = ∫ in 0..x.
+    have hIoo_to_intervalIntegral :
+        ∫ y in Set.Ioo 0 x, y ^ (a - 1) * (x - y) ^ (b - 1) =
+          ∫ y in (0:ℝ)..x, y ^ (a - 1) * (x - y) ^ (b - 1) := by
+      rw [intervalIntegral.integral_of_le hx.le, ← integral_Ioc_eq_integral_Ioo]
+    rw [hIoo_to_intervalIntegral, hbeta_real]
+    -- Final algebra: ofReal (Cab_const * x^(a+b-1) * beta a b) = gammaPDF (a+b) r x.
+    rw [gammaPDF_of_nonneg hx.le]
+    congr 1
+    rw [ProbabilityTheory.beta, Real.rpow_add hr a b]
+    field_simp
   -- Combine: equality holds for all `x ≠ 0`, and `{0}` has volume zero.
   rw [Filter.EventuallyEq, ae_iff]
   -- Goal: volume {x | ¬ (LHS x = RHS x)} = 0.
