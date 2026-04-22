@@ -18,6 +18,26 @@ lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
   unfold sumSquaresRV
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
 
+section StandardizedCoords
+
+variable {n : Type*} [Fintype n] [DecidableEq n]
+
+/-- Coordinates of a Euclidean-space random vector in an orthonormal basis, standardized by
+`√σ²`. -/
+noncomputable def standardizedCoords
+    (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))
+    (σ2 : ℝ) (ε : Ω → EuclideanSpace ℝ n) : n → Ω → ℝ :=
+  fun i ω => b.repr (ε ω) i / Real.sqrt σ2
+
+/-- Restrict the standardized coordinate family along an injective index map. -/
+noncomputable def restrictedStandardizedCoords
+    {ι : Type*} [Fintype ι]
+    (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))
+    (φ : ι → n) (σ2 : ℝ) (ε : Ω → EuclideanSpace ℝ n) : ι → Ω → ℝ :=
+  fun i => standardizedCoords b σ2 ε (φ i)
+
+end StandardizedCoords
+
 /-- Convenient wrapper around Mathlib's jointly-Gaussian + zero-covariance independence lemma for
 real-valued pairs. -/
 lemma indep_of_jointGaussian_cov_zero
@@ -34,6 +54,110 @@ lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
     (hcov : ∀ i j, i ≠ j → cov[X i, X j; P] = 0) :
     iIndepFun X P :=
   hX.iIndepFun_of_covariance_eq_zero hcov
+
+section RealDistributionHelpers
+
+variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+variable {X : Ω → ℝ} {ν : Measure ℝ}
+
+/-- If `X` has law `ν`, then the probability of any measurable event of the form `X ∈ s` is just
+the mass of `s` under `ν`. -/
+theorem HasLaw.preimage_eq
+    (hX : HasLaw X ν μ) {s : Set ℝ} (hs : MeasurableSet s) :
+    μ (X ⁻¹' s) = ν s := by
+  rw [← hX.map_eq, Measure.map_apply_of_aemeasurable hX.aemeasurable hs]
+
+/-- Real-valued version of `HasLaw.preimage_eq`, expressed with `Measure.real`. -/
+theorem HasLaw.real_preimage_eq
+    (hX : HasLaw X ν μ) {s : Set ℝ} (hs : MeasurableSet s) :
+    μ.real (X ⁻¹' s) = ν.real s := by
+  rw [measureReal_def, HasLaw.preimage_eq hX hs, measureReal_def]
+
+/-- If `X` has law `ν`, then the lower-tail event `{X ≤ x}` has probability `cdf ν x`. -/
+theorem HasLaw.real_preimage_Iic_eq_cdf
+    [IsProbabilityMeasure ν]
+    (hX : HasLaw X ν μ) (x : ℝ) :
+    μ.real (X ⁻¹' Set.Iic x) = cdf ν x := by
+  rw [HasLaw.real_preimage_eq hX measurableSet_Iic, ProbabilityTheory.cdf_eq_real]
+
+/-- If `X` has law `ν`, then interval events for `X` can be read directly from `ν`. -/
+theorem HasLaw.real_preimage_Icc_eq
+    (hX : HasLaw X ν μ) (a b : ℝ) :
+    μ.real (X ⁻¹' Set.Icc a b) = ν.real (Set.Icc a b) := by
+  exact HasLaw.real_preimage_eq hX measurableSet_Icc
+
+/-- The symmetric event `|X| ≤ c` is the same as `X ∈ [-c, c]`, so its probability can be read
+from the law of `X`. -/
+theorem HasLaw.real_preimage_abs_le_eq_Icc
+    (hX : HasLaw X ν μ) (c : ℝ) :
+    μ.real {ω | |X ω| ≤ c} = ν.real (Set.Icc (-c) c) := by
+  rw [show {ω | |X ω| ≤ c} = X ⁻¹' Set.Icc (-c) c by
+    ext ω
+    simp [abs_le]]
+  exact HasLaw.real_preimage_Icc_eq hX (-c) c
+
+/-- For a real probability measure, the mass of `(a, b]` is the cdf increment `F(b) - F(a)`. -/
+theorem measureReal_Ioc_eq_cdf_sub
+    [IsProbabilityMeasure ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Ioc a b) = cdf ν b - cdf ν a := by
+  calc
+    ν.real (Set.Ioc a b) = ((cdf ν).measure).real (Set.Ioc a b) := by
+      rw [ProbabilityTheory.measure_cdf (μ := ν)]
+    _ = cdf ν b - cdf ν a := by
+      rw [measureReal_def, StieltjesFunction.measure_Ioc, ENNReal.toReal_ofReal]
+      exact (sub_nonneg).2 ((ProbabilityTheory.monotone_cdf ν) hab)
+
+/-- For a real probability measure, the mass of `[a, b]` is `F(b)` minus the left limit at `a`. -/
+theorem measureReal_Icc_eq_cdf_sub_leftLim
+    [IsProbabilityMeasure ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Icc a b) = cdf ν b - Function.leftLim (cdf ν) a := by
+  calc
+    ν.real (Set.Icc a b) = ((cdf ν).measure).real (Set.Icc a b) := by
+      rw [ProbabilityTheory.measure_cdf (μ := ν)]
+    _ = cdf ν b - Function.leftLim (cdf ν) a := by
+      rw [measureReal_def, StieltjesFunction.measure_Icc, ENNReal.toReal_ofReal]
+      exact (sub_nonneg).2 ((ProbabilityTheory.monotone_cdf ν).leftLim_le hab)
+
+/-- CDF version of `HasLaw.real_preimage_abs_le_eq_Icc` for probability measures. -/
+theorem HasLaw.real_preimage_abs_le_eq_cdf_sub_leftLim
+    [IsProbabilityMeasure ν]
+    (hX : HasLaw X ν μ) {c : ℝ} (hc : 0 ≤ c) :
+    μ.real {ω | |X ω| ≤ c} = cdf ν c - Function.leftLim (cdf ν) (-c) := by
+  rw [HasLaw.real_preimage_abs_le_eq_Icc hX c]
+  simpa using measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) (a := -c) (b := c) (by linarith)
+
+/-- For an atomless real probability measure, the mass of `[a, b]` is the cdf increment
+`F(b) - F(a)`. -/
+theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Icc a b) = cdf ν b - cdf ν a := by
+  have hleft :
+      Function.leftLim (cdf ν) a = cdf ν a := by
+    have hzero : ENNReal.ofReal (cdf ν a - Function.leftLim (cdf ν) a) = 0 := by
+      calc
+        ENNReal.ofReal (cdf ν a - Function.leftLim (cdf ν) a)
+            = (cdf ν).measure {a} := by
+              rw [StieltjesFunction.measure_singleton]
+        _ = ν {a} := by
+              rw [ProbabilityTheory.measure_cdf (μ := ν)]
+        _ = 0 := by
+              simp
+    have hle : cdf ν a - Function.leftLim (cdf ν) a ≤ 0 := ENNReal.ofReal_eq_zero.mp hzero
+    have hleft_le : Function.leftLim (cdf ν) a ≤ cdf ν a :=
+      (ProbabilityTheory.monotone_cdf ν).leftLim_le le_rfl
+    have hcdf_le : cdf ν a ≤ Function.leftLim (cdf ν) a := by linarith
+    exact le_antisymm hleft_le hcdf_le
+  rw [measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) hab, hleft]
+
+/-- If `X` has an atomless real probability law `ν`, then closed-interval events for `X` can be
+read off directly from the cdf increment of `ν`. -/
+theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν]
+    (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
+    μ.real (X ⁻¹' Set.Icc a b) = cdf ν b - cdf ν a := by
+  rw [HasLaw.real_preimage_Icc_eq hX, measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
+end RealDistributionHelpers
 
 section ConditionalExpectationHelpers
 

@@ -65,23 +65,65 @@
 Deferred for now unless needed:
 - likelihood / MLE derivations
 - Kinal (1980) style unconditional normality refinements
-- likelihood-ratio / F-test equivalence beyond the basic t-statistic route
 
 ## Status
 - in progress
-- landed a deterministic step-4 scaffold in `HansenEconometrics/Chapter5NormalRegression.lean`:
+- landed Theorem 5.7 in `HansenEconometrics/Chapter5NormalRegression.lean`:
   - `residual_quadratic_form_of_linear_model`
   - `olsResidualVarianceEstimator_linear_model_quadratic_form`
   - `scaledOlsResidualVarianceStatistic`
   - `residual_quadratic_form_eq_sum_sq_eigenvector_coords`
+  - `scaledOlsResidualVarianceStatistic_eq_sum_sq_eigenvector_coords`
+  - `scaledOlsResidualVarianceStatistic_hasLaw_chiSquared`
+- landed Theorem 5.8 in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `standardizedOlsBetaCoordinate`
+  - `olsStudentizationFactor`
+  - `olsTStatistic`
+  - `standardizedOlsBetaCoordinate_hasLaw_standardNormal`
+  - `standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic`
+  - `olsStudentizationFactor_hasLaw`
+  - `olsTStatistic_hasLaw_studentT`
+- `scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div`
+- `olsBeta_indep_scaledOlsResidualVarianceStatistic`
+- landed Theorem 5.9 in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsConfidenceInterval`
+  - `mem_olsConfidenceInterval_iff_abs_centered_div_le`
+  - `ae_mem_olsConfidenceInterval_iff_abs_t_le`
+  - `olsConfidenceInterval_coverage_eq_studentT_interval`
+  - `olsConfidenceInterval_coverage_eq_studentT_cdf`
+  - `olsConfidenceInterval_coverage_eq_one_sub`
+- landed Theorem 5.11 in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsVarianceConfidenceInterval`
+  - `sigma2_mem_olsVarianceConfidenceInterval_iff_scaledStatistic_mem_Icc`
+  - `olsVarianceConfidenceInterval_coverage_eq_chiSquared_interval`
+  - `olsVarianceConfidenceInterval_coverage_eq_chiSquared_cdf`
+  - `olsVarianceConfidenceInterval_coverage_eq_one_sub`
+- landed the main significance statement for Theorem 5.12 in
+  `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsTStatistic_rejection_probability_eq_alpha`
+- landed Theorem 5.13 in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsResidualSumSquares`
+  - `olsResidualSumSquares_linear_model_quadratic_form`
+  - `fTestProjectionMatrix`
+  - `scaledOlsFNumeratorStatistic`
+  - `olsFStatistic`
+  - `rank_fTestProjectionMatrix`
+  - `scaledOlsFNumeratorStatistic_hasLaw_chiSquared`
+  - `scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic`
+  - `olsFStatistic_hasLaw_fDist`
+  - `olsFStatistic_rejection_probability_eq_alpha`
 - the library now rewrites the residual sum of squares as the annihilator quadratic form `e'Me`,
-  packages the Chapter 5 statistic `(n-k)s²/σ²`, and diagonalizes the quadratic form as a sum of
-  squared coordinates on the `1`-eigenspace of the annihilator matrix.
-- the remaining 5.7 gap is the probabilistic step: pushing the existing Gaussian-coordinate helper
-  and chi-square helper all the way through to a compiled `HasLaw` theorem without running into
-  elaboration blowups.
-- next target: split the 5.7 distribution proof into smaller helper lemmas:
-  1. the `1`-eigenspace coordinate family is i.i.d. `N(0,1)`
-  2. its cardinality is `n-k`
-  3. the scaled statistic equals the sum of squares of that family
-  4. then apply `hasLaw_sum_sq_chiSquared_fintype`
+  diagonalizes that quadratic form on the `1`-eigenspace of the annihilator matrix, packages the
+  Chapter 5 statistic `(n-k)s²/σ²`, proves the chi-square law
+  `((n-k)s²)/σ² ∼ χ²(n-k)`, proves independence of `β̂` and `((n-k)s²)/σ²`, packages the
+  classical OLS t-statistic, proves its exact Student `t_{n-k}` law, packages the exact symmetric
+  coefficient-coverage identity, formalizes the exact variance confidence interval statement, and
+  now packages the classical block F statistic together with its exact `F_{q,n-k}` law and
+  rejection-probability theorem under the block null.
+- Theorem 5.9 is fully packaged at the confidence-interval level, but the literal inverse-cdf
+  notation in Hansen remains thinner than the Lean presentation because the repo still uses
+  critical-value assumptions rather than a dedicated quantile API.
+- next targets:
+  1. tighten the textbook-facing presentation of 5.12 around the null-hypothesis notation
+  2. decide whether to add a small quantile API for the literal inverse-cdf versions of 5.9 and 5.13
+  3. move on to Theorem 5.10 or the Chapter 5.14 information-bound material

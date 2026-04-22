@@ -9,6 +9,7 @@ import Mathlib.Analysis.LConvolution
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import HansenEconometrics.ProbabilityUtils
 
 open MeasureTheory ProbabilityTheory
 
@@ -30,6 +31,10 @@ lemma isProbabilityMeasure_chiSquared {k : ℕ} (hk : 0 < k) :
 
 instance {k : ℕ} [Fact (0 < k)] : IsProbabilityMeasure (chiSquared k) :=
   isProbabilityMeasure_chiSquared (k := k) (Fact.out)
+
+instance instNoAtomsChiSquared (k : ℕ) : NoAtoms (chiSquared k) := by
+  change NoAtoms (volume.withDensity (gammaPDF ((k : ℝ) / 2) (1 / 2 : ℝ)))
+  infer_instance
 
 lemma chiSquared_gammaPDF_of_neg {k : ℕ} {x : ℝ} (hx : x < 0) :
     gammaPDF ((k : ℝ) / 2) (1 / 2 : ℝ) x = 0 :=
@@ -751,6 +756,45 @@ theorem hasLaw_sum_sq_chiSquared_fintype
     (fun i : Fin (Fintype.card ι) => (W (e i) ω)^2)
     (fun i : ι => (W i ω)^2)
     fun i => rfl
+
+/-- Fisher's F distribution, packaged as the law of the ratio
+`(U / q) / (V / ν)` with `U ∼ χ²(q)` and `V ∼ χ²(ν)` independent. We define it as the pushforward
+of the product measure rather than from a closed-form density, which makes later `HasLaw` proofs
+mechanical. -/
+noncomputable def fDist (q ν : ℕ) : Measure ℝ :=
+  ((chiSquared q).prod (chiSquared ν)).map
+    (fun z : ℝ × ℝ => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ)))
+
+lemma isProbabilityMeasure_fDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
+    IsProbabilityMeasure (fDist q ν) := by
+  haveI : IsProbabilityMeasure (chiSquared q) := isProbabilityMeasure_chiSquared hq
+  haveI : IsProbabilityMeasure (chiSquared ν) := isProbabilityMeasure_chiSquared hν
+  change IsProbabilityMeasure
+    (((chiSquared q).prod (chiSquared ν)).map
+      (fun z : ℝ × ℝ => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ))))
+  exact Measure.isProbabilityMeasure_map (by fun_prop)
+
+theorem hasLaw_ratio_chiSquared_fDist
+    {q ν : ℕ}
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {U V : Ω → ℝ}
+    (hq : 0 < q) (hν : 0 < ν)
+    (hU : HasLaw U (chiSquared q) μ)
+    (hV : HasLaw V (chiSquared ν) μ)
+    (hInd : U ⟂ᵢ[μ] V) :
+    HasLaw (fun ω => (U ω / (q : ℝ)) / (V ω / (ν : ℝ))) (fDist q ν) μ := by
+  haveI : IsProbabilityMeasure (chiSquared q) := isProbabilityMeasure_chiSquared hq
+  haveI : IsProbabilityMeasure μ := hU.isProbabilityMeasure
+  have hPair :
+      HasLaw (fun ω => (U ω, V ω)) ((chiSquared q).prod (chiSquared ν)) μ := by
+    refine ⟨hU.aemeasurable.prodMk hV.aemeasurable, ?_⟩
+    rw [(indepFun_iff_map_prod_eq_prod_map_map hU.aemeasurable hV.aemeasurable).1 hInd,
+      hU.map_eq, hV.map_eq]
+  have hMap :
+      HasLaw (fun z : ℝ × ℝ => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ))) (fDist q ν)
+        (((chiSquared q).prod (chiSquared ν)) : Measure (ℝ × ℝ)) := by
+    exact ⟨by fun_prop, rfl⟩
+  simpa [fDist] using hMap.comp hPair
 
 /-! ### Chi-squared distribution of quadratic forms with symmetric idempotent matrices -/
 
