@@ -2,6 +2,7 @@ import Mathlib
 import HansenEconometrics.Basic
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter4LeastSquaresRegression
+import HansenEconometrics.AsymptoticUtils
 
 /-!
 # Chapter 7 — Asymptotic Theory (Phase 1 deterministic scaffold)
@@ -182,5 +183,59 @@ theorem sum_fin_eq_sum_range_smul
   Fin.sum_univ_eq_sum_range (fun i => e i ω • X i ω) n
 
 end Stacking
+
+section Assumption71
+
+open MeasureTheory ProbabilityTheory Filter
+open scoped Matrix.Norms.Elementwise Function
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
+variable {k : Type*} [Fintype k] [DecidableEq k]
+
+omit [DecidableEq k] in
+/-- Borel σ-algebra on `Matrix k k ℝ` inherited from the elementwise-L∞ norm.
+Section-scoped so the choice of norm stays local. -/
+@[reducible]
+private noncomputable def matrixBorelMeasurableSpace :
+    MeasurableSpace (Matrix k k ℝ) := borel _
+
+attribute [local instance] matrixBorelMeasurableSpace
+
+omit [Fintype k] [DecidableEq k] in
+private lemma matrixBorelSpace : BorelSpace (Matrix k k ℝ) := ⟨rfl⟩
+
+attribute [local instance] matrixBorelSpace
+
+/-- Hansen Assumption 7.1: iid regressor/error sequence with a finite nonsingular
+population Gram matrix `Q := 𝔼[X Xᵀ]` and orthogonality `𝔼[X e] = 0`. -/
+structure SampleAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) where
+  /-- Pairwise independence of the outer-product sequence `X i (X i)ᵀ`. -/
+  indep_outer :
+    Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => Matrix.vecMulVec (X i ω) (X i ω)))
+  /-- Pairwise independence of the cross-product sequence `e i • X i`. -/
+  indep_cross :
+    Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω • X i ω))
+  /-- Identical distribution of the outer products. -/
+  ident_outer : ∀ i,
+    IdentDistrib (fun ω => Matrix.vecMulVec (X i ω) (X i ω))
+                 (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ μ
+  /-- Identical distribution of the cross products. -/
+  ident_cross : ∀ i,
+    IdentDistrib (fun ω => e i ω • X i ω) (fun ω => e 0 ω • X 0 ω) μ μ
+  /-- Second moments on `X` (so `X Xᵀ` is integrable). -/
+  int_outer : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ
+  /-- First-moment integrability of `e X`. -/
+  int_cross : Integrable (fun ω => e 0 ω • X 0 ω) μ
+  /-- Population Gram matrix `Q := 𝔼[X Xᵀ]` is nonsingular. -/
+  Q_nonsing : IsUnit (μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]).det
+  /-- Population orthogonality `𝔼[e X] = 0`. -/
+  orthogonality : μ[fun ω => e 0 ω • X 0 ω] = 0
+
+/-- The population Gram matrix `Q := 𝔼[X Xᵀ]`. -/
+noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
+  μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
+
+end Assumption71
 
 end HansenEconometrics
