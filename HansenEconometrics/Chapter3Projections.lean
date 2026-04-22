@@ -162,28 +162,63 @@ theorem hatMatrix_isHermitian
 /-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
 Eigenvalues of such a matrix are 0 or 1, so
 rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
+theorem eigenvalues_zero_or_one_of_isHermitian_idempotent
+    {A : Matrix n n ℝ}
+    [DecidableEq n]
+    (hH : A.IsHermitian)
+    (hI : IsIdempotentElem A) :
+    ∀ i : n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := by
+  intro i
+  have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+  simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
+  exact hmem
+
+/-- For a real symmetric idempotent matrix, rank equals the number of `1`-eigenvalues. -/
+theorem rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent
+    {A : Matrix n n ℝ}
+    [DecidableEq n]
+    (hH : A.IsHermitian)
+    (hI : IsIdempotentElem A) :
+    A.rank = Fintype.card {i : n // hH.eigenvalues i = 1} := by
+  classical
+  let e : {i : n // hH.eigenvalues i ≠ 0} ≃ {i : n // hH.eigenvalues i = 1} :=
+    { toFun := fun i =>
+        ⟨i.1, (eigenvalues_zero_or_one_of_isHermitian_idempotent hH hI i.1).resolve_left i.2⟩
+      invFun := fun i => ⟨i.1, by rw [i.2]; norm_num⟩
+      left_inv := by
+        intro i
+        cases i
+        simp
+      right_inv := by
+        intro i
+        cases i
+        simp }
+  rw [hH.rank_eq_card_non_zero_eigs]
+  exact Fintype.card_congr e
+
+/-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
+Eigenvalues of such a matrix are 0 or 1, so
+rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
 theorem rank_eq_natCast_trace_of_isHermitian_idempotent
     {A : Matrix n n ℝ}
+    [DecidableEq n]
     (hH : A.IsHermitian)
     (hI : IsIdempotentElem A) :
     (A.rank : ℝ) = A.trace := by
   classical
   -- Eigenvalues of a Hermitian idempotent are 0 or 1
-  have heig : ∀ i : n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := by
-    intro i
-    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
-    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
-    exact hmem
+  have heig := eigenvalues_zero_or_one_of_isHermitian_idempotent hH hI
   rw [hH.rank_eq_card_non_zero_eigs, hH.trace_eq_sum_eigenvalues]
   -- ↑(card {i // eigenvalues i ≠ 0}) = ∑ i, (eigenvalues i : ℝ)
   simp only [RCLike.ofReal_real_eq_id, id]
-  -- Each nonzero eigenvalue is 1
-  have heig1 : ∀ i : n, hH.eigenvalues i ≠ 0 → hH.eigenvalues i = 1 :=
-    fun i hi => (heig i).resolve_left hi
   symm
   calc ∑ i : n, hH.eigenvalues i
       = ∑ i : n, if hH.eigenvalues i ≠ 0 then (1 : ℝ) else 0 :=
-          Finset.sum_congr rfl (fun i _ => by rcases heig i with h | h <;> simp [h])
+          Finset.sum_congr rfl (fun i _ => by
+            by_cases h0 : hH.eigenvalues i = 0
+            · simp [h0]
+            · have h1 : hH.eigenvalues i = 1 := (heig i).resolve_left h0
+              simp [h1])
     _ = ↑(Finset.univ.filter (fun i : n => hH.eigenvalues i ≠ 0)).card :=
           Finset.sum_boole _ _
     _ = ↑(Fintype.card {i : n // hH.eigenvalues i ≠ 0}) := by
@@ -204,7 +239,7 @@ theorem rank_annihilatorMatrix_add
 
 /-- The rank of the hat matrix equals the number of regressors. -/
 theorem rank_hatMatrix
-    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
     (hatMatrix X).rank = Fintype.card k := by
   have h := rank_eq_natCast_trace_of_isHermitian_idempotent
     (hatMatrix_isHermitian X) (hatMatrix_idempotent X)

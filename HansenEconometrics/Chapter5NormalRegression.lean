@@ -1,6 +1,8 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.ChiSquared
 import HansenEconometrics.LinearAlgebraUtils
+import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter4LeastSquaresRegression
 
@@ -21,6 +23,16 @@ noncomputable def olsResidualVarianceEstimator
     (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : ℝ :=
   (dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)) /
     (Fintype.card n - Fintype.card k : ℝ)
+
+/-- Hansen Theorem 5.7 statistic `(n-k)s²/σ²`, written as a reusable random variable on the
+probability space carrying the regression error. -/
+noncomputable def scaledOlsResidualVarianceStatistic
+    {Ω : Type*}
+    (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) [Invertible (Xᵀ * X)]
+    (ε : Ω → EuclideanSpace ℝ n) : Ω → ℝ :=
+  fun ω =>
+    ((Fintype.card n - Fintype.card k : ℝ) *
+      olsResidualVarianceEstimator X (X *ᵥ β + WithLp.ofLp (ε ω))) / σ2
 
 /-- A lightweight deterministic record of the Chapter 5 normal regression setup. -/
 structure NormalRegressionModel (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) where
@@ -103,5 +115,76 @@ theorem residual_hasGaussianLaw_of_error
   filter_upwards with ω
   rw [residual_linear_model]
   simp [L]
+
+/-- The annihilator quadratic form is the sum of squared eigenbasis coordinates on the `1`-eigenspace.
+This is the deterministic bridge behind Hansen Theorem 5.7. -/
+theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
+    (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    let M := annihilatorMatrix X
+    let hM : M.IsHermitian := annihilatorMatrix_isHermitian X
+    let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hM.eigenvectorBasis
+    e ⬝ᵥ M *ᵥ e =
+      ∑ i : {j : n // hM.eigenvalues j = 1}, (b.repr (WithLp.toLp 2 e) i.1) ^ 2 := by
+  classical
+  let M := annihilatorMatrix X
+  let hM : M.IsHermitian := annihilatorMatrix_isHermitian X
+  let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hM.eigenvectorBasis
+  let z : EuclideanSpace ℝ n := WithLp.toLp 2 e
+  have hcoord : ∀ i : n,
+      b.repr (Matrix.toEuclideanLin M z) i = hM.eigenvalues i * b.repr z i := by
+    intro i
+    let T : EuclideanSpace ℝ n →ₗ[ℝ] EuclideanSpace ℝ n := Matrix.toEuclideanLin M
+    have hSymm : T.IsSymmetric := Matrix.isHermitian_iff_isSymmetric.mp hM
+    have hEig : T (b i) = hM.eigenvalues i • b i := by
+      simpa [T] using congrArg (WithLp.toLp 2) (hM.mulVec_eigenvectorBasis i)
+    calc
+      b.repr (T z) i = inner ℝ (b i) (T z) := by
+        simpa using (OrthonormalBasis.repr_apply_apply (b := b) (v := T z) (i := i))
+      _ = inner ℝ (T (b i)) z := by rw [← hSymm (b i) z]
+      _ = inner ℝ (hM.eigenvalues i • b i) z := by rw [hEig]
+      _ = hM.eigenvalues i * b.repr z i := by
+        rw [real_inner_smul_left, OrthonormalBasis.repr_apply_apply]
+  have hnorm :
+      dotProduct (M *ᵥ e) (M *ᵥ e)
+        = ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2 := by
+    let T : EuclideanSpace ℝ n →ₗ[ℝ] EuclideanSpace ℝ n := Matrix.toEuclideanLin M
+    calc
+      dotProduct (M *ᵥ e) (M *ᵥ e) = ‖T z‖ ^ 2 := by
+        change dotProduct (M *ᵥ e) (M *ᵥ e) = ‖WithLp.toLp 2 (M *ᵥ e)‖ ^ 2
+        simpa [pow_two] using
+          (EuclideanSpace.real_norm_sq_eq (WithLp.toLp 2 (M *ᵥ e))).symm
+      _ = ∑ i : n, ‖inner ℝ (b i) (T z)‖ ^ 2 := by
+        symm
+        exact OrthonormalBasis.sum_sq_norm_inner_right b (T z)
+      _ = ∑ i : n, (b.repr (T z) i) ^ 2 := by
+        refine Finset.sum_congr rfl ?_
+        intro i hi
+        rw [OrthonormalBasis.repr_apply_apply]
+        simpa [sq_abs]
+      _ = ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2 := by
+        refine Finset.sum_congr rfl ?_
+        intro i hi
+        rw [hcoord i]
+  have heig01 := eigenvalues_zero_or_one_of_isHermitian_idempotent hM (annihilatorMatrix_idempotent X)
+  have hsum :
+      ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2
+        = ∑ i : {j : n // hM.eigenvalues j = 1}, (b.repr z i.1) ^ 2 := by
+    calc
+      ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2
+          = ∑ i : n, if hM.eigenvalues i = 1 then (b.repr z i) ^ 2 else 0 := by
+              refine Finset.sum_congr rfl ?_
+              intro i hi
+              by_cases h1 : hM.eigenvalues i = 1
+              · simp [h1]
+              · have h0 : hM.eigenvalues i = 0 := (heig01 i).resolve_right h1
+                simp [h0]
+      _ = ∑ i : n with hM.eigenvalues i = 1, (b.repr z i) ^ 2 := by
+            rw [Finset.sum_filter]
+      _ = ∑ i : {j : n // hM.eigenvalues j = 1}, (b.repr z i.1) ^ 2 := by
+            rw [Finset.sum_subtype]
+            intro x
+            simp
+  simpa [M, hM, b, z] using
+    ((residual_quadratic_form_of_linear_model X e).symm.trans hnorm).trans hsum
 
 end HansenEconometrics

@@ -72,5 +72,16 @@ Deferred for now unless needed:
 - landed a deterministic step-4 scaffold in `HansenEconometrics/Chapter5NormalRegression.lean`:
   - `residual_quadratic_form_of_linear_model`
   - `olsResidualVarianceEstimator_linear_model_quadratic_form`
-- these rewrite the residual sum of squares as the annihilator quadratic form `e'Me` and then rewrite `s²` accordingly, which is the clean algebraic setup for the later chi-square argument.
-- next target: connect this quadratic form to whatever Mathlib support exists for Gaussian quadratic forms / orthogonal projections; if that support is too thin, the fallback is to formalize the finite-dimensional orthogonal decomposition first and push the distribution theorem through independent standard normals.
+  - `scaledOlsResidualVarianceStatistic`
+  - `residual_quadratic_form_eq_sum_sq_eigenvector_coords`
+- the library now rewrites the residual sum of squares as the annihilator quadratic form `e'Me`,
+  packages the Chapter 5 statistic `(n-k)s²/σ²`, and diagonalizes the quadratic form as a sum of
+  squared coordinates on the `1`-eigenspace of the annihilator matrix.
+- the remaining 5.7 gap is the probabilistic step: pushing the existing Gaussian-coordinate helper
+  and chi-square helper all the way through to a compiled `HasLaw` theorem without running into
+  elaboration blowups.
+- next target: split the 5.7 distribution proof into smaller helper lemmas:
+  1. the `1`-eigenspace coordinate family is i.i.d. `N(0,1)`
+  2. its cardinality is `n-k`
+  3. the scaled statistic equals the sum of squares of that family
+  4. then apply `hasLaw_sum_sq_chiSquared_fintype`

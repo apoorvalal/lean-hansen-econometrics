@@ -722,4 +722,32 @@ theorem hasLaw_sum_sq_chiSquared
     rw [hgoal_eq]
     exact hAdd
 
+/-- Finite-type version of `hasLaw_sum_sq_chiSquared`, obtained by reindexing along a bijection with
+`Fin (card ι)`. This is convenient when the standard-normal coordinates are naturally indexed by a
+finite subtype rather than by `Fin k`. -/
+theorem hasLaw_sum_sq_chiSquared_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (hk : 0 < Fintype.card ι)
+    {Ω : Type*} [MeasureSpace Ω]
+    {W : ι → Ω → ℝ}
+    (hLaw : ∀ i, HasLaw (W i) (gaussianReal 0 1))
+    (hIndep : ProbabilityTheory.iIndepFun W) :
+    HasLaw (fun ω => ∑ i, (W i ω)^2) (chiSquared (Fintype.card ι)) := by
+  let e : Fin (Fintype.card ι) ≃ ι := (Fintype.equivFin ι).symm
+  have hLawFin : ∀ i : Fin (Fintype.card ι), HasLaw (W (e i)) (gaussianReal 0 1) :=
+    fun i => hLaw (e i)
+  have hIndepFin : ProbabilityTheory.iIndepFun (fun i : Fin (Fintype.card ι) => W (e i)) := by
+    exact hIndep.precomp e.injective
+  have hFin : HasLaw
+      (fun ω => ∑ i : Fin (Fintype.card ι), (W (e i) ω)^2)
+      (chiSquared (Fintype.card ι)) :=
+    hasLaw_sum_sq_chiSquared hk hLawFin hIndepFin
+  refine hFin.congr ?_
+  filter_upwards with ω
+  symm
+  exact Fintype.sum_equiv e
+    (fun i : Fin (Fintype.card ι) => (W (e i) ω)^2)
+    (fun i : ι => (W i ω)^2)
+    fun i => rfl
+
 end HansenEconometrics
