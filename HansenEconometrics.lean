@@ -1,6 +1,7 @@
 import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.AsymptoticUtils
 
 import HansenEconometrics.Chapter2CondExp
 
@@ -13,3 +14,4 @@ import HansenEconometrics.Chapter3FWL
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter5NormalRegression
 import HansenEconometrics.ChiSquared
+import HansenEconometrics.Chapter7Asymptotics
