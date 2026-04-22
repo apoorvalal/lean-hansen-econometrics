@@ -274,10 +274,120 @@ theorem hasLaw_sq_chiSquared_one
 /-- Pointwise additive convolution identity for two Gamma densities with the same rate.
 This is the analytic core of Gamma additivity: it amounts to evaluating
 `∫₀ˣ y^(a-1) (x-y)^(b-1) dy = x^(a+b-1) · B(a,b)` for `x > 0` and using the Beta identity
-`B(a,b) = Γ(a)Γ(b)/Γ(a+b)`. -/
+`B(a,b) = Γ(a)Γ(b)/Γ(a+b)`.
+
+## Proof outline
+
+For `x < 0`: the integrand `gammaPDF a r y * gammaPDF b r (-y + x)` is 0 a.e.  Need both
+factors nonzero, i.e. `0 ≤ y` (from `gammaPDF_of_neg`) AND `0 ≤ -y + x` (i.e. `y ≤ x`).
+For `x < 0` the conjunction is empty, so the lintegral is 0; and `gammaPDF (a+b) r x = 0`
+by `gammaPDF_of_neg`.  Closed below.
+
+For `x > 0` (the analytic core):
+```
+(gammaPDF a r ⋆ₗ gammaPDF b r) x
+  = ∫⁻ y, gammaPDF a r y * gammaPDF b r (-y + x) ∂volume
+  = ∫⁻ y in Ioo 0 x, ENNReal.ofReal (gammaPDFReal a r y * gammaPDFReal b r (x - y))
+  = ENNReal.ofReal (∫ y in Ioo 0 x, gammaPDFReal a r y * gammaPDFReal b r (x - y))
+```
+Substitute `y = x · u`, `dy = x · du`, mapping `Ioo 0 x → Ioo 0 1`:
+```
+∫ y in (0, x), y^(a-1) (x-y)^(b-1) dy
+  = x^(a-1) · x^(b-1) · x · ∫ u in (0, 1), u^(a-1) (1-u)^(b-1) du
+  = x^(a+b-1) · B(a, b)
+```
+With `B(a, b) = Γ(a)·Γ(b)/Γ(a+b)` (the real Beta function `ProbabilityTheory.beta`):
+```
+∫ y in (0, x), gammaPDFReal a r y * gammaPDFReal b r (x - y)
+  = r^(a+b)/(Γ(a)·Γ(b)) · exp(-r·x) · x^(a+b-1) · Γ(a)·Γ(b)/Γ(a+b)
+  = r^(a+b)/Γ(a+b) · x^(a+b-1) · exp(-r·x)
+  = gammaPDFReal (a+b) r x
+```
+
+## Mathlib API needed (and gaps discovered)
+
+* `MeasureTheory.lconvolution_def` / unfold: `(f ⋆ₗ[μ] g) x = ∫⁻ y, f y * g (-y + x) ∂μ`
+  (`Mathlib/Analysis/LConvolution.lean`).
+* `ProbabilityTheory.beta α β := Real.Gamma α * Real.Gamma β / Real.Gamma (α + β)` and
+  `ProbabilityTheory.beta_eq_betaIntegralReal`
+  (`Mathlib/Probability/Distributions/Beta.lean:33,41`) — real-valued Beta function.
+* `Complex.betaIntegral` and `Complex.Gamma_mul_Gamma_eq_betaIntegral`
+  (`Mathlib/Analysis/SpecialFunctions/Gamma/Beta.lean:60,126`) — complex only;
+  real version must be obtained via `beta_eq_betaIntegralReal`.
+* `ofReal_integral_eq_lintegral_ofReal` to swap a Bochner integral over real-valued
+  nonnegative integrand with `ENNReal.ofReal` of an `lintegral`.
+* `intervalIntegral.integral_comp_mul_left` for the substitution `y = x · u`.
+* `gammaPDFReal_nonneg`, `gammaPDF_of_neg`, `gammaPDF_of_nonneg` (already in Mathlib).
+
+## Concrete next tactic steps
+
+1. Use `Filter.EventuallyEq.of_forall_eq_of_compl_measure_zero` (or `ae_iff`) to reduce
+   to pointwise equality on `{x | x ≠ 0}` (`{0}` has volume zero).
+2. Split on `x < 0` (closed below) vs `x > 0`.
+3. For `x > 0`: unfold `lconvolution`, then `setLIntegral_congr_set` to reduce to
+   `Ioo 0 x`, apply `ofReal_integral_eq_lintegral_ofReal`, use the substitution above
+   to land at the Beta integral, lift to Complex via `Complex.ofReal_*`, apply
+   `Gamma_mul_Gamma_eq_betaIntegral`, project back.
+-/
 private lemma gammaPDF_lconvolution_eq {a b r : ℝ} (hr : 0 < r) (ha : 0 < a) (hb : 0 < b) :
     (gammaPDF a r ⋆ₗ[volume] gammaPDF b r) =ᵐ[volume] gammaPDF (a + b) r := by
-  sorry
+  -- Helper: pointwise vanishing of the convolution at any `x < 0`.
+  have hLHS_neg : ∀ {x : ℝ}, x < 0 →
+      (gammaPDF a r ⋆ₗ[volume] gammaPDF b r) x = 0 := by
+    intro x hx
+    -- Unfold the additive convolution: it is `∫⁻ y, gammaPDF a r y * gammaPDF b r (-y + x)`.
+    rw [lconvolution_def]
+    -- The integrand vanishes a.e. (in fact, pointwise everywhere).
+    -- For nonzero, need `0 ≤ y` (so `gammaPDF a r y ≠ 0`) AND `0 ≤ -y + x` (i.e., `y ≤ x`).
+    -- For `x < 0` the conjunction `0 ≤ y ≤ x` is empty.
+    have hmeas : Measurable fun y : ℝ => gammaPDF a r y * gammaPDF b r (-y + x) := by
+      have h1 : Measurable (gammaPDF a r) :=
+        (measurable_gammaPDFReal a r).ennreal_ofReal
+      have h2 : Measurable (gammaPDF b r) :=
+        (measurable_gammaPDFReal b r).ennreal_ofReal
+      exact h1.mul (h2.comp (measurable_id.neg.add_const x))
+    refine (lintegral_eq_zero_iff hmeas).mpr ?_
+    refine ae_of_all _ (fun y => ?_)
+    simp only [Pi.zero_apply, mul_eq_zero]
+    by_cases hy : 0 ≤ y
+    · -- y ≥ 0: then -y + x < 0 since x < 0, so the second factor is 0.
+      right
+      apply gammaPDF_of_neg
+      linarith
+    · -- y < 0: the first factor is 0.
+      left
+      exact gammaPDF_of_neg (lt_of_not_ge hy)
+  -- Helper: pointwise equality for `x > 0` (the analytic core, currently unfinished).
+  have hpos : ∀ {x : ℝ}, 0 < x →
+      (gammaPDF a r ⋆ₗ[volume] gammaPDF b r) x = gammaPDF (a + b) r x := by
+    -- TODO[positive case]: see docstring above.  Concrete plan:
+    --  (i) After `rw [lconvolution_def]`, restrict the integrand to `Ioo 0 x` via
+    --      `setLIntegral_congr_set` (the integrand is 0 outside).
+    --  (ii) Convert to a Bochner integral via `ofReal_integral_eq_lintegral_ofReal`
+    --       using `gammaPDFReal_nonneg ha hr` and integrability on `Ioo 0 x`.
+    --  (iii) Substitute `y = x · u` via `intervalIntegral.integral_comp_mul_left`,
+    --        mapping `Ioo 0 x → Ioo 0 1`.  The integrand becomes
+    --        `r^a/Γa · (xu)^(a-1) · exp(-rxu) · r^b/Γb · (x(1-u))^(b-1) · exp(-rx(1-u)) · x`.
+    --        Simplify exponents and exponentials to extract `x^(a+b-1) · exp(-rx)`.
+    --  (iv) Identify the residual `∫ u in (0,1), u^(a-1) (1-u)^(b-1) du` with
+    --       `(Complex.betaIntegral a b).re`.  Lift each `^` via `Complex.ofReal_cpow`
+    --       (need `0 ≤ u` and `0 ≤ 1 - u`), apply `Complex.Gamma_mul_Gamma_eq_betaIntegral`,
+    --       and use `Real.Gamma` ↔ `Complex.Gamma` via `Complex.Gamma_ofReal`.
+    --       Or equivalently, use `ProbabilityTheory.beta_eq_betaIntegralReal` directly.
+    --  (v) Conclude `r^(a+b)/Γ(a+b) · x^(a+b-1) · exp(-rx) = gammaPDFReal (a+b) r x`.
+    intro x hx
+    sorry
+  -- Combine: equality holds for all `x ≠ 0`, and `{0}` has volume zero.
+  rw [Filter.EventuallyEq, ae_iff]
+  -- Goal: volume {x | ¬ (LHS x = RHS x)} = 0.
+  -- The disagreement set is contained in `{0}` (a measure-zero set).
+  refine measure_mono_null (t := ({(0 : ℝ)} : Set ℝ)) ?_ (measure_singleton _)
+  intro x hx_neq
+  -- We must show `x ∈ {0}`.  By trichotomy: `x < 0`, `x = 0`, or `x > 0`.
+  rcases lt_trichotomy x 0 with hlt | heq | hgt
+  · exact absurd ((hLHS_neg hlt).trans (gammaPDF_of_neg hlt).symm) hx_neq
+  · exact heq
+  · exact absurd (hpos hgt) hx_neq
 
 /-- **Gamma additivity**: the additive convolution of two Gamma measures with the same rate
 parameter is again a Gamma measure: `Gamma(a, r) ∗ Gamma(b, r) = Gamma(a+b, r)`.  This
