@@ -236,6 +236,26 @@ structure SampleAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
   μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
 
+/-- **Hansen WLLN for the sample Gram.** Under Assumption 7.1, the sample Gram
+matrix of the stacked design converges in probability to the population Gram `Q`. -/
+theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleAssumption71 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleGram (stackRegressors X n ω))
+      atTop
+      (fun _ => popGram μ X) := by
+  have hfun_eq : (fun n ω => sampleGram (stackRegressors X n ω)) =
+      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
+        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+    funext n ω
+    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+  rw [hfun_eq]
+  exact tendstoInMeasure_wlln
+    (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
+    h.int_outer h.indep_outer h.ident_outer
+
 end Assumption71
 
 end HansenEconometrics
