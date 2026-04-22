@@ -142,6 +142,28 @@ theorem sampleGram_stackRegressors_eq_avg_sum
   rw [stackRegressors_transpose_mul_self_eq_sum]
   simp [Fintype.card_fin]
 
+omit [Fintype k] [DecidableEq k] in
+/-- The unnormalized cross moment of the stacked design with stacked errors
+equals the sum of error-weighted regressor vectors. -/
+theorem stackRegressors_transpose_mulVec_stackErrors_eq_sum
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    (stackRegressors X n ω)ᵀ *ᵥ stackErrors e n ω =
+      ∑ i : Fin n, e i.val ω • X i.val ω := by
+  funext a
+  simp [stackRegressors, stackErrors, Matrix.mulVec, Matrix.transpose_apply,
+        Matrix.of_apply, dotProduct, Pi.smul_apply, mul_comm]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The sample cross moment of the stacked design with stacked errors equals the
+sample mean of error-weighted regressors. -/
+theorem sampleCrossMoment_stackRegressors_stackErrors_eq_avg
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
+      (n : ℝ)⁻¹ • ∑ i : Fin n, e i.val ω • X i.val ω := by
+  unfold sampleCrossMoment
+  rw [stackRegressors_transpose_mulVec_stackErrors_eq_sum]
+  simp [Fintype.card_fin]
+
 end Stacking
 
 end HansenEconometrics
