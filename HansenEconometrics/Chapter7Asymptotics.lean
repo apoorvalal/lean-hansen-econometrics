@@ -98,7 +98,7 @@ variable {Ω : Type*} {k : Type*} [Fintype k] [DecidableEq k]
 /-- Stack the first `n` observations of an `ℕ`-indexed regressor sequence into an
 `Fin n`-row design matrix at a fixed sample point `ω`. -/
 def stackRegressors (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) : Matrix (Fin n) k ℝ :=
-  Matrix.of (fun i j => X i.val ω j)
+  Matrix.of fun i j => X i.val ω j
 
 /-- Stack the first `n` scalar errors into a `Fin n`-indexed vector. -/
 def stackErrors (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : Fin n → ℝ :=
@@ -107,6 +107,19 @@ def stackErrors (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : Fin n → ℝ :=
 /-- Stack the first `n` outcomes into a `Fin n`-indexed vector. -/
 def stackOutcomes (y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : Fin n → ℝ :=
   fun i => y i.val ω
+
+omit [DecidableEq k] in
+/-- Pointwise linear model implies stacked linear model: if `yᵢ = Xᵢ·β + eᵢ`
+for each `i`, then
+`stackOutcomes y n ω = stackRegressors X n ω *ᵥ β + stackErrors e n ω`. -/
+theorem stack_linear_model
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) :
+    stackOutcomes y n ω = stackRegressors X n ω *ᵥ β + stackErrors e n ω := by
+  funext i
+  simp [stackOutcomes, stackRegressors, stackErrors, Matrix.mulVec, Matrix.of_apply,
+        dotProduct, hmodel i.val ω]
 
 end Stacking
 
