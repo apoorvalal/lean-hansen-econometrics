@@ -161,6 +161,29 @@ theorem tendstoInMeasure_matrix_inv
     exact continuousAt_inv₀ ((hinv ω).ne_zero)
   exact hcont.tendsto.comp hω
 
+/-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
+matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
+`(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`
+and `IsUnit M.det`; we dispatch the singular cases by hand so the identity
+holds on all of `Ω`, as needed by the Chapter 7 consistency argument where
+`Q̂ₙ = n⁻¹ • (Xᵀ X)` is scaled by a sample-dependent but possibly zero-at-`ω`
+factor. -/
+theorem nonsingInv_smul (c : ℝ) (M : Matrix k k ℝ) :
+    (c • M)⁻¹ = c⁻¹ • M⁻¹ := by
+  by_cases hc : c = 0
+  · subst hc
+    simp [Matrix.inv_zero]
+  by_cases hM : IsUnit M.det
+  · have : Invertible c := invertibleOfNonzero hc
+    rw [Matrix.inv_smul _ _ hM, invOf_eq_inv]
+  · have hM' : M.det = 0 := by
+      rwa [isUnit_iff_ne_zero, ne_eq, not_not] at hM
+    have hcMdet : ¬ IsUnit (c • M).det := by
+      rw [Matrix.det_smul, hM', mul_zero]
+      simp
+    rw [Matrix.nonsing_inv_apply_not_isUnit _ hcMdet,
+        Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
+
 end MatrixInverse
 
 section MulVec
@@ -193,6 +216,28 @@ theorem tendstoInMeasure_prodMk
     simpa using (hf ε hε).add (hg ε hε)
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
     (fun _ => zero_le _) hbound
+
+set_option maxHeartbeats 400000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on the product `E × E` via the
+-- scoped elementwise norm is expensive for vector/matrix instantiations.
+/-- **Additive CMT for `TendstoInMeasure`.** If `f n →ₚ finf` and `g n →ₚ ginf`
+in a pseudo-metrizable additive topological group, then
+`f n + g n →ₚ finf + ginf`. Mathlib lacks a named additive glue for
+`TendstoInMeasure`; we assemble it from the product CMT and continuity of `+`. -/
+theorem tendstoInMeasure_add
+    [IsFiniteMeasure μ]
+    {E : Type*} [PseudoEMetricSpace E] [TopologicalSpace.PseudoMetrizableSpace E]
+    [Add E] [ContinuousAdd E]
+    {f g : ℕ → α → E} {finf ginf : α → E}
+    (hf_meas : ∀ n, AEStronglyMeasurable (f n) μ)
+    (hg_meas : ∀ n, AEStronglyMeasurable (g n) μ)
+    (hf : TendstoInMeasure μ f atTop finf)
+    (hg : TendstoInMeasure μ g atTop ginf) :
+    TendstoInMeasure μ (fun n ω => f n ω + g n ω) atTop (fun ω => finf ω + ginf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (f n ω, g n ω)) μ :=
+    fun n => (hf_meas n).prodMk (hg_meas n)
+  exact tendstoInMeasure_continuous_comp hprod_meas
+    (tendstoInMeasure_prodMk hf hg) continuous_add
 
 set_option maxHeartbeats 400000 in
 -- Heartbeat bump: PseudoMetrizable synthesis on the product
