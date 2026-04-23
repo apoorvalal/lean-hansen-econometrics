@@ -159,38 +159,6 @@ theorem hatMatrix_isHermitian
     (hatMatrix X).IsHermitian :=
   (Matrix.conjTranspose_eq_transpose_of_trivial _).trans (hatMatrix_transpose X)
 
-/-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
-Eigenvalues of such a matrix are 0 or 1, so
-rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
-theorem rank_eq_natCast_trace_of_isHermitian_idempotent
-    {A : Matrix n n ℝ}
-    (hH : A.IsHermitian)
-    (hI : IsIdempotentElem A) :
-    (A.rank : ℝ) = A.trace := by
-  classical
-  -- Eigenvalues of a Hermitian idempotent are 0 or 1
-  have heig : ∀ i : n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := by
-    intro i
-    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
-    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
-    exact hmem
-  rw [hH.rank_eq_card_non_zero_eigs, hH.trace_eq_sum_eigenvalues]
-  -- ↑(card {i // eigenvalues i ≠ 0}) = ∑ i, (eigenvalues i : ℝ)
-  simp only [RCLike.ofReal_real_eq_id, id]
-  -- Each nonzero eigenvalue is 1
-  have heig1 : ∀ i : n, hH.eigenvalues i ≠ 0 → hH.eigenvalues i = 1 :=
-    fun i hi => (heig i).resolve_left hi
-  symm
-  calc ∑ i : n, hH.eigenvalues i
-      = ∑ i : n, if hH.eigenvalues i ≠ 0 then (1 : ℝ) else 0 :=
-          Finset.sum_congr rfl (fun i _ => by rcases heig i with h | h <;> simp [h])
-    _ = ↑(Finset.univ.filter (fun i : n => hH.eigenvalues i ≠ 0)).card :=
-          Finset.sum_boole _ _
-    _ = ↑(Fintype.card {i : n // hH.eigenvalues i ≠ 0}) := by
-          congr 1
-          exact (Fintype.card_of_subtype _ (fun x => by
-            simp only [Finset.mem_filter, Finset.mem_univ, true_and])).symm
-
 /-- The rank of the annihilator matrix plus the number of regressors equals
 the number of observations. Equivalent to rank(M) = n − k. -/
 theorem rank_annihilatorMatrix_add
