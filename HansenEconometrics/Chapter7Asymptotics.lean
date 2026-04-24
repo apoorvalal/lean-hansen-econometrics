@@ -1218,6 +1218,35 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
   rw [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum]
   simp [sum_dotProduct, smul_eq_mul]
 
+/-- **Scaled-score coordinate boundedness from Theorem 7.2.**
+
+Each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)`.  This is the tightness corollary
+of the scalar-projection score CLT, using the coordinate basis vector
+`Pi.single j 1` and the general fact that real convergence in distribution
+implies boundedness in probability. -/
+theorem scoreCoordinate_sampleCrossMoment_boundedInProbability
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (j : k) :
+    BoundedInProbability μ
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) j) := by
+  classical
+  let a : k → ℝ := Pi.single j 1
+  let σ2 : NNReal := (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal
+  have hZ : HasLaw (fun x : ℝ => x) (gaussianReal 0 σ2) (gaussianReal 0 σ2) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 σ2))
+  have hclt := scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := gaussianReal 0 σ2) (X := X) (e := e) h a hZ
+  have hcoord : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) j)
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 σ2) := by
+    simpa [a, dotProduct_single_one] using hclt
+  exact BoundedInProbability.of_tendstoInDistribution hcoord
+
 /-- **CLT for scalar projections of the infeasible leading OLS term.**
 
 Applying the fixed population inverse `Q⁻¹` to `√n · ĝₙ(e)` preserves the
@@ -1375,6 +1404,40 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_scoreBound
       (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71 a hscoreBounded
   exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ hinvGap hfinal_meas
+
+/-- **Hansen Theorem 7.3, scalar-projection totalized-OLS CLT.**
+
+For every fixed projection vector `a`, the scaled totalized OLS error has the
+Gaussian limit obtained from the fixed-`Q⁻¹` score projection. Compared with
+the previous conditional variants, the inverse-gap/tightness premise is now
+fully discharged from Theorem 7.2's score CLT. The remaining textbook-facing
+work is the vector Cramér-Wold packaging and the ordinary-`olsBeta` interface
+on the high-probability nonsingular event. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν)
+    (hfinal_meas : ∀ (n : ℕ), AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a) μ) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_scoreBounded
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
+    (fun j => scoreCoordinate_sampleCrossMoment_boundedInProbability
+      (μ := μ) (X := X) (e := e) h j)
+    hfinal_meas
 
 end Assumption72
 
