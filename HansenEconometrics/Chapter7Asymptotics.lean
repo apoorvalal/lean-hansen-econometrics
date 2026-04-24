@@ -1907,6 +1907,20 @@ open scoped Matrix.Norms.Elementwise Function Topology ProbabilityTheory
 variable {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
 variable {k : Type*} [Fintype k] [DecidableEq k]
 
+omit [DecidableEq k] in
+/-- Borel σ-algebra on `Matrix k k ℝ` inherited from the elementwise-L∞ norm,
+reintroduced for the Chapter 7.2+ covariance-matrix random variables. -/
+@[reducible]
+private noncomputable def matrixBorelMeasurableSpace72 :
+    MeasurableSpace (Matrix k k ℝ) := borel _
+
+attribute [local instance] matrixBorelMeasurableSpace72
+
+omit [Fintype k] [DecidableEq k] in
+private lemma matrixBorelSpace72 : BorelSpace (Matrix k k ℝ) := ⟨rfl⟩
+
+attribute [local instance] matrixBorelSpace72
+
 /-- Strengthening of the Chapter 7.1 moment assumptions for the first CLT bridge.
 
 Mathlib currently supplies a one-dimensional iid CLT. To use it for Hansen's
@@ -2069,6 +2083,119 @@ theorem scoreCovarianceMatrix_apply_eq_secondMoment
     (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h l),
     hmean_j, hmean_l]
   simp [Pi.mul_apply]
+
+/-- Hansen's true-error second-moment matrix `E[e₀² X₀X₀']`, equal to `Ω`
+under orthogonality. We represent it as the outer product of the score vector
+`e₀X₀`; entrywise this is the textbook `E[e₀² X₀j X₀ℓ]`. -/
+noncomputable def scoreSecondMomentMatrix
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
+  μ[fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)]
+
+/-- The true-error score covariance sample average:
+`n⁻¹∑ eᵢ² XᵢXᵢ'`, represented as `n⁻¹∑(eᵢXᵢ)(eᵢXᵢ)'`. This is the
+first term in Hansen's proof of Theorem 7.6. -/
+noncomputable def sampleScoreCovarianceIdeal (X : Matrix n k ℝ) (e : n → ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n, Matrix.vecMulVec (e i • X i) (e i • X i)
+
+/-- The HC0 score covariance sample average using totalized OLS residuals:
+`n⁻¹∑ êᵢ² XᵢXᵢ'`, represented as residual-score outer products. -/
+noncomputable def sampleScoreCovarianceStar (X : Matrix n k ℝ) (y : n → ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i) (olsResidualStar X y i • X i)
+
+/-- Additional WLLN assumptions for the true-error HC0 score covariance average. -/
+structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleCLTAssumption72 μ X e where
+  /-- Pairwise independence of the true-error score outer products. -/
+  indep_score_outer : Pairwise ((· ⟂ᵢ[μ] ·) on
+    (fun i ω => Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω)))
+  /-- Identical distribution of the true-error score outer products. -/
+  ident_score_outer : ∀ i,
+    IdentDistrib
+      (fun ω => Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω))
+      (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ μ
+  /-- Integrability of the true-error score outer product. -/
+  int_score_outer :
+    Integrable (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ
+
+omit [Fintype k] [DecidableEq k] in
+/-- The ideal HC0 score covariance average of stacked samples is the range-indexed
+sample mean used by the WLLN. -/
+theorem sampleScoreCovarianceIdeal_stack_eq_avg
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω) =
+      (n : ℝ)⁻¹ •
+        ∑ i ∈ Finset.range n,
+          Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω) := by
+  unfold sampleScoreCovarianceIdeal stackErrors stackRegressors
+  rw [Fintype.card_fin]
+  congr 1
+  exact Fin.sum_univ_eq_sum_range
+    (fun i => Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω)) n
+
+/-- Under the HC0 WLLN assumptions, the true-error score covariance average
+converges to `E[e₀²X₀X₀']`. -/
+theorem sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreSecondMomentMatrix
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun _ => scoreSecondMomentMatrix μ X e) := by
+  have hfun_eq : (fun n ω =>
+        sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω)) =
+      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
+        ∑ i ∈ Finset.range n,
+          Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω)) := by
+    funext n ω
+    rw [sampleScoreCovarianceIdeal_stack_eq_avg]
+  rw [hfun_eq]
+  exact tendstoInMeasure_wlln
+    (fun i ω => Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω))
+    h.int_score_outer h.indep_score_outer h.ident_score_outer
+
+/-- Under the HC0 assumptions and orthogonality, `E[e₀²X₀X₀']` is Hansen's
+score covariance matrix `Ω`. -/
+theorem scoreSecondMomentMatrix_eq_scoreCovarianceMatrix
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) :
+    scoreSecondMomentMatrix μ X e = scoreCovarianceMatrix μ X e := by
+  ext j l
+  calc
+    scoreSecondMomentMatrix μ X e j l
+        = ∫ ω, (Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) j l ∂μ := by
+          unfold scoreSecondMomentMatrix
+          exact integral_apply_apply (μ := μ)
+            (f := fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω))
+            h.int_score_outer j l
+    _ = ∫ ω, (e 0 ω • X 0 ω) j * (e 0 ω • X 0 ω) l ∂μ := by
+          rfl
+    _ = scoreCovarianceMatrix μ X e j l := by
+          exact (scoreCovarianceMatrix_apply_eq_secondMoment
+            (μ := μ) (X := X) (e := e) h.toSampleCLTAssumption72 j l).symm
+
+/-- **Theorem 7.6 ideal-`Ω` WLLN.**
+
+The true-error HC0 score covariance average converges in probability to Hansen's
+score covariance matrix `Ω`. This is the first, WLLN-driven term in the proof
+of heteroskedastic covariance consistency. -/
+theorem sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun _ => scoreCovarianceMatrix μ X e) := by
+  simpa [scoreSecondMomentMatrix_eq_scoreCovarianceMatrix (μ := μ) (X := X) (e := e) h]
+    using sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreSecondMomentMatrix
+      (μ := μ) (X := X) (e := e) h
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
