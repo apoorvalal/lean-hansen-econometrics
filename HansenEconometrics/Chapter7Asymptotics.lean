@@ -47,10 +47,12 @@ in four layers:
   residual version is reduced to two explicit remainder controls via
   `sampleScoreCovarianceStar_linear_model`,
   `sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders`,
-  and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders`.
-  Remaining work: prove the HC0 cross and quadratic residual-score remainders
-  are `oₚ(1)` under suitable moment/tightness assumptions, plus supply the
-  residual middle-matrix measurability used by the final sandwich wrapper.
+  and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders`, and is
+  proved under bounded empirical third/fourth weights in
+  `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights`.
+  Remaining work: discharge those bounded-weight hypotheses from primitive iid
+  moment assumptions, and supply the residual middle-matrix measurability used
+  by the final sandwich wrapper.
 * **Theorem 7.7+** — pending.
 
 ## Phase 1 — Deterministic scaffold
