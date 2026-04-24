@@ -259,6 +259,30 @@ theorem tendstoInMeasure_matrix_mul
   exact tendstoInMeasure_continuous_comp hprod_meas
     (tendstoInMeasure_prodMk hA hB) hcont
 
+set_option maxHeartbeats 1200000 in
+-- Heartbeat bump: same product-space synthesis cost as the square matrix CMT,
+-- now with three independent finite index types.
+/-- **Rectangular matrix multiplication CMT.** If `A n →ₚ Ainf` and
+`B n →ₚ Binf` in measure, then `A n * B n →ₚ Ainf * Binf`, allowing
+rectangular dimensions. -/
+theorem tendstoInMeasure_matrix_mul_rect
+    [IsFiniteMeasure μ]
+    {m n p : Type*} [Fintype m] [Fintype n] [Fintype p]
+    {A : ℕ → α → Matrix m n ℝ} {B : ℕ → α → Matrix n p ℝ}
+    {Ainf : α → Matrix m n ℝ} {Binf : α → Matrix n p ℝ}
+    (hA_meas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hB_meas : ∀ n, AEStronglyMeasurable (B n) μ)
+    (hA : TendstoInMeasure μ A atTop Ainf)
+    (hB : TendstoInMeasure μ B atTop Binf) :
+    TendstoInMeasure μ (fun n ω => A n ω * B n ω) atTop
+      (fun ω => Ainf ω * Binf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (A n ω, B n ω)) μ :=
+    fun n => (hA_meas n).prodMk (hB_meas n)
+  have hcont : Continuous (fun p : Matrix m n ℝ × Matrix n p ℝ => p.1 * p.2) :=
+    continuous_fst.matrix_mul continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas
+    (tendstoInMeasure_prodMk hA hB) hcont
+
 end MulVec
 
 section StochasticOrder
