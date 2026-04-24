@@ -347,6 +347,36 @@ theorem TendstoInMeasure.const_mul_zero_real
       simpa [mul_comm] using habs)
     simpa [Real.dist_eq] using hdiv
 
+/-- Multiplying a real-valued `oₚ(1)` sequence by an eventually bounded
+deterministic scalar sequence preserves `oₚ(1)`. -/
+theorem TendstoInMeasure.mul_deterministic_bounded_zero_real
+    {r : ℕ → ℝ} {X : ℕ → α → ℝ} {M : ℝ}
+    (hM : 0 < M) (hr : ∀ᶠ n in atTop, |r n| ≤ M)
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => r n * X n ω) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  rw [ENNReal.tendsto_atTop_zero]
+  intro δ hδ
+  have hscale : 0 < ε / M := div_pos hε hM
+  have hXevent := (hX (ε / M) hscale).eventually_lt_const hδ
+  obtain ⟨N, hN⟩ := eventually_atTop.1 (hXevent.and hr)
+  refine ⟨N, fun n hn => ?_⟩
+  have hXn : μ {ω | ε / M ≤ dist (X n ω) 0} < δ := (hN n hn).1
+  have hrn : |r n| ≤ M := (hN n hn).2
+  have hcover :
+      {ω | ε ≤ dist (r n * X n ω) 0} ⊆ {ω | ε / M ≤ dist (X n ω) 0} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq] at hω ⊢
+    have hprod : ε ≤ |r n| * |X n ω| := by
+      simpa [Real.dist_eq, abs_mul] using hω
+    have hle : |r n| * |X n ω| ≤ M * |X n ω| :=
+      mul_le_mul_of_nonneg_right hrn (abs_nonneg _)
+    have hdiv : ε / M ≤ |X n ω| := (div_le_iff₀ hM).2 (by
+      simpa [mul_comm] using le_trans hprod hle)
+    simpa [Real.dist_eq] using hdiv
+  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hXn)
+
 /-- Negation of a real-valued `oₚ(1)` sequence is `oₚ(1)`. -/
 theorem TendstoInMeasure.neg_zero_real
     {X : ℕ → α → ℝ}
@@ -371,6 +401,34 @@ theorem TendstoInMeasure.sub_limit_zero_real
   rw [tendstoInMeasure_iff_dist] at hX ⊢
   intro ε hε
   simpa [Real.dist_eq] using hX ε hε
+
+/-- Uncenter a real-valued `oₚ(1)` statement at a scalar limit. -/
+theorem TendstoInMeasure.of_sub_limit_zero_real
+    {X : ℕ → α → ℝ} {c : ℝ}
+    (hX : TendstoInMeasure μ (fun n ω => X n ω - c) atTop (fun _ => 0)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  simpa [Real.dist_eq] using hX ε hε
+
+/-- A deterministic real sequence converging to a scalar also converges in
+measure when viewed as a constant random variable sequence. -/
+theorem tendstoInMeasure_const_real
+    {r : ℕ → ℝ} {c : ℝ} (hr : Tendsto r atTop (𝓝 c)) :
+    TendstoInMeasure μ (fun n (_ : α) => r n) atTop (fun _ => c) := by
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  rw [ENNReal.tendsto_atTop_zero]
+  intro δ hδ
+  have hevent : ∀ᶠ n in atTop, dist (r n) c < ε :=
+    eventually_atTop.2 ((Metric.tendsto_atTop.1 hr) ε hε)
+  obtain ⟨N, hN⟩ := eventually_atTop.1 hevent
+  refine ⟨N, fun n hn => ?_⟩
+  have hempty : {ω : α | ε ≤ dist (r n) c} = ∅ := by
+    ext ω
+    simp [not_le_of_gt (hN n hn)]
+  rw [hempty, measure_empty]
+  exact le_of_lt hδ
 
 /-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
