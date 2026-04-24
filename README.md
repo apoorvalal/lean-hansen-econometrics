@@ -58,7 +58,7 @@ Legend:
 | 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
 | 05 | Normal Regression | partial | normal-model scaffolding, chi-square distribution wrapper, Gaussian laws for `β̂` and residuals, and residual-quadratic-form setup for `s²` landed |
 | 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
-| 07 | Asymptotic Theory for Least Squares | partial | Totalized-estimator consistency, score/fixed-`Q⁻¹` scalar CLTs, scaled residual control, feasible-leading decomposition, and conditional Slutsky assembly landed; inverse-gap proof pending |
+| 07 | Asymptotic Theory for Least Squares | partial | Totalized-estimator consistency, score/fixed-`Q⁻¹` scalar CLTs, scaled residual control, feasible-leading decomposition, and inverse-gap-conditional Slutsky assembly landed; inverse-gap proof pending |
 | 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
 | 09 | Hypothesis Testing | inventoried | Wald / LM / LR style results |
 | 10 | Resampling Methods | inventoried | bootstrap / jackknife |

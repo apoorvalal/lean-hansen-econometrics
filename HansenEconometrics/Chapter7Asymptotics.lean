@@ -72,8 +72,10 @@ random-inverse gap left for Slutsky, and
 records the resulting scalar-projection roadmap. Finally,
 `scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder`
 applies Mathlib's Slutsky theorem once that scalar remainder is shown to be
-`oₚ(1)`. Together these form the Cramér-Wold/Slutsky-facing layer needed for
-Hansen's asymptotic-normality theorem.
+`oₚ(1)`, while
+`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap`
+reduces that remainder to the inverse-gap condition. Together these form the
+Cramér-Wold/Slutsky-facing layer needed for Hansen's asymptotic-normality theorem.
 
 See also:
 - [`AsymptoticUtils.lean`](./AsymptoticUtils.lean) — WLLN wrapper, CMT for
@@ -1103,6 +1105,48 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder
       (Real.sqrt (n : ℝ) •
         (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
     (Z := Z) hfixed hremainder hfinal_meas
+
+/-- **Scalar-projection OLS CLT from the inverse-gap condition.**
+For every fixed projection vector `a`, the totalized OLS estimator has the
+fixed-`Q⁻¹` Gaussian scalar limit once the random-inverse gap projection is
+`oₚ(1)`.
+
+This theorem combines the scaled residual control, the inverse-gap reduction,
+and Mathlib's Slutsky theorem. The remaining non-conditional task for Hansen
+Theorem 7.3 is proving the inverse-gap hypothesis itself from tightness of the
+scaled score and `Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν)
+    (hinvGap : TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0))
+    (hfinal_meas : ∀ (n : ℕ), AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a) μ) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hremainder :=
+    scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap
+      (μ := μ) (X := X) (e := e) (y := y) β a h.toSampleMomentAssumption71
+      hmodel hinvGap
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hZ hremainder hfinal_meas
 
 end Assumption72
 
