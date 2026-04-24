@@ -1335,6 +1335,47 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap
   exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hZ hremainder hfinal_meas
 
+/-- **Scalar-projection OLS CLT from scaled-score boundedness.**
+For every fixed projection vector `a`, the totalized OLS estimator has the
+fixed-`Q⁻¹` Gaussian scalar limit once the scaled score coordinates are
+`Oₚ(1)`.
+
+Compared with
+`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap`,
+this theorem discharges the random-inverse gap using the product-rule bridge
+and `Q̂ₙ⁻¹ →ₚ Q⁻¹`. The remaining non-conditional task is proving the
+`hscoreBounded` premise from the score CLT/tightness layer. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_scoreBounded
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν)
+    (hscoreBounded : ∀ j : k,
+      BoundedInProbability μ
+        (fun (n : ℕ) ω =>
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) j))
+    (hfinal_meas : ∀ (n : ℕ), AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a) μ) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hinvGap :=
+    inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded
+      (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71 a hscoreBounded
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ hinvGap hfinal_meas
+
 end Assumption72
 
 end HansenEconometrics
