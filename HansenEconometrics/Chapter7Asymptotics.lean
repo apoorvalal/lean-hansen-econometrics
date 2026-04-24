@@ -10,7 +10,25 @@ import HansenEconometrics.ProbabilityUtils
 # Chapter 7 — Asymptotic Theory
 
 This file formalizes Hansen's Chapter 7 (Asymptotic Theory for Least Squares)
-in three layers:
+in four layers:
+
+## Textbook theorem status
+
+* **Theorem 7.1** — formalized for the totalized estimator `olsBetaStar` in
+  `olsBetaStar_stack_tendstoInMeasure_beta`; the ordinary `olsBeta` wrapper is
+  still pending.
+* **Theorem 7.2** — projectionwise CLT face landed. The theorem in the text has
+  two parts, `Ω < ∞` and the vector score CLT
+  `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state proves the scalar
+  projection CLT for every fixed direction `a` via
+  `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`. The
+  literal vector-valued statement and an explicit `Ω < ∞` theorem are still
+  pending.
+* **Theorem 7.3** — the fixed-`Q⁻¹` scalar leading-term CLT and conditional
+  totalized-OLS Slutsky assembly are formalized. The remaining blocker is the
+  inverse-gap/tightness proof replacing `Q⁻¹` by `Q̂ₙ⁻¹`, followed by the
+  ordinary-OLS interface.
+* **Theorem 7.4+** — not started in Lean yet.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -983,12 +1001,16 @@ private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
     (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
   rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
 
-/-- **Scalar-projection CLT for Hansen's score.**
+/-- **Hansen Theorem 7.2, scalar-projection score CLT.**
 
 For every fixed vector `a`, the projected score sum
 `(1 / √n) ∑_{i<n} (eᵢXᵢ)·a` converges in distribution to the Gaussian with the
 matching scalar variance. This is the one-dimensional CLT supplied by Mathlib,
-specialized to the score projections that appear in OLS asymptotic normality. -/
+specialized to the score projections that appear in OLS asymptotic normality.
+
+This is not yet the literal vector-valued statement of Theorem 7.2, nor does it
+separately expose the textbook `Ω < ∞` conclusion. It is the Cramér-Wold-facing
+piece needed to build that vector theorem. -/
 theorem scoreProjection_sum_tendstoInDistribution_gaussian
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -1024,11 +1046,14 @@ theorem scoreProjection_sum_tendstoInDistribution_gaussian
   rw [hmean_integral]
   ring
 
-/-- **CLT for scalar projections of the scaled sample score.**
+/-- **Hansen Theorem 7.2 in sample-score notation, scalar-projection form.**
 
 This is the same CLT as `scoreProjection_sum_tendstoInDistribution_gaussian`,
 rewritten in Hansen's notation as `√n · ĝₙ(e)` where
-`ĝₙ(e) = n⁻¹∑ eᵢXᵢ`. -/
+`ĝₙ(e) = n⁻¹∑ eᵢXᵢ`.
+
+Status: this is the main formalized face of Theorem 7.2 at present. The full
+vector-valued CLT is still pending. -/
 theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
