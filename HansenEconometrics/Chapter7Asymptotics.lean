@@ -1244,6 +1244,14 @@ theorem scoreCoordinate_memLp_two
   have hproj := h.memLp_cross_projection (Pi.single j 1)
   simpa [dotProduct_single_one] using hproj
 
+/-- Vector square-integrability of the score vector under Assumption 7.2. -/
+theorem scoreVector_memLp_two
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) :
+    MemLp (fun ω => e 0 ω • X 0 ω) 2 μ :=
+  MemLp.of_eval (fun j => scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j)
+
 /-- **Theorem 7.2 finite second-moment face.**
 
 Every entry of the score second-moment matrix
