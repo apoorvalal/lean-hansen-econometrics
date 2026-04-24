@@ -239,6 +239,71 @@ theorem tendstoInMeasure_mulVec
 
 end MulVec
 
+section StochasticOrder
+
+/-- A real-valued sequence of random variables is bounded in probability (`Oₚ(1)`).
+
+This formulation is intentionally minimal: for every probability tolerance `δ`,
+there is a positive deterministic bound `M` such that the tail event
+`{ω | M ≤ ‖Xₙ ω‖}` has measure at most `δ`, eventually in `n`. -/
+def BoundedInProbability (μ : Measure α) (X : ℕ → α → ℝ) : Prop :=
+  ∀ δ : ℝ≥0∞, 0 < δ → ∃ M : ℝ, 0 < M ∧
+    ∀ᶠ n in atTop, μ {ω | M ≤ ‖X n ω‖} ≤ δ
+
+/-- If `Xₙ = oₚ(1)` and `Yₙ = Oₚ(1)`, then `XₙYₙ = oₚ(1)`.
+
+This is the scalar product rule needed for the Chapter 7 inverse-gap argument:
+after rewriting the random-inverse remainder coordinatewise, the inverse gap
+will supply the `oₚ(1)` factor and the scaled score will supply the `Oₚ(1)`
+factor. -/
+theorem TendstoInMeasure.mul_boundedInProbability
+    {X Y : ℕ → α → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    (hY : BoundedInProbability μ Y) :
+    TendstoInMeasure μ (fun n ω => X n ω * Y n ω) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  rw [ENNReal.tendsto_atTop_zero]
+  intro δ hδ
+  have hδ2 : 0 < δ / 2 := ENNReal.div_pos hδ.ne' ENNReal.ofNat_ne_top
+  obtain ⟨M, hMpos, hYevent⟩ := hY (δ / 2) hδ2
+  have hXMpos : 0 < ε / M := div_pos hε hMpos
+  have hXevent := (hX (ε / M) hXMpos).eventually_lt_const hδ2
+  obtain ⟨N, hN⟩ := eventually_atTop.1 (hXevent.and hYevent)
+  refine ⟨N, fun n hn => ?_⟩
+  have hXn : μ {ω | ε / M ≤ dist (X n ω) 0} ≤ δ / 2 :=
+    le_of_lt (hN n hn).1
+  have hYn : μ {ω | M ≤ ‖Y n ω‖} ≤ δ / 2 := (hN n hn).2
+  have hcover :
+      {ω | ε ≤ dist (X n ω * Y n ω) 0} ⊆
+        {ω | ε / M ≤ dist (X n ω) 0} ∪ {ω | M ≤ ‖Y n ω‖} := by
+    intro ω hω
+    by_cases hYbig : M ≤ ‖Y n ω‖
+    · exact Or.inr hYbig
+    · left
+      have hYlt : ‖Y n ω‖ < M := not_le.mp hYbig
+      have hprod : ε ≤ ‖X n ω * Y n ω‖ := by
+        simpa [Real.dist_eq] using hω
+      have hprod_norm : ε ≤ ‖X n ω‖ * ‖Y n ω‖ := by
+        simpa [norm_mul] using hprod
+      have hprod_pos : 0 < ‖X n ω‖ * ‖Y n ω‖ := lt_of_lt_of_le hε hprod_norm
+      have hXpos : 0 < ‖X n ω‖ := pos_of_mul_pos_left hprod_pos (norm_nonneg _)
+      have hlt_mul : ‖X n ω‖ * ‖Y n ω‖ < ‖X n ω‖ * M :=
+        mul_lt_mul_of_pos_left hYlt hXpos
+      have hlt : ε < ‖X n ω‖ * M := lt_of_le_of_lt hprod_norm hlt_mul
+      have hdiv : ε / M < ‖X n ω‖ := (div_lt_iff₀ hMpos).2 (by simpa [mul_comm] using hlt)
+      simpa [Real.dist_eq] using le_of_lt hdiv
+  calc
+    μ {ω | ε ≤ dist (X n ω * Y n ω) 0}
+        ≤ μ ({ω | ε / M ≤ dist (X n ω) 0} ∪ {ω | M ≤ ‖Y n ω‖}) :=
+          measure_mono hcover
+    _ ≤ μ {ω | ε / M ≤ dist (X n ω) 0} + μ {ω | M ≤ ‖Y n ω‖} :=
+          measure_union_le _ _
+    _ ≤ δ / 2 + δ / 2 := add_le_add hXn hYn
+    _ = δ := ENNReal.add_halves δ
+
+end StochasticOrder
+
 section WLLN
 
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
