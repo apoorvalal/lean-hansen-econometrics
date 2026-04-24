@@ -63,8 +63,10 @@ in four layers:
   the max-leverage `oₚ(1)` theorem later in the chapter.
 * **Theorem 7.10** — the global continuous-mapping face for functions of
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
-  after proving `olsBetaStar_stack_aestronglyMeasurable`. Remaining: local
-  continuity-at-`β`, delta-method, and ordinary-on-nonsingular wrappers.
+  after proving `olsBetaStar_stack_aestronglyMeasurable`, with the
+  ordinary-on-nonsingular wrapper handled by
+  `continuous_function_olsBetaOrZero_tendstoInMeasure`. Remaining:
+  local continuity-at-`β` and delta-method refinements.
 * **Theorem 7.8/7.11+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
@@ -1563,6 +1565,25 @@ theorem continuous_function_olsBetaStar_tendstoInMeasure
     (olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
     hφ
+
+/-- **Hansen Theorem 7.10 for ordinary OLS on nonsingular samples.**
+
+The same continuous-function consistency statement holds for `olsBetaOrZero`,
+the wrapper that agrees with ordinary OLS on nonsingular samples and with
+`olsBetaStar` unconditionally. -/
+theorem continuous_function_olsBetaOrZero_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
+    (φ : (k → ℝ) → F) (hφ : Continuous φ) :
+    TendstoInMeasure μ
+      (fun n ω => φ (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))
+      atTop (fun _ => φ β) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    continuous_function_olsBetaStar_tendstoInMeasure
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel φ hφ
 
 /-- **Theorem 7.1 ordinary-OLS-on-nonsingular-samples consistency.**
 
