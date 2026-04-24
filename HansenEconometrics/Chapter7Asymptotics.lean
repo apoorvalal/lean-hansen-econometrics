@@ -96,7 +96,11 @@ in four layers:
   two main bridges are now formalized: absolute-value distributional limits for
   HC0/HC1 ordinary t-statistics and the deterministic symmetric-interval
   equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
-* **Theorem 7.13+** — pending/signpost-only.
+* **Theorem 7.13** — the full multivariate Wald theorem is pending, but the
+  scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
+  `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
+  `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
+* **Theorem 7.14+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 

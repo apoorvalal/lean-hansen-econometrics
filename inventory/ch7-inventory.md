@@ -119,6 +119,7 @@ separate textbook-facing task.
 - Theorem 7.10 has the generic linear covariance CMT plus concrete HC0/HC1 fixed-linear-function covariance wrappers.
 - Theorem 7.11 has the standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers for both `olsBetaStar` and `olsBetaOrZero`.
 - Theorem 7.12 has the absolute-value CMT runway for ordinary HC0/HC1 t-statistics plus the deterministic symmetric confidence-interval membership equivalence; coverage convergence itself remains to be packaged.
+- Theorem 7.13 has scalar one-degree-of-freedom HC0/HC1 Wald statistic limits to `χ²(1)`; the full multivariate Wald theorem remains.
 
 ## Main theorem signposts
 
@@ -136,7 +137,8 @@ separate textbook-facing task.
 | Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
 | Theorem 7.11 t-statistic | Standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
 | Theorem 7.12 confidence intervals | Absolute-value HC0/HC1 t-statistic limits and `mem_symmetric_ci_iff_abs_tstat_le` are formalized. | Package coverage convergence through distributional convergence at continuity sets. |
-| Theorems 7.13-7.17 | Pending/signpost-only. | Add Wald statistics, homoskedastic Wald, Edgeworth/residual-uniformity, and leverage layers. |
+| Theorem 7.13 Wald statistics | Scalar one-degree-of-freedom HC0/HC1 Wald limits are formalized. | Add the full multivariate Wald theorem. |
+| Theorems 7.14-7.17 | Pending/signpost-only. | Add homoskedastic Wald, Edgeworth/residual-uniformity, and leverage layers. |
 
 ## Extracted candidates
 - 7.1 Introduction
@@ -255,7 +257,7 @@ Conventions:
 | Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
 | Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |
 | Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with | Absolute-value t-statistic limits and symmetric-interval algebra are formalized; coverage convergence remains. |
-| Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → |  |
+| Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → | Scalar one-degree-of-freedom HC0/HC1 Wald limits to `χ²(1)` are formalized; multivariate Wald remains. |
 | Theorem 7.14 | Under Assumptions 7.2, 7.3, and E |  |
 | Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
 | Theorem 7.16 | Under Assumption 7.2 and E ∥X ∥r < ∞, then |  |
