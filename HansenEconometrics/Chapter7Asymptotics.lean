@@ -3287,6 +3287,101 @@ theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and
     (μ := μ) (X := X) (e := e) (y := y)
     h β hmodel hScore_meas hCrossWeight hQuadWeight
 
+/-- AEMeasurability of the totalized feasible HC0 sandwich estimator from
+component measurability. -/
+theorem olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  let invGram : Ω → Matrix k k ℝ := fun ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹
+  let scoreCov : Ω → Matrix k k ℝ := fun ω =>
+    sampleScoreCovarianceStar (stackRegressors X n ω) (stackOutcomes y n ω)
+  have hGram_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hInv_meas : AEStronglyMeasurable invGram μ := by
+    exact aestronglyMeasurable_matrix_inv hGram_meas
+  have hScore_meas : AEStronglyMeasurable scoreCov μ := by
+    have hScore :=
+      sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+        (μ := μ) (X := X) (e := e) (y := y) β h hmodel hX_meas he_meas n
+    simpa [scoreCov] using hScore
+  have hLeft : AEStronglyMeasurable (fun ω => invGram ω * scoreCov ω) μ := by
+    have hprod : AEStronglyMeasurable (fun ω => (invGram ω, scoreCov ω)) μ :=
+      hInv_meas.prodMk hScore_meas
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hFull : AEStronglyMeasurable
+      (fun ω => invGram ω * scoreCov ω * invGram ω) μ := by
+    have hprod : AEStronglyMeasurable
+        (fun ω => (invGram ω * scoreCov ω, invGram ω)) μ :=
+      hLeft.prodMk hInv_meas
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  simpa [olsHeteroskedasticCovarianceStar, invGram, scoreCov, Matrix.mul_assoc] using hFull
+
+/-- **Hansen Theorem 7.10, HC0 covariance for fixed linear functions.**
+
+For a fixed linear map `R`, the totalized feasible HC0 covariance estimator for
+`R β` converges to `R Vβ Rᵀ` once the existing HC0 bounded-weight assumptions
+and component measurability hypotheses are available. -/
+theorem linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        R * olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
+      atTop (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
+  have hV_meas :=
+    olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  exact linearMapCovariance_tendstoInMeasure
+    (μ := μ) (R := R)
+    (Vhat := fun n ω =>
+      olsHeteroskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := heteroskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
+
 /-- **Hansen Theorem 7.7, HC1 sandwich under bounded weights.**
 
 The totalized HC1 sandwich estimator has the same probability limit as HC0,
