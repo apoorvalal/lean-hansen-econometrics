@@ -3069,6 +3069,72 @@ theorem linearMapCovarianceStdError_tendstoInMeasure
     TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hCov j) j
   exact tendstoInMeasure_continuous_comp hentry_meas hentry Real.continuous_sqrt
 
+/-- **Scalar Slutsky division with a positive denominator limit.**
+
+If `Xₙ ⇒ Z` and `Yₙ →ₚ c` for `c > 0`, then `Xₙ / Yₙ ⇒ Z / c`.
+The proof clips the denominator at `c / 2` to get a globally continuous map,
+then removes the clip because the event `Yₙ < c / 2` has vanishing
+probability. -/
+theorem tendstoInDistribution_div_of_tendstoInMeasure_const_pos
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X Y : ℕ → Ω → ℝ} {Z : Ω' → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX : TendstoInDistribution X atTop Z (fun _ => μ) ν)
+    (hY : TendstoInMeasure μ Y atTop (fun _ => c))
+    (hY_meas : ∀ n, AEMeasurable (Y n) μ)
+    (hdiv_meas : ∀ n, AEMeasurable (fun ω => X n ω / Y n ω) μ) :
+    TendstoInDistribution
+      (fun n ω => X n ω / Y n ω)
+      atTop (fun ω => Z ω / c) (fun _ => μ) ν := by
+  let c₂ : ℝ := c / 2
+  have hc₂ : 0 < c₂ := by positivity
+  have hmax_c : max c c₂ = c := by
+    have hc₂_le_c : c₂ ≤ c := by
+      dsimp [c₂]
+      linarith
+    exact max_eq_left hc₂_le_c
+  have hg : Continuous (fun p : ℝ × ℝ => p.1 / max p.2 c₂) := by
+    refine continuous_fst.div (continuous_snd.max continuous_const) ?_
+    intro p
+    exact ne_of_gt (lt_of_lt_of_le hc₂ (le_max_right p.2 c₂))
+  have hclip : TendstoInDistribution
+      (fun n ω => X n ω / max (Y n ω) c₂)
+      atTop (fun ω => Z ω / c) (fun _ => μ) ν := by
+    have hraw := hX.continuous_comp_prodMk_of_tendstoInMeasure_const
+      (g := fun p : ℝ × ℝ => p.1 / max p.2 c₂) hg hY hY_meas
+    simpa [Function.comp_def, c₂, hmax_c] using hraw
+  have hdiff : TendstoInMeasure μ
+      (fun n ω => X n ω / Y n ω - X n ω / max (Y n ω) c₂)
+      atTop (fun _ => 0) := by
+    rw [tendstoInMeasure_iff_dist]
+    intro ε hε
+    have hYdist := hY
+    rw [tendstoInMeasure_iff_dist] at hYdist
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+      (hYdist c₂ hc₂) (fun _ => zero_le _) (fun n => ?_)
+    refine measure_mono (fun ω hω => ?_)
+    by_contra hnot
+    have hdist_lt : dist (Y n ω) c < c₂ := not_le.mp hnot
+    have hY_gt : c₂ < Y n ω := by
+      rw [Real.dist_eq] at hdist_lt
+      have hbounds := abs_lt.mp hdist_lt
+      have hc_sub : c - c₂ = c₂ := by
+        dsimp [c₂]
+        ring
+      linarith [hbounds.1, hc_sub]
+    have hmax : max (Y n ω) c₂ = Y n ω := max_eq_left hY_gt.le
+    have hdiff_zero : X n ω / Y n ω - X n ω / max (Y n ω) c₂ = 0 := by
+      simp [hmax]
+    have hε_le_zero : ε ≤ 0 := by
+      simpa [Real.dist_eq, hdiff_zero] using hω
+    exact (not_le_of_gt hε) hε_le_zero
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun n ω => X n ω / max (Y n ω) c₂)
+    (Y := fun n ω => X n ω / Y n ω)
+    (Z := fun ω => Z ω / c)
+    hclip hdiff hdiv_meas
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
