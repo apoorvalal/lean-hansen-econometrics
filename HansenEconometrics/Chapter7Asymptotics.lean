@@ -15,8 +15,8 @@ in four layers:
 ## Textbook theorem status
 
 * **Theorem 7.1** — formalized for the totalized estimator `olsBetaStar` in
-  `olsBetaStar_stack_tendstoInMeasure_beta`; the ordinary `olsBeta` wrapper is
-  still pending.
+  `olsBetaStar_stack_tendstoInMeasure_beta` and for the ordinary-on-nonsingular
+  wrapper `olsBetaOrZero` in `olsBetaOrZero_stack_tendstoInMeasure_beta`.
 * **Theorem 7.2** — projectionwise CLT and covariance-matrix faces landed. The
   theorem in the text has two parts, `Ω < ∞` and the vector score CLT
   `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state names `Ω` as
@@ -25,10 +25,10 @@ in four layers:
   `a` via `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`.
   The literal vector-valued statement is still pending.
 * **Theorem 7.3** — scalar projections of the totalized estimator
-  `olsBetaStar` are asymptotically normal. The proof now includes the
-  inverse-gap/tightness bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`. The remaining
-  textbook-facing work is vector/Cramér-Wold packaging and the ordinary-OLS
-  interface.
+  `olsBetaStar` and the ordinary-on-nonsingular wrapper `olsBetaOrZero` are
+  asymptotically normal. The proof now includes the inverse-gap/tightness
+  bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹` and covariance-matrix variance notation.
+  The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4+** — not started in Lean yet.
 
 ## Phase 1 — Deterministic scaffold
@@ -69,10 +69,14 @@ convergences is then assembled:
 * `olsBetaStar_stack_tendstoInMeasure_beta` — consistency of the totalized
   estimator `olsBetaStar`, which uses `Matrix.nonsingInv` and agrees with
   ordinary `olsBeta` on nonsingular samples.
+* `olsBetaOrZero_stack_tendstoInMeasure_beta` — the same consistency result for
+  a wrapper that evaluates ordinary `olsBeta` on nonsingular samples and `0`
+  otherwise.
 
 This is the current Lean version of the beginning of Chapter 7. A separate
-textbook-facing theorem for ordinary `olsBeta` still needs an interface for
-handling the high-probability nonsingularity event.
+literal dependent-type theorem for ordinary `olsBeta` would still need a way to
+avoid forming the estimator on singular samples; `olsBetaOrZero` is the current
+Lean interface for that high-probability nonsingularity event.
 
 ## Phase 4 — First CLT bridge
 
@@ -1770,8 +1774,8 @@ For every fixed projection vector `a`, the scaled totalized OLS error has the
 Gaussian limit obtained from the fixed-`Q⁻¹` score projection. Compared with
 the previous conditional variants, the inverse-gap/tightness premise is now
 fully discharged from Theorem 7.2's score CLT. The remaining textbook-facing
-work is the vector Cramér-Wold packaging and the ordinary-`olsBeta` interface
-on the high-probability nonsingular event. -/
+work is the vector Cramér-Wold packaging; the ordinary-on-nonsingular wrapper
+is handled by the covariance-form theorem below. -/
 theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
