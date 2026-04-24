@@ -2134,6 +2134,14 @@ so it is defined even on singular finite samples. -/
 noncomputable def leverageStar (X : Matrix n k ℝ) (i : n) : ℝ :=
   X i ⬝ᵥ ((Xᵀ * X)⁻¹ *ᵥ X i)
 
+/-- On nonsingular samples, the totalized leverage is the usual hat-matrix diagonal. -/
+theorem leverageStar_eq_hatMatrix_diag
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] (i : n) :
+    leverageStar X i = hatMatrix X i i := by
+  unfold leverageStar hatMatrix
+  rw [← invOf_eq_nonsing_inv, Matrix.dotProduct_mulVec]
+  simp [Matrix.mul_apply, Matrix.vecMul, dotProduct, Matrix.transpose_apply]
+
 /-- The HC2 residual-score covariance middle matrix
 `n⁻¹∑ êᵢ²/(1-hᵢᵢ) · xᵢxᵢ'`, totalized through `leverageStar`. -/
 noncomputable def sampleScoreCovarianceHC2Star (X : Matrix n k ℝ) (y : n → ℝ) :
