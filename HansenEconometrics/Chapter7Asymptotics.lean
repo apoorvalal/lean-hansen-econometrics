@@ -117,9 +117,10 @@ in four layers:
   `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` and
   `residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm`.
 * **Theorem 7.17** — the probabilistic max-leverage rate is pending, but the
-  finite-sample leverage trace and average identities are formalized in
-  `sum_leverageStar_eq_card_of_nonsingular` and
-  `average_leverageStar_eq_card_div_card_of_nonsingular`.
+  finite-sample leverage trace/average identities and pointwise bounds are
+  formalized in `sum_leverageStar_eq_card_of_nonsingular`,
+  `average_leverageStar_eq_card_div_card_of_nonsingular`,
+  `leverageStar_nonneg_of_nonsingular`, and `leverageStar_le_one_of_nonsingular`.
 * **Theorem 7.15** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
@@ -2555,6 +2556,29 @@ theorem leverageStar_eq_hatMatrix_diag
   unfold leverageStar hatMatrix
   rw [← invOf_eq_nonsing_inv, Matrix.dotProduct_mulVec]
   simp [Matrix.mul_apply, Matrix.vecMul, dotProduct, Matrix.transpose_apply]
+
+/-- On nonsingular samples, leverage scores are nonnegative. -/
+theorem leverageStar_nonneg_of_nonsingular
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] (i : n) :
+    0 ≤ leverageStar X i := by
+  classical
+  rw [leverageStar_eq_hatMatrix_diag]
+  exact diag_nonneg_of_symm_idempotent
+    (hatMatrix X) (hatMatrix_transpose X) (hatMatrix_idempotent X) i
+
+/-- On nonsingular samples, leverage scores are bounded above by one. -/
+theorem leverageStar_le_one_of_nonsingular
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] (i : n) :
+    leverageStar X i ≤ 1 := by
+  classical
+  have hdiag_nonneg : 0 ≤ annihilatorMatrix X i i :=
+    diag_nonneg_of_symm_idempotent
+      (annihilatorMatrix X) (annihilatorMatrix_transpose X)
+      (annihilatorMatrix_idempotent X) i
+  have hdiag_eq : annihilatorMatrix X i i = 1 - hatMatrix X i i := by
+    simp [annihilatorMatrix, Matrix.sub_apply]
+  rw [leverageStar_eq_hatMatrix_diag]
+  linarith
 
 /-- **Hansen Theorem 7.17, finite-sample leverage trace identity.**
 

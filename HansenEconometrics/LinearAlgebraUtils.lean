@@ -53,6 +53,20 @@ lemma quadratic_form_eq_dotProduct_of_symm_idempotent {n : Type*} [Fintype n]
   rw [hvec, Matrix.mulVec_mulVec, hMid] at h
   exact h
 
+/-- A real symmetric idempotent matrix has nonnegative diagonal entries. -/
+lemma diag_nonneg_of_symm_idempotent {n : Type*} [Fintype n]
+    (M : Matrix n n ℝ) (hMt : Mᵀ = M) (hMid : M * M = M) (i : n) :
+    0 ≤ M i i := by
+  classical
+  let e : n → ℝ := Pi.single i 1
+  have hquad := quadratic_form_eq_dotProduct_of_symm_idempotent M hMt hMid e
+  have hdiag : e ⬝ᵥ M *ᵥ e = M i i := by
+    simp [e]
+  have hnonneg : 0 ≤ dotProduct (M *ᵥ e) (M *ᵥ e) := by
+    simpa using dotProduct_star_self_nonneg (M *ᵥ e)
+  rw [← hquad, hdiag] at hnonneg
+  exact hnonneg
+
 /-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
 Eigenvalues of such a matrix are 0 or 1, so
 rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
