@@ -2254,6 +2254,78 @@ theorem sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix
     using sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreSecondMomentMatrix
       (μ := μ) (X := X) (e := e) h
 
+/-- **Hansen Theorem 7.6, residual HC0 middle-matrix assembly.**
+
+If the cross and quadratic residual-score remainders in
+`sampleScoreCovarianceStar_linear_model` are `oₚ(1)`, then the feasible HC0
+middle matrix `n⁻¹∑êᵢ²XᵢXᵢ'` converges in probability to `Ω`. -/
+theorem sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hCross : TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossRemainder
+          (stackRegressors X n ω) (stackErrors e n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0))
+    (hQuad : TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticRemainder
+          (stackRegressors X n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e) := by
+  let ideal : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω)
+  let cross : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    sampleScoreCovarianceCrossRemainder
+      (stackRegressors X n ω) (stackErrors e n ω)
+      (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)
+  let quad : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    sampleScoreCovarianceQuadraticRemainder
+      (stackRegressors X n ω)
+      (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)
+  have hIdeal := sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix
+    (μ := μ) (X := X) (e := e) h
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  have hIdeal_ab : TendstoInMeasure μ
+      (fun n ω => ideal n ω a b) atTop
+      (fun _ => scoreCovarianceMatrix μ X e a b) := by
+    simpa [ideal] using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hIdeal a) b
+  have hCross_ab : TendstoInMeasure μ
+      (fun n ω => cross n ω a b) atTop (fun _ => 0) := by
+    simpa [cross] using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hCross a) b
+  have hQuad_ab : TendstoInMeasure μ
+      (fun n ω => quad n ω a b) atTop (fun _ => 0) := by
+    simpa [quad] using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hQuad a) b
+  have hCentered := TendstoInMeasure.sub_limit_zero_real hIdeal_ab
+  have hSub := TendstoInMeasure.sub_zero_real hCentered hCross_ab
+  have hAdd := TendstoInMeasure.add_zero_real hSub hQuad_ab
+  refine TendstoInMeasure.of_sub_limit_zero_real ?_
+  refine hAdd.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  have hstack := stack_linear_model X e y β hmodel n ω
+  have hexp := sampleScoreCovarianceStar_linear_model
+    (stackRegressors X n ω) β (stackErrors e n ω)
+  calc
+    (ideal n ω a b - scoreCovarianceMatrix μ X e a b) -
+        cross n ω a b + quad n ω a b
+        =
+        (ideal n ω - cross n ω + quad n ω) a b -
+          scoreCovarianceMatrix μ X e a b := by
+          simp [Matrix.sub_apply, Matrix.add_apply]
+          ring
+    _ = sampleScoreCovarianceStar (stackRegressors X n ω) (stackOutcomes y n ω) a b -
+        scoreCovarianceMatrix μ X e a b := by
+          rw [hstack, hexp]
+          simp [ideal, cross, quad, hstack]
+
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
 noncomputable def heteroskedasticAsymptoticCovariance
