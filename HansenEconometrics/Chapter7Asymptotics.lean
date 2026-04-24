@@ -87,9 +87,11 @@ in four layers:
   and
   `scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`.
   Remaining: nonlinear differentiable delta method and vector packaging.
-* **Theorem 7.10** — the linear covariance continuous-mapping face is
-  formalized in `linearMapCovariance_tendstoInMeasure`, with concrete
-  homoskedastic and HC0/HC1 fixed-linear-function wrappers in
+* **Theorem 7.10** — the fixed and random linear covariance
+  continuous-mapping faces are formalized in
+  `linearMapCovariance_tendstoInMeasure` and
+  `randomLinearMapCovariance_tendstoInMeasure`, with concrete homoskedastic and
+  HC0/HC1 fixed-linear-function wrappers in
   `linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure`,
   `linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`
   and
@@ -3479,6 +3481,56 @@ theorem linearMapCovariance_tendstoInMeasure
     (Ainf := fun _ : Ω => R * V)
     (Binf := fun _ : Ω => Rᵀ)
     hLeft_meas hRt_meas hLeft hRt_conv
+  simpa [Matrix.mul_assoc] using hFull
+
+omit [DecidableEq k] in
+/-- **Hansen Theorem 7.10, random linear covariance continuous mapping.**
+
+If a derivative/linearization estimate `R̂ₙ` converges in probability to `R`
+and a covariance estimator `V̂ₙ` converges to `V`, then
+`R̂ₙ V̂ₙ R̂ₙᵀ →ₚ R V Rᵀ`. This is the generic covariance CMT needed for
+nonlinear functions whose plug-in derivative is itself estimated. -/
+theorem randomLinearMapCovariance_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {q : Type*} [Fintype q]
+    {Rhat : ℕ → Ω → Matrix q k ℝ} {R : Matrix q k ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (hR_meas : ∀ n, AEStronglyMeasurable (Rhat n) μ)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hR : TendstoInMeasure μ Rhat atTop (fun _ => R))
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun n ω => Rhat n ω * Vhat n ω * (Rhat n ω)ᵀ)
+      atTop (fun _ => R * V * Rᵀ) := by
+  have hLeft := tendstoInMeasure_matrix_mul_rect
+    (μ := μ)
+    (A := Rhat)
+    (B := Vhat)
+    (Ainf := fun _ : Ω => R)
+    (Binf := fun _ : Ω => V)
+    hR_meas hV_meas hR hV
+  have hLeft_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => Rhat n ω * Vhat n ω) μ := by
+    intro n
+    have hprod : AEStronglyMeasurable (fun ω => (Rhat n ω, Vhat n ω)) μ :=
+      (hR_meas n).prodMk (hV_meas n)
+    have hcont : Continuous (fun p : Matrix q k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have htranspose_cont : Continuous (fun M : Matrix q k ℝ => Mᵀ) :=
+    continuous_id.matrix_transpose
+  have hRt_meas : ∀ n, AEStronglyMeasurable (fun ω => (Rhat n ω)ᵀ) μ :=
+    fun n => htranspose_cont.comp_aestronglyMeasurable (hR_meas n)
+  have hRt : TendstoInMeasure μ
+      (fun n ω => (Rhat n ω)ᵀ) atTop (fun _ : Ω => Rᵀ) :=
+    tendstoInMeasure_continuous_comp hR_meas hR htranspose_cont
+  have hFull := tendstoInMeasure_matrix_mul_rect
+    (μ := μ)
+    (A := fun n ω => Rhat n ω * Vhat n ω)
+    (B := fun n ω => (Rhat n ω)ᵀ)
+    (Ainf := fun _ : Ω => R * V)
+    (Binf := fun _ : Ω => Rᵀ)
+    hLeft_meas hRt_meas hLeft hRt
   simpa [Matrix.mul_assoc] using hFull
 
 omit [DecidableEq k] in
