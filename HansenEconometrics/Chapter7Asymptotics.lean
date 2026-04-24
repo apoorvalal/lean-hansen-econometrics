@@ -61,7 +61,11 @@ in four layers:
   `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
   prove the leverage-weighted middle matrices converge to `Ω`, typically via
   the max-leverage `oₚ(1)` theorem later in the chapter.
-* **Theorem 7.8+** — pending.
+* **Theorem 7.10** — the global continuous-mapping face for functions of
+  parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
+  after proving `olsBetaStar_stack_aestronglyMeasurable`. Remaining: local
+  continuity-at-`β`, delta-method, and ordinary-on-nonsingular wrappers.
+* **Theorem 7.8/7.11+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -1472,6 +1476,93 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
   simp only [Pi.add_apply]
   have hident := olsBetaStar_sub_identity X e y β hmodel n ω
   rw [← hident]; abel
+
+/-- **AEMeasurability of the totalized OLS estimator.**
+
+Under the moment assumptions and pointwise linear model, each stacked
+`olsBetaStar` random vector is a.e. strongly measurable. This is the
+measurability input needed to apply continuous-mapping theorems directly to
+functions of `β̂*ₙ`. -/
+theorem olsBetaStar_stack_aestronglyMeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  have hGram_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hCrossE_meas : AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+    have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
+        (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
+      funext ω
+      rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+          sum_fin_eq_sum_range_smul]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+  have hInv_meas : AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram_meas
+  have hGramBeta_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω) *ᵥ β) μ :=
+    (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
+      hGram_meas
+  have hMiddle_meas : AEStronglyMeasurable
+      (fun ω =>
+        sampleGram (stackRegressors X n ω) *ᵥ β +
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ :=
+    hGramBeta_meas.add hCrossE_meas
+  have hRhs_meas : AEStronglyMeasurable
+      (fun ω =>
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          (sampleGram (stackRegressors X n ω) *ᵥ β +
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) μ := by
+    have hprod := hInv_meas.prodMk hMiddle_meas
+    exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable hprod
+  refine hRhs_meas.congr (ae_of_all μ (fun ω => ?_))
+  change
+    (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        (sampleGram (stackRegressors X n ω) *ᵥ β +
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
+      olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)
+  rw [← sampleCrossMoment_stackOutcomes_linear_model X e y β hmodel,
+      ← olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment X y n ω]
+
+/-- **Hansen Theorem 7.10, continuous functions of totalized OLS.**
+
+For any globally continuous parameter transform `φ`, consistency of the
+totalized OLS estimator transfers to `φ(β̂*ₙ) →ₚ φ(β)`. This is the direct
+continuous-mapping-theorem face of Hansen's functions-of-parameters section;
+local-at-`β` and delta-method refinements remain separate future work. -/
+theorem continuous_function_olsBetaStar_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
+    (φ : (k → ℝ) → F) (hφ : Continuous φ) :
+    TendstoInMeasure μ
+      (fun n ω => φ (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)))
+      atTop (fun _ => φ β) := by
+  exact tendstoInMeasure_continuous_comp
+    (olsBetaStar_stack_aestronglyMeasurable
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    (olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    hφ
 
 /-- **Theorem 7.1 ordinary-OLS-on-nonsingular-samples consistency.**
 
