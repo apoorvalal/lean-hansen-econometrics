@@ -98,10 +98,13 @@ in four layers:
   two main bridges are now formalized: absolute-value distributional limits for
   homoskedastic and HC0/HC1 ordinary t-statistics and the deterministic
   symmetric-interval equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
-* **Theorem 7.13** — the full multivariate Wald theorem is pending, but the
-  scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
+* **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
+  formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
+  and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
+  Remaining: vector CLT/covariance packaging and final chi-square law
+  identification for the textbook multivariate theorem.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
   pending, but the scalar one-degree-of-freedom face is formalized under the
   moment-level homoskedastic bridge `Ω = σ²Q` in the
@@ -3561,6 +3564,53 @@ theorem hasLaw_const_mul_id_gaussianReal_of_variance_eq
     · ring
     · rw [hσ, Real.toNNReal_of_nonneg (sq_nonneg c)]
       simp
+
+omit [Fintype k] [DecidableEq k] in
+/-- **Hansen Theorem 7.13, conditional multivariate Wald CMT.**
+
+If a scaled vector statistic `Tₙ` converges in distribution to `Z` and the
+plug-in covariance matrix `V̂ₙ` converges in probability to a nonsingular
+constant `V`, then the Wald quadratic form formed with `V̂ₙ⁻¹` converges in
+distribution to the matching population quadratic form. This is the generic
+continuous-mapping/Slutsky bridge needed before the final chi-square law
+identification. -/
+theorem waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {T : ℕ → Ω → q → ℝ} {Z : Ω' → q → ℝ}
+    {Vhat : ℕ → Ω → Matrix q q ℝ} {V : Matrix q q ℝ}
+    (hT : TendstoInDistribution T atTop Z (fun _ => μ) ν)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_nonsing : IsUnit V.det) :
+    TendstoInDistribution
+      (fun n ω => T n ω ⬝ᵥ ((Vhat n ω)⁻¹ *ᵥ T n ω))
+      atTop
+      (fun ω => Z ω ⬝ᵥ (V⁻¹ *ᵥ Z ω))
+      (fun _ => μ) ν := by
+  letI : BorelSpace (Matrix q q ℝ) := ⟨rfl⟩
+  have hInv : TendstoInMeasure μ
+      (fun n ω => (Vhat n ω)⁻¹) atTop (fun _ => V⁻¹) :=
+    tendstoInMeasure_matrix_inv (μ := μ) hV_meas hV (fun _ => hV_nonsing)
+  have hInv_meas : ∀ n, AEMeasurable (fun ω => (Vhat n ω)⁻¹) μ :=
+    fun n => (aestronglyMeasurable_matrix_inv (hV_meas n)).aemeasurable
+  have hdot : Continuous (fun p : (q → ℝ) × (q → ℝ) => p.1 ⬝ᵥ p.2) := by
+    classical
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ (fun i _ =>
+        (((continuous_apply i).comp continuous_fst).mul
+          ((continuous_apply i).comp continuous_snd))))
+  have hmulVec : Continuous
+      (fun p : (q → ℝ) × Matrix q q ℝ => p.2 *ᵥ p.1) :=
+    Continuous.matrix_mulVec continuous_snd continuous_fst
+  have hquad : Continuous
+      (fun p : (q → ℝ) × Matrix q q ℝ => p.1 ⬝ᵥ (p.2 *ᵥ p.1)) :=
+    hdot.comp (continuous_fst.prodMk hmulVec)
+  have hraw := hT.continuous_comp_prodMk_of_tendstoInMeasure_const
+    (g := fun p : (q → ℝ) × Matrix q q ℝ => p.1 ⬝ᵥ (p.2 *ᵥ p.1))
+    hquad hInv hInv_meas
+  simpa [Function.comp_def] using hraw
 
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
