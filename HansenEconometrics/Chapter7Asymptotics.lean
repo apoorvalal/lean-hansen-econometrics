@@ -1460,6 +1460,50 @@ theorem olsBetaOrZero_stack_tendstoInMeasure_beta
     olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel
 
+/-- **Theorem 7.4 cross remainder.**
+
+The cross term in the residual-variance expansion is negligible:
+`-2 ĝₙ(e)'(β̂*ₙ - β) = oₚ(1)`. It follows coordinatewise from the sample
+cross-moment WLLN, Theorem 7.1 consistency, and the finite dot-product
+`oₚ(1)·oₚ(1)` rule. -/
+theorem olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        -2 * (sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) ⬝ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0) := by
+  have hCross :=
+    sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71
+  have hBeta :=
+    olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β
+      h.toSampleMomentAssumption71 hmodel
+  have hCrossCoord : ∀ j : k,
+      TendstoInMeasure μ
+        (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) j)
+        atTop (fun _ => 0) := by
+    intro j
+    exact TendstoInMeasure.pi_apply hCross j
+  have hBetaCoord : ∀ j : k,
+      TendstoInMeasure μ
+        (fun n ω =>
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) j)
+        atTop (fun _ => 0) := by
+    intro j
+    have hj := TendstoInMeasure.pi_apply hBeta j
+    have hcenter := TendstoInMeasure.sub_limit_zero_real hj
+    simpa [Pi.sub_apply] using hcenter
+  have hdot := tendstoInMeasure_dotProduct_zero_real (μ := μ)
+    (X := fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+    (Y := fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)
+    hCrossCoord hBetaCoord
+  simpa using TendstoInMeasure.const_mul_zero_real (μ := μ) (-2) hdot
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
