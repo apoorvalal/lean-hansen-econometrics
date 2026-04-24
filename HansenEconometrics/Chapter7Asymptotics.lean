@@ -4739,6 +4739,33 @@ theorem tendstoInDistribution_abs_real
     TendstoInDistribution (fun n ω => |T n ω|) atTop (fun ω => |Z ω|) P ν := by
   simpa [Function.comp_def] using hT.continuous_comp continuous_abs
 
+/-- Scaling by positive standard-error and root factors preserves absolute-value inequalities. -/
+theorem abs_scaled_error_div_le_iff
+    {d root se crit : ℝ}
+    (hroot : 0 < root) (hse : 0 < se) :
+    |root * d / se| ≤ crit ↔ |d| ≤ crit * se / root := by
+  rw [abs_div, abs_mul, abs_of_pos hroot, abs_of_pos hse]
+  constructor
+  · intro h
+    have hmul : root * |d| ≤ crit * se := (div_le_iff₀ hse).mp h
+    exact (le_div_iff₀ hroot).mpr (by simpa [mul_comm] using hmul)
+  · intro h
+    have hmul' : |d| * root ≤ crit * se := (le_div_iff₀ hroot).mp h
+    have hmul : root * |d| ≤ crit * se := by
+      simpa [mul_comm] using hmul'
+    exact (div_le_iff₀ hse).mpr hmul
+
+/-- Symmetric confidence-interval membership is equivalent to an absolute t-statistic bound. -/
+theorem mem_symmetric_ci_iff_abs_tstat_le
+    {θ θhat root se crit : ℝ}
+    (hroot : 0 < root) (hse : 0 < se) :
+    θ ∈ Set.Icc (θhat - crit * se / root) (θhat + crit * se / root) ↔
+      |root * (θhat - θ) / se| ≤ crit := by
+  rw [← Set.mem_Icc_iff_abs_le
+    (x := θhat) (y := θ) (z := crit * se / root)]
+  exact (abs_scaled_error_div_le_iff
+    (d := θhat - θ) (root := root) (se := se) (crit := crit) hroot hse).symm
+
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
 For a one-dimensional fixed linear map `R`, the HC0-studentized totalized OLS
