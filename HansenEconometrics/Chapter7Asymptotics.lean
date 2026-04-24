@@ -5071,6 +5071,134 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNorma
     dsimp [c]
     exact (mul_div_cancel_left₀ x hse_pos.ne').symm
 
+/-- **Hansen §7.17 for ordinary OLS on nonsingular samples, homoskedastic face.**
+
+The homoskedastic-studentized scalar linear t-statistic transfers from the
+totalized estimator to the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
+theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop
+      (fun ω =>
+        Z ω / Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (fun _ => μ) ν := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
+
+/-- **Hansen Theorem 7.14 for ordinary OLS, homoskedastic standard-normal face.** -/
+theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
+      (μ := μ) (X := X) (e := e) (y := y)
+      hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
+
+/-- Absolute-value CMT for the ordinary homoskedastic scalar t-statistic. -/
+theorem olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        abs
+          (((Real.sqrt (n : ℝ) •
+            (R *ᵥ
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+              (fun _ : Unit => 1)) /
+            Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())))
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+  simpa using
+    tendstoInDistribution_abs_real
+      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+        (μ := μ) (X := X) (e := e) (y := y)
+        hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
+
+/-- **Hansen Theorem 7.14, scalar one-degree-of-freedom homoskedastic Wald statistic.**
+
+Under the explicit covariance bridge `V⁰β = Vβ`, the scalar homoskedastic Wald
+statistic for ordinary OLS converges to `χ²(1)`. -/
+theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) ^ 2)
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
+  simpa using
+    tendstoInDistribution_sq_standardNormal_chiSquared_one
+      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+        (μ := μ) (X := X) (e := e) (y := y)
+        hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
+
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
 For a one-dimensional fixed linear map `R`, the HC0-studentized totalized OLS
