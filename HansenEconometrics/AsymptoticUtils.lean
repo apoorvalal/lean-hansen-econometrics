@@ -411,6 +411,27 @@ theorem TendstoInMeasure.of_sub_limit_zero_real
   intro ε hε
   simpa [Real.dist_eq] using hX ε hε
 
+/-- Product of two real-valued sequences converging in measure to scalar limits
+converges in measure to the product of the limits. -/
+theorem TendstoInMeasure.mul_limits_real
+    {X Y : ℕ → α → ℝ} {c d : ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => c))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => d)) :
+    TendstoInMeasure μ (fun n ω => X n ω * Y n ω) atTop (fun _ => c * d) := by
+  have hX0 := TendstoInMeasure.sub_limit_zero_real hX
+  have hY0 := TendstoInMeasure.sub_limit_zero_real hY
+  have hprod := TendstoInMeasure.mul_zero_real hX0 hY0
+  have hcY := TendstoInMeasure.const_mul_zero_real (μ := μ) c hY0
+  have hdX := TendstoInMeasure.const_mul_zero_real (μ := μ) d hX0
+  have hsum :=
+    TendstoInMeasure.add_zero_real
+      (TendstoInMeasure.add_zero_real hprod hcY) hdX
+  have hcenter : TendstoInMeasure μ
+      (fun n ω => X n ω * Y n ω - c * d) atTop (fun _ => 0) := by
+    refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+    ring
+  exact TendstoInMeasure.of_sub_limit_zero_real hcenter
+
 /-- A deterministic real sequence converging to a scalar also converges in
 measure when viewed as a constant random variable sequence. -/
 theorem tendstoInMeasure_const_real
