@@ -2152,6 +2152,18 @@ noncomputable def sampleScoreCovarianceHC3Star (X : Matrix n k ℝ) (y : n → �
       (((1 - leverageStar X i)⁻¹) ^ 2 * (olsResidualStar X y i) ^ 2) •
         Matrix.vecMulVec (X i) (X i)
 
+/-- HC2-minus-HC0 middle-matrix adjustment. Proving this is `oₚ(1)` is the
+leverage-specific part of HC2 consistency. -/
+noncomputable def sampleScoreCovarianceHC2AdjustmentStar
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  sampleScoreCovarianceHC2Star X y - sampleScoreCovarianceStar X y
+
+/-- HC3-minus-HC0 middle-matrix adjustment. Proving this is `oₚ(1)` is the
+leverage-specific part of HC3 consistency. -/
+noncomputable def sampleScoreCovarianceHC3AdjustmentStar
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  sampleScoreCovarianceHC3Star X y - sampleScoreCovarianceStar X y
+
 /-- **Theorem 7.6 residual-score expansion, entrywise form.**
 
 Under the linear model, each residual score outer product decomposes into the
@@ -2570,6 +2582,65 @@ theorem sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_o
       h.toSampleMomentAssumption71 β hmodel hQuadWeight
   exact sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders
     (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCross hQuad
+
+/-- **Hansen Theorem 7.7, HC2 middle matrix from HC0 plus adjustment.**
+
+If the feasible HC0 middle matrix converges to `Ω` and the HC2 leverage
+adjustment is `oₚ(1)`, then the HC2 middle matrix also converges to `Ω`. This
+isolates the exact leverage remainder left for the HC2 proof. -/
+theorem sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hHC0_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hAdj_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hHC0 : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC2AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC2Star
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e) := by
+  have hsum := tendstoInMeasure_add hHC0_meas hAdj_meas hHC0 hAdj
+  simpa [sampleScoreCovarianceHC2AdjustmentStar, sub_eq_add_neg, add_assoc,
+    add_comm, add_left_comm] using hsum
+
+/-- **Hansen Theorem 7.7, HC3 middle matrix from HC0 plus adjustment.**
+
+If the feasible HC0 middle matrix converges to `Ω` and the HC3 leverage
+adjustment is `oₚ(1)`, then the HC3 middle matrix also converges to `Ω`. -/
+theorem sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hHC0_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hAdj_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hHC0 : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC3AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC3Star
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e) := by
+  have hsum := tendstoInMeasure_add hHC0_meas hAdj_meas hHC0 hAdj
+  simpa [sampleScoreCovarianceHC3AdjustmentStar, sub_eq_add_neg, add_assoc,
+    add_comm, add_left_comm] using hsum
 
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
