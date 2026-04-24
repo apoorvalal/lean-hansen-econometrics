@@ -3246,6 +3246,18 @@ theorem hasLaw_gaussianReal_div_const_standard
       ext
       simp [hc.ne']
 
+/-- Version of Gaussian normalization with an explicitly identified variance. -/
+theorem hasLaw_gaussianReal_div_const_standard_of_variance_eq
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {Z : Ω' → ℝ} {σ2 c : ℝ}
+    (hc : 0 < c)
+    (hσ : σ2 = c ^ 2)
+    (hZ : HasLaw Z (gaussianReal 0 σ2.toNNReal) ν) :
+    HasLaw (fun ω => Z ω / c) (gaussianReal 0 1) ν := by
+  have hZ' : HasLaw Z (gaussianReal 0 (c ^ 2).toNNReal) ν := by
+    rwa [hσ] at hZ
+  exact hasLaw_gaussianReal_div_const_standard hc hZ'
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
@@ -4653,6 +4665,50 @@ theorem scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_c
     scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R c hmodel hZ
+
+/-- **Standard-normal law for the scalar linear t-statistic limit.**
+
+The scalar linear-function CLT produces a Gaussian numerator with variance
+`r Vβ r'`. Dividing by the positive population standard error therefore has
+standard normal law. -/
+theorem olsLinearTStatisticLimit_hasLaw_standard
+    {μ : Measure Ω}
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ)
+    (R : Matrix Unit k ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    HasLaw
+      (fun ω =>
+        Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (gaussianReal 0 1) ν := by
+  let c : ℝ := Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
+  have hentry_pos : 0 < (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+    exact Real.sqrt_pos.mp hse_pos
+  have hc : 0 < c := by
+    simpa [c] using hse_pos
+  have hentry_eq :
+      (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
+        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
+    linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+      (μ := μ) (X := X) (e := e) hX R
+  have hσ :
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+    calc
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+            hentry_eq.symm
+      _ = c ^ 2 := by
+            simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
+  simpa [c] using
+    hasLaw_gaussianReal_div_const_standard_of_variance_eq
+      (ν := ν) (Z := Z) hc hσ hZ
 
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
