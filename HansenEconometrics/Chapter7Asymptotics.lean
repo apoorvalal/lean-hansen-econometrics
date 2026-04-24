@@ -40,7 +40,18 @@ in four layers:
 * **Theorem 7.5** — homoskedastic plug-in covariance consistency is formalized
   for the totalized estimator `olsHomoskedasticCovarianceStar` in
   `olsHomoskedasticCovarianceStar_tendstoInMeasure`.
-* **Theorem 7.6+** — pending.
+* **Theorem 7.6** — heteroskedastic HC0 covariance consistency is now
+  formalized through the ideal true-error middle matrix and the sandwich CMT:
+  `sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix`
+  and `olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure`. The feasible
+  residual version is reduced to two explicit remainder controls via
+  `sampleScoreCovarianceStar_linear_model`,
+  `sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders`,
+  and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders`.
+  Remaining work: prove the HC0 cross and quadratic residual-score remainders
+  are `oₚ(1)` under suitable moment/tightness assumptions, plus supply the
+  residual middle-matrix measurability used by the final sandwich wrapper.
+* **Theorem 7.7+** — pending.
 
 ## Phase 1 — Deterministic scaffold
 
