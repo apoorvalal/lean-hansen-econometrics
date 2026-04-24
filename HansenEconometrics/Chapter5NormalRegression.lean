@@ -277,6 +277,12 @@ theorem scaledOlsResidualVarianceStatistic_hasLaw_chiSquared
     HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε)
       (chiSquared (Fintype.card n - Fintype.card k)) μ := by
   classical
+  -- Proof outline:
+  -- 1. Rewrite `((n-k)s²)/σ²` as the sum of squared standardized coordinates of `ε` along the
+  --    annihilator matrix's `1`-eigenspace.
+  -- 2. Use the orthonormal-basis Gaussian-coordinate theorem to show those coordinates are i.i.d.
+  --    standard normal.
+  -- 3. Count the coordinates via `rank(M) = n-k` and invoke the generic chi-square theorem.
   let hM : (annihilatorMatrix X).IsHermitian := annihilatorMatrix_isHermitian X
   let W : {j : n // hM.eigenvalues j = 1} → Ω → ℝ :=
     restrictedStandardizedCoords hM.eigenvectorBasis
@@ -362,6 +368,10 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
     (fun ω => olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
       scaledOlsResidualVarianceStatistic X β σ2 ε := by
   classical
+  -- Proof outline:
+  -- 1. Express `β̂ - β` and the residual vector as linear images `A ε` and `M ε`.
+  -- 2. Show `(A ε, M ε)` is jointly Gaussian and has zero cross-covariance because `Xᵀ M = 0`.
+  -- 3. Push that independence through `q(r) = ‖r‖² / σ²` to reach `((n-k)s²)/σ²`.
   let A : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ k :=
     (Matrix.toEuclideanLin (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap
   let M : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
@@ -723,6 +733,10 @@ theorem olsTStatistic_hasLaw_studentT
     HasLaw (olsTStatistic X β σ2 j ε)
       (studentT (Fintype.card n - Fintype.card k)) μ := by
   let ν : ℕ := Fintype.card n - Fintype.card k
+  -- Proof outline:
+  -- 1. The centered coefficient coordinate is standard normal.
+  -- 2. The studentization factor is an inverse-square-root transform of an independent chi-square.
+  -- 3. Apply the standalone ratio-law characterization of the Student-t distribution.
   have hν : 0 < ν := by
     dsimp [ν]
     exact Nat.sub_pos_of_lt hdf
@@ -1139,6 +1153,8 @@ theorem olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths
     (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     (19 : ℝ) / 20 ≤
       μ.real {ω | β j ∈ olsConfidenceInterval X j 2 (X *ᵥ β + WithLp.ofLp (ε ω))} := by
+  -- This is the chapter-level corollary: use the exact coverage identity from Theorem 5.9 at
+  -- `c = 2`, then import the standalone Student-t central-mass lower bound from `StudentT.lean`.
   have hdf : Fintype.card k < Fintype.card n := by
     omega
   rw [olsConfidenceInterval_coverage_eq_classicalStudentT_interval X β j (2 : ℝ) hσ2 hdf ε hε]
@@ -1365,6 +1381,8 @@ theorem olsTTest_rejection_probability_eq_alpha
     [Invertible (Xᵀ * X)]
     (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     μ.real {ω | olsTTestRejects X j β0 c (X *ᵥ β + WithLp.ofLp (ε ω))} = α := by
+  -- Reduce the explicit null-centered rejection event to the reusable `|T| > c` event, then
+  -- invoke the classical size theorem for `olsTStatistic`.
   rw [measureReal_congr ?_]
   · exact olsTStatistic_rejection_probability_eq_alpha_classical
       X β j c hc hcdf_pos hcdf_neg hσ2 hdf ε hε
@@ -1928,6 +1946,10 @@ theorem olsFStatistic_hasLaw_fDist
     (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
       (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by
+  -- Proof outline:
+  -- 1. Identify the numerator and denominator as independent chi-square statistics.
+  -- 2. Rewrite the block F statistic as their normalized ratio.
+  -- 3. Apply the generic ratio-of-chi-squares theorem.
   let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols X₁ X₂
   let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
   have hNum :

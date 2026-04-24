@@ -407,6 +407,8 @@ lemma studentTTwoCoverageKernelLowerBound_nonneg_of_ge_sixty_one
 lemma studentTTwoCoverageLowerBound_step_two_le_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     studentTTwoCoverageLowerBound ν ≤ studentTTwoCoverageLowerBound (ν + 2) := by
+  -- Step-two monotonicity for the explicit lower bound used in Theorem 5.10: both the Student-t
+  -- density constant and the integrated Taylor lower polynomial improve when `ν` increases by `2`.
   have hνpos : 0 < ν := by omega
   have hc_le :
       studentTDensityConstant ν ≤ studentTDensityConstant (ν + 2) :=
@@ -457,6 +459,8 @@ private lemma studentTTwoCoverageLowerBound_sixty_two_step_chain (m : ℕ) :
 lemma studentTTwoCoverageLowerBound_ge_nineteen_twentieths_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound ν := by
+  -- Parity argument for Theorem 5.10: start from the verified `ν = 61` and `ν = 62` base cases,
+  -- then iterate the step-two monotonicity lemma along the odd and even subsequences separately.
   rcases Nat.even_or_odd' (ν - 61) with ⟨m, hm | hm⟩
   · have hν_eq : ν = 61 + 2 * m := by omega
     calc
@@ -490,6 +494,8 @@ private lemma one_add_rpow_taylor_lower_eleven {a u : ℝ}
       (((Nat.factorial k : ℕ) : ℝ)⁻¹ * u ^ k) *
         iteratedDeriv k (fun z : ℝ => (1 + z) ^ (-a)) 0) ≤
       (1 + u) ^ (-a) := by
+  -- Truncate at degree `11` so the remainder is governed by the `12`th derivative; that
+  -- derivative is nonnegative on `[0, ∞)`, so the Taylor polynomial is a lower bound.
   by_cases hu0 : u = 0
   · subst u
     rw [Finset.sum_eq_single 0]
@@ -1589,6 +1595,10 @@ theorem ratio_prod_map_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
     ((gaussianReal 0 1).prod (chiSquared ν)).map
       (fun p : ℝ × ℝ => p.1 * (Real.sqrt (ν : ℝ) / Real.sqrt p.2)) =
     classicalStudentT ν := by
+  -- Bridge strategy:
+  -- 1. View `Z / √(Q/ν)` as a measurable map of the product law `N(0,1) × χ²_ν`.
+  -- 2. Integrate first against the chi-square kernel to recover the classical Student-t density.
+  -- 3. Conclude equality of measures by extensionality on lintegrals.
   refine Measure.ext_of_lintegral _ ?_
   intro φ hφ
   let ratio : ℝ × ℝ → ℝ := fun p => p.1 * (Real.sqrt (ν : ℝ) / Real.sqrt p.2)

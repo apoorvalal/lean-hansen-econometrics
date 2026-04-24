@@ -731,6 +731,11 @@ theorem ratio_prod_map_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν
     ((chiSquared q).prod (chiSquared ν)).map
       (fun z : ℝ × ℝ => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ))) =
     classicalFDist q ν := by
+  -- Bridge strategy:
+  -- 1. View `(U/q) / (V/ν)` as a measurable map of the product law `χ²_q × χ²_ν`.
+  -- 2. Condition on the denominator to identify the numerator as a scaled gamma density.
+  -- 3. Collapse the outer integral to the classical Fisher-Snedecor density and conclude by
+  --    lintegral extensionality.
   refine Measure.ext_of_lintegral _ ?_
   intro φ hφ
   let ratio : ℝ × ℝ → ℝ := fun z => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ))
