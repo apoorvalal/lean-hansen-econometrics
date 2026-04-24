@@ -3144,6 +3144,22 @@ theorem tendstoInDistribution_div_of_tendstoInMeasure_const_pos
     (Z := fun ω => Z ω / c)
     hclip hdiff hdiv_meas
 
+/-- A zero-mean Gaussian with variance `c²`, divided by positive `c`, is standard normal. -/
+theorem hasLaw_gaussianReal_div_const_standard
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {Z : Ω' → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hZ : HasLaw Z (gaussianReal 0 (c ^ 2).toNNReal) ν) :
+    HasLaw (fun ω => Z ω / c) (gaussianReal 0 1) ν := by
+  have hdiv := gaussianReal_div_const hZ c
+  convert hdiv using 1
+  · rw [gaussianReal_ext_iff]
+    constructor
+    · simp
+    · rw [Real.toNNReal_of_nonneg (sq_nonneg c)]
+      ext
+      simp [hc.ne']
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
