@@ -2000,6 +2000,86 @@ theorem olsHomoskedasticCovarianceStar_tendstoInMeasure
   simpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,
     s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j
 
+/-- AEMeasurability of the totalized homoskedastic covariance estimator from
+component measurability. -/
+theorem olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω =>
+        olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  have hBeta_meas := olsBetaStar_stack_aestronglyMeasurable
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel n
+  have hGram_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hInv_meas : AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram_meas
+  have hdot_fixed_cont : Continuous (fun x : k → ℝ => x ⬝ᵥ β) := by
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ
+        (fun i _ => (continuous_apply i).mul continuous_const))
+  have hdot_pair_cont : Continuous (fun p : (k → ℝ) × (k → ℝ) => p.1 ⬝ᵥ p.2) := by
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ
+        (fun i _ =>
+          ((continuous_apply i).comp continuous_fst).mul
+            ((continuous_apply i).comp continuous_snd)))
+  have hres : ∀ i : Fin n, AEStronglyMeasurable
+      (fun ω =>
+        olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i) μ := by
+    intro i
+    have hXrow : AEStronglyMeasurable (fun ω => stackRegressors X n ω i) μ := by
+      simpa [stackRegressors] using hX_meas i.val
+    have hYrow : AEStronglyMeasurable (fun ω => stackOutcomes y n ω i) μ := by
+      have hYexpr : AEStronglyMeasurable
+          (fun ω => X i.val ω ⬝ᵥ β + e i.val ω) μ :=
+        (hdot_fixed_cont.comp_aestronglyMeasurable (hX_meas i.val)).add (he_meas i.val)
+      refine hYexpr.congr (ae_of_all μ (fun ω => ?_))
+      simpa [stackOutcomes] using (hmodel i.val ω).symm
+    have hfit : AEStronglyMeasurable
+        (fun ω =>
+          stackRegressors X n ω i ⬝ᵥ
+            olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      hdot_pair_cont.comp_aestronglyMeasurable (hXrow.prodMk hBeta_meas)
+    have hres_exp : AEStronglyMeasurable
+        (fun ω =>
+          stackOutcomes y n ω i -
+            stackRegressors X n ω i ⬝ᵥ
+              olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      hYrow.sub hfit
+    refine hres_exp.congr (ae_of_all μ (fun ω => ?_))
+    simp [olsResidualStar, Matrix.mulVec, dotProduct]
+  have hss : AEStronglyMeasurable
+      (fun ω =>
+        dotProduct
+          (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω))
+          (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω))) μ := by
+    simpa [dotProduct] using
+      Finset.aestronglyMeasurable_fun_sum (Finset.univ : Finset (Fin n))
+        (fun i _ => (hres i).mul (hres i))
+  have hs2 : AEStronglyMeasurable
+      (fun ω =>
+        olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+    simpa [olsS2Star] using
+      hss.const_mul (((Fintype.card (Fin n) : ℝ) - Fintype.card k)⁻¹)
+  simpa [olsHomoskedasticCovarianceStar] using hs2.smul hInv_meas
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
@@ -3176,6 +3256,73 @@ theorem linearMapCovarianceStdError_tendstoInMeasure
       atTop (fun _ => (R * V * Rᵀ) j j) :=
     TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hCov j) j
   exact tendstoInMeasure_continuous_comp hentry_meas hentry Real.continuous_sqrt
+
+/-- **Hansen Theorem 7.10, homoskedastic covariance for fixed linear functions.**
+
+For a fixed linear map `R`, the totalized homoskedastic plug-in covariance
+estimator for `R β` converges to `R V⁰β Rᵀ`. -/
+theorem linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        R * olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
+      atTop (fun _ => R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) := by
+  have hV_meas :=
+    olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHomoskedasticCovarianceStar_tendstoInMeasure
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+  exact linearMapCovariance_tendstoInMeasure
+    (μ := μ) (R := R)
+    (Vhat := fun n ω =>
+      olsHomoskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := homoskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
+
+/-- **Hansen §7.11/§7.17, homoskedastic standard errors for fixed linear functions.**
+
+The square root of a diagonal element of `R V̂⁰β Rᵀ` converges to the
+corresponding population homoskedastic scale. -/
+theorem olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Finite q]
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ) (j : q)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        Real.sqrt ((R * olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
+      atTop (fun _ =>
+        Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) j j)) := by
+  have hV_meas :=
+    olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHomoskedasticCovarianceStar_tendstoInMeasure
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+  exact linearMapCovarianceStdError_tendstoInMeasure
+    (μ := μ) (R := R) (j := j)
+    (Vhat := fun n ω =>
+      olsHomoskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := homoskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
 
 /-- **Scalar Slutsky division with a positive denominator limit.**
 
