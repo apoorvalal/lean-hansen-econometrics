@@ -237,6 +237,28 @@ theorem tendstoInMeasure_mulVec
     Continuous.matrix_mulVec continuous_fst continuous_snd
   exact tendstoInMeasure_continuous_comp hprod_meas (tendstoInMeasure_prodMk hA hv) hcont
 
+set_option maxHeartbeats 1200000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on the product
+-- `Matrix k k ℝ × Matrix k k ℝ` with scoped elementwise norm is expensive.
+/-- **Matrix multiplication CMT.** If `A n →ₚ Ainf` and `B n →ₚ Binf` in
+measure, then `A n * B n →ₚ Ainf * Binf`. -/
+theorem tendstoInMeasure_matrix_mul
+    [IsFiniteMeasure μ]
+    {k : Type*} [Fintype k]
+    {A B : ℕ → α → Matrix k k ℝ} {Ainf Binf : α → Matrix k k ℝ}
+    (hA_meas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hB_meas : ∀ n, AEStronglyMeasurable (B n) μ)
+    (hA : TendstoInMeasure μ A atTop Ainf)
+    (hB : TendstoInMeasure μ B atTop Binf) :
+    TendstoInMeasure μ (fun n ω => A n ω * B n ω) atTop
+      (fun ω => Ainf ω * Binf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (A n ω, B n ω)) μ :=
+    fun n => (hA_meas n).prodMk (hB_meas n)
+  have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+    continuous_fst.matrix_mul continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas
+    (tendstoInMeasure_prodMk hA hB) hcont
+
 end MulVec
 
 section StochasticOrder
