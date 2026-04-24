@@ -104,6 +104,164 @@ theorem tendstoInMeasure_pi
 
 end CMT
 
+section MatrixInverse
+
+open scoped Matrix.Norms.Elementwise
+
+variable {k : Type*} [Fintype k] [DecidableEq k]
+
+/-- **Measurability of the matrix inverse.** If `A : α → Matrix k k ℝ`
+is strongly measurable a.e., so is `fun ω => (A ω)⁻¹`. Derived from
+`Matrix.inv_def` (`A⁻¹ = Ring.inverse A.det • A.adjugate`) and measurability
+of scalar reciprocal / continuity of det and adjugate. -/
+theorem aestronglyMeasurable_matrix_inv
+    {A : α → Matrix k k ℝ} (hmeas : AEStronglyMeasurable A μ) :
+    AEStronglyMeasurable (fun ω => (A ω)⁻¹) μ := by
+  have hdet : AEStronglyMeasurable (fun ω => (A ω).det) μ :=
+    (Continuous.matrix_det continuous_id).comp_aestronglyMeasurable hmeas
+  have hadj : AEStronglyMeasurable (fun ω => (A ω).adjugate) μ :=
+    (Continuous.matrix_adjugate continuous_id).comp_aestronglyMeasurable hmeas
+  have hrinv : AEStronglyMeasurable (fun ω => Ring.inverse ((A ω).det)) μ := by
+    have heq : (fun ω => Ring.inverse ((A ω).det)) = (fun ω => ((A ω).det)⁻¹) := by
+      funext ω
+      exact Ring.inverse_eq_inv _
+    rw [heq]
+    exact (measurable_inv.comp_aemeasurable hdet.aemeasurable).aestronglyMeasurable
+  have heq : (fun ω => (A ω)⁻¹) =
+      (fun ω => Ring.inverse ((A ω).det) • (A ω).adjugate) := by
+    funext ω
+    exact Matrix.inv_def (A ω)
+  rw [heq]
+  exact hrinv.smul hadj
+
+/-- **CMT for matrix inversion.** If `A n →ₚ A'` in measure and `A' ω` is nonsingular
+for every `ω`, then `(A n)⁻¹ →ₚ (A')⁻¹` in measure.
+
+Pointwise a.s. convergence follows from Mathlib's `continuousAt_matrix_inv`, which
+gives continuity of matrix inversion at each nonsingular limit point. Measurability
+of the inverse sequence reuses `aestronglyMeasurable_matrix_inv`. -/
+theorem tendstoInMeasure_matrix_inv
+    [IsFiniteMeasure μ]
+    {A : ℕ → α → Matrix k k ℝ} {A' : α → Matrix k k ℝ}
+    (hmeas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hconv : TendstoInMeasure μ A atTop A')
+    (hinv : ∀ ω, IsUnit (A' ω).det) :
+    TendstoInMeasure μ (fun n ω => (A n ω)⁻¹) atTop (fun ω => (A' ω)⁻¹) := by
+  have hmeas_inv : ∀ n, AEStronglyMeasurable (fun ω => (A n ω)⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (hmeas n)
+  rw [exists_seq_tendstoInMeasure_atTop_iff hmeas_inv]
+  intro ns hns
+  obtain ⟨ns', hns', hae⟩ :=
+    (exists_seq_tendstoInMeasure_atTop_iff hmeas).mp hconv ns hns
+  refine ⟨ns', hns', ?_⟩
+  filter_upwards [hae] with ω hω
+  have hcont : ContinuousAt Inv.inv (A' ω) := by
+    refine continuousAt_matrix_inv _ ?_
+    rw [Ring.inverse_eq_inv']
+    exact continuousAt_inv₀ ((hinv ω).ne_zero)
+  exact hcont.tendsto.comp hω
+
+/-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
+matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
+`(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`
+and `IsUnit M.det`; we dispatch the singular cases by hand so the identity
+holds on all of `Ω`, as needed by the Chapter 7 consistency argument where
+`Q̂ₙ = n⁻¹ • (Xᵀ X)` is scaled by a sample-dependent but possibly zero-at-`ω`
+factor. -/
+theorem nonsingInv_smul (c : ℝ) (M : Matrix k k ℝ) :
+    (c • M)⁻¹ = c⁻¹ • M⁻¹ := by
+  by_cases hc : c = 0
+  · subst hc
+    simp [Matrix.inv_zero]
+  by_cases hM : IsUnit M.det
+  · have : Invertible c := invertibleOfNonzero hc
+    rw [Matrix.inv_smul _ _ hM, invOf_eq_inv]
+  · have hM' : M.det = 0 := by
+      rwa [isUnit_iff_ne_zero, ne_eq, not_not] at hM
+    have hcMdet : ¬ IsUnit (c • M).det := by
+      rw [Matrix.det_smul, hM', mul_zero]
+      simp
+    rw [Matrix.nonsing_inv_apply_not_isUnit _ hcMdet,
+        Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
+
+end MatrixInverse
+
+section MulVec
+
+open scoped Matrix Matrix.Norms.Elementwise
+
+/-- **Joint `TendstoInMeasure` on a product.** If `f n →ₚ finf` and `g n →ₚ ginf`, then
+`(f n, g n) →ₚ (finf, ginf)` in the product E-metric. -/
+theorem tendstoInMeasure_prodMk
+    {E F : Type*} [PseudoEMetricSpace E] [PseudoEMetricSpace F]
+    {f : ℕ → α → E} {finf : α → E} {g : ℕ → α → F} {ginf : α → F}
+    (hf : TendstoInMeasure μ f atTop finf)
+    (hg : TendstoInMeasure μ g atTop ginf) :
+    TendstoInMeasure μ (fun n ω => (f n ω, g n ω)) atTop (fun ω => (finf ω, ginf ω)) := by
+  intro ε hε
+  have hcover : ∀ n,
+      {ω | ε ≤ edist (f n ω, g n ω) (finf ω, ginf ω)} ⊆
+        {ω | ε ≤ edist (f n ω) (finf ω)} ∪ {ω | ε ≤ edist (g n ω) (ginf ω)} := by
+    intro n ω hω
+    rcases le_max_iff.mp (by simpa [Prod.edist_eq] using hω) with h | h
+    · exact Or.inl h
+    · exact Or.inr h
+  have hbound : ∀ n,
+      μ {ω | ε ≤ edist (f n ω, g n ω) (finf ω, ginf ω)} ≤
+        μ {ω | ε ≤ edist (f n ω) (finf ω)} + μ {ω | ε ≤ edist (g n ω) (ginf ω)} := fun n =>
+    (measure_mono (hcover n)).trans (measure_union_le _ _)
+  have hsum : Tendsto
+      (fun n => μ {ω | ε ≤ edist (f n ω) (finf ω)} + μ {ω | ε ≤ edist (g n ω) (ginf ω)})
+      atTop (𝓝 0) := by
+    simpa using (hf ε hε).add (hg ε hε)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
+    (fun _ => zero_le _) hbound
+
+set_option maxHeartbeats 400000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on the product `E × E` via the
+-- scoped elementwise norm is expensive for vector/matrix instantiations.
+/-- **Additive CMT for `TendstoInMeasure`.** If `f n →ₚ finf` and `g n →ₚ ginf`
+in a pseudo-metrizable additive topological group, then
+`f n + g n →ₚ finf + ginf`. Mathlib lacks a named additive glue for
+`TendstoInMeasure`; we assemble it from the product CMT and continuity of `+`. -/
+theorem tendstoInMeasure_add
+    [IsFiniteMeasure μ]
+    {E : Type*} [PseudoEMetricSpace E] [TopologicalSpace.PseudoMetrizableSpace E]
+    [Add E] [ContinuousAdd E]
+    {f g : ℕ → α → E} {finf ginf : α → E}
+    (hf_meas : ∀ n, AEStronglyMeasurable (f n) μ)
+    (hg_meas : ∀ n, AEStronglyMeasurable (g n) μ)
+    (hf : TendstoInMeasure μ f atTop finf)
+    (hg : TendstoInMeasure μ g atTop ginf) :
+    TendstoInMeasure μ (fun n ω => f n ω + g n ω) atTop (fun ω => finf ω + ginf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (f n ω, g n ω)) μ :=
+    fun n => (hf_meas n).prodMk (hg_meas n)
+  exact tendstoInMeasure_continuous_comp hprod_meas
+    (tendstoInMeasure_prodMk hf hg) continuous_add
+
+set_option maxHeartbeats 400000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on the product
+-- `Matrix k k ℝ × (k → ℝ)` with scoped elementwise norm is expensive.
+/-- **Matrix-vector multiplication CMT.** If `A n →ₚ Ainf` (matrix in measure) and
+`v n →ₚ vinf` (vector in measure), then `A n *ᵥ v n →ₚ Ainf *ᵥ vinf`. -/
+theorem tendstoInMeasure_mulVec
+    [IsFiniteMeasure μ]
+    {k : Type*} [Fintype k]
+    {A : ℕ → α → Matrix k k ℝ} {Ainf : α → Matrix k k ℝ}
+    {v : ℕ → α → k → ℝ} {vinf : α → k → ℝ}
+    (hA_meas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hv_meas : ∀ n, AEStronglyMeasurable (v n) μ)
+    (hA : TendstoInMeasure μ A atTop Ainf)
+    (hv : TendstoInMeasure μ v atTop vinf) :
+    TendstoInMeasure μ (fun n ω => A n ω *ᵥ v n ω) atTop (fun ω => Ainf ω *ᵥ vinf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (A n ω, v n ω)) μ :=
+    fun n => (hA_meas n).prodMk (hv_meas n)
+  have hcont : Continuous (fun p : Matrix k k ℝ × (k → ℝ) => p.1 *ᵥ p.2) :=
+    Continuous.matrix_mulVec continuous_fst continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas (tendstoInMeasure_prodMk hA hv) hcont
+
+end MulVec
+
 section WLLN
 
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}

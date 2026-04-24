@@ -8,6 +8,47 @@
   `uv run python scripts/1_extract_all_chapter_text.py`
 - The chapter-level LaTeX/Lean crosswalk has been folded into this file.
 
+## First-pass formalization order
+
+### Layer 1: deterministic OLS-error algebra
+1. define `sampleGram` and `sampleCrossMoment`
+2. prove `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` under the linear model and `Xᵀ X` invertibility
+
+Status: landed in `HansenEconometrics/Chapter7Asymptotics.lean`
+(`sampleGram`, `sampleCrossMoment`, `olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`).
+
+### Layer 2: stacking primitives and iid assumption bundle
+3. stack regressor / error / outcome sequences into `Matrix (Fin n) k ℝ` / `Fin n → ℝ`
+4. rewrite stacked `sampleGram` and `sampleCrossMoment` as explicit sample means
+5. package Hansen Assumption 7.1 as a structure
+
+Status: landed via `stackRegressors` / `stackErrors` / `stackOutcomes`,
+`stack_linear_model`, `sampleGram_stackRegressors_eq_avg`,
+`sampleCrossMoment_stackRegressors_stackErrors_eq_avg`, and `SampleAssumption71`.
+
+### Layer 3: probabilistic convergence to Theorem 7.1
+6. `Q̂ₙ →ₚ Q` via WLLN on outer products
+7. `ĝₙ(e) →ₚ 0` via WLLN on cross products + orthogonality
+8. `Q̂ₙ⁻¹ →ₚ Q⁻¹` via matrix-inverse CMT at a pointwise-nonsingular limit
+9. `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0` via matrix-vector CMT
+10. `μ{Q̂ₙ singular} → 0` via CMT on `det` + squeeze at `ε = |det Q|/2`
+11. residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0` (vanishes on the invertibility event)
+12. assemble `β̂*ₙ →ₚ β` — Theorem 7.1
+
+Status: landed. Theorem 7.1 ships as `olsBetaStar_stack_tendstoInMeasure_beta`.
+Convergence-in-measure utilities (CMT, WLLN, matrix-inverse CMT, `mulVec` / `add` CMTs,
+unconditional scalar–matrix inverse `nonsingInv_smul`) live in
+`HansenEconometrics/AsymptoticUtils.lean`.
+
+## Immediate target
+Theorem 7.4 (consistency of variance estimators) once an `σ̂²` / `s²` layer is available.
+Theorems 7.2 and 7.3 (asymptotic normality) need a CLT wrapper analogous to the current
+WLLN wrapper; not yet in scope.
+
+## Status
+- Theorem 7.1 formalized end-to-end.
+- Theorems 7.2 through 7.17 pending.
+
 ## Extracted candidates
 - 7.1 Introduction
 - Assumption 7.1
@@ -17,7 +58,7 @@
 - 0.110 0.115 0.120 0.125
 - 7.3 Asymptotic Normality
 - Assumption 7.2
-- Assumption 7.2 implies that Ω < ∞. To see this, take the j ℓt h element of Ω, E
+- Assumption 7.2 implies that Ω < ∞. To see this, take the j ℓt h element of Ω, E
 - Theorem 7.2 Assumption 7.2 implies that
 - Theorem 7.3 Asymptotic Normality of Least Squares Estimator
 - Theorem 7.3 states that the sampling distribution of the least squares estimator, after rescaling, is
@@ -33,10 +74,10 @@
 - Theorem 7.3 shows that pn
 - Theorem 7.5 Under Assumption 7.1, ˆV
 - 7.7 Heteroskedastic Covariance Matrix Estimation
-- Theorem 7.6 Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV
+- Theorem 7.6 Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV
 - 7.8 Summary of Covariance Matrix Notation
 - 7.9 Alternative Covariance Matrix Estimators*
-- Theorem 7.7 Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV
+- Theorem 7.7 Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV
 - 7.10 Functions of Parameters
 - Theorem 7.8 Under Assumption 7.1, if r (β) is continuous at the true value of
 - Assumption 7.3 r (β) : Rk → Rq is continuously differentiable at the true value
@@ -71,7 +112,7 @@
 - 0.0 0.5 1.0 1.5 2.0 2.5
 - 7.19 Edgeworth Expansion*
 - Theorem 7.11 showed that the t-ratio T (θ) is asymptotically normal. In practice this means that
-- Theorem 7.15 Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 <
+- Theorem 7.15 Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 <
 - Theorem 7.15 shows that the ﬁnite sample distribution of the t-ratio can be approximated up to
 - 7.20 Uniformly Consistent Residuals*
 - Theorem 7.16 Under Assumption 7.2 and E ∥X ∥r < ∞, then
@@ -90,40 +131,34 @@
 - Exercise 7.9 The model is Y = X β + e with E[e |X ] = 0 and X ∈ R. Consider the two estimators
 - Exercise 7.10 In the homoskedastic regression model Y = X ′β + e with E[e |x] = 0 and E
 
-## First-pass formalization order
-1. Review the extracted candidates against the PDF text.
-2. Separate deterministic algebra from probability, asymptotic, and distributional statements.
-3. Formalize the deterministic algebra first when it can reuse earlier chapter infrastructure.
-4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
-
-## Status
-- not started
-
 ## LaTeX / Lean Crosswalk
 
-This file is a chapter-level crosswalk between textbook statements and Lean formalizations.
+This file maps Chapter 7 textbook statements to the current Lean formalization.
 
 Conventions:
 - All links in this file are relative.
-- At this stage the middle column is a compact theorem-surface summary, not necessarily a polished LaTeX rendering.
-- Leave the Lean column blank unless the repo already contains a real theorem.
-- Use this file for statement-level mapping; this content is now part of the canonical chapter inventory.
+- The LaTeX column aims to stay close to Hansen's notation.
+- The Lean column gives the linked theorem or definition name plus the core conclusion.
+- Blank Lean cells mark statements that are still pending.
 
 ## Links
 
 - [Hansen excerpt](../textbook/ch07/ch7_excerpt.txt)
+- [Chapter 7 file](../../HansenEconometrics/Chapter7Asymptotics.lean)
+- [Asymptotic utilities](../../HansenEconometrics/AsymptoticUtils.lean)
 
 ## Crosswalk
 
-| Textbook result | Textbook statement | Lean theorem |
+| Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Theorem 7.1 | Consistency of Least Squares. Under Assumption 7.1, ˆQ X X − →p |  |
+| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | [SampleAssumption71](../../HansenEconometrics/Chapter7Asymptotics.lean#L248)<br><code>SampleAssumption71 μ X e</code> |
+| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L538)<br><code>TendstoInMeasure μ (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) atTop (fun _ => β)</code> |
 | Theorem 7.2 | Assumption 7.2 implies that |  |
 | Theorem 7.3 | Asymptotic Normality of Least Squares Estimator |  |
 | Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. |  |
 | Theorem 7.5 | Under Assumption 7.1, ˆV |  |
-| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV |  |
-| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV |  |
+| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV |  |
+| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV |  |
 | Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of |  |
 | Theorem 7.9 | Asymptotic Distribution of Functions of Parameters |  |
 | Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. |  |
@@ -131,11 +166,44 @@ Conventions:
 | Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with |  |
 | Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → |  |
 | Theorem 7.14 | Under Assumptions 7.2, 7.3, and E |  |
-| Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
+| Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
 | Theorem 7.16 | Under Assumption 7.2 and E ∥X ∥r < ∞, then |  |
 | Theorem 7.17 | If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then |  |
 
+## Lean-only bridge results
+
+These are the key intermediate theorems behind Theorem 7.1 that do not correspond to
+named textbook statements. They stay here as navigation aids for the proof architecture.
+
+Phase 1 deterministic identities (algebra, no probability):
+
+- [olsBetaStar](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L27) — total OLS via `Matrix.nonsingInv`, defined on every design matrix; agrees with `olsBeta` when `Xᵀ X` is invertible, returns `0` otherwise.
+- [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment](../../HansenEconometrics/Chapter7Asymptotics.lean#L245) — `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` on every `ω`.
+- [sampleCrossMoment_stackOutcomes_linear_model](../../HansenEconometrics/Chapter7Asymptotics.lean#L228) — `ĝₙ(y) = Q̂ₙ β + ĝₙ(e)` under `yᵢ = Xᵢ · β + eᵢ`.
+- [olsBetaStar_sub_identity](../../HansenEconometrics/Chapter7Asymptotics.lean#L267) — `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ Q̂ₙ − 1) *ᵥ β`.
+
+Phase 2/3 probabilistic pieces:
+
+- [sampleGram_stackRegressors_tendstoInMeasure_popGram](../../HansenEconometrics/Chapter7Asymptotics.lean#L338) — `Q̂ₙ →ₚ Q`.
+- [sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L359) — `ĝₙ(e) →ₚ 0`.
+- [sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L396) — `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [measure_sampleGram_singular_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L453) — `μ{Q̂ₙ singular} → 0`.
+- [residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L498) — the residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+
+Reusable convergence-in-measure helpers (`AsymptoticUtils.lean`):
+
+- `tendstoInMeasure_continuous_comp` — CMT along `atTop`.
+- `TendstoInMeasure.pi_apply` / `tendstoInMeasure_pi` — coordinatewise convergence for Pi types over a `Fintype`.
+- `tendstoInMeasure_wlln` — Banach-valued pairwise-independent WLLN, wrapping Mathlib `strong_law_ae`.
+- `aestronglyMeasurable_matrix_inv` — matrix inversion preserves strong measurability.
+- `tendstoInMeasure_matrix_inv` — CMT for matrix inversion at a pointwise-nonsingular limit.
+- `tendstoInMeasure_prodMk` — joint convergence on a product from coordinatewise convergence.
+- `tendstoInMeasure_add` — additive CMT assembled from the product CMT and `continuous_add`.
+- `tendstoInMeasure_mulVec` — matrix-vector multiplication CMT.
+- `nonsingInv_smul` — `(c • M)⁻¹ = c⁻¹ • M⁻¹` unconditionally; used to move the `1/n` scalar through the inverse when proving the F2 identity on all of `Ω`.
+
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- Chapter 7 builds on Chapter 3 least-squares algebra and Chapter 4 least-squares regression.
+- Theorem 7.1 ships in terms of `olsBetaStar` (not `olsBeta`): the total inverse form is defined on every design matrix, so the convergence statement does not need to restrict to an a.s. invertibility event.
+- The LaTeX column uses textbook extraction output for theorems 7.2 onward; it is intentionally rough until those theorems are formalized.
