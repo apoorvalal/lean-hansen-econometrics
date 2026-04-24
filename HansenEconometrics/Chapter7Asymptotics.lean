@@ -107,8 +107,10 @@ in four layers:
   absolute-value distributional limits for homoskedastic and HC0/HC1 ordinary
   t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. The standard-normal
   continuity-set side condition is discharged in `standardNormalAbs_frontier_Iic_null`
-  and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal`. Remaining:
-  concrete homoskedastic/HC0/HC1 interval wrappers.
+  and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal`. The concrete
+  homoskedastic ordinary-wrapper interval face is formalized in
+  `olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`. Remaining:
+  HC0/HC1 interval wrappers.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
   the named `χ²` law-identification wrapper is formalized in
@@ -5426,6 +5428,19 @@ theorem tendstoInDistribution_sq_standardNormal_chiSquared_one
     · ext s hs
       simp [Function.comp_def, gaussianReal_map_sq_eq_chiSquared_one]
 
+omit [DecidableEq k] in
+/-- One-row linear maps turn scaled parameter errors into scaled scalar errors.
+
+This is the algebraic bridge between the existing t-statistic numerator
+`√n • R(β̂-β)` and the confidence-interval expression `√n(θ̂-θ)`. -/
+theorem linearMapUnit_smul_sub_dot_one
+    (R : Matrix Unit k ℝ) (b β : k → ℝ) (root : ℝ) :
+    (root • (R *ᵥ (b - β))) ⬝ᵥ (fun _ : Unit => 1) =
+      root * (((R *ᵥ b) ⬝ᵥ (fun _ : Unit => 1)) -
+        ((R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1))) := by
+  rw [Matrix.mulVec_sub, smul_dotProduct, sub_dotProduct]
+  simp [smul_eq_mul]
+
 /-- Scaling by positive standard-error and root factors preserves absolute-value inequalities. -/
 theorem abs_scaled_error_div_le_iff
     {d root se crit : ℝ}
@@ -5740,6 +5755,73 @@ theorem olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standar
       (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.12, homoskedastic confidence-interval coverage.**
+
+For a one-row linear restriction, the ordinary-wrapper homoskedastic symmetric
+confidence interval has limiting coverage equal to the absolute standard-normal
+mass below the critical value. Sample standard-error positivity is assumed only
+eventually, matching the generic interval bridge. -/
+theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ) (crit : ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+    (hse_sample_pos : ∀ᶠ n in atTop, ∀ ω,
+      0 < Real.sqrt ((R * olsHomoskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) :
+    Tendsto
+      (fun n => μ {ω |
+        (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) -
+            crit * Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) +
+            crit * Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
+  let θ : ℝ := (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1)
+  let θhat : ℕ → Ω → ℝ := fun n ω =>
+    (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+      (fun _ : Unit => 1)
+  let se : ℕ → Ω → ℝ := fun n ω =>
+    Real.sqrt ((R * olsHomoskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
+  let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
+  have hroot : ∀ᶠ n in atTop, 0 < root n := by
+    filter_upwards [eventually_ge_atTop 1] with n hn
+    have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
+    exact Real.sqrt_pos.mpr hnpos
+  have hAbs := olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    (μ := μ) (X := X) (e := e) (y := y)
+    hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
+  have hGeneric : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
+    intro n
+    exact ae_of_all μ (fun ω => by
+      dsimp [θ, θhat, se, root]
+      rw [linearMapUnit_smul_sub_dot_one])
+  simpa [θ, θhat, se, root] using
+    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+      (μ := μ) (θ := θ) (crit := crit)
+      (θhat := θhat) (se := se) (root := root)
+      hroot hse_sample_pos hGeneric
 
 /-- **Hansen Theorem 7.14, scalar one-degree-of-freedom homoskedastic Wald statistic.**
 
