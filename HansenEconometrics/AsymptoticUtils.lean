@@ -277,6 +277,54 @@ theorem TendstoInMeasure.add_zero_real
     have hlt : dist (X n ω + Y n ω) 0 < ε := by linarith
     exact (not_le.mpr hlt) hω
 
+/-- Product of two real-valued `oₚ(1)` sequences is `oₚ(1)`.
+
+This direct version avoids measurability hypotheses, using the containment
+`{|XY| ≥ ε} ⊆ {|X| ≥ √ε} ∪ {|Y| ≥ √ε}`. -/
+theorem TendstoInMeasure.mul_zero_real
+    {X Y : ℕ → α → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => X n ω * Y n ω) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX hY ⊢
+  intro ε hε
+  let η := Real.sqrt ε
+  have hη : 0 < η := Real.sqrt_pos.2 hε
+  have hsum := (hX η hη).add (hY η hη)
+  have hsum0 : Tendsto
+      (fun (n : ℕ) =>
+        μ {ω | η ≤ dist (X n ω) 0} +
+        μ {ω | η ≤ dist (Y n ω) 0})
+      atTop (𝓝 0) := by
+    simpa [η] using hsum
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum0
+    (fun _ => zero_le _) (fun n => ?_)
+  refine (measure_mono ?_).trans (measure_union_le _ _)
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  by_cases hXbig : η ≤ dist (X n ω) 0
+  · exact Or.inl hXbig
+  · right
+    by_contra hYsmall_not
+    have hXsmall : dist (X n ω) 0 < η := not_le.mp hXbig
+    have hYsmall : dist (Y n ω) 0 < η := not_le.mp hYsmall_not
+    have hprod_abs : |X n ω * Y n ω| < ε := by
+      rw [abs_mul]
+      have hXabs : |X n ω| < η := by
+        simpa [Real.dist_eq] using hXsmall
+      have hYabs : |Y n ω| < η := by
+        simpa [Real.dist_eq] using hYsmall
+      have hle : |X n ω| * |Y n ω| ≤ |X n ω| * η :=
+        mul_le_mul_of_nonneg_left hYabs.le (abs_nonneg _)
+      have hlt : |X n ω| * η < η * η :=
+        mul_lt_mul_of_pos_right hXabs hη
+      have hsqrt : η * η = ε := by
+        simpa [η, pow_two] using Real.sq_sqrt hε.le
+      exact lt_of_le_of_lt hle (by simpa [hsqrt] using hlt)
+    have hprod : dist (X n ω * Y n ω) 0 < ε := by
+      simpa [Real.dist_eq] using hprod_abs
+    exact (not_le.mpr hprod) hω
+
 /-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This is the scalar finite-coordinate glue used by dot-product arguments. -/
