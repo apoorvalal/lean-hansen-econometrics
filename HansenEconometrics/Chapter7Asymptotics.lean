@@ -196,6 +196,18 @@ theorem olsResidualStar_linear_model_apply
   simp
   ring
 
+/-- **Theorem 7.4 residual expansion, vector form.**
+
+This is the vector version of `êᵢ = eᵢ - Xᵢ'(β̂* - β)`, used before
+summing squared residuals in the `σ̂²` consistency proof. -/
+theorem olsResidualStar_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
+    olsResidualStar X (X *ᵥ β + e) =
+      e - X *ᵥ (olsBetaStar X (X *ᵥ β + e) - β) := by
+  ext i
+  rw [olsResidualStar_linear_model_apply]
+  simp [Matrix.mulVec, dotProduct]
+
 /-- **Theorem 7.4 residual expansion, squared pointwise form.**
 
 This is Hansen equation (7.17) for the totalized estimator:
