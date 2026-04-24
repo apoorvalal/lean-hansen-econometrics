@@ -165,6 +165,37 @@ theorem olsBetaOrZero_eq_olsBeta
     olsBetaOrZero X y = olsBeta X y := by
   rw [olsBetaOrZero_eq_olsBetaStar, olsBetaStar_eq_olsBeta]
 
+/-- Totalized OLS residuals, defined for every design matrix via `olsBetaStar`. -/
+noncomputable def olsResidualStar (X : Matrix n k ℝ) (y : n → ℝ) : n → ℝ :=
+  y - X *ᵥ olsBetaStar X y
+
+/-- Hansen's `σ̂² = n⁻¹∑ êᵢ²`, using totalized OLS residuals. -/
+noncomputable def olsSigmaSqHatStar (X : Matrix n k ℝ) (y : n → ℝ) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ * dotProduct (olsResidualStar X y) (olsResidualStar X y)
+
+/-- Hansen's `s² = (n-k)⁻¹∑ êᵢ²`, using totalized OLS residuals. -/
+noncomputable def olsS2Star (X : Matrix n k ℝ) (y : n → ℝ) : ℝ :=
+  ((Fintype.card n : ℝ) - Fintype.card k)⁻¹ *
+    dotProduct (olsResidualStar X y) (olsResidualStar X y)
+
+/-- **Theorem 7.4 residual expansion, pointwise form.**
+
+Under the linear model, each totalized OLS residual is the structural error
+minus the fitted coefficient error evaluated at that row:
+`êᵢ = eᵢ - Xᵢ'(β̂* - β)`. -/
+theorem olsResidualStar_linear_model_apply
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
+    olsResidualStar X (X *ᵥ β + e) i =
+      e i - X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β) := by
+  unfold olsResidualStar
+  have hrow :
+      X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β) =
+        (X *ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) i := by
+    simp [Matrix.mulVec, dotProduct]
+  rw [hrow, Matrix.mulVec_sub]
+  simp
+  ring
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
