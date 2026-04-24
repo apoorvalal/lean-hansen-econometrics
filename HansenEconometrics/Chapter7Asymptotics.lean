@@ -131,6 +131,11 @@ noncomputable def sampleGram (X : Matrix n k ℝ) : Matrix k k ℝ :=
 noncomputable def sampleCrossMoment (X : Matrix n k ℝ) (e : n → ℝ) : k → ℝ :=
   (Fintype.card n : ℝ)⁻¹ • (Xᵀ *ᵥ e)
 
+/-- Sample average of true squared errors, `n⁻¹∑ eᵢ²`. This is the first term in
+Hansen's decomposition of `σ̂²`. -/
+noncomputable def sampleErrorSecondMoment (e : n → ℝ) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ * dotProduct e e
+
 /-- Textbook-facing totalization of ordinary OLS: use `olsBeta` on nonsingular designs and
 return `0` on singular designs. This exposes the ordinary-OLS formula on the high-probability
 nonsingularity event while remaining a genuine random variable for every sample size. -/
@@ -461,6 +466,19 @@ theorem sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum
         _ = (Real.sqrt (n : ℝ))⁻¹ := by
           field_simp [hsqrt_ne]
     rw [smul_smul, hscale]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The stacked true squared-error average is the range-indexed average used by
+Mathlib's WLLN. -/
+theorem sampleErrorSecondMoment_stackErrors_eq_avg
+    (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    sampleErrorSecondMoment (stackErrors e n ω) =
+      (n : ℝ)⁻¹ * ∑ i ∈ Finset.range n, e i ω ^ 2 := by
+  unfold sampleErrorSecondMoment stackErrors
+  rw [Fintype.card_fin]
+  congr 1
+  simp only [dotProduct, pow_two]
+  exact Fin.sum_univ_eq_sum_range (fun i => e i ω * e i ω) n
 
 omit [DecidableEq k] in
 /-- **Linear-model decomposition of the sample cross moment.**
