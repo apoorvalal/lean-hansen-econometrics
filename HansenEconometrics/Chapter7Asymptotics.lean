@@ -1252,6 +1252,12 @@ theorem scoreVector_memLp_two
     MemLp (fun ω => e 0 ω • X 0 ω) 2 μ :=
   MemLp.of_eval (fun j => scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j)
 
+/-- Hansen's score covariance matrix `Ω := Var(e₀X₀)`. Under the population
+orthogonality condition this agrees entrywise with `E[e₀² X₀ X₀']`. -/
+noncomputable def scoreCovarianceMatrix
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
+  covMat μ (fun ω => e 0 ω • X 0 ω)
+
 /-- **Theorem 7.2 finite second-moment face.**
 
 Every entry of the score second-moment matrix
@@ -1265,6 +1271,65 @@ theorem scoreSecondMoment_integrable
     Integrable (fun ω => (e 0 ω • X 0 ω) j * (e 0 ω • X 0 ω) l) μ := by
   exact (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j).integrable_mul
     (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h l)
+
+omit [Fintype k] [DecidableEq k] in
+/-- The score covariance matrix is symmetric. -/
+theorem scoreCovarianceMatrix_isSymm
+    {μ : Measure Ω}
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} :
+    (scoreCovarianceMatrix μ X e).IsSymm := by
+  rw [Matrix.IsSymm.ext_iff]
+  intro j l
+  simp [scoreCovarianceMatrix, covMat, ProbabilityTheory.covariance_comm]
+
+/-- **Theorem 7.2 covariance-matrix face.**
+
+The variance of every scalar projection of the score vector is the quadratic
+form of Hansen's score covariance matrix `Ω`. This is the matrix-language
+version of the scalar variance appearing in the one-dimensional CLT below. -/
+theorem scoreProjection_variance_eq_quadraticScoreCovariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ) :
+    Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ] =
+      a ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ a) := by
+  exact variance_dotProduct_eq_dotProduct_covMat_mulVec
+    (μ := μ) (X := fun ω => e 0 ω • X 0 ω) a
+    (fun j => scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j)
+
+/-- Hansen's score covariance matrix has nonnegative quadratic forms under Assumption 7.2. -/
+theorem scoreCovarianceMatrix_quadratic_nonneg
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ) :
+    0 ≤ a ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ a) := by
+  rw [← scoreProjection_variance_eq_quadraticScoreCovariance
+    (μ := μ) (X := X) (e := e) h a]
+  exact ProbabilityTheory.variance_nonneg _ _
+
+/-- Under the Chapter 7 orthogonality condition, each entry of `Ω` is the corresponding
+score second moment. -/
+theorem scoreCovarianceMatrix_apply_eq_secondMoment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (j l : k) :
+    scoreCovarianceMatrix μ X e j l =
+      ∫ ω, (e 0 ω • X 0 ω) j * (e 0 ω • X 0 ω) l ∂μ := by
+  have hmean_j : μ[fun ω => (e 0 ω • X 0 ω) j] = 0 := by
+    have hcoord := congrFun h.toSampleMomentAssumption71.orthogonality j
+    rw [← integral_apply (μ := μ) (f := fun ω => e 0 ω • X 0 ω)
+      h.toSampleMomentAssumption71.int_cross j]
+    exact hcoord
+  have hmean_l : μ[fun ω => (e 0 ω • X 0 ω) l] = 0 := by
+    have hcoord := congrFun h.toSampleMomentAssumption71.orthogonality l
+    rw [← integral_apply (μ := μ) (f := fun ω => e 0 ω • X 0 ω)
+      h.toSampleMomentAssumption71.int_cross l]
+    exact hcoord
+  rw [scoreCovarianceMatrix, covMat, ProbabilityTheory.covariance_eq_sub
+    (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j)
+    (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h l),
+    hmean_j, hmean_l]
+  simp [Pi.mul_apply]
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
