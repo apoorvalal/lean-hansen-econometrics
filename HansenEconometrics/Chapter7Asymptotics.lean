@@ -33,7 +33,9 @@ in four layers:
   all-directions projection-family wrappers for both estimators. Generic
   matrix-vector distributional Slutsky bridges are now named in
   `matrixMulVec_tendstoInDistribution_of_vector_and_matrix` and
-  `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`.
+  `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`, with the
+  feasible leading-score vector bridge
+  `feasibleScore_tendstoInDistribution_of_scoreCLT`.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
@@ -835,6 +837,23 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
 
+/-- Measurability of the stacked sample Gram under the Chapter 7.1 moment layer. -/
+theorem sampleGram_stackRegressors_aestronglyMeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+  have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+      (fun ω => (n : ℝ)⁻¹ •
+        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+    funext ω
+    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+  rw [hform]
+  refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+  refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+  exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+
 /-- **CMT for the inverse sample Gram.** Under the moment-level assumptions,
 `Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
 theorem sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
@@ -848,15 +867,7 @@ theorem sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
   have hGram_meas : ∀ n, AEStronglyMeasurable
       (fun ω => sampleGram (stackRegressors X n ω)) μ := by
     intro n
-    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
-        (fun ω => (n : ℝ)⁻¹ •
-          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-      funext ω
-      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-    rw [hform]
-    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
-    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
-    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+    exact sampleGram_stackRegressors_aestronglyMeasurable h n
   exact tendstoInMeasure_matrix_inv hGram_meas hGram (fun _ => h.Q_nonsing)
 
 /-- **WLLN for the sample cross moment.** Under the moment-level assumptions, the sample
@@ -4707,6 +4718,43 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covaria
   fun a =>
     scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) h a (hZ a)
+
+/-- **Hansen Theorem 7.3, feasible leading-score vector Slutsky bridge.**
+
+Conditional on a vector-valued score CLT for `√n · ĝₙ(e)`, the feasible OLS
+leading term formed with the random inverse Gram matrix satisfies
+`Q̂ₙ⁻¹√nĝₙ(e) ⇒ Q⁻¹Z`. This is the vector version of the inverse-gap step:
+the remaining full OLS theorem only has to add the already-negligible
+singular-event residual. -/
+theorem feasibleScore_tendstoInDistribution_of_scoreCLT
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    (h : SampleMomentAssumption71 μ X e)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+      atTop
+      (fun ω => (popGram μ X)⁻¹ *ᵥ Zscore ω)
+      (fun _ => μ) ν := by
+  exact matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix
+    (μ := μ) (ν := ν)
+    (T := fun (n : ℕ) ω =>
+      Real.sqrt (n : ℝ) •
+        sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+    (Z := Zscore)
+    (Ahat := fun n ω => sampleGram (stackRegressors X n ω))
+    (A := popGram μ X)
+    hScore (fun n => sampleGram_stackRegressors_aestronglyMeasurable h n)
+    (sampleGram_stackRegressors_tendstoInMeasure_popGram h) h.Q_nonsing
 
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
