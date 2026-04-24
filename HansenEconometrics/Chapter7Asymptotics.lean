@@ -604,6 +604,41 @@ theorem sqrt_smul_residual_tendstoInMeasure_zero
   rw [hR, smul_zero, edist_self] at hω
   exact absurd hω (not_le.mpr hε)
 
+/-- **Scalar projection of the scaled residual is negligible.** For every fixed
+projection vector `a`, the scalar projection of the singular-event residual is
+`oₚ(1)`.
+
+This is the projectionwise form needed by the Cramér-Wold-facing CLT layer. -/
+theorem scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (β a : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  have hsingular := measure_sampleGram_singular_tendsto_zero h
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsingular
+    (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  intro hunit
+  have hR : olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+      (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) = 0 := by
+    rw [olsBetaStar_sub_identity X e y β hmodel,
+        Matrix.nonsing_inv_mul _ hunit, sub_self, Matrix.zero_mulVec]
+  rw [hR, smul_zero] at hω
+  simp only [zero_dotProduct, edist_self] at hω
+  exact absurd hω (not_le.mpr hε)
+
 /-- **Scaled totalized OLS decomposition.**
 The centered and scaled total estimator splits into the singular-event residual
 plus the feasible leading score term:
