@@ -1259,6 +1259,15 @@ noncomputable def scoreCovarianceMatrix
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
   covMat μ (fun ω => e 0 ω • X 0 ω)
 
+/-- Scalar asymptotic variance of the projection `a'√n(β̂ₙ - β)`:
+`((Q⁻¹)'a)' Ω ((Q⁻¹)'a)`. This avoids needing to prove symmetry of `Q⁻¹`
+before stating the scalar CLT in textbook covariance notation. -/
+noncomputable def olsProjectionAsymptoticVariance
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    (a : k → ℝ) : ℝ :=
+  let b := ((popGram μ X)⁻¹)ᵀ *ᵥ a
+  b ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ b)
+
 /-- **Theorem 7.2 finite second-moment face.**
 
 Every entry of the score second-moment matrix
@@ -1307,6 +1316,15 @@ theorem scoreCovarianceMatrix_quadratic_nonneg
   rw [← scoreProjection_variance_eq_quadraticScoreCovariance
     (μ := μ) (X := X) (e := e) h a]
   exact ProbabilityTheory.variance_nonneg _ _
+
+/-- The scalar OLS projection asymptotic variance is nonnegative. -/
+theorem olsProjectionAsymptoticVariance_nonneg
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ) :
+    0 ≤ olsProjectionAsymptoticVariance μ X e a := by
+  exact scoreCovarianceMatrix_quadratic_nonneg
+    (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)
 
 /-- Under the Chapter 7 orthogonality condition, each entry of `Ω` is the corresponding
 score second moment. -/
@@ -1536,6 +1554,34 @@ theorem scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistributio
   funext ω
   rw [← Matrix.mulVec_smul, mulVec_dotProduct_right]
 
+/-- **CLT for scalar projections of the infeasible leading OLS term, with `Ω`.**
+
+This is the fixed-`Q⁻¹` leading-term CLT with the Gaussian variance rewritten
+as `((Q⁻¹)'a)' Ω ((Q⁻¹)'a)`. -/
+theorem scoreProjection_popGramInv_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          ((popGram μ X)⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hZ' : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν := by
+    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]
+    simpa [olsProjectionAsymptoticVariance] using hZ
+  exact scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ'
+
 /-- **Conditional scalar-projection OLS CLT for the totalized estimator.**
 Once the scalar Slutsky remainder
 `√n(β̂*ₙ - β)·a - √n(Q⁻¹ ĝₙ(e))·a` is known to be `oₚ(1)`, the fixed-`Q⁻¹`
@@ -1725,6 +1771,34 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
     (scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable
       (μ := μ) (X := X) (e := e) (y := y) h.toSampleMomentAssumption71 β a hmodel)
+
+/-- **Hansen Theorem 7.3, scalar-projection totalized-OLS CLT with `Ω`.**
+
+This restates the final scalar totalized-OLS CLT using the named asymptotic
+variance `((Q⁻¹)'a)' Ω ((Q⁻¹)'a)`. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hZ' : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν := by
+    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]
+    simpa [olsProjectionAsymptoticVariance] using hZ
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'
 
 end Assumption72
 
