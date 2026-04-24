@@ -770,6 +770,53 @@ theorem inverseGapProjection_eq_scoreProjection_randomWeight
         (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a) := by
   rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
 
+/-- **Random inverse-gap weight converges to zero.**
+For a fixed projection vector `a`, the random weight
+`(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` converges to zero in probability.
+
+This is the deterministic-continuous-mapping half of the inverse-gap product
+argument; the other half is boundedness in probability of the scaled score. -/
+theorem inverseGapWeight_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (a : k → ℝ) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a))
+      atTop (fun _ => 0) := by
+  have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv h
+  have hGram_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hInv_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (hGram_meas n)
+  have hcont : Continuous
+      (fun M : Matrix k k ℝ => (M - (popGram μ X)⁻¹)ᵀ *ᵥ a) := by
+    fun_prop
+  have hmap := tendstoInMeasure_continuous_comp hInv_meas hInv hcont
+  simpa using hmap
+
+/-- Coordinate form of `inverseGapWeight_tendstoInMeasure_zero`. -/
+theorem inverseGapWeight_coord_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (a : k → ℝ) (j : k) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a) j)
+      atTop (fun _ => 0) := by
+  exact TendstoInMeasure.pi_apply (inverseGapWeight_tendstoInMeasure_zero h a) j
+
 /-- **Coordinatewise inverse-gap Slutsky bridge.**
 For a fixed projection vector `a`, the inverse-gap projection is `oₚ(1)` once
 each coordinate of the random weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` is `oₚ(1)` and each
