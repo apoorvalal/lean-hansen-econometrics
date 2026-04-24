@@ -71,7 +71,10 @@ in four layers:
   ordinary-on-nonsingular wrapper handled by
   `continuous_function_olsBetaOrZero_tendstoInMeasure`. Remaining:
   local continuity-at-`β`.
-* **Theorem 7.9/7.10/7.11+** — pending/signpost-only.
+* **Theorem 7.9** — the linear-functions projection face is formalized in
+  `scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`.
+  Remaining: nonlinear differentiable delta method and vector packaging.
+* **Theorem 7.10/7.11+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -3584,7 +3587,8 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_components_and_a
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
-private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
+private theorem mulVec_dotProduct_right {q : Type*} [Fintype q]
+    (M : Matrix q k ℝ) (v : k → ℝ) (a : q → ℝ) :
     (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
   rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
 
@@ -4056,6 +4060,36 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
     simpa [olsProjectionAsymptoticVariance] using hZ
   exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'
+
+/-- **Hansen Theorem 7.9, scalar projections of linear functions of OLS.**
+
+For a fixed matrix `R`, every scalar projection of
+`√n · R(β̂*ₙ - β)` is asymptotically normal. This is the linear-functions
+special case of the delta-method theorem, obtained by applying the already
+proved scalar OLS CLT in the transformed direction `Rᵀc`. -/
+theorem scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ) (c : q → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ c)).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ c)
+      atTop Z (fun _ => μ) ν := by
+  have hbase := scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+    h β (Rᵀ *ᵥ c) hmodel hZ
+  convert hbase using 2 with n
+  funext ω
+  rw [← Matrix.mulVec_smul, mulVec_dotProduct_right]
 
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
