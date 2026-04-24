@@ -2239,6 +2239,89 @@ noncomputable def sampleScoreCovarianceStar (X : Matrix n k ℝ) (y : n → ℝ)
   (Fintype.card n : ℝ)⁻¹ •
     ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i) (olsResidualStar X y i • X i)
 
+/-- **Measurability of the feasible HC0 middle matrix from component measurability.**
+
+If the individual regressors and errors are a.e. strongly measurable, then the
+residual HC0 middle matrix `n⁻¹∑ êᵢ²XᵢXᵢ'` is a.e. strongly measurable. This is
+a sufficient condition for the measurability premise in the feasible HC0
+sandwich theorems. -/
+theorem sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  have hBeta_meas := olsBetaStar_stack_aestronglyMeasurable
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel n
+  have hdot_fixed_cont : Continuous (fun x : k → ℝ => x ⬝ᵥ β) := by
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ
+        (fun i _ => (continuous_apply i).mul continuous_const))
+  have hdot_pair_cont : Continuous (fun p : (k → ℝ) × (k → ℝ) => p.1 ⬝ᵥ p.2) := by
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ
+        (fun i _ =>
+          ((continuous_apply i).comp continuous_fst).mul
+            ((continuous_apply i).comp continuous_snd)))
+  have houter_cont : Continuous (fun v : k → ℝ => Matrix.vecMulVec v v) := by
+    refine continuous_pi (fun a => ?_)
+    refine continuous_pi (fun b => ?_)
+    simpa [Matrix.vecMulVec_apply] using
+      (continuous_apply a).mul (continuous_apply b)
+  have hterm : ∀ i : Fin n, AEStronglyMeasurable
+      (fun ω =>
+        Matrix.vecMulVec
+          (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i •
+            stackRegressors X n ω i)
+          (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i •
+            stackRegressors X n ω i)) μ := by
+    intro i
+    have hXrow : AEStronglyMeasurable (fun ω => stackRegressors X n ω i) μ := by
+      simpa [stackRegressors] using hX_meas i.val
+    have hYrow : AEStronglyMeasurable (fun ω => stackOutcomes y n ω i) μ := by
+      have hYexpr : AEStronglyMeasurable
+          (fun ω => X i.val ω ⬝ᵥ β + e i.val ω) μ :=
+        (hdot_fixed_cont.comp_aestronglyMeasurable (hX_meas i.val)).add (he_meas i.val)
+      refine hYexpr.congr (ae_of_all μ (fun ω => ?_))
+      simpa [stackOutcomes] using (hmodel i.val ω).symm
+    have hfit : AEStronglyMeasurable
+        (fun ω =>
+          stackRegressors X n ω i ⬝ᵥ
+            olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      hdot_pair_cont.comp_aestronglyMeasurable (hXrow.prodMk hBeta_meas)
+    have hres_exp : AEStronglyMeasurable
+        (fun ω =>
+          stackOutcomes y n ω i -
+            stackRegressors X n ω i ⬝ᵥ
+              olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      hYrow.sub hfit
+    have hres : AEStronglyMeasurable
+        (fun ω => olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i) μ := by
+      refine hres_exp.congr (ae_of_all μ (fun ω => ?_))
+      simp [olsResidualStar, Matrix.mulVec, dotProduct]
+    have hscore : AEStronglyMeasurable
+        (fun ω =>
+          olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i •
+            stackRegressors X n ω i) μ :=
+      hres.smul hXrow
+    exact houter_cont.comp_aestronglyMeasurable hscore
+  have hsum : AEStronglyMeasurable
+      (fun ω =>
+        ∑ i : Fin n,
+          Matrix.vecMulVec
+            (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i •
+              stackRegressors X n ω i)
+            (olsResidualStar (stackRegressors X n ω) (stackOutcomes y n ω) i •
+              stackRegressors X n ω i)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => hterm i)
+  simpa [sampleScoreCovarianceStar] using
+    AEStronglyMeasurable.const_smul hsum ((Fintype.card (Fin n) : ℝ)⁻¹)
+
 /-- Totalized leverage `hᵢᵢ = xᵢ' (X'X)⁻¹ xᵢ` used by HC2/HC3.
 
 This mirrors the textbook hat-matrix diagonal but uses the total matrix inverse,
