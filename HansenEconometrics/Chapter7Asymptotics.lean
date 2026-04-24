@@ -2729,6 +2729,43 @@ theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders
     (μ := μ) (X := X) (e := e) (y := y) h.toSampleMomentAssumption71
     hScore_meas hScore
 
+/-- **Hansen Theorem 7.6, feasible HC0 sandwich under bounded weights.**
+
+The feasible totalized HC0 sandwich estimator converges to `Q⁻¹ Ω Q⁻¹` under
+the HC0 WLLN assumptions, bounded empirical third/fourth weights for the
+residual remainders, and measurability of the residual HC0 middle matrix. -/
+theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  have hCross :=
+    sampleScoreCovarianceCrossRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hCrossWeight
+  have hQuad :=
+    sampleScoreCovarianceQuadraticRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hQuadWeight
+  exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel hScore_meas hCross hQuad
+
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
 private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
