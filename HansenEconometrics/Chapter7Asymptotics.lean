@@ -4730,6 +4730,15 @@ theorem olsLinearTStatisticLimit_hasLaw_standard
     hasLaw_gaussianReal_div_const_standard_of_variance_eq
       (ν := ν) (Z := Z) hc hσ hZ
 
+/-- Continuous mapping theorem for absolute values of real distributional limits. -/
+theorem tendstoInDistribution_abs_real
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ℕ → Ω → ℝ} {Z : Ω' → ℝ}
+    (hT : TendstoInDistribution T atTop Z P ν) :
+    TendstoInDistribution (fun n ω => |T n ω|) atTop (fun ω => |Z ω|) P ν := by
+  simpa [Function.comp_def] using hT.continuous_comp continuous_abs
+
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
 For a one-dimensional fixed linear map `R`, the HC0-studentized totalized OLS
@@ -4767,8 +4776,8 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
           (R *ᵥ
             (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
             (fun _ : Unit => 1)) /
-          Real.sqrt ((R * olsHeteroskedasticCovarianceStar
-            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+            Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop
       (fun ω =>
         Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
@@ -4954,6 +4963,41 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
 
+/-- Absolute-value CMT for the ordinary HC0 scalar t-statistic. -/
+theorem olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        abs
+          (((Real.sqrt (n : ℝ) •
+            (R *ᵥ
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+              (fun _ : Unit => 1)) /
+            Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())))
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+  simpa using
+    tendstoInDistribution_abs_real
+      (olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+        (μ := μ) (X := X) (e := e) (y := y)
+        h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
+
 /-- **Hansen Theorem 7.11, HC1 t-statistic for a scalar linear function.**
 
 This is the HC1 analogue of
@@ -4990,8 +5034,8 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
           (R *ᵥ
             (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
             (fun _ : Unit => 1)) /
-          Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
-            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+            Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop
       (fun ω =>
         Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
@@ -5175,6 +5219,41 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
     olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
+
+/-- Absolute-value CMT for the ordinary HC1 scalar t-statistic. -/
+theorem olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        abs
+          (((Real.sqrt (n : ℝ) •
+            (R *ᵥ
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+              (fun _ : Unit => 1)) /
+            Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())))
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+  simpa using
+    tendstoInDistribution_abs_real
+      (olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+        (μ := μ) (X := X) (e := e) (y := y)
+        h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
