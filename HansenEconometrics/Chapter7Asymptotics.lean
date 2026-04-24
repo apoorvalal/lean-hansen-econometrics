@@ -1750,6 +1750,58 @@ theorem olsS2Star_tendstoInMeasure_errorVariance
     (olsS2Star_sub_errorVariance_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
 
+/-- Hansen's homoskedastic asymptotic covariance matrix
+`V⁰_β := σ² Q⁻¹`. -/
+noncomputable def homoskedasticAsymptoticCovariance
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
+  errorVariance μ e • (popGram μ X)⁻¹
+
+/-- The totalized plug-in estimator `V̂⁰_β := s² Q̂⁻¹` for Hansen Theorem 7.5. -/
+noncomputable def olsHomoskedasticCovarianceStar
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  olsS2Star X y • (sampleGram X)⁻¹
+
+/-- **Hansen Theorem 7.5, totalized homoskedastic covariance consistency.**
+
+Under the variance-estimator assumptions and the linear model, the plug-in
+homoskedastic covariance estimator `V̂⁰_β = s² Q̂⁻¹` converges in probability to
+`V⁰_β = σ² Q⁻¹`. -/
+theorem olsHomoskedasticCovarianceStar_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => homoskedasticAsymptoticCovariance μ X e) := by
+  let s2 : ℕ → Ω → ℝ := fun n ω =>
+    olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)
+  let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹
+  have hs2 := olsS2Star_tendstoInMeasure_errorVariance
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+  have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71
+  have hEntry : ∀ i j : k,
+      TendstoInMeasure μ
+        (fun n ω => s2 n ω * invGram n ω i j)
+        atTop
+        (fun _ => errorVariance μ e * ((popGram μ X)⁻¹) i j) := by
+    intro i j
+    have hInvCoord : TendstoInMeasure μ
+        (fun n ω => invGram n ω i j)
+        atTop (fun _ => ((popGram μ X)⁻¹) i j) := by
+      simpa [invGram] using
+        TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hInv i) j
+    exact TendstoInMeasure.mul_limits_real
+      (by simpa [s2] using hs2) hInvCoord
+  refine tendstoInMeasure_pi (μ := μ) (fun i => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun j => ?_)
+  simpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,
+    s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
