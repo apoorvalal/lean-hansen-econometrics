@@ -241,6 +241,64 @@ end MulVec
 
 section StochasticOrder
 
+/-- Sum of two real-valued `oₚ(1)` sequences is `oₚ(1)`.
+
+This direct scalar version avoids extra measurability hypotheses, using only the
+triangle inequality and a union bound. -/
+theorem TendstoInMeasure.add_zero_real
+    {X Y : ℕ → α → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => X n ω + Y n ω) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX hY ⊢
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by positivity
+  have hsum := (hX (ε / 2) hε2).add (hY (ε / 2) hε2)
+  have hsum0 : Tendsto
+      (fun (n : ℕ) =>
+        μ {ω | ε / 2 ≤ dist (X n ω) 0} +
+        μ {ω | ε / 2 ≤ dist (Y n ω) 0})
+      atTop (𝓝 0) := by
+    simpa using hsum
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum0
+    (fun _ => zero_le _) (fun n => ?_)
+  refine (measure_mono ?_).trans (measure_union_le _ _)
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  by_cases hXbig : ε / 2 ≤ dist (X n ω) 0
+  · exact Or.inl hXbig
+  · right
+    by_contra hYsmall_not
+    have hXsmall : dist (X n ω) 0 < ε / 2 := not_le.mp hXbig
+    have hYsmall : dist (Y n ω) 0 < ε / 2 := not_le.mp hYsmall_not
+    have htri : dist (X n ω + Y n ω) 0 ≤ dist (X n ω) 0 + dist (Y n ω) 0 := by
+      rw [Real.dist_eq, Real.dist_eq, Real.dist_eq]
+      simpa using abs_add_le (X n ω) (Y n ω)
+    have hlt : dist (X n ω + Y n ω) 0 < ε := by linarith
+    exact (not_le.mpr hlt) hω
+
+/-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
+
+This is the scalar finite-coordinate glue used by dot-product arguments. -/
+theorem tendstoInMeasure_finset_sum_zero_real
+    {ι : Type*} (s : Finset ι) {X : ι → ℕ → α → ℝ}
+    (hX : ∀ i ∈ s, TendstoInMeasure μ (X i) atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => ∑ i ∈ s, X i n ω) atTop (fun _ => 0) := by
+  classical
+  revert hX
+  refine Finset.induction_on s ?base ?step
+  · intro hX
+    rw [tendstoInMeasure_iff_dist]
+    intro ε hε
+    simp [not_le_of_gt hε]
+  · intro a s has ih hX
+    have ha : TendstoInMeasure μ (X a) atTop (fun _ => 0) := by
+      exact hX a (by simp [has])
+    have hs : TendstoInMeasure μ (fun n ω => ∑ i ∈ s, X i n ω) atTop (fun _ => 0) :=
+      ih (fun i hi => hX i (by simp [hi]))
+    have hsum := TendstoInMeasure.add_zero_real ha hs
+    simpa [Finset.sum_insert has] using hsum
+
 /-- A real-valued sequence of random variables is bounded in probability (`Oₚ(1)`).
 
 This formulation is intentionally minimal: for every probability tolerance `δ`,
