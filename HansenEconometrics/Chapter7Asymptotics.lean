@@ -91,7 +91,11 @@ in four layers:
   `olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal`, and the
   corresponding `olsBetaOrZero` wrappers. Remaining: extend beyond fixed linear
   maps and package interval/Wald consequences.
-* **Theorem 7.12+** — pending/signpost-only.
+* **Theorem 7.12** — confidence-interval coverage is not yet packaged, but the
+  two main bridges are now formalized: absolute-value distributional limits for
+  HC0/HC1 ordinary t-statistics and the deterministic symmetric-interval
+  equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
+* **Theorem 7.13+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
