@@ -738,6 +738,82 @@ theorem scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add
       add_dotProduct, add_dotProduct]
   ring
 
+/-- **Scalar Slutsky remainder from the inverse gap.**
+For a fixed projection vector `a`, the difference between the scaled totalized
+OLS projection and the fixed-`Q⁻¹` score projection is `oₚ(1)` once the
+random-inverse gap projection is `oₚ(1)`.
+
+The scaled residual part is already controlled by
+`scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero`; this theorem makes
+the remaining target exactly the inverse-gap/tightness step. -/
+theorem scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (β a : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hinvGap : TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a -
+          (Real.sqrt (n : ℝ) •
+            ((popGram μ X)⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  let residual : ℕ → Ω → ℝ := fun n ω =>
+    (Real.sqrt (n : ℝ) •
+      (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a
+  let gap : ℕ → Ω → ℝ := fun n ω =>
+    (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+      (Real.sqrt (n : ℝ) •
+        sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a
+  have hresConv : TendstoInMeasure μ residual atTop (fun _ => 0) := by
+    simpa [residual] using
+      scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero β a h hmodel
+  have hgapConv : TendstoInMeasure μ gap atTop (fun _ => 0) := by
+    simpa [gap] using hinvGap
+  have hsumConv : TendstoInMeasure μ (fun n ω => residual n ω + gap n ω)
+      atTop (fun _ => 0) := by
+    rw [tendstoInMeasure_iff_dist] at hresConv hgapConv ⊢
+    intro ε hε
+    have hε2 : 0 < ε / 2 := by positivity
+    have hsum := (hresConv (ε / 2) hε2).add (hgapConv (ε / 2) hε2)
+    have hsum0 : Tendsto
+        (fun (n : ℕ) =>
+          μ {ω | ε / 2 ≤ dist (residual n ω) 0} +
+          μ {ω | ε / 2 ≤ dist (gap n ω) 0})
+        atTop (𝓝 0) := by
+      simpa using hsum
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum0
+      (fun _ => zero_le _) (fun n => ?_)
+    refine (measure_mono ?_).trans (measure_union_le _ _)
+    intro ω hω
+    simp only [Set.mem_setOf_eq] at hω ⊢
+    by_cases hres_big : ε / 2 ≤ dist (residual n ω) 0
+    · exact Or.inl hres_big
+    · right
+      by_contra hgap_small_not
+      have hres_small : dist (residual n ω) 0 < ε / 2 := not_le.mp hres_big
+      have hgap_small : dist (gap n ω) 0 < ε / 2 := not_le.mp hgap_small_not
+      have htri : dist (residual n ω + gap n ω) 0 ≤
+          dist (residual n ω) 0 + dist (gap n ω) 0 := by
+        rw [Real.dist_eq, Real.dist_eq, Real.dist_eq]
+        simpa using abs_add_le (residual n ω) (gap n ω)
+      have hlt : dist (residual n ω + gap n ω) 0 < ε := by linarith
+      exact (not_le.mpr hlt) hω
+  refine hsumConv.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  dsimp [residual, gap]
+  rw [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap]
+  ring
+
 /-- **Consistency of the totalized least-squares estimator.**
 Under the moment-level assumptions above and the linear model `yᵢ = Xᵢ·β + eᵢ`,
 the total OLS estimator `β̂*ₙ := (Xᵀ X)⁺ Xᵀ y` (using `Matrix.nonsingInv`)
