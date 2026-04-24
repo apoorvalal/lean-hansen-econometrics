@@ -4543,6 +4543,91 @@ theorem scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_c
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R c hmodel hZ
 
+/-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
+
+For a one-dimensional fixed linear map `R`, the HC0-studentized totalized OLS
+linear function converges in distribution to the Gaussian linear-function limit
+divided by the population standard-error scale. A final law-normalization
+corollary can turn this displayed limit into `N(0,1)` once the scalar variance
+is identified with the corresponding diagonal of `R Vβ Rᵀ`. -/
+theorem olsHC0LinearTStatisticStar_tendstoInDistribution
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop
+      (fun ω =>
+        Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (fun _ => μ) ν := by
+  let c : ℝ := Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
+  let se : ℕ → Ω → ℝ := fun n ω =>
+    Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
+  let num : ℕ → Ω → ℝ := fun n ω =>
+    ((Real.sqrt (n : ℝ) •
+      (R *ᵥ (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+        (fun _ : Unit => 1))
+  have hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν := by
+    simpa [num] using
+      scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+        (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+        h.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
+  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  have hV_meas :=
+    olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hse_meas : ∀ n, AEMeasurable (se n) μ := by
+    intro n
+    have hcov : AEStronglyMeasurable
+        (fun ω =>
+          R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) μ :=
+      linearMapCovariance_aestronglyMeasurable
+        (μ := μ) (R := R) (hV_meas n)
+    have hentry_cont : Continuous (fun M : Matrix Unit Unit ℝ => M () ()) :=
+      (continuous_apply ()).comp (continuous_apply ())
+    have hsqrt_cont : Continuous (fun M : Matrix Unit Unit ℝ => Real.sqrt (M () ())) :=
+      Real.continuous_sqrt.comp hentry_cont
+    exact (hsqrt_cont.comp_aestronglyMeasurable hcov).aemeasurable
+  have hratio_meas : ∀ n, AEMeasurable (fun ω => num n ω / se n ω) μ :=
+    fun n => (hnum.forall_aemeasurable n).div (hse_meas n)
+  have hratio := tendstoInDistribution_div_of_tendstoInMeasure_const_pos
+    (μ := μ) (ν := ν) (X := num) (Y := se) (Z := Z) (c := c)
+    (by simpa [c] using hse_pos) hnum hse hse_meas hratio_meas
+  simpa [num, se, c] using hratio
+
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
 For every fixed direction `a`, the scaled totalized OLS error has Gaussian
