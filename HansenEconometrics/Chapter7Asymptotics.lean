@@ -30,7 +30,10 @@ in four layers:
   `olsBetaStar` and the ordinary-on-nonsingular wrapper `olsBetaOrZero` are
   asymptotically normal. The proof now includes the inverse-gap/tightness
   bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`, covariance-matrix variance notation, and
-  all-directions projection-family wrappers for both estimators.
+  all-directions projection-family wrappers for both estimators. Generic
+  matrix-vector distributional Slutsky bridges are now named in
+  `matrixMulVec_tendstoInDistribution_of_vector_and_matrix` and
+  `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
@@ -3591,6 +3594,65 @@ theorem hasLaw_const_mul_id_gaussianReal_of_variance_eq
     · ring
     · rw [hσ, Real.toNNReal_of_nonneg (sq_nonneg c)]
       simp
+
+omit [Fintype k] [DecidableEq k] in
+/-- **Hansen Theorem 7.3/7.13, generic matrix-vector distributional CMT.**
+
+If a vector statistic `Tₙ` converges in distribution to `Z` and a random matrix
+`Aₙ` converges in probability to a constant matrix `A`, then the transformed
+statistic `AₙTₙ` converges in distribution to `AZ`. This is the vector Slutsky
+bridge used to move from score CLTs to feasible OLS and Wald statistics. -/
+theorem matrixMulVec_tendstoInDistribution_of_vector_and_matrix
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {q : Type*} [Fintype q]
+    {T : ℕ → Ω → q → ℝ} {Z : Ω' → q → ℝ}
+    {Ahat : ℕ → Ω → Matrix q q ℝ} {A : Matrix q q ℝ}
+    (hT : TendstoInDistribution T atTop Z (fun _ => μ) ν)
+    (hA_meas : ∀ n, AEStronglyMeasurable (Ahat n) μ)
+    (hA : TendstoInMeasure μ Ahat atTop (fun _ => A)) :
+    TendstoInDistribution
+      (fun n ω => Ahat n ω *ᵥ T n ω)
+      atTop (fun ω => A *ᵥ Z ω) (fun _ => μ) ν := by
+  letI : BorelSpace (Matrix q q ℝ) := ⟨rfl⟩
+  have hA_meas' : ∀ n, AEMeasurable (Ahat n) μ :=
+    fun n => (hA_meas n).aemeasurable
+  have hcont : Continuous (fun p : (q → ℝ) × Matrix q q ℝ => p.2 *ᵥ p.1) :=
+    Continuous.matrix_mulVec continuous_snd continuous_fst
+  have hraw := hT.continuous_comp_prodMk_of_tendstoInMeasure_const
+    (g := fun p : (q → ℝ) × Matrix q q ℝ => p.2 *ᵥ p.1)
+    hcont hA hA_meas'
+  simpa [Function.comp_def] using hraw
+
+omit [Fintype k] [DecidableEq k] in
+/-- **Hansen Theorem 7.3/7.13, inverse matrix-vector distributional CMT.**
+
+If `Tₙ ⇒ Z`, `Aₙ →ₚ A`, and the limiting matrix `A` is nonsingular, then
+`Aₙ⁻¹Tₙ ⇒ A⁻¹Z`. This is the reusable random-inverse Slutsky bridge needed for
+the feasible OLS leading term `Q̂ₙ⁻¹√nĝₙ(e)`. -/
+theorem matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {T : ℕ → Ω → q → ℝ} {Z : Ω' → q → ℝ}
+    {Ahat : ℕ → Ω → Matrix q q ℝ} {A : Matrix q q ℝ}
+    (hT : TendstoInDistribution T atTop Z (fun _ => μ) ν)
+    (hA_meas : ∀ n, AEStronglyMeasurable (Ahat n) μ)
+    (hA : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hA_nonsing : IsUnit A.det) :
+    TendstoInDistribution
+      (fun n ω => (Ahat n ω)⁻¹ *ᵥ T n ω)
+      atTop (fun ω => A⁻¹ *ᵥ Z ω) (fun _ => μ) ν := by
+  letI : BorelSpace (Matrix q q ℝ) := ⟨rfl⟩
+  have hInv : TendstoInMeasure μ
+      (fun n ω => (Ahat n ω)⁻¹) atTop (fun _ => A⁻¹) :=
+    tendstoInMeasure_matrix_inv (μ := μ) hA_meas hA (fun _ => hA_nonsing)
+  have hInv_meas : ∀ n, AEStronglyMeasurable (fun ω => (Ahat n ω)⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (hA_meas n)
+  exact matrixMulVec_tendstoInDistribution_of_vector_and_matrix
+    (μ := μ) (ν := ν) (T := T) (Z := Z)
+    (Ahat := fun n ω => (Ahat n ω)⁻¹) (A := A⁻¹)
+    hT hInv_meas hInv
 
 omit [Fintype k] [DecidableEq k] in
 /-- **Hansen Theorem 7.13, conditional multivariate Wald CMT.**
