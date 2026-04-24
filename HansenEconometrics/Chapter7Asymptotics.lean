@@ -2544,6 +2544,64 @@ noncomputable def heteroskedasticAsymptoticCovariance
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
   (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e * (popGram μ X)⁻¹
 
+/-- **Generic sandwich CMT for Chapter 7 covariance estimators.**
+
+Any totalized covariance estimator with middle matrix converging in probability
+to `Ω` inherits the sandwich probability limit `Q⁻¹ Ω Q⁻¹`. This factors the
+shared continuous-mapping step out of HC0/HC1/HC2/HC3-style estimators, leaving
+each theorem to prove only the consistency of its own middle matrix. -/
+theorem sandwichCovarianceStar_tendstoInMeasure_of_middle
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e)
+    {middle : ℕ → Ω → Matrix k k ℝ}
+    (hmiddle_meas : ∀ n, AEStronglyMeasurable (middle n) μ)
+    (hmiddle : TendstoInMeasure μ middle atTop
+      (fun _ => scoreCovarianceMatrix μ X e)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (sampleGram (stackRegressors X n ω))⁻¹ * middle n ω *
+          (sampleGram (stackRegressors X n ω))⁻¹)
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹
+  have hGram_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hInv_meas : ∀ n, AEStronglyMeasurable (invGram n) μ := by
+    intro n
+    exact aestronglyMeasurable_matrix_inv (hGram_meas n)
+  have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    (μ := μ) (X := X) (e := e) h
+  have hLeft := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := invGram) (B := middle)
+    (Ainf := fun _ : Ω => (popGram μ X)⁻¹)
+    (Binf := fun _ : Ω => scoreCovarianceMatrix μ X e)
+    hInv_meas hmiddle_meas (by simpa [invGram] using hInv) hmiddle
+  have hLeft_meas : ∀ n, AEStronglyMeasurable (fun ω => invGram n ω * middle n ω) μ := by
+    intro n
+    have hprod : AEStronglyMeasurable (fun ω => (invGram n ω, middle n ω)) μ :=
+      (hInv_meas n).prodMk (hmiddle_meas n)
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hFull := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := fun n ω => invGram n ω * middle n ω) (B := invGram)
+    (Ainf := fun _ : Ω => (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e)
+    (Binf := fun _ : Ω => (popGram μ X)⁻¹)
+    hLeft_meas hInv_meas
+    (by simpa [Matrix.mul_assoc] using hLeft) (by simpa [invGram] using hInv)
+  simpa [heteroskedasticAsymptoticCovariance, invGram, Matrix.mul_assoc] using hFull
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
