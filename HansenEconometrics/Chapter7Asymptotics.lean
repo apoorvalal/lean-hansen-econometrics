@@ -2172,6 +2172,46 @@ noncomputable def sampleScoreCovarianceHC3AdjustmentStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   sampleScoreCovarianceHC3Star X y - sampleScoreCovarianceStar X y
 
+set_option linter.flexible false in
+/-- **HC2 leverage-adjustment expansion, entrywise form.**
+
+The HC2-minus-HC0 middle matrix is the sample average with scalar weight
+`(1-hᵢᵢ)⁻¹ - 1` multiplying the usual residual-score outer product. -/
+theorem sampleScoreCovarianceHC2AdjustmentStar_apply
+    (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) :
+    sampleScoreCovarianceHC2AdjustmentStar X y a b =
+      (Fintype.card n : ℝ)⁻¹ *
+        ∑ i : n, (((1 - leverageStar X i)⁻¹ - 1) *
+          (olsResidualStar X y i) ^ 2 * X i a * X i b) := by
+  simp [sampleScoreCovarianceHC2AdjustmentStar, sampleScoreCovarianceHC2Star,
+    sampleScoreCovarianceStar, Matrix.sub_apply, Matrix.smul_apply,
+    Matrix.sum_apply, Matrix.vecMulVec_apply, smul_eq_mul]
+  rw [← mul_sub, ← Finset.sum_sub_distrib]
+  congr 1
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  ring
+
+set_option linter.flexible false in
+/-- **HC3 leverage-adjustment expansion, entrywise form.**
+
+The HC3-minus-HC0 middle matrix is the sample average with scalar weight
+`(1-hᵢᵢ)⁻² - 1` multiplying the usual residual-score outer product. -/
+theorem sampleScoreCovarianceHC3AdjustmentStar_apply
+    (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) :
+    sampleScoreCovarianceHC3AdjustmentStar X y a b =
+      (Fintype.card n : ℝ)⁻¹ *
+        ∑ i : n, ((((1 - leverageStar X i)⁻¹) ^ 2 - 1) *
+          (olsResidualStar X y i) ^ 2 * X i a * X i b) := by
+  simp [sampleScoreCovarianceHC3AdjustmentStar, sampleScoreCovarianceHC3Star,
+    sampleScoreCovarianceStar, Matrix.sub_apply, Matrix.smul_apply,
+    Matrix.sum_apply, Matrix.vecMulVec_apply, smul_eq_mul]
+  rw [← mul_sub, ← Finset.sum_sub_distrib]
+  congr 1
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  ring
+
 /-- **Theorem 7.6 residual-score expansion, entrywise form.**
 
 Under the linear model, each residual score outer product decomposes into the
