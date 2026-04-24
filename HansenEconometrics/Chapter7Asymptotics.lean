@@ -594,9 +594,29 @@ structure SampleMomentAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
   /-- Population orthogonality `𝔼[e X] = 0`. -/
   orthogonality : μ[fun ω => e 0 ω • X 0 ω] = 0
 
+/-- Additional squared-error WLLN assumptions used for Hansen Theorem 7.4.
+
+The textbook Assumption 7.1 implies these for iid observations with finite
+second moments; this structure records exactly what the current Lean proof
+needs for the residual-variance consistency layer. -/
+structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleMomentAssumption71 μ X e where
+  /-- Pairwise independence of the true squared-error sequence. -/
+  indep_error_sq : Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω ^ 2))
+  /-- Identical distribution of the true squared errors. -/
+  ident_error_sq : ∀ i,
+    IdentDistrib (fun ω => e i ω ^ 2) (fun ω => e 0 ω ^ 2) μ μ
+  /-- Integrability of the true squared error. -/
+  int_error_sq : Integrable (fun ω => e 0 ω ^ 2) μ
+
 /-- The population Gram matrix `Q := 𝔼[X Xᵀ]`. -/
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
   μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
+
+/-- The textbook error variance `σ² := E[e²]` used in Theorem 7.4. -/
+noncomputable def errorVariance (μ : Measure Ω) (e : ℕ → Ω → ℝ) : ℝ :=
+  μ[fun ω => e 0 ω ^ 2]
 
 /-- **WLLN for the sample Gram.** Under the moment-level assumptions, the sample
 Gram matrix of the stacked design converges in probability to the population Gram `Q`. -/
@@ -665,6 +685,28 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
   exact tendstoInMeasure_wlln
     (fun i ω => e i ω • X i ω)
     h.int_cross h.indep_cross h.ident_cross
+
+/-- **Theorem 7.4 squared-error WLLN.**
+
+Under the 7.4 squared-error assumptions, the sample average of the true squared
+errors converges in probability to `σ² = E[e₀²]`. -/
+theorem sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleErrorSecondMoment (stackErrors e n ω))
+      atTop
+      (fun _ => errorVariance μ e) := by
+  have hfun_eq : (fun n ω => sampleErrorSecondMoment (stackErrors e n ω)) =
+      (fun (n : ℕ) ω => (n : ℝ)⁻¹ * ∑ i ∈ Finset.range n, e i ω ^ 2) := by
+    funext n ω
+    rw [sampleErrorSecondMoment_stackErrors_eq_avg]
+  rw [hfun_eq]
+  simpa [errorVariance, smul_eq_mul] using
+    tendstoInMeasure_wlln
+      (fun i ω => e i ω ^ 2)
+      h.int_error_sq h.indep_error_sq h.ident_error_sq
 
 /-- **Core stochastic transform — convergence of the OLS-error term.**
 Under the moment-level assumptions, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the
