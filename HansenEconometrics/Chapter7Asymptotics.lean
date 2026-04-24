@@ -208,6 +208,13 @@ theorem olsResidualStar_linear_model
   rw [olsResidualStar_linear_model_apply]
   simp [Matrix.mulVec, dotProduct]
 
+/-- On nonsingular designs, totalized residuals agree with ordinary OLS residuals. -/
+theorem olsResidualStar_eq_residual
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualStar X y = residual X y := by
+  unfold olsResidualStar residual fitted
+  rw [olsBetaStar_eq_olsBeta]
+
 /-- **Theorem 7.4 residual expansion, squared pointwise form.**
 
 This is Hansen equation (7.17) for the totalized estimator:
