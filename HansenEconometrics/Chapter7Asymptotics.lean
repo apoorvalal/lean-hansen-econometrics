@@ -85,8 +85,12 @@ in four layers:
 * **Theorem 7.11** — the standard-error CMT is formalized in
   `linearMapCovarianceStdError_tendstoInMeasure`, with HC0/HC1 linear-function
   standard-error consistency and scalar t-statistic convergence theorems for
-  both `olsBetaStar` and `olsBetaOrZero`. Remaining: identify the displayed
-  Gaussian ratio limit with an explicitly standard-normal law.
+  both `olsBetaStar` and `olsBetaOrZero`. The displayed Gaussian ratio limit is
+  now normalized to explicit standard-normal limits in
+  `olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal`,
+  `olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal`, and the
+  corresponding `olsBetaOrZero` wrappers. Remaining: extend beyond fixed linear
+  maps and package interval/Wald consequences.
 * **Theorem 7.12+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold

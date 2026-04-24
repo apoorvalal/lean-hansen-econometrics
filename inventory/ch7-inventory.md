@@ -94,11 +94,11 @@ are moment-level sufficient conditions extending `SampleMomentAssumption71`, not
 yet a literal encoding of Hansen's iid Assumption 7.1.
 
 ## Immediate target
-Continue closing the post-CLT inference layer: finish the variance-identity /
-law-normalization step turning the current Theorem 7.11 t-statistic ratio limits
-into explicit standard-normal limits, then push on confidence intervals and Wald
-statistics. Vector/Cramér-Wold packaging for Theorems 7.2-7.3 remains a separate
-textbook-facing task.
+Continue closing the post-CLT inference layer: the variance-identity and
+law-normalization step now turns the Theorem 7.11 t-statistic ratio limits into
+explicit standard-normal limits, so the next targets are confidence intervals
+and Wald statistics. Vector/Cramér-Wold packaging for Theorems 7.2-7.3 remains a
+separate textbook-facing task.
 
 ## Status
 - The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
@@ -117,7 +117,7 @@ textbook-facing task.
 - Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly; HC2/HC3 still require the leverage-adjustment convergence theorem.
 - Theorems 7.8-7.9 have continuous-function and fixed-linear-function projection faces; nonlinear delta-method and vector packaging remain.
 - Theorem 7.10 has the generic linear covariance CMT plus concrete HC0/HC1 fixed-linear-function covariance wrappers.
-- Theorem 7.11 has the standard-error CMT, HC0/HC1 linear standard-error consistency, and HC0/HC1 scalar linear t-statistic convergence for both `olsBetaStar` and `olsBetaOrZero`; explicit standard-normal law normalization remains.
+- Theorem 7.11 has the standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers for both `olsBetaStar` and `olsBetaOrZero`.
 
 ## Main theorem signposts
 
@@ -133,7 +133,7 @@ textbook-facing task.
 | Theorem 7.8 functions of parameters | Global continuous-map face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Local continuity-at-`β` formulation remains. |
 | Theorem 7.9 functions asymptotic normality | Fixed-linear-function scalar projection face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Nonlinear delta method and vector packaging remain. |
 | Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
-| Theorem 7.11 t-statistic | Standard-error CMT, HC0/HC1 linear standard-error consistency, and HC0/HC1 scalar linear t-statistic convergence are formalized for totalized and ordinary-wrapper estimators. | Identify the displayed Gaussian ratio limit with `N(0,1)` and extend beyond fixed linear maps. |
+| Theorem 7.11 t-statistic | Standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
 | Theorems 7.12-7.17 | Pending/signpost-only. | Add confidence intervals, Wald statistics, homoskedastic Wald, Edgeworth/residual-uniformity, and leverage layers. |
 
 ## Extracted candidates
@@ -251,7 +251,7 @@ Conventions:
 | Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
 | Theorem 7.9 | Asymptotic Distribution of Functions of Parameters | Fixed-linear-function scalar projection faces are formalized for `olsBetaStar` and `olsBetaOrZero`. |
 | Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
-| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT and HC0/HC1 scalar linear t-statistic convergence are formalized; standard-normal law normalization remains. |
+| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |
 | Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with |  |
 | Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → |  |
 | Theorem 7.14 | Under Assumptions 7.2, 7.3, and E |  |
