@@ -1941,6 +1941,31 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
     scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
 
+/-- **Hansen Theorem 7.3, all scalar projections for ordinary OLS on nonsingular samples.**
+
+This is the textbook-facing projection-family form for `olsBetaOrZero`: for
+every fixed direction `a`, ordinary OLS on the nonsingular sample-Gram event has
+the same scalar Gaussian limit as the totalized estimator. -/
+theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : (k → ℝ) → Ω' → ℝ}
+    (hZ : ∀ a : k → ℝ,
+      HasLaw (Z a)
+        (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    ∀ a : k → ℝ,
+      TendstoInDistribution
+        (fun (n : ℕ) ω =>
+          (Real.sqrt (n : ℝ) •
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+        atTop (Z a) (fun _ => μ) ν :=
+  fun a =>
+    scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel (hZ a)
+
 end Assumption72
 
 end HansenEconometrics
