@@ -425,6 +425,30 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
 
+/-- **CMT for the inverse sample Gram.** Under the moment-level assumptions,
+`Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
+theorem sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => (sampleGram (stackRegressors X n ω))⁻¹)
+      atTop (fun _ => (popGram μ X)⁻¹) := by
+  have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram h
+  have hGram_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  exact tendstoInMeasure_matrix_inv hGram_meas hGram (fun _ => h.Q_nonsing)
+
 /-- **WLLN for the sample cross moment.** Under the moment-level assumptions, the sample
 cross moment `ĝₙ = n⁻¹ ∑ eᵢ Xᵢ` of the stacked design converges in probability to
 `0`, since the population cross moment `𝔼[e X] = 0` by the orthogonality axiom. -/
