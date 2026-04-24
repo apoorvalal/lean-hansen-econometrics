@@ -275,6 +275,28 @@ theorem olsSigmaSqHatStar_linear_model
   simp [sampleCrossMoment, sampleGram, Matrix.smul_mulVec, mul_add, mul_sub, smul_eq_mul]
   ring
 
+/-- **Theorem 7.4 degrees-of-freedom bridge.**
+
+For nonempty samples, Hansen's `s²` estimator is the degrees-of-freedom rescaling
+`(n/(n-k)) σ̂²` of the average squared residual estimator. -/
+theorem olsS2Star_eq_card_div_df_mul_olsSigmaSqHatStar
+    (X : Matrix n k ℝ) (y : n → ℝ) [Nonempty n] :
+    olsS2Star X y =
+      ((Fintype.card n : ℝ) / ((Fintype.card n : ℝ) - Fintype.card k)) *
+        olsSigmaSqHatStar X y := by
+  have hn : (Fintype.card n : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  unfold olsS2Star olsSigmaSqHatStar
+  rw [div_eq_mul_inv]
+  let a : ℝ := Fintype.card n
+  let b : ℝ := (Fintype.card n : ℝ) - Fintype.card k
+  let R : ℝ := dotProduct (olsResidualStar X y) (olsResidualStar X y)
+  have ha : a ≠ 0 := by simp [a, hn]
+  change b⁻¹ * R = (a * b⁻¹) * (a⁻¹ * R)
+  calc
+    b⁻¹ * R = (a * a⁻¹) * (b⁻¹ * R) := by rw [mul_inv_cancel₀ ha, one_mul]
+    _ = (a * b⁻¹) * (a⁻¹ * R) := by ring
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
