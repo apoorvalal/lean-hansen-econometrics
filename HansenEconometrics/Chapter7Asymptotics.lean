@@ -2556,6 +2556,13 @@ noncomputable def olsHeteroskedasticCovarianceStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   (sampleGram X)⁻¹ * sampleScoreCovarianceStar X y * (sampleGram X)⁻¹
 
+/-- Totalized HC1 asymptotic sandwich estimator:
+`(n / (n-k)) V̂_HC0`. -/
+noncomputable def olsHeteroskedasticCovarianceHC1Star
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
+    olsHeteroskedasticCovarianceStar X y
+
 /-- **Hansen Theorem 7.6, ideal sandwich consistency.**
 
 The infeasible heteroskedastic sandwich estimator built from true errors
@@ -2767,6 +2774,78 @@ theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
       h.toSampleMomentAssumption71 β hmodel hQuadWeight
   exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders
     (μ := μ) (X := X) (e := e) (y := y) h β hmodel hScore_meas hCross hQuad
+
+/-- **Hansen Theorem 7.7, HC1 sandwich under bounded weights.**
+
+The totalized HC1 sandwich estimator has the same probability limit as HC0,
+because the finite-sample degrees-of-freedom multiplier `n/(n-k)` tends to `1`. -/
+theorem olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceHC1Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  let r : ℕ → ℝ := fun n =>
+    (n : ℝ) / ((n : ℝ) - (Fintype.card k : ℝ))
+  have hn : Tendsto (fun n : ℕ => (n : ℝ)) atTop atTop :=
+    tendsto_natCast_atTop_atTop
+  have hden : Tendsto
+      (fun n : ℕ => (n : ℝ) - (Fintype.card k : ℝ)) atTop atTop := by
+    simpa [sub_eq_add_neg] using
+      tendsto_atTop_add_const_right atTop (-(Fintype.card k : ℝ)) hn
+  have hrSub : Tendsto (fun n => r n - 1) atTop (𝓝 0) := by
+    have hsmall : Tendsto
+        (fun n : ℕ => (Fintype.card k : ℝ) /
+          ((n : ℝ) - (Fintype.card k : ℝ))) atTop (𝓝 0) :=
+      hden.const_div_atTop (Fintype.card k : ℝ)
+    have heq : (fun n => r n - 1) =ᶠ[atTop]
+        (fun n : ℕ => (Fintype.card k : ℝ) /
+          ((n : ℝ) - (Fintype.card k : ℝ))) := by
+      filter_upwards [eventually_gt_atTop (Fintype.card k)] with n hn_gt
+      have hden_ne : (n : ℝ) - (Fintype.card k : ℝ) ≠ 0 := by
+        have hgt : (Fintype.card k : ℝ) < (n : ℝ) := by
+          exact_mod_cast hn_gt
+        linarith
+      dsimp [r]
+      field_simp [hden_ne]
+      ring
+    rw [tendsto_congr' heq]
+    exact hsmall
+  have hr : Tendsto r atTop (𝓝 1) := by
+    have hadd := hrSub.add_const 1
+    simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hadd
+  have hHC0 := olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  have hHC0_ab : TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e a b) := by
+    simpa using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hHC0 a) b
+  have hrMeasure : TendstoInMeasure μ
+      (fun n (_ : Ω) => r n) atTop (fun _ => 1) :=
+    tendstoInMeasure_const_real (μ := μ) hr
+  have hprod := TendstoInMeasure.mul_limits_real hrMeasure hHC0_ab
+  simpa [olsHeteroskedasticCovarianceHC1Star, r, Matrix.smul_apply, smul_eq_mul,
+    Fintype.card_fin, div_eq_mul_inv] using hprod
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
