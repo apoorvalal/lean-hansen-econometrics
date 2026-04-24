@@ -111,6 +111,8 @@ in four layers:
   concrete homoskedastic/HC0/HC1 interval wrappers.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
+  the named `χ²` law-identification wrapper is formalized in
+  `waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
@@ -5332,6 +5334,58 @@ theorem tendstoInDistribution_abs_real
     (hT : TendstoInDistribution T atTop Z P ν) :
     TendstoInDistribution (fun n ω => |T n ω|) atTop (fun ω => |Z ω|) P ν := by
   simpa [Function.comp_def] using hT.continuous_comp continuous_abs
+
+/-- Relabel a real distributional limit by its law.
+
+If `Tₙ ⇒ Z` under an auxiliary probability space and `Z` has law `η`, then
+`Tₙ ⇒ id` under `η`. This is the bookkeeping step used to turn limiting random
+variables such as Gaussian quadratic forms into named limit laws such as
+`χ²(r)`. -/
+theorem tendstoInDistribution_id_of_hasLaw_limit_real
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν] {η : Measure ℝ} [IsProbabilityMeasure η]
+    {T : ℕ → Ω → ℝ} {Z : Ω' → ℝ}
+    (hT : TendstoInDistribution T atTop Z P ν)
+    (hZ : HasLaw Z η ν) :
+    TendstoInDistribution T atTop (fun x : ℝ => x) P η := by
+  refine ⟨hT.forall_aemeasurable, ?_, ?_⟩
+  · fun_prop
+  · have htarget :
+      (⟨ν.map Z, Measure.isProbabilityMeasure_map hT.aemeasurable_limit⟩ :
+          ProbabilityMeasure ℝ) =
+        ⟨η.map (fun x : ℝ => x), Measure.isProbabilityMeasure_map (by fun_prop)⟩ := by
+      apply Subtype.ext
+      simp [hZ.map_eq]
+    simpa [htarget] using hT.tendsto
+
+omit [Fintype k] [DecidableEq k] in
+/-- **Hansen Theorem 7.13, multivariate Wald `χ²` law identification.**
+
+The generic Wald CMT gives convergence to the limiting quadratic form. If that
+limiting quadratic form is known to have `χ²(r)` law, this theorem restates the
+convergence directly with the named chi-squared limit. The remaining textbook
+work is to prove the appropriate multivariate Gaussian quadratic-form law for
+the OLS limit in each covariance setting. -/
+theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {r : ℕ} [Fact (0 < r)]
+    {T : ℕ → Ω → q → ℝ} {Z : Ω' → q → ℝ}
+    {Vhat : ℕ → Ω → Matrix q q ℝ} {V : Matrix q q ℝ}
+    (hT : TendstoInDistribution T atTop Z (fun _ => μ) ν)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_nonsing : IsUnit V.det)
+    (hLaw : HasLaw
+      (fun ω => Z ω ⬝ᵥ (V⁻¹ *ᵥ Z ω)) (chiSquared r) ν) :
+    TendstoInDistribution
+      (fun n ω => T n ω ⬝ᵥ ((Vhat n ω)⁻¹ *ᵥ T n ω))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hquad := waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance
+    (μ := μ) (ν := ν) (T := T) (Z := Z) (Vhat := Vhat) (V := V)
+    hT hV_meas hV hV_nonsing
+  exact tendstoInDistribution_id_of_hasLaw_limit_real hquad hLaw
 
 /-- The absolute standard-normal law has no atom at the frontier of `(-∞, c]`. -/
 theorem standardNormalAbs_frontier_Iic_null (crit : ℝ) :
