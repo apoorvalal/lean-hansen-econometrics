@@ -1372,6 +1372,19 @@ theorem scoreCovarianceMatrix_quadratic_nonneg
     (μ := μ) (X := X) (e := e) h a]
   exact ProbabilityTheory.variance_nonneg _ _
 
+/-- Hansen's score covariance matrix `Ω` is positive semidefinite. -/
+theorem scoreCovarianceMatrix_posSemidef
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) :
+    (scoreCovarianceMatrix μ X e).PosSemidef := by
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ ?_
+  · simpa [Matrix.IsHermitian] using (scoreCovarianceMatrix_isSymm
+      (μ := μ) (X := X) (e := e)).eq
+  · intro a
+    simpa using scoreCovarianceMatrix_quadratic_nonneg
+      (μ := μ) (X := X) (e := e) h a
+
 /-- The scalar OLS projection asymptotic variance is nonnegative. -/
 theorem olsProjectionAsymptoticVariance_nonneg
     {μ : Measure Ω} [IsProbabilityMeasure μ]
