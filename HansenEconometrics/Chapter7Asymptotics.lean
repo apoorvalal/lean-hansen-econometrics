@@ -50,9 +50,11 @@ in four layers:
   and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders`, and is
   proved under bounded empirical third/fourth weights in
   `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights`.
-  Remaining work: discharge those bounded-weight hypotheses from primitive iid
-  moment assumptions, and supply the residual middle-matrix measurability used
-  by the final sandwich wrapper.
+  The residual middle-matrix measurability premise is discharged from component
+  measurability in
+  `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`.
+  Remaining work: discharge the bounded-weight and component-measurability
+  hypotheses from a more literal iid observation assumption.
 * **Theorem 7.7** — HC1 has the same limit as HC0 in
   `olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights`.
   HC2/HC3 are now defined with totalized leverage weights and have conditional
@@ -3189,6 +3191,40 @@ theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
       h.toSampleMomentAssumption71 β hmodel hQuadWeight
   exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders
     (μ := μ) (X := X) (e := e) (y := y) h β hmodel hScore_meas hCross hQuad
+
+/-- **Hansen Theorem 7.6, feasible HC0 sandwich under component measurability.**
+
+This version derives the residual HC0 middle-matrix measurability premise from
+component measurability of the regressors and errors, leaving only the empirical
+third/fourth bounded-weight hypotheses as explicit stochastic remainder
+controls. -/
+theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  have hScore_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas
+  exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight
 
 /-- **Hansen Theorem 7.7, HC1 sandwich under bounded weights.**
 
