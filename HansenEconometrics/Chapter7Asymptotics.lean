@@ -65,13 +65,13 @@ in four layers:
   `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
   prove the leverage-weighted middle matrices converge to `Ω`, typically via
   the max-leverage `oₚ(1)` theorem later in the chapter.
-* **Theorem 7.10** — the global continuous-mapping face for functions of
+* **Theorem 7.8** — the global continuous-mapping face for functions of
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
   after proving `olsBetaStar_stack_aestronglyMeasurable`, with the
   ordinary-on-nonsingular wrapper handled by
   `continuous_function_olsBetaOrZero_tendstoInMeasure`. Remaining:
-  local continuity-at-`β` and delta-method refinements.
-* **Theorem 7.8/7.11+** — pending/signpost-only.
+  local continuity-at-`β`.
+* **Theorem 7.9/7.10/7.11+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -1547,7 +1547,7 @@ theorem olsBetaStar_stack_aestronglyMeasurable
   rw [← sampleCrossMoment_stackOutcomes_linear_model X e y β hmodel,
       ← olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment X y n ω]
 
-/-- **Hansen Theorem 7.10, continuous functions of totalized OLS.**
+/-- **Hansen Theorem 7.8, continuous functions of totalized OLS.**
 
 For any globally continuous parameter transform `φ`, consistency of the
 totalized OLS estimator transfers to `φ(β̂*ₙ) →ₚ φ(β)`. This is the direct
@@ -1570,7 +1570,7 @@ theorem continuous_function_olsBetaStar_tendstoInMeasure
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
     hφ
 
-/-- **Hansen Theorem 7.10 for ordinary OLS on nonsingular samples.**
+/-- **Hansen Theorem 7.8 for ordinary OLS on nonsingular samples.**
 
 The same continuous-function consistency statement holds for `olsBetaOrZero`,
 the wrapper that agrees with ordinary OLS on nonsingular samples and with
