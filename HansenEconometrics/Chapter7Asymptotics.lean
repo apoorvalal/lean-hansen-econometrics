@@ -3439,6 +3439,50 @@ theorem linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_c
     (V := heteroskedasticAsymptoticCovariance μ X e)
     hV_meas hV
 
+/-- **Hansen §7.11, HC0 standard errors for fixed linear functions.**
+
+For a fixed linear map `R`, the square root of any diagonal element of the
+totalized feasible HC0 covariance estimator for `R β` converges to the matching
+population scale. -/
+theorem olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Finite q]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ) (j : q)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
+      atTop (fun _ =>
+        Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) j j)) := by
+  have hV_meas :=
+    olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  exact linearMapCovarianceStdError_tendstoInMeasure
+    (μ := μ) (R := R) (j := j)
+    (Vhat := fun n ω =>
+      olsHeteroskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := heteroskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
+
 /-- **Hansen Theorem 7.7, HC1 sandwich under bounded weights.**
 
 The totalized HC1 sandwich estimator has the same probability limit as HC0,
