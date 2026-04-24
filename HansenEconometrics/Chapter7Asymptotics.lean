@@ -196,6 +196,19 @@ theorem olsResidualStar_linear_model_apply
   simp
   ring
 
+/-- **Theorem 7.4 residual expansion, squared pointwise form.**
+
+This is Hansen equation (7.17) for the totalized estimator:
+`êᵢ² = eᵢ² - 2 eᵢ Xᵢ'(β̂* - β) + (Xᵢ'(β̂* - β))²`. -/
+theorem olsResidualStar_sq_linear_model_apply
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
+    olsResidualStar X (X *ᵥ β + e) i ^ 2 =
+      e i ^ 2 -
+        2 * e i * (X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) +
+          (X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) ^ 2 := by
+  rw [olsResidualStar_linear_model_apply]
+  ring
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
