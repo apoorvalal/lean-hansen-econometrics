@@ -116,10 +116,11 @@ separate textbook-facing task.
 - Theorem 7.6 has ideal and feasible HC0 sandwich consistency faces, with the feasible version reduced to bounded empirical third/fourth weight hypotheses and component measurability.
 - Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly; HC2/HC3 still require the leverage-adjustment convergence theorem.
 - Theorems 7.8-7.9 have continuous-function and fixed-linear-function projection faces; nonlinear delta-method and vector packaging remain.
-- Theorem 7.10 has the generic linear covariance CMT plus concrete HC0/HC1 fixed-linear-function covariance wrappers.
-- Theorem 7.11 has the standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers for both `olsBetaStar` and `olsBetaOrZero`.
-- Theorem 7.12 has the absolute-value CMT runway for ordinary HC0/HC1 t-statistics plus the deterministic symmetric confidence-interval membership equivalence; coverage convergence itself remains to be packaged.
+- Theorem 7.10 has the generic linear covariance CMT plus concrete homoskedastic and HC0/HC1 fixed-linear-function covariance wrappers.
+- Theorem 7.11 has the standard-error CMT, homoskedastic and HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers for both `olsBetaStar` and `olsBetaOrZero`.
+- Theorem 7.12 has the absolute-value CMT runway for ordinary homoskedastic and HC0/HC1 t-statistics plus the deterministic symmetric confidence-interval membership equivalence; coverage convergence itself remains to be packaged.
 - Theorem 7.13 has scalar one-degree-of-freedom HC0/HC1 Wald statistic limits to `χ²(1)`; the full multivariate Wald theorem remains.
+- Theorem 7.14 has a scalar one-degree-of-freedom homoskedastic Wald statistic limit to `χ²(1)` under the explicit covariance bridge `V⁰β = Vβ`; the full multivariate homoskedastic Wald theorem remains.
 
 ## Main theorem signposts
 
@@ -134,11 +135,12 @@ separate textbook-facing task.
 | Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 have definitions and conditional/leverage-adjustment assembly theorems. | Prove leverage-adjustment convergence, likely using the max-leverage result later in the chapter. |
 | Theorem 7.8 functions of parameters | Global continuous-map face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Local continuity-at-`β` formulation remains. |
 | Theorem 7.9 functions asymptotic normality | Fixed-linear-function scalar projection face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Nonlinear delta method and vector packaging remain. |
-| Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
-| Theorem 7.11 t-statistic | Standard-error CMT, HC0/HC1 linear standard-error consistency, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal HC0/HC1 wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
-| Theorem 7.12 confidence intervals | Absolute-value HC0/HC1 t-statistic limits and `mem_symmetric_ci_iff_abs_tstat_le` are formalized. | Package coverage convergence through distributional convergence at continuity sets. |
+| Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and homoskedastic/HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
+| Theorem 7.11 t-statistic | Standard-error CMT, homoskedastic/HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
+| Theorem 7.12 confidence intervals | Absolute-value homoskedastic/HC0/HC1 t-statistic limits and `mem_symmetric_ci_iff_abs_tstat_le` are formalized. | Package coverage convergence through distributional convergence at continuity sets. |
 | Theorem 7.13 Wald statistics | Scalar one-degree-of-freedom HC0/HC1 Wald limits are formalized. | Add the full multivariate Wald theorem. |
-| Theorems 7.14-7.17 | Pending/signpost-only. | Add homoskedastic Wald, Edgeworth/residual-uniformity, and leverage layers. |
+| Theorem 7.14 homoskedastic Wald statistic | Scalar one-degree-of-freedom homoskedastic Wald limit is formalized under the explicit bridge `V⁰β = Vβ`. | Prove the covariance bridge from a literal conditional homoskedasticity assumption and add the full multivariate theorem. |
+| Theorems 7.15-7.17 | Pending/signpost-only. | Add Edgeworth/residual-uniformity and leverage layers. |
 
 ## Extracted candidates
 - 7.1 Introduction
@@ -254,11 +256,11 @@ Conventions:
 | Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized; HC2/HC3 are reduced to leverage-adjustment convergence. |
 | Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
 | Theorem 7.9 | Asymptotic Distribution of Functions of Parameters | Fixed-linear-function scalar projection faces are formalized for `olsBetaStar` and `olsBetaOrZero`. |
-| Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
-| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |
+| Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus homoskedastic/HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
+| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, homoskedastic/HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |
 | Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with | Absolute-value t-statistic limits and symmetric-interval algebra are formalized; coverage convergence remains. |
 | Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → | Scalar one-degree-of-freedom HC0/HC1 Wald limits to `χ²(1)` are formalized; multivariate Wald remains. |
-| Theorem 7.14 | Under Assumptions 7.2, 7.3, and E |  |
+| Theorem 7.14 | Under Assumptions 7.2, 7.3, and E | Scalar one-degree-of-freedom homoskedastic Wald limit to `χ²(1)` is formalized under the explicit covariance bridge `V⁰β = Vβ`; multivariate and literal homoskedasticity bridge remain. |
 | Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
 | Theorem 7.16 | Under Assumption 7.2 and E ∥X ∥r < ∞, then |  |
 | Theorem 7.17 | If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then |  |
@@ -306,6 +308,9 @@ Phase 5 variance-estimator pieces:
 - [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637) — totalized `σ̂²ₙ →ₚ σ²`.
 - [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743) — totalized degrees-of-freedom `s²ₙ →ₚ σ²`.
 - [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772) — totalized homoskedastic plug-in `V̂⁰_β →ₚ V⁰_β`.
+- `linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure` — fixed-linear homoskedastic covariance convergence `R V̂⁰β Rᵀ →ₚ R V⁰β Rᵀ`.
+- `olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal` — ordinary-wrapper scalar homoskedastic t-statistic standard-normal limit under `V⁰β = Vβ`.
+- `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `V⁰β = Vβ`.
 - [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1349) — scalar CLT for projected score sums.
 - [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1463) — scalar CLT for `√n · ĝₙ(e)`.
 - [scoreCoordinate_sampleCrossMoment_boundedInProbability](../../HansenEconometrics/Chapter7Asymptotics.lean#L1420) — each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)` by score CLT tightness.

@@ -78,29 +78,35 @@ in four layers:
   `scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`.
   Remaining: nonlinear differentiable delta method and vector packaging.
 * **Theorem 7.10** — the linear covariance continuous-mapping face is
-  formalized in `linearMapCovariance_tendstoInMeasure`, with concrete HC0/HC1
-  fixed-linear-function wrappers in
+  formalized in `linearMapCovariance_tendstoInMeasure`, with concrete
+  homoskedastic and HC0/HC1 fixed-linear-function wrappers in
+  `linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure`,
   `linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`
   and
   `linearMap_olsHC1CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`.
 * **Theorem 7.11** — the standard-error CMT is formalized in
-  `linearMapCovarianceStdError_tendstoInMeasure`, with HC0/HC1 linear-function
-  standard-error consistency and scalar t-statistic convergence theorems for
-  both `olsBetaStar` and `olsBetaOrZero`. The displayed Gaussian ratio limit is
-  now normalized to explicit standard-normal limits in
+  `linearMapCovarianceStdError_tendstoInMeasure`, with homoskedastic and HC0/HC1
+  linear-function standard-error consistency and scalar t-statistic convergence
+  theorems for both `olsBetaStar` and `olsBetaOrZero`. The displayed Gaussian
+  ratio limit is now normalized to explicit standard-normal limits in
+  `olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal`,
   `olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal`,
   `olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal`, and the
   corresponding `olsBetaOrZero` wrappers. Remaining: extend beyond fixed linear
   maps and package interval/Wald consequences.
 * **Theorem 7.12** — confidence-interval coverage is not yet packaged, but the
   two main bridges are now formalized: absolute-value distributional limits for
-  HC0/HC1 ordinary t-statistics and the deterministic symmetric-interval
-  equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
+  homoskedastic and HC0/HC1 ordinary t-statistics and the deterministic
+  symmetric-interval equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
 * **Theorem 7.13** — the full multivariate Wald theorem is pending, but the
   scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
-* **Theorem 7.14+** — pending/signpost-only.
+* **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
+  pending, but the scalar one-degree-of-freedom face is formalized under the
+  explicit covariance bridge `V⁰β = Vβ` in
+  `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
+* **Theorem 7.15+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
