@@ -24,10 +24,11 @@ in four layers:
   `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`. The
   literal vector-valued statement and an explicit `Ω < ∞` theorem are still
   pending.
-* **Theorem 7.3** — the fixed-`Q⁻¹` scalar leading-term CLT and conditional
-  totalized-OLS Slutsky assembly are formalized. The remaining blocker is the
-  inverse-gap/tightness proof replacing `Q⁻¹` by `Q̂ₙ⁻¹`, followed by the
-  ordinary-OLS interface.
+* **Theorem 7.3** — scalar projections of the totalized estimator
+  `olsBetaStar` are asymptotically normal. The proof now includes the
+  inverse-gap/tightness bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`. The remaining
+  textbook-facing work is vector/Cramér-Wold packaging and the ordinary-OLS
+  interface.
 * **Theorem 7.4+** — not started in Lean yet.
 
 ## Phase 1 — Deterministic scaffold
@@ -90,10 +91,11 @@ random-inverse gap left for Slutsky, and
 records the resulting scalar-projection roadmap. Finally,
 `scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder`
 applies Mathlib's Slutsky theorem once that scalar remainder is shown to be
-`oₚ(1)`, while
-`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap`
-reduces that remainder to the inverse-gap condition. Together these form the
-Cramér-Wold/Slutsky-facing layer needed for Hansen's asymptotic-normality theorem.
+`oₚ(1)`. The inverse-gap condition is discharged by combining
+`scoreCoordinate_sampleCrossMoment_boundedInProbability` with the
+coordinatewise product bridge, yielding
+`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian` as the current
+main scalar-projection face of Hansen's asymptotic-normality theorem.
 
 See also:
 - [`AsymptoticUtils.lean`](./AsymptoticUtils.lean) — WLLN wrapper, CMT for
@@ -870,7 +872,8 @@ each coordinate of the scaled score `√n·ĝₙ(e)` is `Oₚ(1)`.
 
 The random-weight side is now discharged by
 `inverseGapWeight_coord_tendstoInMeasure_zero`; the remaining theorem-facing
-task is proving score boundedness from the scalar CLT/tightness layer. -/
+task is supplying score boundedness, which `SampleCLTAssumption72` later
+provides via the scalar score CLT. -/
 theorem inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
@@ -1373,8 +1376,9 @@ Once the scalar Slutsky remainder
 score CLT transfers to the scalar projection of the totalized OLS estimator.
 
 The deterministic roadmap above reduces this remainder to the scaled residual
-plus the random-inverse gap; the residual is already controlled, so the true
-remaining mathematical target is the inverse-gap/tightness step. -/
+plus the random-inverse gap; the residual is already controlled, so this
+conditional theorem isolates the inverse-gap input used by the later
+unconditional scalar result. -/
 theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -1420,8 +1424,8 @@ fixed-`Q⁻¹` Gaussian scalar limit once the random-inverse gap projection is
 `oₚ(1)`.
 
 This theorem combines the scaled residual control, the inverse-gap reduction,
-and Mathlib's Slutsky theorem. The remaining non-conditional task for Hansen
-Theorem 7.3 is proving the inverse-gap hypothesis itself from tightness of the
+and Mathlib's Slutsky theorem. It is retained as a useful conditional bridge;
+the theorem below discharges the inverse-gap hypothesis from tightness of the
 scaled score and `Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
 theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap
     {μ : Measure Ω} [IsProbabilityMeasure μ]
@@ -1464,8 +1468,8 @@ fixed-`Q⁻¹` Gaussian scalar limit once the scaled score coordinates are
 Compared with
 `scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap`,
 this theorem discharges the random-inverse gap using the product-rule bridge
-and `Q̂ₙ⁻¹ →ₚ Q⁻¹`. The remaining non-conditional task is proving the
-`hscoreBounded` premise from the score CLT/tightness layer. -/
+and `Q̂ₙ⁻¹ →ₚ Q⁻¹`. The final theorem below obtains `hscoreBounded` from the
+score CLT/tightness layer. -/
 theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_scoreBounded
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
