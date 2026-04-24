@@ -2142,6 +2142,26 @@ noncomputable def sampleScoreCovarianceCrossRemainder
   (Fintype.card n : ℝ)⁻¹ •
     ∑ i : n, (2 * e i * (X i ⬝ᵥ d)) • Matrix.vecMulVec (X i) (X i)
 
+/-- Empirical third-moment weight multiplying one coordinate of `β̂ - β` in the
+HC0 cross remainder. -/
+noncomputable def sampleScoreCovarianceCrossWeight
+    (X : Matrix n k ℝ) (e : n → ℝ) (a b l : k) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ * ∑ i : n, 2 * e i * X i l * X i a * X i b
+
+set_option linter.flexible false in
+omit [DecidableEq k] in
+/-- Coordinate representation of the HC0 cross remainder as coefficient error
+times empirical third-moment weights. -/
+theorem sampleScoreCovarianceCrossRemainder_apply_eq_sum_weight
+    (X : Matrix n k ℝ) (e : n → ℝ) (d : k → ℝ) (a b : k) :
+    sampleScoreCovarianceCrossRemainder X e d a b =
+      ∑ l : k, d l * sampleScoreCovarianceCrossWeight X e a b l := by
+  classical
+  unfold sampleScoreCovarianceCrossRemainder sampleScoreCovarianceCrossWeight
+  simp [Matrix.sum_apply, Matrix.smul_apply, Matrix.vecMulVec_apply, dotProduct,
+    Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+  rw [Finset.sum_comm]
+
 /-- Quadratic estimation-error remainder in the HC0 residual-score expansion. -/
 noncomputable def sampleScoreCovarianceQuadraticRemainder
     (X : Matrix n k ℝ) (d : k → ℝ) : Matrix k k ℝ :=
