@@ -125,6 +125,40 @@ noncomputable def sampleGram (X : Matrix n k ℝ) : Matrix k k ℝ :=
 noncomputable def sampleCrossMoment (X : Matrix n k ℝ) (e : n → ℝ) : k → ℝ :=
   (Fintype.card n : ℝ)⁻¹ • (Xᵀ *ᵥ e)
 
+/-- Textbook-facing totalization of ordinary OLS: use `olsBeta` on nonsingular designs and
+return `0` on singular designs. This exposes the ordinary-OLS formula on the high-probability
+nonsingularity event while remaining a genuine random variable for every sample size. -/
+noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
+  by
+    classical
+    exact
+      if h : IsUnit (Xᵀ * X).det then
+        haveI : Invertible (Xᵀ * X) := Matrix.invertibleOfIsUnitDet
+          (A := Xᵀ * X) h
+        olsBeta X y
+      else
+        0
+
+/-- `olsBetaOrZero` is exactly the previously used totalized estimator `olsBetaStar`. -/
+theorem olsBetaOrZero_eq_olsBetaStar
+    (X : Matrix n k ℝ) (y : n → ℝ) :
+    olsBetaOrZero X y = olsBetaStar X y := by
+  classical
+  unfold olsBetaOrZero
+  by_cases h : IsUnit (Xᵀ * X).det
+  · rw [dif_pos h]
+    letI : Invertible (Xᵀ * X) := Matrix.invertibleOfIsUnitDet (A := Xᵀ * X) h
+    exact (olsBetaStar_eq_olsBeta X y).symm
+  · rw [dif_neg h]
+    unfold olsBetaStar
+    rw [Matrix.nonsing_inv_apply_not_isUnit _ h, Matrix.zero_mulVec]
+
+/-- On nonsingular designs, `olsBetaOrZero` agrees with ordinary `olsBeta`. -/
+theorem olsBetaOrZero_eq_olsBeta
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsBetaOrZero X y = olsBeta X y := by
+  rw [olsBetaOrZero_eq_olsBetaStar, olsBetaStar_eq_olsBeta]
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
