@@ -1411,6 +1411,32 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
   rw [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum]
   simp [sum_dotProduct, smul_eq_mul]
 
+/-- **Hansen Theorem 7.2, scalar-projection score CLT with `Ω`.**
+
+This is `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`
+with the Gaussian variance rewritten as the quadratic form
+`a' Ω a`, where `Ω = scoreCovarianceMatrix μ X e`. -/
+theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (a ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ a)).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hZ' : HasLaw Z
+      (gaussianReal 0 (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal) ν := by
+    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h a]
+    exact hZ
+  exact scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ'
+
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
 Each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)`.  This is the tightness corollary
