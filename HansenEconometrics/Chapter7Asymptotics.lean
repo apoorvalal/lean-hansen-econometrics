@@ -497,6 +497,24 @@ theorem sampleCrossMoment_stackOutcomes_linear_model
   unfold sampleCrossMoment sampleGram
   rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, smul_add, ← Matrix.smul_mulVec]
 
+/-- **Theorem 7.4 `σ̂²` decomposition for stacked samples.**
+
+Under the linear model, the residual average `σ̂²` splits into the true
+squared-error average plus the two Hansen remainder terms. -/
+theorem olsSigmaSqHatStar_stack_linear_model
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) :
+    olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω) =
+      sampleErrorSecondMoment (stackErrors e n ω) -
+        2 * (sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) ⬝ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) +
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) ⬝ᵥ
+            (sampleGram (stackRegressors X n ω) *ᵥ
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) := by
+  rw [stack_linear_model X e y β hmodel, olsSigmaSqHatStar_linear_model]
+  rfl
+
 /-- **Unconditional sample-moment form of `olsBetaStar`.**
 For every sample size `n` and every `ω`,
 `olsBetaStar X y = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)`, where `Q̂ₙ = n⁻¹ Xᵀ X` and `ĝₙ(y) = n⁻¹ Xᵀ y`.
