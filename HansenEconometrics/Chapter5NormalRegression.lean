@@ -1,8 +1,10 @@
 import Mathlib
 import HansenEconometrics.Basic
 import HansenEconometrics.ChiSquared
+import HansenEconometrics.FDist
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.StudentT
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter3FWL
 import HansenEconometrics.Chapter4LeastSquaresRegression
@@ -578,15 +580,16 @@ noncomputable def olsTStatistic
     (ε : Ω → EuclideanSpace ℝ n) : Ω → ℝ :=
   fun ω => standardizedOlsBetaCoordinate X β σ2 j ε ω * olsStudentizationFactor X β σ2 ε ω
 
-/-- The one-dimensional factor multiplying the Gaussian numerator in the Student-t ratio
-representation. -/
-noncomputable def studentTFactor (ν : ℕ) : Measure ℝ :=
-  (chiSquared ν).map fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q
+/-- The null-centered OLS t-statistic for testing `H₀ : β_j = β₀` against a realized sample `y`.
+This is the literal textbook quotient `(β̂_j - β₀) / se(β̂_j)`. -/
+noncomputable def olsNullTStatistic
+    (X : Matrix n k ℝ) (j : k) (β0 : ℝ) [Invertible (Xᵀ * X)] (y : n → ℝ) : ℝ :=
+  (olsBeta X y j - β0) / olsEstimatedStandardError X j y
 
-/-- Student's t distribution, packaged through the ratio representation
-`Z / √(Q/ν)` with `Z ∼ N(0,1)` and `Q ∼ χ²(ν)` independent. -/
-noncomputable def studentT (ν : ℕ) : Measure ℝ :=
-  gaussianReal 0 1 ∗ₘ studentTFactor ν
+/-- The classical two-sided t-test rejection predicate `|T_j(β₀)| > c` for `H₀ : β_j = β₀`. -/
+def olsTTestRejects
+    (X : Matrix n k ℝ) (j : k) (β0 c : ℝ) [Invertible (Xᵀ * X)] (y : n → ℝ) : Prop :=
+  c < |olsNullTStatistic X j β0 y|
 
 /-- The true-variance standardized OLS coefficient error is standard normal. -/
 theorem standardizedOlsBetaCoordinate_hasLaw_standardNormal
@@ -720,34 +723,41 @@ theorem olsTStatistic_hasLaw_studentT
     HasLaw (olsTStatistic X β σ2 j ε)
       (studentT (Fintype.card n - Fintype.card k)) μ := by
   let ν : ℕ := Fintype.card n - Fintype.card k
-  letI : Fact (0 < ν) := ⟨by
+  have hν : 0 < ν := by
     dsimp [ν]
-    exact Nat.sub_pos_of_lt hdf⟩
-  letI : IsProbabilityMeasure (chiSquared ν) := isProbabilityMeasure_chiSquared (k := ν) Fact.out
-  letI : IsProbabilityMeasure (studentTFactor ν) := by
-    change IsProbabilityMeasure ((chiSquared ν).map fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q)
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
+    exact Nat.sub_pos_of_lt hdf
   have hNum :
       HasLaw (standardizedOlsBetaCoordinate X β σ2 j ε) (gaussianReal 0 1) μ :=
     standardizedOlsBetaCoordinate_hasLaw_standardNormal X β j hσ2 ε hε
-  have hFac :
-      HasLaw (olsStudentizationFactor X β σ2 ε)
-        (studentTFactor ν) μ :=
-    olsStudentizationFactor_hasLaw X β hσ2 hdf ε hε
+  have hQ :
+      HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε) (chiSquared ν) μ :=
+    scaledOlsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 hdf ε hε
   have hInd :
       standardizedOlsBetaCoordinate X β σ2 j ε ⟂ᵢ[μ]
-        olsStudentizationFactor X β σ2 ε := by
-    refine (IndepFun.comp
-      (φ := id)
-      (ψ := fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q)
-      (standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic
-        X β j hσ2 hdf ε hε)
-      measurable_id (by fun_prop)).congr ?_ ?_
-    · exact Filter.Eventually.of_forall fun _ => rfl
-    · exact Filter.Eventually.of_forall fun ω => by
-        simp [olsStudentizationFactor, ν, Nat.cast_sub hdf.le]
-  simpa [olsTStatistic, studentT, ν] using
-    IndepFun.hasLaw_fun_mul hNum hFac hInd
+        scaledOlsResidualVarianceStatistic X β σ2 ε :=
+    standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic X β j hσ2 hdf ε hε
+  refine (hasLaw_ratio_standardNormal_chiSquared_studentT hν hNum hQ hInd).congr ?_
+  exact Filter.Eventually.of_forall fun ω => by
+    simp [olsTStatistic, olsStudentizationFactor, ν, Nat.cast_sub hdf.le]
+
+/-- Hansen Theorem 5.8 in classical form: the OLS t-statistic has the standalone density-backed
+Student-t law with `n-k` degrees of freedom. -/
+theorem olsTStatistic_hasLaw_classicalStudentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (olsTStatistic X β σ2 j ε)
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ := by
+  have hν : 0 < Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf
+  have hbase :
+      HasLaw (olsTStatistic X β σ2 j ε)
+        (studentT (Fintype.card n - Fintype.card k)) μ :=
+    olsTStatistic_hasLaw_studentT X β j hσ2 hdf ε hε
+  rw [studentT_eq_classicalStudentT hν] at hbase
+  exact hbase
 
 /-- On outcomes where the scaled residual variance statistic is nonzero, Hansen's Chapter 5
 `t`-statistic agrees with the classical centered coefficient divided by its estimated standard error. -/
@@ -837,6 +847,38 @@ theorem scaledOlsResidualVarianceStatistic_ne_zero_ae
     rw [hpre, measure_singleton]
   simpa [ae_iff] using hzero
 
+/-- Under the null restriction `β_j = β₀`, the literal null-centered t-statistic agrees almost
+surely with Hansen's Chapter 5 t-statistic. This is the bridge from textbook hypothesis-testing
+notation to the reusable `olsTStatistic` object. -/
+theorem ae_olsNullTStatistic_eq_olsTStatistic
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (β0 : ℝ)
+    (hnull : β j = β0)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    (fun ω => olsNullTStatistic X j β0 (X *ᵥ β + WithLp.ofLp (ε ω))) =ᵐ[μ]
+      olsTStatistic X β σ2 j ε := by
+  filter_upwards [scaledOlsResidualVarianceStatistic_ne_zero_ae X β hσ2 hdf ε hε] with ω hω
+  rw [olsTStatistic_eq_centered_beta_div_estimatedSE X β j hσ2 hdf ε hω]
+  simp [olsNullTStatistic, hnull]
+
+/-- Hansen Theorem 5.12 null-law wrapper: under the null hypothesis `H₀ : β_j = β₀`, the literal
+null-centered t-statistic has the classical Student-t law with `n-k` degrees of freedom. -/
+theorem olsNullTStatistic_hasLaw_classicalStudentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (β0 : ℝ)
+    (hnull : β j = β0)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω => olsNullTStatistic X j β0 (X *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ := by
+  refine (olsTStatistic_hasLaw_classicalStudentT X β j hσ2 hdf ε hε).congr ?_
+  exact ae_olsNullTStatistic_eq_olsTStatistic X β j β0 hnull hσ2 hdf ε hε
+
 /-- The classical coefficient confidence interval event is almost surely identical to the event
 `|T| ≤ c`. -/
 theorem ae_mem_olsConfidenceInterval_iff_abs_t_le
@@ -895,6 +937,20 @@ theorem olsTStatistic_abs_le_coverage_eq_studentT_interval
     olsTStatistic_hasLaw_studentT X β j hσ2 hdf ε hε
   simpa [ν] using HasLaw.real_preimage_abs_le_eq_Icc hT c
 
+/-- Classical version of the exact symmetric-interval coverage identity for Hansen Theorem 5.9. -/
+theorem olsTStatistic_abs_le_coverage_eq_classicalStudentT_interval
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | |olsTStatistic X β σ2 j ε ω| ≤ c} =
+      (classicalStudentT (Fintype.card n - Fintype.card k)).real (Set.Icc (-c) c) := by
+  have hν : 0 < Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf
+  rw [← studentT_eq_classicalStudentT hν]
+  exact olsTStatistic_abs_le_coverage_eq_studentT_interval X β j c hσ2 hdf ε hε
+
 /-- Exact coverage of the classical Chapter 5 coefficient confidence interval for an arbitrary
 critical value `c`. This is the theorem-level packaging of Hansen's equation `(5.9)`. -/
 theorem olsConfidenceInterval_coverage_eq_studentT_interval
@@ -908,6 +964,20 @@ theorem olsConfidenceInterval_coverage_eq_studentT_interval
       (studentT (Fintype.card n - Fintype.card k)).real (Set.Icc (-c) c) := by
   rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
   exact olsTStatistic_abs_le_coverage_eq_studentT_interval X β j c hσ2 hdf ε hε
+
+/-- Classical version of the exact coverage theorem for Hansen's Chapter 5 coefficient confidence
+interval for an arbitrary critical value `c`. -/
+theorem olsConfidenceInterval_coverage_eq_classicalStudentT_interval
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | β j ∈ olsConfidenceInterval X j c (X *ᵥ β + WithLp.ofLp (ε ω))} =
+      (classicalStudentT (Fintype.card n - Fintype.card k)).real (Set.Icc (-c) c) := by
+  rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
+  exact olsTStatistic_abs_le_coverage_eq_classicalStudentT_interval X β j c hσ2 hdf ε hε
 
 /-- CDF version of the symmetric-interval coverage identity for the Chapter 5 t-statistic. This is
 the direct bridge from the exact Student-t law to Hansen's coverage calculations in Theorem 5.9. -/
@@ -926,17 +996,28 @@ theorem olsTStatistic_abs_le_coverage_eq_studentT_cdf
   letI : Fact (0 < ν) := ⟨by
     dsimp [ν]
     exact Nat.sub_pos_of_lt hdf⟩
-  letI : IsProbabilityMeasure (chiSquared ν) := isProbabilityMeasure_chiSquared (k := ν) Fact.out
-  letI : IsProbabilityMeasure (studentTFactor ν) := by
-    change IsProbabilityMeasure ((chiSquared ν).map fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q)
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  letI : IsProbabilityMeasure (studentT ν) := ⟨by
-    dsimp [studentT]
-    simp⟩
+  letI : IsProbabilityMeasure (studentTFactor ν) := isProbabilityMeasure_studentTFactor Fact.out
+  letI : IsProbabilityMeasure (studentT ν) := isProbabilityMeasure_studentT Fact.out
   have hT :
       HasLaw (olsTStatistic X β σ2 j ε) (studentT ν) μ :=
     olsTStatistic_hasLaw_studentT X β j hσ2 hdf ε hε
   simpa [ν] using HasLaw.real_preimage_abs_le_eq_cdf_sub_leftLim hT hc
+
+/-- Classical CDF version of the symmetric-interval coverage identity for Hansen Theorem 5.9. -/
+theorem olsTStatistic_abs_le_coverage_eq_classicalStudentT_cdf
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
+    (hc : 0 ≤ c)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | |olsTStatistic X β σ2 j ε ω| ≤ c} =
+      cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c -
+        Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) := by
+  have hν : 0 < Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf
+  simpa [studentT_eq_classicalStudentT hν] using
+    (olsTStatistic_abs_le_coverage_eq_studentT_cdf X β j c hc hσ2 hdf ε hε)
 
 /-- CDF version of the exact coverage theorem for Hansen's Chapter 5 coefficient confidence
 interval. -/
@@ -953,6 +1034,22 @@ theorem olsConfidenceInterval_coverage_eq_studentT_cdf
         Function.leftLim (cdf (studentT (Fintype.card n - Fintype.card k))) (-c) := by
   rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
   exact olsTStatistic_abs_le_coverage_eq_studentT_cdf X β j c hc hσ2 hdf ε hε
+
+/-- Classical CDF version of the exact coverage theorem for Hansen's Chapter 5 coefficient
+confidence interval. -/
+theorem olsConfidenceInterval_coverage_eq_classicalStudentT_cdf
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
+    (hc : 0 ≤ c)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | β j ∈ olsConfidenceInterval X j c (X *ᵥ β + WithLp.ofLp (ε ω))} =
+      cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c -
+        Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) := by
+  rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
+  exact olsTStatistic_abs_le_coverage_eq_classicalStudentT_cdf X β j c hc hσ2 hdf ε hε
 
 /-- Critical-value wrapper for Hansen Theorem 5.9: if the right tail and the left-limit term match
 the desired `α/2` probabilities, then the symmetric `t` interval has exact coverage `1 - α`. -/
@@ -972,6 +1069,28 @@ theorem olsTStatistic_abs_le_coverage_eq_one_sub
     hcdf_pos, hcdf_neg]
   ring
 
+/-- Classical critical-value wrapper for Hansen Theorem 5.9 at the `|T| ≤ c` level. -/
+theorem olsTStatistic_abs_le_coverage_eq_one_sub_classical
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 α : ℝ} (j : k) (c : ℝ)
+    (hc : 0 ≤ c)
+    (hcdf_pos : cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2)
+    (hcdf_neg :
+      Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) = α / 2)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | |olsTStatistic X β σ2 j ε ω| ≤ c} = 1 - α := by
+  have hν : 0 < Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf
+  have hcdf_pos' : cdf (studentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2 := by
+    simpa [studentT_eq_classicalStudentT hν] using hcdf_pos
+  have hcdf_neg' :
+      Function.leftLim (cdf (studentT (Fintype.card n - Fintype.card k))) (-c) = α / 2 := by
+    simpa [studentT_eq_classicalStudentT hν] using hcdf_neg
+  exact olsTStatistic_abs_le_coverage_eq_one_sub
+    X β j c hc hcdf_pos' hcdf_neg' hσ2 hdf ε hε
+
 /-- Confidence-interval version of Hansen Theorem 5.9: if the critical value `c` matches the
 desired tail probabilities, then the classical OLS interval has exact coverage `1 - α`. -/
 theorem olsConfidenceInterval_coverage_eq_one_sub
@@ -988,6 +1107,44 @@ theorem olsConfidenceInterval_coverage_eq_one_sub
     μ.real {ω | β j ∈ olsConfidenceInterval X j c (X *ᵥ β + WithLp.ofLp (ε ω))} = 1 - α := by
   rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
   exact olsTStatistic_abs_le_coverage_eq_one_sub X β j c hc hcdf_pos hcdf_neg hσ2 hdf ε hε
+
+/-- Classical confidence-interval version of Hansen Theorem 5.9: if the critical value `c`
+matches the desired tail probabilities for the standalone density-backed Student-t law, then the
+classical OLS interval has exact coverage `1 - α`. -/
+theorem olsConfidenceInterval_coverage_eq_one_sub_classical
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 α : ℝ} (j : k) (c : ℝ)
+    (hc : 0 ≤ c)
+    (hcdf_pos : cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2)
+    (hcdf_neg :
+      Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) = α / 2)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | β j ∈ olsConfidenceInterval X j c (X *ᵥ β + WithLp.ofLp (ε ω))} = 1 - α := by
+  rw [measureReal_congr (ae_mem_olsConfidenceInterval_iff_abs_t_le X β j c hσ2 hdf ε hε)]
+  exact olsTStatistic_abs_le_coverage_eq_one_sub_classical
+    X β j c hc hcdf_pos hcdf_neg hσ2 hdf ε hε
+
+/-- Hansen Theorem 5.10: if the residual degrees of freedom satisfy `n - k ≥ 61`, then the
+two-standard-error OLS coefficient confidence interval has at least `95%` coverage. -/
+theorem olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 < σ2)
+    (hdf61 : 61 ≤ Fintype.card n - Fintype.card k)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    (19 : ℝ) / 20 ≤
+      μ.real {ω | β j ∈ olsConfidenceInterval X j 2 (X *ᵥ β + WithLp.ofLp (ε ω))} := by
+  have hdf : Fintype.card k < Fintype.card n := by
+    omega
+  rw [olsConfidenceInterval_coverage_eq_classicalStudentT_interval X β j (2 : ℝ) hσ2 hdf ε hε]
+  simpa using
+    (classicalStudentT_Icc_neg_two_two_ge_nineteen_twentieths
+      (ν := Fintype.card n - Fintype.card k) hdf61)
 
 /-- Hansen's exact confidence interval for the error variance `σ²`, written as a random closed
 interval on the probability space carrying the regression error. -/
@@ -1120,13 +1277,8 @@ theorem olsTStatistic_rejection_probability_eq_alpha
   letI : Fact (0 < ν) := ⟨by
     dsimp [ν]
     exact Nat.sub_pos_of_lt hdf⟩
-  letI : IsProbabilityMeasure (chiSquared ν) := isProbabilityMeasure_chiSquared (k := ν) Fact.out
-  letI : IsProbabilityMeasure (studentTFactor ν) := by
-    change IsProbabilityMeasure ((chiSquared ν).map fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q)
-    exact Measure.isProbabilityMeasure_map (by fun_prop)
-  letI : IsProbabilityMeasure (studentT ν) := by
-    dsimp [studentT]
-    infer_instance
+  letI : IsProbabilityMeasure (studentTFactor ν) := isProbabilityMeasure_studentTFactor Fact.out
+  letI : IsProbabilityMeasure (studentT ν) := isProbabilityMeasure_studentT Fact.out
   have hRejectLaw :
       μ.real {ω | c < |olsTStatistic X β σ2 j ε ω|} =
         (studentT ν).real {x : ℝ | c < |x|} := by
@@ -1173,6 +1325,54 @@ theorem olsTStatistic_rejection_probability_eq_alpha
         exact hiff.mpr hx']
   rw [MeasureTheory.probReal_compl_eq_one_sub measurableSet_Icc, hAcc]
   ring
+
+/-- Hansen Theorem 5.12 in classical form: if the critical value `c` is calibrated against the
+standalone density-backed Student-t law, then the two-sided rejection rule `c < |T|` has exact
+size `α` under the null. -/
+theorem olsTStatistic_rejection_probability_eq_alpha_classical
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 α : ℝ} (j : k) (c : ℝ)
+    (hc : 0 ≤ c)
+    (hcdf_pos : cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2)
+    (hcdf_neg :
+      Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) = α / 2)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c < |olsTStatistic X β σ2 j ε ω|} = α := by
+  have hν : 0 < Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf
+  have hcdf_pos' : cdf (studentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2 := by
+    simpa [studentT_eq_classicalStudentT hν] using hcdf_pos
+  have hcdf_neg' :
+      Function.leftLim (cdf (studentT (Fintype.card n - Fintype.card k))) (-c) = α / 2 := by
+    simpa [studentT_eq_classicalStudentT hν] using hcdf_neg
+  exact olsTStatistic_rejection_probability_eq_alpha
+    X β j c hc hcdf_pos' hcdf_neg' hσ2 hdf ε hε
+
+/-- Hansen Theorem 5.12 in explicit testing language: under the null hypothesis `H₀ : β_j = β₀`,
+if the critical value `c` is calibrated against the classical Student-t law, then the two-sided
+test that rejects when `|T_j(β₀)| > c` has exact size `α`. -/
+theorem olsTTest_rejection_probability_eq_alpha
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 α : ℝ} (j : k) (β0 c : ℝ)
+    (hnull : β j = β0) (hc : 0 ≤ c)
+    (hcdf_pos : cdf (classicalStudentT (Fintype.card n - Fintype.card k)) c = 1 - α / 2)
+    (hcdf_neg :
+      Function.leftLim (cdf (classicalStudentT (Fintype.card n - Fintype.card k))) (-c) = α / 2)
+    (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | olsTTestRejects X j β0 c (X *ᵥ β + WithLp.ofLp (ε ω))} = α := by
+  rw [measureReal_congr ?_]
+  · exact olsTStatistic_rejection_probability_eq_alpha_classical
+      X β j c hc hcdf_pos hcdf_neg hσ2 hdf ε hε
+  · filter_upwards [ae_olsNullTStatistic_eq_olsTStatistic X β j β0 hnull hσ2 hdf ε hε] with ω hω
+    dsimp [olsTTestRejects]
+    change (c < |olsNullTStatistic X j β0 (X *ᵥ β + WithLp.ofLp (ε ω))|) =
+      (c < |olsTStatistic X β σ2 j ε ω|)
+    rw [hω]
 
 section LikelihoodRatioTest
 
@@ -1760,6 +1960,27 @@ theorem olsFStatistic_hasLaw_fDist
     congrFun (olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
       X₁ X₂ β₁ hσ2 hdf ε) ω
 
+/-- Hansen Theorem 5.13 in classical form: the block F statistic has the classical
+Fisher-Snedecor distribution under the null. This is a thin wrapper over the ratio-law result
+using the standalone `fDist = classicalFDist` bridge in `FDist.lean`. -/
+theorem olsFStatistic_hasLaw_classicalFDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by
+  have hbase :
+      HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    olsFStatistic_hasLaw_fDist X₁ X₂ β₁ hσ2 hq hdf ε hε
+  rw [fDist_eq_classicalFDist hq (Nat.sub_pos_of_lt hdf)] at hbase
+  exact hbase
+
 /-- Hansen Theorem 5.13 rejection statement: if the upper-tail critical value `c` is calibrated to
 have F-distribution tail probability `α`, then the rule `F > c` has exact size `α` under the null. -/
 theorem olsFStatistic_rejection_probability_eq_alpha
@@ -1781,6 +2002,35 @@ theorem olsFStatistic_rejection_probability_eq_alpha
   have hPre :
       μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
         (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))).real (Set.Ioi c) := by
+    rw [show {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
+        (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))) ⁻¹' Set.Ioi c by
+          ext ω
+          simp [Set.mem_Ioi]]
+    exact HasLaw.real_preimage_eq hF measurableSet_Ioi
+  rw [hPre, hcrit]
+
+/-- Hansen Theorem 5.13 rejection statement in classical form. -/
+theorem olsFStatistic_rejection_probability_eq_alpha_classical
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 α : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))).real
+        (Set.Ioi c) = α)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} = α := by
+  have hF :
+      HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+        (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    olsFStatistic_hasLaw_classicalFDist X₁ X₂ β₁ hσ2 hq hdf ε hε
+  have hPre :
+      μ.real {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
+        (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))).real
+          (Set.Ioi c) := by
     rw [show {ω | c < olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))} =
         (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω))) ⁻¹' Set.Ioi c by
           ext ω

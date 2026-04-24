@@ -83,6 +83,12 @@ Deferred for now unless needed:
   - `standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic`
   - `olsStudentizationFactor_hasLaw`
   - `olsTStatistic_hasLaw_studentT`
+  - `olsTStatistic_hasLaw_classicalStudentT`
+- landed the standalone classical Student-t bridge in `HansenEconometrics/StudentT.lean`:
+  - `classicalStudentT`
+  - `isProbabilityMeasure_classicalStudentT`
+  - `ratio_prod_map_eq_classicalStudentT`
+  - `studentT_eq_classicalStudentT`
 - `scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div`
 - `olsBeta_indep_scaledOlsResidualVarianceStatistic`
 - landed Theorem 5.9 in `HansenEconometrics/Chapter5NormalRegression.lean`:
@@ -90,8 +96,16 @@ Deferred for now unless needed:
   - `mem_olsConfidenceInterval_iff_abs_centered_div_le`
   - `ae_mem_olsConfidenceInterval_iff_abs_t_le`
   - `olsConfidenceInterval_coverage_eq_studentT_interval`
+  - `olsConfidenceInterval_coverage_eq_classicalStudentT_interval`
   - `olsConfidenceInterval_coverage_eq_studentT_cdf`
+  - `olsConfidenceInterval_coverage_eq_classicalStudentT_cdf`
   - `olsConfidenceInterval_coverage_eq_one_sub`
+  - `olsConfidenceInterval_coverage_eq_one_sub_classical`
+- landed Theorem 5.10 in `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths`
+  - `classicalStudentT_Icc_neg_two_two_ge_nineteen_twentieths`
+  - `studentTTwoCoverageLowerBound_le_classicalStudentT_Icc_neg_two_two`
+  - `studentTTwoCoverageKernelLowerBound_le_integral_kernel`
 - landed Theorem 5.11 in `HansenEconometrics/Chapter5NormalRegression.lean`:
   - `olsVarianceConfidenceInterval`
   - `sigma2_mem_olsVarianceConfidenceInterval_iff_scaledStatistic_mem_Icc`
@@ -100,7 +114,13 @@ Deferred for now unless needed:
   - `olsVarianceConfidenceInterval_coverage_eq_one_sub`
 - landed the main significance statement for Theorem 5.12 in
   `HansenEconometrics/Chapter5NormalRegression.lean`:
+  - `olsNullTStatistic`
+  - `olsTTestRejects`
+  - `ae_olsNullTStatistic_eq_olsTStatistic`
+  - `olsNullTStatistic_hasLaw_classicalStudentT`
   - `olsTStatistic_rejection_probability_eq_alpha`
+  - `olsTStatistic_rejection_probability_eq_alpha_classical`
+  - `olsTTest_rejection_probability_eq_alpha`
 - landed Theorem 5.13 in `HansenEconometrics/Chapter5NormalRegression.lean`:
   - `olsResidualSumSquares`
   - `olsResidualSumSquares_linear_model_quadratic_form`
@@ -111,19 +131,28 @@ Deferred for now unless needed:
   - `scaledOlsFNumeratorStatistic_hasLaw_chiSquared`
   - `scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic`
   - `olsFStatistic_hasLaw_fDist`
+  - `olsFStatistic_hasLaw_classicalFDist`
   - `olsFStatistic_rejection_probability_eq_alpha`
+  - `olsFStatistic_rejection_probability_eq_alpha_classical`
 - the library now rewrites the residual sum of squares as the annihilator quadratic form `e'Me`,
   diagonalizes that quadratic form on the `1`-eigenspace of the annihilator matrix, packages the
   Chapter 5 statistic `(n-k)s²/σ²`, proves the chi-square law
   `((n-k)s²)/σ² ∼ χ²(n-k)`, proves independence of `β̂` and `((n-k)s²)/σ²`, packages the
   classical OLS t-statistic, proves its exact Student `t_{n-k}` law, packages the exact symmetric
-  coefficient-coverage identity, formalizes the exact variance confidence interval statement, and
-  now packages the classical block F statistic together with its exact `F_{q,n-k}` law and
-  rejection-probability theorem under the block null.
+  coefficient-coverage identity, proves the two-standard-error `95%` lower bound for `n-k ≥ 61`,
+  formalizes the exact variance confidence interval statement, and now packages the classical block
+  F statistic together with its exact `F_{q,n-k}` law and rejection-probability theorem under the
+  block null.
+- the standalone `studentT` object is now also connected to a classical density-backed measure in
+  `HansenEconometrics/StudentT.lean`, so Chapter 5 no longer relies on a chapter-local naming
+  convention for the Student-t law.
+- the standalone `fDist` object is now also connected to a classical density-backed Fisher-Snedecor
+  measure in `HansenEconometrics/FDist.lean`, so the Chapter 5 F-statistic theorems also have
+  classical distribution wrappers.
 - Theorem 5.9 is fully packaged at the confidence-interval level, but the literal inverse-cdf
   notation in Hansen remains thinner than the Lean presentation because the repo still uses
   critical-value assumptions rather than a dedicated quantile API.
 - next targets:
   1. tighten the textbook-facing presentation of 5.12 around the null-hypothesis notation
   2. decide whether to add a small quantile API for the literal inverse-cdf versions of 5.9 and 5.13
-  3. move on to Theorem 5.10 or the Chapter 5.14 information-bound material
+  3. move on to the Chapter 5.14 information-bound material
