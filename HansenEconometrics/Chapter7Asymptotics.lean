@@ -53,7 +53,15 @@ in four layers:
   Remaining work: discharge those bounded-weight hypotheses from primitive iid
   moment assumptions, and supply the residual middle-matrix measurability used
   by the final sandwich wrapper.
-* **Theorem 7.7+** — pending.
+* **Theorem 7.7** — HC1 has the same limit as HC0 in
+  `olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights`.
+  HC2/HC3 are now defined with totalized leverage weights and have conditional
+  sandwich assembly theorems
+  `olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle` and
+  `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
+  prove the leverage-weighted middle matrices converge to `Ω`, typically via
+  the max-leverage `oₚ(1)` theorem later in the chapter.
+* **Theorem 7.8+** — pending.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -2119,6 +2127,31 @@ noncomputable def sampleScoreCovarianceStar (X : Matrix n k ℝ) (y : n → ℝ)
   (Fintype.card n : ℝ)⁻¹ •
     ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i) (olsResidualStar X y i • X i)
 
+/-- Totalized leverage `hᵢᵢ = xᵢ' (X'X)⁻¹ xᵢ` used by HC2/HC3.
+
+This mirrors the textbook hat-matrix diagonal but uses the total matrix inverse,
+so it is defined even on singular finite samples. -/
+noncomputable def leverageStar (X : Matrix n k ℝ) (i : n) : ℝ :=
+  X i ⬝ᵥ ((Xᵀ * X)⁻¹ *ᵥ X i)
+
+/-- The HC2 residual-score covariance middle matrix
+`n⁻¹∑ êᵢ²/(1-hᵢᵢ) · xᵢxᵢ'`, totalized through `leverageStar`. -/
+noncomputable def sampleScoreCovarianceHC2Star (X : Matrix n k ℝ) (y : n → ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n,
+      ((1 - leverageStar X i)⁻¹ * (olsResidualStar X y i) ^ 2) •
+        Matrix.vecMulVec (X i) (X i)
+
+/-- The HC3 residual-score covariance middle matrix
+`n⁻¹∑ êᵢ²/(1-hᵢᵢ)² · xᵢxᵢ'`, totalized through `leverageStar`. -/
+noncomputable def sampleScoreCovarianceHC3Star (X : Matrix n k ℝ) (y : n → ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n,
+      (((1 - leverageStar X i)⁻¹) ^ 2 * (olsResidualStar X y i) ^ 2) •
+        Matrix.vecMulVec (X i) (X i)
+
 /-- **Theorem 7.6 residual-score expansion, entrywise form.**
 
 Under the linear model, each residual score outer product decomposes into the
@@ -2621,6 +2654,16 @@ noncomputable def olsHeteroskedasticCovarianceHC1Star
   ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
     olsHeteroskedasticCovarianceStar X y
 
+/-- Totalized HC2 asymptotic sandwich estimator. -/
+noncomputable def olsHeteroskedasticCovarianceHC2Star
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  (sampleGram X)⁻¹ * sampleScoreCovarianceHC2Star X y * (sampleGram X)⁻¹
+
+/-- Totalized HC3 asymptotic sandwich estimator. -/
+noncomputable def olsHeteroskedasticCovarianceHC3Star
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  (sampleGram X)⁻¹ * sampleScoreCovarianceHC3Star X y * (sampleGram X)⁻¹
+
 /-- **Hansen Theorem 7.6, ideal sandwich consistency.**
 
 The infeasible heteroskedastic sandwich estimator built from true errors
@@ -2904,6 +2947,62 @@ theorem olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights
   have hprod := TendstoInMeasure.mul_limits_real hrMeasure hHC0_ab
   simpa [olsHeteroskedasticCovarianceHC1Star, r, Matrix.smul_apply, smul_eq_mul,
     Fintype.card_fin, div_eq_mul_inv] using hprod
+
+/-- **Hansen Theorem 7.7, conditional HC2 sandwich assembly.**
+
+Once the HC2 leverage-weighted middle matrix is known to converge in
+probability to `Ω`, the totalized HC2 sandwich estimator converges to
+`Q⁻¹ Ω Q⁻¹`. The remaining HC2 work is the leverage argument showing that
+`(1-hᵢᵢ)⁻¹` is asymptotically harmless. -/
+theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e)
+    (hHC2_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC2Star
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hHC2 : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC2Star
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceHC2Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  exact sandwichCovarianceStar_tendstoInMeasure_of_middle
+    (μ := μ) (X := X) (e := e) h
+    (middle := fun n ω => sampleScoreCovarianceHC2Star
+      (stackRegressors X n ω) (stackOutcomes y n ω))
+    hHC2_meas hHC2
+
+/-- **Hansen Theorem 7.7, conditional HC3 sandwich assembly.**
+
+Once the HC3 leverage-weighted middle matrix is known to converge in
+probability to `Ω`, the totalized HC3 sandwich estimator converges to
+`Q⁻¹ Ω Q⁻¹`. The remaining HC3 work is the stronger leverage-weight argument
+for `(1-hᵢᵢ)⁻²`. -/
+theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e)
+    (hHC3_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC3Star
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hHC3 : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC3Star
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceHC3Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  exact sandwichCovarianceStar_tendstoInMeasure_of_middle
+    (μ := μ) (X := X) (e := e) h
+    (middle := fun n ω => sampleScoreCovarianceHC3Star
+      (stackRegressors X n ω) (stackOutcomes y n ω))
+    hHC3_meas hHC3
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
