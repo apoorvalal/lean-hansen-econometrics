@@ -1132,6 +1132,23 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
   have hident := olsBetaStar_sub_identity X e y β hmodel n ω
   rw [← hident]; abel
 
+/-- **Theorem 7.1 ordinary-OLS-on-nonsingular-samples consistency.**
+
+The textbook-facing wrapper `olsBetaOrZero` equals ordinary `olsBeta` whenever
+the sample Gram is nonsingular and equals `olsBetaStar` unconditionally, so the
+totalized consistency theorem transfers directly. -/
+theorem olsBetaOrZero_stack_tendstoInMeasure_beta
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => β) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
@@ -1833,6 +1850,28 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
     simpa [olsProjectionAsymptoticVariance] using hZ
   exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'
+
+/-- **Hansen Theorem 7.3 for ordinary OLS on nonsingular samples, scalar-projection form.**
+
+This transfers the scalar totalized-OLS CLT to `olsBetaOrZero`, which is ordinary
+`olsBeta` on the nonsingular sample-Gram event and `0` otherwise. -/
+theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
 
 end Assumption72
 
