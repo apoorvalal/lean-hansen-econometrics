@@ -308,6 +308,60 @@ def BoundedInProbability (μ : Measure α) (X : ℕ → α → ℝ) : Prop :=
   ∀ δ : ℝ≥0∞, 0 < δ → ∃ M : ℝ, 0 < M ∧
     ∀ᶠ n in atTop, μ {ω | M ≤ ‖X n ω‖} ≤ δ
 
+/-- Real convergence in distribution implies boundedness in probability.
+
+This is the tightness bridge behind the scalar CLT step in Chapter 7: if the
+laws of `Xₙ` converge weakly on `ℝ`, then the sequence is `Oₚ(1)`. -/
+theorem BoundedInProbability.of_tendstoInDistribution
+    {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → ℝ} {Z : Ω' → ℝ}
+    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
+    BoundedInProbability μ X := by
+  let law : ℕ → ProbabilityMeasure ℝ := fun n =>
+    ⟨μ.map (X n), Measure.isProbabilityMeasure_map (h.forall_aemeasurable n)⟩
+  let lawZ : ProbabilityMeasure ℝ :=
+    ⟨ν.map Z, Measure.isProbabilityMeasure_map h.aemeasurable_limit⟩
+  have hlaw : Tendsto law atTop (𝓝 lawZ) := by
+    simpa [law, lawZ] using h.tendsto
+  have hcompact_insert : IsCompact (insert lawZ (Set.range law)) :=
+    hlaw.isCompact_insert_range
+  have hclosure_subset : closure (Set.range law) ⊆ insert lawZ (Set.range law) :=
+    closure_minimal (by intro x hx; exact Or.inr hx) hcompact_insert.isClosed
+  have hcompact_closure : IsCompact (closure (Set.range law)) :=
+    hcompact_insert.of_isClosed_subset isClosed_closure hclosure_subset
+  have htight : IsTightMeasureSet
+      {((ρ : ProbabilityMeasure ℝ) : Measure ℝ) | ρ ∈ Set.range law} :=
+    isTightMeasureSet_of_isCompact_closure (S := Set.range law) hcompact_closure
+  rw [isTightMeasureSet_iff_exists_isCompact_measure_compl_le] at htight
+  intro δ hδ
+  obtain ⟨K, hKcompact, hKtail⟩ := htight δ hδ
+  obtain ⟨M, hMpos, hKball⟩ := hKcompact.isBounded.subset_ball_lt 0 (0 : ℝ)
+  refine ⟨M, hMpos, Eventually.of_forall ?_⟩
+  intro n
+  have htail_meas : MeasurableSet {x : ℝ | M ≤ ‖x‖} :=
+    (isClosed_le continuous_const continuous_norm).measurableSet
+  have htail_subset : {x : ℝ | M ≤ ‖x‖} ⊆ Kᶜ := by
+    intro x hx hxK
+    have hxball := hKball hxK
+    have hxlt : ‖x‖ < M := by
+      simpa [Metric.mem_ball, dist_eq_norm] using hxball
+    exact (not_le_of_gt hxlt) hx
+  have hlawK : ((law n : ProbabilityMeasure ℝ) : Measure ℝ) Kᶜ ≤ δ := by
+    exact hKtail ((law n : ProbabilityMeasure ℝ) : Measure ℝ)
+      ⟨law n, ⟨n, rfl⟩, rfl⟩
+  have hmap_tail :
+      (μ.map (X n)) {x : ℝ | M ≤ ‖x‖} =
+        μ {ω | M ≤ ‖X n ω‖} := by
+    rw [Measure.map_apply_of_aemeasurable (h.forall_aemeasurable n) htail_meas]
+    rfl
+  calc
+    μ {ω | M ≤ ‖X n ω‖}
+        = (μ.map (X n)) {x : ℝ | M ≤ ‖x‖} := hmap_tail.symm
+    _ = ((law n : ProbabilityMeasure ℝ) : Measure ℝ) {x : ℝ | M ≤ ‖x‖} := rfl
+    _ ≤ ((law n : ProbabilityMeasure ℝ) : Measure ℝ) Kᶜ := measure_mono htail_subset
+    _ ≤ δ := hlawK
+
 /-- If `Xₙ = oₚ(1)` and `Yₙ = Oₚ(1)`, then `XₙYₙ = oₚ(1)`.
 
 This is the scalar product rule needed for the Chapter 7 inverse-gap argument:
