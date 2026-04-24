@@ -2125,6 +2125,44 @@ theorem residualScoreOuter_linear_model_apply
   simp [Matrix.vecMulVec_apply]
   ring
 
+/-- Cross remainder in the HC0 residual-score expansion. -/
+noncomputable def sampleScoreCovarianceCrossRemainder
+    (X : Matrix n k ℝ) (e : n → ℝ) (d : k → ℝ) : Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n, (2 * e i * (X i ⬝ᵥ d)) • Matrix.vecMulVec (X i) (X i)
+
+/-- Quadratic estimation-error remainder in the HC0 residual-score expansion. -/
+noncomputable def sampleScoreCovarianceQuadraticRemainder
+    (X : Matrix n k ℝ) (d : k → ℝ) : Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n, (X i ⬝ᵥ d) ^ 2 • Matrix.vecMulVec (X i) (X i)
+
+/-- **Theorem 7.6 residual-score expansion, sample-average form.**
+
+Under the linear model, the residual HC0 middle matrix equals the true-error
+middle matrix minus a cross remainder plus a quadratic estimation-error
+remainder. -/
+theorem sampleScoreCovarianceStar_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
+    sampleScoreCovarianceStar X (X *ᵥ β + e) =
+      sampleScoreCovarianceIdeal X e -
+        sampleScoreCovarianceCrossRemainder X e
+          (olsBetaStar X (X *ᵥ β + e) - β) +
+        sampleScoreCovarianceQuadraticRemainder X
+          (olsBetaStar X (X *ᵥ β + e) - β) := by
+  ext a b
+  simp [sampleScoreCovarianceStar, sampleScoreCovarianceIdeal,
+    sampleScoreCovarianceCrossRemainder, sampleScoreCovarianceQuadraticRemainder,
+    Matrix.sum_apply, Matrix.smul_apply, Matrix.sub_apply, Matrix.add_apply,
+    Matrix.vecMulVec_apply, Finset.mul_sum]
+  ring_nf
+  simp_rw [olsResidualStar_sq_linear_model_apply X β e]
+  rw [← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro x _
+  rw [dotProduct_sub]
+  ring_nf
+
 /-- Additional WLLN assumptions for the true-error HC0 score covariance average. -/
 structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
