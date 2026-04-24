@@ -94,10 +94,11 @@ are moment-level sufficient conditions extending `SampleMomentAssumption71`, not
 yet a literal encoding of Hansen's iid Assumption 7.1.
 
 ## Immediate target
-Finish the textbook-facing Theorem 7.3 by packaging the scalar projection result
-as a vector/Cramér-Wold statement, then move to Theorem 7.6 heteroskedastic
-covariance-matrix estimation. The totalized-estimator faces of Theorems 7.4 and
-7.5 are now available.
+Continue closing the post-CLT inference layer: finish the variance-identity /
+law-normalization step turning the current Theorem 7.11 t-statistic ratio limits
+into explicit standard-normal limits, then push on confidence intervals and Wald
+statistics. Vector/Cramér-Wold packaging for Theorems 7.2-7.3 remains a separate
+textbook-facing task.
 
 ## Status
 - The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
@@ -112,7 +113,11 @@ covariance-matrix estimation. The totalized-estimator faces of Theorems 7.4 and
 - Vector packaging for full textbook Theorem 7.3 remains pending.
 - Theorem 7.4 is formalized for totalized residual variance estimators `olsSigmaSqHatStar` and `olsS2Star`.
 - Theorem 7.5 is formalized for the totalized homoskedastic plug-in covariance estimator.
-- Theorems 7.6 through 7.17 are pending.
+- Theorem 7.6 has ideal and feasible HC0 sandwich consistency faces, with the feasible version reduced to bounded empirical third/fourth weight hypotheses and component measurability.
+- Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly; HC2/HC3 still require the leverage-adjustment convergence theorem.
+- Theorems 7.8-7.9 have continuous-function and fixed-linear-function projection faces; nonlinear delta-method and vector packaging remain.
+- Theorem 7.10 has the generic linear covariance CMT plus concrete HC0/HC1 fixed-linear-function covariance wrappers.
+- Theorem 7.11 has the standard-error CMT, HC0/HC1 linear standard-error consistency, and HC0/HC1 scalar linear t-statistic convergence for both `olsBetaStar` and `olsBetaOrZero`; explicit standard-normal law normalization remains.
 
 ## Main theorem signposts
 
@@ -123,7 +128,13 @@ covariance-matrix estimation. The totalized-estimator faces of Theorems 7.4 and
 | Theorem 7.3 OLS asymptotic normality | Projection-family totalized-OLS CLT is done, including inverse-gap/tightness: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2554). Ordinary-on-nonsingular projection-family version is done: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2601). | Package as a vector/Cramér-Wold theorem. |
 | Theorem 7.4 variance-estimator consistency | Totalized `σ̂²` consistency is done: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637). Totalized degrees-of-freedom `s²` consistency is done: [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743). | The assumptions are packaged by [SampleVarianceAssumption74](../../HansenEconometrics/Chapter7Asymptotics.lean#L629), a sufficient moment-level layer rather than literal iid Assumption 7.1. |
 | Theorem 7.5 homoskedastic covariance consistency | Totalized plug-in `s²Q̂⁻¹` consistency is done: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). | Same `SampleVarianceAssumption74` caveat as Theorem 7.4; vector packaging for Theorem 7.3 remains separate. |
-| Theorems 7.6-7.17 | Pending. | Add heteroskedastic covariance-estimator, delta-method, Wald/t, residual-uniformity, and leverage layers. |
+| Theorem 7.6 HC0 covariance consistency | Ideal sandwich consistency and feasible HC0 sandwich consistency are formalized through `olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure` and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`. | Discharge bounded empirical weight hypotheses from more primitive iid/moment assumptions. |
+| Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 have definitions and conditional/leverage-adjustment assembly theorems. | Prove leverage-adjustment convergence, likely using the max-leverage result later in the chapter. |
+| Theorem 7.8 functions of parameters | Global continuous-map face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Local continuity-at-`β` formulation remains. |
+| Theorem 7.9 functions asymptotic normality | Fixed-linear-function scalar projection face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Nonlinear delta method and vector packaging remain. |
+| Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
+| Theorem 7.11 t-statistic | Standard-error CMT, HC0/HC1 linear standard-error consistency, and HC0/HC1 scalar linear t-statistic convergence are formalized for totalized and ordinary-wrapper estimators. | Identify the displayed Gaussian ratio limit with `N(0,1)` and extend beyond fixed linear maps. |
+| Theorems 7.12-7.17 | Pending/signpost-only. | Add confidence intervals, Wald statistics, homoskedastic Wald, Edgeworth/residual-uniformity, and leverage layers. |
 
 ## Extracted candidates
 - 7.1 Introduction
@@ -235,12 +246,12 @@ Conventions:
 | Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Projection-family totalized-OLS CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2554). Ordinary-on-nonsingular projection-family version: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2601). Vector/Cramér-Wold packaging pending. |
 | Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. | Totalized estimator face: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637) and [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743), under [SampleVarianceAssumption74](../../HansenEconometrics/Chapter7Asymptotics.lean#L629). |
 | Theorem 7.5 | Under Assumption 7.1, ˆV | Totalized homoskedastic plug-in covariance face: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). |
-| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV |  |
-| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV |  |
-| Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of |  |
-| Theorem 7.9 | Asymptotic Distribution of Functions of Parameters |  |
-| Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. |  |
-| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → |  |
+| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV | HC0 middle/sandwich faces are formalized, including feasible HC0 under bounded-weight/component hypotheses. |
+| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized; HC2/HC3 are reduced to leverage-adjustment convergence. |
+| Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
+| Theorem 7.9 | Asymptotic Distribution of Functions of Parameters | Fixed-linear-function scalar projection faces are formalized for `olsBetaStar` and `olsBetaOrZero`. |
+| Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
+| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT and HC0/HC1 scalar linear t-statistic convergence are formalized; standard-normal law normalization remains. |
 | Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with |  |
 | Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → |  |
 | Theorem 7.14 | Under Assumptions 7.2, 7.3, and E |  |

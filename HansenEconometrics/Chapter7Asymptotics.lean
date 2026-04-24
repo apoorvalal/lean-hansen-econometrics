@@ -77,8 +77,17 @@ in four layers:
   `scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`.
   Remaining: nonlinear differentiable delta method and vector packaging.
 * **Theorem 7.10** — the linear covariance continuous-mapping face is
-  formalized in `linearMapCovariance_tendstoInMeasure`.
-* **Theorem 7.11+** — pending/signpost-only.
+  formalized in `linearMapCovariance_tendstoInMeasure`, with concrete HC0/HC1
+  fixed-linear-function wrappers in
+  `linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`
+  and
+  `linearMap_olsHC1CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`.
+* **Theorem 7.11** — the standard-error CMT is formalized in
+  `linearMapCovarianceStdError_tendstoInMeasure`, with HC0/HC1 linear-function
+  standard-error consistency and scalar t-statistic convergence theorems for
+  both `olsBetaStar` and `olsBetaOrZero`. Remaining: identify the displayed
+  Gaussian ratio limit with an explicitly standard-normal law.
+* **Theorem 7.12+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
