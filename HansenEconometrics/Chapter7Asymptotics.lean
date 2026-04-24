@@ -4628,6 +4628,52 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     (by simpa [c] using hse_pos) hnum hse hse_meas hratio_meas
   simpa [num, se, c] using hratio
 
+/-- **Hansen Theorem 7.11 for ordinary OLS on nonsingular samples, HC0 face.**
+
+The HC0-studentized scalar linear t-statistic transfers from `olsBetaStar` to
+`olsBetaOrZero`, the ordinary-OLS wrapper used on nonsingular sample-Gram
+events. -/
+theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop
+      (fun ω =>
+        Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (fun _ => μ) ν := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsHC0LinearTStatisticStar_tendstoInDistribution
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
+
 /-- **Hansen Theorem 7.11, HC1 t-statistic for a scalar linear function.**
 
 This is the HC1 analogue of
@@ -4711,6 +4757,51 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
     (μ := μ) (ν := ν) (X := num) (Y := se) (Z := Z) (c := c)
     (by simpa [c] using hse_pos) hnum hse hse_meas hratio_meas
   simpa [num, se, c] using hratio
+
+/-- **Hansen Theorem 7.11 for ordinary OLS on nonsingular samples, HC1 face.**
+
+The HC1-studentized scalar linear t-statistic transfers from `olsBetaStar` to
+the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
+theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop
+      (fun ω =>
+        Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (fun _ => μ) ν := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsHC1LinearTStatisticStar_tendstoInDistribution
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
 
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
