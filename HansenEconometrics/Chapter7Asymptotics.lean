@@ -104,8 +104,8 @@ in four layers:
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
   pending, but the scalar one-degree-of-freedom face is formalized under the
-  explicit covariance bridge `V⁰β = Vβ` in
-  `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
+  moment-level homoskedastic bridge `Ω = σ²Q` in the
+  `_of_scoreCovariance` homoskedastic Wald theorem.
 * **Theorem 7.15+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
@@ -3039,6 +3039,32 @@ noncomputable def heteroskedasticAsymptoticCovariance
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
   (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e * (popGram μ X)⁻¹
 
+/-- **Homoskedastic covariance bridge.**
+
+If the score covariance satisfies the homoskedastic moment identity
+`Ω = σ² Q`, then Hansen's homoskedastic asymptotic covariance `σ²Q⁻¹`
+equals the robust sandwich covariance `Q⁻¹ΩQ⁻¹`. -/
+theorem homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+    {μ : Measure Ω}
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hQ : IsUnit (popGram μ X).det)
+    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X) :
+    homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e := by
+  let Q : Matrix k k ℝ := popGram μ X
+  let σ2 : ℝ := errorVariance μ e
+  calc
+    homoskedasticAsymptoticCovariance μ X e
+        = σ2 • Q⁻¹ := by
+          simp [homoskedasticAsymptoticCovariance, Q, σ2]
+    _ = Q⁻¹ * (σ2 • Q) * Q⁻¹ := by
+          have hright : Q⁻¹ * (σ2 • Q) * Q⁻¹ = σ2 • Q⁻¹ := by
+            rw [Matrix.mul_smul, Matrix.smul_mul, Matrix.nonsing_inv_mul Q hQ]
+            simp
+          exact hright.symm
+    _ = heteroskedasticAsymptoticCovariance μ X e := by
+          simp [heteroskedasticAsymptoticCovariance, hΩ, Q, σ2, Matrix.mul_assoc]
+
 /-- The scalar projection variance agrees with the sandwich covariance quadratic form. -/
 theorem olsProjectionAsymptoticVariance_eq_quadratic_heteroskedasticAsymptoticCovariance
     {μ : Measure Ω}
@@ -5204,6 +5230,73 @@ theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquar
       (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.14, moment-level homoskedastic t-statistic face.**
+
+If the homoskedastic score-covariance identity `Ω = σ²Q` is available, the
+ordinary-wrapper scalar homoskedastic t-statistic has a standard-normal limit. -/
+theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  have hQ : IsUnit (popGram μ X).det := by
+    simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
+  exact olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+    (μ := μ) (X := X) (e := e) (y := y)
+    hclt hvar β R hmodel hX_meas he_meas
+    (homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+      (μ := μ) (X := X) (e := e) hQ hΩ)
+    hse_pos
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.14, moment-level scalar homoskedastic Wald statistic.**
+
+If `Ω = σ²Q`, the scalar one-degree-of-freedom homoskedastic Wald statistic for
+ordinary OLS converges to `χ²(1)`. -/
+theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) ^ 2)
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
+  simpa using
+    tendstoInDistribution_sq_standardNormal_chiSquared_one
+      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+        (μ := μ) (X := X) (e := e) (y := y)
+        hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos)
 
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
