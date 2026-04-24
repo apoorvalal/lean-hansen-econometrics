@@ -78,8 +78,10 @@ in four layers:
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
   after proving `olsBetaStar_stack_aestronglyMeasurable`, with the
   ordinary-on-nonsingular wrapper handled by
-  `continuous_function_olsBetaOrZero_tendstoInMeasure`. Remaining:
-  local continuity-at-`β`.
+  `continuous_function_olsBetaOrZero_tendstoInMeasure`. The textbook local
+  continuity-at-`β` formulation is formalized in
+  `continuousAt_function_olsBetaStar_tendstoInMeasure` and
+  `continuousAt_function_olsBetaOrZero_tendstoInMeasure`.
 * **Theorem 7.9** — the linear-functions projection face is formalized in
   `scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`
   and
@@ -1743,7 +1745,7 @@ theorem olsBetaStar_stack_aestronglyMeasurable
 For any globally continuous parameter transform `φ`, consistency of the
 totalized OLS estimator transfers to `φ(β̂*ₙ) →ₚ φ(β)`. This is the direct
 continuous-mapping-theorem face of Hansen's functions-of-parameters section;
-local-at-`β` and delta-method refinements remain separate future work. -/
+the local-at-`β` formulation below removes the global-continuity requirement. -/
 theorem continuous_function_olsBetaStar_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
@@ -1757,6 +1759,32 @@ theorem continuous_function_olsBetaStar_tendstoInMeasure
   exact tendstoInMeasure_continuous_comp
     (olsBetaStar_stack_aestronglyMeasurable
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    (olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    hφ
+
+/-- **Hansen Theorem 7.8, functions continuous at the true value.**
+
+The textbook only requires the parameter transform `φ` to be continuous at the
+true value `β`. We keep measurability of the composed sample transform explicit,
+because pointwise continuity at `β` alone is not a global measurability
+assumption on `φ`. -/
+theorem continuousAt_function_olsBetaStar_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
+    (φ : (k → ℝ) → F) (hφ : ContinuousAt φ β)
+    (hφ_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => φ (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω))) μ) :
+    TendstoInMeasure μ
+      (fun n ω => φ (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)))
+      atTop (fun _ => φ β) := by
+  exact tendstoInMeasure_continuousAt_const_comp
+    (olsBetaStar_stack_aestronglyMeasurable
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    hφ_meas
     (olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
     hφ
@@ -1796,6 +1824,46 @@ theorem olsBetaOrZero_stack_tendstoInMeasure_beta
   simpa [olsBetaOrZero_eq_olsBetaStar] using
     olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+
+/-- AEMeasurability of the ordinary-on-nonsingular OLS wrapper. -/
+theorem olsBetaOrZero_stack_aestronglyMeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  refine (olsBetaStar_stack_aestronglyMeasurable
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel n).congr ?_
+  exact ae_of_all μ (fun ω => (olsBetaOrZero_eq_olsBetaStar
+    (stackRegressors X n ω) (stackOutcomes y n ω)).symm)
+
+/-- **Hansen Theorem 7.8 for ordinary OLS, local-at-`β` formulation.**
+
+This is the ordinary-wrapper counterpart of
+`continuousAt_function_olsBetaStar_tendstoInMeasure`: a transform continuous at
+the true value preserves consistency, with measurability of the composed sample
+transform kept explicit. -/
+theorem continuousAt_function_olsBetaOrZero_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
+    (φ : (k → ℝ) → F) (hφ : ContinuousAt φ β)
+    (hφ_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => φ (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))) μ) :
+    TendstoInMeasure μ
+      (fun n ω => φ (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))
+      atTop (fun _ => φ β) := by
+  exact tendstoInMeasure_continuousAt_const_comp
+    (olsBetaOrZero_stack_aestronglyMeasurable
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    hφ_meas
+    (olsBetaOrZero_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+    hφ
 
 /-- **Theorem 7.4 cross remainder.**
 

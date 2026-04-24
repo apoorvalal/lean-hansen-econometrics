@@ -120,7 +120,7 @@ and Gram matrices are now landed; Vector/Cramér-Wold packaging for Theorems
 - Theorem 7.5 is formalized for the totalized homoskedastic plug-in covariance estimator.
 - Theorem 7.6 has ideal and feasible HC0 sandwich consistency faces, with the feasible version reduced to bounded empirical third/fourth weight hypotheses and component measurability.
 - Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly; HC2/HC3 still require the leverage-adjustment convergence theorem.
-- Theorems 7.8-7.9 have continuous-function and fixed-linear-function projection faces; nonlinear delta-method and vector packaging remain.
+- Theorem 7.8 has global and local-at-`β` continuous-function faces for `olsBetaStar` and `olsBetaOrZero`; Theorem 7.9 has fixed-linear-function projection faces. Nonlinear delta-method and vector packaging remain.
 - Theorem 7.10 has the generic linear covariance CMT plus concrete homoskedastic and HC0/HC1 fixed-linear-function covariance wrappers.
 - Theorem 7.11 has the standard-error CMT, homoskedastic and HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers for both `olsBetaStar` and `olsBetaOrZero`.
 - Theorem 7.12 has the generic symmetric confidence-interval coverage bridge from absolute t-statistic convergence, with the standard-normal continuity-set side condition discharged; ordinary homoskedastic and HC0/HC1 absolute-value t-statistic limits and concrete ordinary-wrapper interval coverage theorems are formalized.
@@ -140,7 +140,7 @@ and Gram matrices are now landed; Vector/Cramér-Wold packaging for Theorems
 | Theorem 7.5 homoskedastic covariance consistency | Totalized plug-in `s²Q̂⁻¹` consistency is done: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). | Same `SampleVarianceAssumption74` caveat as Theorem 7.4; vector packaging for Theorem 7.3 remains separate. |
 | Theorem 7.6 HC0 covariance consistency | Ideal sandwich consistency and feasible HC0 sandwich consistency are formalized through `olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure` and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`. | Discharge bounded empirical weight hypotheses from more primitive iid/moment assumptions. |
 | Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 have definitions and conditional/leverage-adjustment assembly theorems. | Prove leverage-adjustment convergence, likely using the max-leverage result later in the chapter. |
-| Theorem 7.8 functions of parameters | Global continuous-map face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Local continuity-at-`β` formulation remains. |
+| Theorem 7.8 functions of parameters | Global continuous-map and local-at-`β` faces are formalized for `olsBetaStar` and `olsBetaOrZero`, using `continuous_function_...` and `continuousAt_function_...` wrappers. | Extend to a richer theorem-level API for common nonlinear transforms. |
 | Theorem 7.9 functions asymptotic normality | Fixed-linear-function scalar projection face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Nonlinear delta method and vector packaging remain. |
 | Theorem 7.10 covariance of functions | Generic `R V̂ Rᵀ` covariance CMT and homoskedastic/HC0/HC1 fixed-linear-function wrappers are formalized. | Nonlinear plug-in derivative `R̂` consistency remains. |
 | Theorem 7.11 t-statistic | Standard-error CMT, homoskedastic/HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
@@ -263,7 +263,7 @@ Conventions:
 | Theorem 7.5 | Under Assumption 7.1, ˆV | Totalized homoskedastic plug-in covariance face: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). |
 | Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV | HC0 middle/sandwich faces are formalized, including feasible HC0 under bounded-weight/component hypotheses. |
 | Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized; HC2/HC3 are reduced to leverage-adjustment convergence. |
-| Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
+| Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Global and local-at-`β` continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
 | Theorem 7.9 | Asymptotic Distribution of Functions of Parameters | Fixed-linear-function scalar projection faces are formalized for `olsBetaStar` and `olsBetaOrZero`. |
 | Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic linear covariance CMT plus homoskedastic/HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
 | Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, homoskedastic/HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |

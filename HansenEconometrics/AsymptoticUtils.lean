@@ -57,6 +57,28 @@ theorem tendstoInMeasure_continuous_comp
   filter_upwards [hae] with ω hω
   exact (hh.tendsto _).comp hω
 
+/-- **Local continuous mapping theorem for convergence in probability to a constant.**
+
+If `f n →ₚ x` and `h` is continuous at `x`, then `h (f n) →ₚ h x`, provided
+the composed sequence is a.e. strongly measurable. The explicit measurability
+premise is necessary because continuity at one point does not imply global
+measurability of `h`. -/
+theorem tendstoInMeasure_continuousAt_const_comp
+    [IsFiniteMeasure μ]
+    [PseudoEMetricSpace E] [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
+    {f : ℕ → α → E} {x : E} {h : E → F}
+    (hf : ∀ n, AEStronglyMeasurable (f n) μ)
+    (hhf : ∀ n, AEStronglyMeasurable (fun ω => h (f n ω)) μ)
+    (hfx : TendstoInMeasure μ f atTop (fun _ => x))
+    (hh : ContinuousAt h x) :
+    TendstoInMeasure μ (fun n ω => h (f n ω)) atTop (fun _ => h x) := by
+  rw [exists_seq_tendstoInMeasure_atTop_iff hhf]
+  intro ns hns
+  obtain ⟨ns', hns', hae⟩ := (exists_seq_tendstoInMeasure_atTop_iff hf).mp hfx ns hns
+  refine ⟨ns', hns', ?_⟩
+  filter_upwards [hae] with ω hω
+  exact hh.tendsto.comp hω
+
 /-- **Coordinate projection of `TendstoInMeasure`**: if a sequence of `∀ b, X b`-valued
 functions converges in measure, then each coordinate converges in measure.
 
