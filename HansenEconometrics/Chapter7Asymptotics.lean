@@ -1523,6 +1523,31 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covaria
   exact scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
     (μ := μ) (ν := ν) (X := X) (e := e) h a hZ'
 
+/-- **Hansen Theorem 7.2, all scalar projections with `Ω`.**
+
+This packages the current Cramér-Wold-facing endpoint: for every fixed
+direction `a`, the scalar projection of `√n · ĝₙ(e)` has Gaussian limit with
+variance `a' Ω a`.  The remaining gap to the literal textbook statement is the
+reverse Cramér-Wold/vector-valued convergence wrapper. -/
+theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e)
+    {Z : (k → ℝ) → Ω' → ℝ}
+    (hZ : ∀ a : k → ℝ,
+      HasLaw (Z a)
+        (gaussianReal 0 (a ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ a)).toNNReal) ν) :
+    ∀ a : k → ℝ,
+      TendstoInDistribution
+        (fun (n : ℕ) ω =>
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) ⬝ᵥ a)
+        atTop (Z a) (fun _ => μ) ν :=
+  fun a =>
+    scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance
+      (μ := μ) (ν := ν) (X := X) (e := e) h a (hZ a)
+
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
 Each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)`.  This is the tightness corollary
