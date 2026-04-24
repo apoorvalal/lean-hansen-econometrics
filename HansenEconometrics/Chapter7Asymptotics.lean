@@ -22,12 +22,14 @@ in four layers:
   `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state names `Ω` as
   `scoreCovarianceMatrix`, proves its finite second-moment / quadratic-form
   interfaces, and proves the scalar projection CLT for every fixed direction
-  `a` via `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`.
+  `a`, with the all-directions covariance signpost
+  `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all`.
   The literal vector-valued statement is still pending.
 * **Theorem 7.3** — scalar projections of the totalized estimator
   `olsBetaStar` and the ordinary-on-nonsingular wrapper `olsBetaOrZero` are
   asymptotically normal. The proof now includes the inverse-gap/tightness
-  bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹` and covariance-matrix variance notation.
+  bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`, covariance-matrix variance notation, and
+  all-directions projection-family wrappers for both estimators.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4+** — not started in Lean yet.
 
