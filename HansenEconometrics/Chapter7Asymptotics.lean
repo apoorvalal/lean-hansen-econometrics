@@ -106,7 +106,11 @@ in four layers:
   pending, but the scalar one-degree-of-freedom face is formalized under the
   moment-level homoskedastic bridge `Ω = σ²Q` in the
   `_of_scoreCovariance` homoskedastic Wald theorem.
-* **Theorem 7.15+** — pending/signpost-only.
+* **Theorem 7.16** — the probabilistic max-residual rate is pending, but the
+  deterministic pointwise residual-error inequalities are formalized in
+  `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` and
+  `residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm`.
+* **Theorem 7.15/7.17** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -294,6 +298,63 @@ theorem olsResidualStar_eq_residual
     olsResidualStar X y = residual X y := by
   unfold olsResidualStar residual fitted
   rw [olsBetaStar_eq_olsBeta]
+
+omit [DecidableEq k] in
+/-- Finite-dimensional dot products are bounded by sup norms, with the explicit
+dimension factor used by the deterministic residual-uniformity layer. -/
+theorem abs_dotProduct_le_card_mul_norm_mul_norm (x y : k → ℝ) :
+    |x ⬝ᵥ y| ≤ (Fintype.card k : ℝ) * ‖x‖ * ‖y‖ := by
+  calc
+    |x ⬝ᵥ y|
+        = |∑ j : k, x j * y j| := by simp [dotProduct]
+    _ ≤ ∑ j : k, |x j * y j| := by
+          simpa using
+            (Finset.abs_sum_le_sum_abs (fun j : k => x j * y j) Finset.univ)
+    _ ≤ ∑ _j : k, ‖x‖ * ‖y‖ := by
+          refine Finset.sum_le_sum ?_
+          intro j _
+          rw [abs_mul]
+          have hxj : |x j| ≤ ‖x‖ := by
+            simpa [Real.norm_eq_abs] using norm_le_pi_norm x j
+          have hyj : |y j| ≤ ‖y‖ := by
+            simpa [Real.norm_eq_abs] using norm_le_pi_norm y j
+          exact mul_le_mul hxj hyj (abs_nonneg _) (norm_nonneg _)
+    _ = (Fintype.card k : ℝ) * ‖x‖ * ‖y‖ := by
+          simp [Finset.sum_const, nsmul_eq_mul, mul_assoc]
+
+/-- **Hansen Theorem 7.16, deterministic pointwise residual bound.**
+
+For the totalized estimator, the finite-sample residual error at row `i` is
+bounded by the row norm times the coefficient error, with the explicit
+finite-dimensional sup-norm factor. This is the pointwise algebra behind the
+uniform residual consistency rate. -/
+theorem residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
+    |olsResidualStar X (X *ᵥ β + e) i - e i| ≤
+      (Fintype.card k : ℝ) * ‖X i‖ *
+        ‖olsBetaStar X (X *ᵥ β + e) - β‖ := by
+  let d : k → ℝ := olsBetaStar X (X *ᵥ β + e) - β
+  have hres :
+      olsResidualStar X (X *ᵥ β + e) i - e i = -(X i ⬝ᵥ d) := by
+    rw [olsResidualStar_linear_model_apply]
+    dsimp [d]
+    ring
+  rw [hres, abs_neg]
+  exact abs_dotProduct_le_card_mul_norm_mul_norm (X i) d
+
+/-- **Hansen Theorem 7.16, ordinary OLS pointwise residual bound.**
+
+On nonsingular finite samples, the same pointwise residual-error inequality
+holds for ordinary OLS residuals. -/
+theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n)
+    [Invertible (Xᵀ * X)] :
+    |residual X (X *ᵥ β + e) i - e i| ≤
+      (Fintype.card k : ℝ) * ‖X i‖ *
+        ‖olsBeta X (X *ᵥ β + e) - β‖ := by
+  simpa [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
+    residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+      (X := X) (β := β) (e := e) i
 
 /-- **Theorem 7.4 residual expansion, squared pointwise form.**
 
