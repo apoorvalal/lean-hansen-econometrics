@@ -3488,6 +3488,70 @@ theorem olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_
     (μ := μ) (X := X) (e := e) (y := y)
     h β hmodel hScore_meas hCrossWeight hQuadWeight
 
+/-- AEMeasurability of the totalized HC1 sandwich estimator from component
+measurability. -/
+theorem olsHC1CovarianceStar_stack_aestronglyMeasurable_of_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω =>
+        olsHeteroskedasticCovarianceHC1Star
+          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  have hHC0 :=
+    olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hX_meas he_meas n
+  simpa [olsHeteroskedasticCovarianceHC1Star] using
+    hHC0.const_smul
+      ((Fintype.card (Fin n) : ℝ) / (Fintype.card (Fin n) - Fintype.card k : ℝ))
+
+/-- **Hansen Theorem 7.10, HC1 covariance for fixed linear functions.**
+
+For a fixed linear map `R`, the totalized HC1 covariance estimator for `R β`
+has the same `R Vβ Rᵀ` limit as HC0 under the bounded-weight and component
+measurability hypotheses. -/
+theorem linearMap_olsHC1CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        R * olsHeteroskedasticCovarianceHC1Star
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
+      atTop (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
+  have hV_meas :=
+    olsHC1CovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  exact linearMapCovariance_tendstoInMeasure
+    (μ := μ) (R := R)
+    (Vhat := fun n ω =>
+      olsHeteroskedasticCovarianceHC1Star
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := heteroskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
+
 /-- **Hansen Theorem 7.7, conditional HC2 sandwich assembly.**
 
 Once the HC2 leverage-weighted middle matrix is known to converge in
