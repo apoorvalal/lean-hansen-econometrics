@@ -17,13 +17,13 @@ in four layers:
 * **Theorem 7.1** — formalized for the totalized estimator `olsBetaStar` in
   `olsBetaStar_stack_tendstoInMeasure_beta`; the ordinary `olsBeta` wrapper is
   still pending.
-* **Theorem 7.2** — projectionwise CLT face landed. The theorem in the text has
-  two parts, `Ω < ∞` and the vector score CLT
-  `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state proves the scalar
-  projection CLT for every fixed direction `a` via
-  `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`. The
-  literal vector-valued statement and an explicit `Ω < ∞` theorem are still
-  pending.
+* **Theorem 7.2** — projectionwise CLT and covariance-matrix faces landed. The
+  theorem in the text has two parts, `Ω < ∞` and the vector score CLT
+  `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state names `Ω` as
+  `scoreCovarianceMatrix`, proves its finite second-moment / quadratic-form
+  interfaces, and proves the scalar projection CLT for every fixed direction
+  `a` via `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`.
+  The literal vector-valued statement is still pending.
 * **Theorem 7.3** — scalar projections of the totalized estimator
   `olsBetaStar` are asymptotically normal. The proof now includes the
   inverse-gap/tightness bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`. The remaining
@@ -78,7 +78,8 @@ handling the high-probability nonsingularity event.
 
 `SampleCLTAssumption72` strengthens the moment-level consistency assumptions
 with full independence of the score vectors `eᵢXᵢ` and square integrability of
-all scalar projections. The theorem
+all scalar projections. The score covariance matrix `Ω` is exposed as
+`scoreCovarianceMatrix`, with finite-entry and quadratic-form wrappers. The theorem
 `scoreProjection_sum_tendstoInDistribution_gaussian` applies Mathlib's
 one-dimensional central limit theorem to every fixed projection of the score.
 `sqrt_smul_residual_tendstoInMeasure_zero` also records that the singular-event
