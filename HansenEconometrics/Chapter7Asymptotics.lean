@@ -2434,6 +2434,74 @@ theorem sampleScoreCovarianceCrossRemainder_stack_tendstoInMeasure_zero_of_bound
     (stackRegressors X n ω) (stackErrors e n ω)
     (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) a b).symm
 
+/-- **Theorem 7.6 quadratic-remainder control.**
+
+If each empirical fourth-moment weight in the HC0 quadratic remainder is bounded
+in probability, consistency of `β̂*` makes the quadratic remainder `oₚ(1)`. -/
+theorem sampleScoreCovarianceQuadraticRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticRemainder
+          (stackRegressors X n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0) := by
+  let d : ℕ → Ω → k → ℝ := fun n ω =>
+    olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β
+  have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  have hd : ∀ l : k, TendstoInMeasure μ (fun n ω => d n ω l) atTop (fun _ => 0) := by
+    intro l
+    have hBeta_l : TendstoInMeasure μ
+        (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) l)
+        atTop (fun _ => β l) := by
+      simpa using TendstoInMeasure.pi_apply hBeta l
+    simpa [d, Pi.sub_apply] using TendstoInMeasure.sub_limit_zero_real hBeta_l
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  have hInner : ∀ l ∈ (Finset.univ : Finset k),
+      TendstoInMeasure μ
+        (fun n ω => ∑ m : k,
+          d n ω l * d n ω m *
+            sampleScoreCovarianceQuadraticWeight
+              (stackRegressors X n ω) a b l m)
+        atTop (fun _ => 0) := by
+    intro l _
+    have hTerm : ∀ m ∈ (Finset.univ : Finset k),
+        TendstoInMeasure μ
+          (fun n ω =>
+            d n ω l * d n ω m *
+              sampleScoreCovarianceQuadraticWeight
+                (stackRegressors X n ω) a b l m)
+          atTop (fun _ => 0) := by
+      intro m _
+      have hprod := TendstoInMeasure.mul_zero_real (hd l) (hd m)
+      exact TendstoInMeasure.mul_boundedInProbability hprod (hWeight a b l m)
+    simpa using tendstoInMeasure_finset_sum_zero_real (μ := μ)
+      (s := (Finset.univ : Finset k))
+      (X := fun m n ω =>
+        d n ω l * d n ω m *
+          sampleScoreCovarianceQuadraticWeight
+            (stackRegressors X n ω) a b l m)
+      hTerm
+  have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+    (s := (Finset.univ : Finset k))
+    (X := fun l n ω => ∑ m : k,
+      d n ω l * d n ω m *
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)
+    hInner
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  exact (sampleScoreCovarianceQuadraticRemainder_apply_eq_sum_weight
+    (stackRegressors X n ω) (d n ω) a b).symm
+
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
 noncomputable def heteroskedasticAsymptoticCovariance
