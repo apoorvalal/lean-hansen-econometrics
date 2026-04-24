@@ -742,6 +742,52 @@ theorem sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_z
   intro ε hε
   simpa [Real.dist_eq, sub_eq_add_neg, abs_sub_comm] using hraw ε hε
 
+/-- **Theorem 7.4 conditional `σ̂²` consistency assembly.**
+
+Once Hansen's two residual-decomposition remainders are known to be `oₚ(1)`,
+the centered residual average `σ̂² - σ²` is `oₚ(1)`. The remaining work for the
+unconditional Theorem 7.4 statement is to discharge `hcross` and `hquad` from
+Theorem 7.1 consistency and the sample-moment WLLNs. -/
+theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hcross : TendstoInMeasure μ
+      (fun n ω =>
+        -2 * (sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) ⬝ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0))
+    (hquad : TendstoInMeasure μ
+      (fun n ω =>
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) ⬝ᵥ
+          (sampleGram (stackRegressors X n ω) *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω) -
+          errorVariance μ e)
+      atTop
+      (fun _ => 0) := by
+  have herr :=
+    sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) h
+  have hsum :=
+    TendstoInMeasure.add_zero_real
+      (TendstoInMeasure.add_zero_real herr hcross) hquad
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  change sampleErrorSecondMoment (stackErrors e n ω) - errorVariance μ e +
+        -2 * (sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) ⬝ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) +
+        ((olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) ⬝ᵥ
+          (sampleGram (stackRegressors X n ω) *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) =
+      olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω) -
+        errorVariance μ e
+  rw [olsSigmaSqHatStar_stack_linear_model X e y β hmodel]
+  ring
+
 /-- **Core stochastic transform — convergence of the OLS-error term.**
 Under the moment-level assumptions, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the
 deterministic RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)`
