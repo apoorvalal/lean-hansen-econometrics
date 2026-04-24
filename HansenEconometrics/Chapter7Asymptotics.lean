@@ -97,8 +97,10 @@ in four layers:
 * **Theorem 7.12** — the generic symmetric confidence-interval coverage bridge
   is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat`, building on
   absolute-value distributional limits for homoskedastic and HC0/HC1 ordinary
-  t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. Remaining: concrete
-  homoskedastic/HC0/HC1 interval wrappers and explicit critical-value APIs.
+  t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. The standard-normal
+  continuity-set side condition is discharged in `standardNormalAbs_frontier_Iic_null`
+  and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal`. Remaining:
+  concrete homoskedastic/HC0/HC1 interval wrappers.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
@@ -5074,6 +5076,30 @@ theorem tendstoInDistribution_abs_real
     TendstoInDistribution (fun n ω => |T n ω|) atTop (fun ω => |Z ω|) P ν := by
   simpa [Function.comp_def] using hT.continuous_comp continuous_abs
 
+/-- The absolute standard-normal law has no atom at the frontier of `(-∞, c]`. -/
+theorem standardNormalAbs_frontier_Iic_null (crit : ℝ) :
+    ((gaussianReal 0 1).map (fun x : ℝ => |x|)) (frontier (Set.Iic crit)) = 0 := by
+  rw [frontier_Iic]
+  rw [Measure.map_apply continuous_abs.measurable (measurableSet_singleton crit)]
+  have hpre_subset :
+      (fun x : ℝ => |x|) ⁻¹' ({crit} : Set ℝ) ⊆
+        ({crit} ∪ {-crit} : Set ℝ) := by
+    intro x hx
+    simp only [Set.mem_preimage, Set.mem_singleton_iff] at hx
+    simp only [Set.mem_union, Set.mem_singleton_iff]
+    by_cases hx_nonneg : 0 ≤ x
+    · left
+      simpa [abs_of_nonneg hx_nonneg] using hx
+    · right
+      have hx_neg : x < 0 := lt_of_not_ge hx_nonneg
+      have hneg : -x = crit := by
+        simpa [abs_of_neg hx_neg] using hx
+      linarith
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  exact measure_mono_null hpre_subset
+    (measure_union_null (measure_singleton crit) (measure_singleton (-crit)))
+
 /-- Squaring a standard-normal distributional limit gives a `χ²(1)` limit. -/
 theorem tendstoInDistribution_sq_standardNormal_chiSquared_one
     {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
@@ -5152,6 +5178,27 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat
     (θ := θ) (θhat := θhat n ω) (root := root n)
     (se := se n ω) (crit := crit) hnroot (hnse ω)
   simpa [Set.mem_Iic] using hiff.symm
+
+/-- Version of `symmetricCI_coverage_tendsto_of_abs_tstat` with the standard-normal
+continuity-set side condition already discharged. -/
+theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {θ crit : ℝ}
+    {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
+    (hroot : ∀ᶠ n in atTop, 0 < root n)
+    (hse : ∀ᶠ n in atTop, ∀ ω, 0 < se n ω)
+    (hT : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1)) :
+    Tendsto
+      (fun n => μ {ω | θ ∈ Set.Icc
+        (θhat n ω - crit * se n ω / root n)
+        (θhat n ω + crit * se n ω / root n)})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
+  symmetricCI_coverage_tendsto_of_abs_tstat
+    (μ := μ) (θ := θ) (crit := crit)
+    hroot hse hT (standardNormalAbs_frontier_Iic_null crit)
 
 /-- **Hansen §7.17, homoskedastic t-statistic for a scalar linear function.**
 
