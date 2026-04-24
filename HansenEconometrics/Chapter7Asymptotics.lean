@@ -4937,6 +4937,140 @@ theorem mem_symmetric_ci_iff_abs_tstat_le
   exact (abs_scaled_error_div_le_iff
     (d := θhat - θ) (root := root) (se := se) (crit := crit) hroot hse).symm
 
+/-- **Hansen §7.17, homoskedastic t-statistic for a scalar linear function.**
+
+For a one-dimensional fixed linear map `R`, the homoskedastic-studentized
+totalized OLS linear function converges to the Gaussian linear-function limit
+divided by the homoskedastic population standard-error scale. -/
+theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      ν)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+            Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop
+      (fun ω =>
+        Z ω / Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+      (fun _ => μ) ν := by
+  let c : ℝ := Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
+  let se : ℕ → Ω → ℝ := fun n ω =>
+    Real.sqrt ((R * olsHomoskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
+  let num : ℕ → Ω → ℝ := fun n ω =>
+    ((Real.sqrt (n : ℝ) •
+      (R *ᵥ (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+        (fun _ : Unit => 1))
+  have hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν := by
+    simpa [num] using
+      scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+        (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+        hclt β R (fun _ : Unit => 1) hmodel hZ
+  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
+        (μ := μ) (X := X) (e := e) (y := y)
+        hvar β R () hmodel hX_meas he_meas
+  have hV_meas :=
+    olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      hvar.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hse_meas : ∀ n, AEMeasurable (se n) μ := by
+    intro n
+    have hcov : AEStronglyMeasurable
+        (fun ω =>
+          R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) μ :=
+      linearMapCovariance_aestronglyMeasurable
+        (μ := μ) (R := R) (hV_meas n)
+    have hentry_cont : Continuous (fun M : Matrix Unit Unit ℝ => M () ()) :=
+      (continuous_apply ()).comp (continuous_apply ())
+    have hsqrt_cont : Continuous (fun M : Matrix Unit Unit ℝ => Real.sqrt (M () ())) :=
+      Real.continuous_sqrt.comp hentry_cont
+    exact (hsqrt_cont.comp_aestronglyMeasurable hcov).aemeasurable
+  have hratio_meas : ∀ n, AEMeasurable (fun ω => num n ω / se n ω) μ :=
+    fun n => (hnum.forall_aemeasurable n).div (hse_meas n)
+  have hratio := tendstoInDistribution_div_of_tendstoInMeasure_const_pos
+    (μ := μ) (ν := ν) (X := num) (Y := se) (Z := Z) (c := c)
+    (by simpa [c] using hse_pos) hnum hse hse_meas hratio_meas
+  simpa [num, se, c] using hratio
+
+/-- **Hansen Theorem 7.14, scalar homoskedastic t-statistic with standard normal limit.**
+
+If the homoskedastic asymptotic covariance equals the robust sandwich
+covariance, the scalar homoskedastic t-statistic has the standard-normal limit.
+This is the one-dimensional t-statistic face behind the homoskedastic Wald
+statistic. -/
+theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  let c : ℝ := Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
+  have hentry_pos : 0 < (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+    exact Real.sqrt_pos.mp hse_pos
+  have hentry_eq :
+      (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
+        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+    rw [hVeq]
+    exact linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+      (μ := μ) (X := X) (e := e) hclt.toSampleMomentAssumption71.int_outer R
+  have hσ :
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+    calc
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+            hentry_eq.symm
+      _ = c ^ 2 := by
+            simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
+  have hZ : HasLaw (fun x : ℝ => c * x)
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      (gaussianReal 0 1) :=
+    hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
+  have hbase := olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+    (μ := μ) (ν := gaussianReal 0 1) (X := X) (e := e) (y := y)
+    hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
+  convert hbase using 2
+  · rename_i x
+    dsimp [c]
+    exact (mul_div_cancel_left₀ x hse_pos.ne').symm
+
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
 For a one-dimensional fixed linear map `R`, the HC0-studentized totalized OLS
