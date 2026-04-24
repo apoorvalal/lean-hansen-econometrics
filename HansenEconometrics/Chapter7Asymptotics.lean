@@ -2502,6 +2502,40 @@ theorem sampleScoreCovarianceQuadraticRemainder_stack_tendstoInMeasure_zero_of_b
   exact (sampleScoreCovarianceQuadraticRemainder_apply_eq_sum_weight
     (stackRegressors X n ω) (d n ω) a b).symm
 
+/-- **Hansen Theorem 7.6, residual HC0 middle matrix under bounded weights.**
+
+The feasible HC0 middle matrix converges to `Ω` when the empirical third- and
+fourth-moment weights appearing in the residual-score remainders are bounded in
+probability. -/
+theorem sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_bounded_weights
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e) := by
+  have hCross :=
+    sampleScoreCovarianceCrossRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hCrossWeight
+  have hQuad :=
+    sampleScoreCovarianceQuadraticRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+      (μ := μ) (X := X) (e := e) (y := y)
+      h.toSampleMomentAssumption71 β hmodel hQuadWeight
+  exact sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCross hQuad
+
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
 noncomputable def heteroskedasticAsymptoticCovariance
