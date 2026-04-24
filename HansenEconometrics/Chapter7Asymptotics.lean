@@ -35,7 +35,8 @@ in four layers:
   `matrixMulVec_tendstoInDistribution_of_vector_and_matrix` and
   `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`, with the
   feasible leading-score vector bridge
-  `feasibleScore_tendstoInDistribution_of_scoreCLT`.
+  `feasibleScore_tendstoInDistribution_of_scoreCLT` and conditional vector OLS
+  assembly `olsBetaStar_vector_tendstoInDistribution_of_scoreCLT`.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
@@ -1267,6 +1268,39 @@ theorem sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score
           ((sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
             sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) := by
         rw [smul_add]
+
+/-- **Vector Slutsky residual for totalized OLS.**
+
+The difference between the scaled totalized OLS error and the feasible leading
+score `Q̂ₙ⁻¹√nĝₙ(e)` is `oₚ(1)`. This is the vector form needed by Mathlib's
+distributional Slutsky theorem. -/
+theorem sqrt_smul_olsBetaStar_sub_sub_feasibleScore_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) -
+          (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+            (Real.sqrt (n : ℝ) •
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hres := sqrt_smul_residual_tendstoInMeasure_zero
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  refine hres.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  change
+    Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+          (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
+      Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) -
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+  rw [Matrix.mulVec_smul, smul_sub]
 
 /-- **Feasible leading-term decomposition.**
 The feasible leading score term is the fixed-`Q⁻¹` leading term plus the
@@ -4755,6 +4789,56 @@ theorem feasibleScore_tendstoInDistribution_of_scoreCLT
     (A := popGram μ X)
     hScore (fun n => sampleGram_stackRegressors_aestronglyMeasurable h n)
     (sampleGram_stackRegressors_tendstoInMeasure_popGram h) h.Q_nonsing
+
+/-- **Hansen Theorem 7.3, conditional vector OLS Slutsky assembly.**
+
+If the vector score has a distributional limit `Zscore`, then the scaled
+totalized OLS estimator has the transformed limit `Q⁻¹Zscore`. The theorem is
+conditional only on the vector-valued score CLT; the random inverse and the
+singular-event residual are discharged here. -/
+theorem olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop
+      (fun ω => (popGram μ X)⁻¹ *ᵥ Zscore ω)
+      (fun _ => μ) ν := by
+  have hFeasible := feasibleScore_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := ν) (X := X) (e := e) (Zscore := Zscore) h hScore
+  have hResidual :=
+    sqrt_smul_olsBetaStar_sub_sub_feasibleScore_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  have hBeta_meas := olsBetaStar_stack_aestronglyMeasurable
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  have hY_meas : ∀ n : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) μ := by
+    intro n
+    exact (AEStronglyMeasurable.const_smul
+      ((hBeta_meas n).sub aestronglyMeasurable_const) (Real.sqrt (n : ℝ))).aemeasurable
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (n : ℕ) ω =>
+      (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+    (Y := fun (n : ℕ) ω =>
+      Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+    (Z := fun ω => (popGram μ X)⁻¹ *ᵥ Zscore ω)
+    hFeasible hResidual hY_meas
 
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
