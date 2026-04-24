@@ -1234,6 +1234,30 @@ private theorem scoreProjection_integral_zero
     (fun i => Integrable.eval h.int_cross i)
   simpa [meanVec, h.orthogonality] using hdot
 
+/-- Coordinate square-integrability of the score vector under Assumption 7.2. -/
+theorem scoreCoordinate_memLp_two
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (j : k) :
+    MemLp (fun ω => (e 0 ω • X 0 ω) j) 2 μ := by
+  classical
+  have hproj := h.memLp_cross_projection (Pi.single j 1)
+  simpa [dotProduct_single_one] using hproj
+
+/-- **Theorem 7.2 finite second-moment face.**
+
+Every entry of the score second-moment matrix
+`E[(e₀X₀)_j (e₀X₀)_ℓ]` is finite. This is the Lean-facing version of the
+textbook statement that the asymptotic covariance matrix `Ω` has finite
+entries under Assumption 7.2. -/
+theorem scoreSecondMoment_integrable
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (j l : k) :
+    Integrable (fun ω => (e 0 ω • X 0 ω) j * (e 0 ω • X 0 ω) l) μ := by
+  exact (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h j).integrable_mul
+    (scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e) h l)
+
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
 private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
