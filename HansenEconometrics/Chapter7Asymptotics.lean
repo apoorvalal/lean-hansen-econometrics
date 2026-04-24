@@ -3502,6 +3502,86 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_
     (μ := μ) (X := X) (e := e) (y := y)
     h.toSampleMomentAssumption71 hHC3_meas hHC3
 
+/-- **Hansen Theorem 7.7, HC2 sandwich modulo leverage adjustment and component measurability.**
+
+Component measurability supplies the HC0 middle-matrix measurability needed by
+the HC2 adjustment theorem; the leverage-adjustment measurability and
+`oₚ(1)` convergence remain explicit. -/
+theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_components_and_adjustment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hAdj_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC2AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceHC2Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  have hHC0_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas
+  exact olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_and_adjustment
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hHC0_meas hAdj_meas hCrossWeight hQuadWeight hAdj
+
+/-- **Hansen Theorem 7.7, HC3 sandwich modulo leverage adjustment and component measurability.**
+
+Component measurability supplies the HC0 middle-matrix measurability needed by
+the HC3 adjustment theorem; the leverage-adjustment measurability and
+`oₚ(1)` convergence remain explicit. -/
+theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_components_and_adjustment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hAdj_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceHC3AdjustmentStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceHC3Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  have hHC0_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas
+  exact olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_and_adjustment
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hHC0_meas hAdj_meas hCrossWeight hQuadWeight hAdj
+
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
 private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
