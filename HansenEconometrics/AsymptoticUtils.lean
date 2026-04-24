@@ -599,6 +599,39 @@ theorem BoundedInProbability.of_tendstoInDistribution
     _ ≤ ((law n : ProbabilityMeasure ℝ) : Measure ℝ) Kᶜ := measure_mono htail_subset
     _ ≤ δ := hlawK
 
+/-- **Portmanteau event-probability bridge for real distributional limits.**
+
+If `Xₙ ⇒ Z` and `E` is a Borel set whose frontier has zero mass under the
+limit law, then the probabilities of the events `{Xₙ ∈ E}` converge to the
+limit-law probability of `E`. This is the reusable coverage/critical-region
+bridge for Chapter 7's t and Wald statistics. -/
+theorem TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+    {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → ℝ} {Z : Ω' → ℝ} {E : Set ℝ}
+    (h : TendstoInDistribution X atTop Z P ν)
+    (hE : MeasurableSet E)
+    (hfrontier : (ν.map Z) (frontier E) = 0) :
+    Tendsto (fun n => P n {ω | X n ω ∈ E})
+      atTop (𝓝 ((ν.map Z) E)) := by
+  let law : ℕ → ProbabilityMeasure ℝ := fun n =>
+    ⟨(P n).map (X n), Measure.isProbabilityMeasure_map (h.forall_aemeasurable n)⟩
+  let lawZ : ProbabilityMeasure ℝ :=
+    ⟨ν.map Z, Measure.isProbabilityMeasure_map h.aemeasurable_limit⟩
+  have hlaw : Tendsto law atTop (𝓝 lawZ) := by
+    simpa [law, lawZ] using h.tendsto
+  have hport := ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto'
+    (μ := lawZ) (μs := law) hlaw (by simpa [lawZ] using hfrontier)
+  have hseq_eq :
+      (fun n => ((law n : ProbabilityMeasure ℝ) : Measure ℝ) E) =
+        fun n => P n {ω | X n ω ∈ E} := by
+    funext n
+    change (Measure.map (X n) (P n)) E = P n {ω | X n ω ∈ E}
+    rw [Measure.map_apply_of_aemeasurable (h.forall_aemeasurable n) hE]
+    rfl
+  simpa [hseq_eq, lawZ] using hport
+
 /-- If `Xₙ = oₚ(1)` and `Yₙ = Oₚ(1)`, then `XₙYₙ = oₚ(1)`.
 
 This is the scalar product rule needed for the Chapter 7 inverse-gap argument:

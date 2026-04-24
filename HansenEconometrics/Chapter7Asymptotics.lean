@@ -94,10 +94,11 @@ in four layers:
   `olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal`, and the
   corresponding `olsBetaOrZero` wrappers. Remaining: extend beyond fixed linear
   maps and package interval/Wald consequences.
-* **Theorem 7.12** — confidence-interval coverage is not yet packaged, but the
-  two main bridges are now formalized: absolute-value distributional limits for
-  homoskedastic and HC0/HC1 ordinary t-statistics and the deterministic
-  symmetric-interval equivalence `mem_symmetric_ci_iff_abs_tstat_le`.
+* **Theorem 7.12** — the generic symmetric confidence-interval coverage bridge
+  is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat`, building on
+  absolute-value distributional limits for homoskedastic and HC0/HC1 ordinary
+  t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. Remaining: concrete
+  homoskedastic/HC0/HC1 interval wrappers and explicit critical-value APIs.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
@@ -5114,6 +5115,43 @@ theorem mem_symmetric_ci_iff_abs_tstat_le
     (x := θhat) (y := θ) (z := crit * se / root)]
   exact (abs_scaled_error_div_le_iff
     (d := θhat - θ) (root := root) (se := se) (crit := crit) hroot hse).symm
+
+/-- **Hansen Theorem 7.12, generic symmetric confidence-interval coverage bridge.**
+
+If the absolute t-statistic converges to `|N(0,1)|`, then the probability that
+the true scalar parameter lies in the usual symmetric interval converges to the
+absolute-standard-normal mass below the critical value, at every continuity
+critical value. Positivity of the root and standard error is needed only
+eventually, so finite initial sample sizes are ignored by the limit. -/
+theorem symmetricCI_coverage_tendsto_of_abs_tstat
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {θ crit : ℝ}
+    {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
+    (hroot : ∀ᶠ n in atTop, 0 < root n)
+    (hse : ∀ᶠ n in atTop, ∀ ω, 0 < se n ω)
+    (hT : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1))
+    (hcrit : ((gaussianReal 0 1).map (fun x : ℝ => |x|))
+      (frontier (Set.Iic crit)) = 0) :
+    Tendsto
+      (fun n => μ {ω | θ ∈ Set.Icc
+        (θhat n ω - crit * se n ω / root n)
+        (θhat n ω + crit * se n ω / root n)})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
+  have hevent :=
+    TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+      hT
+      (E := Set.Iic crit) measurableSet_Iic hcrit
+  refine hevent.congr' ?_
+  filter_upwards [hroot, hse] with n hnroot hnse
+  congr 1
+  ext ω
+  have hiff := mem_symmetric_ci_iff_abs_tstat_le
+    (θ := θ) (θhat := θhat n ω) (root := root n)
+    (se := se n ω) (crit := crit) hnroot (hnse ω)
+  simpa [Set.mem_Iic] using hiff.symm
 
 /-- **Hansen §7.17, homoskedastic t-statistic for a scalar linear function.**
 
