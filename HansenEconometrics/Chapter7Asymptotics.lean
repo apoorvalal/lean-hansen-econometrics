@@ -1504,6 +1504,102 @@ theorem olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
     hCrossCoord hBetaCoord
   simpa using TendstoInMeasure.const_mul_zero_real (μ := μ) (-2) hdot
 
+/-- **Theorem 7.4 Gram-weighted estimation error.**
+
+The sample Gram times the estimation error is negligible:
+`Q̂ₙ(β̂*ₙ - β) = oₚ(1)`. The proof is coordinatewise: each summand is
+`Q̂ₙ,jl dₙ,l = (Q̂ₙ,jl - Q_jl)dₙ,l + Q_jl dₙ,l`, with both terms `oₚ(1)`. -/
+theorem sampleGram_mulVec_olsBetaStar_sub_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleGram (stackRegressors X n ω) *ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0) := by
+  let Qhat : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    sampleGram (stackRegressors X n ω)
+  let d : ℕ → Ω → k → ℝ := fun n ω =>
+    olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β
+  have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram
+    (μ := μ) (X := X) (e := e) h
+  have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  have hDiffCoord : ∀ l : k,
+      TendstoInMeasure μ (fun n ω => d n ω l) atTop (fun _ => 0) := by
+    intro l
+    have hl := TendstoInMeasure.pi_apply hBeta l
+    have hcenter := TendstoInMeasure.sub_limit_zero_real hl
+    simpa [d, Pi.sub_apply] using hcenter
+  have hGramCoord : ∀ j l : k,
+      TendstoInMeasure μ (fun n ω => Qhat n ω j l)
+        atTop (fun _ => (popGram μ X) j l) := by
+    intro j l
+    exact TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hGram j) l
+  have hCoord : ∀ j : k,
+      TendstoInMeasure μ (fun n ω => (Qhat n ω *ᵥ d n ω) j)
+        atTop (fun _ => 0) := by
+    intro j
+    have hterm : ∀ l ∈ (Finset.univ : Finset k),
+        TendstoInMeasure μ (fun n ω => Qhat n ω j l * d n ω l)
+          atTop (fun _ => 0) := by
+      intro l _
+      have hQcenter := TendstoInMeasure.sub_limit_zero_real (hGramCoord j l)
+      have hcenterProd := TendstoInMeasure.mul_zero_real hQcenter (hDiffCoord l)
+      have hconstProd := TendstoInMeasure.const_mul_zero_real
+        (μ := μ) ((popGram μ X) j l) (hDiffCoord l)
+      have hsum := TendstoInMeasure.add_zero_real hcenterProd hconstProd
+      refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+      dsimp [Qhat, d]
+      ring
+    have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+      (s := (Finset.univ : Finset k))
+      (X := fun l n ω => Qhat n ω j l * d n ω l) hterm
+    refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+    simp [Qhat, d, Matrix.mulVec, dotProduct]
+  simpa [Qhat, d] using tendstoInMeasure_pi (μ := μ) hCoord
+
+/-- **Theorem 7.4 quadratic remainder.**
+
+The quadratic term in the residual-variance expansion is negligible:
+`(β̂*ₙ - β)'Q̂ₙ(β̂*ₙ - β) = oₚ(1)`. -/
+theorem olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) ⬝ᵥ
+          (sampleGram (stackRegressors X n ω) *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0) := by
+  let d : ℕ → Ω → k → ℝ := fun n ω =>
+    olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β
+  let Qd : ℕ → Ω → k → ℝ := fun n ω =>
+    sampleGram (stackRegressors X n ω) *ᵥ d n ω
+  have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
+    (μ := μ) (X := X) (e := e) (y := y) β
+    h.toSampleMomentAssumption71 hmodel
+  have hDiffCoord : ∀ j : k,
+      TendstoInMeasure μ (fun n ω => d n ω j) atTop (fun _ => 0) := by
+    intro j
+    have hj := TendstoInMeasure.pi_apply hBeta j
+    have hcenter := TendstoInMeasure.sub_limit_zero_real hj
+    simpa [d, Pi.sub_apply] using hcenter
+  have hQd := sampleGram_mulVec_olsBetaStar_sub_tendstoInMeasure_zero
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.toSampleMomentAssumption71 β hmodel
+  have hQdCoord : ∀ j : k,
+      TendstoInMeasure μ (fun n ω => Qd n ω j) atTop (fun _ => 0) := by
+    intro j
+    simpa [Qd, d] using TendstoInMeasure.pi_apply hQd j
+  have hdot := tendstoInMeasure_dotProduct_zero_real (μ := μ)
+    (X := d) (Y := Qd) hDiffCoord hQdCoord
+  simpa [d, Qd] using hdot
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
