@@ -1641,6 +1641,109 @@ theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance
     (olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
 
+/-- **Theorem 7.4 centered degrees-of-freedom variance consistency.**
+
+The degrees-of-freedom adjusted totalized residual variance satisfies
+`s²ₙ - σ² = oₚ(1)`. -/
+theorem olsS2Star_sub_errorVariance_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω) -
+          errorVariance μ e)
+      atTop (fun _ => 0) := by
+  let r : ℕ → ℝ := fun n =>
+    (n : ℝ) * ((n : ℝ) - (Fintype.card k : ℝ))⁻¹
+  let sigmaHat : ℕ → Ω → ℝ := fun n ω =>
+    olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω)
+  have hSigmaCentered :=
+    olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+  have hn : Tendsto (fun n : ℕ => (n : ℝ)) atTop atTop :=
+    tendsto_natCast_atTop_atTop
+  have hden : Tendsto
+      (fun n : ℕ => (n : ℝ) - (Fintype.card k : ℝ)) atTop atTop := by
+    simpa [sub_eq_add_neg] using
+      tendsto_atTop_add_const_right atTop (-(Fintype.card k : ℝ)) hn
+  have hrSub : Tendsto (fun n => r n - 1) atTop (𝓝 0) := by
+    have hsmall : Tendsto
+        (fun n : ℕ => (Fintype.card k : ℝ) /
+          ((n : ℝ) - (Fintype.card k : ℝ))) atTop (𝓝 0) :=
+      hden.const_div_atTop (Fintype.card k : ℝ)
+    have heq : (fun n => r n - 1) =ᶠ[atTop]
+        (fun n : ℕ => (Fintype.card k : ℝ) /
+          ((n : ℝ) - (Fintype.card k : ℝ))) := by
+      filter_upwards [eventually_gt_atTop (Fintype.card k)] with n hn_gt
+      have hden_ne : (n : ℝ) - (Fintype.card k : ℝ) ≠ 0 := by
+        have hgt : (Fintype.card k : ℝ) < (n : ℝ) := by
+          exact_mod_cast hn_gt
+        linarith
+      dsimp [r]
+      field_simp [hden_ne]
+      ring
+    rw [tendsto_congr' heq]
+    exact hsmall
+  have hr : Tendsto r atTop (𝓝 1) := by
+    have hadd := hrSub.add_const 1
+    simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hadd
+  have hbound : ∀ᶠ n in atTop, |r n| ≤ 2 := by
+    have hnear : ∀ᶠ n in atTop, dist (r n) 1 < 1 :=
+      eventually_atTop.2 ((Metric.tendsto_atTop.1 hr) 1 one_pos)
+    filter_upwards [hnear] with n hn_near
+    have habs : |r n - 1| < 1 := by
+      simpa [Real.dist_eq] using hn_near
+    have hleft := (abs_lt.mp habs).1
+    have hright := (abs_lt.mp habs).2
+    exact abs_le.mpr ⟨by linarith, by linarith⟩
+  have hscaledCentered : TendstoInMeasure μ
+      (fun n ω => r n * (sigmaHat n ω - errorVariance μ e))
+      atTop (fun _ => 0) := by
+    exact TendstoInMeasure.mul_deterministic_bounded_zero_real
+      (μ := μ) (M := 2) (by norm_num) hbound
+      (by simpa [sigmaHat] using hSigmaCentered)
+  have hdetReal : Tendsto
+      (fun n => (r n - 1) * errorVariance μ e) atTop (𝓝 0) := by
+    simpa using hrSub.mul tendsto_const_nhds
+  have hdetMeasure : TendstoInMeasure μ
+      (fun n (_ : Ω) => (r n - 1) * errorVariance μ e)
+      atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) hdetReal
+  have hscaled :=
+    TendstoInMeasure.add_zero_real hscaledCentered hdetMeasure
+  have hcenter : TendstoInMeasure μ
+      (fun n ω => r n * sigmaHat n ω - errorVariance μ e)
+      atTop (fun _ => 0) := by
+    refine hscaled.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+    ring
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hcenter
+  filter_upwards [eventually_gt_atTop 0] with n hn_pos
+  exact ae_of_all μ (fun ω => by
+    haveI : Nonempty (Fin n) := ⟨⟨0, hn_pos⟩⟩
+    dsimp [r, sigmaHat]
+    rw [olsS2Star_eq_card_div_df_mul_olsSigmaSqHatStar]
+    simp [Fintype.card_fin, div_eq_mul_inv])
+
+/-- **Theorem 7.4 degrees-of-freedom variance consistency.**
+
+Under the squared-error WLLN assumptions and the linear model, the
+degrees-of-freedom adjusted totalized residual variance `s²ₙ` converges in
+probability to `σ² = E[e₀²]`. -/
+theorem olsS2Star_tendstoInMeasure_errorVariance
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω => olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop
+      (fun _ => errorVariance μ e) := by
+  exact TendstoInMeasure.of_sub_limit_zero_real
+    (olsS2Star_sub_errorVariance_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
