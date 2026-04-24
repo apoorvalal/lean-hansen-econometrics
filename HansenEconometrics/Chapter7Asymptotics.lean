@@ -2168,6 +2168,30 @@ noncomputable def sampleScoreCovarianceQuadraticRemainder
   (Fintype.card n : ℝ)⁻¹ •
     ∑ i : n, (X i ⬝ᵥ d) ^ 2 • Matrix.vecMulVec (X i) (X i)
 
+/-- Empirical fourth-moment weight multiplying a pair of coefficient-error
+coordinates in the HC0 quadratic remainder. -/
+noncomputable def sampleScoreCovarianceQuadraticWeight
+    (X : Matrix n k ℝ) (a b l m : k) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i l * X i m * X i a * X i b
+
+set_option linter.flexible false in
+omit [DecidableEq k] in
+/-- Coordinate representation of the HC0 quadratic remainder as products of
+coefficient errors times empirical fourth-moment weights. -/
+theorem sampleScoreCovarianceQuadraticRemainder_apply_eq_sum_weight
+    (X : Matrix n k ℝ) (d : k → ℝ) (a b : k) :
+    sampleScoreCovarianceQuadraticRemainder X d a b =
+      ∑ l : k, ∑ m : k,
+        d l * d m * sampleScoreCovarianceQuadraticWeight X a b l m := by
+  classical
+  unfold sampleScoreCovarianceQuadraticRemainder sampleScoreCovarianceQuadraticWeight
+  simp [Matrix.sum_apply, Matrix.smul_apply, Matrix.vecMulVec_apply, dotProduct,
+    Finset.mul_sum, pow_two, mul_assoc, mul_left_comm, mul_comm]
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro l _
+  rw [Finset.sum_comm]
+
 /-- **Theorem 7.6 residual-score expansion, sample-average form.**
 
 Under the linear model, the residual HC0 middle matrix equals the true-error
