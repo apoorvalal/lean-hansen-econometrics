@@ -3258,6 +3258,22 @@ theorem hasLaw_gaussianReal_div_const_standard_of_variance_eq
     rwa [hσ] at hZ
   exact hasLaw_gaussianReal_div_const_standard hc hZ'
 
+/-- Scaling the identity under a standard normal law gives a zero-mean Gaussian
+with variance `c²`. -/
+theorem hasLaw_const_mul_id_gaussianReal_of_variance_eq
+    {σ2 c : ℝ}
+    (hσ : σ2 = c ^ 2) :
+    HasLaw (fun x : ℝ => c * x) (gaussianReal 0 σ2.toNNReal) (gaussianReal 0 1) := by
+  have hid : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hscale := gaussianReal_const_mul hid c
+  convert hscale using 1
+  · rw [gaussianReal_ext_iff]
+    constructor
+    · ring
+    · rw [hσ, Real.toNNReal_of_nonneg (sq_nonneg c)]
+      simp
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
@@ -4794,6 +4810,66 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     (μ := μ) (ν := ν) (X := num) (Y := se) (Z := Z) (c := c)
     (by simpa [c] using hse_pos) hnum hse hse_meas hratio_meas
   simpa [num, se, c] using hratio
+
+/-- **Hansen Theorem 7.11, HC0 scalar t-statistic with standard normal limit.**
+
+This is the textbook-facing form of the HC0 studentized scalar linear-function
+CLT: the target is the identity random variable under `N(0,1)`. -/
+theorem olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  let c : ℝ := Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
+  have hentry_pos : 0 < (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+    exact Real.sqrt_pos.mp hse_pos
+  have hentry_eq :
+      (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
+        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
+    linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+      (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71.int_outer R
+  have hσ :
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+    calc
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+            hentry_eq.symm
+      _ = c ^ 2 := by
+            simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
+  have hZ : HasLaw (fun x : ℝ => c * x)
+      (gaussianReal 0
+        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      (gaussianReal 0 1) :=
+    hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
+  have hbase := olsHC0LinearTStatisticStar_tendstoInDistribution
+    (μ := μ) (ν := gaussianReal 0 1) (X := X) (e := e) (y := y)
+    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
+  convert hbase using 2
+  · rename_i x
+    dsimp [c]
+    exact (mul_div_cancel_left₀ x hse_pos.ne').symm
 
 /-- **Hansen Theorem 7.11 for ordinary OLS on nonsingular samples, HC0 face.**
 
