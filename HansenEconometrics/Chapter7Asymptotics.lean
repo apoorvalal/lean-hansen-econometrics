@@ -788,6 +788,39 @@ theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
   rw [olsSigmaSqHatStar_stack_linear_model X e y β hmodel]
   ring
 
+/-- **Theorem 7.4 conditional `σ̂²` consistency.**
+
+This is the uncentered presentation of
+`olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders`:
+`σ̂² →ₚ σ²`, conditional on the two residual-decomposition remainders being
+`oₚ(1)`. -/
+theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hcross : TendstoInMeasure μ
+      (fun n ω =>
+        -2 * (sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) ⬝ᵥ
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0))
+    (hquad : TendstoInMeasure μ
+      (fun n ω =>
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) ⬝ᵥ
+          (sampleGram (stackRegressors X n ω) *ᵥ
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop
+      (fun _ => errorVariance μ e) := by
+  have hsub :=
+    olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hcross hquad
+  rw [tendstoInMeasure_iff_dist] at hsub ⊢
+  intro ε hε
+  simpa [Real.dist_eq, sub_eq_add_neg, abs_sub_comm] using hsub ε hε
+
 /-- **Core stochastic transform — convergence of the OLS-error term.**
 Under the moment-level assumptions, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the
 deterministic RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)`
