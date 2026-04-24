@@ -72,7 +72,9 @@ in four layers:
   `continuous_function_olsBetaOrZero_tendstoInMeasure`. Remaining:
   local continuity-at-`β`.
 * **Theorem 7.9** — the linear-functions projection face is formalized in
-  `scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`.
+  `scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`
+  and
+  `scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`.
   Remaining: nonlinear differentiable delta method and vector packaging.
 * **Theorem 7.10/7.11+** — pending/signpost-only.
 
@@ -4090,6 +4092,32 @@ theorem scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_cov
   convert hbase using 2 with n
   funext ω
   rw [← Matrix.mulVec_smul, mulVec_dotProduct_right]
+
+/-- **Hansen Theorem 7.9 for ordinary OLS on nonsingular samples, linear-function face.**
+
+The same scalar-projection CLT for fixed linear maps holds for `olsBetaOrZero`,
+which agrees definitionally with `olsBetaStar` in the totalized interface. -/
+theorem scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ) (c : q → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ c)).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ c)
+      atTop Z (fun _ => μ) ν := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      h β R c hmodel hZ
 
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
