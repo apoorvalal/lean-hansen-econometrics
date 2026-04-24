@@ -2197,6 +2197,96 @@ theorem sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix
     using sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreSecondMomentMatrix
       (μ := μ) (X := X) (e := e) h
 
+/-- Hansen's heteroskedastic asymptotic covariance matrix
+`V_β := Q⁻¹ Ω Q⁻¹`. -/
+noncomputable def heteroskedasticAsymptoticCovariance
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
+  (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e * (popGram μ X)⁻¹
+
+/-- Infeasible totalized HC0 sandwich estimator using true errors:
+`Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
+noncomputable def olsHeteroskedasticCovarianceIdealStar
+    (X : Matrix n k ℝ) (e : n → ℝ) : Matrix k k ℝ :=
+  (sampleGram X)⁻¹ * sampleScoreCovarianceIdeal X e * (sampleGram X)⁻¹
+
+/-- Feasible totalized HC0 sandwich estimator using OLS residuals:
+`Q̂⁻¹ (n⁻¹∑êᵢ²XᵢXᵢ') Q̂⁻¹`. -/
+noncomputable def olsHeteroskedasticCovarianceStar
+    (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  (sampleGram X)⁻¹ * sampleScoreCovarianceStar X y * (sampleGram X)⁻¹
+
+/-- **Hansen Theorem 7.6, ideal sandwich consistency.**
+
+The infeasible heteroskedastic sandwich estimator built from true errors
+converges in probability to `Q⁻¹ Ω Q⁻¹`. This isolates the sandwich CMT from
+the separate residual-substitution step needed for the feasible HC0 estimator. -/
+theorem olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceIdealStar
+          (stackRegressors X n ω) (stackErrors e n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹
+  let scoreCov : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    sampleScoreCovarianceIdeal (stackRegressors X n ω) (stackErrors e n ω)
+  have hGram_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    intro n
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.toSampleMomentAssumption71.ident_outer i).integrable_iff.mpr
+      h.toSampleMomentAssumption71.int_outer).aestronglyMeasurable
+  have hInv_meas : ∀ n, AEStronglyMeasurable (invGram n) μ := by
+    intro n
+    exact aestronglyMeasurable_matrix_inv (hGram_meas n)
+  have hScore_meas : ∀ n, AEStronglyMeasurable (scoreCov n) μ := by
+    intro n
+    have hform : scoreCov n =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n,
+            Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω)) := by
+      funext ω
+      dsimp [scoreCov]
+      rw [sampleScoreCovarianceIdeal_stack_eq_avg]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_score_outer i).integrable_iff.mpr h.int_score_outer).aestronglyMeasurable
+  have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71
+  have hScore := sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix
+    (μ := μ) (X := X) (e := e) h
+  have hLeft := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := invGram) (B := scoreCov)
+    (Ainf := fun _ : Ω => (popGram μ X)⁻¹)
+    (Binf := fun _ : Ω => scoreCovarianceMatrix μ X e)
+    hInv_meas hScore_meas (by simpa [invGram] using hInv) (by simpa [scoreCov] using hScore)
+  have hLeft_meas : ∀ n, AEStronglyMeasurable (fun ω => invGram n ω * scoreCov n ω) μ := by
+    intro n
+    have hprod : AEStronglyMeasurable (fun ω => (invGram n ω, scoreCov n ω)) μ :=
+      (hInv_meas n).prodMk (hScore_meas n)
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hFull := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := fun n ω => invGram n ω * scoreCov n ω) (B := invGram)
+    (Ainf := fun _ : Ω => (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e)
+    (Binf := fun _ : Ω => (popGram μ X)⁻¹)
+    hLeft_meas hInv_meas
+    (by simpa [Matrix.mul_assoc] using hLeft) (by simpa [invGram] using hInv)
+  simpa [olsHeteroskedasticCovarianceIdealStar, heteroskedasticAsymptoticCovariance,
+    invGram, scoreCov, Matrix.mul_assoc] using hFull
+
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
 private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
