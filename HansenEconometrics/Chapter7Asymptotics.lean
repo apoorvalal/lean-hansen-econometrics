@@ -37,7 +37,10 @@ in four layers:
   `olsS2Star_tendstoInMeasure_errorVariance`. The assumptions are packaged as
   `SampleVarianceAssumption74`, a moment-level sufficient condition extending
   `SampleMomentAssumption71` with the squared-error WLLN hypotheses.
-* **Theorem 7.5+** — pending.
+* **Theorem 7.5** — homoskedastic plug-in covariance consistency is formalized
+  for the totalized estimator `olsHomoskedasticCovarianceStar` in
+  `olsHomoskedasticCovarianceStar_tendstoInMeasure`.
+* **Theorem 7.6+** — pending.
 
 ## Phase 1 — Deterministic scaffold
 
