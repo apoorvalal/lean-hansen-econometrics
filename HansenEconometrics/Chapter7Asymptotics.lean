@@ -109,8 +109,9 @@ in four layers:
   continuity-set side condition is discharged in `standardNormalAbs_frontier_Iic_null`
   and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal`. The concrete
   homoskedastic ordinary-wrapper interval face is formalized in
-  `olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`. Remaining:
-  HC0/HC1 interval wrappers.
+  `olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`, and the HC0
+  face in `olsHC0LinearCIOrZero_coverage_tendsto_standardNormal`. Remaining:
+  HC1 interval wrapper.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
   the named `χ²` law-identification wrapper is formalized in
@@ -6180,6 +6181,78 @@ theorem olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
       (olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.12, HC0 confidence-interval coverage.**
+
+The ordinary-wrapper HC0 symmetric confidence interval for a one-row linear
+restriction has limiting coverage given by the absolute standard-normal mass
+below `crit`, conditional on eventual positivity of the sample HC0 standard
+error. -/
+theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ) (crit : ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hse_pos : 0 <
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
+    (hse_sample_pos : ∀ᶠ n in atTop, ∀ ω,
+      0 < Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) :
+    Tendsto
+      (fun n => μ {ω |
+        (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) -
+            crit * Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) +
+            crit * Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
+  let θ : ℝ := (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1)
+  let θhat : ℕ → Ω → ℝ := fun n ω =>
+    (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+      (fun _ : Unit => 1)
+  let se : ℕ → Ω → ℝ := fun n ω =>
+    Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
+  let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
+  have hroot : ∀ᶠ n in atTop, 0 < root n := by
+    filter_upwards [eventually_ge_atTop 1] with n hn
+    have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
+    exact Real.sqrt_pos.mpr hnpos
+  have hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
+  have hGeneric : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
+    intro n
+    exact ae_of_all μ (fun ω => by
+      dsimp [θ, θhat, se, root]
+      rw [linearMapUnit_smul_sub_dot_one])
+  simpa [θ, θhat, se, root] using
+    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+      (μ := μ) (θ := θ) (crit := crit)
+      (θhat := θhat) (se := se) (root := root)
+      hroot hse_sample_pos hGeneric
 
 /-- Scalar one-degree-of-freedom HC0 Wald statistic for ordinary OLS. -/
 theorem olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
