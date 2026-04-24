@@ -2106,6 +2106,25 @@ noncomputable def sampleScoreCovarianceStar (X : Matrix n k ℝ) (y : n → ℝ)
   (Fintype.card n : ℝ)⁻¹ •
     ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i) (olsResidualStar X y i • X i)
 
+/-- **Theorem 7.6 residual-score expansion, entrywise form.**
+
+Under the linear model, each residual score outer product decomposes into the
+true-error score outer product, a cross term, and a quadratic estimation-error
+term. This is the per-observation algebra behind feasible HC0 consistency. -/
+theorem residualScoreOuter_linear_model_apply
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) (a b : k) :
+    Matrix.vecMulVec
+        (olsResidualStar X (X *ᵥ β + e) i • X i)
+        (olsResidualStar X (X *ᵥ β + e) i • X i) a b =
+      Matrix.vecMulVec (e i • X i) (e i • X i) a b -
+        (2 * e i * (X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β))) *
+          Matrix.vecMulVec (X i) (X i) a b +
+        (X i ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) ^ 2 *
+          Matrix.vecMulVec (X i) (X i) a b := by
+  rw [olsResidualStar_linear_model_apply]
+  simp [Matrix.vecMulVec_apply]
+  ring
+
 /-- Additional WLLN assumptions for the true-error HC0 score covariance average. -/
 structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
