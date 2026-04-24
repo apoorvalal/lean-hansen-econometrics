@@ -31,7 +31,13 @@ in four layers:
   bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`, covariance-matrix variance notation, and
   all-directions projection-family wrappers for both estimators.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
-* **Theorem 7.4+** — not started in Lean yet.
+* **Theorem 7.4** — residual variance consistency is formalized for the
+  totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
+  `olsSigmaSqHatStar_tendstoInMeasure_errorVariance` and
+  `olsS2Star_tendstoInMeasure_errorVariance`. The assumptions are packaged as
+  `SampleVarianceAssumption74`, a moment-level sufficient condition extending
+  `SampleMomentAssumption71` with the squared-error WLLN hypotheses.
+* **Theorem 7.5+** — pending.
 
 ## Phase 1 — Deterministic scaffold
 
