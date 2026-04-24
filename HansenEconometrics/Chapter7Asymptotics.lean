@@ -76,7 +76,9 @@ in four layers:
   and
   `scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`.
   Remaining: nonlinear differentiable delta method and vector packaging.
-* **Theorem 7.10/7.11+** — pending/signpost-only.
+* **Theorem 7.10** — the linear covariance continuous-mapping face is
+  formalized in `linearMapCovariance_tendstoInMeasure`.
+* **Theorem 7.11+** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -2957,6 +2959,58 @@ theorem sandwichCovarianceStar_tendstoInMeasure_of_middle
     hLeft_meas hInv_meas
     (by simpa [Matrix.mul_assoc] using hLeft) (by simpa [invGram] using hInv)
   simpa [heteroskedasticAsymptoticCovariance, invGram, Matrix.mul_assoc] using hFull
+
+omit [DecidableEq k] in
+/-- **Hansen Theorem 7.10, linear covariance continuous mapping.**
+
+If a covariance estimator `V̂β` converges in probability to `Vβ`, then the
+linear-function covariance estimator `R V̂β R'` converges to `R Vβ R'`. This is
+the matrix CMT core behind covariance estimation for fixed linear functions of
+parameters. -/
+theorem linearMapCovariance_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {q : Type*} [Fintype q]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (R : Matrix q k ℝ)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun n ω => R * Vhat n ω * Rᵀ)
+      atTop (fun _ => R * V * Rᵀ) := by
+  have hR_meas : ∀ _ : ℕ, AEStronglyMeasurable (fun _ : Ω => R) μ :=
+    fun _ => aestronglyMeasurable_const
+  have hR_conv : TendstoInMeasure μ
+      (fun _ : ℕ => fun _ : Ω => R) atTop (fun _ : Ω => R) :=
+    tendstoInMeasure_of_tendsto_ae hR_meas
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  have hRt_meas : ∀ _ : ℕ, AEStronglyMeasurable (fun _ : Ω => Rᵀ) μ :=
+    fun _ => aestronglyMeasurable_const
+  have hRt_conv : TendstoInMeasure μ
+      (fun _ : ℕ => fun _ : Ω => Rᵀ) atTop (fun _ : Ω => Rᵀ) :=
+    tendstoInMeasure_of_tendsto_ae hRt_meas
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  have hLeft := tendstoInMeasure_matrix_mul_rect
+    (μ := μ)
+    (A := fun _ : ℕ => fun _ : Ω => R)
+    (B := Vhat)
+    (Ainf := fun _ : Ω => R)
+    (Binf := fun _ : Ω => V)
+    hR_meas hV_meas hR_conv hV
+  have hLeft_meas : ∀ n, AEStronglyMeasurable (fun ω => R * Vhat n ω) μ := by
+    intro n
+    have hprod : AEStronglyMeasurable (fun ω => (R, Vhat n ω)) μ :=
+      aestronglyMeasurable_const.prodMk (hV_meas n)
+    have hcont : Continuous (fun p : Matrix q k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hFull := tendstoInMeasure_matrix_mul_rect
+    (μ := μ)
+    (A := fun n ω => R * Vhat n ω)
+    (B := fun _ : ℕ => fun _ : Ω => Rᵀ)
+    (Ainf := fun _ : Ω => R * V)
+    (Binf := fun _ : Ω => Rᵀ)
+    hLeft_meas hRt_meas hLeft hRt_conv
+  simpa [Matrix.mul_assoc] using hFull
 
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
