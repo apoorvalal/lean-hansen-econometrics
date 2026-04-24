@@ -2483,6 +2483,42 @@ theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_scoreCovariance
   simpa [olsHeteroskedasticCovarianceStar, heteroskedasticAsymptoticCovariance,
     invGram, scoreCov, Matrix.mul_assoc] using hFull
 
+/-- **Hansen Theorem 7.6, feasible HC0 sandwich modulo remainder controls.**
+
+The feasible totalized HC0 sandwich estimator is consistent once the residual
+HC0 cross and quadratic middle-matrix remainders are controlled. -/
+theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hCross : TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossRemainder
+          (stackRegressors X n ω) (stackErrors e n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0))
+    (hQuad : TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticRemainder
+          (stackRegressors X n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  have hScore :=
+    sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCross hQuad
+  exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_scoreCovariance
+    (μ := μ) (X := X) (e := e) (y := y) h.toSampleMomentAssumption71
+    hScore_meas hScore
+
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
 private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
