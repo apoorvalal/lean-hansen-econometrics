@@ -3012,6 +3012,63 @@ theorem linearMapCovariance_tendstoInMeasure
     hLeft_meas hRt_meas hLeft hRt_conv
   simpa [Matrix.mul_assoc] using hFull
 
+omit [DecidableEq k] in
+/-- AEMeasurability of a fixed linear covariance transform `R V Rᵀ`. -/
+theorem linearMapCovariance_aestronglyMeasurable
+    {μ : Measure Ω}
+    {q : Type*}
+    {Vhat : Ω → Matrix k k ℝ}
+    (R : Matrix q k ℝ)
+    (hV_meas : AEStronglyMeasurable Vhat μ) :
+    AEStronglyMeasurable (fun ω => R * Vhat ω * Rᵀ) μ := by
+  have hLeft : AEStronglyMeasurable (fun ω => R * Vhat ω) μ := by
+    have hprod : AEStronglyMeasurable (fun ω => (R, Vhat ω)) μ :=
+      aestronglyMeasurable_const.prodMk hV_meas
+    have hcont : Continuous (fun p : Matrix q k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hprod : AEStronglyMeasurable (fun ω => (R * Vhat ω, Rᵀ)) μ :=
+    hLeft.prodMk aestronglyMeasurable_const
+  have hcont : Continuous (fun p : Matrix q k ℝ × Matrix k q ℝ => p.1 * p.2) :=
+    continuous_fst.matrix_mul continuous_snd
+  exact hcont.comp_aestronglyMeasurable hprod
+
+omit [DecidableEq k] in
+/-- **Hansen §7.11, asymptotic standard-error CMT.**
+
+If `R V̂β Rᵀ` estimates the asymptotic covariance of a fixed linear function
+`R β`, then the square root of any diagonal element converges to the matching
+population standard-error scale. This is the standard-error continuous-mapping
+face used before forming t-statistics. -/
+theorem linearMapCovarianceStdError_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {q : Type*} [Finite q]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (R : Matrix q k ℝ) (j : q)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun n ω => Real.sqrt ((R * Vhat n ω * Rᵀ) j j))
+      atTop (fun _ => Real.sqrt ((R * V * Rᵀ) j j)) := by
+  letI : Fintype q := Fintype.ofFinite q
+  have hCov := linearMapCovariance_tendstoInMeasure
+    (μ := μ) (R := R) hV_meas hV
+  have hCov_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => R * Vhat n ω * Rᵀ) μ :=
+    fun n => linearMapCovariance_aestronglyMeasurable
+      (μ := μ) (R := R) (hV_meas n)
+  have hentry_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => (R * Vhat n ω * Rᵀ) j j) μ := by
+    intro n
+    have hentry_cont : Continuous (fun M : Matrix q q ℝ => M j j) :=
+      (continuous_apply j).comp (continuous_apply j)
+    exact hentry_cont.comp_aestronglyMeasurable (hCov_meas n)
+  have hentry : TendstoInMeasure μ
+      (fun n ω => (R * Vhat n ω * Rᵀ) j j)
+      atTop (fun _ => (R * V * Rᵀ) j j) :=
+    TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hCov j) j
+  exact tendstoInMeasure_continuous_comp hentry_meas hentry Real.continuous_sqrt
+
 /-- Infeasible totalized HC0 sandwich estimator using true errors:
 `Q̂⁻¹ (n⁻¹∑eᵢ²XᵢXᵢ') Q̂⁻¹`. -/
 noncomputable def olsHeteroskedasticCovarianceIdealStar
