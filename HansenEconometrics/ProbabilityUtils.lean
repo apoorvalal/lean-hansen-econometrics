@@ -141,6 +141,39 @@ theorem covVec_dotProduct_eq_covMat_mulVec
     exact (hX j).mul_const (b j)
   · exact hX i
 
+/-- The variance of a finite-dimensional linear projection is the corresponding covariance
+quadratic form. -/
+theorem variance_dotProduct_eq_dotProduct_covMat_mulVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
+    Var[fun ω => dotProduct (X ω) b; μ] = b ⬝ᵥ (covMat μ X *ᵥ b) := by
+  classical
+  have hlin : MemLp (fun ω => dotProduct (X ω) b) 2 μ := by
+    convert (memLp_finset_sum' (s := Finset.univ)
+      (f := fun i ω => X ω i * b i)
+      (fun i _ => (hX i).mul_const (b i))) using 1
+    ext ω
+    simp [dotProduct]
+  rw [← ProbabilityTheory.covariance_self hlin.aemeasurable]
+  calc
+    cov[fun ω => dotProduct (X ω) b, fun ω => dotProduct (X ω) b; μ]
+        = ∑ i, cov[fun ω => X ω i * b i, fun ω => dotProduct (X ω) b; μ] := by
+          change cov[fun ω => ∑ i, X ω i * b i, fun ω => dotProduct (X ω) b; μ] = _
+          rw [ProbabilityTheory.covariance_fun_sum_left]
+          · intro i
+            exact (hX i).mul_const (b i)
+          · exact hlin
+    _ = ∑ i, (covMat μ X *ᵥ b) i * b i := by
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          rw [ProbabilityTheory.covariance_mul_const_left]
+          have hcov := congrFun
+            (covVec_dotProduct_eq_covMat_mulVec (μ := μ) X b hX) i
+          simpa [covVec, mul_comm] using congrArg (fun x => x * b i) hcov
+    _ = b ⬝ᵥ (covMat μ X *ᵥ b) := by
+          simp [dotProduct, mul_comm]
+
 /-- Covariances in an affine linear model decompose into the fitted part and the residual part. -/
 theorem covVec_affineModel
     [IsProbabilityMeasure μ]
