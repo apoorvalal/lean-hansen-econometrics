@@ -187,10 +187,10 @@ Conventions:
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
 | Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Partially represented by [SampleMomentAssumption71](../../HansenEconometrics/Chapter7Asymptotics.lean#L362). This is a moment-level sufficient assumption for the WLLN proof, not a literal iid-sample encoding. |
-| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L832)<br><code>TendstoInMeasure μ (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) atTop (fun _ => β)</code> |
-| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Partially represented by [SampleCLTAssumption72](../../HansenEconometrics/Chapter7Asymptotics.lean#L933). This adds full score independence and projectionwise square integrability; it is not yet a literal textbook encoding. |
-| Theorem 7.2 score CLT bridge | Assumption 7.2 implies the score has a Gaussian limit | Scalar-projection form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1014). |
-| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Fixed-`Q⁻¹` scalar-projection leading term: [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1040). Conditional totalized-OLS scalar CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1118). Feasible `Q̂ₙ⁻¹` inverse-gap/tightness proof pending. |
+| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L850)<br><code>TendstoInMeasure μ (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) atTop (fun _ => β)</code> |
+| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Partially represented by [SampleCLTAssumption72](../../HansenEconometrics/Chapter7Asymptotics.lean#L951). This adds full score independence and projectionwise square integrability; it is not yet a literal textbook encoding. |
+| Theorem 7.2 score CLT bridge | Assumption 7.2 implies the score has a Gaussian limit | Scalar-projection form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1032). |
+| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Fixed-`Q⁻¹` scalar-projection leading term: [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1058). Conditional totalized-OLS scalar CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1136). Feasible `Q̂ₙ⁻¹` inverse-gap/tightness proof pending. |
 | Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. |  |
 | Theorem 7.5 | Under Assumption 7.1, ˆV |  |
 | Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV |  |
@@ -233,13 +233,14 @@ Phase 4 CLT pieces:
 - [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum](../../HansenEconometrics/Chapter7Asymptotics.lean#L251) — `√n · ĝₙ(e) = (1/√n)∑eᵢXᵢ`.
 - [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score](../../HansenEconometrics/Chapter7Asymptotics.lean#L652) — `√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
 - [feasibleScore_eq_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L698) — `Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.
-- [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L723) — projection-level decomposition of `√n(β̂*ₙ - β)`.
-- [scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L751) — the scalar Slutsky remainder is `oₚ(1)` if the inverse-gap projection is.
-- [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L974) — scalar CLT for projected score sums.
-- [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1014) — scalar CLT for `√n · ĝₙ(e)`.
-- [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1040) — scalar CLT for the fixed-`Q⁻¹` leading term.
-- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics.lean#L1070) — Slutsky assembly for the totalized OLS projection from an `oₚ(1)` remainder.
-- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1118) — Slutsky assembly from the inverse-gap `oₚ(1)` condition.
+- [inverseGapProjection_eq_scoreProjection_randomWeight](../../HansenEconometrics/Chapter7Asymptotics.lean#L720) — rewrites the inverse-gap projection as a scaled-score projection against `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa`.
+- [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L741) — projection-level decomposition of `√n(β̂*ₙ - β)`.
+- [scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L769) — the scalar Slutsky remainder is `oₚ(1)` if the inverse-gap projection is.
+- [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L992) — scalar CLT for projected score sums.
+- [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1032) — scalar CLT for `√n · ĝₙ(e)`.
+- [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1058) — scalar CLT for the fixed-`Q⁻¹` leading term.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics.lean#L1088) — Slutsky assembly for the totalized OLS projection from an `oₚ(1)` remainder.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1136) — Slutsky assembly from the inverse-gap `oₚ(1)` condition.
 
 Reusable convergence-in-measure helpers (`AsymptoticUtils.lean`):
 

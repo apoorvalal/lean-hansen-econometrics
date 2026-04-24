@@ -710,6 +710,24 @@ theorem feasibleScore_eq_fixedScore_add_inverseGap
   rw [Matrix.sub_mulVec]
   abel
 
+/-- **Random-weight form of the inverse-gap projection.**
+The scalar inverse-gap term can be viewed as the scaled score projected against
+the random weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa`.
+
+This is the deterministic algebra behind the remaining tightness/product step:
+the weight should converge to zero in probability, while the scaled score is
+tight by the CLT. -/
+theorem inverseGapProjection_eq_scoreProjection_randomWeight
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (a : k → ℝ) (n : ℕ) (ω : Ω) :
+    (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a =
+      (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) ⬝ᵥ
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a) := by
+  rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
+
 /-- **Scalar-projection decomposition for the totalized OLS CLT.**
 For every fixed projection vector `a`, the scaled totalized OLS error decomposes
 into:
