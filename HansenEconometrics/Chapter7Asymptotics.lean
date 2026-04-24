@@ -1094,6 +1094,98 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
   have hident := olsBetaStar_sub_identity X e y β hmodel n ω
   rw [← hident]; abel
 
+/-- **AEMeasurability of the scaled totalized-OLS projection.**
+
+The final random variable in the scalar OLS CLT is measurable under the
+sample-moment hypotheses and the pointwise linear model. The proof avoids a
+standalone measurability theorem for `olsBetaStar` by rewriting
+`olsBetaStar - β` with `olsBetaStar_sub_identity` into the measurable
+sample-Gram and sample-score pieces. -/
+theorem scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    ∀ (n : ℕ), AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a) μ := by
+  intro n
+  have hGram_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hCrossE_meas : AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+    have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
+        (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
+      funext ω
+      rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+          sum_fin_eq_sum_range_smul]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+  have hInv_meas : AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram_meas
+  have hCoreMV_meas : AEStronglyMeasurable
+      (fun ω => (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+    have hprod := hInv_meas.prodMk hCrossE_meas
+    exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable hprod
+  have hR'_meas : AEStronglyMeasurable
+      (fun ω => ((sampleGram (stackRegressors X n ω))⁻¹ *
+          sampleGram (stackRegressors X n ω) - 1) *ᵥ β) μ := by
+    have hmat_mul : AEStronglyMeasurable
+        (fun ω => (sampleGram (stackRegressors X n ω))⁻¹ *
+          sampleGram (stackRegressors X n ω)) μ :=
+      (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+        (hInv_meas.prodMk hGram_meas)
+    have hmat_sub : AEStronglyMeasurable
+        (fun ω => (sampleGram (stackRegressors X n ω))⁻¹ *
+          sampleGram (stackRegressors X n ω) - 1) μ :=
+      hmat_mul.sub aestronglyMeasurable_const
+    exact (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
+      hmat_sub
+  have hvec_meas : AEStronglyMeasurable
+      (fun ω =>
+        Real.sqrt (n : ℝ) •
+          (((sampleGram (stackRegressors X n ω))⁻¹ *
+              sampleGram (stackRegressors X n ω) - 1) *ᵥ β +
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) μ :=
+    AEStronglyMeasurable.const_smul (hR'_meas.add hCoreMV_meas) (Real.sqrt (n : ℝ))
+  have hdot_cont : Continuous (fun v : k → ℝ => v ⬝ᵥ a) := by
+    simpa [dotProduct] using
+      (continuous_finset_sum Finset.univ
+        (fun i _ => (continuous_apply i).mul continuous_const))
+  have hproj_meas : AEStronglyMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (((sampleGram (stackRegressors X n ω))⁻¹ *
+              sampleGram (stackRegressors X n ω) - 1) *ᵥ β +
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a) μ :=
+    hdot_cont.comp_aestronglyMeasurable hvec_meas
+  refine hproj_meas.aemeasurable.congr (ae_of_all μ (fun ω => ?_))
+  have hvec : olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β =
+      ((sampleGram (stackRegressors X n ω))⁻¹ *
+          sampleGram (stackRegressors X n ω) - 1) *ᵥ β +
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) := by
+    have hident := olsBetaStar_sub_identity X e y β hmodel n ω
+    rw [← hident]
+    abel
+  exact congrArg (fun v : k → ℝ => (Real.sqrt (n : ℝ) • v) ⬝ᵥ a) hvec.symm
+
 end Assumption71
 
 section Assumption72
@@ -1413,7 +1505,7 @@ the previous conditional variants, the inverse-gap/tightness premise is now
 fully discharged from Theorem 7.2's score CLT. The remaining textbook-facing
 work is the vector Cramér-Wold packaging and the ordinary-`olsBeta` interface
 on the high-probability nonsingular event. -/
-theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1438,6 +1530,31 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
     (fun j => scoreCoordinate_sampleCrossMoment_boundedInProbability
       (μ := μ) (X := X) (e := e) h j)
     hfinal_meas
+
+/-- **Hansen Theorem 7.3, scalar-projection totalized-OLS CLT.**
+
+This version has no separate measurability premise: the final projection is
+measurable by `scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable`. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
+    (scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable
+      (μ := μ) (X := X) (e := e) (y := y) h.toSampleMomentAssumption71 β a hmodel)
 
 end Assumption72
 
