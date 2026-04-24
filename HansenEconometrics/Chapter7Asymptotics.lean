@@ -746,6 +746,53 @@ theorem inverseGapProjection_eq_scoreProjection_randomWeight
         (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a) := by
   rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
 
+/-- **Coordinatewise inverse-gap Slutsky bridge.**
+For a fixed projection vector `a`, the inverse-gap projection is `oₚ(1)` once
+each coordinate of the random weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` is `oₚ(1)` and each
+coordinate of the scaled score `√n·ĝₙ(e)` is `Oₚ(1)`.
+
+This is the product-rule heart of the remaining proof of Hansen Theorem 7.3:
+after `inverseGapProjection_eq_scoreProjection_randomWeight`, the inverse gap
+is a finite sum of coordinate products. -/
+theorem inverseGapProjection_tendstoInMeasure_zero_of_coord
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (a : k → ℝ)
+    (hweight : ∀ j : k,
+      TendstoInMeasure μ
+        (fun (n : ℕ) ω =>
+          (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a) j)
+        atTop (fun _ => 0))
+    (hscoreBounded : ∀ j : k,
+      BoundedInProbability μ
+        (fun (n : ℕ) ω =>
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) j)) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  let score : ℕ → Ω → k → ℝ := fun n ω =>
+    Real.sqrt (n : ℝ) •
+      sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)
+  let weight : ℕ → Ω → k → ℝ := fun n ω =>
+    (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹)ᵀ *ᵥ a)
+  have hprod : ∀ j ∈ (Finset.univ : Finset k),
+      TendstoInMeasure μ (fun n ω => weight n ω j * score n ω j)
+        atTop (fun _ => 0) := by
+    intro j _
+    exact TendstoInMeasure.mul_boundedInProbability
+      (by simpa [weight] using hweight j)
+      (by simpa [score] using hscoreBounded j)
+  have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+    (s := (Finset.univ : Finset k))
+    (X := fun j n ω => weight n ω j * score n ω j) hprod
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  dsimp [score, weight]
+  rw [inverseGapProjection_eq_scoreProjection_randomWeight (μ := μ) (X := X) (e := e) a n ω]
+  simp [dotProduct, mul_comm]
+
 /-- **Scalar-projection decomposition for the totalized OLS CLT.**
 For every fixed projection vector `a`, the scaled totalized OLS error decomposes
 into:
