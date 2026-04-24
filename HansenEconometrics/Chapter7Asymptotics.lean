@@ -1600,6 +1600,47 @@ theorem olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
     (X := d) (Y := Qd) hDiffCoord hQdCoord
   simpa [d, Qd] using hdot
 
+/-- **Theorem 7.4 centered residual-variance consistency.**
+
+Under the squared-error WLLN assumptions and the linear model,
+`σ̂²ₙ - σ² = oₚ(1)` for the totalized OLS residual average. -/
+theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω) -
+          errorVariance μ e)
+      atTop (fun _ => 0) := by
+  exact olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+    (olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+    (olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+
+/-- **Theorem 7.4 residual-variance consistency.**
+
+Under the squared-error WLLN assumptions and the linear model, the totalized
+OLS residual average `σ̂²ₙ` converges in probability to `σ² = E[e₀²]`. -/
+theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω => olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop
+      (fun _ => errorVariance μ e) := by
+  exact olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+    (olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+    (olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
 The final random variable in the scalar OLS CLT is measurable under the
