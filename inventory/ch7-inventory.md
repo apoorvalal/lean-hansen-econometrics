@@ -17,14 +17,15 @@
 Status: landed in `HansenEconometrics/Chapter7Asymptotics.lean`
 (`sampleGram`, `sampleCrossMoment`, `olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`).
 
-### Layer 2: stacking primitives and iid assumption bundle
+### Layer 2: stacking primitives and moment-level assumption bundle
 3. stack regressor / error / outcome sequences into `Matrix (Fin n) k ℝ` / `Fin n → ℝ`
 4. rewrite stacked `sampleGram` and `sampleCrossMoment` as explicit sample means
-5. package Hansen Assumption 7.1 as a structure
+5. package the transformed-sequence assumptions used by the WLLN steps
 
 Status: landed via `stackRegressors` / `stackErrors` / `stackOutcomes`,
 `stack_linear_model`, `sampleGram_stackRegressors_eq_avg`,
-`sampleCrossMoment_stackRegressors_stackErrors_eq_avg`, and `SampleAssumption71`.
+`sampleCrossMoment_stackRegressors_stackErrors_eq_avg`, and
+`SampleMomentAssumption71`.
 
 ### Layer 3: probabilistic convergence to Theorem 7.1
 6. `Q̂ₙ →ₚ Q` via WLLN on outer products
@@ -33,20 +34,51 @@ Status: landed via `stackRegressors` / `stackErrors` / `stackOutcomes`,
 9. `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0` via matrix-vector CMT
 10. `μ{Q̂ₙ singular} → 0` via CMT on `det` + squeeze at `ε = |det Q|/2`
 11. residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0` (vanishes on the invertibility event)
-12. assemble `β̂*ₙ →ₚ β` — Theorem 7.1
+12. assemble `β̂*ₙ →ₚ β` — totalized-estimator analogue of Theorem 7.1
 
-Status: landed. Theorem 7.1 ships as `olsBetaStar_stack_tendstoInMeasure_beta`.
-Convergence-in-measure utilities (CMT, WLLN, matrix-inverse CMT, `mulVec` / `add` CMTs,
-unconditional scalar–matrix inverse `nonsingInv_smul`) live in
-`HansenEconometrics/AsymptoticUtils.lean`.
+Status: landed for `olsBetaStar`, the totalized estimator based on
+`Matrix.nonsingInv`. The ordinary textbook `olsBeta` statement still needs a
+wrapper or interface for the high-probability nonsingularity event.
+Convergence-in-measure utilities (CMT, WLLN, matrix-inverse CMT, `mulVec` / `add` CMTs)
+live in `HansenEconometrics/AsymptoticUtils.lean`; the unconditional
+scalar-matrix inverse identity `nonsingInv_smul` lives in
+`HansenEconometrics/LinearAlgebraUtils.lean`.
+
+### Layer 4: scalar-projection CLT bridge toward Theorem 7.3
+13. strengthen the score assumptions to full independence and projectionwise `L²`
+14. rewrite Hansen's `√n · ĝₙ(e)` as `(1/√n) ∑ eᵢXᵢ`
+15. apply Mathlib's one-dimensional CLT to every fixed scalar projection
+16. push the scalar-projection CLT through the fixed population inverse `Q⁻¹`
+
+Status: scalar-projection CLTs landed via `SampleCLTAssumption72`,
+`scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`, and
+`scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian`.
+The scaled singular-event residual
+`sqrt_smul_residual_tendstoInMeasure_zero` is also formalized, and
+`feasibleScore_eq_fixedScore_add_inverseGap` isolates the remaining
+random-inverse gap. The scalar projection roadmap
+`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`
+combines these pieces algebraically. The conditional Slutsky theorem
+`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder`
+now closes the scalar OLS CLT from an `oₚ(1)` remainder hypothesis. The feasible
+`Q̂ₙ⁻¹` replacement still needs the inverse-gap/tightness proof before the full
+textbook OLS asymptotic-normality theorem is available.
 
 ## Immediate target
-Theorem 7.4 (consistency of variance estimators) once an `σ̂²` / `s²` layer is available.
-Theorems 7.2 and 7.3 (asymptotic normality) need a CLT wrapper analogous to the current
-WLLN wrapper; not yet in scope.
+Finish Theorem 7.3 by combining the scaled residual lemma with a feasible
+random-inverse Slutsky bridge for replacing fixed `Q⁻¹` by `Q̂ₙ⁻¹`, then expose
+the textbook-facing `√n(β̂ - β)` statement.
+Theorem 7.4 (consistency of variance estimators) comes after an `σ̂²` / `s²` layer is available.
 
 ## Status
-- Theorem 7.1 formalized end-to-end.
+- The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
+- Scalar-projection CLTs for `√n · ĝₙ(e)` and fixed-`Q⁻¹` leading terms are formalized.
+- The scaled singular-event residual for the totalized OLS estimator is formalized.
+- The deterministic feasible-score decomposition and random-inverse gap are formalized.
+- The scalar-projection roadmap for the final totalized OLS CLT is formalized.
+- The Slutsky assembly theorem closes scalar totalized-OLS CLT from an `oₚ(1)` remainder.
+- The literal textbook `olsBeta` version of Theorem 7.1 is pending.
+- Full feasible OLS asymptotic normality remains pending.
 - Theorems 7.2 through 7.17 pending.
 
 ## Extracted candidates
@@ -146,15 +178,17 @@ Conventions:
 - [Hansen excerpt](../textbook/ch07/ch7_excerpt.txt)
 - [Chapter 7 file](../../HansenEconometrics/Chapter7Asymptotics.lean)
 - [Asymptotic utilities](../../HansenEconometrics/AsymptoticUtils.lean)
+- [Linear algebra utilities](../../HansenEconometrics/LinearAlgebraUtils.lean)
 
 ## Crosswalk
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | [SampleAssumption71](../../HansenEconometrics/Chapter7Asymptotics.lean#L248)<br><code>SampleAssumption71 μ X e</code> |
-| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L538)<br><code>TendstoInMeasure μ (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) atTop (fun _ => β)</code> |
-| Theorem 7.2 | Assumption 7.2 implies that |  |
-| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator |  |
+| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Partially represented by [SampleMomentAssumption71](../../HansenEconometrics/Chapter7Asymptotics.lean#L360). This is a moment-level sufficient assumption for the WLLN proof, not a literal iid-sample encoding. |
+| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L719)<br><code>TendstoInMeasure μ (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)) atTop (fun _ => β)</code> |
+| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Partially represented by [SampleCLTAssumption72](../../HansenEconometrics/Chapter7Asymptotics.lean#L820). This adds full score independence and projectionwise square integrability; it is not yet a literal textbook encoding. |
+| Theorem 7.2 score CLT bridge | Assumption 7.2 implies the score has a Gaussian limit | Scalar-projection form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L901). |
+| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Fixed-`Q⁻¹` scalar-projection leading term: [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L927). Conditional totalized-OLS scalar CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics.lean#L957). Feasible `Q̂ₙ⁻¹` inverse-gap/tightness proof pending. |
 | Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. |  |
 | Theorem 7.5 | Under Assumption 7.1, ˆV |  |
 | Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV |  |
@@ -178,17 +212,29 @@ named textbook statements. They stay here as navigation aids for the proof archi
 Phase 1 deterministic identities (algebra, no probability):
 
 - [olsBetaStar](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L27) — total OLS via `Matrix.nonsingInv`, defined on every design matrix; agrees with `olsBeta` when `Xᵀ X` is invertible, returns `0` otherwise.
-- [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment](../../HansenEconometrics/Chapter7Asymptotics.lean#L245) — `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` on every `ω`.
-- [sampleCrossMoment_stackOutcomes_linear_model](../../HansenEconometrics/Chapter7Asymptotics.lean#L228) — `ĝₙ(y) = Q̂ₙ β + ĝₙ(e)` under `yᵢ = Xᵢ · β + eᵢ`.
-- [olsBetaStar_sub_identity](../../HansenEconometrics/Chapter7Asymptotics.lean#L267) — `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ Q̂ₙ − 1) *ᵥ β`.
+- [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment](../../HansenEconometrics/Chapter7Asymptotics.lean#L293) — `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` on every `ω`.
+- [sampleCrossMoment_stackOutcomes_linear_model](../../HansenEconometrics/Chapter7Asymptotics.lean#L276) — `ĝₙ(y) = Q̂ₙ β + ĝₙ(e)` under `yᵢ = Xᵢ · β + eᵢ`.
+- [olsBetaStar_sub_identity](../../HansenEconometrics/Chapter7Asymptotics.lean#L315) — `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ Q̂ₙ − 1) *ᵥ β`.
 
 Phase 2/3 probabilistic pieces:
 
-- [sampleGram_stackRegressors_tendstoInMeasure_popGram](../../HansenEconometrics/Chapter7Asymptotics.lean#L338) — `Q̂ₙ →ₚ Q`.
-- [sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L359) — `ĝₙ(e) →ₚ 0`.
-- [sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L396) — `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
-- [measure_sampleGram_singular_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L453) — `μ{Q̂ₙ singular} → 0`.
-- [residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L498) — the residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [sampleGram_stackRegressors_tendstoInMeasure_popGram](../../HansenEconometrics/Chapter7Asymptotics.lean#L390) — `Q̂ₙ →ₚ Q`.
+- [sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L411) — `ĝₙ(e) →ₚ 0`.
+- [sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L444) — `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [measure_sampleGram_singular_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L501) — `μ{Q̂ₙ singular} → 0`.
+- [residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L546) — the residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [sqrt_smul_residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L579) — the same residual remains negligible after `√n` scaling.
+
+Phase 4 CLT pieces:
+
+- [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum](../../HansenEconometrics/Chapter7Asymptotics.lean#L249) — `√n · ĝₙ(e) = (1/√n)∑eᵢXᵢ`.
+- [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score](../../HansenEconometrics/Chapter7Asymptotics.lean#L615) — `√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
+- [feasibleScore_eq_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L661) — `Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.
+- [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L686) — projection-level decomposition of `√n(β̂*ₙ - β)`.
+- [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L861) — scalar CLT for projected score sums.
+- [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L901) — scalar CLT for `√n · ĝₙ(e)`.
+- [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L927) — scalar CLT for the fixed-`Q⁻¹` leading term.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics.lean#L957) — Slutsky assembly for the totalized OLS projection from an `oₚ(1)` remainder.
 
 Reusable convergence-in-measure helpers (`AsymptoticUtils.lean`):
 
@@ -200,10 +246,15 @@ Reusable convergence-in-measure helpers (`AsymptoticUtils.lean`):
 - `tendstoInMeasure_prodMk` — joint convergence on a product from coordinatewise convergence.
 - `tendstoInMeasure_add` — additive CMT assembled from the product CMT and `continuous_add`.
 - `tendstoInMeasure_mulVec` — matrix-vector multiplication CMT.
+
+Reusable linear-algebra helpers (`LinearAlgebraUtils.lean`):
+
 - `nonsingInv_smul` — `(c • M)⁻¹ = c⁻¹ • M⁻¹` unconditionally; used to move the `1/n` scalar through the inverse when proving the F2 identity on all of `Ω`.
 
 ## Notes
 
 - Chapter 7 builds on Chapter 3 least-squares algebra and Chapter 4 least-squares regression.
-- Theorem 7.1 ships in terms of `olsBetaStar` (not `olsBeta`): the total inverse form is defined on every design matrix, so the convergence statement does not need to restrict to an a.s. invertibility event.
+- The current consistency theorem is stated for `olsBetaStar` (not `olsBeta`): the total inverse form is defined on every design matrix, so the convergence statement does not need to restrict to an a.s. invertibility event.
+- A textbook-facing `olsBeta` theorem remains a follow-up once we expose a clean high-probability nonsingularity wrapper.
+- The CLT layer currently uses Mathlib's real-valued CLT projectionwise. A full vector-valued OLS theorem still needs a Cramér-Wold/Slutsky bridge for replacing `Q⁻¹` with `Q̂ₙ⁻¹`.
 - The LaTeX column uses textbook extraction output for theorems 7.2 onward; it is intentionally rough until those theorems are formalized.

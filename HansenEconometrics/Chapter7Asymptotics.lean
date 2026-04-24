@@ -1,8 +1,10 @@
 import Mathlib
 import HansenEconometrics.Basic
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.ProbabilityUtils
 
 /-!
 # Chapter 7 — Asymptotic Theory
@@ -31,12 +33,13 @@ design matrix at each sample point `ω`:
 * `sampleCrossMoment_stackRegressors_stackErrors_eq_avg` — analogous
 * Fin↔Finset.range summation bridges matching Mathlib's WLLN indexing.
 
-## Phase 3 — Probabilistic consistency (Theorem 7.1)
+## Phase 3 — Probabilistic consistency for a totalized estimator
 
-`SampleAssumption71` packages Hansen Assumption 7.1 (iid regressors and
-errors with finite second moments, invertible population Gram `Q`, and
-orthogonality `𝔼[e X] = 0`). The chain of convergences from Theorem 7.1 is
-then assembled:
+`SampleMomentAssumption71` packages the moment-level independence,
+integrability, nonsingularity, and orthogonality hypotheses used by the Lean
+proof. These are sufficient for the current consistency argument, but they are
+not a literal encoding of Hansen's iid sample assumption. The chain of
+convergences is then assembled:
 
 * `sampleGram_stackRegressors_tendstoInMeasure_popGram` — `Q̂ₙ →ₚ Q` via WLLN.
 * `sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero` —
@@ -44,24 +47,45 @@ then assembled:
 * `sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero` —
   `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`, combining the previous two with the matrix-inverse
   CMT and the mulVec CMT from `AsymptoticUtils`.
+* `olsBetaStar_stack_tendstoInMeasure_beta` — consistency of the totalized
+  estimator `olsBetaStar`, which uses `Matrix.nonsingInv` and agrees with
+  ordinary `olsBeta` on nonsingular samples.
 
-This last theorem is the deterministic core of Theorem 7.1: the Phase 1
-identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ` is valid on the event `{Q̂ₙ invertible}`,
-and the RHS converges in probability to `0`. The remaining step to the
-textbook statement `β̂ₙ →ₚ β` is a probabilistic invertibility argument
-(det-CMT applied to `Q̂ₙ →ₚ Q` plus a triangle bound on the complement),
-documented in the crosswalk [notes/ch07/latex_links.md](../notes/ch07/latex_links.md)
-as pending.
+This is the current Lean version of the beginning of Chapter 7. A separate
+textbook-facing theorem for ordinary `olsBeta` still needs an interface for
+handling the high-probability nonsingularity event.
+
+## Phase 4 — First CLT bridge
+
+`SampleCLTAssumption72` strengthens the moment-level consistency assumptions
+with full independence of the score vectors `eᵢXᵢ` and square integrability of
+all scalar projections. The theorem
+`scoreProjection_sum_tendstoInDistribution_gaussian` applies Mathlib's
+one-dimensional central limit theorem to every fixed projection of the score.
+`sqrt_smul_residual_tendstoInMeasure_zero` also records that the singular-event
+OLS remainder is negligible after `√n` scaling, and
+`sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score`
+decomposes `√n(β̂*ₙ - β)` into that residual plus the feasible leading score
+term. `feasibleScore_eq_fixedScore_add_inverseGap` then isolates the exact
+random-inverse gap left for Slutsky, and
+`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`
+records the resulting scalar-projection roadmap. Finally,
+`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder`
+applies Mathlib's Slutsky theorem once that scalar remainder is shown to be
+`oₚ(1)`. Together these form the Cramér-Wold/Slutsky-facing layer needed for
+Hansen's asymptotic-normality theorem.
 
 See also:
 - [`AsymptoticUtils.lean`](./AsymptoticUtils.lean) — WLLN wrapper, CMT for
   convergence in measure, matrix-inverse and mulVec CMTs.
+- [`LinearAlgebraUtils.lean`](./LinearAlgebraUtils.lean) — reusable finite-dimensional
+  linear algebra identities, including `nonsingInv_smul`.
 - [`Chapter3LeastSquaresAlgebra.lean`](./Chapter3LeastSquaresAlgebra.lean) —
   `olsBeta` and its total version `olsBetaStar`.
-- [notes/ch07/latex_links.md](../notes/ch07/latex_links.md) — LaTeX/Lean crosswalk.
+- [inventory/ch7-inventory.md](../inventory/ch7-inventory.md) — theorem inventory and crosswalk.
 -/
 
-open scoped Matrix
+open scoped Matrix Real
 
 namespace HansenEconometrics
 
@@ -219,6 +243,30 @@ theorem sum_fin_eq_sum_range_smul
       ∑ i ∈ Finset.range n, e i ω • X i ω :=
   Fin.sum_univ_eq_sum_range (fun i => e i ω • X i ω) n
 
+omit [Fintype k] [DecidableEq k] in
+/-- The Hansen CLT scaling `√n · ĝₙ(e)` equals the normalized score sum
+`(1 / √n) ∑_{i<n} eᵢXᵢ`, including the harmless `n = 0` totalized case. -/
+theorem sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    Real.sqrt (n : ℝ) • sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
+      (Real.sqrt (n : ℝ))⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω := by
+  rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg, sum_fin_eq_sum_range_smul]
+  by_cases hn : n = 0
+  · subst n
+    simp
+  · have hnpos : 0 < (n : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn)
+    have hsqrt_ne : Real.sqrt (n : ℝ) ≠ 0 := Real.sqrt_ne_zero'.mpr hnpos
+    have hscale : Real.sqrt (n : ℝ) * (n : ℝ)⁻¹ = (Real.sqrt (n : ℝ))⁻¹ := by
+      have hsqr_mul : Real.sqrt (n : ℝ) * Real.sqrt (n : ℝ) = (n : ℝ) := by
+        exact Real.mul_self_sqrt hnpos.le
+      calc
+        Real.sqrt (n : ℝ) * (n : ℝ)⁻¹ =
+            Real.sqrt (n : ℝ) * (Real.sqrt (n : ℝ) * Real.sqrt (n : ℝ))⁻¹ := by
+          rw [hsqr_mul]
+        _ = (Real.sqrt (n : ℝ))⁻¹ := by
+          field_simp [hsqrt_ne]
+    rw [smul_smul, hscale]
+
 omit [DecidableEq k] in
 /-- **Linear-model decomposition of the sample cross moment.**
 Under the linear model `yᵢ = Xᵢ·β + eᵢ`, the stacked cross moment splits as
@@ -303,9 +351,13 @@ private lemma matrixBorelSpace : BorelSpace (Matrix k k ℝ) := ⟨rfl⟩
 
 attribute [local instance] matrixBorelSpace
 
-/-- Hansen Assumption 7.1: iid regressor/error sequence with a finite nonsingular
-population Gram matrix `Q := 𝔼[X Xᵀ]` and orthogonality `𝔼[X e] = 0`. -/
-structure SampleAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
+/-- Moment-level sufficient assumptions for the current Chapter 7.1 consistency proof.
+
+This deliberately packages only the transformed sequences needed by the WLLN steps:
+outer products `Xᵢ Xᵢᵀ` and cross products `eᵢ Xᵢ`. It is implied by suitable iid
+sample assumptions, but it is not itself a literal encoding of Hansen
+Assumption 7.1. -/
+structure SampleMomentAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) where
   /-- Pairwise independence of the outer-product sequence `X i (X i)ᵀ`. -/
   indep_outer :
@@ -333,12 +385,12 @@ structure SampleAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
   μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
 
-/-- **Hansen WLLN for the sample Gram.** Under Assumption 7.1, the sample Gram
-matrix of the stacked design converges in probability to the population Gram `Q`. -/
+/-- **WLLN for the sample Gram.** Under the moment-level assumptions, the sample
+Gram matrix of the stacked design converges in probability to the population Gram `Q`. -/
 theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleAssumption71 μ X e) :
+    (h : SampleMomentAssumption71 μ X e) :
     TendstoInMeasure μ
       (fun n ω => sampleGram (stackRegressors X n ω))
       atTop
@@ -353,13 +405,13 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
 
-/-- **Hansen WLLN for the sample cross moment.** Under Assumption 7.1, the sample
+/-- **WLLN for the sample cross moment.** Under the moment-level assumptions, the sample
 cross moment `ĝₙ = n⁻¹ ∑ eᵢ Xᵢ` of the stacked design converges in probability to
 `0`, since the population cross moment `𝔼[e X] = 0` by the orthogonality axiom. -/
 theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleAssumption71 μ X e) :
+    (h : SampleMomentAssumption71 μ X e) :
     TendstoInMeasure μ
       (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
       atTop
@@ -377,10 +429,10 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
     (fun i ω => e i ω • X i ω)
     h.int_cross h.indep_cross h.ident_cross
 
-/-- **Hansen Theorem 7.1 core — convergence of the OLS-error transform.**
-Under Assumption 7.1, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the deterministic
-RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` (valid on the
-event `{Q̂ₙ invertible}`) — converges in probability to `0`.
+/-- **Core stochastic transform — convergence of the OLS-error term.**
+Under the moment-level assumptions, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the
+deterministic RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)`
+(valid on the event `{Q̂ₙ invertible}`) — converges in probability to `0`.
 
 Proof chain:
 * Task 9: `Q̂ₙ →ₚ Q`.
@@ -388,15 +440,11 @@ Proof chain:
 * Task 10: `ĝₙ(e) →ₚ 0`.
 * `tendstoInMeasure_mulVec` joins these to `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ Q⁻¹ *ᵥ 0 = 0`.
 
-The remaining step to close the textbook Theorem 7.1 (`olsBetaStar →ₚ β`) is a
-probabilistic invertibility argument: by CMT on `det`, `(Q̂ₙ).det →ₚ Q.det ≠ 0`,
-so the event `{ω : Q̂ₙ(ω) is singular}` has measure → 0. On its complement, the
-Phase 1 identity applies; off it, measure shrinks. That step is mechanical but
-verbose and is left as a follow-up. -/
+This theorem is the core stochastic term in the consistency proof below. -/
 theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleAssumption71 μ X e) :
+    (h : SampleMomentAssumption71 μ X e) :
     TendstoInMeasure μ
       (fun n ω =>
         (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
@@ -442,7 +490,7 @@ theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
   simpa using hmulVec
 
 /-- **Measure of the singular event vanishes asymptotically.**
-Under Assumption 7.1, `μ {ω | Q̂ₙ(ω) is singular} → 0`.
+Under the moment-level assumptions, `μ {ω | Q̂ₙ(ω) is singular} → 0`.
 
 Proof chain:
 * Task 9: `Q̂ₙ →ₚ Q`.
@@ -453,7 +501,7 @@ Proof chain:
 theorem measure_sampleGram_singular_tendsto_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleAssumption71 μ X e) :
+    (h : SampleMomentAssumption71 μ X e) :
     Tendsto (fun n => μ {ω | ¬ IsUnit (sampleGram (stackRegressors X n ω)).det})
       atTop (𝓝 0) := by
   have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram h
@@ -488,8 +536,8 @@ theorem measure_sampleGram_singular_tendsto_zero
   simp only [Set.mem_setOf_eq, hω, edist_dist, Real.dist_eq, zero_sub, abs_neg]
   exact ENNReal.ofReal_le_ofReal hε_le
 
-/-- **Residual convergence in probability.** Under Assumption 7.1 and the linear
-model `yᵢ = Xᵢ·β + eᵢ`, the residual
+/-- **Residual convergence in probability.** Under the moment-level assumptions and
+the linear model `yᵢ = Xᵢ·β + eᵢ`, the residual
 `β̂ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` converges to `0` in probability.
 
 On the event `{Q̂ₙ invertible}`, this residual is identically `0` by
@@ -498,7 +546,7 @@ vanishing measure by `measure_sampleGram_singular_tendsto_zero` (F4). -/
 theorem residual_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleAssumption71 μ X e)
+    (h : SampleMomentAssumption71 μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω =>
@@ -522,10 +570,143 @@ theorem residual_tendstoInMeasure_zero
   rw [hR, edist_self] at hω
   exact absurd hω (not_le.mpr hε)
 
-/-- **Hansen Theorem 7.1 — Consistency of Least Squares.**
-Under Assumption 7.1 and the linear model `yᵢ = Xᵢ·β + eᵢ`, the total OLS
-estimator `β̂*ₙ := (Xᵀ X)⁺ Xᵀ y` (using `Matrix.nonsingInv`) converges in
-probability to `β`.
+/-- **Scaled residual convergence in probability.** The same high-probability
+invertibility argument kills the residual after multiplying by `√n`.
+
+This is the singular-event remainder needed before the feasible OLS CLT can be
+assembled: on `{Q̂ₙ invertible}` the residual is exactly zero, while the
+singular event still has probability tending to zero. No rate is needed. -/
+theorem sqrt_smul_residual_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+      atTop (fun _ => (0 : k → ℝ)) := by
+  have hsingular := measure_sampleGram_singular_tendsto_zero h
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsingular
+    (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  intro hunit
+  have hR : olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+      (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) = 0 := by
+    rw [olsBetaStar_sub_identity X e y β hmodel,
+        Matrix.nonsing_inv_mul _ hunit, sub_self, Matrix.zero_mulVec]
+  rw [hR, smul_zero, edist_self] at hω
+  exact absurd hω (not_le.mpr hε)
+
+/-- **Scaled totalized OLS decomposition.**
+The centered and scaled total estimator splits into the singular-event residual
+plus the feasible leading score term:
+`√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
+
+This is pure deterministic algebra. The preceding theorem proves
+`√n·Rₙ →ₚ 0`; the remaining Chapter 7 CLT work is to transfer the score CLT
+through the random inverse `Q̂ₙ⁻¹`. -/
+theorem sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (n : ℕ) (ω : Ω) :
+    Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) =
+      Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) +
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) := by
+  rw [Matrix.mulVec_smul]
+  have hsplit : olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β =
+      (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+        (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) +
+      (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) := by
+    abel
+  calc
+    Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)
+        = Real.sqrt (n : ℝ) •
+          ((olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+              (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+                sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) +
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) := by
+            exact congrArg (fun v : k → ℝ => Real.sqrt (n : ℝ) • v) hsplit
+    _ = Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) +
+        Real.sqrt (n : ℝ) •
+          ((sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) := by
+        rw [smul_add]
+
+/-- **Feasible leading-term decomposition.**
+The feasible leading score term is the fixed-`Q⁻¹` leading term plus the
+random-inverse gap:
+`Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.
+
+This names the exact remainder that the remaining Slutsky/tightness argument
+must show is negligible. -/
+theorem feasibleScore_eq_fixedScore_add_inverseGap
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (n : ℕ) (ω : Ω) :
+    (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
+      (popGram μ X)⁻¹ *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) +
+        ((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) := by
+  rw [Matrix.sub_mulVec]
+  abel
+
+/-- **Scalar-projection decomposition for the totalized OLS CLT.**
+For every fixed projection vector `a`, the scaled totalized OLS error decomposes
+into:
+
+1. the scaled singular-event residual projection,
+2. the fixed-`Q⁻¹` score projection with the known scalar CLT,
+3. the random-inverse gap projection still left for Slutsky/tightness.
+
+This is the exact algebraic roadmap for the remaining proof of Hansen's
+Theorem 7.3. -/
+theorem scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    {y : ℕ → Ω → ℝ} (β a : k → ℝ) (n : ℕ) (ω : Ω) :
+    (Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a =
+      (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β -
+            (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a +
+        (Real.sqrt (n : ℝ) •
+          ((popGram μ X)⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a +
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a := by
+  rw [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score,
+      feasibleScore_eq_fixedScore_add_inverseGap (μ := μ), Matrix.mulVec_smul,
+      add_dotProduct, add_dotProduct]
+  ring
+
+/-- **Consistency of the totalized least-squares estimator.**
+Under the moment-level assumptions above and the linear model `yᵢ = Xᵢ·β + eᵢ`,
+the total OLS estimator `β̂*ₙ := (Xᵀ X)⁺ Xᵀ y` (using `Matrix.nonsingInv`)
+converges in probability to `β`.
 
 Proof chain:
 * F2: `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` pointwise.
@@ -538,7 +719,7 @@ Proof chain:
 theorem olsBetaStar_stack_tendstoInMeasure_beta
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleAssumption71 μ X e)
+    (h : SampleMomentAssumption71 μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -621,5 +802,197 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
   rw [← hident]; abel
 
 end Assumption71
+
+section Assumption72
+
+open MeasureTheory ProbabilityTheory Filter
+open scoped Matrix.Norms.Elementwise Function Topology ProbabilityTheory
+
+variable {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+variable {k : Type*} [Fintype k] [DecidableEq k]
+
+/-- Strengthening of the Chapter 7.1 moment assumptions for the first CLT bridge.
+
+Mathlib currently supplies a one-dimensional iid CLT. To use it for Hansen's
+vector score `eᵢXᵢ`, we ask for full independence of those score vectors and
+square integrability of every fixed scalar projection. The resulting theorem is
+the scalar-projection/Cramér-Wold face of Hansen Assumption 7.2. -/
+structure SampleCLTAssumption72 (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleMomentAssumption71 μ X e where
+  /-- Full independence of the score-vector sequence `e i • X i`. -/
+  iIndep_cross : iIndepFun (fun i ω => e i ω • X i ω) μ
+  /-- Square integrability of every scalar projection of the score vector. -/
+  memLp_cross_projection :
+    ∀ a : k → ℝ, MemLp (fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a) 2 μ
+
+omit [DecidableEq k] in
+/-- Measurability of a fixed dot-product projection on finite-dimensional vectors. -/
+private theorem measurable_dotProduct_right (a : k → ℝ) :
+    Measurable (fun v : k → ℝ => v ⬝ᵥ a) := by
+  classical
+  simpa [dotProduct] using
+    (continuous_finset_sum Finset.univ
+      (fun i _ => (continuous_apply i).mul continuous_const)).measurable
+
+/-- The scalar score projection has mean zero under the orthogonality axiom. -/
+private theorem scoreProjection_integral_zero
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (a : k → ℝ) :
+    μ[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a] = 0 := by
+  have hdot := integral_dotProduct_eq_meanVec_dotProduct
+    (μ := μ) (X := fun ω => e 0 ω • X 0 ω) a
+    (fun i => Integrable.eval h.int_cross i)
+  simpa [meanVec, h.orthogonality] using hdot
+
+omit [DecidableEq k] in
+/-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
+private theorem mulVec_dotProduct_right (M : Matrix k k ℝ) (v a : k → ℝ) :
+    (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
+  rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
+
+/-- **Scalar-projection CLT for Hansen's score.**
+
+For every fixed vector `a`, the projected score sum
+`(1 / √n) ∑_{i<n} (eᵢXᵢ)·a` converges in distribution to the Gaussian with the
+matching scalar variance. This is the one-dimensional CLT supplied by Mathlib,
+specialized to the score projections that appear in OLS asymptotic normality. -/
+theorem scoreProjection_sum_tendstoInDistribution_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω => (Real.sqrt (n : ℝ))⁻¹ *
+        ∑ i ∈ Finset.range n, (e i ω • X i ω) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hdot_meas := measurable_dotProduct_right (k := k) a
+  have hident_scalar : ∀ i,
+      IdentDistrib (fun ω => (e i ω • X i ω) ⬝ᵥ a)
+        (fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a) μ μ := by
+    intro i
+    simpa [Function.comp_def] using h.ident_cross i |>.comp hdot_meas
+  have hindep_scalar :
+      iIndepFun (fun i ω => (e i ω • X i ω) ⬝ᵥ a) μ := by
+    simpa [Function.comp_def] using
+      h.iIndep_cross.comp (fun _ v => v ⬝ᵥ a) (fun _ => hdot_meas)
+  have hmean := scoreProjection_integral_zero (μ := μ)
+    (X := X) (e := e) h.toSampleMomentAssumption71 a
+  have hmean_integral :
+      (∫ ω, (e 0 ω • X 0 ω) ⬝ᵥ a ∂μ) = 0 := by
+    simpa using hmean
+  have hclt := ProbabilityTheory.tendstoInDistribution_inv_sqrt_mul_sum_sub
+    (P := μ) (P' := ν) (X := fun i ω => (e i ω • X i ω) ⬝ᵥ a)
+    (Y := Z) hZ (h.memLp_cross_projection a) hindep_scalar hident_scalar
+  convert hclt using 2 with n ω
+  funext ω
+  rw [hmean_integral]
+  ring
+
+/-- **CLT for scalar projections of the scaled sample score.**
+
+This is the same CLT as `scoreProjection_sum_tendstoInDistribution_gaussian`,
+rewritten in Hansen's notation as `√n · ĝₙ(e)` where
+`ĝₙ(e) = n⁻¹∑ eᵢXᵢ`. -/
+theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hsum := scoreProjection_sum_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ
+  convert hsum using 2 with n
+  funext ω
+  rw [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum]
+  simp [sum_dotProduct, smul_eq_mul]
+
+/-- **CLT for scalar projections of the infeasible leading OLS term.**
+
+Applying the fixed population inverse `Q⁻¹` to `√n · ĝₙ(e)` preserves the
+scalar-projection CLT, with the projection vector transformed to `(Q⁻¹)ᵀa`.
+The remaining feasible-OLS step is replacing this fixed inverse with the random
+`Q̂ₙ⁻¹`, i.e. the multivariate Slutsky/tightness bridge. -/
+theorem scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          ((popGram μ X)⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hscore := scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a) hZ
+  convert hscore using 2 with n
+  funext ω
+  rw [← Matrix.mulVec_smul, mulVec_dotProduct_right]
+
+/-- **Conditional scalar-projection OLS CLT for the totalized estimator.**
+Once the scalar Slutsky remainder
+`√n(β̂*ₙ - β)·a - √n(Q⁻¹ ĝₙ(e))·a` is known to be `oₚ(1)`, the fixed-`Q⁻¹`
+score CLT transfers to the scalar projection of the totalized OLS estimator.
+
+The deterministic roadmap above reduces this remainder to the scaled residual
+plus the random-inverse gap; the residual is already controlled, so the true
+remaining mathematical target is the inverse-gap/tightness step. -/
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν)
+    (hremainder : TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a -
+          (Real.sqrt (n : ℝ) •
+            ((popGram μ X)⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0))
+    (hfinal_meas : ∀ (n : ℕ), AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a) μ) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hfixed := scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (n : ℕ) ω =>
+      (Real.sqrt (n : ℝ) •
+        ((popGram μ X)⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+    (Y := fun (n : ℕ) ω =>
+      (Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+    (Z := Z) hfixed hremainder hfinal_meas
+
+end Assumption72
 
 end HansenEconometrics

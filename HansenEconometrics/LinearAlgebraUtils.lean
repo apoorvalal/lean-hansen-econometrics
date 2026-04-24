@@ -6,6 +6,28 @@ namespace HansenEconometrics
 
 open Matrix
 
+/-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
+matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
+`(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`
+and `IsUnit M.det`; we dispatch the singular cases by hand so the identity
+holds for all scalar/matrix pairs. -/
+theorem nonsingInv_smul {k : Type*} [Fintype k] [DecidableEq k]
+    (c : ℝ) (M : Matrix k k ℝ) :
+    (c • M)⁻¹ = c⁻¹ • M⁻¹ := by
+  by_cases hc : c = 0
+  · subst hc
+    simp [Matrix.inv_zero]
+  by_cases hM : IsUnit M.det
+  · have : Invertible c := invertibleOfNonzero hc
+    rw [Matrix.inv_smul _ _ hM, invOf_eq_inv]
+  · have hM' : M.det = 0 := by
+      rwa [isUnit_iff_ne_zero, ne_eq, not_not] at hM
+    have hcMdet : ¬ IsUnit (c • M).det := by
+      rw [Matrix.det_smul, hM', mul_zero]
+      simp
+    rw [Matrix.nonsing_inv_apply_not_isUnit _ hcMdet,
+        Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
+
 /-- Left-multiplication by a row vector is right-multiplication by the transpose. -/
 lemma vecMul_eq_mulVec_transpose {m n : Type*} [Fintype m]
     (M : Matrix m n ℝ) (x : m → ℝ) :
