@@ -864,6 +864,32 @@ theorem inverseGapProjection_tendstoInMeasure_zero_of_coord
   rw [inverseGapProjection_eq_scoreProjection_randomWeight (μ := μ) (X := X) (e := e) a n ω]
   simp [dotProduct, mul_comm]
 
+/-- **Inverse-gap projection from scaled-score boundedness.**
+For a fixed projection vector `a`, the inverse-gap projection is `oₚ(1)` once
+each coordinate of the scaled score `√n·ĝₙ(e)` is `Oₚ(1)`.
+
+The random-weight side is now discharged by
+`inverseGapWeight_coord_tendstoInMeasure_zero`; the remaining theorem-facing
+task is proving score boundedness from the scalar CLT/tightness layer. -/
+theorem inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (a : k → ℝ)
+    (hscoreBounded : ∀ j : k,
+      BoundedInProbability μ
+        (fun (n : ℕ) ω =>
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) j)) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  exact inverseGapProjection_tendstoInMeasure_zero_of_coord a
+    (fun j => inverseGapWeight_coord_tendstoInMeasure_zero h a j)
+    hscoreBounded
+
 /-- **Scalar-projection decomposition for the totalized OLS CLT.**
 For every fixed projection vector `a`, the scaled totalized OLS error decomposes
 into:
