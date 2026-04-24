@@ -1342,6 +1342,48 @@ theorem scoreCoordinate_sampleCrossMoment_boundedInProbability
     simpa [a, dotProduct_single_one] using hclt
   exact BoundedInProbability.of_tendstoInDistribution hcoord
 
+/-- **Inverse-gap projection under the Chapter 7.2 CLT assumptions.**
+
+For every fixed projection vector `a`, the feasible-inverse correction
+`(Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)` is `oₚ(1)` after scalar projection. This packages the
+coordinatewise product rule with score-coordinate tightness from the CLT. -/
+theorem inverseGapProjection_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (a : k → ℝ) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  exact inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded
+    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71 a
+    (fun j => scoreCoordinate_sampleCrossMoment_boundedInProbability
+      (μ := μ) (X := X) (e := e) h j)
+
+/-- **Scalar totalized-OLS Slutsky remainder under the Chapter 7.2 CLT assumptions.**
+
+The difference between the scaled totalized-OLS projection and its fixed-`Q⁻¹`
+score approximation is `oₚ(1)`. This is the direct remainder statement used by
+the final scalar CLT. -/
+theorem scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+            (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a -
+          (Real.sqrt (n : ℝ) •
+            ((popGram μ X)⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a)
+      atTop (fun _ => 0) := by
+  exact scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap
+    (μ := μ) (X := X) (e := e) (y := y) β a h.toSampleMomentAssumption71 hmodel
+    (inverseGapProjection_tendstoInMeasure_zero (μ := μ) (X := X) (e := e) h a)
+
 /-- **CLT for scalar projections of the infeasible leading OLS term.**
 
 Applying the fixed population inverse `Q⁻¹` to `√n · ĝₙ(e)` preserves the
