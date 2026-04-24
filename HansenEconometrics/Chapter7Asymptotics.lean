@@ -221,6 +221,32 @@ theorem olsResidualStar_sq_linear_model_apply
   rw [olsResidualStar_linear_model_apply]
   ring
 
+/-- **Theorem 7.4 residual sum-of-squares expansion, unscaled form.**
+
+Writing `d = β̂* - β`, the totalized residual sum of squares is
+`e'e - 2(X'e)'d + d'(X'X)d`. This is the matrix form behind Hansen's averaged
+display (7.18). -/
+theorem olsResidualStar_sumSquares_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
+    dotProduct (olsResidualStar X (X *ᵥ β + e))
+        (olsResidualStar X (X *ᵥ β + e)) =
+      dotProduct e e -
+        2 * ((Xᵀ *ᵥ e) ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) +
+          (olsBetaStar X (X *ᵥ β + e) - β) ⬝ᵥ
+            ((Xᵀ * X) *ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) := by
+  let d : k → ℝ := olsBetaStar X (X *ᵥ β + e) - β
+  have hcross : e ⬝ᵥ (X *ᵥ d) = (Xᵀ *ᵥ e) ⬝ᵥ d := by
+    rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+  have hquad : (X *ᵥ d) ⬝ᵥ (X *ᵥ d) = d ⬝ᵥ ((Xᵀ * X) *ᵥ d) := by
+    rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, Matrix.mulVec_mulVec,
+      dotProduct_comm]
+  rw [olsResidualStar_linear_model]
+  change (e - X *ᵥ d) ⬝ᵥ (e - X *ᵥ d) =
+    e ⬝ᵥ e - 2 * ((Xᵀ *ᵥ e) ⬝ᵥ d) + d ⬝ᵥ ((Xᵀ * X) *ᵥ d)
+  rw [sub_dotProduct, dotProduct_sub, dotProduct_sub, hcross,
+    dotProduct_comm (X *ᵥ d) e, hcross, hquad]
+  ring
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
