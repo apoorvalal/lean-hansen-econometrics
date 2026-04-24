@@ -247,6 +247,27 @@ theorem olsResidualStar_sumSquares_linear_model
     dotProduct_comm (X *ᵥ d) e, hcross, hquad]
   ring
 
+/-- **Theorem 7.4 `σ̂²` decomposition for the totalized estimator.**
+
+This is Hansen display (7.18) in sample-moment notation:
+`σ̂² = n⁻¹e'e - 2 ĝₙ(e)'(β̂* - β) + (β̂* - β)'Q̂ₙ(β̂* - β)`. -/
+theorem olsSigmaSqHatStar_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
+    olsSigmaSqHatStar X (X *ᵥ β + e) =
+      (Fintype.card n : ℝ)⁻¹ * dotProduct e e -
+        2 * (sampleCrossMoment X e ⬝ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) +
+          (olsBetaStar X (X *ᵥ β + e) - β) ⬝ᵥ
+            (sampleGram X *ᵥ (olsBetaStar X (X *ᵥ β + e) - β)) := by
+  let d : k → ℝ := olsBetaStar X (X *ᵥ β + e) - β
+  unfold olsSigmaSqHatStar
+  rw [olsResidualStar_sumSquares_linear_model]
+  change (Fintype.card n : ℝ)⁻¹ *
+      (dotProduct e e - 2 * ((Xᵀ *ᵥ e) ⬝ᵥ d) + d ⬝ᵥ ((Xᵀ * X) *ᵥ d)) =
+    (Fintype.card n : ℝ)⁻¹ * dotProduct e e -
+      2 * (sampleCrossMoment X e ⬝ᵥ d) + d ⬝ᵥ (sampleGram X *ᵥ d)
+  simp [sampleCrossMoment, sampleGram, Matrix.smul_mulVec, mul_add, mul_sub, smul_eq_mul]
+  ring
+
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
 theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
