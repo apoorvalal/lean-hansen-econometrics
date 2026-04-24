@@ -5,6 +5,7 @@ import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.ChiSquared
 
 /-!
 # Chapter 7 — Asymptotic Theory
@@ -4742,6 +4743,21 @@ theorem tendstoInDistribution_abs_real
     (hT : TendstoInDistribution T atTop Z P ν) :
     TendstoInDistribution (fun n ω => |T n ω|) atTop (fun ω => |Z ω|) P ν := by
   simpa [Function.comp_def] using hT.continuous_comp continuous_abs
+
+/-- Squaring a standard-normal distributional limit gives a `χ²(1)` limit. -/
+theorem tendstoInDistribution_sq_standardNormal_chiSquared_one
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {T : ℕ → Ω → ℝ}
+    (hT : TendstoInDistribution T atTop (fun x : ℝ => x) P (gaussianReal 0 1)) :
+    TendstoInDistribution (fun n ω => (T n ω) ^ 2) atTop
+      (fun x : ℝ => x) P (chiSquared 1) := by
+  have hsquare := hT.continuous_comp (by fun_prop : Continuous (fun x : ℝ => x ^ 2))
+  refine ⟨?_, ?_, ?_⟩
+  · simpa [Function.comp_def] using hsquare.forall_aemeasurable
+  · fun_prop
+  · convert hsquare.tendsto using 2
+    · ext s hs
+      simp [Function.comp_def, gaussianReal_map_sq_eq_chiSquared_one]
 
 /-- Scaling by positive standard-error and root factors preserves absolute-value inequalities. -/
 theorem abs_scaled_error_div_le_iff
