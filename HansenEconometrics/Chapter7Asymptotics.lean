@@ -726,6 +726,22 @@ theorem sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
       (fun i ω => e i ω ^ 2)
       h.int_error_sq h.indep_error_sq h.ident_error_sq
 
+/-- Centered form of the Theorem 7.4 squared-error WLLN. -/
+theorem sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_zero
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) :
+    TendstoInMeasure μ
+      (fun n ω => sampleErrorSecondMoment (stackErrors e n ω) - errorVariance μ e)
+      atTop
+      (fun _ => 0) := by
+  have hraw :=
+    sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
+      (μ := μ) (X := X) (e := e) h
+  rw [tendstoInMeasure_iff_dist] at hraw ⊢
+  intro ε hε
+  simpa [Real.dist_eq, sub_eq_add_neg, abs_sub_comm] using hraw ε hε
+
 /-- **Core stochastic transform — convergence of the OLS-error term.**
 Under the moment-level assumptions, the sequence `Q̂ₙ⁻¹ *ᵥ ĝₙ(e)` — which is the
 deterministic RHS of the Phase 1 OLS-error identity `β̂ₙ − β = Q̂ₙ⁻¹ *ᵥ ĝₙ(e)`
