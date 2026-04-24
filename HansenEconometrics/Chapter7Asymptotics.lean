@@ -688,6 +688,35 @@ structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
   μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
 
+omit [DecidableEq k] in
+/-- The population Gram matrix is symmetric whenever the outer product is integrable. -/
+theorem popGram_isSymm
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ))
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ) :
+    (popGram μ X).IsSymm := by
+  rw [Matrix.IsSymm.ext_iff]
+  intro i j
+  calc
+    (popGram μ X) j i
+        = ∫ ω, (Matrix.vecMulVec (X 0 ω) (X 0 ω)) j i ∂μ := by
+          rw [popGram]
+          exact integral_apply_apply
+            (μ := μ) (f := fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) hX j i
+    _ = ∫ ω, (Matrix.vecMulVec (X 0 ω) (X 0 ω)) i j ∂μ := by
+          congr with ω
+          simp [Matrix.vecMulVec_apply, mul_comm]
+    _ = (popGram μ X) i j := by
+          rw [popGram]
+          exact (integral_apply_apply
+            (μ := μ) (f := fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) hX i j).symm
+
+/-- The totalized inverse of the population Gram matrix is symmetric. -/
+theorem popGram_inv_isSymm
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ))
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ) :
+    ((popGram μ X)⁻¹).IsSymm :=
+  (popGram_isSymm μ X hX).inv
+
 /-- The textbook error variance `σ² := E[e²]` used in Theorem 7.4. -/
 noncomputable def errorVariance (μ : Measure Ω) (e : ℕ → Ω → ℝ) : ℝ :=
   μ[fun ω => e 0 ω ^ 2]
@@ -2910,6 +2939,63 @@ theorem sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatri
 noncomputable def heteroskedasticAsymptoticCovariance
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
   (popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e * (popGram μ X)⁻¹
+
+/-- The scalar projection variance agrees with the sandwich covariance quadratic form. -/
+theorem olsProjectionAsymptoticVariance_eq_quadratic_heteroskedasticAsymptoticCovariance
+    {μ : Measure Ω}
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ)
+    (a : k → ℝ) :
+    olsProjectionAsymptoticVariance μ X e a =
+      a ⬝ᵥ (heteroskedasticAsymptoticCovariance μ X e *ᵥ a) := by
+  let A : Matrix k k ℝ := (popGram μ X)⁻¹
+  let Ωm : Matrix k k ℝ := scoreCovarianceMatrix μ X e
+  have hA : Aᵀ = A := (popGram_inv_isSymm μ X hX).eq
+  calc
+    olsProjectionAsymptoticVariance μ X e a
+        = (A *ᵥ a) ⬝ᵥ (Ωm *ᵥ (A *ᵥ a)) := by
+          simp [olsProjectionAsymptoticVariance, A, Ωm, hA]
+    _ = (Matrix.vecMul a A) ⬝ᵥ (Ωm *ᵥ (A *ᵥ a)) := by
+          rw [vecMul_eq_mulVec_transpose, hA]
+    _ = a ⬝ᵥ (A *ᵥ (Ωm *ᵥ (A *ᵥ a))) := by
+          rw [← Matrix.dotProduct_mulVec]
+    _ = a ⬝ᵥ ((A * Ωm * A) *ᵥ a) := by
+          simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+    _ = a ⬝ᵥ (heteroskedasticAsymptoticCovariance μ X e *ᵥ a) := by
+          simp [heteroskedasticAsymptoticCovariance, A, Ωm, Matrix.mul_assoc]
+
+/-- Linear-map scalar quadratic forms match the corresponding OLS projection variance. -/
+theorem linearMapCovariance_quadratic_eq_olsProjectionAsymptoticVariance
+    {μ : Measure Ω}
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ)
+    (R : Matrix q k ℝ) (c : q → ℝ) :
+    c ⬝ᵥ ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) *ᵥ c) =
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ c) := by
+  rw [olsProjectionAsymptoticVariance_eq_quadratic_heteroskedasticAsymptoticCovariance hX]
+  let V : Matrix k k ℝ := heteroskedasticAsymptoticCovariance μ X e
+  calc
+    c ⬝ᵥ ((R * V * Rᵀ) *ᵥ c)
+        = c ⬝ᵥ (R *ᵥ (V *ᵥ (Rᵀ *ᵥ c))) := by
+          simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+    _ = (Rᵀ *ᵥ c) ⬝ᵥ (V *ᵥ (Rᵀ *ᵥ c)) := by
+          rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+    _ = (Rᵀ *ᵥ c) ⬝ᵥ
+        (heteroskedasticAsymptoticCovariance μ X e *ᵥ (Rᵀ *ᵥ c)) := by
+          simp [V]
+
+/-- For a one-row linear map, the sole sandwich-covariance entry is the projection variance. -/
+theorem linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+    {μ : Measure Ω}
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ)
+    (R : Matrix Unit k ℝ) :
+    (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
+      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+  simpa [dotProduct, Matrix.mulVec] using
+    linearMapCovariance_quadratic_eq_olsProjectionAsymptoticVariance
+      (μ := μ) (X := X) (e := e) hX R (fun _ : Unit => 1)
 
 /-- **Generic sandwich CMT for Chapter 7 covariance estimators.**
 
