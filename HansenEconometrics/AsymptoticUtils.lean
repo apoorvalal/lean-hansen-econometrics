@@ -325,6 +325,53 @@ theorem TendstoInMeasure.mul_zero_real
       simpa [Real.dist_eq] using hprod_abs
     exact (not_le.mpr hprod) hω
 
+/-- Constant multiple of a real-valued `oₚ(1)` sequence is `oₚ(1)`. -/
+theorem TendstoInMeasure.const_mul_zero_real
+    {X : ℕ → α → ℝ} (c : ℝ)
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => c * X n ω) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  by_cases hc : c = 0
+  · simp [hc, not_le_of_gt hε]
+  · have hcpos : 0 < |c| := abs_pos.mpr hc
+    have hscale : 0 < ε / |c| := div_pos hε hcpos
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+      (hX (ε / |c|) hscale) (fun _ => zero_le _) (fun n => ?_)
+    refine measure_mono ?_
+    intro ω hω
+    simp only [Set.mem_setOf_eq] at hω ⊢
+    have habs : ε ≤ |c| * |X n ω| := by
+      simpa [Real.dist_eq, abs_mul] using hω
+    have hdiv : ε / |c| ≤ |X n ω| := (div_le_iff₀ hcpos).2 (by
+      simpa [mul_comm] using habs)
+    simpa [Real.dist_eq] using hdiv
+
+/-- Negation of a real-valued `oₚ(1)` sequence is `oₚ(1)`. -/
+theorem TendstoInMeasure.neg_zero_real
+    {X : ℕ → α → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => -X n ω) atTop (fun _ => 0) := by
+  simpa using TendstoInMeasure.const_mul_zero_real (μ := μ) (-1) hX
+
+/-- Difference of two real-valued `oₚ(1)` sequences is `oₚ(1)`. -/
+theorem TendstoInMeasure.sub_zero_real
+    {X Y : ℕ → α → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0) := by
+  simpa [sub_eq_add_neg] using
+    TendstoInMeasure.add_zero_real hX (TendstoInMeasure.neg_zero_real hY)
+
+/-- Center a real-valued convergence-in-measure statement at its scalar limit. -/
+theorem TendstoInMeasure.sub_limit_zero_real
+    {X : ℕ → α → ℝ} {c : ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => c)) :
+    TendstoInMeasure μ (fun n ω => X n ω - c) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  simpa [Real.dist_eq] using hX ε hε
+
 /-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This is the scalar finite-coordinate glue used by dot-product arguments. -/
@@ -346,6 +393,23 @@ theorem tendstoInMeasure_finset_sum_zero_real
       ih (fun i hi => hX i (by simp [hi]))
     have hsum := TendstoInMeasure.add_zero_real ha hs
     simpa [Finset.sum_insert has] using hsum
+
+/-- Dot product of two coordinatewise real `oₚ(1)` vector sequences is `oₚ(1)`. -/
+theorem tendstoInMeasure_dotProduct_zero_real
+    {ι : Type*} [Fintype ι] {X Y : ℕ → α → ι → ℝ}
+    (hX : ∀ i : ι, TendstoInMeasure μ (fun n ω => X n ω i) atTop (fun _ => 0))
+    (hY : ∀ i : ι, TendstoInMeasure μ (fun n ω => Y n ω i) atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => X n ω ⬝ᵥ Y n ω) atTop (fun _ => 0) := by
+  classical
+  have hprod : ∀ i ∈ (Finset.univ : Finset ι),
+      TendstoInMeasure μ (fun n ω => X n ω i * Y n ω i) atTop (fun _ => 0) := by
+    intro i _
+    exact TendstoInMeasure.mul_zero_real (hX i) (hY i)
+  have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+    (s := (Finset.univ : Finset ι))
+    (X := fun i n ω => X n ω i * Y n ω i) hprod
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  simp [dotProduct]
 
 /-- A real-valued sequence of random variables is bounded in probability (`Oₚ(1)`).
 
