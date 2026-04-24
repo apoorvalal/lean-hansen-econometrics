@@ -120,6 +120,10 @@ in four layers:
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
   the named `χ²` law-identification wrapper is formalized in
   `waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw`,
+  the conditional linear-Wald OLS wrappers are formalized in
+  `linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`
+  and
+  `linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
@@ -5509,6 +5513,110 @@ theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
     (μ := μ) (ν := ν) (T := T) (Z := Z) (Vhat := Vhat) (V := V)
     hT hV_meas hV hV_nonsing
   exact tendstoInDistribution_id_of_hasLaw_limit_real hquad hLaw
+
+/-- **Hansen Theorem 7.13, conditional linear-Wald theorem for totalized OLS.**
+
+Given a vector score CLT, covariance consistency for the linear restriction
+`Rβ`, and an identified chi-squared law for the limiting quadratic form, the
+multivariate Wald statistic based on `olsBetaStar` converges to `χ²(r)`. This
+packages the OLS vector Slutsky bridge, the linear restriction map, covariance
+Slutsky, and the final law relabeling. -/
+theorem linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν)
+    {Vhat : ℕ → Ω → Matrix q q ℝ} {V : Matrix q q ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_nonsing : IsUnit V.det)
+    (hLaw : HasLaw
+      (fun ω =>
+        (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω)) ⬝ᵥ
+          (V⁻¹ *ᵥ (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω))))
+      (chiSquared r) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hbeta := olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+    (Zscore := Zscore) h β hmodel hScore
+  have hR : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop
+      (fun ω => R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω))
+      (fun _ => μ) ν := by
+    have hcont : Continuous (fun v : k → ℝ => R *ᵥ v) :=
+      Continuous.matrix_mulVec continuous_const continuous_id
+    simpa [Function.comp_def] using hbeta.continuous_comp hcont
+  exact waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
+    (μ := μ) (ν := ν)
+    (T := fun (n : ℕ) ω =>
+      R *ᵥ (Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+    (Z := fun ω => R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω))
+    (Vhat := Vhat) (V := V)
+    hR hV_meas hV hV_nonsing hLaw
+
+/-- **Hansen Theorem 7.13, conditional linear-Wald theorem for ordinary OLS.**
+
+The same multivariate Wald bridge holds for the ordinary-on-nonsingular wrapper
+`olsBetaOrZero`, which agrees pointwise with the totalized estimator in the
+Chapter 7 interface. -/
+theorem linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν)
+    {Vhat : ℕ → Ω → Matrix q q ℝ} {V : Matrix q q ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_nonsing : IsUnit V.det)
+    (hLaw : HasLaw
+      (fun ω =>
+        (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω)) ⬝ᵥ
+          (V⁻¹ *ᵥ (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω))))
+      (chiSquared r) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      (Zscore := Zscore) h β R hmodel hScore
+      (Vhat := Vhat) (V := V) hV_meas hV hV_nonsing hLaw
 
 /-- The absolute standard-normal law has no atom at the frontier of `(-∞, c]`. -/
 theorem standardNormalAbs_frontier_Iic_null (crit : ℝ) :
