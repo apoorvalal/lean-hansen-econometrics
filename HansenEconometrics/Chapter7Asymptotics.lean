@@ -36,7 +36,9 @@ in four layers:
   `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`, with the
   feasible leading-score vector bridge
   `feasibleScore_tendstoInDistribution_of_scoreCLT` and conditional vector OLS
-  assembly `olsBetaStar_vector_tendstoInDistribution_of_scoreCLT`.
+  assembly `olsBetaStar_vector_tendstoInDistribution_of_scoreCLT` plus the
+  ordinary-wrapper version
+  `olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT`.
   The remaining textbook-facing work is vector/Cramér-Wold packaging.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
@@ -4839,6 +4841,43 @@ theorem olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
         (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
     (Z := fun ω => (popGram μ X)⁻¹ *ᵥ Zscore ω)
     hFeasible hResidual hY_meas
+
+/-- **Hansen Theorem 7.3, ordinary-wrapper conditional vector OLS CLT.**
+
+The same conditional vector asymptotic-normality bridge holds for
+`olsBetaOrZero`, the ordinary-OLS wrapper that agrees with `olsBetaStar`
+pointwise. -/
+theorem olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop
+      (fun ω => (popGram μ X)⁻¹ *ᵥ Zscore ω)
+      (fun _ => μ) ν := by
+  have hstar := olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+    (Zscore := Zscore) h β hmodel hScore
+  refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hstar
+  intro n
+  exact ae_of_all μ (fun ω => by
+    change
+      Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) =
+        Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)
+    rw [olsBetaOrZero_eq_olsBetaStar])
 
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
