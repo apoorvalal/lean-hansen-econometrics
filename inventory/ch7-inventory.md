@@ -122,6 +122,7 @@ separate textbook-facing task.
 - Theorem 7.13 has scalar one-degree-of-freedom HC0/HC1 Wald statistic limits to `χ²(1)`; the full multivariate Wald theorem remains.
 - Theorem 7.14 has a scalar one-degree-of-freedom homoskedastic Wald statistic limit to `χ²(1)` under the moment-level bridge `Ω = σ²Q`; the full multivariate homoskedastic Wald theorem remains.
 - Theorem 7.16 has the deterministic pointwise residual-error inequalities for totalized and ordinary OLS; the probabilistic max-rate packaging remains.
+- Theorem 7.17 has finite-sample leverage trace and average identities on nonsingular designs; the probabilistic max-leverage rate remains.
 
 ## Main theorem signposts
 
@@ -142,7 +143,8 @@ separate textbook-facing task.
 | Theorem 7.13 Wald statistics | Scalar one-degree-of-freedom HC0/HC1 Wald limits are formalized. | Add the full multivariate Wald theorem. |
 | Theorem 7.14 homoskedastic Wald statistic | Scalar one-degree-of-freedom homoskedastic Wald limit is formalized under the moment-level bridge `Ω = σ²Q`. | Prove `Ω = σ²Q` from a literal conditional homoskedasticity assumption and add the full multivariate theorem. |
 | Theorem 7.16 residual uniformity | Deterministic pointwise residual-error inequalities are formalized for totalized and ordinary OLS. | Add rate vocabulary and max-over-sample probabilistic packaging. |
-| Theorems 7.15 and 7.17 | Pending/signpost-only. | Add Edgeworth and leverage layers. |
+| Theorem 7.17 asymptotic leverage | Finite-sample leverage trace and average identities are formalized on nonsingular designs. | Add eigenvalue/operator-norm bounds and probabilistic max-leverage rate packaging. |
+| Theorem 7.15 Edgeworth expansion | Pending/signpost-only. | Add Edgeworth expansion infrastructure. |
 
 ## Extracted candidates
 - 7.1 Introduction
@@ -265,7 +267,7 @@ Conventions:
 | Theorem 7.14 | Under Assumptions 7.2, 7.3, and E | Scalar one-degree-of-freedom homoskedastic Wald limit to `χ²(1)` is formalized under the moment-level bridge `Ω = σ²Q`; multivariate and literal conditional-homoskedasticity bridge remain. |
 | Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
 | Theorem 7.16 | Under Assumption 7.2 and E ∥X ∥r < ∞, then | Deterministic pointwise residual-error inequalities are formalized; max-rate convergence remains. |
-| Theorem 7.17 | If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then |  |
+| Theorem 7.17 | If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then | Finite-sample leverage trace and average identities are formalized; max-leverage rate remains. |
 
 ## Lean-only bridge results
 
@@ -317,6 +319,8 @@ Phase 5 variance-estimator pieces:
 - `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance` — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `Ω = σ²Q`.
 - `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` — totalized pointwise residual-error bound behind Theorem 7.16.
 - `residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` — ordinary-OLS pointwise residual-error bound on nonsingular samples.
+- `sum_leverageStar_eq_card_of_nonsingular` — nonsingular leverage diagonal sums to the number of regressors.
+- `average_leverageStar_eq_card_div_card_of_nonsingular` — nonsingular average leverage is `k / n`.
 - [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1349) — scalar CLT for projected score sums.
 - [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1463) — scalar CLT for `√n · ĝₙ(e)`.
 - [scoreCoordinate_sampleCrossMoment_boundedInProbability](../../HansenEconometrics/Chapter7Asymptotics.lean#L1420) — each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)` by score CLT tightness.

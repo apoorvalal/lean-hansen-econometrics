@@ -110,7 +110,11 @@ in four layers:
   deterministic pointwise residual-error inequalities are formalized in
   `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` and
   `residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm`.
-* **Theorem 7.15/7.17** — pending/signpost-only.
+* **Theorem 7.17** — the probabilistic max-leverage rate is pending, but the
+  finite-sample leverage trace and average identities are formalized in
+  `sum_leverageStar_eq_card_of_nonsingular` and
+  `average_leverageStar_eq_card_div_card_of_nonsingular`.
+* **Theorem 7.15** — pending/signpost-only.
 
 ## Phase 1 — Deterministic scaffold
 
@@ -2545,6 +2549,37 @@ theorem leverageStar_eq_hatMatrix_diag
   unfold leverageStar hatMatrix
   rw [← invOf_eq_nonsing_inv, Matrix.dotProduct_mulVec]
   simp [Matrix.mul_apply, Matrix.vecMul, dotProduct, Matrix.transpose_apply]
+
+/-- **Hansen Theorem 7.17, finite-sample leverage trace identity.**
+
+On nonsingular samples, the totalized leverages sum to the number of regressors,
+because they are the diagonal entries of the hat matrix. -/
+theorem sum_leverageStar_eq_card_of_nonsingular
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    ∑ i : n, leverageStar X i = (Fintype.card k : ℝ) := by
+  calc
+    ∑ i : n, leverageStar X i
+        = ∑ i : n, hatMatrix X i i := by
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          rw [leverageStar_eq_hatMatrix_diag]
+    _ = Matrix.trace (hatMatrix X) := by
+          simp [Matrix.trace]
+    _ = (Fintype.card k : ℝ) := by
+          simpa using hatMatrix_trace (X := X)
+
+/-- **Hansen Theorem 7.17, average leverage identity.**
+
+The sample average of the nonsingular leverage diagonal is `k / n`. This is the
+finite-sample identity behind the asymptotic max-leverage discussion. -/
+theorem average_leverageStar_eq_card_div_card_of_nonsingular
+    (X : Matrix n k ℝ) [Nonempty n] [Invertible (Xᵀ * X)] :
+    (Fintype.card n : ℝ)⁻¹ * ∑ i : n, leverageStar X i =
+      (Fintype.card k : ℝ) / (Fintype.card n : ℝ) := by
+  have hn : (Fintype.card n : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  rw [sum_leverageStar_eq_card_of_nonsingular]
+  field_simp [hn]
 
 /-- The HC2 residual-score covariance middle matrix
 `n⁻¹∑ êᵢ²/(1-hᵢᵢ) · xᵢxᵢ'`, totalized through `leverageStar`. -/
