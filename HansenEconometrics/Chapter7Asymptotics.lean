@@ -2357,6 +2357,59 @@ theorem sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_o
           rw [hstack, hexp]
           simp [ideal, cross, quad, hstack]
 
+/-- **Theorem 7.6 cross-remainder control.**
+
+If each empirical third-moment weight in the HC0 cross remainder is bounded in
+probability, consistency of `β̂*` makes the cross remainder `oₚ(1)`. -/
+theorem sampleScoreCovarianceCrossRemainder_stack_tendstoInMeasure_zero_of_bounded_weights
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossRemainder
+          (stackRegressors X n ω) (stackErrors e n ω)
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop (fun _ => 0) := by
+  have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  have hTerm : ∀ l ∈ (Finset.univ : Finset k),
+      TendstoInMeasure μ
+        (fun n ω =>
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) l *
+            sampleScoreCovarianceCrossWeight
+              (stackRegressors X n ω) (stackErrors e n ω) a b l)
+        atTop (fun _ => 0) := by
+    intro l _
+    have hBeta_l : TendstoInMeasure μ
+        (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) l)
+        atTop (fun _ => β l) := by
+      simpa using TendstoInMeasure.pi_apply hBeta l
+    have hd_l : TendstoInMeasure μ
+        (fun n ω =>
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) l)
+        atTop (fun _ => 0) := by
+      simpa [Pi.sub_apply] using TendstoInMeasure.sub_limit_zero_real hBeta_l
+    exact TendstoInMeasure.mul_boundedInProbability hd_l (hWeight a b l)
+  have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+    (s := (Finset.univ : Finset k))
+    (X := fun l n ω =>
+      (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) l *
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l)
+    hTerm
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  exact (sampleScoreCovarianceCrossRemainder_apply_eq_sum_weight
+    (stackRegressors X n ω) (stackErrors e n ω)
+    (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) a b).symm
+
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
 noncomputable def heteroskedasticAsymptoticCovariance
