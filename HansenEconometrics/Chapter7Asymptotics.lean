@@ -115,17 +115,20 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   `waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw`,
   the positive-definite Gaussian/Mahalanobis law bridge is formalized in
   `waldQuadraticForm_tendstoInDistribution_chiSquared_of_gaussian_mahalanobis`,
-  the non-shortcut full-rank linear-Wald OLS wrappers are formalized in
-  `linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian` and
-  `linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian`, the conditional
-  linear-Wald OLS bridge wrappers remain available as
+  and the public full-rank linear-Wald OLS wrappers
+  `linearMap_olsBetaStar_waldChiSquared_gaussian` and
+  `linearMap_olsBetaOrZero_waldChiSquared_gaussian` now consume the proved
+  vector OLS CLT instead of assuming it. The conditional linear-Wald OLS bridge
+  wrappers remain available as
   `linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`
   and
   `linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
-  Remaining: vector CLT/covariance packaging for the textbook multivariate theorem.
+  Remaining: discharge the Gaussian linear-map law/covariance identity and plug
+  in concrete covariance-estimator consistency for the textbook multivariate
+  theorem.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
   pending, but the scalar one-degree-of-freedom face is formalized under the
   variable-facing homoskedasticity assumption
