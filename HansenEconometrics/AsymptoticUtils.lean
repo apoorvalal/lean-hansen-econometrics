@@ -126,6 +126,60 @@ theorem tendstoInMeasure_pi
 
 end CMT
 
+section CramerWold
+
+/-- Characteristic functions of an `E`-valued pushforward can be evaluated as
+the one-dimensional characteristic function of the corresponding inner-product
+projection.
+
+This is the small bridge needed to apply Mathlib's Lévy continuity theorem to
+finite-dimensional Cramér-Wold arguments. -/
+theorem charFun_map_eq_charFun_dualMap_one
+    {Ω E : Type*} [MeasurableSpace Ω] [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E]
+    {μ : Measure Ω} {X : Ω → E} (hX : AEMeasurable X μ) (t : E) :
+    charFun (μ.map X) t =
+      charFun (μ.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (X ω))) 1 := by
+  rw [charFun_eq_charFunDual_toDualMap]
+  rw [charFunDual_eq_charFun_map_one]
+  rw [AEMeasurable.map_map_of_aemeasurable]
+  · rfl
+  · exact (InnerProductSpace.toDualMap ℝ E t).continuous.aemeasurable
+  · exact hX
+
+/-- **Cramér-Wold convergence bridge for finite-dimensional inner-product spaces.**
+
+If every fixed inner-product projection of `T n` converges in distribution to
+the matching projection of `Z`, then `T n` converges in distribution to `Z`.
+The proof compares characteristic functions projectionwise and then uses
+Mathlib's Lévy convergence theorem for probability measures. -/
+theorem cramerWold_tendstoInDistribution
+    {Ω Ω' E : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ℕ → Ω → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) μ)
+    (hZ : AEMeasurable Z ν)
+    (hproj : ∀ t : E,
+      TendstoInDistribution
+        (fun n ω => (InnerProductSpace.toDualMap ℝ E t) (T n ω)) atTop
+        (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω)) (fun _ => μ) ν) :
+    TendstoInDistribution T atTop Z (fun _ => μ) ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  have hscalar := (ProbabilityMeasure.tendsto_iff_tendsto_charFun.mp (hproj t).tendsto) 1
+  convert hscalar using 1
+  · ext n
+    exact charFun_map_eq_charFun_dualMap_one (hT n) t
+  · change 𝓝 (charFun (ν.map Z) t) =
+      𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
+    exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
+
+end CramerWold
+
 section MatrixInverse
 
 open scoped Matrix.Norms.Elementwise
