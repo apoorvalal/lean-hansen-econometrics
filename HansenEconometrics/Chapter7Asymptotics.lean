@@ -58,11 +58,18 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   with residual-middle measurability discharged in
   `olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components`.
   HC2/HC3 are now defined with totalized leverage weights and have conditional
-  sandwich assembly theorems
+  sandwich assembly theorems factored through the generic leverage-adjusted
+  middle-matrix engine
+  `sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment`
+  and
+  `olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle`,
+  with matrix adjustment convergence reducible to scalar entries by
+  `sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries`.
+  The HC2/HC3 wrappers remain available as
   `olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle` and
   `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
-  prove the leverage-weighted middle matrices converge to `Ω`, typically via
-  the max-leverage `oₚ(1)` theorem later in the chapter.
+  prove the scalar leverage-adjustment entry sums vanish, typically via the
+  max-leverage `oₚ(1)` theorem later in the chapter.
 * **Theorem 7.8** — the global continuous-mapping face for functions of
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
   after proving `olsBetaStar_stack_aestronglyMeasurable`, with the

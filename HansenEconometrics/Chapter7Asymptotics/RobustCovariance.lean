@@ -490,37 +490,75 @@ theorem average_leverageStar_eq_card_div_card_of_nonsingular
   rw [sum_leverageStar_eq_card_of_nonsingular]
   field_simp [hn]
 
+/-- Leverage-weighted residual-score covariance middle matrix.
+
+This is the common engine behind HC2 and HC3: each estimator chooses a scalar
+weight as a function of the leverage value `hᵢᵢ`, then forms
+`n⁻¹∑ w(hᵢᵢ) êᵢ²xᵢxᵢ'`. -/
+noncomputable def sampleScoreCovarianceLeverageAdjustedStar
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) :
+    Matrix k k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ •
+    ∑ i : n,
+      (weight (leverageStar X i) * (olsResidualStar X y i) ^ 2) •
+        Matrix.vecMulVec (X i) (X i)
+
+/-- Leverage-weighted middle-matrix adjustment relative to HC0. -/
+noncomputable def sampleScoreCovarianceLeverageAdjustmentStar
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  sampleScoreCovarianceLeverageAdjustedStar weight X y - sampleScoreCovarianceStar X y
+
+/-- Scalar entry of the generic leverage-weighted middle-matrix adjustment. -/
+noncomputable def sampleScoreCovarianceLeverageAdjustmentEntryStar
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ *
+    ∑ i : n, ((weight (leverageStar X i) - 1) *
+      (olsResidualStar X y i) ^ 2 * X i a * X i b)
+
 /-- The HC2 residual-score covariance middle matrix
 `n⁻¹∑ êᵢ²/(1-hᵢᵢ) · xᵢxᵢ'`, totalized through `leverageStar`. -/
 noncomputable def sampleScoreCovarianceHC2Star (X : Matrix n k ℝ) (y : n → ℝ) :
     Matrix k k ℝ :=
-  (Fintype.card n : ℝ)⁻¹ •
-    ∑ i : n,
-      ((1 - leverageStar X i)⁻¹ * (olsResidualStar X y i) ^ 2) •
-        Matrix.vecMulVec (X i) (X i)
+  sampleScoreCovarianceLeverageAdjustedStar (fun h => (1 - h)⁻¹) X y
 
 /-- The HC3 residual-score covariance middle matrix
 `n⁻¹∑ êᵢ²/(1-hᵢᵢ)² · xᵢxᵢ'`, totalized through `leverageStar`. -/
 noncomputable def sampleScoreCovarianceHC3Star (X : Matrix n k ℝ) (y : n → ℝ) :
     Matrix k k ℝ :=
-  (Fintype.card n : ℝ)⁻¹ •
-    ∑ i : n,
-      (((1 - leverageStar X i)⁻¹) ^ 2 * (olsResidualStar X y i) ^ 2) •
-        Matrix.vecMulVec (X i) (X i)
+  sampleScoreCovarianceLeverageAdjustedStar (fun h => ((1 - h)⁻¹) ^ 2) X y
 
 /-- HC2-minus-HC0 middle-matrix adjustment. Proving this is `oₚ(1)` is the
 leverage-specific part of HC2 consistency. -/
 noncomputable def sampleScoreCovarianceHC2AdjustmentStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
-  sampleScoreCovarianceHC2Star X y - sampleScoreCovarianceStar X y
+  sampleScoreCovarianceLeverageAdjustmentStar (fun h => (1 - h)⁻¹) X y
 
 /-- HC3-minus-HC0 middle-matrix adjustment. Proving this is `oₚ(1)` is the
 leverage-specific part of HC3 consistency. -/
 noncomputable def sampleScoreCovarianceHC3AdjustmentStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
-  sampleScoreCovarianceHC3Star X y - sampleScoreCovarianceStar X y
+  sampleScoreCovarianceLeverageAdjustmentStar (fun h => ((1 - h)⁻¹) ^ 2) X y
 
 set_option linter.flexible false in
+/-- **Generic leverage-adjustment expansion, entrywise form.**
+
+The leverage-adjusted-minus-HC0 middle matrix is the sample average with scalar
+weight `w(hᵢᵢ)-1` multiplying the usual residual-score outer product. -/
+theorem sampleScoreCovarianceLeverageAdjustmentStar_apply
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) :
+    sampleScoreCovarianceLeverageAdjustmentStar weight X y a b =
+      sampleScoreCovarianceLeverageAdjustmentEntryStar weight X y a b := by
+  simp [sampleScoreCovarianceLeverageAdjustmentStar,
+    sampleScoreCovarianceLeverageAdjustedStar,
+    sampleScoreCovarianceLeverageAdjustmentEntryStar,
+    sampleScoreCovarianceStar, Matrix.sub_apply, Matrix.smul_apply,
+    Matrix.sum_apply, Matrix.vecMulVec_apply, smul_eq_mul]
+  rw [← mul_sub, ← Finset.sum_sub_distrib]
+  congr 1
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  ring
+
 /-- **HC2 leverage-adjustment expansion, entrywise form.**
 
 The HC2-minus-HC0 middle matrix is the sample average with scalar weight
@@ -531,16 +569,11 @@ theorem sampleScoreCovarianceHC2AdjustmentStar_apply
       (Fintype.card n : ℝ)⁻¹ *
         ∑ i : n, (((1 - leverageStar X i)⁻¹ - 1) *
           (olsResidualStar X y i) ^ 2 * X i a * X i b) := by
-  simp [sampleScoreCovarianceHC2AdjustmentStar, sampleScoreCovarianceHC2Star,
-    sampleScoreCovarianceStar, Matrix.sub_apply, Matrix.smul_apply,
-    Matrix.sum_apply, Matrix.vecMulVec_apply, smul_eq_mul]
-  rw [← mul_sub, ← Finset.sum_sub_distrib]
-  congr 1
-  refine Finset.sum_congr rfl ?_
-  intro i _
-  ring
+  change sampleScoreCovarianceLeverageAdjustmentStar
+      (fun h => (1 - h)⁻¹) X y a b = _
+  rw [sampleScoreCovarianceLeverageAdjustmentStar_apply]
+  rfl
 
-set_option linter.flexible false in
 /-- **HC3 leverage-adjustment expansion, entrywise form.**
 
 The HC3-minus-HC0 middle matrix is the sample average with scalar weight
@@ -551,14 +584,72 @@ theorem sampleScoreCovarianceHC3AdjustmentStar_apply
       (Fintype.card n : ℝ)⁻¹ *
         ∑ i : n, ((((1 - leverageStar X i)⁻¹) ^ 2 - 1) *
           (olsResidualStar X y i) ^ 2 * X i a * X i b) := by
-  simp [sampleScoreCovarianceHC3AdjustmentStar, sampleScoreCovarianceHC3Star,
-    sampleScoreCovarianceStar, Matrix.sub_apply, Matrix.smul_apply,
-    Matrix.sum_apply, Matrix.vecMulVec_apply, smul_eq_mul]
-  rw [← mul_sub, ← Finset.sum_sub_distrib]
-  congr 1
-  refine Finset.sum_congr rfl ?_
-  intro i _
-  ring
+  change sampleScoreCovarianceLeverageAdjustmentStar
+      (fun h => ((1 - h)⁻¹) ^ 2) X y a b = _
+  rw [sampleScoreCovarianceLeverageAdjustmentStar_apply]
+  rfl
+
+/-- Generic leverage-adjustment convergence from scalar entries.
+
+This turns the remaining HC2/HC3 adjustment goal into one scalar sample-average
+goal per matrix entry, leaving the max-leverage argument independent of matrix
+convergence bookkeeping. -/
+theorem sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (weight : ℝ → ℝ)
+    (hEntry : ∀ a b : k, TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceLeverageAdjustmentEntryStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceLeverageAdjustmentStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0) := by
+  refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
+  refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
+  have h := hEntry a b
+  refine h.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  exact (sampleScoreCovarianceLeverageAdjustmentStar_apply
+    (weight := weight) (X := stackRegressors X n ω)
+    (y := stackOutcomes y n ω) a b).symm
+
+/-- HC2 adjustment convergence from scalar entrywise adjustment sums. -/
+theorem sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (hEntry : ∀ a b : k, TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceLeverageAdjustmentEntryStar (fun h => (1 - h)⁻¹)
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceHC2AdjustmentStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0) := by
+  simpa [sampleScoreCovarianceHC2AdjustmentStar] using
+    sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+      (μ := μ) (X := X) (y := y) (weight := fun h => (1 - h)⁻¹) hEntry
+
+/-- HC3 adjustment convergence from scalar entrywise adjustment sums. -/
+theorem sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (hEntry : ∀ a b : k, TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceLeverageAdjustmentEntryStar
+          (fun h => ((1 - h)⁻¹) ^ 2)
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceHC3AdjustmentStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0) := by
+  simpa [sampleScoreCovarianceHC3AdjustmentStar] using
+    sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+      (μ := μ) (X := X) (y := y)
+      (weight := fun h => ((1 - h)⁻¹) ^ 2) hEntry
 
 /-- **Theorem 7.6 residual-score expansion, entrywise form.**
 
@@ -979,6 +1070,38 @@ theorem sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_o
   exact sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders
     (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCross hQuad
 
+/-- **Generic leverage-adjusted middle matrix from HC0 plus adjustment.**
+
+If the feasible HC0 middle matrix converges to `Ω` and the leverage-weighted
+adjustment is `oₚ(1)`, then the corresponding leverage-adjusted middle matrix
+also converges to `Ω`. HC2 and HC3 are thin specializations with different
+scalar leverage weights. -/
+theorem sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (weight : ℝ → ℝ)
+    (hHC0_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hAdj_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceLeverageAdjustmentStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hHC0 : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceStar
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceLeverageAdjustmentStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceLeverageAdjustedStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e) := by
+  have hsum := tendstoInMeasure_add hHC0_meas hAdj_meas hHC0 hAdj
+  simpa [sampleScoreCovarianceLeverageAdjustmentStar,
+    sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
+
 /-- **Hansen Theorem 7.7, HC2 middle matrix from HC0 plus adjustment.**
 
 If the feasible HC0 middle matrix converges to `Ω` and the HC2 leverage
@@ -1005,9 +1128,11 @@ theorem sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatri
       (fun n ω => sampleScoreCovarianceHC2Star
         (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => scoreCovarianceMatrix μ X e) := by
-  have hsum := tendstoInMeasure_add hHC0_meas hAdj_meas hHC0 hAdj
-  simpa [sampleScoreCovarianceHC2AdjustmentStar, sub_eq_add_neg, add_assoc,
-    add_comm, add_left_comm] using hsum
+  simpa [sampleScoreCovarianceHC2Star, sampleScoreCovarianceHC2AdjustmentStar] using
+    sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => (1 - h)⁻¹)
+      hHC0_meas hAdj_meas hHC0 hAdj
 
 /-- **Hansen Theorem 7.7, HC3 middle matrix from HC0 plus adjustment.**
 
@@ -1034,9 +1159,11 @@ theorem sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatri
       (fun n ω => sampleScoreCovarianceHC3Star
         (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => scoreCovarianceMatrix μ X e) := by
-  have hsum := tendstoInMeasure_add hHC0_meas hAdj_meas hHC0 hAdj
-  simpa [sampleScoreCovarianceHC3AdjustmentStar, sub_eq_add_neg, add_assoc,
-    add_comm, add_left_comm] using hsum
+  simpa [sampleScoreCovarianceHC3Star, sampleScoreCovarianceHC3AdjustmentStar] using
+    sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => ((1 - h)⁻¹) ^ 2)
+      hHC0_meas hAdj_meas hHC0 hAdj
 
 /-- Hansen's heteroskedastic asymptotic covariance matrix
 `V_β := Q⁻¹ Ω Q⁻¹`. -/
@@ -1646,15 +1773,21 @@ noncomputable def olsHeteroskedasticCovarianceHC1Star
   ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
     olsHeteroskedasticCovarianceStar X y
 
+/-- Generic totalized leverage-adjusted sandwich estimator. -/
+noncomputable def olsHeteroskedasticCovarianceLeverageAdjustedStar
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
+  (sampleGram X)⁻¹ * sampleScoreCovarianceLeverageAdjustedStar weight X y *
+    (sampleGram X)⁻¹
+
 /-- Totalized HC2 asymptotic sandwich estimator. -/
 noncomputable def olsHeteroskedasticCovarianceHC2Star
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
-  (sampleGram X)⁻¹ * sampleScoreCovarianceHC2Star X y * (sampleGram X)⁻¹
+  olsHeteroskedasticCovarianceLeverageAdjustedStar (fun h => (1 - h)⁻¹) X y
 
 /-- Totalized HC3 asymptotic sandwich estimator. -/
 noncomputable def olsHeteroskedasticCovarianceHC3Star
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
-  (sampleGram X)⁻¹ * sampleScoreCovarianceHC3Star X y * (sampleGram X)⁻¹
+  olsHeteroskedasticCovarianceLeverageAdjustedStar (fun h => ((1 - h)⁻¹) ^ 2) X y
 
 /-- **Hansen Theorem 7.6, ideal sandwich consistency.**
 
@@ -2264,6 +2397,34 @@ theorem olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_compone
     (V := heteroskedasticAsymptoticCovariance μ X e)
     hV_meas hV
 
+/-- **Generic leverage-adjusted sandwich assembly.**
+
+Once a leverage-weighted middle matrix is known to converge in probability to
+`Ω`, the corresponding totalized leverage-adjusted sandwich estimator converges
+to `Q⁻¹ Ω Q⁻¹`. HC2 and HC3 differ only by the scalar leverage weight. -/
+theorem olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e)
+    (weight : ℝ → ℝ)
+    (hmiddle_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => sampleScoreCovarianceLeverageAdjustedStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
+    (hmiddle : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceLeverageAdjustedStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => scoreCovarianceMatrix μ X e)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceLeverageAdjustedStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
+  exact sandwichCovarianceStar_tendstoInMeasure_of_middle
+    (μ := μ) (X := X) (e := e) h
+    (middle := fun n ω => sampleScoreCovarianceLeverageAdjustedStar weight
+      (stackRegressors X n ω) (stackOutcomes y n ω))
+    hmiddle_meas hmiddle
+
 /-- **Hansen Theorem 7.7, conditional HC2 sandwich assembly.**
 
 Once the HC2 leverage-weighted middle matrix is known to converge in
@@ -2286,11 +2447,10 @@ theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
         olsHeteroskedasticCovarianceHC2Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  exact sandwichCovarianceStar_tendstoInMeasure_of_middle
-    (μ := μ) (X := X) (e := e) h
-    (middle := fun n ω => sampleScoreCovarianceHC2Star
-      (stackRegressors X n ω) (stackOutcomes y n ω))
-    hHC2_meas hHC2
+  simpa [olsHeteroskedasticCovarianceHC2Star, sampleScoreCovarianceHC2Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle
+      (μ := μ) (X := X) (e := e) (y := y)
+      h (fun h => (1 - h)⁻¹) hHC2_meas hHC2
 
 /-- **Hansen Theorem 7.7, conditional HC3 sandwich assembly.**
 
@@ -2314,11 +2474,10 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
         olsHeteroskedasticCovarianceHC3Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  exact sandwichCovarianceStar_tendstoInMeasure_of_middle
-    (μ := μ) (X := X) (e := e) h
-    (middle := fun n ω => sampleScoreCovarianceHC3Star
-      (stackRegressors X n ω) (stackOutcomes y n ω))
-    hHC3_meas hHC3
+  simpa [olsHeteroskedasticCovarianceHC3Star, sampleScoreCovarianceHC3Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle
+      (μ := μ) (X := X) (e := e) (y := y)
+      h (fun h => ((1 - h)⁻¹) ^ 2) hHC3_meas hHC3
 
 /-- **Hansen Theorem 7.7, HC2 sandwich modulo leverage adjustment.**
 
@@ -2370,8 +2529,9 @@ theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_
             sampleScoreCovarianceHC2AdjustmentStar
               (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
       (hHC0_meas n).add (hAdj_meas n)
-    simpa [sampleScoreCovarianceHC2AdjustmentStar, sub_eq_add_neg, add_assoc,
-      add_comm, add_left_comm] using hsum
+    simpa [sampleScoreCovarianceHC2AdjustmentStar,
+      sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC2Star,
+      sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
   exact olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
     (μ := μ) (X := X) (e := e) (y := y)
     h.toSampleMomentAssumption71 hHC2_meas hHC2
@@ -2426,8 +2586,9 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_
             sampleScoreCovarianceHC3AdjustmentStar
               (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
       (hHC0_meas n).add (hAdj_meas n)
-    simpa [sampleScoreCovarianceHC3AdjustmentStar, sub_eq_add_neg, add_assoc,
-      add_comm, add_left_comm] using hsum
+    simpa [sampleScoreCovarianceHC3AdjustmentStar,
+      sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC3Star,
+      sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
   exact olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
     (μ := μ) (X := X) (e := e) (y := y)
     h.toSampleMomentAssumption71 hHC3_meas hHC3
