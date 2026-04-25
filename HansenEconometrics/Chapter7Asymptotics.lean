@@ -65,11 +65,16 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   `olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle`,
   with matrix adjustment convergence reducible to scalar entries by
   `sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries`.
+  Scalar entry convergence is further reduced by
+  `sampleScoreCovarianceLeverageAdjustmentEntryStar_tendstoInMeasure_zero_of_weight_norm`
+  to a largest-adjustment-weight `oₚ(1)` condition times a bounded absolute
+  residual-score average.
   The HC2/HC3 wrappers remain available as
   `olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle` and
   `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
-  prove the scalar leverage-adjustment entry sums vanish, typically via the
-  max-leverage `oₚ(1)` theorem later in the chapter.
+  prove the HC2/HC3 largest-adjustment-weight condition from max leverage, and
+  discharge the bounded absolute residual-score averages from primitive moment
+  assumptions.
 * **Theorem 7.8** — the global continuous-mapping face for functions of
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
   after proving `olsBetaStar_stack_aestronglyMeasurable`, with the

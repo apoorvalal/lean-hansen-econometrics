@@ -515,6 +515,17 @@ noncomputable def sampleScoreCovarianceLeverageAdjustmentEntryStar
     ∑ i : n, ((weight (leverageStar X i) - 1) *
       (olsResidualStar X y i) ^ 2 * X i a * X i b)
 
+/-- Sup-norm of the leverage adjustment weights `w(hᵢᵢ)-1`. -/
+noncomputable def leverageAdjustmentWeightNormStar
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) : ℝ :=
+  ‖fun i : n => weight (leverageStar X i) - 1‖
+
+/-- Absolute residual-score average used to bound leverage adjustments entrywise. -/
+noncomputable def sampleScoreCovarianceResidualAbsWeightStar
+    (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ *
+    ∑ i : n, |(olsResidualStar X y i) ^ 2 * X i a * X i b|
+
 /-- The HC2 residual-score covariance middle matrix
 `n⁻¹∑ êᵢ²/(1-hᵢᵢ) · xᵢxᵢ'`, totalized through `leverageStar`. -/
 noncomputable def sampleScoreCovarianceHC2Star (X : Matrix n k ℝ) (y : n → ℝ) :
@@ -588,6 +599,101 @@ theorem sampleScoreCovarianceHC3AdjustmentStar_apply
       (fun h => ((1 - h)⁻¹) ^ 2) X y a b = _
   rw [sampleScoreCovarianceLeverageAdjustmentStar_apply]
   rfl
+
+/-- Each scalar leverage-adjustment weight is bounded by its sup norm. -/
+theorem leverageAdjustmentWeight_abs_le_norm
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (i : n) :
+    |weight (leverageStar X i) - 1| ≤
+      leverageAdjustmentWeightNormStar weight X := by
+  simpa [leverageAdjustmentWeightNormStar, Real.norm_eq_abs] using
+    norm_le_pi_norm (fun i : n => weight (leverageStar X i) - 1) i
+
+/-- The residual absolute-weight average is nonnegative. -/
+theorem sampleScoreCovarianceResidualAbsWeightStar_nonneg
+    (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) :
+    0 ≤ sampleScoreCovarianceResidualAbsWeightStar X y a b := by
+  unfold sampleScoreCovarianceResidualAbsWeightStar
+  exact mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg _))
+    (Finset.sum_nonneg (fun i _ => abs_nonneg _))
+
+/-- Deterministic entrywise bound for generic leverage adjustments.
+
+The scalar HC2/HC3 remainder is bounded by the largest leverage-adjustment
+weight times the absolute residual-score average. -/
+theorem sampleScoreCovarianceLeverageAdjustmentEntryStar_abs_le
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ) (a b : k) :
+    |sampleScoreCovarianceLeverageAdjustmentEntryStar weight X y a b| ≤
+      leverageAdjustmentWeightNormStar weight X *
+        sampleScoreCovarianceResidualAbsWeightStar X y a b := by
+  classical
+  let c : ℝ := (Fintype.card n : ℝ)⁻¹
+  let base : n → ℝ := fun i => (olsResidualStar X y i) ^ 2 * X i a * X i b
+  have hc_nonneg : 0 ≤ c := inv_nonneg.mpr (Nat.cast_nonneg _)
+  have hentry :
+      sampleScoreCovarianceLeverageAdjustmentEntryStar weight X y a b =
+        c * ∑ i : n, (weight (leverageStar X i) - 1) * base i := by
+    simp [sampleScoreCovarianceLeverageAdjustmentEntryStar, c, base, mul_assoc]
+  have hsum_abs :
+      |∑ i : n, (weight (leverageStar X i) - 1) * base i| ≤
+        ∑ i : n, |(weight (leverageStar X i) - 1) * base i| :=
+    Finset.abs_sum_le_sum_abs _ _
+  have hsum_bound :
+      ∑ i : n, |(weight (leverageStar X i) - 1) * base i| ≤
+        ∑ i : n, leverageAdjustmentWeightNormStar weight X * |base i| := by
+    refine Finset.sum_le_sum ?_
+    intro i _
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_right
+      (leverageAdjustmentWeight_abs_le_norm weight X i) (abs_nonneg _)
+  calc
+    |sampleScoreCovarianceLeverageAdjustmentEntryStar weight X y a b|
+        = c * |∑ i : n, (weight (leverageStar X i) - 1) * base i| := by
+          rw [hentry, abs_mul, abs_of_nonneg hc_nonneg]
+    _ ≤ c * ∑ i : n, |(weight (leverageStar X i) - 1) * base i| :=
+          mul_le_mul_of_nonneg_left hsum_abs hc_nonneg
+    _ ≤ c * ∑ i : n, leverageAdjustmentWeightNormStar weight X * |base i| :=
+          mul_le_mul_of_nonneg_left hsum_bound hc_nonneg
+    _ = leverageAdjustmentWeightNormStar weight X *
+          sampleScoreCovarianceResidualAbsWeightStar X y a b := by
+          rw [← Finset.mul_sum]
+          simp [sampleScoreCovarianceResidualAbsWeightStar, c, base]
+          ring
+
+/-- Scalar leverage-adjustment entries are `oₚ(1)` when the largest adjustment
+weight is `oₚ(1)` and the corresponding absolute residual-score average is
+`Oₚ(1)`. -/
+theorem sampleScoreCovarianceLeverageAdjustmentEntryStar_tendstoInMeasure_zero_of_weight_norm
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (weight : ℝ → ℝ) (a b : k)
+    (hWeight : TendstoInMeasure μ
+      (fun n ω =>
+        leverageAdjustmentWeightNormStar weight (stackRegressors X n ω))
+      atTop (fun _ => 0))
+    (hAbsWeight : BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceResidualAbsWeightStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        sampleScoreCovarianceLeverageAdjustmentEntryStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+      atTop (fun _ => 0) := by
+  have hprod :=
+    TendstoInMeasure.mul_boundedInProbability
+      (μ := μ) hWeight hAbsWeight
+  refine TendstoInMeasure.of_abs_le_zero_real hprod ?_
+  intro n ω
+  have hnonneg : 0 ≤
+      leverageAdjustmentWeightNormStar weight (stackRegressors X n ω) *
+        sampleScoreCovarianceResidualAbsWeightStar
+          (stackRegressors X n ω) (stackOutcomes y n ω) a b := by
+    exact mul_nonneg (norm_nonneg _)
+      (sampleScoreCovarianceResidualAbsWeightStar_nonneg
+        (stackRegressors X n ω) (stackOutcomes y n ω) a b)
+  rw [abs_of_nonneg hnonneg]
+  exact sampleScoreCovarianceLeverageAdjustmentEntryStar_abs_le
+    (weight := weight) (X := stackRegressors X n ω)
+    (y := stackOutcomes y n ω) a b
 
 /-- Generic leverage-adjustment convergence from scalar entries.
 

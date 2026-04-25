@@ -515,6 +515,24 @@ theorem TendstoInMeasure.sub_zero_real
   simpa [sub_eq_add_neg] using
     TendstoInMeasure.add_zero_real hX (TendstoInMeasure.neg_zero_real hY)
 
+/-- Real-valued squeeze to zero in probability by an absolute-value bound. -/
+theorem TendstoInMeasure.of_abs_le_zero_real
+    {X Y : ℕ → α → ℝ}
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0))
+    (hbound : ∀ n ω, |X n ω| ≤ |Y n ω|) :
+    TendstoInMeasure μ X atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hY ⊢
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    (hY ε hε) (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  have hx : ε ≤ |X n ω| := by
+    simpa [Real.dist_eq] using hω
+  have hy : ε ≤ |Y n ω| := le_trans hx (hbound n ω)
+  simpa [Real.dist_eq] using hy
+
 /-- Center a real-valued convergence-in-measure statement at its scalar limit. -/
 theorem TendstoInMeasure.sub_limit_zero_real
     {X : ℕ → α → ℝ} {c : ℝ}
