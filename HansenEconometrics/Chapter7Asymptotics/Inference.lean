@@ -621,6 +621,51 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
       (θhat := θhat) (se := se) (root := root) (c := c)
       hroot (by simpa [c] using hse_pos) hse hGeneric
 
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.12, homoskedastic confidence-interval coverage from homoskedasticity.**
+
+This is the variable-facing version: it assumes constant conditional error
+variance given regressors, then derives the covariance identity internally. -/
+theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homoskedastic
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ) (crit : ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    Tendsto
+      (fun n => μ {ω |
+        (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) -
+            crit * Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))
+          (((R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+              (fun _ : Unit => 1)) +
+            crit * Real.sqrt ((R * olsHomoskedasticCovarianceStar
+              (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()) /
+              Real.sqrt (n : ℝ))})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
+  have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
+    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+  have hQ : IsUnit (popGram μ X).det := by
+    simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
+  exact olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
+    (μ := μ) (X := X) (e := e) (y := y)
+    hclt hvar β R crit hmodel hX_meas he_meas
+    (homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+      (μ := μ) (X := X) (e := e) hQ hΩ)
+    hse_pos
+
 /-- **Hansen Theorem 7.14, scalar one-degree-of-freedom homoskedastic Wald statistic.**
 
 Under the explicit covariance bridge `V⁰β = Vβ`, the scalar homoskedastic Wald
@@ -689,6 +734,40 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
     hse_pos
 
 set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.14, homoskedastic t-statistic from homoskedasticity.**
+
+This variable-facing wrapper derives `Ω = σ²Q` from constant conditional error
+variance given `X₀`, then applies the covariance-identity bridge. -/
+theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_homoskedastic
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        ((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
+    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+  exact olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+    (μ := μ) (X := X) (e := e) (y := y)
+    hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos
+
+set_option linter.style.longLine false in
 /-- **Hansen Theorem 7.14, moment-level scalar homoskedastic Wald statistic.**
 
 If `Ω = σ²Q`, the scalar one-degree-of-freedom homoskedastic Wald statistic for
@@ -719,6 +798,37 @@ theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquar
       (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos)
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.14, scalar homoskedastic Wald statistic from homoskedasticity.** -/
+theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hse_pos : 0 <
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (((Real.sqrt (n : ℝ) •
+          (R *ᵥ
+            (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+            (fun _ : Unit => 1)) /
+          Real.sqrt ((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) ^ 2)
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
+  simpa using
+    tendstoInDistribution_sq_standardNormal_chiSquared_one
+      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_homoskedastic
+        (μ := μ) (X := X) (e := e) (y := y)
+        hclt hvar β R hmodel hX_meas he_meas hX0 hhomo hse_pos)
 
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 

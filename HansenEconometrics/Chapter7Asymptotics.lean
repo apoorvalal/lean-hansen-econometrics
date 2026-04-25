@@ -105,14 +105,18 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   corresponding `olsBetaOrZero` wrappers. Remaining: extend beyond fixed linear
   maps and package interval/Wald consequences.
 * **Theorem 7.12** — the generic symmetric confidence-interval coverage bridge
-  is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat`, building on
-  absolute-value distributional limits for homoskedastic and HC0/HC1 ordinary
-  t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. The standard-normal
-  continuity-set side condition is discharged in `standardNormalAbs_frontier_Iic_null`
-  and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal`. The concrete
-  homoskedastic ordinary-wrapper interval face is formalized in
-  `olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`, and the HC0
-  and HC1 faces in `olsHC0LinearCIOrZero_coverage_tendsto_standardNormal` and
+  is formalized in
+  `symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero`, building
+  on absolute-value distributional limits for homoskedastic and HC0/HC1
+  ordinary t-statistics and `mem_symmetric_ci_iff_abs_tstat_le`. The older
+  pointwise-positivity bridge remains available as
+  `symmetricCI_coverage_tendsto_of_abs_tstat`; the theorem-facing wrappers use
+  convergence in probability of the standard error to show the nonpositive-SE
+  bad event is negligible. The concrete homoskedastic ordinary-wrapper interval
+  face from variable-facing homoskedasticity is formalized in
+  `olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homoskedastic`,
+  and the HC0 and HC1 faces in
+  `olsHC0LinearCIOrZero_coverage_tendsto_standardNormal` and
   `olsHC1LinearCIOrZero_coverage_tendsto_standardNormal`.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
@@ -129,8 +133,12 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   identification for the textbook multivariate theorem.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
   pending, but the scalar one-degree-of-freedom face is formalized under the
-  moment-level homoskedastic bridge `Ω = σ²Q` in the
-  `_of_scoreCovariance` homoskedastic Wald theorem.
+  variable-facing homoskedasticity assumption
+  `HomoskedasticErrorVariance` in
+  `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic`.
+  The Lean-only bridge
+  `scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic`
+  proves the reusable covariance identity `Ω = σ²Q`.
 * **Theorem 7.16** — the probabilistic max-residual rate is pending, but the
   deterministic pointwise residual-error inequalities are formalized in
   `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` and
