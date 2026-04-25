@@ -97,9 +97,10 @@ yet a literal encoding of Hansen's iid Assumption 7.1.
 Continue closing the post-CLT inference layer: the vector score CLT and vector
 OLS CLT are now packaged through Cramér-Wold and the existing random-inverse
 Slutsky bridge, and the public multivariate Wald wrappers consume those proved
-CLTs. The next targets are to discharge the remaining Gaussian linear-map law /
-covariance identity side condition and then continue the HC2/HC3 and
-max-leverage closure work.
+CLTs. The Gaussian linear-image bridge is now closed, and the public
+multivariate HC0/HC1 Wald wrappers are in place. The next targets are the
+multivariate homoskedastic wrapper plus the HC2/HC3 and max-leverage closure
+work.
 
 ## Status
 - The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
@@ -124,7 +125,7 @@ max-leverage closure work.
 - Theorem 7.10 has the generic fixed and random linear covariance CMTs plus concrete homoskedastic and HC0/HC1 fixed-linear-function covariance wrappers.
 - Theorem 7.11 has the standard-error CMT, homoskedastic and HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers for both `olsBetaStar` and `olsBetaOrZero`.
 - Theorem 7.12 has the generic symmetric confidence-interval coverage bridge from absolute t-statistic convergence, with the standard-normal continuity-set side condition discharged; ordinary homoskedastic and HC0/HC1 absolute-value t-statistic limits and concrete ordinary-wrapper interval coverage theorems are formalized without pointwise eventual standard-error positivity.
-- Theorem 7.13 has the generic multivariate Wald continuous-mapping bridge, a Lean-only named-law bridge, the positive-definite Gaussian/Mahalanobis `χ²(r)` law, public full-rank Gaussian linear-Wald OLS wrappers using the proved vector OLS CLT, and scalar one-degree-of-freedom HC0/HC1 Wald statistic limits to `χ²(1)`; the remaining multivariate Wald side condition is the Gaussian linear-map law / covariance identity for the restriction map.
+- Theorem 7.13 has the generic multivariate Wald continuous-mapping bridge, a Lean-only named-law bridge, the positive-definite Gaussian/Mahalanobis `χ²(r)` law, the Gaussian linear-image law for `RQ⁻¹Z`, public full-rank Gaussian linear-Wald OLS wrappers using the proved vector OLS CLT, and concrete multivariate HC0/HC1 Wald wrappers; the remaining multivariate work is the homoskedastic wrapper and the HC2/HC3 closure.
 - Theorem 7.14 has a scalar one-degree-of-freedom homoskedastic Wald statistic limit to `χ²(1)` from the variable-facing homoskedasticity assumption `HomoskedasticErrorVariance`; the full multivariate homoskedastic Wald theorem remains.
 - Theorem 7.16 has the deterministic pointwise residual-error inequalities for totalized and ordinary OLS; the probabilistic max-rate packaging remains.
 - Theorem 7.17 has finite-sample leverage trace/average identities and pointwise `0 ≤ hᵢᵢ ≤ 1` bounds on nonsingular designs; the probabilistic max-leverage rate remains.
@@ -145,7 +146,7 @@ max-leverage closure work.
 | Theorem 7.10 covariance of functions | Generic fixed `R V̂ Rᵀ` and random `R̂ V̂ R̂ᵀ` covariance CMTs plus homoskedastic/HC0/HC1 fixed-linear-function wrappers are formalized. | Concrete nonlinear derivative estimators remain. |
 | Theorem 7.11 t-statistic | Standard-error CMT, homoskedastic/HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
 | Theorem 7.12 confidence intervals | Generic coverage convergence is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero`, with `standardNormalAbs_frontier_Iic_null` and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos` discharging the standard-normal continuity-set and high-probability standard-error positivity side conditions; absolute-value homoskedastic/HC0/HC1 t-statistic limits, `mem_symmetric_ci_iff_abs_tstat_le`, and concrete homoskedastic/HC0/HC1 ordinary-wrapper interval coverage theorems are formalized. | Extend beyond fixed one-row linear maps. |
-| Theorem 7.13 Wald statistics | Generic multivariate Wald CMT is formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`, with matrix-vector Slutsky support in `matrixMulVec_tendstoInDistribution_of_vector_and_matrix`; `hasLaw_gaussian_mahalanobis_chiSquared` identifies the positive-definite Gaussian Mahalanobis limit law; public full-rank Gaussian linear-Wald OLS wrappers consume the proved vector OLS CLT; scalar one-degree-of-freedom HC0/HC1 Wald limits are formalized. | Discharge the Gaussian linear-map law / covariance identity and plug in concrete covariance estimators for the full multivariate theorem. |
+| Theorem 7.13 Wald statistics | Generic multivariate Wald CMT is formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`, with matrix-vector Slutsky support in `matrixMulVec_tendstoInDistribution_of_vector_and_matrix`; `hasLaw_multivariateGaussian_zero_linearMap` and `hasLaw_gaussian_mahalanobis_chiSquared` discharge the Gaussian restriction-map and Mahalanobis `χ²(r)` laws; public full-rank Gaussian linear-Wald OLS wrappers and concrete multivariate HC0/HC1 Wald wrappers are formalized. | Add the multivariate homoskedastic wrapper, then discharge HC2/HC3 covariance/Wald wrappers from max leverage and primitive moment assumptions. |
 | Theorem 7.14 homoskedastic Wald statistic | Scalar one-degree-of-freedom homoskedastic Wald limit is formalized from the variable-facing homoskedasticity assumption `HomoskedasticErrorVariance`, via `scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic`. | Add the full multivariate theorem. |
 | Theorem 7.16 residual uniformity | Deterministic pointwise residual-error inequalities are formalized for totalized and ordinary OLS. | Add rate vocabulary and max-over-sample probabilistic packaging. |
 | Theorem 7.17 asymptotic leverage | Finite-sample leverage trace/average identities and pointwise `0 ≤ hᵢᵢ ≤ 1` bounds are formalized on nonsingular designs. | Add eigenvalue/operator-norm bounds and probabilistic max-leverage rate packaging. |
@@ -309,6 +310,7 @@ Phase 4 CLT pieces:
 - [scoreCovarianceMatrix_apply_eq_secondMoment](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L180) — under orthogonality, entries of `Ω` are score second moments.
 - [cramerWold_tendstoInDistribution](../../HansenEconometrics/AsymptoticUtils.lean#L154) — finite-dimensional Cramér-Wold convergence bridge from all inner-product projections.
 - [hasLaw_multivariateGaussian_zero_dotProduct](../../HansenEconometrics/ProbabilityUtils.lean#L447) — one-dimensional law of a fixed projection of a centered multivariate Gaussian.
+- [hasLaw_multivariateGaussian_zero_linearMap](../../HansenEconometrics/ProbabilityUtils.lean#L489) — fixed matrix images of centered multivariate Gaussians have covariance `R S Rᵀ`.
 - [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222) — vector score CLT assembled from the scalar projection CLTs.
 - [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L534) — `√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
 - [feasibleScore_eq_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L613) — `Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.

@@ -1307,12 +1307,8 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian
       (Zscore := Zscore) h β R hmodel hScore
       (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
 
-/-- **Hansen Theorem 7.13, full-rank Gaussian linear-Wald theorem for totalized OLS.**
-
-This is the public non-shortcut Wald theorem: the score CLT is discharged by
-Chapter 7's vector Cramér-Wold theorem, and the `χ²(r)` limit is derived from
-the positive-definite Gaussian Mahalanobis law. -/
-theorem linearMap_olsBetaStar_waldChiSquared_gaussian
+/-- Internal Gaussian-limit-law bridge for the full-rank linear-Wald theorem. -/
+theorem linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1357,10 +1353,9 @@ theorem linearMap_olsBetaStar_waldChiSquared_gaussian
     (Vhat := Vhat) (V := V)
     (by simpa using hR) hLimitLaw hV_meas hV hV_posDef
 
-/-- **Hansen Theorem 7.13, full-rank Gaussian linear-Wald theorem for ordinary OLS.**
-
-Ordinary-wrapper version of `linearMap_olsBetaStar_waldChiSquared_gaussian`. -/
-theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian
+/-- Ordinary-wrapper version of
+`linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw`. -/
+theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian_of_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1384,9 +1379,257 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   simpa [olsBetaOrZero_eq_olsBetaStar] using
-    linearMap_olsBetaStar_waldChiSquared_gaussian
+    linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
       (μ := μ) (X := X) (e := e) (y := y) h β R hmodel
       (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
+
+/-- **Hansen Theorem 7.13, full-rank Gaussian linear-Wald theorem for totalized OLS.**
+
+This is the public non-shortcut Wald theorem: the score CLT is discharged by
+Chapter 7's vector Cramér-Wold theorem, the Gaussian linear-image law is proved
+once and reused here, and the plug-in covariance only needs to converge to the
+actual linear-map sandwich limit. -/
+theorem linearMap_olsBetaStar_waldChiSquared_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop
+      (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  let A : Matrix (Fin r) k ℝ := R * (popGram μ X)⁻¹
+  have hLimitLaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ k =>
+          WithLp.toLp 2 (R *ᵥ ((popGram μ X)⁻¹ *ᵥ z.ofLp)))
+        (multivariateGaussian 0 (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ))
+        (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+    have hΩ := scoreCovarianceMatrix_posSemidef (μ := μ) (X := X) (e := e) h
+    have hQinv_transpose : ((popGram μ X)⁻¹)ᵀ = (popGram μ X)⁻¹ := by
+      simpa using
+        (popGram_inv_isSymm (μ := μ) (X := X) h.toSampleMomentAssumption71.int_outer).eq
+    convert
+      (hasLaw_multivariateGaussian_zero_linearMap
+        (n := k) (q := Fin r) hΩ A) using 1
+    · ext z
+      simp [A, Matrix.mulVec_mulVec]
+    · have hCovEq :
+          A * scoreCovarianceMatrix μ X e * Aᵀ =
+            R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ := by
+          calc
+            A * scoreCovarianceMatrix μ X e * Aᵀ
+                = R * (((popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e) *
+                    ((popGram μ X)⁻¹)ᵀ) * Rᵀ := by
+                    simp [A, Matrix.mul_assoc]
+            _ = R * (((popGram μ X)⁻¹ * scoreCovarianceMatrix μ X e) *
+                (popGram μ X)⁻¹) * Rᵀ := by
+                  rw [hQinv_transpose]
+            _ = R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ := by
+                  rfl
+      simpa [hCovEq]
+  exact linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
+    (μ := μ) (X := X) (e := e) (y := y) (r := r)
+    h β R hmodel (Vhat := Vhat)
+    (V := R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ)
+    hV_meas hV hV_posDef hLimitLaw
+
+/-- **Hansen Theorem 7.13, full-rank Gaussian linear-Wald theorem for ordinary OLS.**
+
+Ordinary-wrapper version of `linearMap_olsBetaStar_waldChiSquared_gaussian`. -/
+theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop
+      (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsBetaStar_waldChiSquared_gaussian
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      h β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef
+
+/-- Multivariate HC0 Wald statistic for totalized OLS. -/
+theorem linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  let Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ := fun n ω =>
+    R * olsHeteroskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ
+  have hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ := by
+    intro n
+    exact linearMapCovariance_aestronglyMeasurable
+      (μ := μ) (R := R)
+      (olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
+  have hV := linearMap_olsHC0CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  simpa [Vhat] using
+    linearMap_olsBetaStar_waldChiSquared_gaussian
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      h.toSampleCLTAssumption72 β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef
+
+/-- Multivariate HC0 Wald statistic for ordinary OLS. -/
+theorem linearMap_olsHC0WaldStatisticOrZero_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
+
+/-- Multivariate HC1 Wald statistic for totalized OLS. -/
+theorem linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHeteroskedasticCovarianceHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  let Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ := fun n ω =>
+    R * olsHeteroskedasticCovarianceHC1Star
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ
+  have hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ := by
+    intro n
+    exact linearMapCovariance_aestronglyMeasurable
+      (μ := μ) (R := R)
+      (olsHC1CovarianceStar_stack_aestronglyMeasurable_of_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
+  have hV := linearMap_olsHC1CovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight
+  simpa [Vhat] using
+    linearMap_olsBetaStar_waldChiSquared_gaussian
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      h.toSampleCLTAssumption72 β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef
+
+/-- Multivariate HC1 Wald statistic for ordinary OLS. -/
+theorem linearMap_olsHC1WaldStatisticOrZero_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hV_posDef : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHeteroskedasticCovarianceHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
 
 end Assumption72
 
