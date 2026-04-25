@@ -519,6 +519,31 @@ theorem tendstoInMeasure_const_real
   rw [hempty, measure_empty]
   exact le_of_lt hδ
 
+/-- If a real sequence of random variables converges in probability to a positive
+constant, then the bad event where the sequence is nonpositive has probability
+tending to zero. This is the probabilistic replacement for pointwise eventual
+standard-error positivity in confidence-interval arguments. -/
+theorem tendsto_measure_nonpos_of_tendstoInMeasure_const_pos
+    {se : ℕ → α → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hse : TendstoInMeasure μ se atTop (fun _ => c)) :
+    Tendsto (fun n => μ {ω | se n ω ≤ 0}) atTop (𝓝 0) := by
+  have htail := hse (ENNReal.ofReal c) (ENNReal.ofReal_pos.mpr hc)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds htail
+    (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  have hle : se n ω ≤ 0 := hω
+  have hdist : c ≤ dist (se n ω) c := by
+    rw [Real.dist_eq]
+    have hnonpos : se n ω - c ≤ 0 := by linarith
+    rw [abs_of_nonpos hnonpos]
+    linarith
+  change ENNReal.ofReal c ≤ edist (se n ω) c
+  rw [edist_dist]
+  exact ENNReal.ofReal_le_ofReal hdist
+
 /-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This is the scalar finite-coordinate glue used by dot-product arguments. -/
