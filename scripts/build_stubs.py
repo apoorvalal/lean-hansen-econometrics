@@ -51,6 +51,8 @@ No walkthrough yet. [Source]({{ source_url }})
 {{ docstring }}
 {% endif %}
 
+## Metadata
+
 **Kind:** `{{ kind }}` &middot; **Source:** [{{ file }}:{{ line }}]({{ source_url }})
 """
 
