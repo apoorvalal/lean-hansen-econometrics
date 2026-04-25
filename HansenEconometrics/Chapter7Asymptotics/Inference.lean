@@ -16,7 +16,7 @@ open Matrix
 section Assumption72
 
 open MeasureTheory ProbabilityTheory Filter
-open scoped Matrix.Norms.Elementwise Function Topology ProbabilityTheory
+open scoped Matrix.Norms.Elementwise Function Topology ProbabilityTheory ENNReal symmDiff
 
 variable {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
 variable {k : Type*} [Fintype k] [DecidableEq k]
@@ -171,6 +171,123 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
   symmetricCI_coverage_tendsto_of_abs_tstat
     (μ := μ) (θ := θ) (crit := crit)
     hroot hse hT (standardNormalAbs_frontier_Iic_null crit)
+
+/-- **Hansen Theorem 7.12, probabilistic symmetric confidence-interval coverage bridge.**
+
+This version removes the pointwise eventual standard-error positivity shortcut:
+it is enough that the nonpositive-standard-error event has probability tending
+to zero. The interval event and the absolute-t-statistic event can then differ
+only on a negligible bad set. -/
+theorem symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {θ crit : ℝ}
+    {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
+    (hroot : ∀ᶠ n in atTop, 0 < root n)
+    (hse_nonpos : Tendsto (fun n => μ {ω | se n ω ≤ 0}) atTop (𝓝 0))
+    (hT : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1))
+    (hcrit : ((gaussianReal 0 1).map (fun x : ℝ => |x|))
+      (frontier (Set.Iic crit)) = 0) :
+    Tendsto
+      (fun n => μ {ω | θ ∈ Set.Icc
+        (θhat n ω - crit * se n ω / root n)
+        (θhat n ω + crit * se n ω / root n)})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
+  let ci : ℕ → Set Ω := fun n => {ω | θ ∈ Set.Icc
+    (θhat n ω - crit * se n ω / root n)
+    (θhat n ω + crit * se n ω / root n)}
+  let stat : ℕ → Set Ω := fun n =>
+    {ω | |root n * (θhat n ω - θ) / se n ω| ∈ Set.Iic crit}
+  let bad : ℕ → Set Ω := fun n => {ω | se n ω ≤ 0}
+  let L : ℝ≥0∞ := ((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit)
+  have hstat : Tendsto (fun n => μ (stat n)) atTop (𝓝 L) := by
+    have hevent :=
+      TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+        hT
+        (E := Set.Iic crit) measurableSet_Iic hcrit
+    simpa [stat, L] using hevent
+  have hsymm_subset : ∀ n, 0 < root n → ci n ∆ stat n ⊆ bad n := by
+    intro n hnroot ω hω
+    by_cases hnse : 0 < se n ω
+    · have hiff := mem_symmetric_ci_iff_abs_tstat_le
+        (θ := θ) (θhat := θhat n ω) (root := root n)
+        (se := se n ω) (crit := crit) hnroot hnse
+      rw [Set.mem_symmDiff] at hω
+      rcases hω with hω | hω
+      · exact False.elim (hω.2 (hiff.mp hω.1))
+      · exact False.elim (hω.2 (hiff.mpr hω.1))
+    · exact not_lt.mp hnse
+  have hdiff : Tendsto (fun n => μ (ci n ∆ stat n)) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hse_nonpos
+      (Eventually.of_forall fun n => zero_le _) ?_
+    filter_upwards [hroot] with n hnroot
+    exact measure_mono (hsymm_subset n hnroot)
+  have hL_ne_top : L ≠ ∞ := by
+    simp [L]
+  have hlower : Tendsto (fun n => μ (stat n) - μ (ci n ∆ stat n)) atTop (𝓝 L) := by
+    simpa [L] using ENNReal.Tendsto.sub hstat hdiff (Or.inl hL_ne_top)
+  have hupper : Tendsto (fun n => μ (stat n) + μ (ci n ∆ stat n)) atTop (𝓝 L) := by
+    simpa using hstat.add hdiff
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' hlower hupper ?_ ?_
+  · exact Eventually.of_forall fun n => by
+      have hstat_le : μ (stat n) ≤ μ (ci n) + μ (ci n ∆ stat n) := by
+        calc
+          μ (stat n) ≤ μ ((ci n ∆ stat n) ∪ ci n) :=
+            measure_mono (le_symmDiff_sup_left (ci n) (stat n))
+          _ ≤ μ (ci n ∆ stat n) + μ (ci n) := measure_union_le _ _
+          _ = μ (ci n) + μ (ci n ∆ stat n) := by rw [add_comm]
+      exact tsub_le_iff_right.mpr hstat_le
+  · exact Eventually.of_forall fun n => by
+      calc
+        μ (ci n) ≤ μ ((ci n ∆ stat n) ∪ stat n) :=
+          measure_mono (le_symmDiff_sup_right (ci n) (stat n))
+        _ ≤ μ (ci n ∆ stat n) + μ (stat n) := measure_union_le _ _
+        _ = μ (stat n) + μ (ci n ∆ stat n) := by rw [add_comm]
+
+/-- Standard-normal version of
+`symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero`. -/
+theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_nonpos_tendsto_zero
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {θ crit : ℝ}
+    {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
+    (hroot : ∀ᶠ n in atTop, 0 < root n)
+    (hse_nonpos : Tendsto (fun n => μ {ω | se n ω ≤ 0}) atTop (𝓝 0))
+    (hT : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1)) :
+    Tendsto
+      (fun n => μ {ω | θ ∈ Set.Icc
+        (θhat n ω - crit * se n ω / root n)
+        (θhat n ω + crit * se n ω / root n)})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
+  symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero
+    (μ := μ) (θ := θ) (crit := crit)
+    hroot hse_nonpos hT (standardNormalAbs_frontier_Iic_null crit)
+
+/-- Standard-normal confidence-interval coverage from convergence in probability
+of the standard error to a positive constant. -/
+theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {θ crit c : ℝ}
+    {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
+    (hroot : ∀ᶠ n in atTop, 0 < root n)
+    (hc : 0 < c)
+    (hse : TendstoInMeasure μ se atTop (fun _ => c))
+    (hT : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1)) :
+    Tendsto
+      (fun n => μ {ω | θ ∈ Set.Icc
+        (θhat n ω - crit * se n ω / root n)
+        (θhat n ω + crit * se n ω / root n)})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
+  symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_nonpos_tendsto_zero
+    (μ := μ) (θ := θ) (crit := crit)
+    hroot (tendsto_measure_nonpos_of_tendstoInMeasure_const_pos (μ := μ) hc hse) hT
 
 omit [DecidableEq k] in
 /-- Measurability of a scalar standard error induced by any matrix covariance estimator. -/
@@ -439,8 +556,8 @@ set_option linter.style.longLine false in
 
 For a one-row linear restriction, the ordinary-wrapper homoskedastic symmetric
 confidence interval has limiting coverage equal to the absolute standard-normal
-mass below the critical value. Sample standard-error positivity is assumed only
-eventually, matching the generic interval bridge. -/
+mass below the critical value. Sample standard-error positivity is derived from
+convergence in probability to the positive population standard error. -/
 theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -453,10 +570,7 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     (hVeq : homoskedasticAsymptoticCovariance μ X e =
       heteroskedasticAsymptoticCovariance μ X e)
     (hse_pos : 0 <
-      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
-    (hse_sample_pos : ∀ᶠ n in atTop, ∀ ω,
-      0 < Real.sqrt ((R * olsHomoskedasticCovarianceStar
-        (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) :
+      Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
     Tendsto
       (fun n => μ {ω |
         (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
@@ -480,10 +594,16 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     Real.sqrt ((R * olsHomoskedasticCovarianceStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
+  let c : ℝ := Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
+  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
+        (μ := μ) (X := X) (e := e) (y := y)
+        hvar β R () hmodel hX_meas he_meas
   have hAbs := olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
@@ -495,11 +615,11 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     exact ae_of_all μ (fun ω => by
       dsimp [θ, θhat, se, root]
       rw [linearMapUnit_smul_sub_dot_one])
-  simpa [θ, θhat, se, root] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+  simpa [θ, θhat, se, root, c] using
+    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
-      (θhat := θhat) (se := se) (root := root)
-      hroot hse_sample_pos hGeneric
+      (θhat := θhat) (se := se) (root := root) (c := c)
+      hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- **Hansen Theorem 7.14, scalar one-degree-of-freedom homoskedastic Wald statistic.**
 
@@ -857,8 +977,9 @@ set_option linter.style.longLine false in
 
 The ordinary-wrapper HC0 symmetric confidence interval for a one-row linear
 restriction has limiting coverage given by the absolute standard-normal mass
-below `crit`, conditional on eventual positivity of the sample HC0 standard
-error. -/
+below `crit`; the bad event where the sample HC0 standard error is nonpositive
+is negligible because the standard error converges in probability to its
+positive population limit. -/
 theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -876,10 +997,7 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
-    (hse_sample_pos : ∀ᶠ n in atTop, ∀ ω,
-      0 < Real.sqrt ((R * olsHeteroskedasticCovarianceStar
-        (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) :
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
     Tendsto
       (fun n => μ {ω |
         (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
@@ -903,10 +1021,16 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     Real.sqrt ((R * olsHeteroskedasticCovarianceStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
+  let c : ℝ := Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
+  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -918,11 +1042,11 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     exact ae_of_all μ (fun ω => by
       dsimp [θ, θhat, se, root]
       rw [linearMapUnit_smul_sub_dot_one])
-  simpa [θ, θhat, se, root] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+  simpa [θ, θhat, se, root, c] using
+    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
-      (θhat := θhat) (se := se) (root := root)
-      hroot hse_sample_pos hGeneric
+      (θhat := θhat) (se := se) (root := root) (c := c)
+      hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- Scalar one-degree-of-freedom HC0 Wald statistic for ordinary OLS. -/
 theorem olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
@@ -1247,8 +1371,9 @@ set_option linter.style.longLine false in
 
 The ordinary-wrapper HC1 symmetric confidence interval for a one-row linear
 restriction has limiting coverage given by the absolute standard-normal mass
-below `crit`, conditional on eventual positivity of the sample HC1 standard
-error. -/
+below `crit`; the bad event where the sample HC1 standard error is nonpositive
+is negligible because the standard error converges in probability to its
+positive population limit. -/
 theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1266,10 +1391,7 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
-    (hse_sample_pos : ∀ᶠ n in atTop, ∀ ω,
-      0 < Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
-        (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())) :
+      Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())) :
     Tendsto
       (fun n => μ {ω |
         (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1) ∈ Set.Icc
@@ -1293,10 +1415,16 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
+  let c : ℝ := Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ())
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
+  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hAbs := olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -1308,11 +1436,11 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     exact ae_of_all μ (fun ω => by
       dsimp [θ, θhat, se, root]
       rw [linearMapUnit_smul_sub_dot_one])
-  simpa [θ, θhat, se, root] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+  simpa [θ, θhat, se, root, c] using
+    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
-      (θhat := θhat) (se := se) (root := root)
-      hroot hse_sample_pos hGeneric
+      (θhat := θhat) (se := se) (root := root) (c := c)
+      hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- **Hansen Theorem 7.3, all scalar projections for totalized OLS with `Ω`.**
 
