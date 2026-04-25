@@ -1786,9 +1786,6 @@ theorem linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
         sampleScoreCovarianceCrossWeight
@@ -1817,13 +1814,13 @@ theorem linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
     intro n
     exact linearMapCovariance_aestronglyMeasurable
       (μ := μ) (R := R)
-      (olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
+      (olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas hAdj_meas n)
+        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
   have hV :=
     linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hMax
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hMax
   simpa [Vhat] using
     linearMap_olsBetaStar_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
@@ -1839,9 +1836,6 @@ theorem linearMap_olsHC2WaldStatisticOrZero_tendstoInDistribution_chiSquared
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
         sampleScoreCovarianceCrossWeight
@@ -1866,7 +1860,7 @@ theorem linearMap_olsHC2WaldStatisticOrZero_tendstoInDistribution_chiSquared
   simpa [olsBetaOrZero_eq_olsBetaStar] using
     linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight
       hMax hV_posDef
 
 /-- Multivariate HC3 Wald statistic for totalized OLS. -/
@@ -1879,9 +1873,6 @@ theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
         sampleScoreCovarianceCrossWeight
@@ -1910,13 +1901,13 @@ theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
     intro n
     exact linearMapCovariance_aestronglyMeasurable
       (μ := μ) (R := R)
-      (olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
+      (olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas hAdj_meas n)
+        h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
   have hV :=
     linearMap_olsHC3CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hMax
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hMax
   simpa [Vhat] using
     linearMap_olsBetaStar_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
@@ -1932,9 +1923,6 @@ theorem linearMap_olsHC3WaldStatisticOrZero_tendstoInDistribution_chiSquared
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
         sampleScoreCovarianceCrossWeight
@@ -1959,7 +1947,7 @@ theorem linearMap_olsHC3WaldStatisticOrZero_tendstoInDistribution_chiSquared
   simpa [olsBetaOrZero_eq_olsBetaStar] using
     linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight
       hMax hV_posDef
 
 end Assumption72

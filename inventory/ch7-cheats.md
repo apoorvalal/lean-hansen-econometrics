@@ -121,20 +121,33 @@ and
 with public HC2/HC3 covariance and Wald wrappers no longer assuming that
 absolute-weight boundedness separately.
 
+### 5. HC2 / HC3 adjustment measurability
+
+Closed by deriving adjustment measurability directly from component
+measurability. The key point is that each HC2/HC3 adjustment term is a finite
+sum of measurable scalar weights
+
+\[
+h \mapsto (1-h)^{-1},
+\qquad
+h \mapsto (1-h)^{-2},
+\]
+
+applied to measurable leverage scores, multiplied by measurable residual-score
+outer products. In Lean this is packaged through
+[sampleScoreCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovarianceHC2AdjustmentStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovarianceHC3AdjustmentStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+and
+[olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean).
+
+The public HC2/HC3 covariance and Wald wrappers therefore no longer need a
+separate `hAdj_meas` premise.
+
 ## Remaining cheats
 
-### 1. HC2 / HC3 adjustment measurability
-
-The HC2/HC3 covariance and Wald wrappers still carry the technical premise
-that the HC2/HC3 adjustment matrices are a.e. strongly measurable. That is not
-a circular law assumption, but it is still extra packaging friction in the
-public API.
-
-What remains here is to prove the needed measurability directly from the
-existing component measurability hypotheses, so the public HC2/HC3 wrappers do
-not need a separate `hAdj_meas` premise.
-
-### 2. Assumption-layer gap
+### 1. Assumption-layer gap
 
 This is not circular, but it is still stronger than the literal textbook
 packaging. Several Chapter 7 public theorems use the repo’s sufficient
