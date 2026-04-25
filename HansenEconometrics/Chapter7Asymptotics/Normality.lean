@@ -1473,6 +1473,151 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef
 
+/-- **Hansen Theorem 7.14, multivariate homoskedastic Wald statistic.**
+
+Under the explicit covariance bridge `V⁰β = Vβ`, the multivariate
+homoskedastic Wald statistic for totalized OLS converges to `χ²(r)`. -/
+theorem linearMap_olsHomoskedasticWaldStatisticStar_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hV_posDef : (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  let Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ := fun n ω =>
+    R * olsHomoskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ
+  have hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ := by
+    intro n
+    exact linearMapCovariance_aestronglyMeasurable
+      (μ := μ) (R := R)
+      (olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        hvar.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
+  have hV_homo := linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure
+    (μ := μ) (X := X) (e := e) (y := y)
+    hvar β R hmodel hX_meas he_meas
+  have hV : TendstoInMeasure μ Vhat atTop
+      (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
+    simpa [Vhat, hVeq] using hV_homo
+  have hV_posDef' : (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef := by
+    simpa [hVeq] using hV_posDef
+  simpa [Vhat] using
+    linearMap_olsBetaStar_waldChiSquared_gaussian
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      hclt β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef'
+
+/-- **Hansen Theorem 7.14 for ordinary OLS, multivariate homoskedastic face.** -/
+theorem linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hVeq : homoskedasticAsymptoticCovariance μ X e =
+      heteroskedasticAsymptoticCovariance μ X e)
+    (hV_posDef : (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsHomoskedasticWaldStatisticStar_tendstoInDistribution_chiSquared
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      hclt hvar β R hmodel hX_meas he_meas hVeq hV_posDef
+
+/-- **Hansen Theorem 7.14, moment-level multivariate homoskedastic Wald statistic.**
+
+If `Ω = σ²Q`, the multivariate homoskedastic Wald statistic for ordinary OLS
+converges to `χ²(r)`. -/
+theorem linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_scoreCovariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X)
+    (hV_posDef : (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hQ : IsUnit (popGram μ X).det := by
+    simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
+  exact linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared
+    (μ := μ) (X := X) (e := e) (y := y) (r := r)
+    hclt hvar β R hmodel hX_meas he_meas
+    (homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+      (μ := μ) (X := X) (e := e) hQ hΩ)
+    hV_posDef
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 7.14, multivariate homoskedastic Wald statistic from homoskedasticity.**
+
+This variable-facing wrapper derives `Ω = σ²Q` from constant conditional error
+variance given `X₀`, then applies the covariance-identity bridge. -/
+theorem linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_homoskedastic
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (hclt : SampleCLTAssumption72 μ X e)
+    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hV_posDef : (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
+    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+  exact linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_scoreCovariance
+    (μ := μ) (X := X) (e := e) (y := y) (r := r)
+    hclt hvar β R hmodel hX_meas he_meas hΩ hV_posDef
+
 /-- Multivariate HC0 Wald statistic for totalized OLS. -/
 theorem linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]

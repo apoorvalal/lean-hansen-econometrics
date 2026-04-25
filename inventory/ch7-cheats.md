@@ -66,26 +66,35 @@ with \(\hat V_n\) instantiated concretely as HC0 or HC1 and
 R \hat V_n R' \to_p R V_\beta R'.
 \]
 
-## Remaining cheats
+### 3. Multivariate homoskedastic Wald wrapper
 
-### 1. Multivariate homoskedastic Wald wrapper
+Closed by
+[linearMap_olsHomoskedasticWaldStatisticStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_scoreCovariance](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+and
+[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_homoskedastic](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
 
-The scalar homoskedastic Wald theorem is done, and the variable-facing
-homoskedasticity assumption
-[HomoskedasticErrorVariance](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
-does discharge the covariance identity
-\(\Omega = \sigma^2 Q\).
-
-What is still missing is the multivariate wrapper that packages
+LaTeX:
 
 \[
-R \hat V^{\,0}_{\beta,n} R' \to_p R V_\beta R'
+\Omega = \sigma^2 Q
+\quad\Longrightarrow\quad
+V_\beta^0 = \sigma^2 Q^{-1} = Q^{-1}\Omega Q^{-1} = V_\beta
 \]
 
-under homoskedasticity and then concludes the full
-\(\chi^2_r\) Wald law.
+\[
+\hat W_n^0
+=
+\bigl(R\sqrt{n}(\hat\beta_n-\beta)\bigr)'
+\bigl(R\hat V^{\,0}_{\beta,n}R'\bigr)^{-1}
+\bigl(R\sqrt{n}(\hat\beta_n-\beta)\bigr)
+\Rightarrow \chi^2_r.
+\]
 
-### 2. HC2 / HC3 adjustment convergence
+## Remaining cheats
+
+### 1. HC2 / HC3 adjustment convergence
 
 Current Lean reduces HC2/HC3 to a sharper intermediate claim:
 
@@ -101,7 +110,7 @@ estimator has the same limit as HC0.
 What remains is to prove those premises from Hansen-style max-leverage and
 moment assumptions, then expose HC2/HC3 covariance and Wald wrappers.
 
-### 3. Assumption-layer gap
+### 2. Assumption-layer gap
 
 This is not circular, but it is still stronger than the literal textbook
 packaging. Several Chapter 7 public theorems use the repo’s sufficient
