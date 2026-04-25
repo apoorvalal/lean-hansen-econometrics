@@ -4,7 +4,7 @@ from pypdf import PdfReader
 
 
 CHAPTERS_DIR = Path("chapters")
-NOTES_DIR = Path("notes")
+TEXTBOOK_DIR = Path("textbook")
 
 
 def chapter_number(pdf_path: Path) -> str:
@@ -23,7 +23,7 @@ def extract_pdf_text(pdf_path: Path) -> str:
 
 def output_path(pdf_path: Path) -> Path:
     chapter = chapter_number(pdf_path)
-    return NOTES_DIR / f"ch{chapter}" / f"ch{int(chapter)}_excerpt.txt"
+    return TEXTBOOK_DIR / f"ch{chapter}" / f"ch{int(chapter)}_excerpt.txt"
 
 
 def main() -> None:

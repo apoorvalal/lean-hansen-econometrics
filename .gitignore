@@ -7,3 +7,4 @@ build/
 *.trace
 *.out
 textextract/
+.mcp.json

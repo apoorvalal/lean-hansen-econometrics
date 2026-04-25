@@ -47,8 +47,8 @@ noncomputable def olsResidualSumSquares
 structure NormalRegressionModel (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) where
   sigma2_nonneg : 0 ≤ σ2
 
-/-- Under the linear model, the residual variance estimator is the residual quadratic form divided by
-`n-k`, expressed directly in terms of the model error. -/
+/-- Under the linear model, the residual variance estimator is the residual quadratic form
+ divided by `n-k`, expressed directly in terms of the model error. -/
 theorem olsResidualVarianceEstimator_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualVarianceEstimator X (X *ᵥ β + e)
@@ -130,8 +130,8 @@ theorem olsBeta_hasGaussianLaw_of_error
   rw [olsBeta_linear_decomposition]
   simp [L]
 
-/-- If the error vector has a Gaussian law, then the OLS residual vector is Gaussian as a linear image
-of the error vector. -/
+/-- If the error vector has a Gaussian law, then the OLS residual vector is Gaussian
+as a linear image of the error vector. -/
 theorem residual_hasGaussianLaw_of_error
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)

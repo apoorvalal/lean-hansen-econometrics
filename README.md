@@ -36,7 +36,8 @@ In practice this means we will often restate Hansen’s results in more Lean-nat
 ## Repository structure
 
 - `HansenEconometrics/` — Lean source files
-- `notes/` — theorem inventories / progress notes
+- `textbook/` — chapter excerpts and chapter-local redirect notes
+- `inventory/` — canonical chapter inventories and crosswalks
 - `AGENTS.md` — repo style guide for contributors and coding agents
 - `HansenEconometrics.lean` — root imports
 - `lakefile.toml`, `lake-manifest.json`, `lean-toolchain` — Lean project config
@@ -57,7 +58,7 @@ Legend:
 | 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
 | 05 | Normal Regression | partial | normal-model scaffolding, chi-square distribution wrapper, Gaussian laws for `β̂` and residuals, and residual-quadratic-form setup for `s²` landed |
 | 06 | A Review of Large Sample Asymptotics | inventoried | likely prerequisite for later asymptotics chapters |
-| 07 | Asymptotic Theory for Least Squares | inventoried | consistency / asymptotic normality targets |
+| 07 | Asymptotic Theory for Least Squares | partial | Theorem 7.1 totalized/ordinary-on-nonsingular consistency landed; Theorem 7.2 projection-family score CLT plus score-covariance `Ω` wrappers landed; Theorem 7.3 projection-family CLT covers totalized and ordinary-on-nonsingular OLS; Theorems 7.4 and 7.5 totalized variance/covariance consistency landed; vector/Cramér-Wold packaging pending |
 | 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
 | 09 | Hypothesis Testing | inventoried | Wald / LM / LR style results |
 | 10 | Resampling Methods | inventoried | bootstrap / jackknife |
@@ -91,6 +92,7 @@ and `HansenEconometrics/Chapter2LinearProjection.lean`:
   `condVarOn`, and `residualVarOn`
 - coordinatewise conditional-expectation / integral bridge lemmas for finite-dimensional random
   vectors and arrays
+- reusable finite-dimensional mean and covariance helpers `meanVec`, `covVec`, and `covMat`
 - simple law of iterated expectations
 - tower property for nested sigma-algebras
 - tower property in variable-facing form in `Chapter2CondExp.lean`
@@ -136,13 +138,13 @@ Planned next within Chapter 3:
 - centered analysis-of-variance / `R²` identities
 
 See also:
-- `notes/ch02/theorem_inventory.md`
-- `notes/ch02/latex_links.md`
-- `notes/ch02/ch2_excerpt.txt`
-- `notes/ch03/inventory.md`
-- `notes/ch03/ch3_excerpt.txt`
-- `notes/ch04/inventory.md`
-- `notes/ch04/ch4_excerpt.txt`
+- `inventory/ch2-inventory.md`
+- `textbook/ch02/latex_links.md`
+- `textbook/ch02/ch2_excerpt.txt`
+- `inventory/ch3-inventory.md`
+- `textbook/ch03/ch3_excerpt.txt`
+- `inventory/ch4-inventory.md`
+- `textbook/ch04/ch4_excerpt.txt`
 
 ## Current Chapter 5 progress
 

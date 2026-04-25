@@ -127,7 +127,7 @@ theorem gaussMarkov_variance_gap_posSemidef
     have h2' : (Xᵀ * X)⁻¹ - (Xᵀ * X)⁻¹ * (Xᵀ * (X * (Xᵀ * X)⁻¹)) = 0 := by
       have hcancel : Xᵀ * (X * (Xᵀ * X)⁻¹) = (1 : Matrix k k ℝ) := by
         rw [← Matrix.mul_assoc]
-        simpa using (mul_invOf_self (Xᵀ * X))
+        simpa only [invOf_eq_nonsing_inv] using (mul_invOf_self (Xᵀ * X))
       rw [hcancel]
       simp
     have h1' : Aᵀ * (X * (Xᵀ * X)⁻¹) = (Xᵀ * X)⁻¹ := by
@@ -834,16 +834,18 @@ theorem generalizedGaussMarkov_variance_gap_posSemidef
   have hΩsym : Ωᵀ = Ω := by
     simpa [Matrix.IsHermitian] using hΩ.1
   have hsymW : (Xᵀ * ⅟Ω * X)ᵀ = Xᵀ * ⅟Ω * X := by
-    rw [Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.transpose_invOf]
-    simpa [hΩsym, Matrix.mul_assoc]
+    rw [Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose,
+      Matrix.transpose_invOf]
+    simp [hΩsym, Matrix.mul_assoc]
   have hMtranspose : Mᵀ = M := by
     dsimp [M]
     rw [Matrix.transpose_invOf]
     simpa [hsymW] using congrArg Inv.inv hsymW
   have hCtranspose : Cᵀ = Ω * A - X * M := by
     dsimp [C]
-    rw [Matrix.transpose_sub, Matrix.transpose_mul, Matrix.transpose_mul, Matrix.transpose_transpose]
-    simp [hMtranspose, hΩsym, Matrix.mul_assoc]
+    rw [Matrix.transpose_sub, Matrix.transpose_mul, Matrix.transpose_mul,
+      Matrix.transpose_transpose]
+    simp [hMtranspose, hΩsym]
   have hgap : C * ⅟Ω * Cᵀ = Aᵀ * Ω * A - M := by
     calc
       C * ⅟Ω * Cᵀ = ((Aᵀ * Ω - M * Xᵀ) * ⅟Ω) * (Ω * A - X * M) := by

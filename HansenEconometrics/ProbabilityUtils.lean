@@ -2,7 +2,7 @@ import Mathlib
 
 open MeasureTheory ProbabilityTheory
 open Matrix
-open scoped ENNReal Topology MeasureTheory ProbabilityTheory
+open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 
 namespace HansenEconometrics
 
@@ -212,6 +212,132 @@ theorem integral_apply_apply
       exact integral_apply (μ := μ) (f := fun ω => f ω i) (Integrable.eval hf i) j
 
 end ConditionalExpectationHelpers
+
+section MeanCovariance
+
+open Matrix
+
+variable {Ω k : Type*}
+variable {mΩ : MeasurableSpace Ω}
+variable {μ : Measure Ω}
+variable [Fintype k]
+
+/-- Population mean of a finite-dimensional random vector. -/
+noncomputable def meanVec (μ : Measure Ω) (X : Ω → k → ℝ) : k → ℝ :=
+  ∫ ω, X ω ∂μ
+
+/-- Population covariance vector between a regressor vector `X` and a scalar outcome `Y`. -/
+noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → ℝ) : k → ℝ :=
+  fun i => cov[fun ω => X ω i, Y; μ]
+
+/-- Population covariance matrix of a finite-dimensional regressor vector `X`. -/
+noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
+  fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
+
+/-- Integrating a linear form equals applying that linear form to the vector mean. -/
+theorem integral_dotProduct_eq_meanVec_dotProduct
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, Integrable (fun ω => X ω i) μ) :
+    ∫ ω, dotProduct (X ω) b ∂μ = meanVec μ X ⬝ᵥ b := by
+  simp_rw [dotProduct]
+  rw [integral_finset_sum]
+  · simp_rw [integral_mul_const]
+    refine Finset.sum_congr rfl ?_
+    intro i hi
+    rw [show (∫ ω, X ω i ∂μ) = (meanVec μ X) i by
+      simpa [meanVec] using (MeasureTheory.eval_integral (μ := μ) (f := X) (hf := hX) i).symm]
+  · intro i hi
+    exact (hX i).mul_const (b i)
+
+/-- The covariance vector with a linear form equals the covariance matrix times the coefficient
+vector. -/
+theorem covVec_dotProduct_eq_covMat_mulVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
+    covVec μ X (fun ω => dotProduct (X ω) b) = covMat μ X *ᵥ b := by
+  ext i
+  change cov[fun ω => X ω i, fun ω => ∑ j, X ω j * b j; μ] =
+    ∑ j, cov[fun ω => X ω i, fun ω => X ω j; μ] * b j
+  rw [ProbabilityTheory.covariance_fun_sum_right
+      (X := fun j ω => X ω j * b j) (Y := fun ω => X ω i)]
+  · simp_rw [ProbabilityTheory.covariance_mul_const_right]
+  · intro j
+    exact (hX j).mul_const (b j)
+  · exact hX i
+
+/-- The variance of a finite-dimensional linear projection is the corresponding covariance
+quadratic form. -/
+theorem variance_dotProduct_eq_dotProduct_covMat_mulVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (b : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
+    Var[fun ω => dotProduct (X ω) b; μ] = b ⬝ᵥ (covMat μ X *ᵥ b) := by
+  classical
+  have hlin : MemLp (fun ω => dotProduct (X ω) b) 2 μ := by
+    convert (memLp_finset_sum' (s := Finset.univ)
+      (f := fun i ω => X ω i * b i)
+      (fun i _ => (hX i).mul_const (b i))) using 1
+    ext ω
+    simp [dotProduct]
+  rw [← ProbabilityTheory.covariance_self hlin.aemeasurable]
+  calc
+    cov[fun ω => dotProduct (X ω) b, fun ω => dotProduct (X ω) b; μ]
+        = ∑ i, cov[fun ω => X ω i * b i, fun ω => dotProduct (X ω) b; μ] := by
+          change cov[fun ω => ∑ i, X ω i * b i, fun ω => dotProduct (X ω) b; μ] = _
+          rw [ProbabilityTheory.covariance_fun_sum_left]
+          · intro i
+            exact (hX i).mul_const (b i)
+          · exact hlin
+    _ = ∑ i, (covMat μ X *ᵥ b) i * b i := by
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          rw [ProbabilityTheory.covariance_mul_const_left]
+          have hcov := congrFun
+            (covVec_dotProduct_eq_covMat_mulVec (μ := μ) X b hX) i
+          simpa [covVec, mul_comm] using congrArg (fun x => x * b i) hcov
+    _ = b ⬝ᵥ (covMat μ X *ᵥ b) := by
+          simp [dotProduct, mul_comm]
+
+/-- Covariances in an affine linear model decompose into the fitted part and the residual part. -/
+theorem covVec_affineModel
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ) :
+    covVec μ X (fun ω => α + dotProduct (X ω) β + e ω) =
+      covMat μ X *ᵥ β + covVec μ X e := by
+  have hlin : MemLp (fun ω => dotProduct (X ω) β) 2 μ := by
+    classical
+    convert (memLp_finset_sum' (s := Finset.univ) (f := fun j ω => X ω j * β j)
+      (fun j _ => (hX j).mul_const (β j))) using 1
+    ext ω
+    simp [dotProduct]
+  ext i
+  change cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β + e ω; μ] =
+    (covMat μ X *ᵥ β) i + cov[fun ω => X ω i, e; μ]
+  calc
+    cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β + e ω; μ]
+        = cov[fun ω => X ω i, fun ω => α + dotProduct (X ω) β; μ] +
+            cov[fun ω => X ω i, e; μ] := by
+              change cov[fun ω => X ω i, (fun ω => α + dotProduct (X ω) β) + e; μ] = _
+              simpa using
+                (ProbabilityTheory.covariance_add_right (X := fun ω => X ω i)
+                  (Y := fun ω => α + dotProduct (X ω) β) (Z := e)
+                  (hX i) ((memLp_const α).add hlin) he)
+    _ = cov[fun ω => X ω i, fun ω => dotProduct (X ω) β; μ] +
+          cov[fun ω => X ω i, e; μ] := by
+            simpa using
+              (ProbabilityTheory.covariance_const_add_right (X := fun ω => X ω i)
+                (Y := fun ω => dotProduct (X ω) β) (μ := μ)
+                (hlin.integrable (by norm_num)) α)
+    _ = (covMat μ X *ᵥ β) i + cov[fun ω => X ω i, e; μ] := by
+          rw [show cov[fun ω => X ω i, fun ω => dotProduct (X ω) β; μ] =
+              (covMat μ X *ᵥ β) i by
+                simpa [covVec] using
+                  congrFun (covVec_dotProduct_eq_covMat_mulVec (μ := μ) X β hX) i]
+
+end MeanCovariance
 
 section ConditioningSpaces
 
@@ -430,5 +556,64 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
   exact And.intro hW_law hW_indep
 
 end MultivariateGaussian
+
+section GaussianCoordinates
+
+variable {n : ℕ} {Ω : Type*} [MeasureSpace Ω] [IsProbabilityMeasure (volume : Measure Ω)]
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+variable [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
+
+/-- The coordinates of a standard Gaussian vector in an orthonormal basis are i.i.d. standard
+normal. -/
+lemma hasLaw_coords_of_stdGaussian
+    (b : OrthonormalBasis (Fin n) ℝ E)
+    {Z : Ω → E} (hZ : HasLaw Z (stdGaussian E)) :
+    (∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1)) ∧
+      iIndepFun (fun i ω => b.repr (Z ω) i) := by
+  -- Package `b.repr` as a HasLaw via Mathlib's `stdGaussian_map`.
+  have hRepr : HasLaw (fun x : E => (b.repr x : EuclideanSpace ℝ (Fin n)))
+      (stdGaussian (EuclideanSpace ℝ (Fin n))) (stdGaussian E) :=
+    ⟨b.repr.continuous.aemeasurable, stdGaussian_map b.repr⟩
+  have hbZ : HasLaw (fun ω => b.repr (Z ω)) (stdGaussian (EuclideanSpace ℝ (Fin n))) :=
+    hRepr.comp hZ
+  -- Bridge from `stdGaussian` on `EuclideanSpace` to `Measure.pi (fun _ => gaussianReal 0 1)`
+  -- via the `ofLp` coercion (inverse of `toLp 2`).
+  have hm_of : Measurable (WithLp.ofLp : EuclideanSpace ℝ (Fin n) → (Fin n → ℝ)) := by fun_prop
+  have hm_to : Measurable (WithLp.toLp 2 : (Fin n → ℝ) → EuclideanSpace ℝ (Fin n)) := by fun_prop
+  have hOfLp_map : (stdGaussian (EuclideanSpace ℝ (Fin n))).map
+        (WithLp.ofLp : EuclideanSpace ℝ (Fin n) → (Fin n → ℝ))
+      = Measure.pi (fun _ : Fin n => gaussianReal 0 1) := by
+    rw [← map_pi_eq_stdGaussian (ι := Fin n), Measure.map_map hm_of hm_to]
+    simp [Function.comp_def]
+  have hOfLp : HasLaw (fun x : EuclideanSpace ℝ (Fin n) => (x : Fin n → ℝ))
+      (Measure.pi (fun _ : Fin n => gaussianReal 0 1))
+      (stdGaussian (EuclideanSpace ℝ (Fin n))) :=
+    ⟨hm_of.aemeasurable, hOfLp_map⟩
+  have hbZ_coord : HasLaw (fun ω => ((b.repr (Z ω)) : Fin n → ℝ))
+      (Measure.pi (fun _ : Fin n => gaussianReal 0 1)) :=
+    hOfLp.comp hbZ
+  -- Per-coordinate laws via projection through the product measure.
+  have hLaw : ∀ i : Fin n, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1) := by
+    intro i
+    refine ⟨hbZ_coord.aemeasurable.eval i, ?_⟩
+    have h1 : (volume : Measure Ω).map (fun ω => b.repr (Z ω) i)
+        = ((volume : Measure Ω).map (fun ω => ((b.repr (Z ω)) : Fin n → ℝ))).map
+            (fun f : Fin n → ℝ => f i) := by
+      rw [AEMeasurable.map_map_of_aemeasurable (measurable_pi_apply i).aemeasurable
+        hbZ_coord.aemeasurable]
+      rfl
+    rw [h1, hbZ_coord.map_eq]
+    exact (measurePreserving_eval (fun _ : Fin n => gaussianReal 0 1) i).map_eq
+  -- Independence via the product-measure characterization.
+  refine ⟨hLaw, ?_⟩
+  rw [iIndepFun_iff_map_fun_eq_pi_map (fun i => (hLaw i).aemeasurable)]
+  rw [show (fun (ω : Ω) (i : Fin n) => b.repr (Z ω) i)
+      = (fun ω => ((b.repr (Z ω)) : Fin n → ℝ)) from rfl]
+  rw [hbZ_coord.map_eq]
+  congr 1
+  funext i
+  exact ((hLaw i).map_eq).symm
+
+end GaussianCoordinates
 
 end HansenEconometrics
