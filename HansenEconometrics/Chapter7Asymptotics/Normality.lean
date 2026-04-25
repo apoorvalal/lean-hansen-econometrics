@@ -768,13 +768,13 @@ theorem tendstoInDistribution_id_of_hasLaw_limit_real
     simpa [htarget] using hT.tendsto
 
 omit [Fintype k] [DecidableEq k] in
-/-- **Hansen Theorem 7.13, multivariate Wald `χ²` law identification.**
+/-- Lean-only multivariate Wald `χ²` law-identification bridge.
 
 The generic Wald CMT gives convergence to the limiting quadratic form. If that
 limiting quadratic form is known to have `χ²(r)` law, this theorem restates the
-convergence directly with the named chi-squared limit. The remaining textbook
-work is to prove the appropriate multivariate Gaussian quadratic-form law for
-the OLS limit in each covariance setting. -/
+convergence directly with the named chi-squared limit. The theorem-facing
+wrappers below derive this law from Gaussian Mahalanobis results rather than
+assuming it as a public hypothesis. -/
 theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -849,7 +849,45 @@ theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_stdGaussian_identi
     (Vhat := Vhat) (V := (1 : Matrix (Fin r) (Fin r) ℝ))
     hT hV_meas hV (by simp) hLaw
 
-/-- **Hansen Theorem 7.13, conditional linear-Wald theorem for totalized OLS.**
+omit [Fintype k] [DecidableEq k] in
+/-- **Hansen Theorem 7.13, full-rank Gaussian Wald `χ²` bridge.**
+
+This removes the final-law shortcut for positive-definite covariance limits: if
+the Wald numerator converges to a centered multivariate Gaussian with covariance
+`V` and the covariance estimator converges to `V`, the Mahalanobis Wald
+quadratic form converges to `χ²(r)`. -/
+theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_gaussian_mahalanobis
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {r : ℕ} [Fact (0 < r)]
+    {T : ℕ → Ω → Fin r → ℝ}
+    {Z : Ω' → EuclideanSpace ℝ (Fin r)}
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    {V : Matrix (Fin r) (Fin r) ℝ}
+    (hT : TendstoInDistribution T atTop
+      (fun ω i => (Z ω : Fin r → ℝ) i) (fun _ => μ) ν)
+    (hZ : HasLaw Z (multivariateGaussian 0 V) ν)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_posDef : V.PosDef) :
+    TendstoInDistribution
+      (fun n ω => T n ω ⬝ᵥ ((Vhat n ω)⁻¹ *ᵥ T n ω))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hV_nonsing : IsUnit V.det :=
+    V.isUnit_iff_isUnit_det.mp hV_posDef.isUnit
+  have hLaw : HasLaw
+      (fun ω => (fun i : Fin r => (Z ω : Fin r → ℝ) i) ⬝ᵥ
+        (V⁻¹ *ᵥ (fun i : Fin r => (Z ω : Fin r → ℝ) i)))
+      (chiSquared r) ν := by
+    simpa using
+      hasLaw_gaussian_mahalanobis_chiSquared (n := r) (Fact.out) hV_posDef hZ
+  exact waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
+    (μ := μ) (ν := ν) (q := Fin r) (r := r)
+    (T := T) (Z := fun ω i => (Z ω : Fin r → ℝ) i)
+    (Vhat := Vhat) (V := V)
+    hT hV_meas hV hV_nonsing hLaw
+
+/-- Conditional linear-Wald theorem for totalized OLS.
 
 Given a vector score CLT, covariance consistency for the linear restriction
 `Rβ`, and an identified chi-squared law for the limiting quadratic form, the
@@ -910,7 +948,7 @@ theorem linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared
     (Vhat := Vhat) (V := V)
     hR hV_meas hV hV_nonsing hLaw
 
-/-- **Hansen Theorem 7.13, conditional linear-Wald theorem for ordinary OLS.**
+/-- Conditional linear-Wald theorem for ordinary OLS.
 
 The same multivariate Wald bridge holds for the ordinary-on-nonsingular wrapper
 `olsBetaOrZero`, which agrees pointwise with the totalized estimator in the
@@ -952,6 +990,104 @@ theorem linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquar
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       (Zscore := Zscore) h β R hmodel hScore
       (Vhat := Vhat) (V := V) hV_meas hV hV_nonsing hLaw
+
+/-- **Hansen Theorem 7.13, full-rank linear-Wald theorem for totalized OLS.**
+
+This is the non-shortcut version of the linear-Wald wrapper: the limit of the
+linear restriction is assumed to be a centered multivariate Gaussian with
+positive-definite covariance `V`, and the `χ²(r)` limit is derived from the
+Mahalanobis chi-square law. -/
+theorem linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν)
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    {V : Matrix (Fin r) (Fin r) ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_posDef : V.PosDef)
+    (hLimitLaw : HasLaw
+      (fun ω : Ω' => WithLp.toLp 2 (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω)))
+      (multivariateGaussian 0 V) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hbeta := olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+    (Zscore := Zscore) h β hmodel hScore
+  have hR : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+      atTop
+      (fun ω => R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω))
+      (fun _ => μ) ν := by
+    have hcont : Continuous (fun v : k → ℝ => R *ᵥ v) :=
+      Continuous.matrix_mulVec continuous_const continuous_id
+    simpa [Function.comp_def] using hbeta.continuous_comp hcont
+  exact waldQuadraticForm_tendstoInDistribution_chiSquared_of_gaussian_mahalanobis
+    (μ := μ) (ν := ν) (r := r)
+    (T := fun (n : ℕ) ω =>
+      R *ᵥ (Real.sqrt (n : ℝ) •
+        (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
+    (Z := fun ω : Ω' => WithLp.toLp 2 (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω)))
+    (Vhat := Vhat) (V := V)
+    (by simpa using hR) hLimitLaw hV_meas hV hV_posDef
+
+/-- **Hansen Theorem 7.13, full-rank linear-Wald theorem for ordinary OLS.**
+
+Ordinary-wrapper version of
+`linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian`. -/
+theorem linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {Zscore : Ω' → k → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
+    (R : Matrix (Fin r) k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hScore : TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop Zscore (fun _ => μ) ν)
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    {V : Matrix (Fin r) (Fin r) ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V))
+    (hV_posDef : V.PosDef)
+    (hLimitLaw : HasLaw
+      (fun ω : Ω' => WithLp.toLp 2 (R *ᵥ ((popGram μ X)⁻¹ *ᵥ Zscore ω)))
+      (multivariateGaussian 0 V) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          ((Vhat n ω)⁻¹ *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      (Zscore := Zscore) h β R hmodel hScore
+      (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
 
 end Assumption72
 

@@ -120,17 +120,21 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   `olsHC1LinearCIOrZero_coverage_tendsto_standardNormal`.
 * **Theorem 7.13** — the generic multivariate Wald continuous-mapping bridge is
   formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`,
-  the named `χ²` law-identification wrapper is formalized in
+  the Lean-only named `χ²` law-identification wrapper is formalized in
   `waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw`,
-  the conditional linear-Wald OLS wrappers are formalized in
+  the positive-definite Gaussian/Mahalanobis law bridge is formalized in
+  `waldQuadraticForm_tendstoInDistribution_chiSquared_of_gaussian_mahalanobis`,
+  the non-shortcut full-rank linear-Wald OLS wrappers are formalized in
+  `linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian` and
+  `linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian`, the conditional
+  linear-Wald OLS bridge wrappers remain available as
   `linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`
   and
   `linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
-  Remaining: vector CLT/covariance packaging and final chi-square law
-  identification for the textbook multivariate theorem.
+  Remaining: vector CLT/covariance packaging for the textbook multivariate theorem.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
   pending, but the scalar one-degree-of-freedom face is formalized under the
   variable-facing homoskedasticity assumption
