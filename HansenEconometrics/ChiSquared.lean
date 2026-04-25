@@ -836,6 +836,20 @@ theorem hasLaw_quadForm_symmIdem_chiSquared
   rw [hTarget]
   simpa [sumSquaresRV] using hasLaw_sumSquaresRV_chiSquared hr hLawW hIndepW
 
+/-- The squared Euclidean norm of a `Fin n`-dimensional standard Gaussian vector has a
+`χ²(n)` law. This is the full-rank special case of
+`hasLaw_quadForm_symmIdem_chiSquared` with the identity quadratic form. -/
+theorem hasLaw_stdGaussian_normSq_chiSquared
+    {n : ℕ} (hn : 0 < n) {Ω : Type*} [MeasureSpace Ω]
+    [IsProbabilityMeasure (volume : Measure Ω)]
+    {Z : Ω → EuclideanSpace ℝ (Fin n)}
+    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ (Fin n)))) :
+    HasLaw (fun ω => (Z ω : Fin n → ℝ) ⬝ᵥ (Z ω : Fin n → ℝ)) (chiSquared n) := by
+  have h := hasLaw_quadForm_symmIdem_chiSquared
+    (Z := Z) (M := (1 : Matrix (Fin n) (Fin n) ℝ)) hZ
+    Matrix.isHermitian_one IsIdempotentElem.one (by simpa [Matrix.rank_one] using hn)
+  simpa [Matrix.one_mulVec, Matrix.rank_one] using h
+
 end QuadraticFormChiSquared
 
 end HansenEconometrics
