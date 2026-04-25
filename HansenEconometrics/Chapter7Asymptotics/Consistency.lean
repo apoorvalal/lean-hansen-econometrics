@@ -82,6 +82,26 @@ structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
   /-- Integrability of the true squared error. -/
   int_error_sq : Integrable (fun ω => e 0 ω ^ 2) μ
 
+/-- Descriptive public alias for the current Lean proof package behind Hansen
+Assumption 7.1 / Theorem 7.1.
+
+This is a moment-level sufficient bundle for the current consistency proof, not
+a literal iid-sample encoding. The underlying `SampleMomentAssumption71` name is
+kept as proof infrastructure. -/
+abbrev LeastSquaresConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  SampleMomentAssumption71 μ X e
+
+/-- Descriptive public alias for the current Lean proof package behind Hansen
+Theorem 7.4 / 7.5.
+
+This extends the consistency bundle with the squared-error WLLN hypotheses used
+for residual-variance and homoskedastic covariance consistency. It is still a
+sufficient moment-level package rather than a literal textbook encoding. -/
+abbrev ErrorVarianceConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  SampleVarianceAssumption74 μ X e
+
 /-- The population Gram matrix `Q := 𝔼[X Xᵀ]`. -/
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
   μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]
@@ -895,7 +915,7 @@ Proof chain:
 theorem olsBetaStar_stack_tendstoInMeasure_beta
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1117,7 +1137,7 @@ totalized consistency theorem transfers directly. -/
 theorem olsBetaOrZero_stack_tendstoInMeasure_beta
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1334,7 +1354,7 @@ OLS residual average `σ̂²ₙ` converges in probability to `σ² = E[e₀²]`.
 theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (h : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω => olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1440,7 +1460,7 @@ probability to `σ² = E[e₀²]`. -/
 theorem olsS2Star_tendstoInMeasure_errorVariance
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (h : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω => olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1469,7 +1489,7 @@ homoskedastic covariance estimator `V̂⁰_β = s² Q̂⁻¹` converges in proba
 theorem olsHomoskedasticCovarianceStar_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (h : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω =>

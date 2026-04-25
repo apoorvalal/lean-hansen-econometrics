@@ -337,8 +337,8 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -406,8 +406,8 @@ statistic. -/
 theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -463,8 +463,8 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -497,8 +497,8 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
 theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -525,8 +525,8 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
 theorem olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -561,8 +561,8 @@ convergence in probability to the positive population standard error. -/
 theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ) (crit : ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -629,8 +629,8 @@ variance given regressors, then derives the covariance identity internally. -/
 theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homoskedastic
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ) (crit : ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -673,8 +673,8 @@ statistic for ordinary OLS converges to `χ²(1)`. -/
 theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -706,8 +706,8 @@ ordinary-wrapper scalar homoskedastic t-statistic has a standard-normal limit. -
 theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -741,8 +741,8 @@ variance given `X₀`, then applies the covariance-identity bridge. -/
 theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_homoskedastic
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -775,8 +775,8 @@ ordinary OLS converges to `χ²(1)`. -/
 theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -804,8 +804,8 @@ set_option linter.style.longLine false in
 theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (hclt : SampleCLTAssumption72 μ X e)
-    (hvar : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
+    (hclt : ScoreCLTConditions μ X e)
+    (hvar : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -841,7 +841,7 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -915,7 +915,7 @@ CLT: the target is the identity random variable under `N(0,1)`. -/
 theorem olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -977,7 +977,7 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1018,7 +1018,7 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
 theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1051,7 +1051,7 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
 theorem olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1093,7 +1093,7 @@ positive population limit. -/
 theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ) (crit : ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1162,7 +1162,7 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
 theorem olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1202,7 +1202,7 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1276,7 +1276,7 @@ This is the HC1 analogue of
 theorem olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1337,7 +1337,7 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1378,7 +1378,7 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
 theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1411,7 +1411,7 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
 theorem olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1446,7 +1446,7 @@ theorem olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
 theorem olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1487,7 +1487,7 @@ positive population limit. -/
 theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (R : Matrix Unit k ℝ) (crit : ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
@@ -1562,7 +1562,7 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_al
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (h : ScoreCLTConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {Z : (k → ℝ) → Ω' → ℝ}
     (hZ : ∀ a : k → ℝ,
@@ -1586,7 +1586,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (h : ScoreCLTConditions μ X e) (β a : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
@@ -1609,7 +1609,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (h : ScoreCLTConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {Z : (k → ℝ) → Ω' → ℝ}
     (hZ : ∀ a : k → ℝ,

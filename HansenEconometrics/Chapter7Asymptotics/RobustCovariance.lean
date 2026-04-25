@@ -52,6 +52,17 @@ structure SampleCLTAssumption72 (μ : Measure Ω) [IsProbabilityMeasure μ]
   memLp_cross_projection :
     ∀ a : k → ℝ, MemLp (fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a) 2 μ
 
+/-- Descriptive public alias for the current Lean proof package behind Hansen
+Assumption 7.2 / Theorem 7.2 / Theorem 7.3.
+
+This is the score-CLT-facing sufficient bundle used by the current formalized
+normality layer. It strengthens the Chapter 7.1 moment package with full score
+independence and projectionwise square integrability, rather than encoding the
+textbook iid assumption literally. -/
+abbrev ScoreCLTConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  SampleCLTAssumption72 μ X e
+
 omit [DecidableEq k] in
 /-- Measurability of a fixed dot-product projection on finite-dimensional vectors. -/
 theorem measurable_dotProduct_right (a : k → ℝ) :
@@ -1465,6 +1476,17 @@ structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
   /-- Integrability of the true-error score outer product. -/
   int_score_outer :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ
+
+/-- Descriptive public alias for the current Lean proof package behind the
+robust covariance / t-statistic / Wald layer in Hansen Chapter 7.
+
+This is stronger than bare textbook Assumption 7.2: it packages the score CLT
+bundle together with the true-error score-outer-product WLLN assumptions used to
+prove HC0 consistency, and the later HC1/HC2/HC3 public wrappers still build on
+that stronger sufficient layer. -/
+abbrev RobustCovarianceConsistencyConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  SampleHC0Assumption76 μ X e
 
 omit [Fintype k] [DecidableEq k] in
 /-- The ideal HC0 score covariance average of stacked samples is the range-indexed
@@ -3324,135 +3346,72 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
       (μ := μ) (X := X) (e := e) (y := y)
       h (fun h => ((1 - h)⁻¹) ^ 2) hHC3_meas hHC3
 
-/-- **Hansen Theorem 7.7, HC2 sandwich modulo leverage adjustment.**
-
-The totalized HC2 sandwich estimator is consistent once HC0 is controlled by
-the bounded-weight hypotheses and the HC2-minus-HC0 leverage adjustment is
-`oₚ(1)`. -/
-theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_and_adjustment
+/-- Measurability of a leverage-adjusted sandwich estimator from component
+measurability and measurability of the scalar leverage weight. -/
+private theorem olsHeteroskedasticCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (weight : ℝ → ℝ) (hweight_meas : Measurable weight)
+    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hHC0_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
-    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceCrossWeight
-          (stackRegressors X n ω) (stackErrors e n ω) a b l))
-    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
-          (stackRegressors X n ω) a b l m))
-    (hAdj : TendstoInMeasure μ
-      (fun n ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => 0)) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHeteroskedasticCovarianceHC2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  have hHC0 :=
-    sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_bounded_weights
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCrossWeight hQuadWeight
-  have hHC2 :=
-    sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
-      (μ := μ) (X := X) (e := e) (y := y) hHC0_meas hAdj_meas hHC0 hAdj
-  have hHC2_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2Star
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-    intro n
-    have hsum : AEStronglyMeasurable
-        (fun ω =>
-          sampleScoreCovarianceStar
-              (stackRegressors X n ω) (stackOutcomes y n ω) +
-            sampleScoreCovarianceHC2AdjustmentStar
-              (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
-      (hHC0_meas n).add (hAdj_meas n)
-    simpa [sampleScoreCovarianceHC2AdjustmentStar,
-      sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC2Star,
-      sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
-  exact olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
-    (μ := μ) (X := X) (e := e) (y := y)
-    h.toSampleMomentAssumption71 hHC2_meas hHC2
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
+    ∀ n, AEStronglyMeasurable
+      (fun ω =>
+        olsHeteroskedasticCovarianceLeverageAdjustedStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
+  intro n
+  let invGram : Ω → Matrix k k ℝ := fun ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹
+  let scoreCov : Ω → Matrix k k ℝ := fun ω =>
+    sampleScoreCovarianceLeverageAdjustedStar weight
+      (stackRegressors X n ω) (stackOutcomes y n ω)
+  have hGram_meas : AEStronglyMeasurable
+      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
+    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
+        (fun ω => (n : ℝ)⁻¹ •
+          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
+      funext ω
+      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
+    rw [hform]
+    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+  have hInv_meas : AEStronglyMeasurable invGram μ := by
+    exact aestronglyMeasurable_matrix_inv hGram_meas
+  have hScore_meas : AEStronglyMeasurable scoreCov μ := by
+    have hScore :=
+      sampleScoreCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        weight hweight_meas β h hmodel hX_meas he_meas n
+    simpa [scoreCov] using hScore
+  have hLeft : AEStronglyMeasurable (fun ω => invGram ω * scoreCov ω) μ := by
+    have hprod : AEStronglyMeasurable (fun ω => (invGram ω, scoreCov ω)) μ :=
+      hInv_meas.prodMk hScore_meas
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  have hFull : AEStronglyMeasurable
+      (fun ω => invGram ω * scoreCov ω * invGram ω) μ := by
+    have hprod : AEStronglyMeasurable
+        (fun ω => (invGram ω * scoreCov ω, invGram ω)) μ :=
+      hLeft.prodMk hInv_meas
+    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
+      continuous_fst.matrix_mul continuous_snd
+    exact hcont.comp_aestronglyMeasurable hprod
+  simpa [olsHeteroskedasticCovarianceLeverageAdjustedStar, invGram, scoreCov,
+    Matrix.mul_assoc] using hFull
 
-/-- **Hansen Theorem 7.7, HC3 sandwich modulo leverage adjustment.**
-
-The totalized HC3 sandwich estimator is consistent once HC0 is controlled by
-the bounded-weight hypotheses and the HC3-minus-HC0 leverage adjustment is
-`oₚ(1)`. -/
-theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_and_adjustment
+/-- Generic leverage-adjusted sandwich consistency from the HC0 bounded-weight
+layer, component measurability, and an `oₚ(1)` leverage adjustment. -/
+private theorem olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hHC0_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
-    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceCrossWeight
-          (stackRegressors X n ω) (stackErrors e n ω) a b l))
-    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
-          (stackRegressors X n ω) a b l m))
-    (hAdj : TendstoInMeasure μ
-      (fun n ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => 0)) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHeteroskedasticCovarianceHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  have hHC0 :=
-    sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_bounded_weights
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCrossWeight hQuadWeight
-  have hHC3 :=
-    sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
-      (μ := μ) (X := X) (e := e) (y := y) hHC0_meas hAdj_meas hHC0 hAdj
-  have hHC3_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3Star
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-    intro n
-    have hsum : AEStronglyMeasurable
-        (fun ω =>
-          sampleScoreCovarianceStar
-              (stackRegressors X n ω) (stackOutcomes y n ω) +
-            sampleScoreCovarianceHC3AdjustmentStar
-              (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
-      (hHC0_meas n).add (hAdj_meas n)
-    simpa [sampleScoreCovarianceHC3AdjustmentStar,
-      sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC3Star,
-      sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
-  exact olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
-    (μ := μ) (X := X) (e := e) (y := y)
-    h.toSampleMomentAssumption71 hHC3_meas hHC3
-
-/-- **Hansen Theorem 7.7, HC2 sandwich modulo leverage adjustment and component measurability.**
-
-Component measurability supplies the HC0 middle-matrix measurability needed by
-the HC2 adjustment theorem; the leverage-adjustment measurability and
-`oₚ(1)` convergence remain explicit. -/
-theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_components_and_adjustment
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (weight : ℝ → ℝ) (hweight_meas : Measurable weight)
     (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
         sampleScoreCovarianceCrossWeight
@@ -3462,121 +3421,36 @@ theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_components_and_a
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hAdj : TendstoInMeasure μ
-      (fun n ω => sampleScoreCovarianceHC2AdjustmentStar
+      (fun n ω => sampleScoreCovarianceLeverageAdjustmentStar weight
         (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => 0)) :
     TendstoInMeasure μ
       (fun n ω =>
-        olsHeteroskedasticCovarianceHC2Star
+        olsHeteroskedasticCovarianceLeverageAdjustedStar weight
           (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
   have hHC0_meas :=
     sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
       (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
       hX_meas he_meas
-  exact olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hHC0_meas hAdj_meas hCrossWeight hQuadWeight hAdj
-
-/-- **Hansen Theorem 7.7, HC3 sandwich modulo leverage adjustment and component measurability.**
-
-Component measurability supplies the HC0 middle-matrix measurability needed by
-the HC3 adjustment theorem; the leverage-adjustment measurability and
-`oₚ(1)` convergence remain explicit. -/
-theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_components_and_adjustment
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
-    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ)
-    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceCrossWeight
-          (stackRegressors X n ω) (stackErrors e n ω) a b l))
-    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
-          (stackRegressors X n ω) a b l m))
-    (hAdj : TendstoInMeasure μ
-      (fun n ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => 0)) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHeteroskedasticCovarianceHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  have hHC0_meas :=
-    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
-      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
-      hX_meas he_meas
-  exact olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hHC0_meas hAdj_meas hCrossWeight hQuadWeight hAdj
-
-/-- AEMeasurability of the HC2 middle matrix from component measurability and
-adjustment measurability. -/
-theorem sampleScoreCovarianceHC2Star_stack_aestronglyMeasurable_of_components_and_adjustment
-    {μ : Measure Ω} [IsFiniteMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (h : SampleMomentAssumption71 μ X e)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
-    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ) :
-    ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2Star
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  intro n
+  have hAdj_meas :=
+    sampleScoreCovarianceLeverageAdjustmentStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      weight hweight_meas β h.toSampleMomentAssumption71 hmodel hX_meas he_meas
   have hHC0 :=
-    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
-      (μ := μ) (X := X) (e := e) (y := y) β h hmodel hX_meas he_meas n
-  have hsum : AEStronglyMeasurable
-      (fun ω =>
-        sampleScoreCovarianceStar
-            (stackRegressors X n ω) (stackOutcomes y n ω) +
-          sampleScoreCovarianceHC2AdjustmentStar
-            (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
-    hHC0.add (hAdj_meas n)
-  simpa [sampleScoreCovarianceHC2AdjustmentStar,
-    sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC2Star,
-    sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
-
-/-- AEMeasurability of the HC3 middle matrix from component measurability and
-adjustment measurability. -/
-theorem sampleScoreCovarianceHC3Star_stack_aestronglyMeasurable_of_components_and_adjustment
-    {μ : Measure Ω} [IsFiniteMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (h : SampleMomentAssumption71 μ X e)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
-    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ) :
-    ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3Star
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  intro n
-  have hHC0 :=
-    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
-      (μ := μ) (X := X) (e := e) (y := y) β h hmodel hX_meas he_meas n
-  have hsum : AEStronglyMeasurable
-      (fun ω =>
-        sampleScoreCovarianceStar
-            (stackRegressors X n ω) (stackOutcomes y n ω) +
-          sampleScoreCovarianceHC3AdjustmentStar
-            (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
-    hHC0.add (hAdj_meas n)
-  simpa [sampleScoreCovarianceHC3AdjustmentStar,
-    sampleScoreCovarianceLeverageAdjustmentStar, sampleScoreCovarianceHC3Star,
-    sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
+    sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_bounded_weights
+      (μ := μ) (X := X) (e := e) (y := y) h β hmodel hCrossWeight hQuadWeight
+  have hMiddle :=
+    sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      weight hHC0_meas hAdj_meas hHC0 hAdj
+  have hMiddle_meas :=
+    sampleScoreCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      weight hweight_meas β h.toSampleMomentAssumption71 hmodel hX_meas he_meas
+  exact olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.toSampleMomentAssumption71 weight hMiddle_meas hMiddle
 
 /-- AEMeasurability of the HC2 middle matrix from component measurability. -/
 theorem sampleScoreCovarianceHC2Star_stack_aestronglyMeasurable_of_components
@@ -3613,120 +3487,6 @@ theorem sampleScoreCovarianceHC3Star_stack_aestronglyMeasurable_of_components
       β h hmodel hX_meas he_meas
 
 /-- AEMeasurability of the totalized HC2 sandwich estimator from component
-measurability and HC2 adjustment measurability. -/
-theorem olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
-    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ) :
-    ∀ n, AEStronglyMeasurable
-      (fun ω =>
-        olsHeteroskedasticCovarianceHC2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  intro n
-  let invGram : Ω → Matrix k k ℝ := fun ω =>
-    (sampleGram (stackRegressors X n ω))⁻¹
-  let scoreCov : Ω → Matrix k k ℝ := fun ω =>
-    sampleScoreCovarianceHC2Star (stackRegressors X n ω) (stackOutcomes y n ω)
-  have hGram_meas : AEStronglyMeasurable
-      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
-    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
-        (fun ω => (n : ℝ)⁻¹ •
-          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-      funext ω
-      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-    rw [hform]
-    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
-    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
-    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
-  have hInv_meas : AEStronglyMeasurable invGram μ := by
-    exact aestronglyMeasurable_matrix_inv hGram_meas
-  have hScore_meas : AEStronglyMeasurable scoreCov μ := by
-    have hScore :=
-      sampleScoreCovarianceHC2Star_stack_aestronglyMeasurable_of_components_and_adjustment
-        (μ := μ) (X := X) (e := e) (y := y) β h hmodel hX_meas he_meas hAdj_meas n
-    simpa [scoreCov] using hScore
-  have hLeft : AEStronglyMeasurable (fun ω => invGram ω * scoreCov ω) μ := by
-    have hprod : AEStronglyMeasurable (fun ω => (invGram ω, scoreCov ω)) μ :=
-      hInv_meas.prodMk hScore_meas
-    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
-      continuous_fst.matrix_mul continuous_snd
-    exact hcont.comp_aestronglyMeasurable hprod
-  have hFull : AEStronglyMeasurable
-      (fun ω => invGram ω * scoreCov ω * invGram ω) μ := by
-    have hprod : AEStronglyMeasurable
-        (fun ω => (invGram ω * scoreCov ω, invGram ω)) μ :=
-      hLeft.prodMk hInv_meas
-    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
-      continuous_fst.matrix_mul continuous_snd
-    exact hcont.comp_aestronglyMeasurable hprod
-  simpa [olsHeteroskedasticCovarianceHC2Star,
-    olsHeteroskedasticCovarianceLeverageAdjustedStar, sampleScoreCovarianceHC2Star,
-    invGram, scoreCov, Matrix.mul_assoc] using hFull
-
-/-- AEMeasurability of the totalized HC3 sandwich estimator from component
-measurability and HC3 adjustment measurability. -/
-theorem olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
-    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ) :
-    ∀ n, AEStronglyMeasurable
-      (fun ω =>
-        olsHeteroskedasticCovarianceHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  intro n
-  let invGram : Ω → Matrix k k ℝ := fun ω =>
-    (sampleGram (stackRegressors X n ω))⁻¹
-  let scoreCov : Ω → Matrix k k ℝ := fun ω =>
-    sampleScoreCovarianceHC3Star (stackRegressors X n ω) (stackOutcomes y n ω)
-  have hGram_meas : AEStronglyMeasurable
-      (fun ω => sampleGram (stackRegressors X n ω)) μ := by
-    have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
-        (fun ω => (n : ℝ)⁻¹ •
-          ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-      funext ω
-      rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-    rw [hform]
-    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
-    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
-    exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
-  have hInv_meas : AEStronglyMeasurable invGram μ := by
-    exact aestronglyMeasurable_matrix_inv hGram_meas
-  have hScore_meas : AEStronglyMeasurable scoreCov μ := by
-    have hScore :=
-      sampleScoreCovarianceHC3Star_stack_aestronglyMeasurable_of_components_and_adjustment
-        (μ := μ) (X := X) (e := e) (y := y) β h hmodel hX_meas he_meas hAdj_meas n
-    simpa [scoreCov] using hScore
-  have hLeft : AEStronglyMeasurable (fun ω => invGram ω * scoreCov ω) μ := by
-    have hprod : AEStronglyMeasurable (fun ω => (invGram ω, scoreCov ω)) μ :=
-      hInv_meas.prodMk hScore_meas
-    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
-      continuous_fst.matrix_mul continuous_snd
-    exact hcont.comp_aestronglyMeasurable hprod
-  have hFull : AEStronglyMeasurable
-      (fun ω => invGram ω * scoreCov ω * invGram ω) μ := by
-    have hprod : AEStronglyMeasurable
-        (fun ω => (invGram ω * scoreCov ω, invGram ω)) μ :=
-      hLeft.prodMk hInv_meas
-    have hcont : Continuous (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1 * p.2) :=
-      continuous_fst.matrix_mul continuous_snd
-    exact hcont.comp_aestronglyMeasurable hprod
-  simpa [olsHeteroskedasticCovarianceHC3Star,
-    olsHeteroskedasticCovarianceLeverageAdjustedStar, sampleScoreCovarianceHC3Star,
-    invGram, scoreCov, Matrix.mul_assoc] using hFull
-
-/-- AEMeasurability of the totalized HC2 sandwich estimator from component
 measurability. -/
 theorem olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components
     {μ : Measure Ω} [IsProbabilityMeasure μ]
@@ -3739,13 +3499,11 @@ theorem olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components
       (fun ω =>
         olsHeteroskedasticCovarianceHC2Star
           (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  exact olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hX_meas he_meas
-    (fun n =>
-      sampleScoreCovarianceHC2AdjustmentStar_stack_aestronglyMeasurable_of_components
-        (μ := μ) (X := X) (e := e) (y := y)
-        β h hmodel hX_meas he_meas n)
+  simpa [olsHeteroskedasticCovarianceHC2Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => (1 - h)⁻¹) measurable_hc2Weight
+      h β hmodel hX_meas he_meas
 
 /-- AEMeasurability of the totalized HC3 sandwich estimator from component
 measurability. -/
@@ -3760,13 +3518,11 @@ theorem olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components
       (fun ω =>
         olsHeteroskedasticCovarianceHC3Star
           (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-  exact olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hX_meas he_meas
-    (fun n =>
-      sampleScoreCovarianceHC3AdjustmentStar_stack_aestronglyMeasurable_of_components
-        (μ := μ) (X := X) (e := e) (y := y)
-        β h hmodel hX_meas he_meas n)
+  simpa [olsHeteroskedasticCovarianceHC3Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => ((1 - h)⁻¹) ^ 2) measurable_hc3Weight
+      h β hmodel hX_meas he_meas
 
 /-- **Hansen Theorem 7.7, HC2 sandwich from maximal leverage.**
 
@@ -3775,7 +3531,7 @@ weight hypotheses plus maximal leverage `oₚ(1)`. -/
 theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
@@ -3795,20 +3551,15 @@ theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_
         olsHeteroskedasticCovarianceHC2Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  have hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC2AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-    intro n
-    exact sampleScoreCovarianceHC2AdjustmentStar_stack_aestronglyMeasurable_of_components
-      (μ := μ) (X := X) (e := e) (y := y)
-      β h.toSampleMomentAssumption71 hmodel hX_meas he_meas n
   have hAdj :=
     sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
       h β hmodel hCrossWeight hQuadWeight hMax
-  exact olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_components_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hAdj
+  simpa [olsHeteroskedasticCovarianceHC2Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => (1 - h)⁻¹) measurable_hc2Weight
+      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 /-- **Hansen Theorem 7.7, HC3 sandwich from maximal leverage.**
 
@@ -3817,7 +3568,7 @@ weight hypotheses plus maximal leverage `oₚ(1)`. -/
 theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
@@ -3837,20 +3588,15 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_
         olsHeteroskedasticCovarianceHC3Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e) := by
-  have hAdj_meas : ∀ n, AEStronglyMeasurable
-      (fun ω => sampleScoreCovarianceHC3AdjustmentStar
-        (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
-    intro n
-    exact sampleScoreCovarianceHC3AdjustmentStar_stack_aestronglyMeasurable_of_components
-      (μ := μ) (X := X) (e := e) (y := y)
-      β h.toSampleMomentAssumption71 hmodel hX_meas he_meas n
   have hAdj :=
     sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
       h β hmodel hCrossWeight hQuadWeight hMax
-  exact olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_components_and_adjustment
-    (μ := μ) (X := X) (e := e) (y := y)
-    h β hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hAdj
+  simpa [olsHeteroskedasticCovarianceHC3Star] using
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      (weight := fun h => ((1 - h)⁻¹) ^ 2) measurable_hc3Weight
+      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 /-- HC2 covariance for fixed linear functions from maximal leverage. -/
 theorem linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
