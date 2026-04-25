@@ -11,6 +11,19 @@ This umbrella import exposes Hansen's Chapter 7 (Asymptotic Theory for Least Squ
 The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
 `Normality`, and `Inference` submodules.
 
+## Public assumption aliases
+
+The chapter-facing endpoints now advertise descriptive sufficient-condition
+bundles:
+
+* `LeastSquaresConsistencyConditions`
+* `ErrorVarianceConsistencyConditions`
+* `ScoreCLTConditions`
+* `RobustCovarianceConsistencyConditions`
+
+The older `Sample...` names remain in the imported submodules as proof-engine
+infrastructure.
+
 ## Textbook theorem status
 
 * **Theorem 7.1** — formalized for the totalized estimator `olsBetaStar` in
@@ -22,6 +35,8 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   for every fixed direction, and the vector score CLT is packaged through the
   reusable Cramér-Wold bridge in
   `scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian`.
+  The public sufficient-condition layer for this normality face is
+  `ScoreCLTConditions`.
 * **Theorem 7.3** — asymptotic normality is formalized for scalar projections
   and for the vector totalized estimator. The vector theorem
   `olsBetaStar_vector_tendstoInDistribution_multivariateGaussian` feeds the
@@ -32,9 +47,10 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
   `olsSigmaSqHatStar_tendstoInMeasure_errorVariance` and
-  `olsS2Star_tendstoInMeasure_errorVariance`. The assumptions are packaged as
-  `SampleVarianceAssumption74`, a moment-level sufficient condition extending
-  `SampleMomentAssumption71` with the squared-error WLLN hypotheses.
+  `olsS2Star_tendstoInMeasure_errorVariance`. The public sufficient conditions
+  are packaged as `ErrorVarianceConsistencyConditions`; the underlying
+  `SampleVarianceAssumption74` name is kept internally as the moment-level
+  proof bundle extending the current consistency layer.
 * **Theorem 7.5** — homoskedastic plug-in covariance consistency is formalized
   for the totalized estimator `olsHomoskedasticCovarianceStar` in
   `olsHomoskedasticCovarianceStar_tendstoInMeasure`.
@@ -46,7 +62,9 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   `sampleScoreCovarianceStar_linear_model`,
   `sampleScoreCovarianceStar_stack_tendstoInMeasure_scoreCovarianceMatrix_of_remainders`,
   and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_remainders`, and is
-  proved under bounded empirical third/fourth weights in
+  proved under the current public sufficient package
+  `RobustCovarianceConsistencyConditions` plus bounded empirical third/fourth
+  weights in
   `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights`.
   The residual middle-matrix measurability premise is discharged from component
   measurability in
@@ -68,13 +86,9 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   Scalar entry convergence is further reduced by
   `sampleScoreCovarianceLeverageAdjustmentEntryStar_tendstoInMeasure_zero_of_weight_norm`
   to a largest-adjustment-weight `oₚ(1)` condition times a bounded absolute
-  residual-score average.
-  The HC2/HC3 wrappers remain available as
-  `olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle` and
-  `olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle`. Remaining:
-  prove the HC2/HC3 largest-adjustment-weight condition from max leverage, and
-  discharge the bounded absolute residual-score averages from primitive moment
-  assumptions.
+  residual-score average. Those two remaining pieces are now discharged in the
+  public HC2/HC3 covariance and Wald wrappers; the main remaining work is only
+  to tighten the assumption packaging toward a more literal textbook iid layer.
 * **Theorem 7.8** — the global continuous-mapping face for functions of
   parameters is formalized in `continuous_function_olsBetaStar_tendstoInMeasure`
   after proving `olsBetaStar_stack_aestronglyMeasurable`, with the
@@ -138,17 +152,19 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
   and scalar one-degree-of-freedom HC0/HC1 Wald faces are formalized as
   `olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` and
   `olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`.
-  Remaining: discharge the Gaussian linear-map law/covariance identity and plug
-  in concrete covariance-estimator consistency for the textbook multivariate
-  theorem.
+  The multivariate Wald layer now also reuses the Chapter 5 chi-squared law
+  infrastructure `hasLaw_stdGaussian_normSq_chiSquared` and
+  `hasLaw_gaussian_mahalanobis_chiSquared`, together with the Gaussian
+  linear-image bridge `hasLaw_multivariateGaussian_zero_linearMap`. Remaining:
+  tighten the public assumption packaging.
 * **Theorem 7.14** — the full multivariate homoskedastic Wald theorem is
-  pending, but the scalar one-degree-of-freedom face is formalized under the
-  variable-facing homoskedasticity assumption
-  `HomoskedasticErrorVariance` in
-  `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic`.
-  The Lean-only bridge
+  formalized, together with its scalar one-degree-of-freedom face, under the
+  variable-facing homoskedasticity assumption `HomoskedasticErrorVariance`.
+  The bridge
   `scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic`
-  proves the reusable covariance identity `Ω = σ²Q`.
+  proves the reusable covariance identity `Ω = σ²Q`, and both scalar and
+  multivariate homoskedastic Wald wrappers now conclude `χ²` limits from that
+  assumption.
 * **Theorem 7.16** — the probabilistic max-residual rate is pending, but the
   deterministic pointwise residual-error inequalities are formalized in
   `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` and
@@ -183,11 +199,12 @@ design matrix at each sample point `ω`:
 
 ## Phase 3 — Probabilistic consistency for a totalized estimator
 
-`SampleMomentAssumption71` packages the moment-level independence,
-integrability, nonsingularity, and orthogonality hypotheses used by the Lean
-proof. These are sufficient for the current consistency argument, but they are
-not a literal encoding of Hansen's iid sample assumption. The chain of
-convergences is then assembled:
+`LeastSquaresConsistencyConditions` packages the public moment-level
+independence, integrability, nonsingularity, and orthogonality hypotheses used
+by the Lean proof. Internally this is still implemented by the proof bundle
+`SampleMomentAssumption71`. These assumptions are sufficient for the current
+consistency argument, but they are not a literal encoding of Hansen's iid
+sample assumption. The chain of convergences is then assembled:
 
 * `sampleGram_stackRegressors_tendstoInMeasure_popGram` — `Q̂ₙ →ₚ Q` via WLLN.
 * `sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero` —
@@ -209,10 +226,11 @@ Lean interface for that high-probability nonsingularity event.
 
 ## Phase 4 — First CLT bridge
 
-`SampleCLTAssumption72` strengthens the moment-level consistency assumptions
-with full independence of the score vectors `eᵢXᵢ` and square integrability of
-all scalar projections. The score covariance matrix `Ω` is exposed as
-`scoreCovarianceMatrix`, with finite-entry and quadratic-form wrappers. The theorem
+`ScoreCLTConditions` strengthens the public consistency layer with full
+independence of the score vectors `eᵢXᵢ` and square integrability of all scalar
+projections. Internally this is still implemented by `SampleCLTAssumption72`.
+The score covariance matrix `Ω` is exposed as `scoreCovarianceMatrix`, with
+finite-entry and quadratic-form wrappers. The theorem
 `scoreProjection_sum_tendstoInDistribution_gaussian` applies Mathlib's
 one-dimensional central limit theorem to every fixed projection of the score.
 `sqrt_smul_residual_tendstoInMeasure_zero` also records that the singular-event

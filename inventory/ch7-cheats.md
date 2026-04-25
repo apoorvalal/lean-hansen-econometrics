@@ -152,7 +152,15 @@ separate `hAdj_meas` premise.
 This is not circular, but it is still stronger than the literal textbook
 packaging. Several Chapter 7 public theorems use the repo’s sufficient
 assumption bundles such as
-[SampleCLTAssumption72](../HansenEconometrics/Chapter7Asymptotics/Normality.lean)
-instead of a theorem stated directly from the textbook iid assumptions.
+[LeastSquaresConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/Consistency.lean),
+[ErrorVarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/Consistency.lean),
+[ScoreCLTConditions](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+and
+[RobustCovarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+instead of the literal textbook iid assumptions.
+
+Internally these are still implemented by the proof-engine bundles
+`SampleMomentAssumption71`, `SampleVarianceAssumption74`,
+`SampleCLTAssumption72`, and `SampleHC0Assumption76`.
 
 That is a packaging gap, not a law-identification cheat.
