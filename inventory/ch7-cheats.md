@@ -94,21 +94,27 @@ V_\beta^0 = \sigma^2 Q^{-1} = Q^{-1}\Omega Q^{-1} = V_\beta
 
 ## Remaining cheats
 
-### 1. HC2 / HC3 adjustment convergence
+### 1. HC2 / HC3 primitive-moment closure
 
-Current Lean reduces HC2/HC3 to a sharper intermediate claim:
+The max-leverage half is now closed. Lean proves:
+
+\[
+\max_i h_{ii,n} \to_p 0
+\Longrightarrow
+\max_i \bigl|w_{n,i} - 1\bigr| = o_p(1),
+\]
+
+and then packages HC2/HC3 covariance and multivariate Wald wrappers from
 
 \[
 \max_i \bigl|w_{n,i} - 1\bigr| = o_p(1)
 \quad\text{and}\quad
-\frac{1}{n}\sum_i |\hat e_i X_i X_i'| = O_p(1)
+\frac{1}{n}\sum_i |\hat e_i^2 X_{ia} X_{ib}| = O_p(1).
 \]
 
-imply the middle-matrix adjustment is \(o_p(1)\), hence the covariance
-estimator has the same limit as HC0.
-
-What remains is to prove those premises from Hansen-style max-leverage and
-moment assumptions, then expose HC2/HC3 covariance and Wald wrappers.
+What remains is narrower: discharge the residual absolute-weight boundedness
+hypothesis from primitive Hansen-style moment assumptions, and then remove the
+technical adjustment-measurability premise if possible.
 
 ### 2. Assumption-layer gap
 
