@@ -438,6 +438,42 @@ section MultivariateGaussian
 variable {n : Type*}
 variable [Fintype n] [DecidableEq n]
 
+/-- A fixed dot-product projection of a centered multivariate Gaussian is a
+one-dimensional Gaussian with variance given by the matching quadratic form. -/
+theorem hasLaw_multivariateGaussian_zero_dotProduct
+    {S : Matrix n n ℝ} (hS : S.PosSemidef) (a : n → ℝ) :
+    HasLaw (fun z : EuclideanSpace ℝ n => z.ofLp ⬝ᵥ a)
+      (gaussianReal 0 (a ⬝ᵥ (S *ᵥ a)).toNNReal) (multivariateGaussian 0 S) := by
+  let u : EuclideanSpace ℝ n := WithLp.toLp 2 a
+  let L : EuclideanSpace ℝ n →L[ℝ] ℝ := (innerSL ℝ) u
+  have hEq := IsGaussian.map_eq_gaussianReal (μ := multivariateGaussian 0 S) L
+  have hMean : (multivariateGaussian 0 S)[L] = 0 := by
+    rw [ContinuousLinearMap.integral_comp_id_comm]
+    · simp [L, integral_id_multivariateGaussian]
+    · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+  have hVar : Var[L; multivariateGaussian 0 S] = a ⬝ᵥ (S *ᵥ a) := by
+    have hLfun : (⇑L : EuclideanSpace ℝ n → ℝ) = fun x => inner ℝ u x := by
+      rfl
+    rw [← covariance_self (Measurable.aemeasurable <| by fun_prop), hLfun,
+      ← covarianceBilin_apply_eq_cov]
+    · calc
+        covarianceBilin (multivariateGaussian 0 S) u u = u ⬝ᵥ (S *ᵥ u) := by
+          rw [covarianceBilin_multivariateGaussian hS]
+        _ = a ⬝ᵥ (S *ᵥ a) := by
+          simp [u]
+    · exact IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)
+  rw [hMean, hVar] at hEq
+  refine ⟨by fun_prop, ?_⟩
+  rw [show (fun z : EuclideanSpace ℝ n => z.ofLp ⬝ᵥ a) = L by
+    funext z
+    change z.ofLp ⬝ᵥ a = inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) z
+    calc
+      z.ofLp ⬝ᵥ a =
+          inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) (WithLp.toLp 2 z.ofLp) := by
+        simpa using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := n) a z.ofLp).symm
+      _ = inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) z := by simp,
+    hEq]
+
 /-- In an isotropic multivariate Gaussian, the coordinates in any orthonormal basis, scaled by the
 standard deviation, are independent standard normals. This is the bridge from Gaussian vectors to
 chi-square arguments in Chapter 5. -/

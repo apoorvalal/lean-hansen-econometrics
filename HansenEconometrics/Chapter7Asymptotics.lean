@@ -16,28 +16,19 @@ The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
 * **Theorem 7.1** — formalized for the totalized estimator `olsBetaStar` in
   `olsBetaStar_stack_tendstoInMeasure_beta` and for the ordinary-on-nonsingular
   wrapper `olsBetaOrZero` in `olsBetaOrZero_stack_tendstoInMeasure_beta`.
-* **Theorem 7.2** — projectionwise CLT and covariance-matrix faces landed. The
-  theorem in the text has two parts, `Ω < ∞` and the vector score CLT
-  `(1 / √n) ∑ Xᵢeᵢ ⇒ N(0, Ω)`. The current Lean state names `Ω` as
-  `scoreCovarianceMatrix`, proves its finite second-moment / quadratic-form
-  interfaces, and proves the scalar projection CLT for every fixed direction
-  `a`, with the all-directions covariance signpost
-  `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all`.
-  The literal vector-valued statement is still pending.
-* **Theorem 7.3** — scalar projections of the totalized estimator
-  `olsBetaStar` and the ordinary-on-nonsingular wrapper `olsBetaOrZero` are
-  asymptotically normal. The proof now includes the inverse-gap/tightness
-  bridge replacing `Q⁻¹` by `Q̂ₙ⁻¹`, covariance-matrix variance notation, and
-  all-directions projection-family wrappers for both estimators. Generic
-  matrix-vector distributional Slutsky bridges are now named in
-  `matrixMulVec_tendstoInDistribution_of_vector_and_matrix` and
-  `matrixInvMulVec_tendstoInDistribution_of_vector_and_matrix`, with the
-  feasible leading-score vector bridge
-  `feasibleScore_tendstoInDistribution_of_scoreCLT` and conditional vector OLS
-  assembly `olsBetaStar_vector_tendstoInDistribution_of_scoreCLT` plus the
-  ordinary-wrapper version
-  `olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT`.
-  The remaining textbook-facing work is vector/Cramér-Wold packaging.
+* **Theorem 7.2** — the score covariance matrix `Ω` is named as
+  `scoreCovarianceMatrix`, with finite second-moment, positive-semidefinite,
+  and scalar quadratic-form interfaces. The scalar projection CLT is formalized
+  for every fixed direction, and the vector score CLT is packaged through the
+  reusable Cramér-Wold bridge in
+  `scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian`.
+* **Theorem 7.3** — asymptotic normality is formalized for scalar projections
+  and for the vector totalized estimator. The vector theorem
+  `olsBetaStar_vector_tendstoInDistribution_multivariateGaussian` feeds the
+  proved vector score CLT into the random-inverse Slutsky bridge, and
+  `olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian` gives the
+  ordinary-on-nonsingular wrapper. The conditional `_of_scoreCLT` bridge lemmas
+  remain available as reusable assembly pieces.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
   `olsSigmaSqHatStar_tendstoInMeasure_errorVariance` and

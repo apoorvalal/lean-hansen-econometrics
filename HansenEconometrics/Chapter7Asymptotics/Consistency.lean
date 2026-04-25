@@ -156,6 +156,24 @@ theorem sampleGram_stackRegressors_aestronglyMeasurable
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
 
+/-- Measurability of the stacked sample cross moment under the Chapter 7.1 moment layer. -/
+theorem sampleCrossMoment_stackRegressors_stackErrors_aestronglyMeasurable
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
+  have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω)
+        (stackErrors e n ω)) =
+      (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
+    funext ω
+    rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+        sum_fin_eq_sum_range_smul]
+  rw [hform]
+  refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
+  refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
+  exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+
 /-- **CMT for the inverse sample Gram.** Under the moment-level assumptions,
 `Q̂ₙ⁻¹ →ₚ Q⁻¹`. -/
 theorem sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
@@ -353,16 +371,7 @@ theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
   have hCross_meas : ∀ n, AEStronglyMeasurable
       (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
     intro n
-    have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω)
-          (stackErrors e n ω)) =
-        (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
-      funext ω
-      rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
-          sum_fin_eq_sum_range_smul]
-    rw [hform]
-    refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
-    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
-    exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
+    exact sampleCrossMoment_stackRegressors_stackErrors_aestronglyMeasurable h n
   have hInv : TendstoInMeasure μ
       (fun n ω => (sampleGram (stackRegressors X n ω))⁻¹)
       atTop (fun _ => (popGram μ X)⁻¹) :=

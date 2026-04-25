@@ -1,3 +1,6 @@
+import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.Chapter7Asymptotics.Consistency
 import HansenEconometrics.Chapter7Asymptotics.RobustCovariance
 
 /-!
@@ -49,9 +52,8 @@ For every fixed vector `a`, the projected score sum
 matching scalar variance. This is the one-dimensional CLT supplied by Mathlib,
 specialized to the score projections that appear in OLS asymptotic normality.
 
-This is not yet the literal vector-valued statement of Theorem 7.2, nor does it
-separately expose the textbook `Ω < ∞` conclusion. It is the Cramér-Wold-facing
-piece needed to build that vector theorem. -/
+This is the one-dimensional projection face used by the vector-valued
+Cramér-Wold theorem below. -/
 theorem scoreProjection_sum_tendstoInDistribution_gaussian
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -93,8 +95,8 @@ This is the same CLT as `scoreProjection_sum_tendstoInDistribution_gaussian`,
 rewritten in Hansen's notation as `√n · ĝₙ(e)` where
 `ĝₙ(e) = n⁻¹∑ eᵢXᵢ`.
 
-Status: this is the main formalized face of Theorem 7.2 at present. The full
-vector-valued CLT is still pending. -/
+The vector-valued CLT below packages these scalar projections through the
+reusable Cramér-Wold bridge. -/
 theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -143,10 +145,9 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covaria
 
 /-- **Hansen Theorem 7.2, all scalar projections with `Ω`.**
 
-This packages the current Cramér-Wold-facing endpoint: for every fixed
-direction `a`, the scalar projection of `√n · ĝₙ(e)` has Gaussian limit with
-variance `a' Ω a`.  The remaining gap to the literal textbook statement is the
-reverse Cramér-Wold/vector-valued convergence wrapper. -/
+This packages the scalar projection family used by the vector-valued
+Cramér-Wold theorem below: for every fixed direction `a`, the scalar projection
+of `√n · ĝₙ(e)` has Gaussian limit with variance `a' Ω a`. -/
 theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -165,6 +166,83 @@ theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covaria
   fun a =>
     scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) h a (hZ a)
+
+/-- **Hansen Theorem 7.2, vector score CLT in Euclidean-space form.**
+
+The scaled sample score `√n · ĝₙ(e)`, coerced to `EuclideanSpace`, converges to
+the centered multivariate Gaussian with covariance matrix `Ω`. The proof uses
+the reusable Cramér-Wold bridge plus the scalar projection CLTs above. -/
+theorem scoreEuclidean_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        WithLp.toLp 2
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+      atTop
+      (fun z : EuclideanSpace ℝ k => z)
+      (fun _ => μ)
+      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+  refine cramerWold_tendstoInDistribution ?_ (by fun_prop) ?_
+  · intro n
+    exact (PiLp.continuous_toLp 2 (fun _ : k => ℝ)).measurable.comp_aemeasurable
+      ((sampleCrossMoment_stackRegressors_stackErrors_aestronglyMeasurable
+        (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71 n).const_smul
+          (Real.sqrt (n : ℝ))).aemeasurable
+  · intro t
+    let a : k → ℝ := t.ofLp
+    have hLawDot := hasLaw_multivariateGaussian_zero_dotProduct
+      (S := scoreCovarianceMatrix μ X e)
+      (scoreCovarianceMatrix_posSemidef (μ := μ) (X := X) (e := e) h) a
+    have hLawDual : HasLaw
+        (fun z : EuclideanSpace ℝ k =>
+          (InnerProductSpace.toDualMap ℝ (EuclideanSpace ℝ k) t) z)
+        (gaussianReal 0 (a ⬝ᵥ (scoreCovarianceMatrix μ X e *ᵥ a)).toNNReal)
+        (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+      refine hLawDot.congr (ae_of_all _ fun z => ?_)
+      change inner ℝ t z = z.ofLp ⬝ᵥ a
+      simpa [a] using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := k) t.ofLp z.ofLp)
+    have hscalar := scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance
+      (μ := μ) (ν := multivariateGaussian 0 (scoreCovarianceMatrix μ X e))
+      (X := X) (e := e) h a hLawDual
+    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hscalar
+    intro n
+    exact ae_of_all μ (fun ω => by
+      change (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) ⬝ᵥ a =
+        inner ℝ t (WithLp.toLp 2
+          (Real.sqrt (n : ℝ) •
+            sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)))
+      simpa [a] using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := k) t.ofLp
+        (Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))).symm)
+
+/-- **Hansen Theorem 7.2, vector score CLT in Chapter 7 function-vector notation.**
+
+This is the public Chapter 7 score CLT: `√n · ĝₙ(e)` converges to the
+multivariate Gaussian score vector. The limit random variable is the coordinate
+view of the Gaussian on `EuclideanSpace ℝ k`, matching the rest of the chapter's
+`k → ℝ` vector notation. -/
+theorem scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ)
+      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+  have hEuclid := scoreEuclidean_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+    (μ := μ) (X := X) (e := e) h
+  have hMap := TendstoInDistribution.continuous_comp
+    (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid
+  simpa [Function.comp_def] using hMap
 
 /-- **Hansen Theorem 7.3, feasible leading-score vector Slutsky bridge.**
 
@@ -289,6 +367,58 @@ theorem olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT
         Real.sqrt (n : ℝ) •
           (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)
     rw [olsBetaOrZero_eq_olsBetaStar])
+
+/-- **Hansen Theorem 7.3, vector asymptotic normality for totalized OLS.**
+
+Under the Chapter 7.2 scalar-projection CLT assumptions, the scaled totalized
+OLS estimator converges to the population-inverse transform of the Gaussian
+score vector. This theorem discharges the vector score CLT using the
+Cramér-Wold score theorem above. -/
+theorem olsBetaStar_vector_tendstoInDistribution_multivariateGaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop
+      (fun z : EuclideanSpace ℝ k => (popGram μ X)⁻¹ *ᵥ z.ofLp)
+      (fun _ => μ)
+      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+  exact olsBetaStar_vector_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := multivariateGaussian 0 (scoreCovarianceMatrix μ X e))
+    (X := X) (e := e) (y := y)
+    (Zscore := fun z : EuclideanSpace ℝ k => z.ofLp)
+    h.toSampleMomentAssumption71 β hmodel
+    (scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (X := X) (e := e) h)
+
+/-- **Hansen Theorem 7.3, ordinary-wrapper vector asymptotic normality.**
+
+The same non-conditional vector CLT for the textbook-facing `olsBetaOrZero`
+wrapper, using the pointwise equality with `olsBetaStar`. -/
+theorem olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))
+      atTop
+      (fun z : EuclideanSpace ℝ k => (popGram μ X)⁻¹ *ᵥ z.ofLp)
+      (fun _ => μ)
+      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
+  exact olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT
+    (μ := μ) (ν := multivariateGaussian 0 (scoreCovarianceMatrix μ X e))
+    (X := X) (e := e) (y := y)
+    (Zscore := fun z : EuclideanSpace ℝ k => z.ofLp)
+    h.toSampleMomentAssumption71 β hmodel
+    (scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (X := X) (e := e) h)
 
 /-- **Scaled-score coordinate boundedness from Theorem 7.2.**
 
@@ -553,9 +683,10 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_scoreBound
 For every fixed projection vector `a`, the scaled totalized OLS error has the
 Gaussian limit obtained from the fixed-`Q⁻¹` score projection. Compared with
 the previous conditional variants, the inverse-gap/tightness premise is now
-fully discharged from Theorem 7.2's score CLT. The remaining textbook-facing
-work is the vector Cramér-Wold packaging; the ordinary-on-nonsingular wrapper
-is handled by the covariance-form theorem below. -/
+fully discharged from Theorem 7.2's score CLT. The vector-valued version is
+provided earlier by `olsBetaStar_vector_tendstoInDistribution_multivariateGaussian`;
+the ordinary-on-nonsingular scalar wrapper is handled by the covariance-form
+theorem below. -/
 theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
