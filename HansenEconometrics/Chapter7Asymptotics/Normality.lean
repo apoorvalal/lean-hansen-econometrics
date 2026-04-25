@@ -796,6 +796,59 @@ theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
     hT hV_meas hV hV_nonsing
   exact tendstoInDistribution_id_of_hasLaw_limit_real hquad hLaw
 
+omit [Fintype k] [DecidableEq k] in
+/-- **Wald `χ²` law for an identity-covariance standard-Gaussian limit.**
+
+This removes the law-assumption shortcut in the full-rank identity covariance
+case: if the Wald numerator converges to a standard Gaussian vector and the
+estimated covariance converges to `I`, the quadratic form converges to
+`χ²(r)`. General covariance matrices still require a whitening/Mahalanobis
+law bridge. -/
+theorem waldQuadraticForm_tendstoInDistribution_chiSquared_of_stdGaussian_identity
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {r : ℕ} [Fact (0 < r)]
+    {T : ℕ → Ω → Fin r → ℝ}
+    {Z : Ω' → EuclideanSpace ℝ (Fin r)}
+    {Vhat : ℕ → Ω → Matrix (Fin r) (Fin r) ℝ}
+    (hT : TendstoInDistribution T atTop
+      (fun ω i => (Z ω : Fin r → ℝ) i) (fun _ => μ) ν)
+    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ (Fin r))) ν)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop
+      (fun _ => (1 : Matrix (Fin r) (Fin r) ℝ))) :
+    TendstoInDistribution
+      (fun n ω => T n ω ⬝ᵥ ((Vhat n ω)⁻¹ *ᵥ T n ω))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  let E := EuclideanSpace ℝ (Fin r)
+  let normSq : E → ℝ := fun z => (z : Fin r → ℝ) ⬝ᵥ (z : Fin r → ℝ)
+  have hNormMap : HasLaw normSq (chiSquared r) (stdGaussian E) := by
+    letI : MeasureSpace E := ⟨stdGaussian E⟩
+    haveI : IsProbabilityMeasure (volume : Measure E) := by
+      change IsProbabilityMeasure (stdGaussian E)
+      infer_instance
+    have hId : HasLaw (fun z : E => z) (stdGaussian E) := by
+      simpa [id] using (HasLaw.id (μ := stdGaussian E))
+    simpa [normSq, E] using
+      hasLaw_stdGaussian_normSq_chiSquared (n := r) (Fact.out) hId
+  have hLawNorm :
+      HasLaw (fun ω => (Z ω : Fin r → ℝ) ⬝ᵥ (Z ω : Fin r → ℝ))
+        (chiSquared r) ν := by
+    simpa [normSq, E, Function.comp_def] using hNormMap.comp hZ
+  have hLaw :
+      HasLaw
+        (fun ω =>
+          (fun i : Fin r => (Z ω : Fin r → ℝ) i) ⬝ᵥ
+            (((1 : Matrix (Fin r) (Fin r) ℝ)⁻¹) *ᵥ
+              (fun i : Fin r => (Z ω : Fin r → ℝ) i)))
+        (chiSquared r) ν := by
+    simpa [inv_one, Matrix.one_mulVec] using hLawNorm
+  exact waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw
+    (μ := μ) (ν := ν) (q := Fin r) (r := r)
+    (T := T) (Z := fun ω i => (Z ω : Fin r → ℝ) i)
+    (Vhat := Vhat) (V := (1 : Matrix (Fin r) (Fin r) ℝ))
+    hT hV_meas hV (by simp) hLaw
+
 /-- **Hansen Theorem 7.13, conditional linear-Wald theorem for totalized OLS.**
 
 Given a vector score CLT, covariance consistency for the linear restriction
