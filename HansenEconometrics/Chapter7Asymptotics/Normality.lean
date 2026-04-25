@@ -1797,10 +1797,6 @@ theorem linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
       (fun n ω =>
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
-    (hAbsWeight : ∀ a b : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceResidualAbsWeightStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) a b))
     (hMax : TendstoInMeasure μ
       (fun n ω => maxLeverageStar (stackRegressors X n ω))
       atTop (fun _ => 0))
@@ -1827,7 +1823,7 @@ theorem linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
   have hV :=
     linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hAbsWeight hMax
+      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hMax
   simpa [Vhat] using
     linearMap_olsBetaStar_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
@@ -1854,10 +1850,6 @@ theorem linearMap_olsHC2WaldStatisticOrZero_tendstoInDistribution_chiSquared
       (fun n ω =>
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
-    (hAbsWeight : ∀ a b : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceResidualAbsWeightStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) a b))
     (hMax : TendstoInMeasure μ
       (fun n ω => maxLeverageStar (stackRegressors X n ω))
       atTop (fun _ => 0))
@@ -1875,7 +1867,7 @@ theorem linearMap_olsHC2WaldStatisticOrZero_tendstoInDistribution_chiSquared
     linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight
-      hAbsWeight hMax hV_posDef
+      hMax hV_posDef
 
 /-- Multivariate HC3 Wald statistic for totalized OLS. -/
 theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
@@ -1898,10 +1890,6 @@ theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
       (fun n ω =>
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
-    (hAbsWeight : ∀ a b : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceResidualAbsWeightStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) a b))
     (hMax : TendstoInMeasure μ
       (fun n ω => maxLeverageStar (stackRegressors X n ω))
       atTop (fun _ => 0))
@@ -1928,7 +1916,7 @@ theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
   have hV :=
     linearMap_olsHC3CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hAbsWeight hMax
+      h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight hMax
   simpa [Vhat] using
     linearMap_olsBetaStar_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
@@ -1955,10 +1943,6 @@ theorem linearMap_olsHC3WaldStatisticOrZero_tendstoInDistribution_chiSquared
       (fun n ω =>
         sampleScoreCovarianceQuadraticWeight
           (stackRegressors X n ω) a b l m))
-    (hAbsWeight : ∀ a b : k, BoundedInProbability μ
-      (fun n ω =>
-        sampleScoreCovarianceResidualAbsWeightStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) a b))
     (hMax : TendstoInMeasure μ
       (fun n ω => maxLeverageStar (stackRegressors X n ω))
       atTop (fun _ => 0))
@@ -1976,7 +1960,7 @@ theorem linearMap_olsHC3WaldStatisticOrZero_tendstoInDistribution_chiSquared
     linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hAdj_meas hCrossWeight hQuadWeight
-      hAbsWeight hMax hV_posDef
+      hMax hV_posDef
 
 end Assumption72
 

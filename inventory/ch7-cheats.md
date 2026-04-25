@@ -92,29 +92,47 @@ V_\beta^0 = \sigma^2 Q^{-1} = Q^{-1}\Omega Q^{-1} = V_\beta
 \Rightarrow \chi^2_r.
 \]
 
+### 4. HC2 / HC3 residual absolute-weight closure
+
+Closed by deriving the `O_p(1)` residual absolute-weight averages from the
+existing HC0 convergence package. The key deterministic bound is
+
+\[
+\frac1n \sum_i \left|\hat e_i^2 X_{ia} X_{ib}\right|
+\;\le\;
+\frac1n \sum_i \hat e_i^2 X_{ia}^2
+\;+\;
+\frac1n \sum_i \hat e_i^2 X_{ib}^2,
+\]
+
+so each absolute residual-score average is dominated by two diagonal HC0
+middle-matrix entries. Since those diagonal entries converge in probability to
+finite constants, they are `O_p(1)`.
+
+In Lean this is packaged through
+[sampleScoreCovarianceResidualAbsWeightStar_le_diag_add](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_middle](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+and
+[sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_bounded_weights](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+then fed into
+[sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+and
+[sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+with public HC2/HC3 covariance and Wald wrappers no longer assuming that
+absolute-weight boundedness separately.
+
 ## Remaining cheats
 
-### 1. HC2 / HC3 primitive-moment closure
+### 1. HC2 / HC3 adjustment measurability
 
-The max-leverage half is now closed. Lean proves:
+The HC2/HC3 covariance and Wald wrappers still carry the technical premise
+that the HC2/HC3 adjustment matrices are a.e. strongly measurable. That is not
+a circular law assumption, but it is still extra packaging friction in the
+public API.
 
-\[
-\max_i h_{ii,n} \to_p 0
-\Longrightarrow
-\max_i \bigl|w_{n,i} - 1\bigr| = o_p(1),
-\]
-
-and then packages HC2/HC3 covariance and multivariate Wald wrappers from
-
-\[
-\max_i \bigl|w_{n,i} - 1\bigr| = o_p(1)
-\quad\text{and}\quad
-\frac{1}{n}\sum_i |\hat e_i^2 X_{ia} X_{ib}| = O_p(1).
-\]
-
-What remains is narrower: discharge the residual absolute-weight boundedness
-hypothesis from primitive Hansen-style moment assumptions, and then remove the
-technical adjustment-measurability premise if possible.
+What remains here is to prove the needed measurability directly from the
+existing component measurability hypotheses, so the public HC2/HC3 wrappers do
+not need a separate `hAdj_meas` premise.
 
 ### 2. Assumption-layer gap
 

@@ -718,6 +718,77 @@ theorem BoundedInProbability.of_tendstoInDistribution
     _ ≤ ((law n : ProbabilityMeasure ℝ) : Measure ℝ) Kᶜ := measure_mono htail_subset
     _ ≤ δ := hlawK
 
+/-- Real convergence in probability to a constant implies boundedness in
+probability. -/
+theorem BoundedInProbability.of_tendstoInMeasure_const
+    {μ : Measure α} {X : ℕ → α → ℝ} {c : ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => c)) :
+    BoundedInProbability μ X := by
+  rw [tendstoInMeasure_iff_dist] at hX
+  intro δ hδ
+  refine ⟨|c| + 1, by positivity, ?_⟩
+  have htail := (hX 1 zero_lt_one).eventually_lt_const hδ
+  filter_upwards [htail] with n hn
+  have hcover : {ω | |c| + 1 ≤ ‖X n ω‖} ⊆ {ω | 1 ≤ dist (X n ω) c} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Real.norm_eq_abs] at hω ⊢
+    have habs : |X n ω| ≤ |X n ω - c| + |c| := by
+      simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using
+        (abs_add_le (X n ω - c) c)
+    have hdist : 1 ≤ |X n ω - c| := by
+      linarith
+    simpa [Real.dist_eq] using hdist
+  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hn)
+
+/-- A pointwise absolute bound transfers boundedness in probability. -/
+theorem BoundedInProbability.of_abs_le
+    {μ : Measure α} {X Y : ℕ → α → ℝ}
+    (hY : BoundedInProbability μ Y)
+    (hXY : ∀ n ω, |X n ω| ≤ |Y n ω|) :
+    BoundedInProbability μ X := by
+  intro δ hδ
+  rcases hY δ hδ with ⟨M, hMpos, hM⟩
+  refine ⟨M, hMpos, hM.mono ?_⟩
+  intro n hn
+  have hcover : {ω | M ≤ ‖X n ω‖} ⊆ {ω | M ≤ ‖Y n ω‖} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Real.norm_eq_abs] at hω ⊢
+    exact le_trans hω (hXY n ω)
+  exact le_trans (measure_mono hcover) hn
+
+/-- Real-valued `Oₚ(1)` sequences are closed under addition. -/
+theorem BoundedInProbability.add
+    {μ : Measure α} {X Y : ℕ → α → ℝ}
+    (hX : BoundedInProbability μ X)
+    (hY : BoundedInProbability μ Y) :
+    BoundedInProbability μ (fun n ω => X n ω + Y n ω) := by
+  intro δ hδ
+  have hδ2 : 0 < δ / 2 := ENNReal.div_pos hδ.ne' ENNReal.ofNat_ne_top
+  rcases hX (δ / 2) hδ2 with ⟨MX, hMXpos, hMX⟩
+  rcases hY (δ / 2) hδ2 with ⟨MY, hMYpos, hMY⟩
+  refine ⟨MX + MY, add_pos hMXpos hMYpos, ?_⟩
+  filter_upwards [hMX, hMY] with n hnX hnY
+  have hcover :
+      {ω | MX + MY ≤ ‖X n ω + Y n ω‖} ⊆
+        {ω | MX ≤ ‖X n ω‖} ∪ {ω | MY ≤ ‖Y n ω‖} := by
+    intro ω hω
+    simp only [Set.mem_union, Set.mem_setOf_eq]
+    by_cases hXbig : MX ≤ ‖X n ω‖
+    · exact Or.inl hXbig
+    · right
+      have hXlt : ‖X n ω‖ < MX := not_le.mp hXbig
+      by_contra hYbig
+      have hYlt : ‖Y n ω‖ < MY := not_le.mp hYbig
+      have hsum_lt : ‖X n ω + Y n ω‖ < MX + MY := by
+        exact lt_of_le_of_lt (norm_add_le _ _) (add_lt_add hXlt hYlt)
+      exact (not_le_of_gt hsum_lt) hω
+  calc
+    μ {ω | MX + MY ≤ ‖X n ω + Y n ω‖}
+        ≤ μ ({ω | MX ≤ ‖X n ω‖} ∪ {ω | MY ≤ ‖Y n ω‖}) := measure_mono hcover
+    _ ≤ μ {ω | MX ≤ ‖X n ω‖} + μ {ω | MY ≤ ‖Y n ω‖} := measure_union_le _ _
+    _ ≤ δ / 2 + δ / 2 := add_le_add hnX hnY
+    _ = δ := ENNReal.add_halves δ
+
 /-- **Portmanteau event-probability bridge for real distributional limits.**
 
 If `Xₙ ⇒ Z` and `E` is a Borel set whose frontier has zero mass under the
