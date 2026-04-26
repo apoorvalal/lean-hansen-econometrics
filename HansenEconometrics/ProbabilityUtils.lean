@@ -29,7 +29,9 @@ noncomputable def standardizedCoords
     (σ2 : ℝ) (ε : Ω → EuclideanSpace ℝ n) : n → Ω → ℝ :=
   fun i ω => b.repr (ε ω) i / Real.sqrt σ2
 
-/-- Restrict the standardized coordinate family along an injective index map. -/
+/-- Restrict the standardized coordinate family along an index map. No injectivity is needed for
+the definition itself; downstream independence results can add it when they need distinct
+coordinates. -/
 noncomputable def restrictedStandardizedCoords
     {ι : Type*} [Fintype ι]
     (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))

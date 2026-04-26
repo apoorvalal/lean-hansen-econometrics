@@ -39,9 +39,11 @@ noncomputable def classicalStudentT (ν : ℕ) : Measure ℝ :=
 `∫ x in Set.Icc (0 : ℝ) 2, (1 + x^2 / ν)^(-((ν + 1) / 2))`.
 
 It comes from the odd degree-11 Taylor polynomial of `u ↦ (1 + u)^(-((ν + 1) / 2))`
-evaluated at `u = x^2 / ν` and integrated termwise over `[0,2]`. The numerical corollary used in
-Hansen's Theorem 5.10 only needs this explicit rational function and its monotonicity in
-step-two degrees of freedom. -/
+evaluated at `u = x^2 / ν` and integrated termwise over `[0,2]`. The displayed rational function is
+the resulting polynomial after expanding the falling-factorial derivative coefficients, integrating
+the even powers of `x`, and clearing a common denominator. The numerical corollary used in Hansen's
+Theorem 5.10 only needs this explicit rational function and its monotonicity in step-two degrees of
+freedom. -/
 noncomputable def studentTTwoCoverageKernelLowerBound (ν : ℕ) : ℝ :=
   let νr : ℝ := ν
   (2 : ℝ) *

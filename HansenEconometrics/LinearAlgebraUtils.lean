@@ -67,9 +67,7 @@ lemma diag_nonneg_of_symm_idempotent {n : Type*} [Fintype n]
   rw [← hquad, hdiag] at hnonneg
   exact hnonneg
 
-/-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
-Eigenvalues of such a matrix are 0 or 1, so
-rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
+/-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
 theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℝ}
     (hH : A.IsHermitian)
@@ -80,6 +78,9 @@ theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n
   simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
   exact hmem
 
+/-- For a real Hermitian idempotent matrix, rank equals the trace. This packages the spectral
+argument that the eigenvalues are all `0` or `1`, so the rank counts the same terms that the trace
+sums. -/
 theorem rank_eq_natCast_trace_of_isHermitian_idempotent {n : Type*} [Fintype n]
     {A : Matrix n n ℝ}
     (hH : A.IsHermitian)

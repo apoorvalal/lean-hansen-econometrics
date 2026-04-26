@@ -116,3 +116,6 @@ Conventions:
   theorem labels not yet wrapped in the current Lean layer.
 - Several Lean helper results in the projection file are stronger than the textbook labels because
   they package reusable matrix facts such as rank and Hermitian structure.
+- The projection-rank helper [rank_hatMatrix](../../HansenEconometrics/Chapter3Projections.lean#L174)
+  now carries `[DecidableEq n]`, matching the decidability needed by the reusable
+  rank-equals-trace argument for finite matrix indices.
