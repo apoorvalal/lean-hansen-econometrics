@@ -4,6 +4,31 @@ This document describes the working principles for contributors and coding agent
 It is intentionally practical: the goal is to keep the formalization coherent, reusable, and easy to
 review.
 
+## Required PR discipline
+
+Before opening or updating a PR, read this file and check the change against it. A PR is not ready
+for review until its description or update note explains how it satisfies the checklist below, or
+why a specific exception is justified.
+
+- Check Mathlib first. Prefer specializing existing Mathlib theorems over rebuilding the same proof
+  locally.
+- Check this repo second. Prefer composing existing repo theorems over adding parallel theorem
+  families.
+- Keep imports narrow. Do not add `import Mathlib` unless a narrower import is genuinely
+  impractical; if it is needed, say why in the PR.
+- Audit the public API. Declarations used only as same-file proof scaffolding should usually be
+  `private`.
+- Avoid duplicate public APIs for one mathematical object. Keep one canonical public theorem family
+  and add only thin wrappers when textbook notation requires them.
+- Keep theorem names readable. Use namespaces, sections, and shorter local names rather than
+  encoding every hypothesis in one long identifier.
+- Add `@[simp]` lemmas for canonical simplifications that recur in proofs, instead of relying on
+  long manual `rw` chains.
+- Give large modules a real module docstring that says what the file contains and which public API it
+  exposes.
+- Update the canonical chapter inventory when theorem statements, theorem mappings, or compatibility
+  expectations change.
+
 ## Core principles
 
 ### 1. Reuse Mathlib first
@@ -70,12 +95,28 @@ Examples:
   add a thin bridge layer.
 - Bridge lemmas should translate notation, not introduce a parallel theorem stack unless that stack
   is genuinely reusable.
+- `_of_...` bridge lemmas are usually proof infrastructure. Make them private unless downstream files
+  should cite them directly.
 
 Examples:
 - `covVec`, `covMat`, and related Chapter 2.10 lemmas bridge scalar covariance facts to matrix
   notation.
 - `condExp_apply`, `condExp_apply_apply`, `integral_apply`, and `integral_apply_apply` bridge
   generic conditional-expectation / integral machinery to coordinatewise arguments used in Chapter 4.
+
+## Public API and theorem hygiene
+
+- Public declarations are the chapter-facing or reusable API. A helper whose removal would only
+  break the file where it is defined should usually be `private`.
+- When a proof-shaped definition and a textbook-shaped definition are provably equal, choose one
+  canonical public surface. The noncanonical one may remain as an internal proof engine, but avoid
+  maintaining parallel public theorem stacks for both names.
+- Use descriptive assumption names. If a condition package corresponds to a numbered Hansen
+  assumption, put the number in the docstring rather than making the symbol name a number.
+- Public condition packages should be real declarations with an enforceable shape, not aliases that
+  hide the proof obligations.
+- If a theorem signature changes, document the downstream compatibility impact in the chapter
+  inventory or PR notes.
 
 ## Probability layer policy
 
@@ -172,6 +213,8 @@ Good pattern:
 - Avoid redoing Hilbert-space or matrix-algebra arguments manually when the relevant theorem is
   already available.
 - Add small helper lemmas when they remove notation friction across several later proofs.
+- Prefer stable simplifier support for canonical identities. If several proofs manually rewrite the
+  same identity, consider whether the identity should be tagged `@[simp]`.
 
 ## Review checklist
 
@@ -184,6 +227,11 @@ Before opening or updating a PR, check:
 - For probability results, is the public theorem variable-facing unless there is a good reason not to
   be?
 - Does the result belong in an existing module rather than a new file?
+- Are imports as narrow as practical?
+- Are local proof helpers private?
+- Is there one canonical public API for each mathematical object?
+- Are repeated simplifications available to `simp` where appropriate?
+- Are theorem names readable enough to cite?
 - Did the corresponding chapter inventory get updated?
 - Are all new markdown links relative?
 
