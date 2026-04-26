@@ -1312,7 +1312,7 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian
       (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
 
 /-- Internal Gaussian-limit-law bridge for the full-rank linear-Wald theorem. -/
-theorem linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
+private theorem linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1359,7 +1359,7 @@ theorem linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
 
 /-- Ordinary-wrapper version of
 `linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw`. -/
-theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian_of_limitLaw
+private theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian_of_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]

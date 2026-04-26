@@ -1253,7 +1253,7 @@ theorem sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_
     (y := stackOutcomes y n ω) a b).symm
 
 /-- HC2 adjustment convergence from scalar entrywise adjustment sums. -/
-theorem sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+private theorem sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (hEntry : ∀ a b : k, TendstoInMeasure μ
       (fun n ω =>
@@ -1270,7 +1270,7 @@ theorem sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_en
       (μ := μ) (X := X) (y := y) (weight := fun h => (1 - h)⁻¹) hEntry
 
 /-- HC3 adjustment convergence from scalar entrywise adjustment sums. -/
-theorem sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
+private theorem sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_entries
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (hEntry : ∀ a b : k, TendstoInMeasure μ
       (fun n ω =>
@@ -1290,7 +1290,7 @@ theorem sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_en
 
 /-- HC2 adjustment entries are `oₚ(1)` once maximal leverage is `oₚ(1)` and
 the corresponding residual absolute-weight averages are `Oₚ(1)`. -/
-theorem sampleScoreCovarianceHC2AdjustmentEntryStar_tendstoInMeasure_zero_of_maxLeverageStar
+private theorem sampleScoreCovarianceHC2AdjustmentEntryStar_tendstoInMeasure_zero_of_maxLeverageStar
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (a b : k)
     (hMax : TendstoInMeasure μ
@@ -1313,7 +1313,7 @@ theorem sampleScoreCovarianceHC2AdjustmentEntryStar_tendstoInMeasure_zero_of_max
 
 /-- HC3 adjustment entries are `oₚ(1)` once maximal leverage is `oₚ(1)` and
 the corresponding residual absolute-weight averages are `Oₚ(1)`. -/
-theorem sampleScoreCovarianceHC3AdjustmentEntryStar_tendstoInMeasure_zero_of_maxLeverageStar
+private theorem sampleScoreCovarianceHC3AdjustmentEntryStar_tendstoInMeasure_zero_of_maxLeverageStar
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (a b : k)
     (hMax : TendstoInMeasure μ
@@ -2004,7 +2004,7 @@ theorem sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adju
 If the feasible HC0 middle matrix converges to `Ω` and the HC2 leverage
 adjustment is `oₚ(1)`, then the HC2 middle matrix also converges to `Ω`. This
 isolates the exact leverage remainder left for the HC2 proof. -/
-theorem sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
+private theorem sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hHC0_meas : ∀ n, AEStronglyMeasurable
@@ -2035,7 +2035,7 @@ theorem sampleScoreCovarianceHC2Star_stack_tendstoInMeasure_scoreCovarianceMatri
 
 If the feasible HC0 middle matrix converges to `Ω` and the HC3 leverage
 adjustment is `oₚ(1)`, then the HC3 middle matrix also converges to `Ω`. -/
-theorem sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
+private theorem sampleScoreCovarianceHC3Star_stack_tendstoInMeasure_scoreCovarianceMatrix_of_adjustment
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hHC0_meas : ∀ n, AEStronglyMeasurable
@@ -3328,7 +3328,7 @@ Once the HC2 leverage-weighted middle matrix is known to converge in
 probability to `Ω`, the totalized HC2 sandwich estimator converges to
 `Q⁻¹ Ω Q⁻¹`. The remaining HC2 work is the leverage argument showing that
 `(1-hᵢᵢ)⁻¹` is asymptotically harmless. -/
-theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
+private theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_middle
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e)
@@ -3355,7 +3355,7 @@ Once the HC3 leverage-weighted middle matrix is known to converge in
 probability to `Ω`, the totalized HC3 sandwich estimator converges to
 `Q⁻¹ Ω Q⁻¹`. The remaining HC3 work is the stronger leverage-weight argument
 for `(1-hᵢᵢ)⁻²`. -/
-theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
+private theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_middle
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e)
