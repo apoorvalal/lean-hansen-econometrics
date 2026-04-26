@@ -6,5 +6,3 @@ A companion site for the Lean formalization of Hansen's *Econometrics*.
 
 - **Walkthroughs** — hand-written explanations of headline theorems with assumptions, proof sketches, and Lean-vs-textbook contrasts.
 - **Auto-generated reference** — every public declaration in the Lean library, grouped by chapter.
-
-See the [Theorem 5.7 walkthrough](walkthroughs/chapter5/theorem-5-7.qmd) for the canonical example of the walkthrough format.
