@@ -3486,6 +3486,50 @@ private theorem olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasur
     (μ := μ) (X := X) (e := e) (y := y)
     h.toSampleMomentAssumption71 weight hMiddle_meas hMiddle
 
+/-- Generic fixed-linear-map covariance assembly for leverage-adjusted HC estimators. -/
+private theorem linearMap_leverageAdjustedCovariance_tendstoInMeasure
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {q : Type*} [Fintype q]
+    (weight : ℝ → ℝ) (hweight_meas : Measurable weight)
+    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)
+    (R : Matrix q k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))
+    (hAdj : TendstoInMeasure μ
+      (fun n ω => sampleScoreCovarianceLeverageAdjustmentStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        R * olsHeteroskedasticCovarianceLeverageAdjustedStar weight
+          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
+      atTop (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
+  have hV_meas :=
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      weight hweight_meas h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
+  have hV :=
+    olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
+      (μ := μ) (X := X) (e := e) (y := y)
+      weight hweight_meas h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
+  exact linearMapCovariance_tendstoInMeasure
+    (μ := μ) (R := R)
+    (Vhat := fun n ω =>
+      olsHeteroskedasticCovarianceLeverageAdjustedStar weight
+        (stackRegressors X n ω) (stackOutcomes y n ω))
+    (V := heteroskedasticAsymptoticCovariance μ X e)
+    hV_meas hV
+
 /-- AEMeasurability of the HC2 middle matrix from component measurability. -/
 theorem sampleScoreCovarianceHC2Star_stack_aestronglyMeasurable_of_components
     {μ : Measure Ω} [IsFiniteMeasure μ]
@@ -3658,22 +3702,15 @@ theorem linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_compo
         R * olsHeteroskedasticCovarianceHC2Star
           (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
       atTop (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
-  have hV_meas :=
-    olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components
+  have hAdj :=
+    sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
-  have hV :=
-    olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
+      h β hmodel hCrossWeight hQuadWeight hMax
+  simpa [olsHeteroskedasticCovarianceHC2Star] using
+    linearMap_leverageAdjustedCovariance_tendstoInMeasure
       (μ := μ) (X := X) (e := e) (y := y)
-      (RobustCovarianceConsistencyConditions.ofSample h) β hmodel hX_meas he_meas
-      hCrossWeight hQuadWeight hMax
-  exact linearMapCovariance_tendstoInMeasure
-    (μ := μ) (R := R)
-    (Vhat := fun n ω =>
-      olsHeteroskedasticCovarianceHC2Star
-        (stackRegressors X n ω) (stackOutcomes y n ω))
-    (V := heteroskedasticAsymptoticCovariance μ X e)
-    hV_meas hV
+      (weight := fun h => (1 - h)⁻¹) measurable_hc2Weight
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 /-- HC3 covariance for fixed linear functions from maximal leverage. -/
 theorem linearMap_olsHC3CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
@@ -3701,22 +3738,15 @@ theorem linearMap_olsHC3CovarianceStar_tendstoInMeasure_of_bounded_weights_compo
         R * olsHeteroskedasticCovarianceHC3Star
           (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
       atTop (fun _ => R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) := by
-  have hV_meas :=
-    olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components
+  have hAdj :=
+    sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
-  have hV :=
-    olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
+      h β hmodel hCrossWeight hQuadWeight hMax
+  simpa [olsHeteroskedasticCovarianceHC3Star] using
+    linearMap_leverageAdjustedCovariance_tendstoInMeasure
       (μ := μ) (X := X) (e := e) (y := y)
-      (RobustCovarianceConsistencyConditions.ofSample h) β hmodel hX_meas he_meas
-      hCrossWeight hQuadWeight hMax
-  exact linearMapCovariance_tendstoInMeasure
-    (μ := μ) (R := R)
-    (Vhat := fun n ω =>
-      olsHeteroskedasticCovarianceHC3Star
-        (stackRegressors X n ω) (stackOutcomes y n ω))
-    (V := heteroskedasticAsymptoticCovariance μ X e)
-    hV_meas hV
+      (weight := fun h => ((1 - h)⁻¹) ^ 2) measurable_hc3Weight
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 end Assumption72
 
