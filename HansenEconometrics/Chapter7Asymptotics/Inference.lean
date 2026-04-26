@@ -378,12 +378,12 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
     simpa [num] using
       scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
         (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
-        hclt β R (fun _ : Unit => 1) hmodel hZ
+        hclt.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
       olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
         (μ := μ) (X := X) (e := e) (y := y)
-        hvar β R () hmodel hX_meas he_meas
+        hvar.toSampleVarianceAssumption74 β R () hmodel hX_meas he_meas
   have hV_meas :=
     olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
       (μ := μ) (X := X) (e := e) (y := y)
@@ -607,7 +607,7 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     simpa [se, c] using
       olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
         (μ := μ) (X := X) (e := e) (y := y)
-        hvar β R () hmodel hX_meas he_meas
+        hvar.toSampleVarianceAssumption74 β R () hmodel hX_meas he_meas
   have hAbs := olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
@@ -660,7 +660,8 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homosk
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
   have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
-    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+    (μ := μ) (X := X) (e := e)
+    hclt.toSampleCLTAssumption72 hvar.toSampleVarianceAssumption74 hX0 hhomo
   have hQ : IsUnit (popGram μ X).det := by
     simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
   exact olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
@@ -766,7 +767,8 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
             (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
   have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
-    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+    (μ := μ) (X := X) (e := e)
+    hclt.toSampleCLTAssumption72 hvar.toSampleVarianceAssumption74 hX0 hhomo
   exact olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos
@@ -894,7 +896,7 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     simpa [se, c] using
       olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
+        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hV_meas :=
     olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
       (μ := μ) (X := X) (e := e) (y := y)
@@ -1144,7 +1146,7 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     simpa [se, c] using
       olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
+        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -1255,7 +1257,7 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
     simpa [se, c] using
       olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
+        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hV_meas :=
     olsHC1CovarianceStar_stack_aestronglyMeasurable_of_components
       (μ := μ) (X := X) (e := e) (y := y)
@@ -1538,7 +1540,7 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     simpa [se, c] using
       olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
+        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hAbs := olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -1580,7 +1582,8 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_al
         atTop (Z a) (fun _ => μ) ν :=
   fun a =>
     scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
-      (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel (hZ a)
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      h.toSampleCLTAssumption72 β a hmodel (hZ a)
 
 /-- **Hansen Theorem 7.3 for ordinary OLS on nonsingular samples, scalar-projection form.**
 
@@ -1602,7 +1605,8 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
       atTop Z (fun _ => μ) ν := by
   simpa [olsBetaOrZero_eq_olsBetaStar] using
     scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
-      (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ
+      (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+      h.toSampleCLTAssumption72 β a hmodel hZ
 
 /-- **Hansen Theorem 7.3, all scalar projections for ordinary OLS on nonsingular samples.**
 

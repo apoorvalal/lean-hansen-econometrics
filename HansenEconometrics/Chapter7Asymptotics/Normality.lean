@@ -242,7 +242,7 @@ theorem scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
       (fun _ => μ)
       (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
   have hEuclid := scoreEuclidean_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
-    (μ := μ) (X := X) (e := e) h
+    (μ := μ) (X := X) (e := e) h.toSampleCLTAssumption72
   have hMap := TendstoInDistribution.continuous_comp
     (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
     (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid
@@ -1159,7 +1159,8 @@ theorem linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   have hbeta := olsBetaStar_vector_tendstoInDistribution_multivariateGaussian
-    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+    (μ := μ) (X := X) (e := e) (y := y)
+    (ScoreCLTConditions.ofSample h) β hmodel
   have hR : TendstoInDistribution
       (fun (n : ℕ) ω =>
         R *ᵥ (Real.sqrt (n : ℝ) •
@@ -1336,7 +1337,8 @@ private theorem linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   have hbeta := olsBetaStar_vector_tendstoInDistribution_multivariateGaussian
-    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+    (μ := μ) (X := X) (e := e) (y := y)
+    (ScoreCLTConditions.ofSample h) β hmodel
   have hR : TendstoInDistribution
       (fun (n : ℕ) ω =>
         R *ᵥ (Real.sqrt (n : ℝ) •
@@ -1420,7 +1422,8 @@ theorem linearMap_olsBetaStar_waldChiSquared_gaussian
           WithLp.toLp 2 (R *ᵥ ((popGram μ X)⁻¹ *ᵥ z.ofLp)))
         (multivariateGaussian 0 (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ))
         (multivariateGaussian 0 (scoreCovarianceMatrix μ X e)) := by
-    have hΩ := scoreCovarianceMatrix_posSemidef (μ := μ) (X := X) (e := e) h
+    have hΩ := scoreCovarianceMatrix_posSemidef
+      (μ := μ) (X := X) (e := e) h.toSampleCLTAssumption72
     have hQinv_transpose : ((popGram μ X)⁻¹)ᵀ = (popGram μ X)⁻¹ := by
       simpa using
         (popGram_inv_isSymm (μ := μ) (X := X) h.toSampleMomentAssumption71.int_outer).eq
@@ -1445,7 +1448,7 @@ theorem linearMap_olsBetaStar_waldChiSquared_gaussian
       simpa [hCovEq]
   exact linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
-    h β R hmodel (Vhat := Vhat)
+    h.toSampleCLTAssumption72 β R hmodel (Vhat := Vhat)
     (V := R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ)
     hV_meas hV hV_posDef hLimitLaw
 
@@ -1650,7 +1653,8 @@ theorem linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiS
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
-    (μ := μ) (X := X) (e := e) hclt hvar hX0 hhomo
+    (μ := μ) (X := X) (e := e)
+    hclt.toSampleCLTAssumption72 hvar.toSampleVarianceAssumption74 hX0 hhomo
   exact linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_scoreCovariance
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hclt hvar β R hmodel hX_meas he_meas hΩ hV_posDef
@@ -1685,7 +1689,7 @@ theorem linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   exact linearMap_olsWaldStatisticStar_tendstoInDistribution_chiSquared_of_covarianceEstimator
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h.toSampleCLTAssumption72 β R hmodel
+      (ScoreCLTConditions.ofSample h.toSampleCLTAssumption72) β R hmodel
       (covStat := fun n ω =>
         olsHeteroskedasticCovarianceStar
           (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1695,7 +1699,7 @@ theorem linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
           h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
       (olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β hmodel hX_meas he_meas hCrossWeight hQuadWeight)
+        h.toSampleHC0Assumption76 β hmodel hX_meas he_meas hCrossWeight hQuadWeight)
       hV_posDef
 
 /-- Multivariate HC0 Wald statistic for ordinary OLS. -/
@@ -1761,7 +1765,7 @@ theorem linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   exact linearMap_olsWaldStatisticStar_tendstoInDistribution_chiSquared_of_covarianceEstimator
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h.toSampleCLTAssumption72 β R hmodel
+      (ScoreCLTConditions.ofSample h.toSampleCLTAssumption72) β R hmodel
       (covStat := fun n ω =>
         olsHeteroskedasticCovarianceHC1Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1771,7 +1775,7 @@ theorem linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared
           h.toSampleMomentAssumption71 β hmodel hX_meas he_meas n)
       (olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components
         (μ := μ) (X := X) (e := e) (y := y)
-        h β hmodel hX_meas he_meas hCrossWeight hQuadWeight)
+        h.toSampleHC0Assumption76 β hmodel hX_meas he_meas hCrossWeight hQuadWeight)
       hV_posDef
 
 /-- Multivariate HC1 Wald statistic for ordinary OLS. -/
@@ -1840,7 +1844,7 @@ theorem linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   exact linearMap_olsWaldStatisticStar_tendstoInDistribution_chiSquared_of_covarianceEstimator
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h.toSampleCLTAssumption72 β R hmodel
+      (ScoreCLTConditions.ofSample h.toSampleCLTAssumption72) β R hmodel
       (covStat := fun n ω =>
         olsHeteroskedasticCovarianceHC2Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
@@ -1923,7 +1927,7 @@ theorem linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
   exact linearMap_olsWaldStatisticStar_tendstoInDistribution_chiSquared_of_covarianceEstimator
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
-      h.toSampleCLTAssumption72 β R hmodel
+      (ScoreCLTConditions.ofSample h.toSampleCLTAssumption72) β R hmodel
       (covStat := fun n ω =>
         olsHeteroskedasticCovarianceHC3Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
