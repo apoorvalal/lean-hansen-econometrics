@@ -492,7 +492,7 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
       (fun ω =>
         Z ω / Real.sqrt ((R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
       (fun _ => μ) ν := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
@@ -520,7 +520,7 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
           Real.sqrt ((R * olsHomoskedasticCovarianceStar
             (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
@@ -1015,7 +1015,7 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
       (fun ω =>
         Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
       (fun _ => μ) ν := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHC0LinearTStatisticStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
@@ -1048,7 +1048,7 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
           Real.sqrt ((R * olsHeteroskedasticCovarianceStar
             (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -1375,7 +1375,7 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
       (fun ω =>
         Z ω / Real.sqrt ((R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () ()))
       (fun _ => μ) ν := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHC1LinearTStatisticStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
@@ -1408,7 +1408,7 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
           Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ()))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
@@ -1603,7 +1603,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
         (Real.sqrt (n : ℝ) •
           (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
       atTop Z (fun _ => μ) ν := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h.toSampleCLTAssumption72 β a hmodel hZ

@@ -1156,7 +1156,7 @@ theorem continuous_function_olsBetaOrZero_tendstoInMeasure
     TendstoInMeasure μ
       (fun n ω => φ (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))
       atTop (fun _ => φ β) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     continuous_function_olsBetaStar_tendstoInMeasure
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel φ hφ
 
@@ -1173,7 +1173,7 @@ theorem olsBetaOrZero_stack_tendstoInMeasure_beta
     TendstoInMeasure μ
       (fun n ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop (fun _ => β) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel
 
@@ -1188,8 +1188,7 @@ theorem olsBetaOrZero_stack_aestronglyMeasurable
   intro n
   refine (olsBetaStar_stack_aestronglyMeasurable
     (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel n).congr ?_
-  exact ae_of_all μ (fun ω => (olsBetaOrZero_eq_olsBetaStar
-    (stackRegressors X n ω) (stackOutcomes y n ω)).symm)
+  exact ae_of_all μ (fun ω => by simp)
 
 /-- **Hansen Theorem 7.8 for ordinary OLS, local-at-`β` formulation.**
 

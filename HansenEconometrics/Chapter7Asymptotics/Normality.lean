@@ -370,7 +370,7 @@ theorem olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT
           (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β) =
         Real.sqrt (n : ℝ) •
           (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)
-    rw [olsBetaOrZero_eq_olsBetaStar])
+    simp)
 
 /-- **Hansen Theorem 7.3, vector asymptotic normality for totalized OLS.**
 
@@ -821,7 +821,7 @@ theorem scoreProjection_linearMap_olsBetaOrZero_tendstoInDistribution_gaussian_c
           (R *ᵥ
             (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ c)
       atTop Z (fun _ => μ) ν := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R c hmodel hZ
@@ -1120,7 +1120,7 @@ theorem linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquar
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       (Zscore := Zscore) h β R hmodel hScore
@@ -1209,7 +1209,7 @@ theorem linearMap_olsBetaOrZero_waldQuadraticForm_tendstoInDistribution_chiSquar
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) h β R hmodel
       (Vhat := Vhat) (V := V) hV_meas hV hV_nonsing hLaw
@@ -1306,7 +1306,7 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_of_scoreCLT_gaussian
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsBetaStar_waldChiSquared_of_scoreCLT_gaussian
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       (Zscore := Zscore) h β R hmodel hScore
@@ -1384,7 +1384,7 @@ private theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian_of_limitLaw
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsBetaStar_waldChiSquared_gaussian_of_limitLaw
       (μ := μ) (X := X) (e := e) (y := y) h β R hmodel
       (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
@@ -1475,7 +1475,7 @@ theorem linearMap_olsBetaOrZero_waldChiSquared_gaussian
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsBetaStar_waldChiSquared_gaussian
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel (Vhat := Vhat) hV_meas hV hV_posDef
@@ -1585,7 +1585,7 @@ theorem linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiS
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsHomoskedasticWaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       hclt hvar β R hmodel hX_meas he_meas hVeq hV_posDef
@@ -1730,7 +1730,7 @@ theorem linearMap_olsHC0WaldStatisticOrZero_tendstoInDistribution_chiSquared
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
@@ -1806,7 +1806,7 @@ theorem linearMap_olsHC1WaldStatisticOrZero_tendstoInDistribution_chiSquared
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
@@ -1888,7 +1888,7 @@ theorem linearMap_olsHC2WaldStatisticOrZero_tendstoInDistribution_chiSquared
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsHC2WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight
@@ -1971,7 +1971,7 @@ theorem linearMap_olsHC3WaldStatisticOrZero_tendstoInDistribution_chiSquared
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+  simpa using
     linearMap_olsHC3WaldStatisticStar_tendstoInDistribution_chiSquared
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight

@@ -52,6 +52,7 @@ noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ
     0
 
 /-- `olsBetaOrZero` is exactly the previously used totalized estimator `olsBetaStar`. -/
+@[simp]
 theorem olsBetaOrZero_eq_olsBetaStar
     (X : Matrix n k ℝ) (y : n → ℝ) :
     olsBetaOrZero X y = olsBetaStar X y := by
