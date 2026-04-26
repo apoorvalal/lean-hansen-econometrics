@@ -3,8 +3,12 @@ import HansenEconometrics.Chapter7Asymptotics.Normality
 /-!
 # Chapter 7 Asymptotics: Inference
 
-T-statistics, confidence-interval coverage bridges, scalar Wald statistics, and
-ordinary-wrapper projection-family consequences.
+This file contains the Chapter 7 scalar-inference layer:
+
+* generic standard-error positivity and symmetric confidence-interval coverage;
+* scalar t-statistic convergence for homoskedastic and robust estimators;
+* scalar Wald-to-chi-square wrappers;
+* ordinary-wrapper consequences for the textbook-facing `olsBetaOrZero` API.
 -/
 
 open scoped Matrix Real

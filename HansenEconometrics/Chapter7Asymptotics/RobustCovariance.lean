@@ -4,8 +4,12 @@ import HansenEconometrics.Chapter7Asymptotics.Consistency
 /-!
 # Chapter 7 Asymptotics: Robust Covariance
 
-Score covariance, HC0/HC1/HC2/HC3 middle matrices, and sandwich covariance
-consistency lemmas.
+This file contains the Chapter 7 covariance layer:
+
+* score covariance definitions and homoskedastic covariance identities;
+* HC0/HC1/HC2/HC3 middle matrices and sandwich covariance estimators;
+* measurability and convergence-in-probability results for robust covariance;
+* leverage-adjustment scaffolding used by the current HC2/HC3 wrappers.
 -/
 
 open scoped Matrix Real

@@ -1,4 +1,3 @@
-import Mathlib
 import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
@@ -10,8 +9,13 @@ import HansenEconometrics.ChiSquared
 /-!
 # Chapter 7 Asymptotics: Basic Definitions
 
-Finite-sample sample moments, totalized OLS wrappers, residual algebra, and
-stacking bridges used throughout Chapter 7.
+This file contains the finite-sample algebra shared by the Chapter 7
+asymptotic modules:
+
+* sample Gram, cross-moment, and squared-error averages;
+* totalized OLS wrappers used to make sample estimators total random variables;
+* residual-variance and leverage-adjusted covariance definitions;
+* stacking bridges from triangular-array sequences to finite matrices.
 -/
 
 open scoped Matrix Real
@@ -40,15 +44,12 @@ noncomputable def sampleErrorSecondMoment (e : n → ℝ) : ℝ :=
 return `0` on singular designs. This exposes the ordinary-OLS formula on the high-probability
 nonsingularity event while remaining a genuine random variable for every sample size. -/
 noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
-  by
-    classical
-    exact
-      if h : IsUnit (Xᵀ * X).det then
-        haveI : Invertible (Xᵀ * X) := Matrix.invertibleOfIsUnitDet
-          (A := Xᵀ * X) h
-        olsBeta X y
-      else
-        0
+  letI : Decidable (IsUnit (Xᵀ * X).det) := Classical.propDecidable _
+  if h : IsUnit (Xᵀ * X).det then
+    letI : Invertible (Xᵀ * X) := Matrix.invertibleOfIsUnitDet (A := Xᵀ * X) h
+    olsBeta X y
+  else
+    0
 
 /-- `olsBetaOrZero` is exactly the previously used totalized estimator `olsBetaStar`. -/
 theorem olsBetaOrZero_eq_olsBetaStar

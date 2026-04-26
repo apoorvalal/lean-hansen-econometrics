@@ -3,8 +3,12 @@ import HansenEconometrics.Chapter7Asymptotics.Basic
 /-!
 # Chapter 7 Asymptotics: Consistency
 
-Moment assumptions and convergence-in-probability results for OLS consistency,
-continuous transformations, and residual variance consistency.
+This file contains the Chapter 7 consistency layer:
+
+* descriptive public condition structures for Theorem 7.1 and Theorem 7.4/7.5;
+* WLLN-driven convergence of `Q̂ₙ`, `ĝₙ(e)`, and totalized OLS;
+* continuous-mapping wrappers for functions of consistent OLS estimates;
+* residual-variance and homoskedastic covariance consistency.
 -/
 
 open scoped Matrix Real

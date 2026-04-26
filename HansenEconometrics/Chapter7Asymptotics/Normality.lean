@@ -6,8 +6,12 @@ import HansenEconometrics.Chapter7Asymptotics.RobustCovariance
 /-!
 # Chapter 7 Asymptotics: Normality
 
-Scalar and vector distributional bridges for OLS asymptotic normality, plus the
-conditional multivariate Wald continuous-mapping layer.
+This file contains the Chapter 7 distributional layer:
+
+* scalar score CLTs and the Cramér-Wold vector score bridge;
+* OLS asymptotic-normality wrappers for `olsBetaStar` and `olsBetaOrZero`;
+* Gaussian linear-map, Mahalanobis, and chi-square Wald bridge results;
+* multivariate Wald packaging for homoskedastic and robust covariance estimators.
 -/
 
 open scoped Matrix Real
