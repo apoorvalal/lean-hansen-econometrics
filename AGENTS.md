@@ -4,30 +4,19 @@ This document describes the working principles for contributors and coding agent
 It is intentionally practical: the goal is to keep the formalization coherent, reusable, and easy to
 review.
 
-## Required PR discipline
+## PR gate
 
-Before opening or updating a PR, read this file and check the change against it. A PR is not ready
-for review until its description or update note explains how it satisfies the checklist below, or
-why a specific exception is justified.
+Every PR update must be checked against this file before review. The PR description or update note
+should mention any meaningful exception to this checklist and explain why it is justified.
 
-- Check Mathlib first. Prefer specializing existing Mathlib theorems over rebuilding the same proof
-  locally.
-- Check this repo second. Prefer composing existing repo theorems over adding parallel theorem
-  families.
-- Keep imports narrow. Do not add `import Mathlib` unless a narrower import is genuinely
-  impractical; if it is needed, say why in the PR.
-- Audit the public API. Declarations used only as same-file proof scaffolding should usually be
-  `private`.
-- Avoid duplicate public APIs for one mathematical object. Keep one canonical public theorem family
-  and add only thin wrappers when textbook notation requires them.
-- Keep theorem names readable. Use namespaces, sections, and shorter local names rather than
-  encoding every hypothesis in one long identifier.
-- Add `@[simp]` lemmas for canonical simplifications that recur in proofs, instead of relying on
-  long manual `rw` chains.
-- Give large modules a real module docstring that says what the file contains and which public API it
-  exposes.
-- Update the canonical chapter inventory when theorem statements, theorem mappings, or compatibility
-  expectations change.
+- Reuse Mathlib first, then existing repo theorems.
+- Keep imports narrow; justify any new `import Mathlib`.
+- Keep same-file proof scaffolding private.
+- Choose one canonical public API for each mathematical object; use thin wrappers only for notation.
+- Keep theorem names citeable; use namespaces and local names to avoid very long identifiers.
+- Add `@[simp]` lemmas for recurring canonical rewrites.
+- Give large modules a docstring that explains their contents and public surface.
+- Update chapter inventories when theorem mappings or compatibility expectations change.
 
 ## Core principles
 
@@ -106,11 +95,10 @@ Examples:
 
 ## Public API and theorem hygiene
 
-- Public declarations are the chapter-facing or reusable API. A helper whose removal would only
-  break the file where it is defined should usually be `private`.
+- Public declarations are the chapter-facing or reusable API. A helper whose removal would only break
+  the file where it is defined should usually be `private`.
 - When a proof-shaped definition and a textbook-shaped definition are provably equal, choose one
-  canonical public surface. The noncanonical one may remain as an internal proof engine, but avoid
-  maintaining parallel public theorem stacks for both names.
+  canonical public surface. The noncanonical one may remain as an internal proof engine.
 - Use descriptive assumption names. If a condition package corresponds to a numbered Hansen
   assumption, put the number in the docstring rather than making the symbol name a number.
 - Public condition packages should be real declarations with an enforceable shape, not aliases that
@@ -215,25 +203,6 @@ Good pattern:
 - Add small helper lemmas when they remove notation friction across several later proofs.
 - Prefer stable simplifier support for canonical identities. If several proofs manually rewrite the
   same identity, consider whether the identity should be tagged `@[simp]`.
-
-## Review checklist
-
-Before opening or updating a PR, check:
-
-- Does this theorem already exist in Mathlib?
-- Does a stronger repo-local theorem already imply this?
-- Is the theorem stated at the right layer of generality?
-- If there is a textbook wrapper, is it thin?
-- For probability results, is the public theorem variable-facing unless there is a good reason not to
-  be?
-- Does the result belong in an existing module rather than a new file?
-- Are imports as narrow as practical?
-- Are local proof helpers private?
-- Is there one canonical public API for each mathematical object?
-- Are repeated simplifications available to `simp` where appropriate?
-- Are theorem names readable enough to cite?
-- Did the corresponding chapter inventory get updated?
-- Are all new markdown links relative?
 
 ## Current examples
 
