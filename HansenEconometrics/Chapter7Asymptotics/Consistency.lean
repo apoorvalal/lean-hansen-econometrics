@@ -82,25 +82,51 @@ structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
   /-- Integrability of the true squared error. -/
   int_error_sq : Integrable (fun ω => e 0 ω ^ 2) μ
 
-/-- Descriptive public alias for the current Lean proof package behind Hansen
+/-- Descriptive public condition package for the current Lean proof behind Hansen
 Assumption 7.1 / Theorem 7.1.
 
 This is a moment-level sufficient bundle for the current consistency proof, not
-a literal iid-sample encoding. The underlying `SampleMomentAssumption71` name is
-kept as proof infrastructure. -/
-abbrev LeastSquaresConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
-  SampleMomentAssumption71 μ X e
+a literal iid-sample encoding. It extends the underlying
+`SampleMomentAssumption71` proof-infrastructure record with a public,
+chapter-facing name. -/
+structure LeastSquaresConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleMomentAssumption71 μ X e
 
-/-- Descriptive public alias for the current Lean proof package behind Hansen
+namespace LeastSquaresConsistencyConditions
+
+/-- Promote the internal moment proof package to the public Chapter 7 consistency condition. -/
+protected def ofSample
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) :
+    LeastSquaresConsistencyConditions μ X e where
+  toSampleMomentAssumption71 := h
+
+end LeastSquaresConsistencyConditions
+
+/-- Descriptive public condition package for the current Lean proof behind Hansen
 Theorem 7.4 / 7.5.
 
 This extends the consistency bundle with the squared-error WLLN hypotheses used
 for residual-variance and homoskedastic covariance consistency. It is still a
-sufficient moment-level package rather than a literal textbook encoding. -/
-abbrev ErrorVarianceConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
-  SampleVarianceAssumption74 μ X e
+sufficient moment-level package rather than a literal textbook encoding, and it
+extends the internal `SampleVarianceAssumption74` proof record. -/
+structure ErrorVarianceConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleVarianceAssumption74 μ X e
+
+namespace ErrorVarianceConsistencyConditions
+
+/-- Promote the internal variance proof package to the public Chapter 7 variance condition. -/
+protected def ofSample
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleVarianceAssumption74 μ X e) :
+    ErrorVarianceConsistencyConditions μ X e where
+  toSampleVarianceAssumption74 := h
+
+end ErrorVarianceConsistencyConditions
 
 /-- The population Gram matrix `Q := 𝔼[X Xᵀ]`. -/
 noncomputable def popGram (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) : Matrix k k ℝ :=
@@ -970,7 +996,7 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
     exact (Continuous.matrix_mulVec continuous_id continuous_const).comp_aestronglyMeasurable
       hmat_sub
   -- R'_n →ₚ 0 via F6 + the residual identity
-  have hF6 := residual_tendstoInMeasure_zero β h hmodel
+  have hF6 := residual_tendstoInMeasure_zero β h.toSampleMomentAssumption71 hmodel
   have hR' : TendstoInMeasure μ
       (fun n ω => ((sampleGram (stackRegressors X n ω))⁻¹ *
           sampleGram (stackRegressors X n ω) - 1) *ᵥ β)
@@ -978,7 +1004,8 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
     hF6.congr_left (fun n => ae_of_all μ (fun ω =>
       olsBetaStar_sub_identity X e y β hmodel n ω))
   -- Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0 (Task 11)
-  have hCore := sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero h
+  have hCore :=
+    sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero h.toSampleMomentAssumption71
   -- R'_n + Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0
   have hSum := tendstoInMeasure_add hR'_meas hCoreMV_meas hR' hCore
   simp only [add_zero] at hSum
@@ -1070,7 +1097,7 @@ the local-at-`β` formulation below removes the global-continuity requirement. -
 theorem continuous_function_olsBetaStar_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
     (φ : (k → ℝ) → F) (hφ : Continuous φ) :
@@ -1079,7 +1106,7 @@ theorem continuous_function_olsBetaStar_tendstoInMeasure
       atTop (fun _ => φ β) := by
   exact tendstoInMeasure_continuous_comp
     (olsBetaStar_stack_aestronglyMeasurable
-      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel)
     (olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
     hφ
@@ -1093,7 +1120,7 @@ assumption on `φ`. -/
 theorem continuousAt_function_olsBetaStar_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
     (φ : (k → ℝ) → F) (hφ : ContinuousAt φ β)
@@ -1104,7 +1131,7 @@ theorem continuousAt_function_olsBetaStar_tendstoInMeasure
       atTop (fun _ => φ β) := by
   exact tendstoInMeasure_continuousAt_const_comp
     (olsBetaStar_stack_aestronglyMeasurable
-      (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel)
     hφ_meas
     (olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β h hmodel)
@@ -1118,7 +1145,7 @@ the wrapper that agrees with ordinary OLS on nonsingular samples and with
 theorem continuous_function_olsBetaOrZero_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
     (φ : (k → ℝ) → F) (hφ : Continuous φ) :
@@ -1150,13 +1177,13 @@ theorem olsBetaOrZero_stack_tendstoInMeasure_beta
 theorem olsBetaOrZero_stack_aestronglyMeasurable
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     ∀ n, AEStronglyMeasurable
       (fun ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
   intro n
   refine (olsBetaStar_stack_aestronglyMeasurable
-    (μ := μ) (X := X) (e := e) (y := y) β h hmodel n).congr ?_
+    (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel n).congr ?_
   exact ae_of_all μ (fun ω => (olsBetaOrZero_eq_olsBetaStar
     (stackRegressors X n ω) (stackOutcomes y n ω)).symm)
 
@@ -1169,7 +1196,7 @@ transform kept explicit. -/
 theorem continuousAt_function_olsBetaOrZero_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
+    (h : LeastSquaresConsistencyConditions μ X e)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {F : Type*} [PseudoEMetricSpace F] [TopologicalSpace.PseudoMetrizableSpace F]
     (φ : (k → ℝ) → F) (hφ : ContinuousAt φ β)
@@ -1208,7 +1235,7 @@ theorem olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
   have hBeta :=
     olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β
-      h.toSampleMomentAssumption71 hmodel
+      (LeastSquaresConsistencyConditions.ofSample h.toSampleMomentAssumption71) hmodel
   have hCrossCoord : ∀ j : k,
       TendstoInMeasure μ
         (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) j)
@@ -1252,7 +1279,8 @@ theorem sampleGram_mulVec_olsBetaStar_sub_tendstoInMeasure_zero
   have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram
     (μ := μ) (X := X) (e := e) h
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
-    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+    (μ := μ) (X := X) (e := e) (y := y) β
+    (LeastSquaresConsistencyConditions.ofSample h) hmodel
   have hDiffCoord : ∀ l : k,
       TendstoInMeasure μ (fun n ω => d n ω l) atTop (fun _ => 0) := by
     intro l
@@ -1308,7 +1336,7 @@ theorem olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
     sampleGram (stackRegressors X n ω) *ᵥ d n ω
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
     (μ := μ) (X := X) (e := e) (y := y) β
-    h.toSampleMomentAssumption71 hmodel
+    (LeastSquaresConsistencyConditions.ofSample h.toSampleMomentAssumption71) hmodel
   have hDiffCoord : ∀ j : k,
       TendstoInMeasure μ (fun n ω => d n ω j) atTop (fun _ => 0) := by
     intro j
@@ -1361,11 +1389,11 @@ theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance
       atTop
       (fun _ => errorVariance μ e) := by
   exact olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
-    (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+    (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel
     (olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+      (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel)
     (olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+      (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel)
 
 /-- **Theorem 7.4 centered degrees-of-freedom variance consistency.**
 
@@ -1468,7 +1496,7 @@ theorem olsS2Star_tendstoInMeasure_errorVariance
       (fun _ => errorVariance μ e) := by
   exact TendstoInMeasure.of_sub_limit_zero_real
     (olsS2Star_sub_errorVariance_tendstoInMeasure_zero
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
+      (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel)
 
 /-- Hansen's homoskedastic asymptotic covariance matrix
 `V⁰_β := σ² Q⁻¹`. -/

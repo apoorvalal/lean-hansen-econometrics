@@ -22,10 +22,10 @@ The umbrella import
 `HansenEconometrics/Chapter7Asymptotics.lean` remains the stable public entry
 point.
 
-## Public assumption aliases
+## Public assumption packages
 
 Public Chapter 7 endpoint theorems now advertise descriptive sufficient
-condition bundles:
+condition structures:
 
 - `LeastSquaresConsistencyConditions`
 - `ErrorVarianceConsistencyConditions`
@@ -314,12 +314,12 @@ Conventions:
 
 ## Lean-only bridge results
 
-### Public assumption aliases
+### Public assumption packages
 
-- [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public alias for the current consistency proof package behind Hansen Assumption 7.1.
-- [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public alias for the residual-variance / homoskedastic-covariance consistency package.
-- [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public alias for the current score-CLT package behind Hansen Assumption 7.2.
-- [RobustCovarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public alias for the current robust covariance package. This remains stronger than bare textbook Assumption 7.2 because the primitive robust-weight discharge is still deferred.
+- [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public structure for the current consistency proof package behind Hansen Assumption 7.1.
+- [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public structure for the residual-variance / homoskedastic-covariance consistency package.
+- [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public structure for the current score-CLT package behind Hansen Assumption 7.2.
+- [RobustCovarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public structure for the current robust covariance package. This remains stronger than bare textbook Assumption 7.2 because the primitive robust-weight discharge is still deferred.
 - [HomoskedasticErrorVariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L208) — variable-facing conditional homoskedasticity assumption used by the Chapter 7.14 wrappers.
 
 These are the key intermediate theorems behind Theorem 7.1 that do not correspond to

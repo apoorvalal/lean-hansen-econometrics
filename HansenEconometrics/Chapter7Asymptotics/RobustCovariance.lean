@@ -52,16 +52,29 @@ structure SampleCLTAssumption72 (μ : Measure Ω) [IsProbabilityMeasure μ]
   memLp_cross_projection :
     ∀ a : k → ℝ, MemLp (fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a) 2 μ
 
-/-- Descriptive public alias for the current Lean proof package behind Hansen
+/-- Descriptive public condition package for the current Lean proof behind Hansen
 Assumption 7.2 / Theorem 7.2 / Theorem 7.3.
 
 This is the score-CLT-facing sufficient bundle used by the current formalized
 normality layer. It strengthens the Chapter 7.1 moment package with full score
 independence and projectionwise square integrability, rather than encoding the
-textbook iid assumption literally. -/
-abbrev ScoreCLTConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
-  SampleCLTAssumption72 μ X e
+textbook iid assumption literally. It extends the internal
+`SampleCLTAssumption72` proof record. -/
+structure ScoreCLTConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleCLTAssumption72 μ X e
+
+namespace ScoreCLTConditions
+
+/-- Promote the internal CLT proof package to the public Chapter 7 score-CLT condition. -/
+protected def ofSample
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) :
+    ScoreCLTConditions μ X e where
+  toSampleCLTAssumption72 := h
+
+end ScoreCLTConditions
 
 omit [DecidableEq k] in
 /-- Measurability of a fixed dot-product projection on finite-dimensional vectors. -/
@@ -1477,16 +1490,29 @@ structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
   int_score_outer :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ
 
-/-- Descriptive public alias for the current Lean proof package behind the
+/-- Descriptive public condition package for the current Lean proof behind the
 robust covariance / t-statistic / Wald layer in Hansen Chapter 7.
 
 This is stronger than bare textbook Assumption 7.2: it packages the score CLT
 bundle together with the true-error score-outer-product WLLN assumptions used to
 prove HC0 consistency, and the later HC1/HC2/HC3 public wrappers still build on
-that stronger sufficient layer. -/
-abbrev RobustCovarianceConsistencyConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
-  SampleHC0Assumption76 μ X e
+that stronger sufficient layer. It extends the internal
+`SampleHC0Assumption76` proof record. -/
+structure RobustCovarianceConsistencyConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    extends SampleHC0Assumption76 μ X e
+
+namespace RobustCovarianceConsistencyConditions
+
+/-- Promote the internal HC0 proof package to the public Chapter 7 robust-covariance condition. -/
+protected def ofSample
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleHC0Assumption76 μ X e) :
+    RobustCovarianceConsistencyConditions μ X e where
+  toSampleHC0Assumption76 := h
+
+end RobustCovarianceConsistencyConditions
 
 omit [Fintype k] [DecidableEq k] in
 /-- The ideal HC0 score covariance average of stacked samples is the range-indexed
@@ -3554,12 +3580,12 @@ theorem olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_
   have hAdj :=
     sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β hmodel hCrossWeight hQuadWeight hMax
+      h.toSampleHC0Assumption76 β hmodel hCrossWeight hQuadWeight hMax
   simpa [olsHeteroskedasticCovarianceHC2Star] using
     olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
       (μ := μ) (X := X) (e := e) (y := y)
       (weight := fun h => (1 - h)⁻¹) measurable_hc2Weight
-      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
+      h.toSampleHC0Assumption76 β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 /-- **Hansen Theorem 7.7, HC3 sandwich from maximal leverage.**
 
@@ -3591,12 +3617,12 @@ theorem olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_
   have hAdj :=
     sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β hmodel hCrossWeight hQuadWeight hMax
+      h.toSampleHC0Assumption76 β hmodel hCrossWeight hQuadWeight hMax
   simpa [olsHeteroskedasticCovarianceHC3Star] using
     olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_bounded_weights_components_and_adjustment
       (μ := μ) (X := X) (e := e) (y := y)
       (weight := fun h => ((1 - h)⁻¹) ^ 2) measurable_hc3Weight
-      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
+      h.toSampleHC0Assumption76 β hmodel hX_meas he_meas hCrossWeight hQuadWeight hAdj
 
 /-- HC2 covariance for fixed linear functions from maximal leverage. -/
 theorem linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
@@ -3631,7 +3657,8 @@ theorem linearMap_olsHC2CovarianceStar_tendstoInMeasure_of_bounded_weights_compo
   have hV :=
     olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hMax
+      (RobustCovarianceConsistencyConditions.ofSample h) β hmodel hX_meas he_meas
+      hCrossWeight hQuadWeight hMax
   exact linearMapCovariance_tendstoInMeasure
     (μ := μ) (R := R)
     (Vhat := fun n ω =>
@@ -3673,7 +3700,8 @@ theorem linearMap_olsHC3CovarianceStar_tendstoInMeasure_of_bounded_weights_compo
   have hV :=
     olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage
       (μ := μ) (X := X) (e := e) (y := y)
-      h β hmodel hX_meas he_meas hCrossWeight hQuadWeight hMax
+      (RobustCovarianceConsistencyConditions.ofSample h) β hmodel hX_meas he_meas
+      hCrossWeight hQuadWeight hMax
   exact linearMapCovariance_tendstoInMeasure
     (μ := μ) (R := R)
     (Vhat := fun n ω =>
