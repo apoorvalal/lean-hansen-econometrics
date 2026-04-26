@@ -159,8 +159,9 @@ and
 [RobustCovarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
 instead of the literal textbook iid assumptions.
 
-Internally these are still implemented by the proof-engine bundles
-`SampleMomentAssumption71`, `SampleVarianceAssumption74`,
-`SampleCLTAssumption72`, and `SampleHC0Assumption76`.
+The proof-engine-facing names `SampleMomentAssumption71`,
+`SampleVarianceAssumption74`, `SampleCLTAssumption72`, and
+`SampleHC0Assumption76` are compatibility aliases for those descriptive
+structures.
 
 That is a packaging gap, not a law-identification cheat.

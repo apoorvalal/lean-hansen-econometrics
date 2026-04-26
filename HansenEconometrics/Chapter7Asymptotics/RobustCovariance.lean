@@ -41,42 +41,44 @@ private lemma matrixBorelSpaceInst : BorelSpace (Matrix k k ℝ) :=
 
 attribute [local instance] matrixBorelSpaceInst
 
-/-- Strengthening of the Chapter 7.1 moment assumptions for the first CLT bridge.
+/-- Descriptive public condition package for the current Lean proof behind Hansen
+Assumption 7.2 / Theorem 7.2 / Theorem 7.3.
 
 Mathlib currently supplies a one-dimensional iid CLT. To use it for Hansen's
 vector score `eᵢXᵢ`, we ask for full independence of those score vectors and
 square integrability of every fixed scalar projection. The resulting theorem is
-the scalar-projection/Cramér-Wold face of Hansen Assumption 7.2. -/
-structure SampleCLTAssumption72 (μ : Measure Ω) [IsProbabilityMeasure μ]
+the scalar-projection/Cramér-Wold face of Hansen Assumption 7.2, rather than a
+literal textbook iid encoding. -/
+structure ScoreCLTConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleMomentAssumption71 μ X e where
+    extends LeastSquaresConsistencyConditions μ X e where
   /-- Full independence of the score-vector sequence `e i • X i`. -/
   iIndep_cross : iIndepFun (fun i ω => e i ω • X i ω) μ
   /-- Square integrability of every scalar projection of the score vector. -/
   memLp_cross_projection :
     ∀ a : k → ℝ, MemLp (fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a) 2 μ
 
-/-- Descriptive public condition package for the current Lean proof behind Hansen
-Assumption 7.2 / Theorem 7.2 / Theorem 7.3.
-
-This is the score-CLT-facing sufficient bundle used by the current formalized
-normality layer. It strengthens the Chapter 7.1 moment package with full score
-independence and projectionwise square integrability, rather than encoding the
-textbook iid assumption literally. It extends the internal
-`SampleCLTAssumption72` proof record. -/
-structure ScoreCLTConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleCLTAssumption72 μ X e
+/-- Compatibility name for the CLT proof bundle behind `ScoreCLTConditions`. -/
+abbrev SampleCLTAssumption72
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  ScoreCLTConditions μ X e
 
 namespace ScoreCLTConditions
 
-/-- Promote the internal CLT proof package to the public Chapter 7 score-CLT condition. -/
-protected def ofSample
+/-- Compatibility projection for code that still names the internal CLT bundle. -/
+abbrev toSampleCLTAssumption72
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e) :
+    SampleCLTAssumption72 μ X e := h
+
+/-- Compatibility constructor from the old internal CLT-bundle name. -/
+abbrev ofSample
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleCLTAssumption72 μ X e) :
-    ScoreCLTConditions μ X e where
-  toSampleCLTAssumption72 := h
+    ScoreCLTConditions μ X e := h
 
 end ScoreCLTConditions
 
@@ -1478,10 +1480,16 @@ theorem sampleScoreCovarianceStar_linear_model
   rw [dotProduct_sub]
   ring_nf
 
-/-- Additional WLLN assumptions for the true-error HC0 score covariance average. -/
-structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
+/-- Descriptive public condition package for the current Lean proof behind the
+robust covariance / t-statistic / Wald layer in Hansen Chapter 7.
+
+This is stronger than bare textbook Assumption 7.2: it packages the score CLT
+bundle together with the true-error score-outer-product WLLN assumptions used to
+prove HC0 consistency, and the later HC1/HC2/HC3 public wrappers still build on
+that stronger sufficient layer. -/
+structure RobustCovarianceConsistencyConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleCLTAssumption72 μ X e where
+    extends ScoreCLTConditions μ X e where
   /-- Pairwise independence of the true-error score outer products. -/
   indep_score_outer : Pairwise ((· ⟂ᵢ[μ] ·) on
     (fun i ω => Matrix.vecMulVec (e i ω • X i ω) (e i ω • X i ω)))
@@ -1494,27 +1502,35 @@ structure SampleHC0Assumption76 (μ : Measure Ω) [IsProbabilityMeasure μ]
   int_score_outer :
     Integrable (fun ω => Matrix.vecMulVec (e 0 ω • X 0 ω) (e 0 ω • X 0 ω)) μ
 
-/-- Descriptive public condition package for the current Lean proof behind the
-robust covariance / t-statistic / Wald layer in Hansen Chapter 7.
-
-This is stronger than bare textbook Assumption 7.2: it packages the score CLT
-bundle together with the true-error score-outer-product WLLN assumptions used to
-prove HC0 consistency, and the later HC1/HC2/HC3 public wrappers still build on
-that stronger sufficient layer. It extends the internal
-`SampleHC0Assumption76` proof record. -/
-structure RobustCovarianceConsistencyConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleHC0Assumption76 μ X e
+/-- Compatibility name for the HC0 proof bundle behind
+`RobustCovarianceConsistencyConditions`. -/
+abbrev SampleHC0Assumption76
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  RobustCovarianceConsistencyConditions μ X e
 
 namespace RobustCovarianceConsistencyConditions
 
-/-- Promote the internal HC0 proof package to the public Chapter 7 robust-covariance condition. -/
-protected def ofSample
+/-- Compatibility projection for code that still names the internal HC0 bundle. -/
+abbrev toSampleHC0Assumption76
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : RobustCovarianceConsistencyConditions μ X e) :
+    SampleHC0Assumption76 μ X e := h
+
+/-- Compatibility projection onto the CLT condition package. -/
+abbrev toSampleCLTAssumption72
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : RobustCovarianceConsistencyConditions μ X e) :
+    SampleCLTAssumption72 μ X e := h.toScoreCLTConditions
+
+/-- Compatibility constructor from the old internal HC0-bundle name. -/
+abbrev ofSample
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleHC0Assumption76 μ X e) :
-    RobustCovarianceConsistencyConditions μ X e where
-  toSampleHC0Assumption76 := h
+    RobustCovarianceConsistencyConditions μ X e := h
 
 end RobustCovarianceConsistencyConditions
 

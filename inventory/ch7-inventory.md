@@ -34,8 +34,9 @@ condition structures:
 - `HomoskedasticErrorVariance`
 
 The older `SampleMomentAssumption71`, `SampleVarianceAssumption74`,
-`SampleCLTAssumption72`, and `SampleHC0Assumption76` names remain as internal
-proof infrastructure.
+`SampleCLTAssumption72`, and `SampleHC0Assumption76` names are now compatibility
+aliases for those descriptive structures, used only where theorem-engine code
+still benefits from the shorter proof-oriented names.
 
 ## Estimator API note
 
@@ -63,8 +64,8 @@ Status: landed in `HansenEconometrics/Chapter7Asymptotics.lean`
 Status: landed via `stackRegressors` / `stackErrors` / `stackOutcomes`,
 `stack_linear_model`, `sampleGram_stackRegressors_eq_avg`,
 `sampleCrossMoment_stackRegressors_stackErrors_eq_avg`, and
-the internal proof bundle `SampleMomentAssumption71`, exposed publicly through
-`LeastSquaresConsistencyConditions`.
+the public proof bundle `LeastSquaresConsistencyConditions`
+(`SampleMomentAssumption71` is the compatibility alias).
 
 ### Layer 3: probabilistic convergence to Theorem 7.1
 6. `Q̂ₙ →ₚ Q` via WLLN on outer products
@@ -90,7 +91,7 @@ scalar-matrix inverse identity `nonsingInv_smul` lives in
 16. push the scalar-projection CLT through the fixed population inverse `Q⁻¹`
 
 Status: scalar-projection CLTs landed via the public sufficient package
-`ScoreCLTConditions` (implemented internally by `SampleCLTAssumption72`),
+`ScoreCLTConditions` (`SampleCLTAssumption72` is the compatibility alias),
 `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`, and
 `scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian`.
 The score covariance matrix `Ω` is now named as `scoreCovarianceMatrix`, with
@@ -131,8 +132,8 @@ Status: landed for the totalized estimators via
 `olsS2Star_tendstoInMeasure_errorVariance`, and for the homoskedastic covariance
 plug-in via `olsHomoskedasticCovarianceStar_tendstoInMeasure`. The assumptions
 are advertised publicly as `ErrorVarianceConsistencyConditions`, with
-`SampleVarianceAssumption74` retained internally as the moment-level proof
-bundle extending the current consistency layer.
+`SampleVarianceAssumption74` retained as the compatibility alias for theorem
+statements that still use the proof-oriented name.
 
 ## Immediate target
 The main remaining Chapter 7 item is assumption packaging: the public theorem
@@ -178,7 +179,7 @@ absolute-weight closure, and HC2/HC3 adjustment measurability are all landed.
 | Theorem 7.1 consistency of least squares | Totalized-estimator analogue is done: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L886). Ordinary-on-nonsingular wrapper is done: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1108). | Literal dependent `olsBeta` cannot be formed on singular samples; `olsBetaOrZero` is the current high-probability nonsingularity interface. |
 | Theorem 7.2 score CLT | Projection-family score CLT is done: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L150). Vector score CLT is done through Cramér-Wold: [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222). `Ω` is named by [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L94), with finite entries, PSD, and quadratic-form variance wrappers via [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L113), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L157), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L136). | Publicly this is packaged by `ScoreCLTConditions`, which is still a stronger sufficient layer than a literal textbook iid encoding. |
 | Theorem 7.3 OLS asymptotic normality | Projection-family totalized-OLS CLT is done, including inverse-gap/tightness: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1323). Ordinary-on-nonsingular projection-family version is done: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1370). Vector OLS CLTs are done for `olsBetaStar` and `olsBetaOrZero`: [olsBetaStar_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L371) and [olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398). | Literal dependent `olsBeta` still uses the ordinary-wrapper interface on high-probability nonsingularity. |
-| Theorem 7.4 variance-estimator consistency | Totalized `σ̂²` consistency is done: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325). Totalized degrees-of-freedom `s²` consistency is done: [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431). | Publicly this is packaged by `ErrorVarianceConsistencyConditions`; internally that alias is implemented by `SampleVarianceAssumption74`, so it remains a sufficient moment-level layer rather than literal iid Assumption 7.1. |
+| Theorem 7.4 variance-estimator consistency | Totalized `σ̂²` consistency is done: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325). Totalized degrees-of-freedom `s²` consistency is done: [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431). | Publicly this is packaged by `ErrorVarianceConsistencyConditions`, with `SampleVarianceAssumption74` retained as a compatibility alias. It remains a sufficient moment-level layer rather than literal iid Assumption 7.1. |
 | Theorem 7.5 homoskedastic covariance consistency | Totalized plug-in `s²Q̂⁻¹` consistency is done: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460). | Same `ErrorVarianceConsistencyConditions` caveat as Theorem 7.4. |
 | Theorem 7.6 HC0 covariance consistency | Ideal sandwich consistency and feasible HC0 sandwich consistency are formalized through `olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure` and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`. | Discharge bounded empirical weight hypotheses from more primitive iid/moment assumptions. |
 | Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 are thin wrappers around the generic leverage-adjusted middle-matrix and sandwich engines. Max leverage now discharges the largest-adjustment-weight `oₚ(1)` step, bounded absolute residual-score averages are derived from HC0 diagonal convergence, HC2/HC3 adjustment measurability is derived from component measurability, and HC2/HC3 covariance consistency is packaged from the existing HC0 bounded-weight assumptions plus max leverage. | Tighten the assumption packaging. |
@@ -301,12 +302,12 @@ Conventions:
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Publicly packaged by [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean). Internally this is implemented by `SampleMomentAssumption71`. It is a moment-level sufficient assumption for the current WLLN proof, not a literal iid-sample encoding. |
+| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Publicly packaged by [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean), with `SampleMomentAssumption71` retained as a compatibility alias. It is a moment-level sufficient assumption for the current WLLN proof, not a literal iid-sample encoding. |
 | Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L886). Ordinary-on-nonsingular wrapper: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1108). |
-| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Publicly packaged by [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean). Internally this is implemented by `SampleCLTAssumption72`. It adds full score independence and projectionwise square integrability, so it is still stronger than a literal textbook encoding. |
+| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Publicly packaged by [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean), with `SampleCLTAssumption72` retained as a compatibility alias. It adds full score independence and projectionwise square integrability, so it is still stronger than a literal textbook encoding. |
 | Theorem 7.2 score CLT bridge | Assumption 7.2 implies `Ω < ∞` and `(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)` | Done at the current assumption layer. Projection-family form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L150). Vector form: [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222). Score-covariance wrappers: [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L94), [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L113), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L157), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L136). |
 | Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Projection-family totalized-OLS CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1323). Ordinary-on-nonsingular projection-family version: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1370). Vector CLTs: [olsBetaStar_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L371) and [olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398). |
-| Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. | Totalized estimator face: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325) and [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431), under [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean). Internally this is implemented by `SampleVarianceAssumption74`. |
+| Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. | Totalized estimator face: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325) and [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431), under [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean), with `SampleVarianceAssumption74` retained as a compatibility alias. |
 | Theorem 7.5 | Under Assumption 7.1, ˆV | Totalized homoskedastic plug-in covariance face: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460). |
 | Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV | HC0 middle/sandwich faces are formalized, including feasible HC0 under bounded-weight/component hypotheses: [olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1760). |
 | Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized via [hc1FiniteSampleScale_tendsto_one](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2284) and [olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2370); HC2/HC3 now reduce leverage-adjustment convergence to max leverage, derive residual absolute-weight `Oₚ(1)` from HC0 diagonal convergence via [sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_bounded_weights](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1658), and package adjustment/covariance convergence via [sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1685) and [sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1719). |
@@ -372,7 +373,7 @@ Phase 4 CLT pieces:
 
 Phase 5 variance-estimator pieces:
 
-- `SampleMomentAssumption71`, `SampleVarianceAssumption74`, `SampleCLTAssumption72`, and `SampleHC0Assumption76` remain the internal proof-bundle names behind the public aliases above.
+- `SampleMomentAssumption71`, `SampleVarianceAssumption74`, `SampleCLTAssumption72`, and `SampleHC0Assumption76` are compatibility aliases for the descriptive public condition structures.
 - [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325) — totalized `σ̂²ₙ →ₚ σ²`.
 - [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431) — totalized degrees-of-freedom `s²ₙ →ₚ σ²`.
 - [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460) — totalized homoskedastic plug-in `V̂⁰_β →ₚ V⁰_β`.

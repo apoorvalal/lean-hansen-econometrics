@@ -40,13 +40,14 @@ private lemma matrixBorelSpaceInst : BorelSpace (Matrix k k ℝ) :=
 
 attribute [local instance] matrixBorelSpaceInst
 
-/-- Moment-level sufficient assumptions for the current Chapter 7.1 consistency proof.
+/-- Descriptive public condition package for the current Lean proof behind Hansen
+Assumption 7.1 / Theorem 7.1.
 
 This deliberately packages only the transformed sequences needed by the WLLN steps:
 outer products `Xᵢ Xᵢᵀ` and cross products `eᵢ Xᵢ`. It is implied by suitable iid
 sample assumptions, but it is not itself a literal encoding of Hansen
 Assumption 7.1. -/
-structure SampleMomentAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
+structure LeastSquaresConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) where
   /-- Pairwise independence of the outer-product sequence `X i (X i)ᵀ`. -/
   indep_outer :
@@ -70,14 +71,42 @@ structure SampleMomentAssumption71 (μ : Measure Ω) [IsFiniteMeasure μ]
   /-- Population orthogonality `𝔼[e X] = 0`. -/
   orthogonality : μ[fun ω => e 0 ω • X 0 ω] = 0
 
-/-- Additional squared-error WLLN assumptions used for Hansen Theorem 7.4.
+/-- Compatibility name for the moment-level proof bundle behind
+`LeastSquaresConsistencyConditions`. -/
+abbrev SampleMomentAssumption71
+    (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  LeastSquaresConsistencyConditions μ X e
+
+namespace LeastSquaresConsistencyConditions
+
+/-- Compatibility projection for code that still names the internal sample bundle. -/
+abbrev toSampleMomentAssumption71
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : LeastSquaresConsistencyConditions μ X e) :
+    SampleMomentAssumption71 μ X e := h
+
+/-- Compatibility constructor from the old internal sample-bundle name. -/
+abbrev ofSample
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) :
+    LeastSquaresConsistencyConditions μ X e := h
+
+end LeastSquaresConsistencyConditions
+
+/-- Descriptive public condition package for the current Lean proof behind Hansen
+Theorem 7.4 / 7.5.
 
 The textbook Assumption 7.1 implies these for iid observations with finite
 second moments; this structure records exactly what the current Lean proof
-needs for the residual-variance consistency layer. -/
-structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
+needs for the residual-variance consistency layer. It extends the consistency
+condition package with the squared-error WLLN hypotheses used for
+residual-variance and homoskedastic covariance consistency. -/
+structure ErrorVarianceConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleMomentAssumption71 μ X e where
+    extends LeastSquaresConsistencyConditions μ X e where
   /-- Pairwise independence of the true squared-error sequence. -/
   indep_error_sq : Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω => e i ω ^ 2))
   /-- Identical distribution of the true squared errors. -/
@@ -86,49 +115,35 @@ structure SampleVarianceAssumption74 (μ : Measure Ω) [IsFiniteMeasure μ]
   /-- Integrability of the true squared error. -/
   int_error_sq : Integrable (fun ω => e 0 ω ^ 2) μ
 
-/-- Descriptive public condition package for the current Lean proof behind Hansen
-Assumption 7.1 / Theorem 7.1.
-
-This is a moment-level sufficient bundle for the current consistency proof, not
-a literal iid-sample encoding. It extends the underlying
-`SampleMomentAssumption71` proof-infrastructure record with a public,
-chapter-facing name. -/
-structure LeastSquaresConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleMomentAssumption71 μ X e
-
-namespace LeastSquaresConsistencyConditions
-
-/-- Promote the internal moment proof package to the public Chapter 7 consistency condition. -/
-protected def ofSample
-    {μ : Measure Ω} [IsFiniteMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
-    (h : SampleMomentAssumption71 μ X e) :
-    LeastSquaresConsistencyConditions μ X e where
-  toSampleMomentAssumption71 := h
-
-end LeastSquaresConsistencyConditions
-
-/-- Descriptive public condition package for the current Lean proof behind Hansen
-Theorem 7.4 / 7.5.
-
-This extends the consistency bundle with the squared-error WLLN hypotheses used
-for residual-variance and homoskedastic covariance consistency. It is still a
-sufficient moment-level package rather than a literal textbook encoding, and it
-extends the internal `SampleVarianceAssumption74` proof record. -/
-structure ErrorVarianceConsistencyConditions (μ : Measure Ω) [IsFiniteMeasure μ]
-    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
-    extends SampleVarianceAssumption74 μ X e
+/-- Compatibility name for the variance proof bundle behind
+`ErrorVarianceConsistencyConditions`. -/
+abbrev SampleVarianceAssumption74
+    (μ : Measure Ω) [IsFiniteMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) :=
+  ErrorVarianceConsistencyConditions μ X e
 
 namespace ErrorVarianceConsistencyConditions
 
-/-- Promote the internal variance proof package to the public Chapter 7 variance condition. -/
-protected def ofSample
+/-- Compatibility projection for code that still names the internal variance bundle. -/
+abbrev toSampleVarianceAssumption74
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ErrorVarianceConsistencyConditions μ X e) :
+    SampleVarianceAssumption74 μ X e := h
+
+/-- Compatibility projection onto the moment-level condition package. -/
+abbrev toSampleMomentAssumption71
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ErrorVarianceConsistencyConditions μ X e) :
+    SampleMomentAssumption71 μ X e := h.toLeastSquaresConsistencyConditions
+
+/-- Compatibility constructor from the old internal variance-bundle name. -/
+abbrev ofSample
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleVarianceAssumption74 μ X e) :
-    ErrorVarianceConsistencyConditions μ X e where
-  toSampleVarianceAssumption74 := h
+    ErrorVarianceConsistencyConditions μ X e := h
 
 end ErrorVarianceConsistencyConditions
 
@@ -1238,7 +1253,7 @@ theorem olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
   have hBeta :=
     olsBetaStar_stack_tendstoInMeasure_beta
       (μ := μ) (X := X) (e := e) (y := y) β
-      (LeastSquaresConsistencyConditions.ofSample h.toSampleMomentAssumption71) hmodel
+      h.toSampleMomentAssumption71 hmodel
   have hCrossCoord : ∀ j : k,
       TendstoInMeasure μ
         (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) j)
@@ -1283,7 +1298,7 @@ theorem sampleGram_mulVec_olsBetaStar_sub_tendstoInMeasure_zero
     (μ := μ) (X := X) (e := e) h
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
     (μ := μ) (X := X) (e := e) (y := y) β
-    (LeastSquaresConsistencyConditions.ofSample h) hmodel
+    h hmodel
   have hDiffCoord : ∀ l : k,
       TendstoInMeasure μ (fun n ω => d n ω l) atTop (fun _ => 0) := by
     intro l
@@ -1339,7 +1354,7 @@ theorem olsSigmaSqHatStar_quadraticRemainder_tendstoInMeasure_zero
     sampleGram (stackRegressors X n ω) *ᵥ d n ω
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
     (μ := μ) (X := X) (e := e) (y := y) β
-    (LeastSquaresConsistencyConditions.ofSample h.toSampleMomentAssumption71) hmodel
+    h.toSampleMomentAssumption71 hmodel
   have hDiffCoord : ∀ j : k,
       TendstoInMeasure μ (fun n ω => d n ω j) atTop (fun _ => 0) := by
     intro j
