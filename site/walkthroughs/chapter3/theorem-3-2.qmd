@@ -49,6 +49,24 @@ theorem normal_equations
     Xᵀ *ᵥ residual X y = 0
 ```
 
+### Reading the statement
+
+In English: **given** a design matrix $X$, a response vector $y$, and a witness
+that $X^\top X$ is invertible, the OLS residual is orthogonal to every column
+of $X$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `(X : Matrix n k ℝ)` | $X \in \mathbb{R}^{n\times k}$ | **Given:** design matrix. The index types `n` (observations) and `k` (regressors) are arbitrary `Fintype`s, supplied by the section variables. |
+| `(y : n → ℝ)` | $y \in \mathbb{R}^n$ | **Given:** response vector. Lean models a real vector as a function `n → ℝ` from the index type to reals. |
+| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | **Given (hypothesis):** the Gram matrix is invertible — Hansen's full-column-rank assumption. The square brackets mark this as an instance argument: it is supplied by typeclass resolution rather than as an explicit `have`. |
+| `Xᵀ *ᵥ residual X y` | $X^\top \hat e$ | **Conclusion:** matrix-times-vector applied to the residual. `Matrix.transpose` is written `Xᵀ`; `*ᵥ` is `Matrix.mulVec`. |
+| `= 0` | $= 0$ | The right-hand side is the zero vector in $\mathbb{R}^k$. |
+
+(The usual ambient typeclasses `[Fintype n] [Fintype k] [DecidableEq k]` are
+hoisted into the file's `variable` block, which is why they don't appear in
+the signature.)
+
 ## Translation notes
 
 - Hansen writes $X' \hat e = 0$ in matrix-of-real-numbers notation. Lean's
@@ -83,14 +101,56 @@ The Lean proof of
 mirrors the textbook proof in three short steps:
 
 - Unfold `residual`, `fitted`, and `olsBeta`, then split the `mulVec` over
-  subtraction with [`Matrix.mulVec_sub`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html).
-- Use [`Matrix.mulVec_mulVec`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html)
-  to commute the two `*ᵥ` applications into a single matrix product, then
-  reassociate via [`Matrix.mul_assoc`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html)
-  so that $X^\top X$ sits next to its inverse.
-- Collapse $(X^\top X) \cdot ⅟(X^\top X)$ to $1$ using
-  [`mul_invOf_self`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/GroupWithZero/Invertible.html),
+  subtraction with `Matrix.mulVec_sub`.
+- Use `Matrix.mulVec_mulVec` to commute the two `*ᵥ` applications into a
+  single matrix product, then reassociate via `Matrix.mul_assoc` so that
+  $X^\top X$ sits next to its inverse.
+- Collapse $(X^\top X) \cdot ⅟(X^\top X)$ to $1$ using `mul_invOf_self`,
   leaving $X^\top y - X^\top y$, which `simp` reduces to $0$.
+
+### Tactic-by-tactic walkthrough
+
+The full Lean proof body:
+
+```lean
+theorem normal_equations
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    Xᵀ *ᵥ residual X y = 0 := by
+  unfold residual fitted olsBeta
+  rw [mulVec_sub]
+  have hmul : Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
+            = (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by
+    rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+  calc
+    Xᵀ *ᵥ y - Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
+        = Xᵀ *ᵥ y - (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by rw [hmul]
+    _ = Xᵀ *ᵥ y - (((Xᵀ * X) * ⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by rw [Matrix.mul_assoc]
+    _ = Xᵀ *ᵥ y - (1 *ᵥ (Xᵀ *ᵥ y)) := by rw [mul_invOf_self]
+    _ = 0 := by simp
+```
+
+Line by line:
+
+- `unfold residual fitted olsBeta` — replace the three definitions by their
+  bodies. The goal becomes
+  $X^\top \!\bigl(y - X \cdot ⅟(X^\top X) \cdot X^\top y\bigr) = 0$.
+- `rw [mulVec_sub]` — distribute the outer `Xᵀ *ᵥ` over the subtraction
+  ($X^\top(u - v) = X^\top u - X^\top v$). The goal becomes
+  $X^\top y - X^\top \!\bigl(X \cdot ⅟(X^\top X) \cdot X^\top y\bigr) = 0$.
+- `have hmul := ...` — prove a helper equality stating that the nested
+  matrix-vector applications $X^\top(X(⅟(X^\top X)(X^\top y)))$ equal the
+  single product $\bigl(X^\top \cdot X \cdot ⅟(X^\top X)\bigr) \cdot (X^\top y)$.
+  The proof of `hmul` rewrites with `Matrix.mulVec_mulVec` (applied
+  backwards twice) to fuse the matrix actions into one.
+- **`calc` step 1** — apply `hmul` to rewrite the second term; the goal is
+  now $X^\top y - \bigl(X^\top X \cdot ⅟(X^\top X)\bigr) \cdot X^\top y = 0$
+  modulo association.
+- **`calc` step 2** — `Matrix.mul_assoc` re-associates
+  $X^\top \cdot (X \cdot ⅟(X^\top X))$ to $(X^\top X) \cdot ⅟(X^\top X)$,
+  putting the Gram matrix next to its inverse.
+- **`calc` step 3** — `mul_invOf_self` collapses $(X^\top X) \cdot ⅟(X^\top X)$
+  to the identity matrix `1`. The expression simplifies to $X^\top y - 1 \cdot (X^\top y)$.
+- **`calc` step 4** — `simp` clears `1 *ᵥ v = v`, then $X^\top y - X^\top y = 0$.
 
 For uniqueness,
 [`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
