@@ -1,0 +1,171 @@
+---
+title: "Theorem 7.1 — Consistency of OLS"
+lean_name: "HansenEconometrics.olsBetaOrZero_stack_tendstoInMeasure_beta"
+chapter: 7
+---
+
+## Textbook statement
+
+Suppose we observe an i.i.d. sample $(X_i, e_i)$ drawn from the population
+$(X, e)$ on a probability space $(\Omega, \mu)$, and form the response
+$y_i = X_i^\top \beta + e_i$. Stack the first $n$ observations into a regressor
+matrix $X_{(n)}$ and outcome vector $y_{(n)}$. Under the moment assumptions
+that $\mathbb{E}[X_i X_i^\top]$ is invertible, $\mathbb{E}\|X_i\|^2 < \infty$,
+and $\mathbb{E}\|X_i e_i\| < \infty$, the OLS estimator from the stacked
+sample converges in probability to $\beta$:
+
+$$
+\hat\beta_{(n)} \xrightarrow{p} \beta \qquad \text{as } n \to \infty.
+$$
+
+This is "consistency": OLS recovers the true parameter $\beta$ in the
+large-sample limit.
+
+## Assumptions
+
+Hansen Theorem 7.1 requires:
+
+- **Linear model with stable parameter:** $y_i = X_i^\top \beta + e_i$ for all
+  $i$, with $\beta \in \mathbb{R}^k$ fixed.
+- **i.i.d. sampling** under measure $\mu$.
+- **Population Gram matrix invertibility:** $\mathbb{E}[X_i X_i^\top] = Q$ is
+  invertible (full-rank regressors in population).
+- **Finite second moment of regressors:** $\mathbb{E}\|X_i\|^2 < \infty$ —
+  needed for the WLLN of the sample Gram.
+- **Finite first moment of cross-product:** $\mathbb{E}\|X_i e_i\| < \infty$ —
+  needed for the WLLN of the sample cross-moment.
+
+In Lean, these are bundled into a single typeclass
+`SampleMomentAssumption71 μ X e`.
+
+## Lean statement
+
+The textbook-facing theorem lives in
+`HansenEconometrics/Chapter7Asymptotics.lean`:
+
+- [`olsBetaOrZero_stack_tendstoInMeasure_beta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1822)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:1822`.
+
+```lean
+theorem olsBetaOrZero_stack_tendstoInMeasure_beta
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : SampleMomentAssumption71 μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInMeasure μ
+      (fun n ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => β)
+```
+
+The Lean development uses a **totalized** estimator
+`olsBetaStar` (defined for every design and returning $0$ when $X^\top X$ is
+singular) together with a wrapper `olsBetaOrZero` that agrees with ordinary
+`olsBeta` whenever the sample Gram is nonsingular and equals `olsBetaStar`
+unconditionally. The asymptotic statement uses `olsBetaOrZero` because
+measurability is cleaner — singular samples have measure zero in the limit, so
+the wrapper's behavior on those samples doesn't matter.
+
+The substantive work is done by the totalized companion theorem:
+
+- [`olsBetaStar_stack_tendstoInMeasure_beta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1600)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:1600`.
+
+The wrapper version reduces to it via `olsBetaOrZero_eq_olsBetaStar`.
+
+## Translation notes
+
+- Hansen writes $\hat\beta_n \to_p \beta$. Lean writes
+  `TendstoInMeasure μ (fun n ω => olsBetaOrZero …) atTop (fun _ => β)`. These
+  are the same notion: convergence in probability under measure $\mu$.
+- The `SampleMomentAssumption71` typeclass packages: `IsFiniteMeasure μ`,
+  i.i.d. structure, integrability of $X_i$, integrability of
+  $X_i \cdot X_i$ and $X_i e_i$, plus invertibility of
+  $\mathbb{E}[X X^\top]$. Each face is exposed as a separate lemma so that
+  downstream proofs can pick out exactly the moment hypothesis they need.
+- The Lean form uses `stackRegressors X n` and `stackOutcomes y n` to build
+  the sample design matrix and outcome vector from the i.i.d. processes
+  `X : ℕ → Ω → (k → ℝ)` and `y : ℕ → Ω → ℝ`. This exposes the stacking as a
+  measurable function rather than a hand-waved "first $n$ observations."
+- The theorem is stated for `olsBetaOrZero`, not `olsBeta`, because the
+  latter requires `[Invertible (Xᵀ * X)]` as a typeclass — which we cannot
+  guarantee on every $\omega$. `olsBetaOrZero` returns $0$ outside the
+  nonsingular set; on the asymptotic limit set, it agrees with ordinary OLS.
+
+## Proof sketch
+
+The standard textbook argument:
+
+1. **Sample-moment WLLN.** By the i.i.d. WLLN applied to $X_i X_i^\top$ and
+   $X_i e_i$:
+   $$
+   \hat Q_n := \frac{1}{n}\sum_{i=1}^n X_i X_i^\top \xrightarrow{p} Q,
+   \qquad
+   \hat g_n := \frac{1}{n}\sum_{i=1}^n X_i e_i \xrightarrow{p} \mathbb{E}[X_i e_i].
+   $$
+2. **Cross moment is zero in the linear model.** Under the linear-model
+   hypothesis the cross-moment limit reduces to $0$ (the Lean development
+   states this directly as a tendsto-to-zero claim, sidestepping the
+   intermediate orthogonality identity).
+3. **Continuous mapping.** Since $Q$ is invertible and inversion is continuous
+   on the open set of invertible matrices, $\hat Q_n^{-1} \xrightarrow{p}
+   Q^{-1}$ on the limit set.
+4. **OLS error decomposition.** $\hat\beta_n - \beta = \hat Q_n^{-1} \hat
+   g_n$, so by Slutsky's theorem
+   $$
+   \hat\beta_n - \beta \xrightarrow{p} Q^{-1} \cdot 0 = 0.
+   $$
+
+## Lean proof structure
+
+The Lean proof breaks into many supporting lemmas; the headline theorem is
+short because it composes pieces.
+
+The deterministic algebraic engine:
+
+- [`olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L512)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:512` — the pointwise
+  identity $\hat\beta - \beta = \hat Q_n^{-1}\, \hat g_n$ on nonsingular
+  samples.
+
+The sample-moment WLLN faces:
+
+- [`sampleGram_stackRegressors_tendstoInMeasure_popGram`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L838)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:838` — $\hat Q_n
+  \xrightarrow{p} Q$.
+- [`sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L875)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:875` — $\hat Q_n^{-1}
+  \xrightarrow{p} Q^{-1}$ via continuous mapping.
+- [`sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L892)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:892` — $\hat g_n
+  \xrightarrow{p} 0$ in the linear-model setup.
+
+The Slutsky / continuous-mapping bridge that combines them:
+
+- [`sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1042)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:1042` — combines $\hat
+  Q_n^{-1} \to_p Q^{-1}$ with $\hat g_n \to_p 0$ to conclude $\hat
+  Q_n^{-1}\, \hat g_n \to_p 0$.
+
+The totalized consistency theorem packages all of this:
+
+- [`olsBetaStar_stack_tendstoInMeasure_beta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1600)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:1600`.
+
+The ordinary-wrapper version on line 1822 is then a one-liner:
+
+```lean
+simpa [olsBetaOrZero_eq_olsBetaStar] using
+  olsBetaStar_stack_tendstoInMeasure_beta
+    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+```
+
+## Downstream uses
+
+- **Theorem 7.8** (continuous mapping for OLS): if $\phi$ is continuous at
+  $\beta$, then $\phi(\hat\beta_n) \xrightarrow{p} \phi(\beta)$. Lean:
+  [`continuousAt_function_olsBetaOrZero_tendstoInMeasure`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1854)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:1854`.
+- **Theorem 7.4** (variance estimator consistency): builds on $\hat\beta
+  \to_p \beta$ to show $\hat\sigma^2 \to_p \sigma^2$.
+- **Theorem 7.3** (asymptotic normality): consistency is a precondition for
+  the CLT-style result.
