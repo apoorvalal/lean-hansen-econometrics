@@ -1,0 +1,187 @@
+---
+title: "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+lean_name: "HansenEconometrics.scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance"
+chapter: 7
+---
+
+## Textbook statement
+
+Under i.i.d. sampling and the moment conditions of Theorem 7.2 (CLT for the
+score $X_i e_i$), the OLS estimator is asymptotically normal:
+
+$$
+\sqrt{n}\,(\hat\beta_n - \beta) \xrightarrow{d} N\!\left(0,\; Q^{-1} \Omega Q^{-1}\right),
+$$
+
+where
+
+$$
+Q = \mathbb{E}[X_i X_i^\top], \qquad \Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
+$$
+
+is the score covariance. The asymptotic variance $V := Q^{-1} \Omega Q^{-1}$
+is the **sandwich** matrix; under homoskedasticity ($\Omega = \sigma^2 Q$) it
+collapses to $\sigma^2 Q^{-1}$.
+
+The Lean formalization works through the **scalar (Cramér–Wold) face**: for
+every fixed direction $a \in \mathbb{R}^k$,
+
+$$
+\sqrt{n}\, a^\top (\hat\beta_n - \beta) \xrightarrow{d} N(0,\, a^\top V a).
+$$
+
+## Assumptions
+
+Hansen Theorem 7.3 requires:
+
+- **Linear model:** $y_i = X_i^\top \beta + e_i$.
+- **i.i.d. sampling** under measure $\mu$.
+- **Population Gram matrix invertibility:** $Q := \mathbb{E}[X_i X_i^\top]$
+  is invertible.
+- **Score moment finiteness:** $\Omega := \mathbb{E}[e_i^2 X_i X_i^\top]$ is
+  finite (entries integrable). This is what powers Theorem 7.2's CLT.
+- **Mean-zero score:** $\mathbb{E}[X_i e_i] = 0$ (which is automatic when
+  $\beta$ is the projection coefficient and $e_i$ is the projection error).
+
+In Lean, these are bundled into `SampleCLTAssumption72 μ X e`, which extends
+`SampleMomentAssumption71`.
+
+## Lean statement
+
+The headline theorem in `HansenEconometrics/Chapter7Asymptotics.lean`:
+
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5332)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:5332` — for every fixed
+  direction $a$, the scalar projection $\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)$
+  converges in distribution to $N(0, V_a)$ where $V_a$ is the named
+  asymptotic variance
+  [`olsProjectionAsymptoticVariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2468)`μ X e a`
+  $= ((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$.
+
+```lean
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν
+```
+
+Companion / related theorems:
+
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6888)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:6888` — packages all
+  directions $a$ at once (Cramér–Wold facing for the joint vector CLT).
+- [`scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6912)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:6912` — the
+  ordinary-wrapper face for nonsingular samples.
+- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:4773` — Theorem 7.2 score
+  CLT, the upstream input.
+
+## Translation notes
+
+- Hansen writes the theorem as a multivariate convergence
+  $\sqrt{n}\, (\hat\beta - \beta) \Rightarrow N(0, V)$. Lean works through the
+  Cramér–Wold face: every scalar projection converges to a normal limit. The
+  aggregator
+  [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6888)
+  combines all directions.
+- The auxiliary measure space $(\Omega', \nu)$ hosts the limiting random
+  variable $Z$. This is a Lean idiom: rather than asserting a measure equals
+  a Gaussian, the theorem says "for any $Z$ defined on any auxiliary space
+  with the right law, the sample statistics converge in distribution to $Z$."
+- The named asymptotic variance
+  [`olsProjectionAsymptoticVariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2468)`μ X e a`
+  unfolds to $((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$. By the
+  symmetry of $Q$, $(Q^{-1})^\top = Q^{-1}$, so this is exactly
+  $a^\top Q^{-1} \Omega Q^{-1} a = a^\top V a$.
+- The score variance equality $a^\top V a = \mathrm{Var}[e_0 \cdot (X_0 \cdot Q^{-1} a)]$
+  is exposed as
+  [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503)
+  and is used to bridge between the variance form Lean works with and the
+  textbook sandwich form.
+
+## Proof sketch
+
+The standard textbook proof in three steps:
+
+1. **OLS error decomposition.** From the closed form,
+
+   $$
+   \sqrt{n}(\hat\beta_n - \beta) = \hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n,
+   \qquad \hat g_n := \frac{1}{n} \sum_i X_i e_i.
+   $$
+
+2. **Score CLT (Theorem 7.2).** For every fixed $c \in \mathbb{R}^k$,
+
+   $$
+   \sqrt{n}\, c^\top \hat g_n \xrightarrow{d} N(0, c^\top \Omega c)
+   $$
+
+   by the multivariate CLT applied to $X_i e_i$ in direction $c$.
+
+3. **Slutsky.** Since $\hat Q_n^{-1} \xrightarrow{p} Q^{-1}$ (Theorem 7.1's
+   WLLN + continuous-mapping), the product
+   $\hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n \xrightarrow{d} Q^{-1} \cdot Z$
+   where $Z \sim N(0, \Omega)$, so the limit is $N(0, Q^{-1} \Omega Q^{-1})$.
+
+For the scalar projection face: project everything onto direction $a$ first
+(i.e., apply $a^\top$), apply the score CLT in direction $Q^{-1} a$, then put
+it back together via Slutsky.
+
+## Lean proof structure
+
+The Lean proof has serious moving parts. Trace the chain:
+
+1. [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:4773` — Theorem 7.2 scalar
+   CLT for $\sqrt{n}\, c^\top \hat g_n$.
+2. Slutsky bridges via the inverse-Gram convergence and the fixed-score
+   decomposition. The key algebraic identity is
+   [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1491)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:1491` — this is the
+   algebraic decomposition of $\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)$
+   into a fixed score, an inverse-gap term, and a residual; the latter two
+   are $o_p(1)$.
+3. [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1415)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:1415` — the inverse-gap
+   residual goes to $0$ in probability.
+4. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5277)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:5277` — packages the chain
+   modulo a measurability hypothesis.
+5. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:5307` — discharges the
+   measurability via `scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable`.
+6. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5332)
+   at `HansenEconometrics/Chapter7Asymptotics.lean:5332` — restates the
+   result using the named asymptotic variance, via
+   [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503).
+
+The chain is heavy because the Lean version handles `olsBetaStar` (the
+totalized estimator) and has to manage the singular-sample contribution
+explicitly — an issue Hansen sidesteps by working "modulo events of
+probability tending to zero."
+
+## Downstream uses
+
+- **Theorem 7.9** (linear functions of OLS):
+  [`scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5362)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:5362`.
+- **Theorem 7.11 / 7.14** (t-statistics, Wald statistics): the
+  asymptotic-normality result powers the standard normal / chi-square limits
+  of studentized statistics.
+- **Theorem 7.13** (multivariate Wald):
+  [`linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5524)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:5524`.
+- **Theorem 7.12** (CI coverage):
+  [`olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5995)
+  at `HansenEconometrics/Chapter7Asymptotics.lean:5995`.
