@@ -22,7 +22,12 @@ website:
               - walkthroughs/chapter3/theorem-3-5.qmd
           - section: Chapter 5
             contents:
-              - walkthroughs/chapter5/theorem-5-7.qmd
+              - walkthroughs/chapter5/theorem-5-5.qmd
+              - walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd
+          - section: Chapter 7
+            contents:
+              - walkthroughs/chapter7/theorem-7-1.qmd
+              - walkthroughs/chapter7/theorem-7-3.qmd
       - section: Auto-generated reference
         contents:
           - href: auto/index.qmd
