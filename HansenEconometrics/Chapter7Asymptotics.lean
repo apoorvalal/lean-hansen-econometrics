@@ -11,10 +11,10 @@ This umbrella import exposes Hansen's Chapter 7 (Asymptotic Theory for Least Squ
 The implementation is split into `Basic`, `Consistency`, `RobustCovariance`,
 `Normality`, and `Inference` submodules.
 
-## Public assumption aliases
+## Public assumption packages
 
 The chapter-facing endpoints now advertise descriptive sufficient-condition
-bundles:
+structures:
 
 * `LeastSquaresConsistencyConditions`
 * `ErrorVarianceConsistencyConditions`
@@ -23,6 +23,15 @@ bundles:
 
 The older `Sample...` names remain in the imported submodules as proof-engine
 infrastructure.
+
+## Estimator API discipline
+
+Chapter 7 uses `olsBetaStar` as the proof engine because it is total and works
+well with `Matrix.nonsingInv`. The textbook-facing ordinary-OLS surface is
+`olsBetaOrZero`, which agrees with `olsBeta` on nonsingular samples and is
+definitionally available on every sample. Crosswalk entries should prefer
+`olsBetaOrZero` where they are describing ordinary OLS, and use `olsBetaStar`
+for internal algebra and reusable total-estimator lemmas.
 
 ## Textbook theorem status
 
@@ -42,8 +51,8 @@ infrastructure.
   `olsBetaStar_vector_tendstoInDistribution_multivariateGaussian` feeds the
   proved vector score CLT into the random-inverse Slutsky bridge, and
   `olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian` gives the
-  ordinary-on-nonsingular wrapper. The conditional `_of_scoreCLT` bridge lemmas
-  remain available as reusable assembly pieces.
+  ordinary-on-nonsingular wrapper. The conditional `_of_scoreCLT` lemmas are
+  proof assembly pieces rather than preferred crosswalk targets.
 * **Theorem 7.4** — residual variance consistency is formalized for the
   totalized estimators `olsSigmaSqHatStar` and `olsS2Star` in
   `olsSigmaSqHatStar_tendstoInMeasure_errorVariance` and

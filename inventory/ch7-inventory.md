@@ -37,6 +37,15 @@ The older `SampleMomentAssumption71`, `SampleVarianceAssumption74`,
 `SampleCLTAssumption72`, and `SampleHC0Assumption76` names remain as internal
 proof infrastructure.
 
+## Estimator API note
+
+Chapter 7 currently keeps `olsBetaStar` as the total proof engine and
+`olsBetaOrZero` as the textbook-facing ordinary-OLS wrapper. The wrapper agrees
+with ordinary `olsBeta` on nonsingular designs and is usable as a random
+variable at every sample size. Crosswalk rows should prefer `olsBetaOrZero`
+when the textbook statement is about ordinary OLS, and list `olsBetaStar` when
+the result is genuinely a total-estimator bridge.
+
 ## First-pass formalization order
 
 ### Layer 1: deterministic OLS-error algebra
@@ -435,7 +444,8 @@ Reusable linear-algebra helpers (`LinearAlgebraUtils.lean`):
 ## Notes
 
 - Chapter 7 builds on Chapter 3 least-squares algebra and Chapter 4 least-squares regression.
-- The current consistency theorem is stated for `olsBetaStar` (not `olsBeta`): the total inverse form is defined on every design matrix, so the convergence statement does not need to restrict to an a.s. invertibility event.
-- A textbook-facing `olsBeta` theorem remains a follow-up once we expose a clean high-probability nonsingularity wrapper.
+- The current consistency theorem is stated for both the total proof engine `olsBetaStar` and the
+  textbook-facing wrapper `olsBetaOrZero`; a literal dependent `olsBeta` theorem remains a follow-up
+  because it must be stated only on nonsingular samples.
 - The CLT layer still starts from Mathlib's real-valued CLT projectionwise, but Cramér-Wold now packages the vector score CLT and the random-inverse Slutsky bridge packages vector OLS normality.
 - The LaTeX column uses textbook extraction output for theorems 7.2 onward; it is intentionally rough until those theorems are formalized.
