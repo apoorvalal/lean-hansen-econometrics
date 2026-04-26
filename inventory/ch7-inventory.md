@@ -22,6 +22,17 @@ The umbrella import
 `HansenEconometrics/Chapter7Asymptotics.lean` remains the stable public entry
 point.
 
+Code-size pass notes:
+
+- matrix Borel setup is shared through `LinearAlgebraUtils.lean`
+- `olsBetaStar` remains the proof engine, with `olsBetaOrZero` as a thin wrapper
+- scalar inference statements use named restriction, standard-error, t-statistic,
+  CI-event, and one-degree Wald definitions
+- HC2/HC3 covariance wrappers share the generic leverage-adjusted covariance
+  pipeline
+- descriptive condition structures are primary; numbered `Sample...` names are
+  compatibility aliases
+
 ## Public assumption packages
 
 Public Chapter 7 endpoint theorems now advertise descriptive sufficient
