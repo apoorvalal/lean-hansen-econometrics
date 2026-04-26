@@ -264,11 +264,10 @@ Same pattern, three steps shorter:
 
 ## Downstream uses
 
-- The chi-square / independence theorem
-  ([Theorem 5.7 walkthrough](theorem-5-7.qmd)): once $\hat\beta$ and
-  $\hat e$ are known to be jointly Gaussian, independence reduces to a
-  covariance computation, and that cross-covariance is zero because
-  $X^\top M = 0$.
+- The chi-square / independence theorem (Hansen Theorem 5.7): once
+  $\hat\beta$ and $\hat e$ are known to be jointly Gaussian, independence
+  reduces to a covariance computation, and that cross-covariance is zero
+  because $X^\top M = 0$.
 - Confidence intervals and t-tests in Chapter 5 build on this Gaussianity
   of $\hat\beta$.
 - More generally, any normal-error inference statement for OLS that

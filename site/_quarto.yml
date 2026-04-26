@@ -1,6 +1,12 @@
 project:
   type: website
   output-dir: _site
+  # Auto-stub generation is paused for fast iteration on walkthroughs.
+  # Re-enable by adding "auto/**/*.qmd" back, and uncomment the
+  # "Auto-generated reference" sidebar section below.
+  render:
+    - "index.qmd"
+    - "walkthroughs/**/*.qmd"
 
 website:
   title: "Hansen Econometrics in Lean"
@@ -28,11 +34,12 @@ website:
             contents:
               - walkthroughs/chapter7/theorem-7-1.qmd
               - walkthroughs/chapter7/theorem-7-3.qmd
-      - section: Auto-generated reference
-        contents:
-          - href: auto/index.qmd
-            text: Overview
-          - auto: auto/*
+      # Auto-generated reference paused — re-enable along with `render:` above.
+      # - section: Auto-generated reference
+      #   contents:
+      #     - href: auto/index.qmd
+      #       text: Overview
+      #     - auto: auto/*
 
 format:
   html:

@@ -220,7 +220,6 @@ Line by line:
 
 ## Downstream uses
 
-- Theorem 5.7 (`scaledOlsResidualVarianceStatistic_hasLaw_chiSquared`) —
-  chi-square distribution of $(n-k) s^2 / \sigma^2$. The identity proved here
-  is the deterministic kernel of that distributional result.
-- See: [`site/walkthroughs/chapter5/theorem-5-7.qmd`](theorem-5-7.qmd).
+- Theorem 5.7 (chi-square distribution of $(n-k) s^2 / \sigma^2$ under
+  Gaussian errors). The identity proved here is the deterministic kernel of
+  that distributional result.
