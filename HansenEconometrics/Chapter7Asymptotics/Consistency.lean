@@ -27,18 +27,18 @@ variable {n : Type*} [Fintype n]
 variable {k : Type*} [Fintype k] [DecidableEq k]
 
 omit [DecidableEq k] in
-/-- Borel σ-algebra on `Matrix k k ℝ` inherited from the elementwise-L∞ norm.
-Section-scoped so the choice of norm stays local. -/
 @[reducible]
-private noncomputable def matrixBorelMeasurableSpace :
-    MeasurableSpace (Matrix k k ℝ) := borel _
+private noncomputable def matrixBorelMeasurableSpaceInst :
+    MeasurableSpace (Matrix k k ℝ) :=
+  matrixBorelMeasurableSpace k k
 
-attribute [local instance] matrixBorelMeasurableSpace
+attribute [local instance] matrixBorelMeasurableSpaceInst
 
-omit [Fintype k] [DecidableEq k] in
-private lemma matrixBorelSpace : BorelSpace (Matrix k k ℝ) := ⟨rfl⟩
+omit [DecidableEq k] in
+private lemma matrixBorelSpaceInst : BorelSpace (Matrix k k ℝ) :=
+  matrixBorelSpace k k
 
-attribute [local instance] matrixBorelSpace
+attribute [local instance] matrixBorelSpaceInst
 
 /-- Moment-level sufficient assumptions for the current Chapter 7.1 consistency proof.
 

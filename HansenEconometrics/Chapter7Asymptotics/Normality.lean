@@ -29,18 +29,18 @@ variable {Ω Ω' : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'
 variable {k : Type*} [Fintype k] [DecidableEq k]
 
 omit [DecidableEq k] in
-/-- Borel σ-algebra on `Matrix k k ℝ` inherited from the elementwise-L∞ norm,
-reintroduced for Chapter 7 submodules using covariance-matrix random variables. -/
 @[reducible]
-private noncomputable def matrixBorelMeasurableSpace72 :
-    MeasurableSpace (Matrix k k ℝ) := borel _
+private noncomputable def matrixBorelMeasurableSpaceInst :
+    MeasurableSpace (Matrix k k ℝ) :=
+  matrixBorelMeasurableSpace k k
 
-attribute [local instance] matrixBorelMeasurableSpace72
+attribute [local instance] matrixBorelMeasurableSpaceInst
 
-omit [Fintype k] [DecidableEq k] in
-private lemma matrixBorelSpace72 : BorelSpace (Matrix k k ℝ) := ⟨rfl⟩
+omit [DecidableEq k] in
+private lemma matrixBorelSpaceInst : BorelSpace (Matrix k k ℝ) :=
+  matrixBorelSpace k k
 
-attribute [local instance] matrixBorelSpace72
+attribute [local instance] matrixBorelSpaceInst
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/

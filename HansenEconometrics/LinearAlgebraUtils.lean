@@ -6,6 +6,21 @@ namespace HansenEconometrics
 
 open Matrix
 
+/-- Product measurable space used for finite real matrix coordinates.
+
+This is intentionally not a global instance; downstream files can install it
+locally when they need matrix-valued Borel measurability. -/
+@[reducible]
+noncomputable def matrixBorelMeasurableSpace (m n : Type*) [Fintype m] [Fintype n] :
+    MeasurableSpace (Matrix m n ℝ) :=
+  borel _
+
+/-- Borel-space certificate for `matrixBorelMeasurableSpace`. -/
+lemma matrixBorelSpace (m n : Type*) [Fintype m] [Fintype n] :
+    @BorelSpace (Matrix m n ℝ) inferInstance (matrixBorelMeasurableSpace m n) := by
+  letI : MeasurableSpace (Matrix m n ℝ) := matrixBorelMeasurableSpace m n
+  exact ⟨rfl⟩
+
 /-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
 matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
 `(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`
