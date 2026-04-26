@@ -1685,7 +1685,8 @@ theorem sampleScoreCovarianceCrossRemainder_stack_tendstoInMeasure_zero_of_bound
           (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β))
       atTop (fun _ => 0) := by
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
-    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+    (μ := μ) (X := X) (e := e) (y := y) β
+    (LeastSquaresConsistencyConditions.ofSample h) hmodel
   refine tendstoInMeasure_pi (μ := μ) (fun a => ?_)
   refine tendstoInMeasure_pi (μ := μ) (fun b => ?_)
   have hTerm : ∀ l ∈ (Finset.univ : Finset k),
@@ -1740,7 +1741,8 @@ theorem sampleScoreCovarianceQuadraticRemainder_stack_tendstoInMeasure_zero_of_b
   let d : ℕ → Ω → k → ℝ := fun n ω =>
     olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β
   have hBeta := olsBetaStar_stack_tendstoInMeasure_beta
-    (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+    (μ := μ) (X := X) (e := e) (y := y) β
+    (LeastSquaresConsistencyConditions.ofSample h) hmodel
   have hd : ∀ l : k, TendstoInMeasure μ (fun n ω => d n ω l) atTop (fun _ => 0) := by
     intro l
     have hBeta_l : TendstoInMeasure μ
@@ -2392,7 +2394,8 @@ theorem linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure
       h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
   have hV :=
     olsHomoskedasticCovarianceStar_tendstoInMeasure
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+      (μ := μ) (X := X) (e := e) (y := y)
+      (ErrorVarianceConsistencyConditions.ofSample h) β hmodel
   exact linearMapCovariance_tendstoInMeasure
     (μ := μ) (R := R)
     (Vhat := fun n ω =>
@@ -2426,7 +2429,8 @@ theorem olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
       h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
   have hV :=
     olsHomoskedasticCovarianceStar_tendstoInMeasure
-      (μ := μ) (X := X) (e := e) (y := y) h β hmodel
+      (μ := μ) (X := X) (e := e) (y := y)
+      (ErrorVarianceConsistencyConditions.ofSample h) β hmodel
   exact linearMapCovarianceStdError_tendstoInMeasure
     (μ := μ) (R := R) (j := j)
     (Vhat := fun n ω =>
