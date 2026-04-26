@@ -126,6 +126,60 @@ theorem tendstoInMeasure_pi
 
 end CMT
 
+section CramerWold
+
+/-- Characteristic functions of an `E`-valued pushforward can be evaluated as
+the one-dimensional characteristic function of the corresponding inner-product
+projection.
+
+This is the small bridge needed to apply Mathlib's Lévy continuity theorem to
+finite-dimensional Cramér-Wold arguments. -/
+theorem charFun_map_eq_charFun_dualMap_one
+    {Ω E : Type*} [MeasurableSpace Ω] [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E]
+    {μ : Measure Ω} {X : Ω → E} (hX : AEMeasurable X μ) (t : E) :
+    charFun (μ.map X) t =
+      charFun (μ.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (X ω))) 1 := by
+  rw [charFun_eq_charFunDual_toDualMap]
+  rw [charFunDual_eq_charFun_map_one]
+  rw [AEMeasurable.map_map_of_aemeasurable]
+  · rfl
+  · exact (InnerProductSpace.toDualMap ℝ E t).continuous.aemeasurable
+  · exact hX
+
+/-- **Cramér-Wold convergence bridge for finite-dimensional inner-product spaces.**
+
+If every fixed inner-product projection of `T n` converges in distribution to
+the matching projection of `Z`, then `T n` converges in distribution to `Z`.
+The proof compares characteristic functions projectionwise and then uses
+Mathlib's Lévy convergence theorem for probability measures. -/
+theorem cramerWold_tendstoInDistribution
+    {Ω Ω' E : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ℕ → Ω → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) μ)
+    (hZ : AEMeasurable Z ν)
+    (hproj : ∀ t : E,
+      TendstoInDistribution
+        (fun n ω => (InnerProductSpace.toDualMap ℝ E t) (T n ω)) atTop
+        (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω)) (fun _ => μ) ν) :
+    TendstoInDistribution T atTop Z (fun _ => μ) ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  have hscalar := (ProbabilityMeasure.tendsto_iff_tendsto_charFun.mp (hproj t).tendsto) 1
+  convert hscalar using 1
+  · ext n
+    exact charFun_map_eq_charFun_dualMap_one (hT n) t
+  · change 𝓝 (charFun (ν.map Z) t) =
+      𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
+    exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
+
+end CramerWold
+
 section MatrixInverse
 
 open scoped Matrix.Norms.Elementwise
@@ -461,6 +515,24 @@ theorem TendstoInMeasure.sub_zero_real
   simpa [sub_eq_add_neg] using
     TendstoInMeasure.add_zero_real hX (TendstoInMeasure.neg_zero_real hY)
 
+/-- Real-valued squeeze to zero in probability by an absolute-value bound. -/
+theorem TendstoInMeasure.of_abs_le_zero_real
+    {X Y : ℕ → α → ℝ}
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0))
+    (hbound : ∀ n ω, |X n ω| ≤ |Y n ω|) :
+    TendstoInMeasure μ X atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hY ⊢
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    (hY ε hε) (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  have hx : ε ≤ |X n ω| := by
+    simpa [Real.dist_eq] using hω
+  have hy : ε ≤ |Y n ω| := le_trans hx (hbound n ω)
+  simpa [Real.dist_eq] using hy
+
 /-- Center a real-valued convergence-in-measure statement at its scalar limit. -/
 theorem TendstoInMeasure.sub_limit_zero_real
     {X : ℕ → α → ℝ} {c : ℝ}
@@ -518,6 +590,31 @@ theorem tendstoInMeasure_const_real
     simp [not_le_of_gt (hN n hn)]
   rw [hempty, measure_empty]
   exact le_of_lt hδ
+
+/-- If a real sequence of random variables converges in probability to a positive
+constant, then the bad event where the sequence is nonpositive has probability
+tending to zero. This is the probabilistic replacement for pointwise eventual
+standard-error positivity in confidence-interval arguments. -/
+theorem tendsto_measure_nonpos_of_tendstoInMeasure_const_pos
+    {se : ℕ → α → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hse : TendstoInMeasure μ se atTop (fun _ => c)) :
+    Tendsto (fun n => μ {ω | se n ω ≤ 0}) atTop (𝓝 0) := by
+  have htail := hse (ENNReal.ofReal c) (ENNReal.ofReal_pos.mpr hc)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds htail
+    (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  have hle : se n ω ≤ 0 := hω
+  have hdist : c ≤ dist (se n ω) c := by
+    rw [Real.dist_eq]
+    have hnonpos : se n ω - c ≤ 0 := by linarith
+    rw [abs_of_nonpos hnonpos]
+    linarith
+  change ENNReal.ofReal c ≤ edist (se n ω) c
+  rw [edist_dist]
+  exact ENNReal.ofReal_le_ofReal hdist
 
 /-- A finite sum of real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
@@ -620,6 +717,77 @@ theorem BoundedInProbability.of_tendstoInDistribution
     _ = ((law n : ProbabilityMeasure ℝ) : Measure ℝ) {x : ℝ | M ≤ ‖x‖} := rfl
     _ ≤ ((law n : ProbabilityMeasure ℝ) : Measure ℝ) Kᶜ := measure_mono htail_subset
     _ ≤ δ := hlawK
+
+/-- Real convergence in probability to a constant implies boundedness in
+probability. -/
+theorem BoundedInProbability.of_tendstoInMeasure_const
+    {μ : Measure α} {X : ℕ → α → ℝ} {c : ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => c)) :
+    BoundedInProbability μ X := by
+  rw [tendstoInMeasure_iff_dist] at hX
+  intro δ hδ
+  refine ⟨|c| + 1, by positivity, ?_⟩
+  have htail := (hX 1 zero_lt_one).eventually_lt_const hδ
+  filter_upwards [htail] with n hn
+  have hcover : {ω | |c| + 1 ≤ ‖X n ω‖} ⊆ {ω | 1 ≤ dist (X n ω) c} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Real.norm_eq_abs] at hω ⊢
+    have habs : |X n ω| ≤ |X n ω - c| + |c| := by
+      simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using
+        (abs_add_le (X n ω - c) c)
+    have hdist : 1 ≤ |X n ω - c| := by
+      linarith
+    simpa [Real.dist_eq] using hdist
+  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hn)
+
+/-- A pointwise absolute bound transfers boundedness in probability. -/
+theorem BoundedInProbability.of_abs_le
+    {μ : Measure α} {X Y : ℕ → α → ℝ}
+    (hY : BoundedInProbability μ Y)
+    (hXY : ∀ n ω, |X n ω| ≤ |Y n ω|) :
+    BoundedInProbability μ X := by
+  intro δ hδ
+  rcases hY δ hδ with ⟨M, hMpos, hM⟩
+  refine ⟨M, hMpos, hM.mono ?_⟩
+  intro n hn
+  have hcover : {ω | M ≤ ‖X n ω‖} ⊆ {ω | M ≤ ‖Y n ω‖} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Real.norm_eq_abs] at hω ⊢
+    exact le_trans hω (hXY n ω)
+  exact le_trans (measure_mono hcover) hn
+
+/-- Real-valued `Oₚ(1)` sequences are closed under addition. -/
+theorem BoundedInProbability.add
+    {μ : Measure α} {X Y : ℕ → α → ℝ}
+    (hX : BoundedInProbability μ X)
+    (hY : BoundedInProbability μ Y) :
+    BoundedInProbability μ (fun n ω => X n ω + Y n ω) := by
+  intro δ hδ
+  have hδ2 : 0 < δ / 2 := ENNReal.div_pos hδ.ne' ENNReal.ofNat_ne_top
+  rcases hX (δ / 2) hδ2 with ⟨MX, hMXpos, hMX⟩
+  rcases hY (δ / 2) hδ2 with ⟨MY, hMYpos, hMY⟩
+  refine ⟨MX + MY, add_pos hMXpos hMYpos, ?_⟩
+  filter_upwards [hMX, hMY] with n hnX hnY
+  have hcover :
+      {ω | MX + MY ≤ ‖X n ω + Y n ω‖} ⊆
+        {ω | MX ≤ ‖X n ω‖} ∪ {ω | MY ≤ ‖Y n ω‖} := by
+    intro ω hω
+    simp only [Set.mem_union, Set.mem_setOf_eq]
+    by_cases hXbig : MX ≤ ‖X n ω‖
+    · exact Or.inl hXbig
+    · right
+      have hXlt : ‖X n ω‖ < MX := not_le.mp hXbig
+      by_contra hYbig
+      have hYlt : ‖Y n ω‖ < MY := not_le.mp hYbig
+      have hsum_lt : ‖X n ω + Y n ω‖ < MX + MY := by
+        exact lt_of_le_of_lt (norm_add_le _ _) (add_lt_add hXlt hYlt)
+      exact (not_le_of_gt hsum_lt) hω
+  calc
+    μ {ω | MX + MY ≤ ‖X n ω + Y n ω‖}
+        ≤ μ ({ω | MX ≤ ‖X n ω‖} ∪ {ω | MY ≤ ‖Y n ω‖}) := measure_mono hcover
+    _ ≤ μ {ω | MX ≤ ‖X n ω‖} + μ {ω | MY ≤ ‖Y n ω‖} := measure_union_le _ _
+    _ ≤ δ / 2 + δ / 2 := add_le_add hnX hnY
+    _ = δ := ENNReal.add_halves δ
 
 /-- **Portmanteau event-probability bridge for real distributional limits.**
 
