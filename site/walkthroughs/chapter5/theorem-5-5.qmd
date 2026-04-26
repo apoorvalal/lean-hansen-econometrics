@@ -52,6 +52,31 @@ theorem olsBeta_hasGaussianLaw_of_error
     HasGaussianLaw (fun ω => olsBeta X (X *ᵥ β + e ω)) μ
 ```
 
+### Reading the statement
+
+In English: **given** an underlying probability space $(\Omega, \mu)$, a
+deterministic design matrix $X$, a true coefficient vector $\beta$, a random
+error vector $e : \Omega \to \mathbb{R}^n$ with a Gaussian law under $\mu$, and
+a witness that $X^\top X$ is invertible, the result is that the random variable
+$\omega \mapsto \hat\beta\bigl(X(X\beta + e(\omega))\bigr)$ also has a Gaussian
+law under $\mu$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `{Ω : Type*}` | $\Omega$ | **Given:** the underlying sample space. Implicit; Lean infers it from the use site. |
+| `[MeasurableSpace Ω]` | $\sigma$-algebra on $\Omega$ | **Given (instance):** the measurable structure on $\Omega$. Mathlib boilerplate so that `Measure Ω` makes sense. |
+| `{μ : Measure Ω}` | $\mu$ on $\Omega$ | **Given:** the probability measure. Implicit — supplied at the use site. (Mathlib `Measure` is general; the Gaussian-law hypothesis is what makes it behave like a probability measure for this argument.) |
+| `(X : Matrix n k ℝ)` | $X \in \mathbb{R}^{n\times k}$ | **Given:** deterministic design matrix. Index types `n` (observations) and `k` (regressors) come from the section variables. |
+| `(β : k → ℝ)` | $\beta \in \mathbb{R}^k$ | **Given:** true coefficient vector. A Mathlib real vector is a function `k → ℝ`. |
+| `(e : Ω → n → ℝ)` | $e : \Omega \to \mathbb{R}^n$ | **Given:** random error vector. For each $\omega \in \Omega$, $e(\omega)$ is a vector in $\mathbb{R}^n$. |
+| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | **Given (instance):** Hansen's full-column-rank assumption, packaged as a typeclass instance so `olsBeta X · ` elaborates. |
+| `(he : HasGaussianLaw e μ)` | $e$ has a Gaussian law under $\mu$ | **Given (hypothesis):** the substantive probabilistic assumption. The pushforward $\mu \circ e^{-1}$ is a Gaussian measure on $\mathbb{R}^n$. Mean and covariance are not pinned down — this is more general than Hansen's $e \sim N(0, \sigma^2 I)$. |
+| `HasGaussianLaw (fun ω => olsBeta X (X *ᵥ β + e ω)) μ` | $\hat\beta$ is Gaussian under $\mu$ | **Conclusion:** under $\mu$, the random variable $\omega \mapsto \hat\beta\bigl(X(X\beta + e(\omega))\bigr)$ has a Gaussian law on $\mathbb{R}^k$. |
+
+(`X *ᵥ β` is `Matrix.mulVec`, so `X *ᵥ β + e ω` is the linear-model
+realization $X\beta + e(\omega)$, and `olsBeta X (X *ᵥ β + e ω)` is the OLS
+estimator computed on that realized $y$.)
+
 ## Translation notes
 
 - Hansen states $\hat\beta \sim N(\beta, \sigma^2(X^\top X)^{-1})$. Lean
@@ -125,6 +150,117 @@ to identify $Me$ with the residual.
 The take-away: the proof is *purely* the closure of Gaussianity under
 linear and affine maps. No spectral decomposition, no quadratic-form
 identity, no characteristic-function calculation.
+
+### Tactic-by-tactic walkthrough
+
+The full Lean proof body of `olsBeta_hasGaussianLaw_of_error`:
+
+```lean
+theorem olsBeta_hasGaussianLaw_of_error
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
+    [Invertible (Xᵀ * X)]
+    (he : HasGaussianLaw e μ) :
+    HasGaussianLaw (fun ω => olsBeta X (X *ᵥ β + e ω)) μ := by
+  let L : (n → ℝ) →L[ℝ] (k → ℝ) :=
+    (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap
+  have hLin : HasGaussianLaw (fun ω => L (e ω)) μ := he.map_fun L
+  have hAff : HasGaussianLaw (fun ω => β + L (e ω)) μ := by
+    refine ⟨?_⟩
+    have hmap : (μ.map fun ω => L (e ω)).map (fun x => β + x) = μ.map (fun ω => β + L (e ω)) := by
+      simpa using
+        (AEMeasurable.map_map_of_aemeasurable
+          (μ := μ)
+          (f := fun ω => L (e ω))
+          (g := fun x => β + x)
+          (Measurable.aemeasurable <| by fun_prop)
+          hLin.aemeasurable)
+    rw [← hmap]
+    letI : IsGaussian (μ.map fun ω => L (e ω)) := hLin.isGaussian_map
+    infer_instance
+  refine hAff.congr ?_
+  filter_upwards with ω
+  rw [olsBeta_linear_decomposition]
+  simp [L]
+```
+
+Step by step:
+
+- `let L : (n → ℝ) →L[ℝ] (k → ℝ) := (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap` —
+  package the matrix $A := (X^\top X)^{-1} X^\top$ as a *continuous* linear
+  map between Euclidean spaces. `Matrix.toLin'` produces an `(n → ℝ) →ₗ[ℝ] (k → ℝ)`,
+  and `.toContinuousLinearMap` upgrades that to the `→L[ℝ]` arrow that
+  Mathlib's Gaussian-law machinery expects. This is the deterministic
+  "$A$" of the proof sketch.
+- `have hLin : HasGaussianLaw (fun ω => L (e ω)) μ := he.map_fun L` —
+  apply the closure of Gaussianity under continuous linear maps:
+  `HasGaussianLaw.map_fun` says that if $e$ is Gaussian under $\mu$ then so
+  is $L \circ e$. This gives us "$Ae$ is Gaussian" in one line.
+- `have hAff : HasGaussianLaw (fun ω => β + L (e ω)) μ := by …` —
+  promote the Gaussianity of $L \circ e$ to the affine version $\beta + L \circ e$.
+  The body unfolds the constructor (`refine ⟨?_⟩` opens up the
+  `HasGaussianLaw` structure to its `IsGaussian` content) and assembles
+  three pieces:
+    - `hmap : (μ.map fun ω => L (e ω)).map (fun x => β + x) = μ.map (fun ω => β + L (e ω))` —
+      this is pure Mathlib measure-theory plumbing: pushing forward by $L \circ e$
+      and then by the translation $x \mapsto \beta + x$ gives the same measure
+      as pushing forward by $\omega \mapsto \beta + L(e(\omega))$ in one shot.
+      `AEMeasurable.map_map_of_aemeasurable` is the lemma that does this; the
+      `Measurable.aemeasurable <| by fun_prop` discharges the measurability
+      side-condition for $x \mapsto \beta + x$ automatically.
+    - `rw [← hmap]` — restate the goal in the two-step form, so the outer
+      pushforward is along the affine shift $x \mapsto \beta + x$.
+    - `letI : IsGaussian (μ.map fun ω => L (e ω)) := hLin.isGaussian_map` —
+      register the Gaussian-measure instance for the inner pushforward.
+      Once Mathlib knows the inner measure is Gaussian, the affine shift
+      lemma `IsGaussian.map_add` (a registered instance) closes the goal,
+      and `infer_instance` finds it.
+- `refine hAff.congr ?_` — we now have a Gaussian law for
+  $\omega \mapsto \beta + L(e(\omega))$. To conclude the same for
+  $\omega \mapsto \hat\beta\bigl(X(X\beta + e(\omega))\bigr)$, it suffices
+  to show the two random variables agree $\mu$-a.e. `congr` turns the goal
+  into that almost-everywhere equality.
+- `filter_upwards with ω` — drop into the pointwise equality at a generic
+  $\omega$. The remaining goal is
+  $\beta + L(e(\omega)) = \hat\beta\bigl(X(X\beta + e(\omega))\bigr)$.
+- `rw [olsBeta_linear_decomposition]` — rewrite the right-hand side using
+  the deterministic identity
+  $\hat\beta(X\beta + e) = \beta + (X^\top X)^{-1} X^\top e$
+  (from
+  [`olsBeta_linear_decomposition`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16),
+  Chapter 4). Both sides are now $\beta + A e(\omega)$ up to the
+  packaging of $A$.
+- `simp [L]` — unfold the local `let L` and let `simp` match
+  `L (e ω)` with `(⅟ (X^\top X) X^\top) *ᵥ e ω`, finishing the equality.
+
+For the residual,
+[`residual_hasGaussianLaw_of_error`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L94)
+is much shorter — there is no affine shift, only a linear map:
+
+```lean
+theorem residual_hasGaussianLaw_of_error
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
+    [Invertible (Xᵀ * X)]
+    (he : HasGaussianLaw e μ) :
+    HasGaussianLaw (fun ω => residual X (X *ᵥ β + e ω)) μ := by
+  let L : (n → ℝ) →L[ℝ] (n → ℝ) := (Matrix.toLin' (annihilatorMatrix X)).toContinuousLinearMap
+  have hLin : HasGaussianLaw (fun ω => L (e ω)) μ := he.map_fun L
+  refine hLin.congr ?_
+  filter_upwards with ω
+  rw [residual_linear_model]
+  simp [L]
+```
+
+Same pattern, three steps shorter:
+
+- `let L := ...annihilatorMatrix X...` — package $M = I - X(X^\top X)^{-1} X^\top$
+  as a continuous linear map on $\mathbb{R}^n$.
+- `he.map_fun L` — $Me$ is Gaussian because $e$ is and $M$ is linear.
+- `hLin.congr` + `residual_linear_model` — rewrite
+  $\hat e(X\beta + e) = M e$ pointwise to identify $Me$ with the
+  residual; `simp [L]` unfolds $L$ to finish. No affine shift needed
+  because $MX\beta = 0$.
 
 ## Downstream uses
 
