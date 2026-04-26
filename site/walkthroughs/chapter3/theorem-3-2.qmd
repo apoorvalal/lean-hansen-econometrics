@@ -1,0 +1,114 @@
+---
+title: "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+lean_name: "HansenEconometrics.normal_equations"
+chapter: 3
+---
+
+## Textbook statement
+
+Hansen Theorem 3.2 states: when $X^\top X$ is invertible, the OLS estimator
+$$\hat\beta = (X^\top X)^{-1} X^\top y$$
+satisfies the **normal equations**
+$$X^\top (y - X\hat\beta) = 0,$$
+equivalently $X^\top \hat e = 0$ where $\hat e = y - X\hat\beta$ is the residual
+vector. So the regressors are orthogonal to the OLS residuals.
+
+## Assumptions
+
+- Design matrix $X \in \mathbb{R}^{n\times k}$.
+- $X^\top X$ is invertible (equivalently, $X$ has full column rank, $k \le n$).
+- $y \in \mathbb{R}^n$ is the response vector. No distributional assumption is
+  needed — Theorem 3.2 is purely linear-algebraic.
+
+## Lean statement
+
+The corresponding Lean objects all live in
+`HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`:
+
+- [`olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)
+  (definition, line 20) — the closed-form OLS coefficient
+  $(X^\top X)^{-1} X^\top y$, defined under `[Invertible (Xᵀ * X)]`.
+- [`fitted`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38)
+  (definition, line 38) — the fitted vector $X\hat\beta$.
+- [`residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42)
+  (definition, line 42) — the residual vector $y - X\hat\beta$.
+- [`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
+  (theorem, **line 46**) — the headline result:
+  `Xᵀ *ᵥ residual X y = 0`.
+- [`regressors_orthogonal_to_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61)
+  (theorem, line 61) — same statement, packaged under the orthogonality reading.
+- [`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+  (theorem, line 67) — uniqueness: any `b` satisfying the normal equations
+  equals `olsBeta`.
+
+The headline Lean theorem reads:
+
+```lean
+theorem normal_equations
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    Xᵀ *ᵥ residual X y = 0
+```
+
+## Translation notes
+
+- Hansen writes $X' \hat e = 0$ in matrix-of-real-numbers notation. Lean's
+  `Xᵀ *ᵥ residual X y = 0` is the same statement under Mathlib's
+  `Matrix.mulVec` / transpose conventions.
+- Lean parameterizes by typeclasses `[Fintype n] [Fintype k] [DecidableEq k]`
+  and an `[Invertible (Xᵀ * X)]` instance instead of a side condition. This is
+  the same hypothesis as Hansen's "$X^\top X$ is invertible," packaged for
+  elaboration.
+- The pair `olsBeta` (using `⅟`) and `olsBetaStar` (using `Matrix.nonsingInv`)
+  coexist because Chapter 7's stochastic story needs the total version. They
+  agree under invertibility
+  ([`olsBetaStar_eq_olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31)
+  at line 31).
+
+## Proof sketch
+
+Substitute the closed form $\hat\beta = (X^\top X)^{-1} X^\top y$ into
+$X^\top (y - X\hat\beta)$:
+$$X^\top y - X^\top X (X^\top X)^{-1} X^\top y = X^\top y - X^\top y = 0.$$
+That's the whole proof — the normal equations are immediate from the
+definition of $\hat\beta$.
+
+Uniqueness (`olsBeta_eq_of_normal_equations`) goes the other direction: from
+$X^\top(y - Xb) = 0$, multiply through by $(X^\top X)^{-1}$ to recover
+$b = (X^\top X)^{-1} X^\top y = \hat\beta$.
+
+## Lean proof structure
+
+The Lean proof of
+[`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
+mirrors the textbook proof in three short steps:
+
+- Unfold `residual`, `fitted`, and `olsBeta`, then split the `mulVec` over
+  subtraction with [`Matrix.mulVec_sub`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html).
+- Use [`Matrix.mulVec_mulVec`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html)
+  to commute the two `*ᵥ` applications into a single matrix product, then
+  reassociate via [`Matrix.mul_assoc`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Matrix/Mul.html)
+  so that $X^\top X$ sits next to its inverse.
+- Collapse $(X^\top X) \cdot ⅟(X^\top X)$ to $1$ using
+  [`mul_invOf_self`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/GroupWithZero/Invertible.html),
+  leaving $X^\top y - X^\top y$, which `simp` reduces to $0$.
+
+For uniqueness,
+[`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+(line 67) takes the hypothesis $X^\top(y - Xb) = 0$, rewrites it as
+$X^\top y = (X^\top X) b$, and multiplies both sides by $⅟(X^\top X)$ to
+identify $b$ with `olsBeta X y`.
+
+## Downstream uses
+
+`normal_equations` is one of the most reused lemmas in the algebra of OLS.
+Direct consumers in this repo include:
+
+- [`residual_sum_zero_of_one_mem_colspan`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)
+  (Chapter3LeastSquaresAlgebra.lean:98) — when $\mathbf{1} \in \mathrm{col}(X)$,
+  residuals sum to zero (Hansen equation 3.17).
+- [`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+  (Chapter3FWL.lean:37) — $X^\top M = 0$, used throughout FWL.
+- [`fitted_dot_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217)
+  (Chapter3Projections.lean:217) — fitted values are orthogonal to residuals.
+- The Frisch–Waugh–Lovell theorems of Hansen Theorem 3.5 consume this
+  transitively through the annihilator identity.
