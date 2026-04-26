@@ -18,7 +18,7 @@ site-stubs: site-export
 site-preview:
     cd site && quarto preview
 
-# One-shot render to site/_site/ (walkthroughs only — fast).
+# One-shot render to docs/ (walkthroughs only — fast).
 # Auto-stub rendering is currently paused via `project.render` in _quarto.yml.
 site-render:
     cd site && quarto render
@@ -31,3 +31,9 @@ site: site-render
 # and the "Auto-generated reference" sidebar.
 site-full: site-stubs
     cd site && quarto render
+
+# Render and stage docs/ for a single "deploy" commit.
+# After running, `git commit && git push` publishes via GitHub Pages.
+deploy: site-render
+    git add docs
+    git status --short docs

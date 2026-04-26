@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: _site
+  output-dir: ../docs
   # Auto-stub generation is paused for fast iteration on walkthroughs.
   # Re-enable by adding "auto/**/*.qmd" back, and uncomment the
   # "Auto-generated reference" sidebar section below.
