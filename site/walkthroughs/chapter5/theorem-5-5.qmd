@@ -1,0 +1,140 @@
+---
+title: "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+lean_name: "HansenEconometrics.olsBeta_hasGaussianLaw_of_error"
+chapter: 5
+---
+
+## Textbook statement
+
+> Paraphrased textbook statement (Hansen Theorem 5.5 / 5.6): in the
+> homoskedastic normal regression model where $e \sim N(0, \sigma^2 I_n)$,
+> the OLS estimator
+>
+> $$
+> \hat\beta = (X^\top X)^{-1} X^\top y
+> $$
+>
+> is jointly Gaussian, with mean $\beta$ and covariance $\sigma^2 (X^\top X)^{-1}$.
+> Equivalently, $\hat\beta - \beta$ is the linear image of $e$ under
+> $A := (X^\top X)^{-1} X^\top$, so it inherits Gaussianity from $e$. The OLS
+> residual vector $\hat e = M y$, where $M = I - X(X^\top X)^{-1} X^\top$, is
+> also Gaussian, with mean $0$ and covariance $\sigma^2 M$.
+
+## Assumptions
+
+- Linear model: $y = X\beta + e$ with $X \in \mathbb{R}^{n\times k}$ of full
+  column rank (so $X^\top X$ is invertible).
+- The error vector $e$ has a Gaussian law on the underlying probability
+  space — Lean phrases this as `HasGaussianLaw e μ`. Hansen typically
+  assumes $e \sim N(0, \sigma^2 I)$; the Lean form is more general because
+  it doesn't pin down the mean or covariance.
+
+## Lean statement
+
+Main theorems in
+[`HansenEconometrics/Chapter5NormalRegression.lean`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean):
+
+- [`olsBeta_hasGaussianLaw_of_error`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L65)
+  at `HansenEconometrics/Chapter5NormalRegression.lean:65` — the OLS
+  coefficient vector inherits a Gaussian law from $e$.
+- [`residual_hasGaussianLaw_of_error`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L94)
+  at `HansenEconometrics/Chapter5NormalRegression.lean:94` — the OLS
+  residual vector inherits a Gaussian law from $e$.
+
+The headline theorem reads:
+
+```lean
+theorem olsBeta_hasGaussianLaw_of_error
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
+    [Invertible (Xᵀ * X)]
+    (he : HasGaussianLaw e μ) :
+    HasGaussianLaw (fun ω => olsBeta X (X *ᵥ β + e ω)) μ
+```
+
+## Translation notes
+
+- Hansen states $\hat\beta \sim N(\beta, \sigma^2(X^\top X)^{-1})$. Lean
+  states `HasGaussianLaw (fun ω => olsBeta X (X *ᵥ β + e ω)) μ` — that is,
+  $\hat\beta$ inherits a Gaussian law from $e$. The exact mean and
+  covariance can be read off from the linear decomposition theorem
+  ([`olsBeta_linear_decomposition`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16)
+  from Chapter 4) but isn't packaged into a single statement here.
+- The hypothesis `HasGaussianLaw e μ` is the
+  Mathlib / probability-theory notion that the pushforward of $e$ under
+  $\mu$ is a Gaussian measure on $\mathbb{R}^n$. This is exactly the
+  textbook hypothesis $e \sim N(\cdot, \cdot)$, with parametric mean and
+  covariance abstracted away.
+- The proof goes through `Matrix.toLin'` to package the linear map $A$ as a
+  `ContinuousLinearMap`, then uses `HasGaussianLaw.map_fun` together with
+  the affine-shift lemma for Gaussian measures.
+
+## Proof sketch
+
+Substituting $y = X\beta + e$ into the closed form for $\hat\beta$,
+
+$$
+\hat\beta = (X^\top X)^{-1} X^\top (X\beta + e) = \beta + A e,
+\qquad A := (X^\top X)^{-1} X^\top.
+$$
+
+Since $A$ is a fixed (deterministic) linear map and $e$ is Gaussian, $Ae$
+is Gaussian (linear images of Gaussians are Gaussian). Adding the
+deterministic shift $\beta$ keeps it Gaussian (translations of Gaussians
+are Gaussian). Hence $\hat\beta$ is Gaussian.
+
+For the residual,
+
+$$
+\hat e = My = M(X\beta + e) = Me,
+$$
+
+because $MX = 0$. So $\hat e$ is the linear image $Me$, again Gaussian.
+
+The whole argument is just the closure of Gaussianity under linear and
+affine maps — no spectral or quadratic-form argument is needed for
+Theorem 5.5 / 5.6. Spectral arguments only appear later for the
+chi-square law in Theorem 5.7.
+
+## Lean proof structure
+
+The proof in [`Chapter5NormalRegression.lean`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L65)
+proceeds as follows:
+
+1. Define `L : (n → ℝ) →L[ℝ] (k → ℝ)` as the continuous linear map induced
+   by the matrix $(X^\top X)^{-1} X^\top$, via
+   `Matrix.toLin'.toContinuousLinearMap`.
+2. Apply `he.map_fun L` (where `he : HasGaussianLaw e μ`) to get
+   `HasGaussianLaw (L ∘ e) μ`.
+3. Translate by $\beta$: push forward `μ.map (fun ω => L (e ω))` along
+   `(β + ·)` and use the fact that an affine shift of a Gaussian measure
+   on $\mathbb{R}^k$ is again Gaussian (the `IsGaussian.map_add`
+   infrastructure).
+4. Finally invoke
+   [`olsBeta_linear_decomposition`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16),
+   which states $\hat\beta = \beta + A e$, to identify the constructed
+   Gaussian random variable with $\hat\beta$ a.e. (`hAff.congr`).
+
+The residual version ([`residual_hasGaussianLaw_of_error`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L94))
+is shorter: it skips the affine shift entirely. It packages the
+annihilator matrix $M$ as a continuous linear map, applies
+`he.map_fun`, and then rewrites with
+[`residual_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L45)
+to identify $Me$ with the residual.
+
+The take-away: the proof is *purely* the closure of Gaussianity under
+linear and affine maps. No spectral decomposition, no quadratic-form
+identity, no characteristic-function calculation.
+
+## Downstream uses
+
+- The chi-square / independence theorem
+  ([Theorem 5.7 walkthrough](theorem-5-7.qmd)): once $\hat\beta$ and
+  $\hat e$ are known to be jointly Gaussian, independence reduces to a
+  covariance computation, and that cross-covariance is zero because
+  $X^\top M = 0$.
+- Confidence intervals and t-tests in Chapter 5 build on this Gaussianity
+  of $\hat\beta$.
+- More generally, any normal-error inference statement for OLS that
+  doesn't go through asymptotics depends on this finite-sample Gaussian
+  law.
