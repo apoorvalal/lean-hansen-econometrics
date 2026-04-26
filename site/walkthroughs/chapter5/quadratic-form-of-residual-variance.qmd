@@ -1,0 +1,225 @@
+---
+title: "Lemma — (n−k) s² = eᵀMe in the linear model"
+lean_name: "HansenEconometrics.olsResidualVarianceEstimator_linear_model_quadratic_form"
+chapter: 5
+---
+
+## Textbook statement
+
+In the linear model $y = X\beta + e$ with $X^\top X$ invertible, define the
+residual variance estimator
+
+$$
+s^2 := \frac{1}{n-k} \, \hat e^\top \hat e, \qquad \hat e = y - X\hat\beta.
+$$
+
+Then under $y = X\beta + e$,
+
+$$
+(n-k)\, s^2 = e^\top M e,
+$$
+
+where $M = I - X(X^\top X)^{-1} X^\top$ is the annihilator matrix. So the
+residual sum of squares equals a quadratic form in the *true* error $e$, with
+$M$ as the kernel — independent of $X\beta$. This is the deterministic
+algebraic identity that lets Hansen Theorem 5.7 conclude
+$\frac{(n-k) s^2}{\sigma^2} \sim \chi^2_{n-k}$ when $e \sim N(0, \sigma^2 I)$.
+
+## Assumptions
+
+- Linear model: $y = X\beta + e$ with $X \in \mathbb{R}^{n\times k}$, $X^\top X$ invertible.
+- Purely algebraic — no distributional assumption on $e$. The identity is finite-sample and pointwise in $\omega$.
+
+## Lean statement
+
+Three Lean theorems in `HansenEconometrics/Chapter5NormalRegression.lean`:
+
+- [`olsResidualVarianceEstimator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L20) (definition, line 20) — `s²` as the residual quadratic form divided by `n - k`.
+- [`olsResidualVarianceEstimator_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L31) (theorem, line 31) — under the linear model, `s²` equals $(M e)^\top (M e) / (n-k)$.
+- [`residual_quadratic_form_of_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L43) (theorem, line 43) — the bridge: $(M e)^\top (M e) = e^\top M e$ (using $M^\top M = M$ for symmetric idempotent $M$).
+- [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L56) (theorem, line 56) — the headline: $s^2 = \dfrac{e^\top M e}{n-k}$, equivalently $(n-k) s^2 = e^\top M e$.
+
+The headline theorem in Lean:
+
+```lean
+theorem olsResidualVarianceEstimator_linear_model_quadratic_form
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
+          (Fintype.card n - Fintype.card k : ℝ)
+```
+
+### Reading the statement
+
+In English: **given** a design matrix $X$, a true coefficient vector $\beta$,
+an error vector $e$, and a witness that $X^\top X$ is invertible, the
+residual variance estimator $s^2$ evaluated at $y = X\beta + e$ equals the
+quadratic form $e^\top M e$ divided by $(n-k)$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `(X : Matrix n k ℝ)` | $X \in \mathbb{R}^{n\times k}$ | **Given:** design matrix. The index types `n` (observations) and `k` (regressors) are arbitrary `Fintype`s, supplied by the section variables. |
+| `(β : k → ℝ)` | $\beta \in \mathbb{R}^k$ | **Given:** the true coefficient vector. Deterministic — this is a finite-sample algebraic identity, not a probabilistic statement. |
+| `(e : n → ℝ)` | $e \in \mathbb{R}^n$ | **Given:** the error vector. Also a deterministic vector here; no distributional assumption (Gaussianity enters only later in Theorem 5.7). |
+| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | **Given (hypothesis):** the Gram matrix is invertible — Hansen's full-column-rank assumption. Square brackets mark this as an instance argument: it is supplied by typeclass resolution, not as an explicit `have`. |
+| `olsResidualVarianceEstimator X (X *ᵥ β + e)` | $s^2$ evaluated at $y = X\beta + e$ | **Conclusion (LHS):** the residual variance estimator at the linear-model response. `*ᵥ` is `Matrix.mulVec`, so `X *ᵥ β` is $X\beta$ and `X *ᵥ β + e` is $y$. |
+| `e ⬝ᵥ (annihilatorMatrix X) *ᵥ e` | $e^\top M e$ | **Conclusion (RHS numerator):** the annihilator quadratic form. `⬝ᵥ` is `dotProduct` (so `u ⬝ᵥ v` is $u^\top v$); `annihilatorMatrix X` is $M = I - X(X^\top X)^{-1} X^\top$. |
+| `(Fintype.card n - Fintype.card k : ℝ)` | $n - k$ | **Conclusion (RHS denominator):** the degrees-of-freedom scalar, computed in `ℝ`. The `: ℝ` ascription matters — it casts the cardinalities to reals before subtraction, so this is *real* subtraction, not truncated `Nat` subtraction. |
+
+(The usual ambient typeclasses `[Fintype n] [Fintype k] [DecidableEq n]
+[DecidableEq k]` are hoisted into the file's `variable` block, which is why
+they don't appear in the signature.)
+
+## Translation notes
+
+- Hansen writes $(n-k) s^2 = e^\top M e$ as a single equation; Lean splits
+  into two halves: (a) `s²` evaluated at $X\beta + e$ equals
+  $(M e)^\top (M e) / (n-k)$ — this is the consequence of $MX = 0$; (b) for
+  symmetric idempotent $M$, $(M e)^\top (M e) = e^\top M e$.
+- Lean's `dotProduct` corresponds to $u^\top v$. The Lean code uses
+  `e ⬝ᵥ (annihilatorMatrix X) *ᵥ e` for $e^\top M e$.
+- The `(n-k)` denominator is computed in `ℝ` (via the cast on `Fintype.card`),
+  so subtraction is real subtraction, not truncated `Nat` subtraction.
+- This identity is purely algebraic — `Invertible (Xᵀ * X)` is the only
+  hypothesis. No measure, no Gaussianity. The chi-square distributional
+  content lands later in Theorem 5.7.
+
+## Proof sketch
+
+Two steps.
+
+**Step 1: $\hat e = M e$ under the linear model.** Substitute $y = X\beta + e$
+into the residual:
+
+$$
+\hat e = y - X\hat\beta = M y = M(X\beta + e) = MX\beta + Me = 0 + Me = Me,
+$$
+
+using $MX = 0$. Hence
+
+$$
+(n-k) s^2 = \hat e^\top \hat e = (Me)^\top(Me) = e^\top M^\top M e.
+$$
+
+**Step 2: $M^\top M = M$ for symmetric idempotent $M$.** $M$ is symmetric
+($M^\top = M$) and idempotent ($M M = M$), so
+
+$$
+e^\top M^\top M e = e^\top M M e = e^\top M e.
+$$
+
+Hence $(n-k) s^2 = e^\top M e$.
+
+## Lean proof structure
+
+The Lean proof chain:
+
+1. [`olsResidualVarianceEstimator_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L31) (line 31) handles Step 1: it
+   uses `Matrix.mulVec_add` and `annihilator_mul_X` (via
+   `Matrix.mulVec_mulVec`) to show `M *ᵥ (X *ᵥ β) = 0`, then drops the term to
+   leave `(M e)^⊤ (M e) / (n-k)`.
+2. [`residual_quadratic_form_of_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L43) (line 43) handles Step 2: it
+   invokes a generic lemma `quadratic_form_eq_dotProduct_of_symm_idempotent`
+   (in `LinearAlgebraUtils.lean`) that takes `(M^⊤ = M)` and `(M M = M)` as
+   hypotheses and yields `(Me)^⊤ (Me) = e^⊤ M e`. The two hypotheses are
+   supplied by `annihilatorMatrix_transpose` and `annihilatorMatrix_idempotent`
+   from Chapter 3.
+3. [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L56) (line 56)
+   chains the two via `rw`.
+
+Permalinks for the supporting lemmas:
+
+- [`annihilatorMatrix_transpose`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48) (Chapter3Projections.lean:48)
+- [`annihilatorMatrix_idempotent`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127) (Chapter3Projections.lean:127)
+- [`annihilator_mul_X`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90) (Chapter3Projections.lean:90)
+- [`quadratic_form_eq_dotProduct_of_symm_idempotent`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/LinearAlgebraUtils.lean#L47) (LinearAlgebraUtils.lean:47)
+
+### Tactic-by-tactic walkthrough
+
+The headline theorem is a one-liner — the substantive work lives in the two
+supporting lemmas. We trace all three.
+
+**1. `olsResidualVarianceEstimator_linear_model` (line 31): Step 1 of the proof.**
+
+```lean
+theorem olsResidualVarianceEstimator_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)) /
+          (Fintype.card n - Fintype.card k : ℝ) := by
+  unfold olsResidualVarianceEstimator
+  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
+    simpa [Matrix.mulVec_mulVec] using
+      congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
+  rw [Matrix.mulVec_add, hMXβ, zero_add]
+```
+
+Line by line:
+
+- `unfold olsResidualVarianceEstimator` — replace the LHS with its
+  definitional body. The goal becomes
+  $(M(X\beta + e))^\top (M(X\beta + e)) / (n-k)
+   = (Me)^\top(Me) / (n-k)$.
+- `have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0` — establish the key
+  algebraic fact $M X \beta = 0$. The proof transports
+  `annihilator_mul_X X : M * X = 0` (a Chapter 3 result) along the function
+  `M ↦ M *ᵥ β`, then uses `Matrix.mulVec_mulVec` to rewrite
+  $(M X) *ᵥ \beta$ as $M *ᵥ (X *ᵥ \beta)$. The `simpa` tactic does the
+  rewriting and discharges the trivial `0 *ᵥ β = 0` step.
+- `rw [Matrix.mulVec_add, hMXβ, zero_add]` — three rewrites that finish the
+  proof: `Matrix.mulVec_add` distributes $M$ over the sum to give
+  $M *ᵥ (X *ᵥ \beta) + M *ᵥ e$; `hMXβ` rewrites the first summand to $0$;
+  `zero_add` drops it, leaving exactly $M e$ on both sides of the dot
+  product. The goal closes by `rfl` after the rewrites.
+
+**2. `residual_quadratic_form_of_linear_model` (line 43): Step 2 of the proof.**
+
+```lean
+theorem residual_quadratic_form_of_linear_model
+    (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
+      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
+  symm
+  exact quadratic_form_eq_dotProduct_of_symm_idempotent
+    (annihilatorMatrix X)
+    (annihilatorMatrix_transpose X)
+    (annihilatorMatrix_idempotent X)
+    e
+```
+
+Line by line:
+
+- `symm` — flip the goal to the orientation that matches the supporting
+  lemma. The goal becomes
+  $e^\top M e = (Me)^\top (Me)$.
+- `exact quadratic_form_eq_dotProduct_of_symm_idempotent ...` — invoke the
+  generic linear-algebra fact: for any matrix $A$ with $A^\top = A$ and
+  $A A = A$, we have $v^\top A v = (Av)^\top (Av)$. The two algebraic
+  hypotheses are supplied by `annihilatorMatrix_transpose X` ($M^\top = M$)
+  and `annihilatorMatrix_idempotent X` ($M M = M$), both proved back in
+  Chapter 3.
+
+**3. `olsResidualVarianceEstimator_linear_model_quadratic_form` (line 56): the headline chain.**
+
+```lean
+theorem olsResidualVarianceEstimator_linear_model_quadratic_form
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
+          (Fintype.card n - Fintype.card k : ℝ) := by
+  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]
+```
+
+Line by line:
+
+- `rw [olsResidualVarianceEstimator_linear_model, ...]` — apply Step 1 to
+  rewrite the LHS as $(Me)^\top (Me) / (n-k)$.
+- `rw [..., residual_quadratic_form_of_linear_model]` — apply Step 2 to
+  rewrite the numerator $(Me)^\top (Me)$ as $e^\top M e$. Both sides now
+  match definitionally and the goal closes.
+
+## Downstream uses
+
+- Theorem 5.7 (chi-square distribution of $(n-k) s^2 / \sigma^2$ under
+  Gaussian errors). The identity proved here is the deterministic kernel of
+  that distributional result.

@@ -1,0 +1,588 @@
+[
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html",
+    "href": "walkthroughs/chapter7/theorem-7-3.html",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "",
+    "text": "Under i.i.d. sampling and the moment conditions of Theorem 7.2 (CLT for the score X_i e_i), the OLS estimator is asymptotically normal:\n\n\\sqrt{n}\\,(\\hat\\beta_n - \\beta) \\xrightarrow{d} N\\!\\left(0,\\; Q^{-1} \\Omega Q^{-1}\\right),\n\nwhere\n\nQ = \\mathbb{E}[X_i X_i^\\top], \\qquad \\Omega = \\mathbb{E}[e_i^2 X_i X_i^\\top]\n\nis the score covariance. The asymptotic variance V := Q^{-1} \\Omega Q^{-1} is the sandwich matrix; under homoskedasticity (\\Omega = \\sigma^2 Q) it collapses to \\sigma^2 Q^{-1}.\nThe Lean formalization works through the scalar (Cramér–Wold) face: for every fixed direction a \\in \\mathbb{R}^k,\n\n\\sqrt{n}\\, a^\\top (\\hat\\beta_n - \\beta) \\xrightarrow{d} N(0,\\, a^\\top V a).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#textbook-statement",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "",
+    "text": "Under i.i.d. sampling and the moment conditions of Theorem 7.2 (CLT for the score X_i e_i), the OLS estimator is asymptotically normal:\n\n\\sqrt{n}\\,(\\hat\\beta_n - \\beta) \\xrightarrow{d} N\\!\\left(0,\\; Q^{-1} \\Omega Q^{-1}\\right),\n\nwhere\n\nQ = \\mathbb{E}[X_i X_i^\\top], \\qquad \\Omega = \\mathbb{E}[e_i^2 X_i X_i^\\top]\n\nis the score covariance. The asymptotic variance V := Q^{-1} \\Omega Q^{-1} is the sandwich matrix; under homoskedasticity (\\Omega = \\sigma^2 Q) it collapses to \\sigma^2 Q^{-1}.\nThe Lean formalization works through the scalar (Cramér–Wold) face: for every fixed direction a \\in \\mathbb{R}^k,\n\n\\sqrt{n}\\, a^\\top (\\hat\\beta_n - \\beta) \\xrightarrow{d} N(0,\\, a^\\top V a).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#assumptions",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#assumptions",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Assumptions",
+    "text": "Assumptions\nHansen Theorem 7.3 requires:\n\nLinear model: y_i = X_i^\\top \\beta + e_i.\ni.i.d. sampling under measure \\mu.\nPopulation Gram matrix invertibility: Q := \\mathbb{E}[X_i X_i^\\top] is invertible.\nScore moment finiteness: \\Omega := \\mathbb{E}[e_i^2 X_i X_i^\\top] is finite (entries integrable). This is what powers Theorem 7.2’s CLT.\nMean-zero score: \\mathbb{E}[X_i e_i] = 0 (which is automatic when \\beta is the projection coefficient and e_i is the projection error).\n\nIn Lean, these are bundled into SampleCLTAssumption72 μ X e, which extends SampleMomentAssumption71.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#lean-statement",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe headline theorem in HansenEconometrics/Chapter7Asymptotics.lean:\n\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance at HansenEconometrics/Chapter7Asymptotics.lean:5332 — for every fixed direction a, the scalar projection \\sqrt{n}\\, a^\\top (\\hat\\beta^\\ast_n - \\beta) converges in distribution to N(0, V_a) where V_a is the named asymptotic variance olsProjectionAsymptoticVarianceμ X e a = ((Q^{-1})^\\top a)^\\top \\Omega ((Q^{-1})^\\top a).\n\ntheorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance\n    {μ : Measure Ω} [IsProbabilityMeasure μ]\n    {ν : Measure Ω'} [IsProbabilityMeasure ν]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}\n    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\n    {Z : Ω' → ℝ}\n    (hZ : HasLaw Z\n      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :\n    TendstoInDistribution\n      (fun (n : ℕ) ω =&gt;\n        (Real.sqrt (n : ℝ) •\n          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)\n      atTop Z (fun _ =&gt; μ) ν\n\nReading the statement\nIn English: given an i.i.d. sample (X_i, e_i) on probability space (\\Omega, \\mu) satisfying the score-CLT moment assumptions of Theorem 7.2, a true coefficient \\beta, a fixed projection direction a, the linear model y_i = X_i^\\top \\beta + e_i, and a random variable Z on an auxiliary probability space (\\Omega', \\nu) with the named Gaussian law, the scalar projection \\sqrt{n}\\, a^\\top (\\hat\\beta_n^\\ast - \\beta) converges in distribution (under sample measure \\mu) to Z.\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{μ : Measure Ω} [IsProbabilityMeasure μ]\n(\\Omega, \\mu)\nGiven: the sample probability space. The sequence (X_i, e_i) lives here. Curly braces mark μ as implicit (inferred from later arguments).\n\n\n{ν : Measure Ω'} [IsProbabilityMeasure ν]\n(\\Omega', \\nu)\nGiven: an auxiliary probability space hosting the limiting Gaussian. This is the Lean idiom for “convergence in distribution to a random variable defined elsewhere” — the limit Z lives on (\\Omega', \\nu), not on the sample space.\n\n\n{X : ℕ → Ω → (k → ℝ)}\n(X_i)_{i \\in \\mathbb{N}}\nGiven: the regressor sequence. X i ω : k → ℝ is observation i’s regressor vector, indexed by the regressor coordinate type k.\n\n\n{e : ℕ → Ω → ℝ}\n(e_i)_{i \\in \\mathbb{N}}\nGiven: the error / disturbance sequence.\n\n\n{y : ℕ → Ω → ℝ}\n(y_i)_{i \\in \\mathbb{N}}\nGiven: the response sequence.\n\n\n(h : SampleCLTAssumption72 μ X e)\nHansen Assumption 7.2\nGiven (hypothesis): the bundled package — i.i.d. sampling, identical distributions, \\mathbb{E}[X_i e_i] = 0, L^2 moments on the score X_i e_i, and the score covariance is finite. This is everything Theorem 7.2 needs. It extends SampleMomentAssumption71, so Theorem 7.1’s WLLN inputs come along for free.\n\n\n(β a : k → ℝ)\n\\beta, a \\in \\mathbb{R}^k\nGiven: the true coefficient \\beta (so the OLS error is \\hat\\beta_n^\\ast - \\beta) and the projection direction a (so we read a^\\top (\\hat\\beta_n^\\ast - \\beta)).\n\n\n(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\ny_i = X_i^\\top \\beta + e_i\nGiven (hypothesis): the linear model, asserted pointwise on every i and every \\omega. ⬝ᵥ is Matrix.dotProduct.\n\n\n{Z : Ω' → ℝ}\nZ : \\Omega' \\to \\mathbb{R}\nGiven: the random variable that will play the role of the Gaussian limit, on the auxiliary space.\n\n\n(hZ : HasLaw Z (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν)\nZ \\sim N(0, V_a)\nGiven (hypothesis): the law of Z on (\\Omega', \\nu) is exactly N(0, V_a), where V_a = a^\\top Q^{-1} \\Omega Q^{-1} a is the named asymptotic variance. The .toNNReal is the variance argument’s nonnegative coercion (Mathlib’s gaussianReal takes a nonnegative variance).\n\n\nTendstoInDistribution (fun n ω =&gt; (Real.sqrt (n : ℝ) • (olsBetaStar … - β)) ⬝ᵥ a) atTop Z (fun _ =&gt; μ) ν\n\\sqrt{n}\\, a^\\top (\\hat\\beta_n^\\ast - \\beta) \\xrightarrow{d} Z\nConclusion: scalar convergence in distribution. The sample statistic, indexed by n, lives under measure \\mu (the constant family fun _ =&gt; μ); Z lives under \\nu. Real.sqrt (n : ℝ) • (… - β) is the scaled error vector; ⬝ᵥ a projects onto direction a. olsBetaStar is the totalized OLS estimator (returns 0 when the sample Gram is singular), so the statement is meaningful even on the measure-zero singular set.\n\n\n\n(The ambient typeclasses [Fintype k] [DecidableEq k] and the measurable structures on Ω, Ω' are in the file’s variable block.)\nCompanion / related theorems:\n\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all at HansenEconometrics/Chapter7Asymptotics.lean:6888 — packages all directions a at once (Cramér–Wold facing for the joint vector CLT).\nscoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance at HansenEconometrics/Chapter7Asymptotics.lean:6912 — the ordinary-wrapper face for nonsingular samples.\nscoreProjection_sum_tendstoInDistribution_gaussian at HansenEconometrics/Chapter7Asymptotics.lean:4773 — Theorem 7.2 score CLT, the upstream input.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#translation-notes",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#translation-notes",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen writes the theorem as a multivariate convergence \\sqrt{n}\\, (\\hat\\beta - \\beta) \\Rightarrow N(0, V). Lean works through the Cramér–Wold face: every scalar projection converges to a normal limit. The aggregator scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all combines all directions.\nThe auxiliary measure space (\\Omega', \\nu) hosts the limiting random variable Z. This is a Lean idiom: rather than asserting a measure equals a Gaussian, the theorem says “for any Z defined on any auxiliary space with the right law, the sample statistics converge in distribution to Z.”\nThe named asymptotic variance olsProjectionAsymptoticVarianceμ X e a unfolds to ((Q^{-1})^\\top a)^\\top \\Omega ((Q^{-1})^\\top a). By the symmetry of Q, (Q^{-1})^\\top = Q^{-1}, so this is exactly a^\\top Q^{-1} \\Omega Q^{-1} a = a^\\top V a.\nThe score variance equality a^\\top V a = \\mathrm{Var}[e_0 \\cdot (X_0 \\cdot Q^{-1} a)] is exposed as scoreProjection_variance_eq_quadraticScoreCovariance and is used to bridge between the variance form Lean works with and the textbook sandwich form.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#proof-sketch",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#proof-sketch",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nThe standard textbook proof in three steps:\n\nOLS error decomposition. From the closed form,\n\n\\sqrt{n}(\\hat\\beta_n - \\beta) = \\hat Q_n^{-1} \\cdot \\sqrt{n}\\, \\hat g_n,\n\\qquad \\hat g_n := \\frac{1}{n} \\sum_i X_i e_i.\n\nScore CLT (Theorem 7.2). For every fixed c \\in \\mathbb{R}^k,\n\n\\sqrt{n}\\, c^\\top \\hat g_n \\xrightarrow{d} N(0, c^\\top \\Omega c)\n\nby the multivariate CLT applied to X_i e_i in direction c.\nSlutsky. Since \\hat Q_n^{-1} \\xrightarrow{p} Q^{-1} (Theorem 7.1’s WLLN + continuous-mapping), the product \\hat Q_n^{-1} \\cdot \\sqrt{n}\\, \\hat g_n \\xrightarrow{d} Q^{-1} \\cdot Z where Z \\sim N(0, \\Omega), so the limit is N(0, Q^{-1} \\Omega Q^{-1}).\n\nFor the scalar projection face: project everything onto direction a first (i.e., apply a^\\top), apply the score CLT in direction Q^{-1} a, then put it back together via Slutsky.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#lean-proof-structure",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#lean-proof-structure",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe Lean proof has serious moving parts. Trace the chain:\n\nscoreProjection_sum_tendstoInDistribution_gaussian at HansenEconometrics/Chapter7Asymptotics.lean:4773 — Theorem 7.2 scalar CLT for \\sqrt{n}\\, c^\\top \\hat g_n.\nSlutsky bridges via the inverse-Gram convergence and the fixed-score decomposition. The key algebraic identity is scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap at HansenEconometrics/Chapter7Asymptotics.lean:1491 — this is the algebraic decomposition of \\sqrt{n}\\, a^\\top (\\hat\\beta^\\ast_n - \\beta) into a fixed score, an inverse-gap term, and a residual; the latter two are o_p(1).\ninverseGapProjection_tendstoInMeasure_zero_of_coord at HansenEconometrics/Chapter7Asymptotics.lean:1415 — the inverse-gap residual goes to 0 in probability.\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas at HansenEconometrics/Chapter7Asymptotics.lean:5277 — packages the chain modulo a measurability hypothesis.\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian at HansenEconometrics/Chapter7Asymptotics.lean:5307 — discharges the measurability via scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable.\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance at HansenEconometrics/Chapter7Asymptotics.lean:5332 — restates the result using the named asymptotic variance, via scoreProjection_variance_eq_quadraticScoreCovariance.\n\nThe chain is heavy because the Lean version handles olsBetaStar (the totalized estimator) and has to manage the singular-sample contribution explicitly — an issue Hansen sidesteps by working “modulo events of probability tending to zero.”\n\nTactic-by-tactic walkthrough\nThe headline theorem at line 5332 has a short body: it hypothesis-massages the Gaussian variance into the named-asymptotic-variance form, then defers to the variance-form sibling.\ntheorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance\n    {μ : Measure Ω} [IsProbabilityMeasure μ]\n    {ν : Measure Ω'} [IsProbabilityMeasure ν]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}\n    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\n    {Z : Ω' → ℝ}\n    (hZ : HasLaw Z\n      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :\n    TendstoInDistribution\n      (fun (n : ℕ) ω =&gt;\n        (Real.sqrt (n : ℝ) •\n          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)\n      atTop Z (fun _ =&gt; μ) ν := by\n  have hZ' : HasLaw Z\n      (gaussianReal 0\n        (Var[fun ω =&gt; (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)\n      ν := by\n    rw [scoreProjection_variance_eq_quadraticScoreCovariance\n      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]\n    simpa [olsProjectionAsymptoticVariance] using hZ\n  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian\n    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'\nWhat each step is doing:\n\nhave hZ' : … := by … — re-state the Gaussian-law hypothesis on Z using the variance-form parameter, so we can hand it to the sibling scoreProjection_olsBetaStar_tendstoInDistribution_gaussian. The two variances are equal but have different syntactic shapes: \\mathrm{Var}[(e_0 X_0) \\cdot ((Q^{-1})^\\top a); \\mu] on the variance-form side and olsProjectionAsymptoticVariance μ X e a (the named matrix-form ((Q^{-1})^\\top a)^\\top \\Omega ((Q^{-1})^\\top a)) on the covariance-form side.\nrw [scoreProjection_variance_eq_quadraticScoreCovariance …] — apply Theorem 7.2’s covariance-matrix face (line 2503) in direction ((Q^{-1})^\\top a). This rewrites the variance of the score projection as the quadratic form ((Q^{-1})^\\top a)^\\top \\Omega ((Q^{-1})^\\top a).\nsimpa [olsProjectionAsymptoticVariance] using hZ — unfold the named asymptotic variance on the goal side; the resulting expression matches the hypothesis hZ directly.\nexact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian … — hand off to the variance-form headline at line 5307 with the rewritten Gaussian hypothesis hZ'.\n\nSo the line-5332 wrapper is essentially a one-line bridge: the real work sits in the variance-form chain it composes. Walking that chain top-down:\n\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian (line 5307) — same Theorem 7.3 statement but with the Gaussian variance in variance-form. Its body discharges the measurability premise of the _of_finalMeas variant by applying scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable.\nscoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas (line 5277) — same statement with an explicit AEMeasurable premise. Its body discharges the score-bounded premise of an even more upstream variant from scoreCoordinate_sampleCrossMoment_boundedInProbability, passing through a chain that eventually reduces the goal to a Slutsky combination of a CLT term and an o_p(1) inverse-gap term.\nscoreProjection_sum_tendstoInDistribution_gaussian (line 4773) — the score CLT (Theorem 7.2 face). Supplies the Gaussian limit for (\\sqrt{n})^{-1} \\sum_i (e_i X_i) \\cdot c in any fixed direction c. Used in direction c = (Q^{-1})^\\top a.\nscoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap (line 1491) — the algebraic decomposition: at every n and \\omega, \\sqrt{n}\\, a^\\top (\\hat\\beta_n^\\ast - \\beta) equals the sum of (i) a scaled singular-sample residual, (ii) the fixed-Q^{-1} score projection (which gets the CLT), and (iii) the random-inverse-gap projection (which needs Slutsky).\ninverseGapProjection_tendstoInMeasure_zero_of_coord (line 1415) — the Slutsky o_p(1) control: the random-inverse-gap term ((\\hat Q_n^{-1} - Q^{-1}) \\sqrt{n}\\, \\hat g_n) \\cdot a goes to zero in measure, because each coordinate weight goes to 0 in probability (continuous mapping on \\hat Q_n^{-1} \\to Q^{-1}) and the score coordinates are bounded in probability.\nscoreProjection_variance_eq_quadraticScoreCovariance (line 2503) — the variance bridge invoked by the line-5332 wrapper: rewrites \\mathrm{Var}[(e_0 X_0) \\cdot c; \\mu] = c^\\top \\Omega c, so the variance-form Gaussian and the named-covariance Gaussian agree.\n\nPutting it together: line 5332 reformulates the limit Gaussian’s variance, line 5307 discharges measurability, line 5277 packages a Slutsky combination, line 4773 supplies the CLT term, line 1491 says what the OLS scalar projection is algebraically, and line 1415 says the only remaining piece is o_p(1).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-3.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-3.html#downstream-uses",
+    "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nTheorem 7.9 (linear functions of OLS): scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance at HansenEconometrics/Chapter7Asymptotics.lean:5362.\nTheorem 7.11 / 7.14 (t-statistics, Wald statistics): the asymptotic-normality result powers the standard normal / chi-square limits of studentized statistics.\nTheorem 7.13 (multivariate Wald): linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT at HansenEconometrics/Chapter7Asymptotics.lean:5524.\nTheorem 7.12 (CI coverage): olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal at HansenEconometrics/Chapter7Asymptotics.lean:5995.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html",
+    "href": "walkthroughs/chapter5/theorem-5-5.html",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "",
+    "text": "Paraphrased textbook statement (Hansen Theorem 5.5 / 5.6): in the homoskedastic normal regression model where e \\sim N(0, \\sigma^2 I_n), the OLS estimator\n\n\\hat\\beta = (X^\\top X)^{-1} X^\\top y\n\nis jointly Gaussian, with mean \\beta and covariance \\sigma^2 (X^\\top X)^{-1}. Equivalently, \\hat\\beta - \\beta is the linear image of e under A := (X^\\top X)^{-1} X^\\top, so it inherits Gaussianity from e. The OLS residual vector \\hat e = M y, where M = I - X(X^\\top X)^{-1} X^\\top, is also Gaussian, with mean 0 and covariance \\sigma^2 M.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#textbook-statement",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#textbook-statement",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "",
+    "text": "Paraphrased textbook statement (Hansen Theorem 5.5 / 5.6): in the homoskedastic normal regression model where e \\sim N(0, \\sigma^2 I_n), the OLS estimator\n\n\\hat\\beta = (X^\\top X)^{-1} X^\\top y\n\nis jointly Gaussian, with mean \\beta and covariance \\sigma^2 (X^\\top X)^{-1}. Equivalently, \\hat\\beta - \\beta is the linear image of e under A := (X^\\top X)^{-1} X^\\top, so it inherits Gaussianity from e. The OLS residual vector \\hat e = M y, where M = I - X(X^\\top X)^{-1} X^\\top, is also Gaussian, with mean 0 and covariance \\sigma^2 M.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#assumptions",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#assumptions",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Assumptions",
+    "text": "Assumptions\n\nLinear model: y = X\\beta + e with X \\in \\mathbb{R}^{n\\times k} of full column rank (so X^\\top X is invertible).\nThe error vector e has a Gaussian law on the underlying probability space — Lean phrases this as HasGaussianLaw e μ. Hansen typically assumes e \\sim N(0, \\sigma^2 I); the Lean form is more general because it doesn’t pin down the mean or covariance.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#lean-statement",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#lean-statement",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Lean statement",
+    "text": "Lean statement\nMain theorems in HansenEconometrics/Chapter5NormalRegression.lean:\n\nolsBeta_hasGaussianLaw_of_error at HansenEconometrics/Chapter5NormalRegression.lean:65 — the OLS coefficient vector inherits a Gaussian law from e.\nresidual_hasGaussianLaw_of_error at HansenEconometrics/Chapter5NormalRegression.lean:94 — the OLS residual vector inherits a Gaussian law from e.\n\nThe headline theorem reads:\ntheorem olsBeta_hasGaussianLaw_of_error\n    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)\n    [Invertible (Xᵀ * X)]\n    (he : HasGaussianLaw e μ) :\n    HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ\n\nReading the statement\nIn English: given an underlying probability space (\\Omega, \\mu), a deterministic design matrix X, a true coefficient vector \\beta, a random error vector e : \\Omega \\to \\mathbb{R}^n with a Gaussian law under \\mu, and a witness that X^\\top X is invertible, the result is that the random variable \\omega \\mapsto \\hat\\beta\\bigl(X(X\\beta + e(\\omega))\\bigr) also has a Gaussian law under \\mu.\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{Ω : Type*}\n\\Omega\nGiven: the underlying sample space. Implicit; Lean infers it from the use site.\n\n\n[MeasurableSpace Ω]\n\\sigma-algebra on \\Omega\nGiven (instance): the measurable structure on \\Omega. Mathlib boilerplate so that Measure Ω makes sense.\n\n\n{μ : Measure Ω}\n\\mu on \\Omega\nGiven: the probability measure. Implicit — supplied at the use site. (Mathlib Measure is general; the Gaussian-law hypothesis is what makes it behave like a probability measure for this argument.)\n\n\n(X : Matrix n k ℝ)\nX \\in \\mathbb{R}^{n\\times k}\nGiven: deterministic design matrix. Index types n (observations) and k (regressors) come from the section variables.\n\n\n(β : k → ℝ)\n\\beta \\in \\mathbb{R}^k\nGiven: true coefficient vector. A Mathlib real vector is a function k → ℝ.\n\n\n(e : Ω → n → ℝ)\ne : \\Omega \\to \\mathbb{R}^n\nGiven: random error vector. For each \\omega \\in \\Omega, e(\\omega) is a vector in \\mathbb{R}^n.\n\n\n[Invertible (Xᵀ * X)]\nX^\\top X invertible\nGiven (instance): Hansen’s full-column-rank assumption, packaged as a typeclass instance so olsBeta X · elaborates.\n\n\n(he : HasGaussianLaw e μ)\ne has a Gaussian law under \\mu\nGiven (hypothesis): the substantive probabilistic assumption. The pushforward \\mu \\circ e^{-1} is a Gaussian measure on \\mathbb{R}^n. Mean and covariance are not pinned down — this is more general than Hansen’s e \\sim N(0, \\sigma^2 I).\n\n\nHasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ\n\\hat\\beta is Gaussian under \\mu\nConclusion: under \\mu, the random variable \\omega \\mapsto \\hat\\beta\\bigl(X(X\\beta + e(\\omega))\\bigr) has a Gaussian law on \\mathbb{R}^k.\n\n\n\n(X *ᵥ β is Matrix.mulVec, so X *ᵥ β + e ω is the linear-model realization X\\beta + e(\\omega), and olsBeta X (X *ᵥ β + e ω) is the OLS estimator computed on that realized y.)",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#translation-notes",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#translation-notes",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen states \\hat\\beta \\sim N(\\beta, \\sigma^2(X^\\top X)^{-1}). Lean states HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ — that is, \\hat\\beta inherits a Gaussian law from e. The exact mean and covariance can be read off from the linear decomposition theorem (olsBeta_linear_decomposition from Chapter 4) but isn’t packaged into a single statement here.\nThe hypothesis HasGaussianLaw e μ is the Mathlib / probability-theory notion that the pushforward of e under \\mu is a Gaussian measure on \\mathbb{R}^n. This is exactly the textbook hypothesis e \\sim N(\\cdot, \\cdot), with parametric mean and covariance abstracted away.\nThe proof goes through Matrix.toLin' to package the linear map A as a ContinuousLinearMap, then uses HasGaussianLaw.map_fun together with the affine-shift lemma for Gaussian measures.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#proof-sketch",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#proof-sketch",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nSubstituting y = X\\beta + e into the closed form for \\hat\\beta,\n\n\\hat\\beta = (X^\\top X)^{-1} X^\\top (X\\beta + e) = \\beta + A e,\n\\qquad A := (X^\\top X)^{-1} X^\\top.\n\nSince A is a fixed (deterministic) linear map and e is Gaussian, Ae is Gaussian (linear images of Gaussians are Gaussian). Adding the deterministic shift \\beta keeps it Gaussian (translations of Gaussians are Gaussian). Hence \\hat\\beta is Gaussian.\nFor the residual,\n\n\\hat e = My = M(X\\beta + e) = Me,\n\nbecause MX = 0. So \\hat e is the linear image Me, again Gaussian.\nThe whole argument is just the closure of Gaussianity under linear and affine maps — no spectral or quadratic-form argument is needed for Theorem 5.5 / 5.6. Spectral arguments only appear later for the chi-square law in Theorem 5.7.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#lean-proof-structure",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#lean-proof-structure",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe proof in Chapter5NormalRegression.lean proceeds as follows:\n\nDefine L : (n → ℝ) →L[ℝ] (k → ℝ) as the continuous linear map induced by the matrix (X^\\top X)^{-1} X^\\top, via Matrix.toLin'.toContinuousLinearMap.\nApply he.map_fun L (where he : HasGaussianLaw e μ) to get HasGaussianLaw (L ∘ e) μ.\nTranslate by \\beta: push forward μ.map (fun ω =&gt; L (e ω)) along (β + ·) and use the fact that an affine shift of a Gaussian measure on \\mathbb{R}^k is again Gaussian (the IsGaussian.map_add infrastructure).\nFinally invoke olsBeta_linear_decomposition, which states \\hat\\beta = \\beta + A e, to identify the constructed Gaussian random variable with \\hat\\beta a.e. (hAff.congr).\n\nThe residual version (residual_hasGaussianLaw_of_error) is shorter: it skips the affine shift entirely. It packages the annihilator matrix M as a continuous linear map, applies he.map_fun, and then rewrites with residual_linear_model to identify Me with the residual.\nThe take-away: the proof is purely the closure of Gaussianity under linear and affine maps. No spectral decomposition, no quadratic-form identity, no characteristic-function calculation.\n\nTactic-by-tactic walkthrough\nThe full Lean proof body of olsBeta_hasGaussianLaw_of_error:\ntheorem olsBeta_hasGaussianLaw_of_error\n    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)\n    [Invertible (Xᵀ * X)]\n    (he : HasGaussianLaw e μ) :\n    HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ := by\n  let L : (n → ℝ) →L[ℝ] (k → ℝ) :=\n    (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap\n  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L\n  have hAff : HasGaussianLaw (fun ω =&gt; β + L (e ω)) μ := by\n    refine ⟨?_⟩\n    have hmap : (μ.map fun ω =&gt; L (e ω)).map (fun x =&gt; β + x) = μ.map (fun ω =&gt; β + L (e ω)) := by\n      simpa using\n        (AEMeasurable.map_map_of_aemeasurable\n          (μ := μ)\n          (f := fun ω =&gt; L (e ω))\n          (g := fun x =&gt; β + x)\n          (Measurable.aemeasurable &lt;| by fun_prop)\n          hLin.aemeasurable)\n    rw [← hmap]\n    letI : IsGaussian (μ.map fun ω =&gt; L (e ω)) := hLin.isGaussian_map\n    infer_instance\n  refine hAff.congr ?_\n  filter_upwards with ω\n  rw [olsBeta_linear_decomposition]\n  simp [L]\nStep by step:\n\nlet L : (n → ℝ) →L[ℝ] (k → ℝ) := (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap — package the matrix A := (X^\\top X)^{-1} X^\\top as a continuous linear map between Euclidean spaces. Matrix.toLin' produces an (n → ℝ) →ₗ[ℝ] (k → ℝ), and .toContinuousLinearMap upgrades that to the →L[ℝ] arrow that Mathlib’s Gaussian-law machinery expects. This is the deterministic “A” of the proof sketch.\nhave hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L — apply the closure of Gaussianity under continuous linear maps: HasGaussianLaw.map_fun says that if e is Gaussian under \\mu then so is L \\circ e. This gives us “Ae is Gaussian” in one line.\nhave hAff : HasGaussianLaw (fun ω =&gt; β + L (e ω)) μ := by … — promote the Gaussianity of L \\circ e to the affine version \\beta + L \\circ e. The body unfolds the constructor (refine ⟨?_⟩ opens up the HasGaussianLaw structure to its IsGaussian content) and assembles three pieces:\n\nhmap : (μ.map fun ω =&gt; L (e ω)).map (fun x =&gt; β + x) = μ.map (fun ω =&gt; β + L (e ω)) — this is pure Mathlib measure-theory plumbing: pushing forward by L \\circ e and then by the translation x \\mapsto \\beta + x gives the same measure as pushing forward by \\omega \\mapsto \\beta + L(e(\\omega)) in one shot. AEMeasurable.map_map_of_aemeasurable is the lemma that does this; the Measurable.aemeasurable &lt;| by fun_prop discharges the measurability side-condition for x \\mapsto \\beta + x automatically.\nrw [← hmap] — restate the goal in the two-step form, so the outer pushforward is along the affine shift x \\mapsto \\beta + x.\nletI : IsGaussian (μ.map fun ω =&gt; L (e ω)) := hLin.isGaussian_map — register the Gaussian-measure instance for the inner pushforward. Once Mathlib knows the inner measure is Gaussian, the affine shift lemma IsGaussian.map_add (a registered instance) closes the goal, and infer_instance finds it.\n\nrefine hAff.congr ?_ — we now have a Gaussian law for \\omega \\mapsto \\beta + L(e(\\omega)). To conclude the same for \\omega \\mapsto \\hat\\beta\\bigl(X(X\\beta + e(\\omega))\\bigr), it suffices to show the two random variables agree \\mu-a.e. congr turns the goal into that almost-everywhere equality.\nfilter_upwards with ω — drop into the pointwise equality at a generic \\omega. The remaining goal is \\beta + L(e(\\omega)) = \\hat\\beta\\bigl(X(X\\beta + e(\\omega))\\bigr).\nrw [olsBeta_linear_decomposition] — rewrite the right-hand side using the deterministic identity \\hat\\beta(X\\beta + e) = \\beta + (X^\\top X)^{-1} X^\\top e (from olsBeta_linear_decomposition, Chapter 4). Both sides are now \\beta + A e(\\omega) up to the packaging of A.\nsimp [L] — unfold the local let L and let simp match L (e ω) with (⅟ (X^\\top X) X^\\top) *ᵥ e ω, finishing the equality.\n\nFor the residual, residual_hasGaussianLaw_of_error is much shorter — there is no affine shift, only a linear map:\ntheorem residual_hasGaussianLaw_of_error\n    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)\n    [Invertible (Xᵀ * X)]\n    (he : HasGaussianLaw e μ) :\n    HasGaussianLaw (fun ω =&gt; residual X (X *ᵥ β + e ω)) μ := by\n  let L : (n → ℝ) →L[ℝ] (n → ℝ) := (Matrix.toLin' (annihilatorMatrix X)).toContinuousLinearMap\n  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L\n  refine hLin.congr ?_\n  filter_upwards with ω\n  rw [residual_linear_model]\n  simp [L]\nSame pattern, three steps shorter:\n\nlet L := ...annihilatorMatrix X... — package M = I - X(X^\\top X)^{-1} X^\\top as a continuous linear map on \\mathbb{R}^n.\nhe.map_fun L — Me is Gaussian because e is and M is linear.\nhLin.congr + residual_linear_model — rewrite \\hat e(X\\beta + e) = M e pointwise to identify Me with the residual; simp [L] unfolds L to finish. No affine shift needed because MX\\beta = 0.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/theorem-5-5.html#downstream-uses",
+    "href": "walkthroughs/chapter5/theorem-5-5.html#downstream-uses",
+    "title": "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nThe chi-square / independence theorem (Hansen Theorem 5.7): once \\hat\\beta and \\hat e are known to be jointly Gaussian, independence reduces to a covariance computation, and that cross-covariance is zero because X^\\top M = 0.\nConfidence intervals and t-tests in Chapter 5 build on this Gaussianity of \\hat\\beta.\nMore generally, any normal-error inference statement for OLS that doesn’t go through asymptotics depends on this finite-sample Gaussian law.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html",
+    "href": "walkthroughs/chapter3/theorem-3-5.html",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "",
+    "text": "Partition the regressors X = [X_1, X_2] with k_1 and k_2 columns respectively, and consider the full regression\n\ny = X_1 \\hat\\beta_1 + X_2 \\hat\\beta_2 + \\hat e.\n\nLet M_1 = I - X_1(X_1^\\top X_1)^{-1} X_1^\\top be the annihilator for X_1, and define the residualized quantities \\tilde y = M_1 y and \\tilde X_2 = M_1 X_2.\nThe Frisch–Waugh–Lovell theorem states:\n\nCoefficient part. The second-block coefficient \\hat\\beta_2 from the full regression equals the coefficient from the auxiliary OLS of \\tilde y on \\tilde X_2: \n\\hat\\beta_2 = (\\tilde X_2^\\top \\tilde X_2)^{-1} \\tilde X_2^\\top \\tilde y.\n\nResidual part. The residuals from the auxiliary regression equal the residuals from the full regression: \n\\tilde y - \\tilde X_2 \\hat\\beta_2 = \\hat e.\n\n\nSo you can recover the partial effect \\hat\\beta_2 — and the same residuals — by first partialling out X_1 from both y and X_2, then running OLS on the residualized variables.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#textbook-statement",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#textbook-statement",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "",
+    "text": "Partition the regressors X = [X_1, X_2] with k_1 and k_2 columns respectively, and consider the full regression\n\ny = X_1 \\hat\\beta_1 + X_2 \\hat\\beta_2 + \\hat e.\n\nLet M_1 = I - X_1(X_1^\\top X_1)^{-1} X_1^\\top be the annihilator for X_1, and define the residualized quantities \\tilde y = M_1 y and \\tilde X_2 = M_1 X_2.\nThe Frisch–Waugh–Lovell theorem states:\n\nCoefficient part. The second-block coefficient \\hat\\beta_2 from the full regression equals the coefficient from the auxiliary OLS of \\tilde y on \\tilde X_2: \n\\hat\\beta_2 = (\\tilde X_2^\\top \\tilde X_2)^{-1} \\tilde X_2^\\top \\tilde y.\n\nResidual part. The residuals from the auxiliary regression equal the residuals from the full regression: \n\\tilde y - \\tilde X_2 \\hat\\beta_2 = \\hat e.\n\n\nSo you can recover the partial effect \\hat\\beta_2 — and the same residuals — by first partialling out X_1 from both y and X_2, then running OLS on the residualized variables.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#assumptions",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#assumptions",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Assumptions",
+    "text": "Assumptions\n\nPartitioned design X = [X_1, X_2] with X_1 \\in \\mathbb{R}^{n\\times k_1}, X_2 \\in \\mathbb{R}^{n\\times k_2}.\nX_1^\\top X_1 is invertible (the first block has full column rank).\nThe full Gram matrix [X_1, X_2]^\\top [X_1, X_2] is invertible (the joint design has full column rank).\nThe residualized Gram matrix \\tilde X_2^\\top \\tilde X_2 = (M_1 X_2)^\\top (M_1 X_2) is invertible.\nNo distributional assumption — FWL is a purely algebraic identity.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#lean-statement",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#lean-statement",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Lean statement",
+    "text": "Lean statement\nAll in HansenEconometrics/Chapter3FWL.lean:\n\nresidualizedRegressors at Chapter3FWL.lean:51 — defined as annihilatorMatrix X₁ * X₂, i.e. \\tilde X_2 = M_1 X_2.\nfwlBeta at Chapter3FWL.lean:58 — OLS coefficient from regressing \\tilde y = M_1 y on \\tilde X_2.\nfromColsRightBeta at Chapter3FWL.lean:75 — the X_2-block of the full-regression coefficient on [X_1, X_2].\nfromColsRightBeta_eq_fwlBeta at Chapter3FWL.lean:147 — coefficient part of FWL.\nfwl_residual_eq_full_residual at Chapter3FWL.lean:163 — residual part of FWL.\n\nThe two headline theorems:\ntheorem fromColsRightBeta_eq_fwlBeta\n    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)\n    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]\n    [Invertible (X₁ᵀ * X₁)]\n    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]\n    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :\n    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y\n\ntheorem fwl_residual_eq_full_residual\n    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)\n    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]\n    [Invertible (X₁ᵀ * X₁)]\n    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]\n    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :\n    residual (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y) =\n      residual (Matrix.fromCols X₁ X₂) y\n\nReading the statement\nIn English (coefficient part): given a partitioned design [X_1, X_2], a response vector y, and witnesses that X_1^\\top X_1, the full Gram matrix, and the residualized Gram matrix are all invertible, the second-block coefficient from the full regression equals the OLS coefficient from regressing M_1 y on M_1 X_2.\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n(X₁ : Matrix n k₁ ℝ)\nX_1 \\in \\mathbb{R}^{n\\times k_1}\nGiven: first block of regressors. The index types n, k₁, k₂ come from the file’s variable block.\n\n\n(X₂ : Matrix n k₂ ℝ)\nX_2 \\in \\mathbb{R}^{n\\times k_2}\nGiven: second block of regressors. Same row index n so the two blocks can be column-glued.\n\n\n(y : n → ℝ)\ny \\in \\mathbb{R}^n\nGiven: response vector, modeled as a function n → ℝ.\n\n\n[DecidableEq n]\n(decidable equality on \\{1,\\ldots,n\\})\nMathlib bookkeeping: Lean needs to decide row equality to define the annihilator M_1 = I - X_1(X_1^\\top X_1)^{-1}X_1^\\top (the identity matrix is built using if i = j).\n\n\n[Fintype k₁] [Fintype k₂]\nk_1, k_2 finite\nMathlib bookkeeping: column index types are finite, so matrix sums and products are well-defined.\n\n\n[DecidableEq k₁] [DecidableEq k₂]\n(decidable equality on column indices)\nMathlib bookkeeping: needed for identity matrices on the column spaces and for fromCols-style index manipulation.\n\n\n[Invertible (X₁ᵀ * X₁)]\nX_1^\\top X_1 invertible\nGiven (hypothesis): first block has full column rank — needed so M_1 is well-defined.\n\n\n[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]\n[X_1,X_2]^\\top[X_1,X_2] invertible\nGiven (hypothesis): the joint design has full column rank — needed so the full-regression coefficient olsBeta (fromCols X₁ X₂) y exists.\n\n\n[Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]\n\\tilde X_2^\\top \\tilde X_2 invertible\nGiven (hypothesis): the residualized regressors have full column rank — needed so fwlBeta, the auxiliary OLS coefficient, exists.\n\n\nfromColsRightBeta X₁ X₂ y\n\\hat\\beta_2 from the full regression\nLHS of the conclusion. Defined as fun j =&gt; olsBeta (fromCols X₁ X₂) y (Sum.inr j) — projecting the full coefficient vector to its X_2 block via Sum.inr.\n\n\n= fwlBeta X₁ X₂ y\n= (\\tilde X_2^\\top\\tilde X_2)^{-1}\\tilde X_2^\\top\\tilde y\nConclusion: equality of the two k₂ → ℝ vectors. fwlBeta is defined as olsBeta (M₁ X₂) (M₁ y).\n\n\n\n(Square brackets mark instance arguments — they are filled in by Lean’s typeclass resolution rather than supplied positionally. The three Invertible instances are the substantive economic/algebraic hypotheses; the DecidableEq/Fintype instances are Mathlib boilerplate that lets the machinery run.)\nSupporting / helper theorems used internally:\n\nnormal_equations_fromCols_left / normal_equations_fromCols_right at lines 15 and 26.\nregressors_transpose_mul_annihilator at line 37 — X^\\top M = 0.\nresidualizedRegressors_orthogonal_left at line 94 — X_1^\\top \\tilde X_2 = 0.\nfwl_auxiliary_residual_eq_annihilator_full_residual at line 106 — bridges auxiliary residual to M_1 \\hat e_{\\text{full}}.\nfwl_fromColsRightBeta_normal_equations at line 123 — full-regression \\hat\\beta_2 satisfies the auxiliary normal equations.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#translation-notes",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#translation-notes",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen states FWL with \\hat\\beta_2 from regressing \\tilde y on \\tilde X_2; Lean defines fwlBeta := olsBeta (M_1 X_2) (M_1 y). Identical.\nLean uses Matrix.fromCols X₁ X₂ for the column-partitioned [X_1, X_2]. The full-regression coefficients are projected to their two blocks via Sum.inl / Sum.inr (the index type is k₁ ⊕ k₂).\nThe residual part of FWL is stated using the auxiliary regression’s residual; the textbook commonly states “\\tilde y - \\tilde X_2 \\hat\\beta_2 = \\hat e” with \\hat\\beta_2 from the full regression. Lean’s fwl_residual_eq_full_residual is the corresponding equality in the formalization.\nThree invertibility instances are required for the coefficient theorem: X_1^\\top X_1, [X_1, X_2]^\\top [X_1, X_2], and \\tilde X_2^\\top \\tilde X_2. The third is genuinely needed — without it, fwlBeta is undefined.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#proof-sketch",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#proof-sketch",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nThe argument has two halves.\nCoefficient part. Show that the full-regression coefficient \\hat\\beta_2 satisfies the auxiliary normal equations\n\n\\tilde X_2^\\top (\\tilde y - \\tilde X_2 \\hat\\beta_2) = 0,\n\nthen invoke uniqueness of the OLS solution.\nTo verify the auxiliary normal equations, decompose \\tilde y - \\tilde X_2 \\hat\\beta_2. Substitute \\tilde y = M_1 y and \\tilde X_2 = M_1 X_2, and use \\hat e = y - X_1 \\hat\\beta_1 - X_2 \\hat\\beta_2 from the full regression. After algebra,\n\n\\tilde y - \\tilde X_2 \\hat\\beta_2 = M_1 \\hat e.\n\nNow use X_1^\\top \\hat e = 0 (normal equations for the X_1 block of the full regression) to get M_1 \\hat e = \\hat e, so \\tilde y - \\tilde X_2 \\hat\\beta_2 = \\hat e. Premultiplying by \\tilde X_2^\\top = X_2^\\top M_1 and using X_2^\\top \\hat e = 0 (the other block’s normal equations) gives the auxiliary normal equations. Uniqueness then implies \\hat\\beta_2 is the auxiliary regression’s coefficient.\nResidual part. The chain above already showed \\tilde y - \\tilde X_2 \\hat\\beta_2 = \\hat e, which is exactly the residual identity once you observe that the auxiliary regression’s residual at the FWL coefficient is \\tilde y - \\tilde X_2 \\hat\\beta_2^{\\text{FWL}} and \\hat\\beta_2^{\\text{FWL}} = \\hat\\beta_2 by the coefficient part.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#lean-proof-structure",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#lean-proof-structure",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe proof in Lean follows the sketch closely:\n\nfwl_auxiliary_residual_eq_annihilator_full_residual (line 106) shows \\tilde y - \\tilde X_2 \\cdot \\hat\\beta_2^{\\text{full}} = M_1 \\hat e_{\\text{full}}. It unfolds residual and fitted, splits the full fit via fromCols_full_fitted_eq (line 83), and uses Matrix.mulVec_mulVec plus annihilator_mul_X to drop the X_1 contribution.\nfwl_fromColsRightBeta_normal_equations (line 123) takes that bridge and applies X_1^\\top \\hat e = 0 to collapse M_1 \\hat e = \\hat e via annihilator_mulVec_eq_self_of_regressors_orthogonal. Then it premultiplies by \\tilde X_2^\\top and uses normal_equations_fromCols_right to finish.\nfromColsRightBeta_eq_fwlBeta (line 147) is the symmetric closure: from the auxiliary normal equations, olsBeta_eq_of_normal_equations (Chapter3LeastSquaresAlgebra.lean:67) yields fwlBeta = fromColsRightBeta.\nfwl_residual_eq_full_residual (line 163) reuses the same bridge and the orthogonal-fixed-point lemma to conclude.\n\nThe orthogonality “infrastructure” underpinning the proof is regressors_transpose_mul_annihilator (line 37, X^\\top M = 0) and residualizedRegressors_orthogonal_left (line 94, X_1^\\top \\tilde X_2 = 0). Every collapse of M_1-products in the proof above ultimately reduces to one of these.\n\nTactic-by-tactic walkthrough\nThe headline theorem itself is short — it just packages uniqueness of OLS:\ntheorem fromColsRightBeta_eq_fwlBeta\n    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)\n    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]\n    [Invertible (X₁ᵀ * X₁)]\n    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]\n    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :\n    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y := by\n  symm\n  unfold fwlBeta\n  exact olsBeta_eq_of_normal_equations\n    (residualizedRegressors X₁ X₂)\n    (annihilatorMatrix X₁ *ᵥ y)\n    (fromColsRightBeta X₁ X₂ y)\n    (fwl_fromColsRightBeta_normal_equations X₁ X₂ y)\nLine by line:\n\nsymm — flip the goal from fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y to fwlBeta X₁ X₂ y = fromColsRightBeta X₁ X₂ y. This sets things up so the = reads “the auxiliary OLS coefficient equals this candidate vector,” which is the shape olsBeta_eq_of_normal_equations produces.\nunfold fwlBeta — replace fwlBeta X₁ X₂ y by its definition, olsBeta (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y). The goal becomes olsBeta (M₁ X₂) (M₁ y) = fromColsRightBeta X₁ X₂ y.\nexact olsBeta_eq_of_normal_equations … — apply the OLS uniqueness lemma (olsBeta_eq_of_normal_equations) with design matrix \\tilde X_2, response \\tilde y = M_1 y, candidate coefficient $_2 = $ fromColsRightBeta X₁ X₂ y, and the proof that this candidate satisfies the auxiliary normal equations. That last argument is fwl_fromColsRightBeta_normal_equations X₁ X₂ y, which is where the actual FWL algebra happens.\n\nThe substantive work lives in fwl_fromColsRightBeta_normal_equations (line 123). Its proof body:\ntheorem fwl_fromColsRightBeta_normal_equations\n    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)\n    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]\n    [Invertible (X₁ᵀ * X₁)]\n    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :\n    (residualizedRegressors X₁ X₂)ᵀ *ᵥ\n        (annihilatorMatrix X₁ *ᵥ y -\n          residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y) = 0 := by\n  rw [fwl_auxiliary_residual_eq_annihilator_full_residual]\n  have hM :\n      annihilatorMatrix X₁ *ᵥ residual (Matrix.fromCols X₁ X₂) y =\n        residual (Matrix.fromCols X₁ X₂) y :=\n    annihilator_mulVec_eq_self_of_regressors_orthogonal X₁\n      (residual (Matrix.fromCols X₁ X₂) y)\n      (normal_equations_fromCols_left X₁ X₂ y)\n  rw [hM]\n  unfold residualizedRegressors\n  rw [Matrix.transpose_mul, annihilatorMatrix_transpose]\n  rw [← Matrix.mulVec_mulVec (residual (Matrix.fromCols X₁ X₂) y) X₂ᵀ\n    (annihilatorMatrix X₁)]\n  rw [hM]\n  exact normal_equations_fromCols_right X₁ X₂ y\nLine by line:\n\nrw [fwl_auxiliary_residual_eq_annihilator_full_residual] — rewrite the inner subtraction \\tilde y - \\tilde X_2 \\hat\\beta_2 as M_1 \\hat e_{\\text{full}} using the bridge lemma at line 106. The goal becomes \\tilde X_2^\\top \\cdot (M_1 \\hat e_{\\text{full}}) = 0.\nhave hM := … — record the fact that M_1 acts as the identity on the full residual: M_1 \\hat e_{\\text{full}} = \\hat e_{\\text{full}}. This uses annihilator_mulVec_eq_self_of_regressors_orthogonal applied to the first-block normal equations normal_equations_fromCols_left X₁ X₂ y (which says X_1^\\top \\hat e_{\\text{full}} = 0).\nrw [hM] — apply that identity. The goal is now \\tilde X_2^\\top \\cdot \\hat e_{\\text{full}} = 0.\nunfold residualizedRegressors — replace \\tilde X_2 by M_1 X_2 on the left of the matrix-vector product. Goal: (M_1 X_2)^\\top \\cdot \\hat e_{\\text{full}} = 0.\nrw [Matrix.transpose_mul, annihilatorMatrix_transpose] — distribute the transpose: (M_1 X_2)^\\top = X_2^\\top M_1^\\top = X_2^\\top M_1 (the annihilator is symmetric). Goal: (X_2^\\top M_1) \\cdot \\hat e_{\\text{full}} = 0.\nrw [← Matrix.mulVec_mulVec …] — rewrite the matrix product (X_2^\\top M_1) \\cdot v as the iterated matrix-vector application X_2^\\top \\cdot (M_1 \\cdot v), applied backwards (the ← direction). Goal: X_2^\\top \\cdot (M_1 \\hat e_{\\text{full}}) = 0.\nrw [hM] — collapse M_1 \\hat e_{\\text{full}} to \\hat e_{\\text{full}} again. Goal: X_2^\\top \\cdot \\hat e_{\\text{full}} = 0.\nexact normal_equations_fromCols_right X₁ X₂ y — discharge the goal: this is exactly the second-block normal equations for the full regression (X_2^\\top \\hat e_{\\text{full}} = 0, line 26).\n\nThe shape of the proof is “rewrite using the bridge, kill the M_1 on both sides using X_1^\\top \\hat e = 0, then finish with X_2^\\top \\hat e = 0” — exactly the algebraic sketch above, broken into seven rw/exact steps.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-5.html#downstream-uses",
+    "href": "walkthroughs/chapter3/theorem-3-5.html#downstream-uses",
+    "title": "Theorem 3.5 — Frisch–Waugh–Lovell",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nfwl_normal_equations (line 181) — straightforward consequence, packaged as the auxiliary regression’s normal equations.\nfwl_residual_maker_mul_fromCols (line 195) — the sequential residual-maker M_{\\tilde X_2} M_1 kills both X_1 and X_2, used in projection-geometry arguments downstream.\n(Future) Chapter 4 / 7 partial-effect arguments will likely consume FWL — not yet wired up at the time of writing.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.5 — Frisch–Waugh–Lovell"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Hansen Econometrics in Lean",
+    "section": "",
+    "text": "A companion site for the Lean formalization of Hansen’s Econometrics.\n\nWalkthroughs — hand-written explanations of headline theorems with assumptions, proof sketches, and Lean-vs-textbook contrasts.\nAuto-generated reference — every public declaration in the Lean library, grouped by chapter.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html",
+    "href": "walkthroughs/chapter3/theorem-3-2.html",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "",
+    "text": "Hansen Theorem 3.2 states: when X^\\top X is invertible, the OLS estimator \\hat\\beta = (X^\\top X)^{-1} X^\\top y satisfies the normal equations X^\\top (y - X\\hat\\beta) = 0, equivalently X^\\top \\hat e = 0 where \\hat e = y - X\\hat\\beta is the residual vector. So the regressors are orthogonal to the OLS residuals.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#textbook-statement",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#textbook-statement",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "",
+    "text": "Hansen Theorem 3.2 states: when X^\\top X is invertible, the OLS estimator \\hat\\beta = (X^\\top X)^{-1} X^\\top y satisfies the normal equations X^\\top (y - X\\hat\\beta) = 0, equivalently X^\\top \\hat e = 0 where \\hat e = y - X\\hat\\beta is the residual vector. So the regressors are orthogonal to the OLS residuals.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#assumptions",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#assumptions",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Assumptions",
+    "text": "Assumptions\n\nDesign matrix X \\in \\mathbb{R}^{n\\times k}.\nX^\\top X is invertible (equivalently, X has full column rank, k \\le n).\ny \\in \\mathbb{R}^n is the response vector. No distributional assumption is needed — Theorem 3.2 is purely linear-algebraic.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#lean-statement",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#lean-statement",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe corresponding Lean objects all live in HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:\n\nolsBeta (definition, line 20) — the closed-form OLS coefficient (X^\\top X)^{-1} X^\\top y, defined under [Invertible (Xᵀ * X)].\nfitted (definition, line 38) — the fitted vector X\\hat\\beta.\nresidual (definition, line 42) — the residual vector y - X\\hat\\beta.\nnormal_equations (theorem, line 46) — the headline result: Xᵀ *ᵥ residual X y = 0.\nregressors_orthogonal_to_residual (theorem, line 61) — same statement, packaged under the orthogonality reading.\nolsBeta_eq_of_normal_equations (theorem, line 67) — uniqueness: any b satisfying the normal equations equals olsBeta.\n\nThe headline Lean theorem reads:\ntheorem normal_equations\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    Xᵀ *ᵥ residual X y = 0\n\nReading the statement\nIn English: given a design matrix X, a response vector y, and a witness that X^\\top X is invertible, the OLS residual is orthogonal to every column of X.\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n(X : Matrix n k ℝ)\nX \\in \\mathbb{R}^{n\\times k}\nGiven: design matrix. The index types n (observations) and k (regressors) are arbitrary Fintypes, supplied by the section variables.\n\n\n(y : n → ℝ)\ny \\in \\mathbb{R}^n\nGiven: response vector. Lean models a real vector as a function n → ℝ from the index type to reals.\n\n\n[Invertible (Xᵀ * X)]\nX^\\top X invertible\nGiven (hypothesis): the Gram matrix is invertible — Hansen’s full-column-rank assumption. The square brackets mark this as an instance argument: it is supplied by typeclass resolution rather than as an explicit have.\n\n\nXᵀ *ᵥ residual X y\nX^\\top \\hat e\nConclusion: matrix-times-vector applied to the residual. Matrix.transpose is written Xᵀ; *ᵥ is Matrix.mulVec.\n\n\n= 0\n= 0\nThe right-hand side is the zero vector in \\mathbb{R}^k.\n\n\n\n(The usual ambient typeclasses [Fintype n] [Fintype k] [DecidableEq k] are hoisted into the file’s variable block, which is why they don’t appear in the signature.)",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#translation-notes",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#translation-notes",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen writes X' \\hat e = 0 in matrix-of-real-numbers notation. Lean’s Xᵀ *ᵥ residual X y = 0 is the same statement under Mathlib’s Matrix.mulVec / transpose conventions.\nLean parameterizes by typeclasses [Fintype n] [Fintype k] [DecidableEq k] and an [Invertible (Xᵀ * X)] instance instead of a side condition. This is the same hypothesis as Hansen’s “X^\\top X is invertible,” packaged for elaboration.\nThe pair olsBeta (using ⅟) and olsBetaStar (using Matrix.nonsingInv) coexist because Chapter 7’s stochastic story needs the total version. They agree under invertibility (olsBetaStar_eq_olsBeta at line 31).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#proof-sketch",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#proof-sketch",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nSubstitute the closed form \\hat\\beta = (X^\\top X)^{-1} X^\\top y into X^\\top (y - X\\hat\\beta): X^\\top y - X^\\top X (X^\\top X)^{-1} X^\\top y = X^\\top y - X^\\top y = 0. That’s the whole proof — the normal equations are immediate from the definition of \\hat\\beta.\nUniqueness (olsBeta_eq_of_normal_equations) goes the other direction: from X^\\top(y - Xb) = 0, multiply through by (X^\\top X)^{-1} to recover b = (X^\\top X)^{-1} X^\\top y = \\hat\\beta.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#lean-proof-structure",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#lean-proof-structure",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe Lean proof of normal_equations mirrors the textbook proof in three short steps:\n\nUnfold residual, fitted, and olsBeta, then split the mulVec over subtraction with Matrix.mulVec_sub.\nUse Matrix.mulVec_mulVec to commute the two *ᵥ applications into a single matrix product, then reassociate via Matrix.mul_assoc so that X^\\top X sits next to its inverse.\nCollapse (X^\\top X) \\cdot ⅟(X^\\top X) to 1 using mul_invOf_self, leaving X^\\top y - X^\\top y, which simp reduces to 0.\n\n\nTactic-by-tactic walkthrough\nThe full Lean proof body:\ntheorem normal_equations\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    Xᵀ *ᵥ residual X y = 0 := by\n  unfold residual fitted olsBeta\n  rw [mulVec_sub]\n  have hmul : Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))\n            = (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by\n    rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]\n  calc\n    Xᵀ *ᵥ y - Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))\n        = Xᵀ *ᵥ y - (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by rw [hmul]\n    _ = Xᵀ *ᵥ y - (((Xᵀ * X) * ⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by rw [Matrix.mul_assoc]\n    _ = Xᵀ *ᵥ y - (1 *ᵥ (Xᵀ *ᵥ y)) := by rw [mul_invOf_self]\n    _ = 0 := by simp\nLine by line:\n\nunfold residual fitted olsBeta — replace the three definitions by their bodies. The goal becomes X^\\top \\!\\bigl(y - X \\cdot ⅟(X^\\top X) \\cdot X^\\top y\\bigr) = 0.\nrw [mulVec_sub] — distribute the outer Xᵀ *ᵥ over the subtraction (X^\\top(u - v) = X^\\top u - X^\\top v). The goal becomes X^\\top y - X^\\top \\!\\bigl(X \\cdot ⅟(X^\\top X) \\cdot X^\\top y\\bigr) = 0.\nhave hmul := ... — prove a helper equality stating that the nested matrix-vector applications X^\\top(X(⅟(X^\\top X)(X^\\top y))) equal the single product \\bigl(X^\\top \\cdot X \\cdot ⅟(X^\\top X)\\bigr) \\cdot (X^\\top y). The proof of hmul rewrites with Matrix.mulVec_mulVec (applied backwards twice) to fuse the matrix actions into one.\ncalc step 1 — apply hmul to rewrite the second term; the goal is now X^\\top y - \\bigl(X^\\top X \\cdot ⅟(X^\\top X)\\bigr) \\cdot X^\\top y = 0 modulo association.\ncalc step 2 — Matrix.mul_assoc re-associates X^\\top \\cdot (X \\cdot ⅟(X^\\top X)) to (X^\\top X) \\cdot ⅟(X^\\top X), putting the Gram matrix next to its inverse.\ncalc step 3 — mul_invOf_self collapses (X^\\top X) \\cdot ⅟(X^\\top X) to the identity matrix 1. The expression simplifies to X^\\top y - 1 \\cdot (X^\\top y).\ncalc step 4 — simp clears 1 *ᵥ v = v, then X^\\top y - X^\\top y = 0.\n\nFor uniqueness, olsBeta_eq_of_normal_equations (line 67) takes the hypothesis X^\\top(y - Xb) = 0, rewrites it as X^\\top y = (X^\\top X) b, and multiplies both sides by ⅟(X^\\top X) to identify b with olsBeta X y.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/theorem-3-2.html#downstream-uses",
+    "href": "walkthroughs/chapter3/theorem-3-2.html#downstream-uses",
+    "title": "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nnormal_equations is one of the most reused lemmas in the algebra of OLS. Direct consumers in this repo include:\n\nresidual_sum_zero_of_one_mem_colspan (Chapter3LeastSquaresAlgebra.lean:98) — when \\mathbf{1} \\in \\mathrm{col}(X), residuals sum to zero (Hansen equation 3.17).\nregressors_transpose_mul_annihilator (Chapter3FWL.lean:37) — X^\\top M = 0, used throughout FWL.\nfitted_dot_residual (Chapter3Projections.lean:217) — fitted values are orthogonal to residuals.\nThe Frisch–Waugh–Lovell theorems of Hansen Theorem 3.5 consume this transitively through the annihilator identity.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "",
+    "text": "In the linear model y = X\\beta + e with X^\\top X invertible, define the residual variance estimator\n\ns^2 := \\frac{1}{n-k} \\, \\hat e^\\top \\hat e, \\qquad \\hat e = y - X\\hat\\beta.\n\nThen under y = X\\beta + e,\n\n(n-k)\\, s^2 = e^\\top M e,\n\nwhere M = I - X(X^\\top X)^{-1} X^\\top is the annihilator matrix. So the residual sum of squares equals a quadratic form in the true error e, with M as the kernel — independent of X\\beta. This is the deterministic algebraic identity that lets Hansen Theorem 5.7 conclude \\frac{(n-k) s^2}{\\sigma^2} \\sim \\chi^2_{n-k} when e \\sim N(0, \\sigma^2 I).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#textbook-statement",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#textbook-statement",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "",
+    "text": "In the linear model y = X\\beta + e with X^\\top X invertible, define the residual variance estimator\n\ns^2 := \\frac{1}{n-k} \\, \\hat e^\\top \\hat e, \\qquad \\hat e = y - X\\hat\\beta.\n\nThen under y = X\\beta + e,\n\n(n-k)\\, s^2 = e^\\top M e,\n\nwhere M = I - X(X^\\top X)^{-1} X^\\top is the annihilator matrix. So the residual sum of squares equals a quadratic form in the true error e, with M as the kernel — independent of X\\beta. This is the deterministic algebraic identity that lets Hansen Theorem 5.7 conclude \\frac{(n-k) s^2}{\\sigma^2} \\sim \\chi^2_{n-k} when e \\sim N(0, \\sigma^2 I).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#assumptions",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#assumptions",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Assumptions",
+    "text": "Assumptions\n\nLinear model: y = X\\beta + e with X \\in \\mathbb{R}^{n\\times k}, X^\\top X invertible.\nPurely algebraic — no distributional assumption on e. The identity is finite-sample and pointwise in \\omega.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#lean-statement",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#lean-statement",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Lean statement",
+    "text": "Lean statement\nThree Lean theorems in HansenEconometrics/Chapter5NormalRegression.lean:\n\nolsResidualVarianceEstimator (definition, line 20) — s² as the residual quadratic form divided by n - k.\nolsResidualVarianceEstimator_linear_model (theorem, line 31) — under the linear model, s² equals (M e)^\\top (M e) / (n-k).\nresidual_quadratic_form_of_linear_model (theorem, line 43) — the bridge: (M e)^\\top (M e) = e^\\top M e (using M^\\top M = M for symmetric idempotent M).\nolsResidualVarianceEstimator_linear_model_quadratic_form (theorem, line 56) — the headline: s^2 = \\dfrac{e^\\top M e}{n-k}, equivalently (n-k) s^2 = e^\\top M e.\n\nThe headline theorem in Lean:\ntheorem olsResidualVarianceEstimator_linear_model_quadratic_form\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :\n    olsResidualVarianceEstimator X (X *ᵥ β + e)\n      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /\n          (Fintype.card n - Fintype.card k : ℝ)\n\nReading the statement\nIn English: given a design matrix X, a true coefficient vector \\beta, an error vector e, and a witness that X^\\top X is invertible, the residual variance estimator s^2 evaluated at y = X\\beta + e equals the quadratic form e^\\top M e divided by (n-k).\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n(X : Matrix n k ℝ)\nX \\in \\mathbb{R}^{n\\times k}\nGiven: design matrix. The index types n (observations) and k (regressors) are arbitrary Fintypes, supplied by the section variables.\n\n\n(β : k → ℝ)\n\\beta \\in \\mathbb{R}^k\nGiven: the true coefficient vector. Deterministic — this is a finite-sample algebraic identity, not a probabilistic statement.\n\n\n(e : n → ℝ)\ne \\in \\mathbb{R}^n\nGiven: the error vector. Also a deterministic vector here; no distributional assumption (Gaussianity enters only later in Theorem 5.7).\n\n\n[Invertible (Xᵀ * X)]\nX^\\top X invertible\nGiven (hypothesis): the Gram matrix is invertible — Hansen’s full-column-rank assumption. Square brackets mark this as an instance argument: it is supplied by typeclass resolution, not as an explicit have.\n\n\nolsResidualVarianceEstimator X (X *ᵥ β + e)\ns^2 evaluated at y = X\\beta + e\nConclusion (LHS): the residual variance estimator at the linear-model response. *ᵥ is Matrix.mulVec, so X *ᵥ β is X\\beta and X *ᵥ β + e is y.\n\n\ne ⬝ᵥ (annihilatorMatrix X) *ᵥ e\ne^\\top M e\nConclusion (RHS numerator): the annihilator quadratic form. ⬝ᵥ is dotProduct (so u ⬝ᵥ v is u^\\top v); annihilatorMatrix X is M = I - X(X^\\top X)^{-1} X^\\top.\n\n\n(Fintype.card n - Fintype.card k : ℝ)\nn - k\nConclusion (RHS denominator): the degrees-of-freedom scalar, computed in ℝ. The : ℝ ascription matters — it casts the cardinalities to reals before subtraction, so this is real subtraction, not truncated Nat subtraction.\n\n\n\n(The usual ambient typeclasses [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k] are hoisted into the file’s variable block, which is why they don’t appear in the signature.)",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#translation-notes",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#translation-notes",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen writes (n-k) s^2 = e^\\top M e as a single equation; Lean splits into two halves: (a) s² evaluated at X\\beta + e equals (M e)^\\top (M e) / (n-k) — this is the consequence of MX = 0; (b) for symmetric idempotent M, (M e)^\\top (M e) = e^\\top M e.\nLean’s dotProduct corresponds to u^\\top v. The Lean code uses e ⬝ᵥ (annihilatorMatrix X) *ᵥ e for e^\\top M e.\nThe (n-k) denominator is computed in ℝ (via the cast on Fintype.card), so subtraction is real subtraction, not truncated Nat subtraction.\nThis identity is purely algebraic — Invertible (Xᵀ * X) is the only hypothesis. No measure, no Gaussianity. The chi-square distributional content lands later in Theorem 5.7.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#proof-sketch",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#proof-sketch",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nTwo steps.\nStep 1: \\hat e = M e under the linear model. Substitute y = X\\beta + e into the residual:\n\n\\hat e = y - X\\hat\\beta = M y = M(X\\beta + e) = MX\\beta + Me = 0 + Me = Me,\n\nusing MX = 0. Hence\n\n(n-k) s^2 = \\hat e^\\top \\hat e = (Me)^\\top(Me) = e^\\top M^\\top M e.\n\nStep 2: M^\\top M = M for symmetric idempotent M. M is symmetric (M^\\top = M) and idempotent (M M = M), so\n\ne^\\top M^\\top M e = e^\\top M M e = e^\\top M e.\n\nHence (n-k) s^2 = e^\\top M e.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#lean-proof-structure",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#lean-proof-structure",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe Lean proof chain:\n\nolsResidualVarianceEstimator_linear_model (line 31) handles Step 1: it uses Matrix.mulVec_add and annihilator_mul_X (via Matrix.mulVec_mulVec) to show M *ᵥ (X *ᵥ β) = 0, then drops the term to leave (M e)^⊤ (M e) / (n-k).\nresidual_quadratic_form_of_linear_model (line 43) handles Step 2: it invokes a generic lemma quadratic_form_eq_dotProduct_of_symm_idempotent (in LinearAlgebraUtils.lean) that takes (M^⊤ = M) and (M M = M) as hypotheses and yields (Me)^⊤ (Me) = e^⊤ M e. The two hypotheses are supplied by annihilatorMatrix_transpose and annihilatorMatrix_idempotent from Chapter 3.\nolsResidualVarianceEstimator_linear_model_quadratic_form (line 56) chains the two via rw.\n\nPermalinks for the supporting lemmas:\n\nannihilatorMatrix_transpose (Chapter3Projections.lean:48)\nannihilatorMatrix_idempotent (Chapter3Projections.lean:127)\nannihilator_mul_X (Chapter3Projections.lean:90)\nquadratic_form_eq_dotProduct_of_symm_idempotent (LinearAlgebraUtils.lean:47)\n\n\nTactic-by-tactic walkthrough\nThe headline theorem is a one-liner — the substantive work lives in the two supporting lemmas. We trace all three.\n1. olsResidualVarianceEstimator_linear_model (line 31): Step 1 of the proof.\ntheorem olsResidualVarianceEstimator_linear_model\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :\n    olsResidualVarianceEstimator X (X *ᵥ β + e)\n      = (dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)) /\n          (Fintype.card n - Fintype.card k : ℝ) := by\n  unfold olsResidualVarianceEstimator\n  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by\n    simpa [Matrix.mulVec_mulVec] using\n      congrArg (fun M : Matrix n k ℝ =&gt; M *ᵥ β) (annihilator_mul_X X)\n  rw [Matrix.mulVec_add, hMXβ, zero_add]\nLine by line:\n\nunfold olsResidualVarianceEstimator — replace the LHS with its definitional body. The goal becomes (M(X\\beta + e))^\\top (M(X\\beta + e)) / (n-k)\n= (Me)^\\top(Me) / (n-k).\nhave hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 — establish the key algebraic fact M X \\beta = 0. The proof transports annihilator_mul_X X : M * X = 0 (a Chapter 3 result) along the function M ↦ M *ᵥ β, then uses Matrix.mulVec_mulVec to rewrite (M X) *ᵥ \\beta as M *ᵥ (X *ᵥ \\beta). The simpa tactic does the rewriting and discharges the trivial 0 *ᵥ β = 0 step.\nrw [Matrix.mulVec_add, hMXβ, zero_add] — three rewrites that finish the proof: Matrix.mulVec_add distributes M over the sum to give M *ᵥ (X *ᵥ \\beta) + M *ᵥ e; hMXβ rewrites the first summand to 0; zero_add drops it, leaving exactly M e on both sides of the dot product. The goal closes by rfl after the rewrites.\n\n2. residual_quadratic_form_of_linear_model (line 43): Step 2 of the proof.\ntheorem residual_quadratic_form_of_linear_model\n    (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :\n    dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)\n      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by\n  symm\n  exact quadratic_form_eq_dotProduct_of_symm_idempotent\n    (annihilatorMatrix X)\n    (annihilatorMatrix_transpose X)\n    (annihilatorMatrix_idempotent X)\n    e\nLine by line:\n\nsymm — flip the goal to the orientation that matches the supporting lemma. The goal becomes e^\\top M e = (Me)^\\top (Me).\nexact quadratic_form_eq_dotProduct_of_symm_idempotent ... — invoke the generic linear-algebra fact: for any matrix A with A^\\top = A and A A = A, we have v^\\top A v = (Av)^\\top (Av). The two algebraic hypotheses are supplied by annihilatorMatrix_transpose X (M^\\top = M) and annihilatorMatrix_idempotent X (M M = M), both proved back in Chapter 3.\n\n3. olsResidualVarianceEstimator_linear_model_quadratic_form (line 56): the headline chain.\ntheorem olsResidualVarianceEstimator_linear_model_quadratic_form\n    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :\n    olsResidualVarianceEstimator X (X *ᵥ β + e)\n      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /\n          (Fintype.card n - Fintype.card k : ℝ) := by\n  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]\nLine by line:\n\nrw [olsResidualVarianceEstimator_linear_model, ...] — apply Step 1 to rewrite the LHS as (Me)^\\top (Me) / (n-k).\nrw [..., residual_quadratic_form_of_linear_model] — apply Step 2 to rewrite the numerator (Me)^\\top (Me) as e^\\top M e. Both sides now match definitionally and the goal closes.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#downstream-uses",
+    "href": "walkthroughs/chapter5/quadratic-form-of-residual-variance.html#downstream-uses",
+    "title": "Lemma — (n−k) s² = eᵀMe in the linear model",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nTheorem 5.7 (chi-square distribution of (n-k) s^2 / \\sigma^2 under Gaussian errors). The identity proved here is the deterministic kernel of that distributional result.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 5",
+      "Lemma — (n−k) s² = eᵀMe in the linear model"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html",
+    "href": "walkthroughs/chapter7/theorem-7-1.html",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "",
+    "text": "Suppose we observe an i.i.d. sample (X_i, e_i) drawn from the population (X, e) on a probability space (\\Omega, \\mu), and form the response y_i = X_i^\\top \\beta + e_i. Stack the first n observations into a regressor matrix X_{(n)} and outcome vector y_{(n)}. Under the moment assumptions that \\mathbb{E}[X_i X_i^\\top] is invertible, \\mathbb{E}\\|X_i\\|^2 &lt; \\infty, and \\mathbb{E}\\|X_i e_i\\| &lt; \\infty, the OLS estimator from the stacked sample converges in probability to \\beta:\n\n\\hat\\beta_{(n)} \\xrightarrow{p} \\beta \\qquad \\text{as } n \\to \\infty.\n\nThis is “consistency”: OLS recovers the true parameter \\beta in the large-sample limit.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#textbook-statement",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "",
+    "text": "Suppose we observe an i.i.d. sample (X_i, e_i) drawn from the population (X, e) on a probability space (\\Omega, \\mu), and form the response y_i = X_i^\\top \\beta + e_i. Stack the first n observations into a regressor matrix X_{(n)} and outcome vector y_{(n)}. Under the moment assumptions that \\mathbb{E}[X_i X_i^\\top] is invertible, \\mathbb{E}\\|X_i\\|^2 &lt; \\infty, and \\mathbb{E}\\|X_i e_i\\| &lt; \\infty, the OLS estimator from the stacked sample converges in probability to \\beta:\n\n\\hat\\beta_{(n)} \\xrightarrow{p} \\beta \\qquad \\text{as } n \\to \\infty.\n\nThis is “consistency”: OLS recovers the true parameter \\beta in the large-sample limit.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#assumptions",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#assumptions",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Assumptions",
+    "text": "Assumptions\nHansen Theorem 7.1 requires:\n\nLinear model with stable parameter: y_i = X_i^\\top \\beta + e_i for all i, with \\beta \\in \\mathbb{R}^k fixed.\ni.i.d. sampling under measure \\mu.\nPopulation Gram matrix invertibility: \\mathbb{E}[X_i X_i^\\top] = Q is invertible (full-rank regressors in population).\nFinite second moment of regressors: \\mathbb{E}\\|X_i\\|^2 &lt; \\infty — needed for the WLLN of the sample Gram.\nFinite first moment of cross-product: \\mathbb{E}\\|X_i e_i\\| &lt; \\infty — needed for the WLLN of the sample cross-moment.\n\nIn Lean, these are bundled into a single typeclass SampleMomentAssumption71 μ X e.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#lean-statement",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe textbook-facing theorem lives in HansenEconometrics/Chapter7Asymptotics.lean:\n\nolsBetaOrZero_stack_tendstoInMeasure_beta at HansenEconometrics/Chapter7Asymptotics.lean:1822.\n\ntheorem olsBetaOrZero_stack_tendstoInMeasure_beta\n    {μ : Measure Ω} [IsFiniteMeasure μ]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)\n    (h : SampleMomentAssumption71 μ X e)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :\n    TendstoInMeasure μ\n      (fun n ω =&gt; olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))\n      atTop (fun _ =&gt; β)\n\nReading the statement\nIn English: given a probability space (\\Omega, \\mu), an i.i.d. sequence of regressor rows X_i and errors e_i satisfying the moment assumptions, and a true coefficient \\beta that links outcomes to regressors via y_i = X_i^\\top \\beta + e_i, the OLS estimator built from the first n stacked observations converges in probability to \\beta as n \\to \\infty.\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{μ : Measure Ω}\n\\mu on \\Omega\nGiven: the underlying measure on the sample space. Implicit ({...}), inferred from later arguments.\n\n\n[IsFiniteMeasure μ]\n\\mu(\\Omega) &lt; \\infty\nGiven (hypothesis): finite total mass — so probability statements like TendstoInMeasure are well-typed. Square brackets mark this as a typeclass instance.\n\n\n{X : ℕ → Ω → (k → ℝ)}\nX_i : \\Omega \\to \\mathbb{R}^k\nGiven: the i.i.d. sequence of regressor row processes — observation i at sample point \\omega is the row vector X_i(\\omega).\n\n\n{e : ℕ → Ω → ℝ}\ne_i : \\Omega \\to \\mathbb{R}\nGiven: the i.i.d. sequence of scalar error processes.\n\n\n{y : ℕ → Ω → ℝ}\ny_i : \\Omega \\to \\mathbb{R}\nGiven: the i.i.d. sequence of scalar outcomes. Logically determined by X, e, and β via hmodel.\n\n\n(β : k → ℝ)\n\\beta \\in \\mathbb{R}^k\nGiven: the true (population) coefficient vector — a fixed parameter, not random.\n\n\n(h : SampleMomentAssumption71 μ X e)\ni.i.d. + moment + invertibility bundle\nGiven (hypothesis): the bundled Theorem 7.1 assumptions: i.i.d. structure, integrability of X_i, X_i X_i^\\top and X_i e_i, plus invertibility of the population Gram \\mathbb{E}[X_i X_i^\\top]. Each face is exposed as a separate field on h.\n\n\n(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\ny_i = X_i^\\top \\beta + e_i\nGiven (hypothesis): the linear model holds pointwise at every observation i and every sample point \\omega. ⬝ᵥ is Matrix.dotProduct (vector inner product).\n\n\nTendstoInMeasure μ … atTop (fun _ =&gt; β)\n\\hat\\beta_n \\xrightarrow{p} \\beta\nConclusion: convergence in probability under \\mu as n \\to \\infty. The constant target fun _ =&gt; β is the fixed limit.\n\n\nfun n ω =&gt; olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)\n\\hat\\beta_{(n)}(\\omega)\nThe sample OLS estimator: stackRegressors X n ω builds the n \\times k design from the first n rows at \\omega, stackOutcomes y n ω stacks the first n outcomes, and olsBetaOrZero returns the closed-form OLS coefficient (or 0 on the singular set).\n\n\n\n(The ambient typeclasses [Fintype k] [DecidableEq k] for the regressor index type, and the universe Ω : Type*, are hoisted into a variable block at the top of the file’s section.)\nThe Lean development uses a totalized estimator olsBetaStar (defined for every design and returning 0 when X^\\top X is singular) together with a wrapper olsBetaOrZero that agrees with ordinary olsBeta whenever the sample Gram is nonsingular and equals olsBetaStar unconditionally. The asymptotic statement uses olsBetaOrZero because measurability is cleaner — singular samples have measure zero in the limit, so the wrapper’s behavior on those samples doesn’t matter.\nThe substantive work is done by the totalized companion theorem:\n\nolsBetaStar_stack_tendstoInMeasure_beta at HansenEconometrics/Chapter7Asymptotics.lean:1600.\n\nThe wrapper version reduces to it via olsBetaOrZero_eq_olsBetaStar.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#translation-notes",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#translation-notes",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nHansen writes \\hat\\beta_n \\to_p \\beta. Lean writes TendstoInMeasure μ (fun n ω =&gt; olsBetaOrZero …) atTop (fun _ =&gt; β). These are the same notion: convergence in probability under measure \\mu.\nThe SampleMomentAssumption71 typeclass packages: IsFiniteMeasure μ, i.i.d. structure, integrability of X_i, integrability of X_i \\cdot X_i and X_i e_i, plus invertibility of \\mathbb{E}[X X^\\top]. Each face is exposed as a separate lemma so that downstream proofs can pick out exactly the moment hypothesis they need.\nThe Lean form uses stackRegressors X n and stackOutcomes y n to build the sample design matrix and outcome vector from the i.i.d. processes X : ℕ → Ω → (k → ℝ) and y : ℕ → Ω → ℝ. This exposes the stacking as a measurable function rather than a hand-waved “first n observations.”\nThe theorem is stated for olsBetaOrZero, not olsBeta, because the latter requires [Invertible (Xᵀ * X)] as a typeclass — which we cannot guarantee on every \\omega. olsBetaOrZero returns 0 outside the nonsingular set; on the asymptotic limit set, it agrees with ordinary OLS.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#proof-sketch",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#proof-sketch",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Proof sketch",
+    "text": "Proof sketch\nThe standard textbook argument:\n\nSample-moment WLLN. By the i.i.d. WLLN applied to X_i X_i^\\top and X_i e_i: \n\\hat Q_n := \\frac{1}{n}\\sum_{i=1}^n X_i X_i^\\top \\xrightarrow{p} Q,\n\\qquad\n\\hat g_n := \\frac{1}{n}\\sum_{i=1}^n X_i e_i \\xrightarrow{p} \\mathbb{E}[X_i e_i].\n\nCross moment is zero in the linear model. Under the linear-model hypothesis the cross-moment limit reduces to 0 (the Lean development states this directly as a tendsto-to-zero claim, sidestepping the intermediate orthogonality identity).\nContinuous mapping. Since Q is invertible and inversion is continuous on the open set of invertible matrices, \\hat Q_n^{-1} \\xrightarrow{p}\nQ^{-1} on the limit set.\nOLS error decomposition. \\hat\\beta_n - \\beta = \\hat Q_n^{-1} \\hat\ng_n, so by Slutsky’s theorem \n\\hat\\beta_n - \\beta \\xrightarrow{p} Q^{-1} \\cdot 0 = 0.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#lean-proof-structure",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#lean-proof-structure",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Lean proof structure",
+    "text": "Lean proof structure\nThe Lean proof breaks into many supporting lemmas; the headline theorem is short because it composes pieces.\nThe deterministic algebraic engine:\n\nolsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment at HansenEconometrics/Chapter7Asymptotics.lean:512 — the pointwise identity \\hat\\beta - \\beta = \\hat Q_n^{-1}\\, \\hat g_n on nonsingular samples.\n\nThe sample-moment WLLN faces:\n\nsampleGram_stackRegressors_tendstoInMeasure_popGram at HansenEconometrics/Chapter7Asymptotics.lean:838 — \\hat Q_n\n\\xrightarrow{p} Q.\nsampleGramInv_stackRegressors_tendstoInMeasure_popGramInv at HansenEconometrics/Chapter7Asymptotics.lean:875 — \\hat Q_n^{-1}\n\\xrightarrow{p} Q^{-1} via continuous mapping.\nsampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero at HansenEconometrics/Chapter7Asymptotics.lean:892 — \\hat g_n\n\\xrightarrow{p} 0 in the linear-model setup.\n\nThe Slutsky / continuous-mapping bridge that combines them:\n\nsampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero at HansenEconometrics/Chapter7Asymptotics.lean:1042 — combines \\hat\nQ_n^{-1} \\to_p Q^{-1} with \\hat g_n \\to_p 0 to conclude \\hat\nQ_n^{-1}\\, \\hat g_n \\to_p 0.\n\nThe totalized consistency theorem packages all of this:\n\nolsBetaStar_stack_tendstoInMeasure_beta at HansenEconometrics/Chapter7Asymptotics.lean:1600.\n\nThe ordinary-wrapper version on line 1822 is then a one-liner:\nsimpa [olsBetaOrZero_eq_olsBetaStar] using\n  olsBetaStar_stack_tendstoInMeasure_beta\n    (μ := μ) (X := X) (e := e) (y := y) β h hmodel\n\nTactic-by-tactic walkthrough\nThe headline wrapper (line 1822). The full proof body of olsBetaOrZero_stack_tendstoInMeasure_beta is two lines:\ntheorem olsBetaOrZero_stack_tendstoInMeasure_beta … := by\n  simpa [olsBetaOrZero_eq_olsBetaStar] using\n    olsBetaStar_stack_tendstoInMeasure_beta\n      (μ := μ) (X := X) (e := e) (y := y) β h hmodel\nThere is essentially nothing to walk through here — the wrapper version reduces immediately to the totalized version. The olsBetaOrZero_eq_olsBetaStar rewrite (line 265) replaces olsBetaOrZero by olsBetaStar pointwise, and simpa applies that rewrite to both sides of the totalized statement to produce the wrapper statement verbatim.\nThe totalized version (line 1600). The substantive proof is olsBetaStar_stack_tendstoInMeasure_beta. It is too long to walk line by line; instead, here is the role each composed lemma plays in the high-level structure (the proof is built around the identity \\hat\\beta_n - \\beta = R'_n + \\hat Q_n^{-1}\\,\\hat g_n, where R'_n is a “residual” term that vanishes on the nonsingular event):\n\nPointwise residual identity — olsBetaStar_sub_identity (line 714) gives, for every \\omega, the algebraic decomposition \\hat\\beta_n - \\beta - \\hat Q_n^{-1}\\,\\hat g_n = (\\hat Q_n^{-1}\\hat Q_n - 1)\\,\\beta. The right-hand side is exactly R'_n — it equals 0 on \\{\\hat Q_n\n\\text{ invertible}\\} and -\\beta off it.\nAlgebraic engine on nonsingular samples — olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment (line 512) is the deterministic Hansen §7.2 identity \\hat\\beta_n - \\beta =\n\\hat Q_n^{-1}\\,\\hat g_n on the invertible event. olsBetaStar_sub_identity is its olsBetaStar-on-all-of-\\Omega extension.\nResidual vanishes in probability — residual_tendstoInMeasure_zero (line 1144) shows R'_n \\xrightarrow{p} 0. Inside, it uses measure_sampleGram_singular_tendsto_zero (the singular set has vanishing measure) plus the fact that R'_n \\equiv 0 on the nonsingular event. This is loaded as hF6 and immediately re-shaped via the residual identity to give the “R'_n” tendsto piece.\nSample Gram WLLN — sampleGram_stackRegressors_tendstoInMeasure_popGram (line 838) gives \\hat Q_n \\xrightarrow{p} Q via the i.i.d. WLLN applied to X_i X_i^\\top (uses the second-moment hypothesis from h).\nInversion-continuity — sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv (line 875) lifts the Gram WLLN through matrix inversion: since matrix inversion is continuous at any nonsingular point and h.Q_nonsing guarantees Q is invertible, \\hat Q_n^{-1} \\xrightarrow{p} Q^{-1} on the limit set.\nCross-moment WLLN — sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero (line 892) gives \\hat g_n \\xrightarrow{p} 0. The cross-product X_i \\cdot e_i has mean 0 in the linear-model setup (Hansen’s orthogonality axiom) and finite first moment, so the WLLN delivers a zero limit.\nSlutsky combination — sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero (line 1042) combines the inverted-Gram tendsto with the cross-moment tendsto via tendstoInMeasure_mulVec to conclude \\hat Q_n^{-1}\\,\\hat g_n\n\\xrightarrow{p} Q^{-1} \\cdot 0 = 0. This is loaded as hCore.\nAdd the two convergences — the proof then uses tendstoInMeasure_add to combine R'_n \\xrightarrow{p} 0 (hR') and \\hat Q_n^{-1}\\,\\hat g_n \\xrightarrow{p} 0 (hCore), giving R'_n + \\hat Q_n^{-1}\\,\\hat g_n \\xrightarrow{p} 0. A second tendstoInMeasure_add against the constant tendsto for \\beta shifts the limit to \\beta.\nCongr back to olsBetaStar — finally, hSumPlus.congr_left rewrites the sample function R'_n + \\hat Q_n^{-1}\\hat g_n + \\beta back to \\hat\\beta_n^* using olsBetaStar_sub_identity once more, closing the goal.\n\n(The intervening hGram_meas, hCrossE_meas, hInv_meas, hCoreMV_meas, hR'_meas blocks at lines 1608-1656 are all measurability boilerplate — they expand each sample function into a (1/n) • ∑ … form and chain AEStronglyMeasurable through the algebra. They feed the tendstoInMeasure_add and tendstoInMeasure_mulVec calls but contribute nothing mathematically beyond “everything in sight is measurable.”)",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-1.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-1.html#downstream-uses",
+    "title": "Theorem 7.1 — Consistency of OLS",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nTheorem 7.8 (continuous mapping for OLS): if \\phi is continuous at \\beta, then \\phi(\\hat\\beta_n) \\xrightarrow{p} \\phi(\\beta). Lean: continuousAt_function_olsBetaOrZero_tendstoInMeasure at HansenEconometrics/Chapter7Asymptotics.lean:1854.\nTheorem 7.4 (variance estimator consistency): builds on \\hat\\beta\n\\to_p \\beta to show \\hat\\sigma^2 \\to_p \\sigma^2.\nTheorem 7.3 (asymptotic normality): consistency is a precondition for the CLT-style result.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.1 — Consistency of OLS"
+    ]
+  }
+]

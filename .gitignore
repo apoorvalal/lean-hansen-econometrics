@@ -8,3 +8,6 @@ build/
 *.out
 textextract/
 .mcp.json
+
+# Walkthrough site build artifacts
+site/_generated/
