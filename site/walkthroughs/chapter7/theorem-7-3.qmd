@@ -75,6 +75,33 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
       atTop Z (fun _ => μ) ν
 ```
 
+### Reading the statement
+
+In English: **given** an i.i.d. sample $(X_i, e_i)$ on probability space
+$(\Omega, \mu)$ satisfying the score-CLT moment assumptions of Theorem 7.2,
+a true coefficient $\beta$, a fixed projection direction $a$, the linear model
+$y_i = X_i^\top \beta + e_i$, and a random variable $Z$ on an auxiliary
+probability space $(\Omega', \nu)$ with the named Gaussian law, the scalar
+projection $\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta)$ converges in
+distribution (under sample measure $\mu$) to $Z$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `{μ : Measure Ω} [IsProbabilityMeasure μ]` | $(\Omega, \mu)$ | **Given:** the sample probability space. The sequence $(X_i, e_i)$ lives here. Curly braces mark `μ` as implicit (inferred from later arguments). |
+| `{ν : Measure Ω'} [IsProbabilityMeasure ν]` | $(\Omega', \nu)$ | **Given:** an auxiliary probability space hosting the limiting Gaussian. This is the Lean idiom for "convergence in distribution to a random variable defined elsewhere" — the limit $Z$ lives on $(\Omega', \nu)$, not on the sample space. |
+| `{X : ℕ → Ω → (k → ℝ)}` | $(X_i)_{i \in \mathbb{N}}$ | **Given:** the regressor sequence. `X i ω : k → ℝ` is observation $i$'s regressor vector, indexed by the regressor coordinate type `k`. |
+| `{e : ℕ → Ω → ℝ}` | $(e_i)_{i \in \mathbb{N}}$ | **Given:** the error / disturbance sequence. |
+| `{y : ℕ → Ω → ℝ}` | $(y_i)_{i \in \mathbb{N}}$ | **Given:** the response sequence. |
+| `(h : SampleCLTAssumption72 μ X e)` | Hansen Assumption 7.2 | **Given (hypothesis):** the bundled package — i.i.d. sampling, identical distributions, $\mathbb{E}[X_i e_i] = 0$, $L^2$ moments on the score $X_i e_i$, and the score covariance is finite. This is everything Theorem 7.2 needs. It extends `SampleMomentAssumption71`, so Theorem 7.1's WLLN inputs come along for free. |
+| `(β a : k → ℝ)` | $\beta, a \in \mathbb{R}^k$ | **Given:** the true coefficient $\beta$ (so the OLS error is $\hat\beta_n^\ast - \beta$) and the projection direction $a$ (so we read $a^\top (\hat\beta_n^\ast - \beta)$). |
+| `(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)` | $y_i = X_i^\top \beta + e_i$ | **Given (hypothesis):** the linear model, asserted pointwise on every $i$ and every $\omega$. `⬝ᵥ` is `Matrix.dotProduct`. |
+| `{Z : Ω' → ℝ}` | $Z : \Omega' \to \mathbb{R}$ | **Given:** the random variable that will play the role of the Gaussian limit, on the auxiliary space. |
+| `(hZ : HasLaw Z (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν)` | $Z \sim N(0, V_a)$ | **Given (hypothesis):** the law of $Z$ on $(\Omega', \nu)$ is exactly $N(0, V_a)$, where $V_a = a^\top Q^{-1} \Omega Q^{-1} a$ is the named asymptotic variance. The `.toNNReal` is the variance argument's nonnegative coercion (Mathlib's `gaussianReal` takes a nonnegative variance). |
+| `TendstoInDistribution (fun n ω => (Real.sqrt (n : ℝ) • (olsBetaStar … - β)) ⬝ᵥ a) atTop Z (fun _ => μ) ν` | $\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta) \xrightarrow{d} Z$ | **Conclusion:** scalar convergence in distribution. The sample statistic, indexed by $n$, lives under measure $\mu$ (the constant family `fun _ => μ`); $Z$ lives under $\nu$. `Real.sqrt (n : ℝ) • (… - β)` is the scaled error vector; `⬝ᵥ a` projects onto direction $a$. `olsBetaStar` is the totalized OLS estimator (returns $0$ when the sample Gram is singular), so the statement is meaningful even on the measure-zero singular set. |
+
+(The ambient typeclasses `[Fintype k] [DecidableEq k]` and the measurable
+structures on `Ω`, `Ω'` are in the file's `variable` block.)
+
 Companion / related theorems:
 
 - [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6888)
@@ -170,6 +197,103 @@ The chain is heavy because the Lean version handles `olsBetaStar` (the
 totalized estimator) and has to manage the singular-sample contribution
 explicitly — an issue Hansen sidesteps by working "modulo events of
 probability tending to zero."
+
+### Tactic-by-tactic walkthrough
+
+The headline theorem at line 5332 has a short body: it hypothesis-massages
+the Gaussian variance into the named-asymptotic-variance form, then defers
+to the variance-form sibling.
+
+```lean
+theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {Z : Ω' → ℝ}
+    (hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (Real.sqrt (n : ℝ) •
+          (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
+      atTop Z (fun _ => μ) ν := by
+  have hZ' : HasLaw Z
+      (gaussianReal 0
+        (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
+      ν := by
+    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]
+    simpa [olsProjectionAsymptoticVariance] using hZ
+  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'
+```
+
+What each step is doing:
+
+- **`have hZ' : … := by …`** — re-state the Gaussian-law hypothesis on $Z$
+  using the variance-form parameter, so we can hand it to the sibling
+  `scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`. The two
+  variances are equal but have different syntactic shapes:
+  $\mathrm{Var}[(e_0 X_0) \cdot ((Q^{-1})^\top a); \mu]$ on the variance-form
+  side and `olsProjectionAsymptoticVariance μ X e a` (the named matrix-form
+  $((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$) on the covariance-form
+  side.
+- **`rw [scoreProjection_variance_eq_quadraticScoreCovariance …]`** — apply
+  Theorem 7.2's covariance-matrix face
+  ([line 2503](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503))
+  in direction $((Q^{-1})^\top a)$. This rewrites the variance of the score
+  projection as the quadratic form
+  $((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$.
+- **`simpa [olsProjectionAsymptoticVariance] using hZ`** — unfold the named
+  asymptotic variance on the goal side; the resulting expression matches the
+  hypothesis `hZ` directly.
+- **`exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian …`** —
+  hand off to the variance-form headline at
+  [line 5307](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
+  with the rewritten Gaussian hypothesis `hZ'`.
+
+So the line-5332 wrapper is essentially a one-line bridge: the real work
+sits in the variance-form chain it composes. Walking that chain
+top-down:
+
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
+  (line 5307) — same Theorem 7.3 statement but with the Gaussian variance in
+  variance-form. Its body discharges the measurability premise of the
+  `_of_finalMeas` variant by applying
+  `scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable`.
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5277)
+  (line 5277) — same statement with an explicit `AEMeasurable` premise. Its
+  body discharges the score-bounded premise of an even more upstream
+  variant from `scoreCoordinate_sampleCrossMoment_boundedInProbability`,
+  passing through a chain that eventually reduces the goal to a Slutsky
+  combination of a CLT term and an $o_p(1)$ inverse-gap term.
+- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
+  (line 4773) — the **score CLT** (Theorem 7.2 face). Supplies the Gaussian
+  limit for $(\sqrt{n})^{-1} \sum_i (e_i X_i) \cdot c$ in any fixed direction
+  $c$. Used in direction $c = (Q^{-1})^\top a$.
+- [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1491)
+  (line 1491) — the **algebraic decomposition**: at every $n$ and $\omega$,
+  $\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta)$ equals the sum of (i) a
+  scaled singular-sample residual, (ii) the fixed-$Q^{-1}$ score projection
+  (which gets the CLT), and (iii) the random-inverse-gap projection (which
+  needs Slutsky).
+- [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1415)
+  (line 1415) — the **Slutsky $o_p(1)$ control**: the random-inverse-gap
+  term $((\hat Q_n^{-1} - Q^{-1}) \sqrt{n}\, \hat g_n) \cdot a$ goes to zero
+  in measure, because each coordinate weight goes to $0$ in probability
+  (continuous mapping on $\hat Q_n^{-1} \to Q^{-1}$) and the score
+  coordinates are bounded in probability.
+- [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503)
+  (line 2503) — the **variance bridge** invoked by the line-5332 wrapper:
+  rewrites $\mathrm{Var}[(e_0 X_0) \cdot c; \mu] = c^\top \Omega c$, so the
+  variance-form Gaussian and the named-covariance Gaussian agree.
+
+Putting it together: line 5332 reformulates the limit Gaussian's variance,
+line 5307 discharges measurability, line 5277 packages a Slutsky combination,
+line 4773 supplies the CLT term, line 1491 says what the OLS scalar projection
+is algebraically, and line 1415 says the only remaining piece is $o_p(1)$.
 
 ## Downstream uses
 
