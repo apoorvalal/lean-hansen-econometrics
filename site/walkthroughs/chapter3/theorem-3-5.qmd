@@ -1,0 +1,198 @@
+---
+title: "Theorem 3.5 — Frisch–Waugh–Lovell"
+lean_name: "HansenEconometrics.fromColsRightBeta_eq_fwlBeta"
+chapter: 3
+---
+
+## Textbook statement
+
+Partition the regressors $X = [X_1, X_2]$ with $k_1$ and $k_2$ columns
+respectively, and consider the full regression
+
+$$
+y = X_1 \hat\beta_1 + X_2 \hat\beta_2 + \hat e.
+$$
+
+Let $M_1 = I - X_1(X_1^\top X_1)^{-1} X_1^\top$ be the annihilator for $X_1$,
+and define the **residualized** quantities $\tilde y = M_1 y$ and
+$\tilde X_2 = M_1 X_2$.
+
+The **Frisch–Waugh–Lovell theorem** states:
+
+1. **Coefficient part.** The second-block coefficient $\hat\beta_2$ from the
+   full regression equals the coefficient from the auxiliary OLS of
+   $\tilde y$ on $\tilde X_2$:
+   $$
+   \hat\beta_2 = (\tilde X_2^\top \tilde X_2)^{-1} \tilde X_2^\top \tilde y.
+   $$
+2. **Residual part.** The residuals from the auxiliary regression equal the
+   residuals from the full regression:
+   $$
+   \tilde y - \tilde X_2 \hat\beta_2 = \hat e.
+   $$
+
+So you can recover the partial effect $\hat\beta_2$ — and the same residuals
+— by first partialling out $X_1$ from both $y$ and $X_2$, then running OLS on
+the residualized variables.
+
+## Assumptions
+
+- Partitioned design $X = [X_1, X_2]$ with $X_1 \in \mathbb{R}^{n\times k_1}$,
+  $X_2 \in \mathbb{R}^{n\times k_2}$.
+- $X_1^\top X_1$ is invertible (the first block has full column rank).
+- The full Gram matrix $[X_1, X_2]^\top [X_1, X_2]$ is invertible (the joint
+  design has full column rank).
+- The residualized Gram matrix
+  $\tilde X_2^\top \tilde X_2 = (M_1 X_2)^\top (M_1 X_2)$ is invertible.
+- No distributional assumption — FWL is a purely algebraic identity.
+
+## Lean statement
+
+All in `HansenEconometrics/Chapter3FWL.lean`:
+
+- [`residualizedRegressors`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L51)
+  at `Chapter3FWL.lean:51` — defined as `annihilatorMatrix X₁ * X₂`, i.e.
+  $\tilde X_2 = M_1 X_2$.
+- [`fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L58)
+  at `Chapter3FWL.lean:58` — OLS coefficient from regressing $\tilde y = M_1 y$
+  on $\tilde X_2$.
+- [`fromColsRightBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L75)
+  at `Chapter3FWL.lean:75` — the $X_2$-block of the full-regression
+  coefficient on $[X_1, X_2]$.
+- [`fromColsRightBeta_eq_fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
+  at `Chapter3FWL.lean:147` — coefficient part of FWL.
+- [`fwl_residual_eq_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)
+  at `Chapter3FWL.lean:163` — residual part of FWL.
+
+The two headline theorems:
+
+```lean
+theorem fromColsRightBeta_eq_fwlBeta
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
+    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
+    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y
+
+theorem fwl_residual_eq_full_residual
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
+    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
+    residual (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y) =
+      residual (Matrix.fromCols X₁ X₂) y
+```
+
+Supporting / helper theorems used internally:
+
+- [`normal_equations_fromCols_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L15)
+  / [`normal_equations_fromCols_right`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L26)
+  at lines 15 and 26.
+- [`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+  at line 37 — $X^\top M = 0$.
+- [`residualizedRegressors_orthogonal_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L94)
+  at line 94 — $X_1^\top \tilde X_2 = 0$.
+- [`fwl_auxiliary_residual_eq_annihilator_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L106)
+  at line 106 — bridges auxiliary residual to $M_1 \hat e_{\text{full}}$.
+- [`fwl_fromColsRightBeta_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
+  at line 123 — full-regression $\hat\beta_2$ satisfies the auxiliary normal
+  equations.
+
+## Translation notes
+
+- Hansen states FWL with $\hat\beta_2$ from regressing $\tilde y$ on
+  $\tilde X_2$; Lean defines `fwlBeta := olsBeta (M_1 X_2) (M_1 y)`.
+  Identical.
+- Lean uses `Matrix.fromCols X₁ X₂` for the column-partitioned $[X_1, X_2]$.
+  The full-regression coefficients are projected to their two blocks via
+  `Sum.inl` / `Sum.inr` (the index type is `k₁ ⊕ k₂`).
+- The residual part of FWL is stated using the auxiliary regression's
+  residual; the textbook commonly states
+  "$\tilde y - \tilde X_2 \hat\beta_2 = \hat e$" with $\hat\beta_2$ from the
+  *full* regression. Lean's `fwl_residual_eq_full_residual` is the
+  corresponding equality in the formalization.
+- Three invertibility instances are required for the coefficient theorem:
+  $X_1^\top X_1$, $[X_1, X_2]^\top [X_1, X_2]$, and
+  $\tilde X_2^\top \tilde X_2$. The third is genuinely needed — without it,
+  `fwlBeta` is undefined.
+
+## Proof sketch
+
+The argument has two halves.
+
+**Coefficient part.** Show that the full-regression coefficient
+$\hat\beta_2$ satisfies the auxiliary normal equations
+
+$$
+\tilde X_2^\top (\tilde y - \tilde X_2 \hat\beta_2) = 0,
+$$
+
+then invoke uniqueness of the OLS solution.
+
+To verify the auxiliary normal equations, decompose
+$\tilde y - \tilde X_2 \hat\beta_2$. Substitute $\tilde y = M_1 y$ and
+$\tilde X_2 = M_1 X_2$, and use $\hat e = y - X_1 \hat\beta_1 - X_2 \hat\beta_2$
+from the full regression. After algebra,
+
+$$
+\tilde y - \tilde X_2 \hat\beta_2 = M_1 \hat e.
+$$
+
+Now use $X_1^\top \hat e = 0$ (normal equations for the $X_1$ block of the
+full regression) to get $M_1 \hat e = \hat e$, so
+$\tilde y - \tilde X_2 \hat\beta_2 = \hat e$. Premultiplying by
+$\tilde X_2^\top = X_2^\top M_1$ and using $X_2^\top \hat e = 0$ (the other
+block's normal equations) gives the auxiliary normal equations. Uniqueness
+then implies $\hat\beta_2$ is the auxiliary regression's coefficient.
+
+**Residual part.** The chain above already showed
+$\tilde y - \tilde X_2 \hat\beta_2 = \hat e$, which is exactly the residual
+identity once you observe that the auxiliary regression's residual at the FWL
+coefficient is $\tilde y - \tilde X_2 \hat\beta_2^{\text{FWL}}$ and
+$\hat\beta_2^{\text{FWL}} = \hat\beta_2$ by the coefficient part.
+
+## Lean proof structure
+
+The proof in Lean follows the sketch closely:
+
+1. [`fwl_auxiliary_residual_eq_annihilator_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L106)
+   (line 106) shows
+   $\tilde y - \tilde X_2 \cdot \hat\beta_2^{\text{full}} = M_1 \hat e_{\text{full}}$.
+   It unfolds `residual` and `fitted`, splits the full fit via
+   [`fromCols_full_fitted_eq`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L83)
+   (line 83), and uses `Matrix.mulVec_mulVec` plus `annihilator_mul_X` to drop
+   the $X_1$ contribution.
+2. [`fwl_fromColsRightBeta_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
+   (line 123) takes that bridge and applies $X_1^\top \hat e = 0$ to collapse
+   $M_1 \hat e = \hat e$ via
+   `annihilator_mulVec_eq_self_of_regressors_orthogonal`. Then it
+   premultiplies by $\tilde X_2^\top$ and uses
+   `normal_equations_fromCols_right` to finish.
+3. [`fromColsRightBeta_eq_fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
+   (line 147) is the symmetric closure: from the auxiliary normal equations,
+   `olsBeta_eq_of_normal_equations`
+   (`Chapter3LeastSquaresAlgebra.lean:67`) yields
+   `fwlBeta = fromColsRightBeta`.
+4. [`fwl_residual_eq_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)
+   (line 163) reuses the same bridge and the orthogonal-fixed-point lemma to
+   conclude.
+
+The orthogonality "infrastructure" underpinning the proof is
+[`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+(line 37, $X^\top M = 0$) and
+[`residualizedRegressors_orthogonal_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L94)
+(line 94, $X_1^\top \tilde X_2 = 0$). Every collapse of $M_1$-products in the
+proof above ultimately reduces to one of these.
+
+## Downstream uses
+
+- [`fwl_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L181)
+  (line 181) — straightforward consequence, packaged as the auxiliary
+  regression's normal equations.
+- [`fwl_residual_maker_mul_fromCols`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L195)
+  (line 195) — the sequential residual-maker $M_{\tilde X_2} M_1$ kills both
+  $X_1$ and $X_2$, used in projection-geometry arguments downstream.
+- (Future) Chapter 4 / 7 partial-effect arguments will likely consume FWL —
+  not yet wired up at the time of writing.
