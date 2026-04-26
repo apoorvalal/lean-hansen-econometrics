@@ -57,6 +57,31 @@ theorem olsBetaOrZero_stack_tendstoInMeasure_beta
       atTop (fun _ => β)
 ```
 
+### Reading the statement
+
+In English: **given** a probability space $(\Omega, \mu)$, an i.i.d. sequence
+of regressor rows $X_i$ and errors $e_i$ satisfying the moment assumptions,
+and a true coefficient $\beta$ that links outcomes to regressors via
+$y_i = X_i^\top \beta + e_i$, the OLS estimator built from the first $n$
+stacked observations converges in probability to $\beta$ as $n \to \infty$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `{μ : Measure Ω}` | $\mu$ on $\Omega$ | **Given:** the underlying measure on the sample space. Implicit (`{...}`), inferred from later arguments. |
+| `[IsFiniteMeasure μ]` | $\mu(\Omega) < \infty$ | **Given (hypothesis):** finite total mass — so probability statements like `TendstoInMeasure` are well-typed. Square brackets mark this as a typeclass instance. |
+| `{X : ℕ → Ω → (k → ℝ)}` | $X_i : \Omega \to \mathbb{R}^k$ | **Given:** the i.i.d. sequence of regressor row processes — observation $i$ at sample point $\omega$ is the row vector $X_i(\omega)$. |
+| `{e : ℕ → Ω → ℝ}` | $e_i : \Omega \to \mathbb{R}$ | **Given:** the i.i.d. sequence of scalar error processes. |
+| `{y : ℕ → Ω → ℝ}` | $y_i : \Omega \to \mathbb{R}$ | **Given:** the i.i.d. sequence of scalar outcomes. Logically determined by `X`, `e`, and `β` via `hmodel`. |
+| `(β : k → ℝ)` | $\beta \in \mathbb{R}^k$ | **Given:** the true (population) coefficient vector — a fixed parameter, not random. |
+| `(h : SampleMomentAssumption71 μ X e)` | i.i.d. + moment + invertibility bundle | **Given (hypothesis):** the bundled Theorem 7.1 assumptions: i.i.d. structure, integrability of $X_i$, $X_i X_i^\top$ and $X_i e_i$, plus invertibility of the population Gram $\mathbb{E}[X_i X_i^\top]$. Each face is exposed as a separate field on `h`. |
+| `(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)` | $y_i = X_i^\top \beta + e_i$ | **Given (hypothesis):** the linear model holds **pointwise** at every observation $i$ and every sample point $\omega$. `⬝ᵥ` is `Matrix.dotProduct` (vector inner product). |
+| `TendstoInMeasure μ … atTop (fun _ => β)` | $\hat\beta_n \xrightarrow{p} \beta$ | **Conclusion:** convergence in probability under $\mu$ as $n \to \infty$. The constant target `fun _ => β` is the fixed limit. |
+| `fun n ω => olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)` | $\hat\beta_{(n)}(\omega)$ | The sample OLS estimator: `stackRegressors X n ω` builds the $n \times k$ design from the first $n$ rows at $\omega$, `stackOutcomes y n ω` stacks the first $n$ outcomes, and `olsBetaOrZero` returns the closed-form OLS coefficient (or $0$ on the singular set). |
+
+(The ambient typeclasses `[Fintype k] [DecidableEq k]` for the regressor index
+type, and the universe `Ω : Type*`, are hoisted into a `variable` block at the
+top of the file's section.)
+
 The Lean development uses a **totalized** estimator
 `olsBetaStar` (defined for every design and returning $0$ when $X^\top X$ is
 singular) together with a wrapper `olsBetaOrZero` that agrees with ordinary
@@ -158,6 +183,89 @@ simpa [olsBetaOrZero_eq_olsBetaStar] using
   olsBetaStar_stack_tendstoInMeasure_beta
     (μ := μ) (X := X) (e := e) (y := y) β h hmodel
 ```
+
+### Tactic-by-tactic walkthrough
+
+**The headline wrapper (line 1822).** The full proof body of
+`olsBetaOrZero_stack_tendstoInMeasure_beta` is two lines:
+
+```lean
+theorem olsBetaOrZero_stack_tendstoInMeasure_beta … := by
+  simpa [olsBetaOrZero_eq_olsBetaStar] using
+    olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+```
+
+There is essentially nothing to walk through here — the wrapper version
+reduces immediately to the totalized version. The
+[`olsBetaOrZero_eq_olsBetaStar`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L265)
+rewrite (line 265) replaces `olsBetaOrZero` by `olsBetaStar` pointwise, and
+`simpa` applies that rewrite to both sides of the totalized statement to
+produce the wrapper statement verbatim.
+
+**The totalized version (line 1600).** The substantive proof is
+[`olsBetaStar_stack_tendstoInMeasure_beta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1600).
+It is too long to walk line by line; instead, here is the role each composed
+lemma plays in the high-level structure (the proof is built around the
+identity $\hat\beta_n - \beta = R'_n + \hat Q_n^{-1}\,\hat g_n$, where $R'_n$
+is a "residual" term that vanishes on the nonsingular event):
+
+- **Pointwise residual identity** —
+  [`olsBetaStar_sub_identity`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L714)
+  (line 714) gives, for **every** $\omega$, the algebraic decomposition
+  $\hat\beta_n - \beta - \hat Q_n^{-1}\,\hat g_n = (\hat Q_n^{-1}\hat Q_n - 1)\,\beta$.
+  The right-hand side is exactly $R'_n$ — it equals $0$ on $\{\hat Q_n
+  \text{ invertible}\}$ and $-\beta$ off it.
+- **Algebraic engine on nonsingular samples** —
+  [`olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L512)
+  (line 512) is the deterministic Hansen §7.2 identity $\hat\beta_n - \beta =
+  \hat Q_n^{-1}\,\hat g_n$ on the invertible event. `olsBetaStar_sub_identity`
+  is its `olsBetaStar`-on-all-of-$\Omega$ extension.
+- **Residual vanishes in probability** —
+  [`residual_tendstoInMeasure_zero`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1144)
+  (line 1144) shows $R'_n \xrightarrow{p} 0$. Inside, it uses
+  `measure_sampleGram_singular_tendsto_zero` (the singular set has
+  vanishing measure) plus the fact that $R'_n \equiv 0$ on the nonsingular
+  event. This is loaded as `hF6` and immediately re-shaped via the residual
+  identity to give the "$R'_n$" tendsto piece.
+- **Sample Gram WLLN** —
+  [`sampleGram_stackRegressors_tendstoInMeasure_popGram`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L838)
+  (line 838) gives $\hat Q_n \xrightarrow{p} Q$ via the i.i.d. WLLN applied to
+  $X_i X_i^\top$ (uses the second-moment hypothesis from `h`).
+- **Inversion-continuity** —
+  [`sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L875)
+  (line 875) lifts the Gram WLLN through matrix inversion: since matrix
+  inversion is continuous at any nonsingular point and `h.Q_nonsing`
+  guarantees $Q$ is invertible, $\hat Q_n^{-1} \xrightarrow{p} Q^{-1}$ on the
+  limit set.
+- **Cross-moment WLLN** —
+  [`sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L892)
+  (line 892) gives $\hat g_n \xrightarrow{p} 0$. The cross-product
+  $X_i \cdot e_i$ has mean $0$ in the linear-model setup (Hansen's
+  orthogonality axiom) and finite first moment, so the WLLN delivers a zero
+  limit.
+- **Slutsky combination** —
+  [`sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1042)
+  (line 1042) combines the inverted-Gram tendsto with the cross-moment
+  tendsto via `tendstoInMeasure_mulVec` to conclude $\hat Q_n^{-1}\,\hat g_n
+  \xrightarrow{p} Q^{-1} \cdot 0 = 0$. This is loaded as `hCore`.
+- **Add the two convergences** — the proof then uses
+  `tendstoInMeasure_add` to combine $R'_n \xrightarrow{p} 0$ (`hR'`) and
+  $\hat Q_n^{-1}\,\hat g_n \xrightarrow{p} 0$ (`hCore`), giving
+  $R'_n + \hat Q_n^{-1}\,\hat g_n \xrightarrow{p} 0$. A second
+  `tendstoInMeasure_add` against the constant tendsto for $\beta$ shifts the
+  limit to $\beta$.
+- **Congr back to `olsBetaStar`** — finally, `hSumPlus.congr_left` rewrites
+  the sample function $R'_n + \hat Q_n^{-1}\hat g_n + \beta$ back to
+  $\hat\beta_n^*$ using `olsBetaStar_sub_identity` once more, closing the
+  goal.
+
+(The intervening `hGram_meas`, `hCrossE_meas`, `hInv_meas`, `hCoreMV_meas`,
+`hR'_meas` blocks at lines 1608-1656 are all measurability boilerplate —
+they expand each sample function into a `(1/n) • ∑ …` form and chain
+`AEStronglyMeasurable` through the algebra. They feed the `tendstoInMeasure_add`
+and `tendstoInMeasure_mulVec` calls but contribute nothing mathematically
+beyond "everything in sight is measurable.")
 
 ## Downstream uses
 
