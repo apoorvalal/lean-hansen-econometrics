@@ -96,8 +96,8 @@ private theorem olsResidualSumSquares_linear_model_quadratic_form
   rw [olsResidualSumSquares_linear_model]
   exact residual_quadratic_form_of_linear_model X e
 
-/-- Under the linear model, the residual variance estimator is the annihilator quadratic form divided
-by `n-k`. This is the deterministic identity underlying the chi-square step. -/
+/-- Under the linear model, the residual variance estimator is the annihilator quadratic form
+divided by `n-k`. This is the deterministic identity underlying the chi-square step. -/
 theorem olsResidualVarianceEstimator_linear_model_quadratic_form
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualVarianceEstimator X (X *ᵥ β + e)
@@ -147,8 +147,8 @@ theorem residual_hasGaussianLaw_of_error
   filter_upwards with ω
   simp [L]
 
-/-- The annihilator quadratic form is the sum of squared eigenbasis coordinates on the `1`-eigenspace.
-This is the deterministic bridge behind Hansen Theorem 5.7. -/
+/-- The annihilator quadratic form is the sum of squared eigenbasis coordinates on the
+`1`-eigenspace. This is the deterministic bridge behind Hansen Theorem 5.7. -/
 private theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
     (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     let M := annihilatorMatrix X
@@ -191,12 +191,13 @@ private theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
         refine Finset.sum_congr rfl ?_
         intro i hi
         rw [OrthonormalBasis.repr_apply_apply]
-        simpa [sq_abs]
+        simp [sq_abs]
       _ = ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2 := by
         refine Finset.sum_congr rfl ?_
         intro i hi
         rw [hcoord i]
-  have heig01 := eigenvalues_zero_or_one_of_isHermitian_idempotent hM (annihilatorMatrix_idempotent X)
+  have heig01 :=
+    eigenvalues_zero_or_one_of_isHermitian_idempotent hM (annihilatorMatrix_idempotent X)
   have hsum :
       ∑ i : n, (hM.eigenvalues i * b.repr z i) ^ 2
         = ∑ i : {j : n // hM.eigenvalues j = 1}, (b.repr z i.1) ^ 2 := by
@@ -230,7 +231,9 @@ private theorem scaledOlsResVarStat_eq_sum_sq_eigenvector_coords
     let hM : M.IsHermitian := annihilatorMatrix_isHermitian X
     let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hM.eigenvectorBasis
     scaledOlsResidualVarianceStatistic X β σ2 ε =
-      sumSquaresRV (restrictedStandardizedCoords b (fun i : {j : n // hM.eigenvalues j = 1} => i.1) σ2 ε) := by
+      sumSquaresRV
+        (restrictedStandardizedCoords b
+          (fun i : {j : n // hM.eigenvalues j = 1} => i.1) σ2 ε) := by
   classical
   let M : Matrix n n ℝ := annihilatorMatrix X
   let hM : M.IsHermitian := annihilatorMatrix_isHermitian X
@@ -311,7 +314,7 @@ theorem scaledOlsResidualVarianceStatistic_hasLaw_chiSquared
   have hEq := scaledOlsResVarStat_eq_sum_sq_eigenvector_coords X β hσ2 hdf ε
   convert hLawSumSq.congr ?_ using 1
   · rw [← hRankEqCard, Nat.eq_sub_of_add_eq (rank_annihilatorMatrix_add X)]
-  · simpa [hM, W] using hEq.symm
+  · simp [W]
 
 /-- The Chapter 5 statistic `((n-k)s²)/σ²` is the residual sum of squares divided by `σ²`. -/
 private theorem scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div
@@ -402,7 +405,7 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
         congrArg LinearMap.toContinuousLinearMap hMadjointLin
     have hcomp : A ∘L M = 0 := by
       ext z i
-      simp [A, M, Matrix.mul_assoc, regressors_transpose_mul_annihilator]
+      simp [A, M, regressors_transpose_mul_annihilator]
     have hcomp_apply : A (M y) = 0 := by
       simpa using congrArg (fun T : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ k => T y) hcomp
     have hcov :=
@@ -447,7 +450,8 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
                   _ = 0 := by simp [hcomp_apply]
               have hdot :
                   ((A.adjoint x : EuclideanSpace ℝ n) ⬝ᵥ (M y)) = 0 := by
-                have hdot' : (M y).ofLp ⬝ᵥ star (((A.adjoint x : EuclideanSpace ℝ n)).ofLp) = 0 := by
+                have hdot' :
+                    (M y).ofLp ⬝ᵥ star (((A.adjoint x : EuclideanSpace ℝ n)).ofLp) = 0 := by
                   simpa [EuclideanSpace.inner_eq_star_dotProduct] using hinner
                 simpa [dotProduct, Pi.star_apply, conj_trivial, mul_comm] using hdot'
               rw [hdot, mul_zero]
@@ -486,7 +490,7 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
     exact IndepFun.comp (μ := μ) (φ := id) (ψ := q) hIndActual measurable_id hq
   refine IndepFun.congr hIndStat Filter.EventuallyEq.rfl ?_
   filter_upwards with ω
-  simpa [q, scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div, hdf]
+  simp [q, scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div, hdf]
 
 /-- The diagonal entry of the inverse Gram matrix appearing in the classical OLS standard error is
 strictly positive. -/
@@ -716,7 +720,9 @@ private theorem olsStudentizationFactor_hasLaw
       HasLaw (fun q : ℝ => Real.sqrt (ν : ℝ) / Real.sqrt q)
         (studentTFactor ν) (chiSquared ν) := by
     exact ⟨by fun_prop, rfl⟩
-  refine (hMap.comp (scaledOlsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 hdf ε hε)).congr ?_
+  refine
+    (hMap.comp
+      (scaledOlsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 hdf ε hε)).congr ?_
   exact Filter.Eventually.of_forall fun ω => by
     simp [olsStudentizationFactor, ν, Nat.cast_sub hdf.le]
 
@@ -773,7 +779,8 @@ theorem olsTStat_hasLaw_classicalStudentT
   exact hbase
 
 /-- On outcomes where the scaled residual variance statistic is nonzero, Hansen's Chapter 5
-`t`-statistic agrees with the classical centered coefficient divided by its estimated standard error. -/
+`t`-statistic agrees with the classical centered coefficient divided by its estimated standard
+error. -/
 theorem olsTStat_eq_centered_beta_div_estimatedSE
     {Ω : Type*} [MeasurableSpace Ω]
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
@@ -804,7 +811,7 @@ theorem olsTStat_eq_centered_beta_div_estimatedSE
   have hs2_ne : s2 ≠ 0 := by
     intro hs2
     apply hstat
-    simp [scaledOlsResidualVarianceStatistic, y, s2, df, hs2]
+    simp [scaledOlsResidualVarianceStatistic, y, s2, hs2]
   have hs2_pos : 0 < s2 := lt_of_le_of_ne hs2_nonneg hs2_ne.symm
   have hsqrt_scaled :
       Real.sqrt (df * s2 / σ2) = (Real.sqrt df * Real.sqrt s2) / Real.sqrt σ2 := by
@@ -833,8 +840,8 @@ theorem olsTStat_eq_centered_beta_div_estimatedSE
           simp [olsEstimatedStandardError, a, y, s2, g]
 
 /-- The Chapter 5 scaled residual variance statistic is almost surely nonzero under the normal
-regression model. This is the null-set exclusion needed to identify the classical confidence interval
-event with the `|T| ≤ c` event. -/
+regression model. This is the null-set exclusion needed to identify the classical confidence
+interval event with the `|T| ≤ c` event. -/
 private theorem scaledOlsResidualVarianceStatistic_ne_zero_ae
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
@@ -1335,7 +1342,7 @@ theorem olsTStat_rejection_probability_eq_alpha
       · intro hx
         have hx' : x < -c ∨ c < x := by
           by_contra hx'
-          push_neg at hx'
+          push Not at hx'
           exact hx ⟨hx'.1, hx'.2⟩
         exact hiff.mpr hx']
   rw [MeasureTheory.probReal_compl_eq_one_sub measurableSet_Icc, hAcc]
@@ -1577,7 +1584,7 @@ theorem quadForm_eq_sum_sq_eigCoords_of_isHermitian_idempotent
         refine Finset.sum_congr rfl ?_
         intro i hi
         rw [OrthonormalBasis.repr_apply_apply]
-        simpa [sq_abs]
+        simp [sq_abs]
       _ = ∑ i : n, (hA.eigenvalues i * b.repr z i) ^ 2 := by
         refine Finset.sum_congr rfl ?_
         intro i hi
@@ -1734,9 +1741,10 @@ theorem scaledOlsFNumeratorStatistic_hasLaw_chiSquared
   have hEq := scaledOlsFNumeratorStatistic_eq_sum_sq_eigenvector_coords X₁ X₂ β₁ hσ2 ε
   convert hLawSumSq.congr ?_ using 1
   · rw [← hRankEqCard, rank_fTestProjectionMatrix X₁ X₂]
-  · simpa [hD, W] using hEq.symm
+  · simp [W]
 
 set_option maxHeartbeats 800000 in
+-- The independence proof expands large Gaussian covariance and projection identities.
 theorem scaledOlsFNumStat_indep_scaledOlsResVarStat
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
@@ -1914,12 +1922,12 @@ theorem olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
     calc
       scaledOlsResidualVarianceStatistic fullX βfull σ2 ε ω
           = (ν * olsResidualVarianceEstimator fullX (fullX *ᵥ βfull + e)) / σ2 := by
-              simp [scaledOlsResidualVarianceStatistic, ν, e, hν_cast]
+              simp [scaledOlsResidualVarianceStatistic, ν, e]
       _ = (ν * (rssU / ν)) / σ2 := by
             have hrssU : rssU = olsResidualSumSquares fullX (fullX *ᵥ βfull + e) := by
               simp [rssU, hβfull]
             rw [hrssU]
-            simp [ν, e, fullX, βfull, olsResidualVarianceEstimator, olsResidualSumSquares, hν_ne]
+            simp [ν, e, fullX, βfull, olsResidualVarianceEstimator, olsResidualSumSquares]
       _ = rssU / σ2 := by
             field_simp [hν_ne]
   calc
@@ -2002,8 +2010,9 @@ theorem olsFStatistic_hasLaw_classicalFDist
   rw [fDist_eq_classicalFDist hq (Nat.sub_pos_of_lt hdf)] at hbase
   exact hbase
 
-/-- Hansen Theorem 5.13 rejection statement: if the upper-tail critical value `c` is calibrated to
-have F-distribution tail probability `α`, then the rule `F > c` has exact size `α` under the null. -/
+/-- Hansen Theorem 5.13 rejection statement: if the upper-tail critical value `c` is
+calibrated to have F-distribution tail probability `α`, then the rule `F > c` has exact size
+`α` under the null. -/
 theorem olsFStatistic_rejection_probability_eq_alpha
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 α : ℝ}

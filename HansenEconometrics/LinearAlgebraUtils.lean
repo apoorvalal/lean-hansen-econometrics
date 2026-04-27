@@ -57,7 +57,8 @@ as a column vector. -/
 lemma vecMul_eq_mulVec_of_transpose_eq_self {n : Type*} [Fintype n]
     (M : Matrix n n ℝ) (hM : Mᵀ = M) (x : n → ℝ) :
     Matrix.vecMul x M = M *ᵥ x := by
-  simpa [hM] using vecMul_eq_mulVec_transpose M x
+  conv_rhs => rw [← hM]
+  exact vecMul_eq_mulVec_transpose M x
 
 /-- For a symmetric idempotent matrix, the associated quadratic form equals the squared norm of
 the projected vector. This is the linear-algebra identity behind projection-based chi-square

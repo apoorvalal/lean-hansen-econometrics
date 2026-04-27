@@ -167,7 +167,6 @@ private lemma studentTDensityConstant_step_two {ν : ℕ} (hν : 0 < ν) :
         ((((ν : ℝ) + 1) / 2) * Real.Gamma (((ν : ℝ) + 1) / 2)) := by
     have : ((((ν + 2 : ℕ) : ℝ) + 1) / 2) = (((ν : ℝ) + 1) / 2) + 1 := by
       norm_num
-      norm_num
       ring
     rw [this, Real.Gamma_add_one]
     nlinarith
@@ -269,7 +268,7 @@ private lemma studentTDensityConstant_sixty_one :
   norm_num
   have hΓ : Real.Gamma ((61 : ℝ) / 2) =
       (((Nat.doubleFactorial 59 : ℕ) * Real.sqrt Real.pi / (2 ^ 30)) : ℝ) := by
-    convert (Real.Gamma_nat_add_half 30) using 1 <;> norm_num
+    convert (Real.Gamma_nat_add_half 30) using 1; norm_num
   rw [hΓ]
   field_simp [Real.pi_pos.ne']
   ring_nf
@@ -286,7 +285,7 @@ private lemma studentTDensityConstant_sixty_two :
   norm_num
   have hΓ : Real.Gamma ((63 : ℝ) / 2) =
       (((Nat.doubleFactorial 61 : ℕ) * Real.sqrt Real.pi / (2 ^ 31)) : ℝ) := by
-    convert (Real.Gamma_nat_add_half 31) using 1 <;> norm_num
+    convert (Real.Gamma_nat_add_half 31) using 1; norm_num
   rw [hΓ]
   field_simp
   ring_nf
@@ -840,11 +839,11 @@ private lemma integral_studentTPDFReal_eq_one {ν : ℕ} (hν : 0 < ν) :
                     have hxpow : x ^ ((2 : ℝ) - 1) = x := by
                       rw [show (2 - 1 : ℝ) = (1 : ℝ) by norm_num, Real.rpow_one]
                     have hxterm' : x * (x ^ 2) ^ (-1 / 2 : ℝ) = 1 := by
-                      convert hxterm using 1 <;> ring
+                      convert hxterm using 1; ring
                     have hνterm0 : 1 + x ^ 2 * (↑ν)⁻¹ = ↑ν * (↑ν)⁻¹ + x ^ 2 * (↑ν)⁻¹ := by
                       field_simp [hνr.ne']
                     have hxterm2 : x * (x ^ 2) ^ (-((2 : ℝ)⁻¹)) = 1 := by
-                      convert hxterm using 1 <;> ring
+                      convert hxterm using 1; ring
                     have hνterm3 : 1 + x ^ 2 / (ν : ℝ) = ↑ν * (↑ν)⁻¹ + x ^ 2 * (↑ν)⁻¹ := by
                       field_simp [hνr.ne']
                     rw [hxpow]
@@ -949,7 +948,8 @@ private lemma lintegral_studentTPDF_eq_one {ν : ℕ} (hν : 0 < ν) :
   · unfold studentTPDF
     rw [← integral_eq_lintegral_of_nonneg_ae
       (ae_of_all _ fun x => studentTPDFReal_nonneg ν x)
-      (stronglyMeasurable_studentTPDFReal ν).aestronglyMeasurable, integral_studentTPDFReal_eq_one hν]
+      (stronglyMeasurable_studentTPDFReal ν).aestronglyMeasurable,
+      integral_studentTPDFReal_eq_one hν]
 
 private lemma integrable_studentTPDFReal {ν : ℕ} (hν : 0 < ν) :
     Integrable (studentTPDFReal ν) := by
@@ -1007,7 +1007,8 @@ private lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν
     calc
       ∫ x in (-2 : ℝ)..0, f x
           = ∫ x in (0 : ℝ)..2, f (-x) := by
-            simpa using
+            conv_lhs => rw [show (0 : ℝ) = -0 by norm_num]
+            exact
               (intervalIntegral.integral_comp_neg (f := f) (a := (0 : ℝ)) (b := 2)).symm
       _ = ∫ x in (0 : ℝ)..2, f x := by
         refine intervalIntegral.integral_congr ?_
@@ -1218,7 +1219,7 @@ private lemma integral_Ioi_ratio_kernel_eq_studentTPDFReal {ν : ℕ}
           field_simp [hνr.ne']]
         rw [Real.div_rpow (by norm_num : 0 ≤ (2 : ℝ)) hbase_nonneg]
         rw [Real.rpow_neg hbase_nonneg]
-        simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        simp [div_eq_mul_inv, mul_comm]
       have hsqrt :
           Real.sqrt (2 * Real.pi * (ν : ℝ)) =
             Real.sqrt 2 * Real.sqrt (Real.pi * (ν : ℝ)) := by
@@ -1332,7 +1333,8 @@ private lemma lintegral_Ioi_ratio_kernel_eq_studentTPDF {ν : ℕ}
     have hνr : 0 < (ν : ℝ) := by
       exact_mod_cast hν
     exact ae_of_all _ fun q =>
-      mul_nonneg (gaussianPDFReal_nonneg 0 _ _) (gammaPDFReal_nonneg (by positivity) (by positivity) q)
+      mul_nonneg (gaussianPDFReal_nonneg 0 _ _)
+        (gammaPDFReal_nonneg (by positivity) (by positivity) q)
   rw [← ofReal_integral_eq_lintegral_ofReal h_int h_nonneg]
   simpa using congrArg ENNReal.ofReal (integral_Ioi_ratio_kernel_eq_studentTPDFReal hν x)
 
@@ -1387,7 +1389,7 @@ private lemma lintegral_ratio_kernel_eq_studentTPDF {ν : ℕ}
         _ = ENNReal.ofReal
               (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x *
                 gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ) q) := by
-              simp [gammaPDFReal, hq.le, mul_assoc, mul_left_comm, mul_comm]
+              simp [gammaPDFReal, hq.le, mul_assoc, mul_comm]
         _ = (Set.Ioi (0 : ℝ)).indicator
               (fun q =>
                 ENNReal.ofReal
@@ -1491,7 +1493,7 @@ private lemma lintegral_gaussian_scaled_eq_ratio_pdf {ν : ℕ} (hν : 0 < ν)
                 (fun x => ENNReal.ofReal (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x))
                 volume))
             (hg := hφ.aemeasurable)]
-          simpa [Pi.mul_apply, mul_comm]
+          simp [Pi.mul_apply, mul_comm]
 
 private lemma measurable_ratio_gaussian_kernel_fixed {ν : ℕ} (x : ℝ) :
     Measurable (fun q : ℝ =>
@@ -1571,7 +1573,7 @@ private lemma lintegral_ratio_double_eq {ν : ℕ} (hν : 0 < ν) {φ : ℝ → 
                         ENNReal.ofReal
                           (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x)) ∂ volume := by
                     refine lintegral_congr_ae (ae_of_all _ fun q => ?_)
-                    simp [F, mul_assoc, mul_left_comm, mul_comm]
+                    simp [F, mul_left_comm]
               _ =
                   φ x *
                     ∫⁻ q,
@@ -1631,7 +1633,7 @@ theorem ratio_prod_map_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
   rw [lintegral_ratio_double_eq hν hφ]
   rw [classicalStudentT, lintegral_withDensity_eq_lintegral_mul₀
     (hf := (measurable_studentTPDF ν).aemeasurable) (hg := hφ.aemeasurable)]
-  simp [studentTPDF, mul_comm, mul_left_comm, mul_assoc]
+  simp [studentTPDF, mul_comm]
 
 theorem studentT_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
     studentT ν = classicalStudentT ν := by

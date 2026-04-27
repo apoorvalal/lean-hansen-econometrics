@@ -592,7 +592,8 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
       · rw [smul_mulVec, one_mulVec, dotProduct_smul]
         have hdot : (b i).ofLp ⬝ᵥ (b j).ofLp = 0 := by
           have hInner : inner ℝ (b i) (b j) = 0 := by
-            simpa [hij] using (orthonormal_iff_ite.mp b.orthonormal i j)
+            rw [orthonormal_iff_ite.mp b.orthonormal i j]
+            simp [hij]
           have htoInner' : inner ℝ (b j) (b i) = (b i).ofLp ⬝ᵥ (b j).ofLp := by
             rw [PiLp.inner_apply, dotProduct]
             refine Finset.sum_congr rfl ?_
@@ -626,10 +627,11 @@ theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
           · simp [integral_id_multivariateGaussian]
           · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
         have hVar : Var[Li; multivariateGaussian 0 S] = σ2 := by
-          rw [← covariance_self (Measurable.aemeasurable <| by fun_prop), show Li = fun x => inner ℝ (b i) x by
-            ext x
-            simpa [Li] using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := i))
-            , ← covarianceBilin_apply_eq_cov]
+          rw [← covariance_self (Measurable.aemeasurable <| by fun_prop),
+            show Li = fun x => inner ℝ (b i) x by
+              ext x
+              simpa [Li] using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := i)),
+            ← covarianceBilin_apply_eq_cov]
           · rw [covarianceBilin_multivariateGaussian hS, smul_mulVec, one_mulVec, dotProduct_smul]
             have hdot : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
               calc

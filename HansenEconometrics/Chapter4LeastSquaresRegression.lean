@@ -57,7 +57,8 @@ noncomputable def olsConditionalVarianceMatrix
     (X : Matrix n k ℝ) (D : Matrix n n ℝ) [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
   ⅟ (Xᵀ * X) * Xᵀ * D * X * ⅟ (Xᵀ * X)
 
-/-- Hansen Section 4.16 infeasible heteroskedastic covariance estimator using the true squared errors. -/
+/-- Hansen Section 4.16 infeasible heteroskedastic covariance estimator using the true
+squared errors. -/
 noncomputable def olsIdealVarianceEstimator
     (X : Matrix n k ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
   olsConditionalVarianceMatrix X (Matrix.diagonal fun i => e i ^ 2)
@@ -70,7 +71,8 @@ noncomputable def olsHuberWhiteVarianceEstimator
 /-- HC1 degrees-of-freedom adjustment to the Huber-White covariance estimator. -/
 noncomputable def olsHuberWhiteHC1VarianceEstimator
     (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
-  ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) • olsHuberWhiteVarianceEstimator X y
+  ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
+    olsHuberWhiteVarianceEstimator X y
 
 /-- The covariance formula written as `Aᵀ D A`, where `A = X (XᵀX)⁻¹`. -/
 private theorem olsConditionalVarianceMatrix_eq_Atranspose_D_A
@@ -107,7 +109,8 @@ theorem olsHuberWhiteHC1VarianceEstimator_eq_smul
       ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
         olsHuberWhiteVarianceEstimator X y := rfl
 
-/-- Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive semidefinite. -/
+/-- Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive
+semidefinite. -/
 theorem gaussMarkov_variance_gap_posSemidef
     (X A : Matrix n k ℝ) [Invertible (Xᵀ * X)]
     (hAX : Aᵀ * X = (1 : Matrix k k ℝ)) :

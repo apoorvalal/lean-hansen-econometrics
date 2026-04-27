@@ -496,7 +496,7 @@ theorem leverageStar_eq_zero_of_not_isUnit_det
     leverageStar X i = 0 := by
   unfold leverageStar
   rw [Matrix.nonsing_inv_apply_not_isUnit _ hX, Matrix.zero_mulVec]
-  simpa using (dotProduct_zero (X i))
+  exact dotProduct_zero (X i)
 
 /-- Totalized leverage is always nonnegative: on nonsingular samples this is the
 hat-matrix diagonal, and on singular samples it is zero. -/
@@ -505,7 +505,7 @@ theorem leverageStar_nonneg (X : Matrix n k ℝ) (i : n) :
   by_cases hX : IsUnit (Xᵀ * X).det
   · letI : Invertible (Xᵀ * X) := Matrix.invertibleOfIsUnitDet (A := Xᵀ * X) hX
     exact leverageStar_nonneg_of_nonsingular X i
-  · simpa [leverageStar_eq_zero_of_not_isUnit_det X hX i]
+  · simp [leverageStar_eq_zero_of_not_isUnit_det X hX i]
 
 /-- Totalized leverage is always at most one: on nonsingular samples this is the
 usual hat-matrix bound, and on singular samples it is zero. -/
@@ -899,9 +899,10 @@ theorem levAdjWtNormStar_hc2_lt_maxLevStar_lt
     intro i
     exact lt_of_le_of_lt (leverageStar_le_maxLeverageStar X i) hmax
   have hz : ‖z‖ < 2 * δ := by
-    refine (@pi_norm_lt_iff n (fun _ : n => ℝ) _ (fun _ => (by infer_instance : SeminormedAddGroup ℝ))
-      z (2 * δ)
-      (show 0 < 2 * δ by positivity)).2 ?_
+    refine
+      (@pi_norm_lt_iff n (fun _ : n => ℝ) _
+        (fun _ => (by infer_instance : SeminormedAddGroup ℝ)) z (2 * δ)
+        (show 0 < 2 * δ by positivity)).2 ?_
     intro i
     have hi_nonneg : 0 ≤ leverageStar X i := leverageStar_nonneg X i
     have hi_lt : leverageStar X i < δ := hcoords i
@@ -926,9 +927,10 @@ theorem levAdjWtNormStar_hc3_lt_maxLevStar_lt
     intro i
     exact lt_of_le_of_lt (leverageStar_le_maxLeverageStar X i) hmax
   have hz : ‖z‖ < 8 * δ := by
-    refine (@pi_norm_lt_iff n (fun _ : n => ℝ) _ (fun _ => (by infer_instance : SeminormedAddGroup ℝ))
-      z (8 * δ)
-      (show 0 < 8 * δ by positivity)).2 ?_
+    refine
+      (@pi_norm_lt_iff n (fun _ : n => ℝ) _
+        (fun _ => (by infer_instance : SeminormedAddGroup ℝ)) z (8 * δ)
+        (show 0 < 8 * δ by positivity)).2 ?_
     intro i
     have hi_nonneg : 0 ≤ leverageStar X i := leverageStar_nonneg X i
     have hi_lt : leverageStar X i < δ := hcoords i

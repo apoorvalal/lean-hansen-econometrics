@@ -1447,7 +1447,7 @@ theorem linMap_olsBetaStar_waldChiSquared_gaussian
                   rw [hQinv_transpose]
             _ = R * heteroAsymCov μ X e * Rᵀ := by
                   rfl
-      simpa [hCovEq]
+      simp [hCovEq]
   exact linMap_olsBetaStar_waldChiSquared_gaussian_limitLaw
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     h.toSampleCLTAssumption72 β R hmodel (Vhat := Vhat)
