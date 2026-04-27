@@ -131,7 +131,6 @@ theorem olsBeta_hasGaussianLaw_of_error
     infer_instance
   refine hAff.congr ?_
   filter_upwards with ω
-  rw [olsBeta_linear_decomposition]
   simp [L]
 
 /-- If the error vector has a Gaussian law, then the OLS residual vector is Gaussian
@@ -146,7 +145,6 @@ theorem residual_hasGaussianLaw_of_error
   have hLin : HasGaussianLaw (fun ω => L (e ω)) μ := he.map_fun L
   refine hLin.congr ?_
   filter_upwards with ω
-  rw [residual_linear_model]
   simp [L]
 
 /-- The annihilator quadratic form is the sum of squared eigenbasis coordinates on the `1`-eigenspace.
@@ -334,7 +332,7 @@ private theorem scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div
   have hres :
       residual X (X *ᵥ β + WithLp.ofLp (ε ω)) =
         annihilatorMatrix X *ᵥ (WithLp.ofLp (ε ω)) := by
-    rw [residual_linear_model]
+    simp
   have hlin :
       annihilatorMatrix X *ᵥ (X *ᵥ β + WithLp.ofLp (ε ω)) =
         annihilatorMatrix X *ᵥ (WithLp.ofLp (ε ω)) := by
@@ -463,11 +461,9 @@ theorem olsBeta_indep_scaledOlsResidualVarianceStatistic
     · change Measurable (fun z : EuclideanSpace ℝ k => WithLp.toLp 2 (β + WithLp.ofLp z))
       fun_prop
     · filter_upwards with ω
-      rw [olsBeta_linear_decomposition]
       simpa [centeredBeta, A, φ, Matrix.mulVec_mulVec] using
         (Matrix.toLpLin_apply (p := 2) (q := 2) (⅟ (Xᵀ * X) * Xᵀ) (ε ω))
     · filter_upwards with ω
-      rw [residual_linear_model]
       simpa [residualE, M] using
         (Matrix.toLpLin_apply (p := 2) (q := 2) (annihilatorMatrix X) (ε ω))
   have hIndActual :
@@ -677,7 +673,6 @@ theorem standardizedOlsBetaCoordinate_hasLaw_standardNormal
         (gaussianReal 0 ⟨σ2 * (⅟ (Xᵀ * X)) j j, hvarPos.le⟩) μ := by
     refine (HasLaw.comp ⟨by fun_prop, hLMap⟩ hε).congr ?_
     filter_upwards with ω
-    rw [olsBeta_linear_decomposition]
     simp [L, A, Matrix.mulVec_mulVec]
   have hLawStd :=
     gaussianReal_div_const hLawCentered (Real.sqrt (σ2 * (⅟ (Xᵀ * X)) j j))

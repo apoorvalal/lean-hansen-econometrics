@@ -1473,11 +1473,9 @@ theorem sampleScoreCovStar_linear_model
     Matrix.sum_apply, Matrix.smul_apply, Matrix.sub_apply, Matrix.add_apply,
     Matrix.vecMulVec_apply, Finset.mul_sum]
   ring_nf
-  simp_rw [olsResidualStar_sq_linear_model_apply X β e]
   rw [← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
   apply Finset.sum_congr rfl
   intro x _
-  rw [dotProduct_sub]
   ring_nf
 
 /-- Descriptive public condition package for the current Lean proof behind the

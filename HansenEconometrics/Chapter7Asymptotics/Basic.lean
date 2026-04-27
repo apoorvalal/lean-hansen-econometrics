@@ -111,6 +111,7 @@ noncomputable def olsS2Star (X : Matrix n k ℝ) (y : n → ℝ) : ℝ :=
 Under the linear model, each totalized OLS residual is the structural error
 minus the fitted coefficient error evaluated at that row:
 `êᵢ = eᵢ - Xᵢ'(β̂* - β)`. -/
+@[simp]
 theorem olsResidualStar_linear_model_apply
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
     olsResidualStar X (X *ᵥ β + e) i =
@@ -196,7 +197,7 @@ private theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
     |residual X (X *ᵥ β + e) i - e i| ≤
       (Fintype.card k : ℝ) * ‖X i‖ *
         ‖olsBeta X (X *ᵥ β + e) - β‖ := by
-  simpa [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
+  simpa only [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
     residualStar_sub_error_abs_le_card_rowNorm_betaErrorNorm
       (X := X) (β := β) (e := e) i
 
@@ -376,6 +377,7 @@ theorem stackRegressors_transpose_mul_self_eq_sum
 omit [Fintype k] [DecidableEq k] in
 /-- The sample Gram matrix of the stacked design equals the sample mean of rank-1
 outer products `Xᵢ Xᵢᵀ`. -/
+@[simp]
 theorem sampleGram_stackRegressors_eq_avg
     (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) :
     sampleGram (stackRegressors X n ω) =
@@ -397,6 +399,7 @@ theorem stackRegressors_transpose_mulVec_stackErrors_eq_sum
 omit [Fintype k] [DecidableEq k] in
 /-- The sample cross moment of the stacked design with stacked errors equals the
 sample mean of error-weighted regressors. -/
+@[simp]
 theorem sampleCrossMoment_stackRegressors_stackErrors_eq_avg
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
@@ -408,6 +411,7 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_eq_avg
 omit [Fintype k] [DecidableEq k] in
 /-- Bridge `Fin n` summation to `Finset.range n` summation for outer products of
 regressors — matches the indexing of Mathlib's WLLN. -/
+@[simp]
 theorem sum_fin_eq_sum_range_vecMulVec
     (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) :
     (∑ i : Fin n, Matrix.vecMulVec (X i.val ω) (X i.val ω)) =
@@ -417,6 +421,7 @@ theorem sum_fin_eq_sum_range_vecMulVec
 omit [Fintype k] [DecidableEq k] in
 /-- Bridge `Fin n` summation to `Finset.range n` summation for error-weighted
 regressors — matches the indexing of Mathlib's WLLN. -/
+@[simp]
 theorem sum_fin_eq_sum_range_smul
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     (∑ i : Fin n, e i.val ω • X i.val ω) =

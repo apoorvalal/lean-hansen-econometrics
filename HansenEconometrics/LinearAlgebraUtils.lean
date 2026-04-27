@@ -46,6 +46,7 @@ theorem nonsingInv_smul {k : Type*} [Fintype k] [DecidableEq k]
         Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
 
 /-- Left-multiplication by a row vector is right-multiplication by the transpose. -/
+@[simp]
 lemma vecMul_eq_mulVec_transpose {m n : Type*} [Fintype m]
     (M : Matrix m n ℝ) (x : m → ℝ) :
     Matrix.vecMul x M = Mᵀ *ᵥ x := by

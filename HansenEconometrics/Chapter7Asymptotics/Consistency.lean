@@ -195,12 +195,7 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
       (fun n ω => sampleGram (stackRegressors X n ω))
       atTop
       (fun _ => popGram μ X) := by
-  have hfun_eq : (fun n ω => sampleGram (stackRegressors X n ω)) =
-      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-    funext n ω
-    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-  rw [hfun_eq]
+  simp only [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
   exact tendstoInMeasure_wlln
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
@@ -212,12 +207,7 @@ theorem sampleGram_stackRegressors_aestronglyMeasurable
     (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => sampleGram (stackRegressors X n ω)) μ := by
-  have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
-      (fun ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-    funext ω
-    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-  rw [hform]
+  simp only [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
@@ -229,13 +219,8 @@ theorem sampleCrossMoment_stack_aestronglyMeasurable
     (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
-  have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω)
-        (stackErrors e n ω)) =
-      (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
-    funext ω
-    rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
-        sum_fin_eq_sum_range_smul]
-  rw [hform]
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
@@ -267,14 +252,9 @@ theorem sampleCrossMoment_stack_tendstoInMeasure_zero
       (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
       atTop
       (fun _ => 0) := by
-  have hfun_eq : (fun n ω => sampleCrossMoment (stackRegressors X n ω)
-        (stackErrors e n ω)) =
-      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, e i ω • X i ω) := by
-    funext n ω
-    rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
-        sum_fin_eq_sum_range_smul]
-  rw [hfun_eq, show (fun _ : Ω => (0 : k → ℝ)) =
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
+  rw [show (fun _ : Ω => (0 : k → ℝ)) =
       (fun _ : Ω => μ[fun ω => e 0 ω • X 0 ω]) by rw [h.orthogonality]]
   exact tendstoInMeasure_wlln
     (fun i ω => e i ω • X i ω)
