@@ -1,6 +1,5 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.Chapter2CondExp
 import HansenEconometrics.Chapter3Projections
 
 open scoped Matrix

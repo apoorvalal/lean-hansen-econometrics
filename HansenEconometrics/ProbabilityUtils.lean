@@ -1,4 +1,7 @@
-import Mathlib
+import Mathlib.Probability.CDF
+import Mathlib.Probability.CondVar
+import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
+import Mathlib.Probability.Distributions.Gaussian.Multivariate
 
 open MeasureTheory ProbabilityTheory
 open Matrix

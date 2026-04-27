@@ -1,5 +1,3 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.Chapter2CondExp
 
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory

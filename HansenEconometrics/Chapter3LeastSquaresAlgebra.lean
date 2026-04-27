@@ -1,7 +1,4 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
-import HansenEconometrics.Chapter2CondExp
 
 open scoped Matrix
 

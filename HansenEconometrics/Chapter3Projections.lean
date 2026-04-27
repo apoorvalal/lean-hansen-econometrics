@@ -1,5 +1,3 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 

@@ -1,4 +1,6 @@
-import Mathlib
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.Analysis.Matrix.Spectrum
+import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
 open scoped Matrix
 
