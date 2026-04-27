@@ -118,6 +118,29 @@ Examples:
 - When choosing between a sigma-algebra theorem and a variable wrapper, optimize for the theorem that
   later chapters will naturally want to reuse, not for the most abstract possible statement.
 
+## Import hygiene policy
+
+- Do not add `import Mathlib` to project Lean files. If a temporary broad import is unavoidable,
+  document why in the PR/update note and open a follow-up to remove it.
+- Prefer the narrowest stable `Mathlib.*` imports that keep the file readable. `Mathlib.Tactic` may
+  be used as tactic support, but should not be used as the sole replacement for domain imports.
+- Use the import minimizer when changing imports:
+  1. start from a green `lake build`
+  2. run `lake exe shake --cfg /tmp/noshake.json HansenEconometrics`
+  3. apply actionable suggestions
+  4. rebuild and rerun shake until there are no project import suggestions, or document any retained
+     import with a concrete rationale
+- Be careful with transitive imports. When narrowing imports in foundational files such as
+  `LinearAlgebraUtils`, `ProbabilityUtils`, or `AsymptoticUtils`, downstream chapter files may need
+  new direct imports. Rebuild and rerun shake after the foundational change before editing chapters.
+- When a chapter file only compiled because another module re-exported broad Mathlib coverage, add
+  direct imports to the chapter or submodule that actually uses the declarations. Do not rely on
+  unrelated transitive imports for public dependencies.
+- Final import cleanup gates should include:
+  - no exact `import Mathlib` matches in project Lean files
+  - `lake build`
+  - a final `lake exe shake --cfg /tmp/noshake.json HansenEconometrics` pass
+
 ## Module boundary policy
 
 - Extend [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)
