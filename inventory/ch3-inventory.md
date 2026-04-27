@@ -18,7 +18,9 @@ Status:
 - Definition 3.1 SSE notation and the `β̂` residual-sum-of-squares specialization landed.
 - Equation (3.17), residuals summing to zero when a constant is in the column span, landed.
 - normal-equation uniqueness for the closed-form OLS coefficient landed.
-- Theorem 3.1 objective-level argmin statement is still pending.
+- Theorem 3.1 existence half (β̂ attains the minimum) landed via `sumSquaredErrors_olsBeta_le`
+  and `olsBeta_isMinOn`. Uniqueness (any minimizer equals β̂) is still pending, mirroring
+  `linearProjectionBeta_eq_of_MSE_eq` in Chapter 2.
 
 ### Layer 2: projection matrices
 7. define hat matrix `P = X (Xᵀ X)⁻¹ Xᵀ`
@@ -92,7 +94,7 @@ Conventions:
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Theorem 3.1 objective-level argmin statement | $\hat{\beta} = \arg\min_b (Y - X b)'(Y - X b)$ |  |
+| Theorem 3.1 objective-level argmin statement (existence half) | $\hat{\beta} = \arg\min_b (Y - X b)'(Y - X b)$ | [sumSquaredErrors_olsBeta_le](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L141)<br>`sumSquaredErrors X y (olsBeta X y) ≤ sumSquaredErrors X y b`<br>[olsBeta_isMinOn](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L152)<br>`IsMinOn (sumSquaredErrors X y) Set.univ (olsBeta X y)` |
 | Definition 3.1 sum of squared errors | $S(b) = (Y - X b)'(Y - X b)$ | [sumSquaredErrors](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L16)<br><code>sumSquaredErrors X y b := (y - X *ᵥ b) ⬝ᵥ (y - X *ᵥ b)</code> |
 | Theorem 3.2 closed-form OLS coefficient | $\hat{\beta} = (X'X)^{-1} X' Y$ | [olsBeta](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)<br><code>olsBeta X y := (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)</code> |
 | Theorem 3.2 normal equations | $X' \hat{e} = 0$ | [normal_equations](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L32)<br><code>Xᵀ *ᵥ residual X y = 0</code> |
@@ -110,9 +112,18 @@ Conventions:
 | Theorem 3.5 coefficient equivalence | $\hat{\beta}_2 = (X_2' M_1 X_2)^{-1} X_2' M_1 Y$ | [fromColsRightBeta_eq_fwlBeta](../../HansenEconometrics/Chapter3FWL.lean#L147)<br><code>fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y</code> |
 | Theorem 3.5 residual equivalence | $\hat{e}_{\text{full}} = M_{M_1 X_2} M_1 Y$ | [fwl_residual_eq_full_residual](../../HansenEconometrics/Chapter3FWL.lean#L163)<br><code>residual (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y) = residual (Matrix.fromCols X₁ X₂) y</code> |
 
+## Lean-only bridge results
+
+| Lean theorem | Role |
+| --- | --- |
+| [sumSquaredErrors_eq_linearProjectionMSE](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L120) | Identifies `sumSquaredErrors X y b` with `linearProjectionMSE (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y) b`, connecting Chapter 3 and Chapter 2 notation |
+| [gram_quadratic_nonneg](../../HansenEconometrics/LinearAlgebraUtils.lean#L81) | `0 ≤ v ⬝ᵥ ((Xᵀ * X) *ᵥ v)` for all `v`; the Gram matrix is positive semidefinite |
+| [gram_transpose](../../HansenEconometrics/LinearAlgebraUtils.lean#L34) | `(Xᵀ * X)ᵀ = Xᵀ * X` (relocated from `Chapter3Projections.lean` to break a potential circular import) |
+
 ## Notes
 
-- Theorem 3.1 and Theorem 3.4 are still intentionally blank: they are the main remaining Chapter 3
-  theorem labels not yet wrapped in the current Lean layer.
+- Theorem 3.4 is still intentionally blank: it is one of the main remaining Chapter 3
+  theorem labels not yet wrapped in the current Lean layer. Theorem 3.1 has its existence
+  half landed; uniqueness is still pending.
 - Several Lean helper results in the projection file are stronger than the textbook labels because
   they package reusable matrix facts such as rank and Hermitian structure.
