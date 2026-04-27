@@ -108,7 +108,7 @@ noncomputable def linearRestrictionStdError
 omit [DecidableEq k] in
 /-- Numerator of the scalar t-statistic for totalized OLS. -/
 @[reducible]
-noncomputable def olsLinearTStatisticNumeratorStar
+noncomputable def olsLinearTNumeratorStar
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
     (β : k → ℝ) (root : ℝ) : ℝ :=
   (root • (R *ᵥ (olsBetaStar X y - β))) ⬝ᵥ (fun _ : Unit => 1)
@@ -116,7 +116,7 @@ noncomputable def olsLinearTStatisticNumeratorStar
 omit [DecidableEq k] in
 /-- Numerator of the scalar t-statistic for the ordinary-on-nonsingular OLS wrapper. -/
 @[reducible]
-noncomputable def olsLinearTStatisticNumeratorOrZero
+noncomputable def olsLinearTNumeratorOrZero
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
     (β : k → ℝ) (root : ℝ) : ℝ :=
   (root • (R *ᵥ (olsBetaOrZero X y - β))) ⬝ᵥ (fun _ : Unit => 1)
@@ -124,19 +124,19 @@ noncomputable def olsLinearTStatisticNumeratorOrZero
 omit [DecidableEq k] in
 /-- Scalar t-statistic for totalized OLS and an arbitrary covariance estimator. -/
 @[reducible]
-noncomputable def olsLinearTStatisticStar
+noncomputable def olsLinearTStatStar
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
     (X : Matrix n k ℝ) (y : n → ℝ) (β : k → ℝ) (root : ℝ) : ℝ :=
-  olsLinearTStatisticNumeratorStar R X y β root /
+  olsLinearTNumeratorStar R X y β root /
     linearRestrictionStdError R Vhat
 
 omit [DecidableEq k] in
 /-- Scalar t-statistic for ordinary-on-nonsingular OLS and an arbitrary covariance estimator. -/
 @[reducible]
-noncomputable def olsLinearTStatisticOrZero
+noncomputable def olsLinearTStatOrZero
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
     (X : Matrix n k ℝ) (y : n → ℝ) (β : k → ℝ) (root : ℝ) : ℝ :=
-  olsLinearTStatisticNumeratorOrZero R X y β root /
+  olsLinearTNumeratorOrZero R X y β root /
     linearRestrictionStdError R Vhat
 
 omit [DecidableEq k] in
@@ -154,33 +154,33 @@ noncomputable def olsLinearCIEventOrZero
 omit [DecidableEq k] in
 /-- One-degree Wald statistic for a scalar ordinary-OLS restriction. -/
 @[reducible]
-noncomputable def olsLinearWaldStatisticOrZero
+noncomputable def olsLinearWaldStatOrZero
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
     (X : Matrix n k ℝ) (y : n → ℝ) (β : k → ℝ) (root : ℝ) : ℝ :=
-  (olsLinearTStatisticOrZero R Vhat X y β root) ^ 2
+  (olsLinearTStatOrZero R Vhat X y β root) ^ 2
 
 @[simp]
-theorem olsLinearTStatisticNumeratorOrZero_eq_star
+theorem olsLinearTNumeratorOrZero_eq_star
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
     (β : k → ℝ) (root : ℝ) :
-    olsLinearTStatisticNumeratorOrZero R X y β root =
-      olsLinearTStatisticNumeratorStar R X y β root := by
-  simp [olsLinearTStatisticNumeratorOrZero, olsLinearTStatisticNumeratorStar]
+    olsLinearTNumeratorOrZero R X y β root =
+      olsLinearTNumeratorStar R X y β root := by
+  simp [olsLinearTNumeratorOrZero, olsLinearTNumeratorStar]
 
 @[simp]
-theorem olsLinearTStatisticOrZero_eq_star
+theorem olsLinearTStatOrZero_eq_star
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
     (X : Matrix n k ℝ) (y : n → ℝ) (β : k → ℝ) (root : ℝ) :
-    olsLinearTStatisticOrZero R Vhat X y β root =
-      olsLinearTStatisticStar R Vhat X y β root := by
-  simp [olsLinearTStatisticOrZero, olsLinearTStatisticStar]
+    olsLinearTStatOrZero R Vhat X y β root =
+      olsLinearTStatStar R Vhat X y β root := by
+  simp [olsLinearTStatOrZero, olsLinearTStatStar]
 
 @[simp]
-theorem olsLinearWaldStatisticOrZero_eq_sq
+theorem olsLinearWaldStatOrZero_eq_sq
     {n : Type*} [Fintype n] (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
     (X : Matrix n k ℝ) (y : n → ℝ) (β : k → ℝ) (root : ℝ) :
-    olsLinearWaldStatisticOrZero R Vhat X y β root =
-      (olsLinearTStatisticOrZero R Vhat X y β root) ^ 2 := rfl
+    olsLinearWaldStatOrZero R Vhat X y β root =
+      (olsLinearTStatOrZero R Vhat X y β root) ^ 2 := rfl
 
 /-- Scaling by positive standard-error and root factors preserves absolute-value inequalities. -/
 theorem abs_scaled_error_div_le_iff
@@ -216,7 +216,7 @@ the true scalar parameter lies in the usual symmetric interval converges to the
 absolute-standard-normal mass below the critical value, at every continuity
 critical value. Positivity of the root and standard error is needed only
 eventually, so finite initial sample sizes are ignored by the limit. -/
-theorem symmetricCI_coverage_tendsto_of_abs_tstat
+theorem symmetricCI_coverage_of_abs_tstat
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {θ crit : ℝ}
     {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
@@ -246,9 +246,9 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat
     (se := se n ω) (crit := crit) hnroot (hnse ω)
   simpa [Set.mem_Iic] using hiff.symm
 
-/-- Version of `symmetricCI_coverage_tendsto_of_abs_tstat` with the standard-normal
+/-- Version of `symmetricCI_coverage_of_abs_tstat` with the standard-normal
 continuity-set side condition already discharged. -/
-theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
+theorem symmetricCI_coverage_of_abs_tstat_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {θ crit : ℝ}
     {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
@@ -263,7 +263,7 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal
         (θhat n ω + crit * se n ω / root n)})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  symmetricCI_coverage_tendsto_of_abs_tstat
+  symmetricCI_coverage_of_abs_tstat
     (μ := μ) (θ := θ) (crit := crit)
     hroot hse hT (standardNormalAbs_frontier_Iic_null crit)
 
@@ -273,7 +273,7 @@ This version removes the pointwise eventual standard-error positivity shortcut:
 it is enough that the nonpositive-standard-error event has probability tending
 to zero. The interval event and the absolute-t-statistic event can then differ
 only on a negligible bad set. -/
-theorem symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero
+theorem symmetricCI_coverage_of_abs_tstat_nonpos_tendsto_zero
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {θ crit : ℝ}
     {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
@@ -342,8 +342,8 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero
         _ = μ (stat n) + μ (ci n ∆ stat n) := by rw [add_comm]
 
 /-- Standard-normal version of
-`symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero`. -/
-theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_nonpos_tendsto_zero
+`symmetricCI_coverage_of_abs_tstat_nonpos_tendsto_zero`. -/
+theorem symmetricCI_coverage_of_abs_tstat_standardNormal_nonpos_tendsto_zero
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {θ crit : ℝ}
     {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
@@ -358,13 +358,13 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_nonpos_tends
         (θhat n ω + crit * se n ω / root n)})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero
+  symmetricCI_coverage_of_abs_tstat_nonpos_tendsto_zero
     (μ := μ) (θ := θ) (crit := crit)
     hroot hse_nonpos hT (standardNormalAbs_frontier_Iic_null crit)
 
 /-- Standard-normal confidence-interval coverage from convergence in probability
 of the standard error to a positive constant. -/
-theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
+theorem symmetricCI_coverage_of_abs_tstat_standardNormal_se_tendsto_pos
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {θ crit c : ℝ}
     {θhat se : ℕ → Ω → ℝ} {root : ℕ → ℝ}
@@ -380,7 +380,7 @@ theorem symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_p
         (θhat n ω + crit * se n ω / root n)})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_nonpos_tendsto_zero
+  symmetricCI_coverage_of_abs_tstat_standardNormal_nonpos_tendsto_zero
     (μ := μ) (θ := θ) (crit := crit)
     hroot (tendsto_measure_nonpos_of_tendstoInMeasure_const_pos (μ := μ) hc hse) hT
 
@@ -393,7 +393,7 @@ theorem linearCovarianceStdError_aemeasurable
     AEMeasurable (fun ω => Real.sqrt ((R * Vhat ω * Rᵀ) () ())) μ := by
   have hcov : AEStronglyMeasurable
       (fun ω => R * Vhat ω * Rᵀ) μ :=
-    linearMapCovariance_aestronglyMeasurable
+    linMapCov_aestronglyMeasurable
       (μ := μ) (R := R) hVhat
   have hentry_cont : Continuous (fun M : Matrix Unit Unit ℝ => M () ()) :=
     (continuous_apply ()).comp (continuous_apply ())
@@ -428,7 +428,7 @@ theorem studentizedLimit_tendstoInDistribution
 For a one-dimensional fixed linear map `R`, the homoskedastic-studentized
 totalized OLS linear function converges to the Gaussian linear-function limit
 divided by the homoskedastic population standard-error scale. -/
-theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+theorem olsHomoLinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -441,24 +441,24 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatStar R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (homoAsymCov μ X e))
       (fun _ => μ) ν := by
-  let c : ℝ := linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (homoAsymCov μ X e)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHomoskedasticCovarianceStar
+    Real.sqrt ((R * olsHomoCovStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let num : ℕ → Ω → ℝ := fun n ω =>
     ((Real.sqrt (n : ℝ) •
@@ -466,16 +466,16 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
         (fun _ : Unit => 1))
   have hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν := by
     simpa [num] using
-      scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+      scoreProj_linMap_olsBetaStar_tendstoInDistribution_gaussian_cov
         (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
         hclt.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
+      olsHomoLinSEStar_tendstoInMeasure
         (μ := μ) (X := X) (e := e) (y := y)
         hvar.toSampleVarianceAssumption74 β R () hmodel hX_meas he_meas
   have hV_meas :=
-    olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+    olsHomoskedasticCovStar_stack_aestronglyMeasurable_components
       (μ := μ) (X := X) (e := e) (y := y)
       hvar.toSampleMomentAssumption71 β hmodel hX_meas he_meas
   have hse_meas : ∀ n, AEMeasurable (se n) μ := by
@@ -483,14 +483,14 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
     exact linearCovarianceStdError_aemeasurable
       (μ := μ) (R := R)
       (Vhat := fun ω =>
-        olsHomoskedasticCovarianceStar
+        olsHomoCovStar
           (stackRegressors X n ω) (stackOutcomes y n ω))
       (hV_meas n)
   have hratio := studentizedLimit_tendstoInDistribution
     (μ := μ) (ν := ν) (num := num) (se := se) (Z := Z) (c := c)
     (by simpa [c] using hse_pos) hnum hse hse_meas
-  simpa [num, se, c, olsLinearTStatisticStar,
-    olsLinearTStatisticNumeratorStar, linearRestrictionStdError] using hratio
+  simpa [num, se, c, olsLinearTStatStar,
+    olsLinearTNumeratorStar, linearRestrictionStdError] using hratio
 
 /-- **Hansen Theorem 7.14, scalar homoskedastic t-statistic with standard normal limit.**
 
@@ -498,7 +498,7 @@ If the homoskedastic asymptotic covariance equals the robust sandwich
 covariance, the scalar homoskedastic t-statistic has the standard-normal limit.
 This is the one-dimensional t-statistic face behind the homoskedastic Wald
 statistic. -/
-theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
+theorem olsHomoLinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -507,41 +507,41 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNorma
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hVeq : homoskedasticAsymptoticCovariance μ X e =
-      heteroskedasticAsymptoticCovariance μ X e)
+    (hVeq : homoAsymCov μ X e =
+      heteroAsymCov μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatStar R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  let c : ℝ := linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)
-  have hentry_pos : 0 < (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+  let c : ℝ := linearRestrictionStdError R (homoAsymCov μ X e)
+  have hentry_pos : 0 < (R * homoAsymCov μ X e * Rᵀ) () () := by
     exact Real.sqrt_pos.mp hse_pos
   have hentry_eq :
-      (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
-        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+      (R * homoAsymCov μ X e * Rᵀ) () () =
+        olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
     rw [hVeq]
-    exact linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+    exact linMapCov_unit_apply_eq_olsProjectionAsymVar
       (μ := μ) (X := X) (e := e) hclt.toSampleMomentAssumption71.int_outer R
   have hσ :
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
     calc
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
-          = (R * homoskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * homoAsymCov μ X e * Rᵀ) () () :=
             hentry_eq.symm
       _ = c ^ 2 := by
             simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
   have hZ : HasLaw (fun x : ℝ => c * x)
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       (gaussianReal 0 1) :=
     hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
-  have hbase := olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+  have hbase := olsHomoLinTStatStar_tendstoInDistribution
     (μ := μ) (ν := gaussianReal 0 1) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
   convert hbase using 2
@@ -553,7 +553,7 @@ theorem olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNorma
 
 The homoskedastic-studentized scalar linear t-statistic transfers from the
 totalized estimator to the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
-theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
+theorem olsHomoLinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -566,28 +566,28 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (homoAsymCov μ X e))
       (fun _ => μ) ν := by
   simpa using
-    olsHomoskedasticLinearTStatisticStar_tendstoInDistribution
+    olsHomoLinTStatStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
 
 /-- **Hansen Theorem 7.14 for ordinary OLS, homoskedastic standard-normal face.** -/
-theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -596,25 +596,25 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hVeq : homoskedasticAsymptoticCovariance μ X e =
-      heteroskedasticAsymptoticCovariance μ X e)
+    (hVeq : homoAsymCov μ X e =
+      heteroAsymCov μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
-    olsHomoskedasticLinearTStatisticStar_tendstoInDistribution_standardNormal
+    olsHomoLinTStatStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
 
 /-- Absolute-value CMT for the ordinary homoskedastic scalar t-statistic. -/
-theorem olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+theorem olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -623,21 +623,21 @@ theorem olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standar
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hVeq : homoskedasticAsymptoticCovariance μ X e =
-      heteroskedasticAsymptoticCovariance μ X e)
+    (hVeq : homoAsymCov μ X e =
+      heteroAsymCov μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        |olsLinearTStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        |olsLinearTStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
     tendstoInDistribution_abs_real
-      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
 
@@ -648,7 +648,7 @@ For a one-row linear restriction, the ordinary-wrapper homoskedastic symmetric
 confidence interval has limiting coverage equal to the absolute standard-normal
 mass below the critical value. Sample standard-error positivity is derived from
 convergence in probability to the positive population standard error. -/
-theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
+theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -657,14 +657,14 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hVeq : homoskedasticAsymptoticCovariance μ X e =
-      heteroskedasticAsymptoticCovariance μ X e)
+    (hVeq : homoAsymCov μ X e =
+      heteroAsymCov μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     Tendsto
       (fun n => μ {ω |
         olsLinearCIEventOrZero R
-          (olsHomoskedasticCovarianceStar
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)) crit})
@@ -675,20 +675,20 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
       (fun _ : Unit => 1)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHomoskedasticCovarianceStar
+    Real.sqrt ((R * olsHomoCovStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
-  let c : ℝ := linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (homoAsymCov μ X e)
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHomoskedasticLinearStdErrorStar_tendstoInMeasure
+      olsHomoLinSEStar_tendstoInMeasure
         (μ := μ) (X := X) (e := e) (y := y)
         hvar.toSampleVarianceAssumption74 β R () hmodel hX_meas he_meas
-  have hAbs := olsHomoskedasticLinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+  have hAbs := olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
   have hGeneric : TendstoInDistribution
@@ -697,12 +697,12 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
     refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
     intro n
     exact ae_of_all μ (fun ω => by
-      dsimp [θ, θhat, se, root, olsLinearTStatisticOrZero,
-        olsLinearTStatisticNumeratorOrZero, linearRestrictionStdError]
+      dsimp [θ, θhat, se, root, olsLinearTStatOrZero,
+        olsLinearTNumeratorOrZero, linearRestrictionStdError]
       rw [linearMapUnit_smul_sub_dot_one])
   simpa [θ, θhat, se, root, c, olsLinearCIEventOrZero,
     linearRestrictionEstimate, linearRestrictionStdError] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
+    symmetricCI_coverage_of_abs_tstat_standardNormal_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
       (θhat := θhat) (se := se) (root := root) (c := c)
       hroot (by simpa [c] using hse_pos) hse hGeneric
@@ -712,7 +712,7 @@ set_option linter.style.longLine false in
 
 This is the variable-facing version: it assumes constant conditional error
 variance given regressors, then derives the covariance identity internally. -/
-theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homoskedastic
+theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -725,25 +725,25 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homosk
     [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
     (hhomo : HomoskedasticErrorVariance μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     Tendsto
       (fun n => μ {ω |
         olsLinearCIEventOrZero R
-          (olsHomoskedasticCovarianceStar
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)) crit})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) := by
-  have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
+  have hΩ := scoreCovMat_eq_errorVariance_smul_popGram_homo
     (μ := μ) (X := X) (e := e)
     hclt.toSampleCLTAssumption72 hvar.toSampleVarianceAssumption74 hX0 hhomo
   have hQ : IsUnit (popGram μ X).det := by
     simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
-  exact olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal
+  exact olsHomoLinCIOrZero_cov_tendsto_standardNormal
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R crit hmodel hX_meas he_meas
-    (homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+    (homoAsymCov_eq_heteroAsymCov
       (μ := μ) (X := X) (e := e) hQ hΩ)
     hse_pos
 
@@ -751,7 +751,7 @@ theorem olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal_of_homosk
 
 Under the explicit covariance bridge `V⁰β = Vβ`, the scalar homoskedastic Wald
 statistic for ordinary OLS converges to `χ²(1)`. -/
-theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
+theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -760,21 +760,21 @@ theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquar
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hVeq : homoskedasticAsymptoticCovariance μ X e =
-      heteroskedasticAsymptoticCovariance μ X e)
+    (hVeq : homoAsymCov μ X e =
+      heteroAsymCov μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearWaldStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearWaldStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
   simpa using
     tendstoInDistribution_sq_standardNormal_chiSquared_one
-      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos)
 
@@ -783,7 +783,7 @@ set_option linter.style.longLine false in
 
 If the homoskedastic score-covariance identity `Ω = σ²Q` is available, the
 ordinary-wrapper scalar homoskedastic t-statistic has a standard-normal limit. -/
-theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_scoreCov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -792,23 +792,23 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X)
+    (hΩ : scoreCovMat μ X e = errorVariance μ e • popGram μ X)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
   have hQ : IsUnit (popGram μ X).det := by
     simpa [popGram] using hvar.toSampleMomentAssumption71.Q_nonsing
-  exact olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal
+  exact olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas
-    (homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance
+    (homoAsymCov_eq_heteroAsymCov
       (μ := μ) (X := X) (e := e) hQ hΩ)
     hse_pos
 
@@ -817,7 +817,7 @@ set_option linter.style.longLine false in
 
 This variable-facing wrapper derives `Ω = σ²Q` from constant conditional error
 variance given `X₀`, then applies the covariance-identity bridge. -/
-theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_homoskedastic
+theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -830,19 +830,19 @@ theorem olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNor
     [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
     (hhomo : HomoskedasticErrorVariance μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  have hΩ := scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic
+  have hΩ := scoreCovMat_eq_errorVariance_smul_popGram_homo
     (μ := μ) (X := X) (e := e)
     hclt.toSampleCLTAssumption72 hvar.toSampleVarianceAssumption74 hX0 hhomo
-  exact olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+  exact olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_scoreCov
     (μ := μ) (X := X) (e := e) (y := y)
     hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos
 
@@ -851,7 +851,7 @@ set_option linter.style.longLine false in
 
 If `Ω = σ²Q`, the scalar one-degree-of-freedom homoskedastic Wald statistic for
 ordinary OLS converges to `χ²(1)`. -/
-theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance
+theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_scoreCov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -860,26 +860,26 @@ theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquar
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
-    (hΩ : scoreCovarianceMatrix μ X e = errorVariance μ e • popGram μ X)
+    (hΩ : scoreCovMat μ X e = errorVariance μ e • popGram μ X)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearWaldStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearWaldStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
   simpa using
     tendstoInDistribution_sq_standardNormal_chiSquared_one
-      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_scoreCovariance
+      (olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_scoreCov
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hΩ hse_pos)
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 7.14, scalar homoskedastic Wald statistic from homoskedasticity.** -/
-theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic
+theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -892,18 +892,18 @@ theorem olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquar
     [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
     (hhomo : HomoskedasticErrorVariance μ X e)
     (hse_pos : 0 <
-      linearRestrictionStdError R (homoskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (homoAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearWaldStatisticOrZero R
-          (olsHomoskedasticCovarianceStar
+        olsLinearWaldStatOrZero R
+          (olsHomoCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
   simpa using
     tendstoInDistribution_sq_standardNormal_chiSquared_one
-      (olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal_of_homoskedastic
+      (olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hX0 hhomo hse_pos)
 
@@ -914,7 +914,7 @@ linear function converges in distribution to the Gaussian linear-function limit
 divided by the population standard-error scale. A final law-normalization
 corollary can turn this displayed limit into `N(0,1)` once the scalar variance
 is identified with the corresponding diagonal of `R Vβ Rᵀ`. -/
-theorem olsHC0LinearTStatisticStar_tendstoInDistribution
+theorem olsHC0LinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -925,33 +925,33 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHeteroskedasticCovarianceStar
+        olsLinearTStatStar R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (heteroAsymCov μ X e))
       (fun _ => μ) ν := by
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+    Real.sqrt ((R * olsHetCovStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let num : ℕ → Ω → ℝ := fun n ω =>
     ((Real.sqrt (n : ℝ) •
@@ -959,16 +959,16 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
         (fun _ : Unit => 1))
   have hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν := by
     simpa [num] using
-      scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+      scoreProj_linMap_olsBetaStar_tendstoInDistribution_gaussian_cov
         (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
         h.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+      olsHC0LinSEStar_tendstoInMeasure_of_bddWts_components
         (μ := μ) (X := X) (e := e) (y := y)
         h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hV_meas :=
-    olsHeteroskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+    olsHetCovStar_stack_aestronglyMeasurable_components
       (μ := μ) (X := X) (e := e) (y := y)
       h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
   have hse_meas : ∀ n, AEMeasurable (se n) μ := by
@@ -976,20 +976,20 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution
     exact linearCovarianceStdError_aemeasurable
       (μ := μ) (R := R)
       (Vhat := fun ω =>
-        olsHeteroskedasticCovarianceStar
+        olsHetCovStar
           (stackRegressors X n ω) (stackOutcomes y n ω))
       (hV_meas n)
   have hratio := studentizedLimit_tendstoInDistribution
     (μ := μ) (ν := ν) (num := num) (se := se) (Z := Z) (c := c)
     (by simpa [c] using hse_pos) hnum hse hse_meas
-  simpa [num, se, c, olsLinearTStatisticStar,
-    olsLinearTStatisticNumeratorStar, linearRestrictionStdError] using hratio
+  simpa [num, se, c, olsLinearTStatStar,
+    olsLinearTNumeratorStar, linearRestrictionStdError] using hratio
 
 /-- **Hansen Theorem 7.11, HC0 scalar t-statistic with standard normal limit.**
 
 This is the textbook-facing form of the HC0 studentized scalar linear-function
 CLT: the target is the identity random variable under `N(0,1)`. -/
-theorem olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
+theorem olsHC0LinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -999,44 +999,44 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHeteroskedasticCovarianceStar
+        olsLinearTStatStar R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
-  have hentry_pos : 0 < (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
+  have hentry_pos : 0 < (R * heteroAsymCov μ X e * Rᵀ) () () := by
     exact Real.sqrt_pos.mp hse_pos
   have hentry_eq :
-      (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
-        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
-    linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+      (R * heteroAsymCov μ X e * Rᵀ) () () =
+        olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
+    linMapCov_unit_apply_eq_olsProjectionAsymVar
       (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71.int_outer R
   have hσ :
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
     calc
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
-          = (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * heteroAsymCov μ X e * Rᵀ) () () :=
             hentry_eq.symm
       _ = c ^ 2 := by
             simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
   have hZ : HasLaw (fun x : ℝ => c * x)
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       (gaussianReal 0 1) :=
     hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
-  have hbase := olsHC0LinearTStatisticStar_tendstoInDistribution
+  have hbase := olsHC0LinTStatStar_tendstoInDistribution
     (μ := μ) (ν := gaussianReal 0 1) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
   convert hbase using 2
@@ -1049,7 +1049,7 @@ theorem olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
 The HC0-studentized scalar linear t-statistic transfers from `olsBetaStar` to
 `olsBetaOrZero`, the ordinary-OLS wrapper used on nonsingular sample-Gram
 events. -/
-theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
+theorem olsHC0LinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1060,37 +1060,37 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (heteroAsymCov μ X e))
       (fun _ => μ) ν := by
   simpa using
-    olsHC0LinearTStatisticStar_tendstoInDistribution
+    olsHC0LinTStatStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
 
 /-- **Hansen Theorem 7.11 for ordinary OLS, HC0 standard-normal face.** -/
-theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1100,29 +1100,29 @@ theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceStar
+        olsLinearTStatOrZero R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
-    olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
+    olsHC0LinTStatStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
 
 /-- Absolute-value CMT for the ordinary HC0 scalar t-statistic. -/
-theorem olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1132,25 +1132,25 @@ theorem olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        |olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceStar
+        |olsLinearTStatOrZero R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
     tendstoInDistribution_abs_real
-      (olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
@@ -1162,7 +1162,7 @@ restriction has limiting coverage given by the absolute standard-normal mass
 below `crit`; the bad event where the sample HC0 standard error is nonpositive
 is negligible because the standard error converges in probability to its
 positive population limit. -/
-theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
+theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1172,18 +1172,18 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     Tendsto
       (fun n => μ {ω |
         olsLinearCIEventOrZero R
-          (olsHeteroskedasticCovarianceStar
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)) crit})
@@ -1194,20 +1194,20 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
       (fun _ : Unit => 1)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+    Real.sqrt ((R * olsHetCovStar
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+      olsHC0LinSEStar_tendstoInMeasure_of_bddWts_components
         (μ := μ) (X := X) (e := e) (y := y)
         h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
-  have hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+  have hAbs := olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
   have hGeneric : TendstoInDistribution
@@ -1216,18 +1216,18 @@ theorem olsHC0LinearCIOrZero_coverage_tendsto_standardNormal
     refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
     intro n
     exact ae_of_all μ (fun ω => by
-      dsimp [θ, θhat, se, root, olsLinearTStatisticOrZero,
-        olsLinearTStatisticNumeratorOrZero, linearRestrictionStdError]
+      dsimp [θ, θhat, se, root, olsLinearTStatOrZero,
+        olsLinearTNumeratorOrZero, linearRestrictionStdError]
       rw [linearMapUnit_smul_sub_dot_one])
   simpa [θ, θhat, se, root, c, olsLinearCIEventOrZero,
     linearRestrictionEstimate, linearRestrictionStdError] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
+    symmetricCI_coverage_of_abs_tstat_standardNormal_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
       (θhat := θhat) (se := se) (root := root) (c := c)
       hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- Scalar one-degree-of-freedom HC0 Wald statistic for ordinary OLS. -/
-theorem olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
+theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1237,35 +1237,35 @@ theorem olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearWaldStatisticOrZero R
-          (olsHeteroskedasticCovarianceStar
+        olsLinearWaldStatOrZero R
+          (olsHetCovStar
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
   simpa using
     tendstoInDistribution_sq_standardNormal_chiSquared_one
-      (olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
 /-- **Hansen Theorem 7.11, HC1 t-statistic for a scalar linear function.**
 
 This is the HC1 analogue of
-`olsHC0LinearTStatisticStar_tendstoInDistribution`: the studentized totalized
+`olsHC0LinTStatStar_tendstoInDistribution`: the studentized totalized
 OLS linear function converges to the same Gaussian limit divided by the
 population standard-error scale. -/
-theorem olsHC1LinearTStatisticStar_tendstoInDistribution
+theorem olsHC1LinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1276,33 +1276,33 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHeteroskedasticCovarianceHC1Star
+        olsLinearTStatStar R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (heteroAsymCov μ X e))
       (fun _ => μ) ν := by
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
+    Real.sqrt ((R * olsHetCovHC1Star
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let num : ℕ → Ω → ℝ := fun n ω =>
     ((Real.sqrt (n : ℝ) •
@@ -1310,16 +1310,16 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
         (fun _ : Unit => 1))
   have hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν := by
     simpa [num] using
-      scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance
+      scoreProj_linMap_olsBetaStar_tendstoInDistribution_gaussian_cov
         (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
         h.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+      olsHC1LinSEStar_tendstoInMeasure_of_bddWts_components
         (μ := μ) (X := X) (e := e) (y := y)
         h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
   have hV_meas :=
-    olsHC1CovarianceStar_stack_aestronglyMeasurable_of_components
+    olsHC1CovarianceStar_stack_aestronglyMeasurable_components
       (μ := μ) (X := X) (e := e) (y := y)
       h.toSampleMomentAssumption71 β hmodel hX_meas he_meas
   have hse_meas : ∀ n, AEMeasurable (se n) μ := by
@@ -1327,20 +1327,20 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution
     exact linearCovarianceStdError_aemeasurable
       (μ := μ) (R := R)
       (Vhat := fun ω =>
-        olsHeteroskedasticCovarianceHC1Star
+        olsHetCovHC1Star
           (stackRegressors X n ω) (stackOutcomes y n ω))
       (hV_meas n)
   have hratio := studentizedLimit_tendstoInDistribution
     (μ := μ) (ν := ν) (num := num) (se := se) (Z := Z) (c := c)
     (by simpa [c] using hse_pos) hnum hse hse_meas
-  simpa [num, se, c, olsLinearTStatisticStar,
-    olsLinearTStatisticNumeratorStar, linearRestrictionStdError] using hratio
+  simpa [num, se, c, olsLinearTStatStar,
+    olsLinearTNumeratorStar, linearRestrictionStdError] using hratio
 
 /-- **Hansen Theorem 7.11, HC1 scalar t-statistic with standard normal limit.**
 
 This is the HC1 analogue of
-`olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal`. -/
-theorem olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
+`olsHC0LinTStatStar_tendstoInDistribution_standardNormal`. -/
+theorem olsHC1LinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1350,44 +1350,44 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticStar R
-          (olsHeteroskedasticCovarianceHC1Star
+        olsLinearTStatStar R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
-  have hentry_pos : 0 < (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () := by
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
+  have hentry_pos : 0 < (R * heteroAsymCov μ X e * Rᵀ) () () := by
     exact Real.sqrt_pos.mp hse_pos
   have hentry_eq :
-      (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () =
-        olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
-    linearMapCovariance_unit_apply_eq_olsProjectionAsymptoticVariance
+      (R * heteroAsymCov μ X e * Rᵀ) () () =
+        olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) :=
+    linMapCov_unit_apply_eq_olsProjectionAsymVar
       (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71.int_outer R
   have hσ :
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1)) = c ^ 2 := by
     calc
-      olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
-          = (R * heteroskedasticAsymptoticCovariance μ X e * Rᵀ) () () :=
+      olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))
+          = (R * heteroAsymCov μ X e * Rᵀ) () () :=
             hentry_eq.symm
       _ = c ^ 2 := by
             simpa [c] using (Real.sq_sqrt hentry_pos.le).symm
   have hZ : HasLaw (fun x : ℝ => c * x)
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       (gaussianReal 0 1) :=
     hasLaw_const_mul_id_gaussianReal_of_variance_eq hσ
-  have hbase := olsHC1LinearTStatisticStar_tendstoInDistribution
+  have hbase := olsHC1LinTStatStar_tendstoInDistribution
     (μ := μ) (ν := gaussianReal 0 1) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
   convert hbase using 2
@@ -1399,7 +1399,7 @@ theorem olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
 
 The HC1-studentized scalar linear t-statistic transfers from `olsBetaStar` to
 the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
-theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
+theorem olsHC1LinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1410,37 +1410,37 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
       (gaussianReal 0
-        (olsProjectionAsymptoticVariance μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (olsProjectionAsymVar μ X e (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       ν)
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceHC1Star
+        olsLinearTStatOrZero R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop
       (fun ω =>
-        Z ω / linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e))
+        Z ω / linearRestrictionStdError R (heteroAsymCov μ X e))
       (fun _ => μ) ν := by
   simpa using
-    olsHC1LinearTStatisticStar_tendstoInDistribution
+    olsHC1LinTStatStar_tendstoInDistribution
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
 
 /-- **Hansen Theorem 7.11 for ordinary OLS, HC1 standard-normal face.** -/
-theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1450,29 +1450,29 @@ theorem olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceHC1Star
+        olsLinearTStatOrZero R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
-    olsHC1LinearTStatisticStar_tendstoInDistribution_standardNormal
+    olsHC1LinTStatStar_tendstoInDistribution_standardNormal
       (μ := μ) (X := X) (e := e) (y := y)
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
 
 /-- Absolute-value CMT for the ordinary HC1 scalar t-statistic. -/
-theorem olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1482,30 +1482,30 @@ theorem olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        |olsLinearTStatisticOrZero R
-          (olsHeteroskedasticCovarianceHC1Star
+        |olsLinearTStatOrZero R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
   simpa using
     tendstoInDistribution_abs_real
-      (olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
 /-- Scalar one-degree-of-freedom HC1 Wald statistic for ordinary OLS. -/
-theorem olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
+theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1515,25 +1515,25 @@ theorem olsHC1LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
-        olsLinearWaldStatisticOrZero R
-          (olsHeteroskedasticCovarianceHC1Star
+        olsLinearWaldStatOrZero R
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
   simpa using
     tendstoInDistribution_sq_standardNormal_chiSquared_one
-      (olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
         (μ := μ) (X := X) (e := e) (y := y)
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
@@ -1545,7 +1545,7 @@ restriction has limiting coverage given by the absolute standard-normal mass
 below `crit`; the bad event where the sample HC1 standard error is nonpositive
 is negligible because the standard error converges in probability to its
 positive population limit. -/
-theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
+theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1555,18 +1555,18 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
     (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceCrossWeight
+        sampleScoreCovCrossWeight
           (stackRegressors X n ω) (stackErrors e n ω) a b l))
     (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
       (fun n ω =>
-        sampleScoreCovarianceQuadraticWeight
+        sampleScoreCovQuadraticWeight
           (stackRegressors X n ω) a b l m))
     (hse_pos : 0 <
-      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :
+      linearRestrictionStdError R (heteroAsymCov μ X e)) :
     Tendsto
       (fun n => μ {ω |
         olsLinearCIEventOrZero R
-          (olsHeteroskedasticCovarianceHC1Star
+          (olsHetCovHC1Star
             (stackRegressors X n ω) (stackOutcomes y n ω))
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)) crit})
@@ -1577,20 +1577,20 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
       (fun _ : Unit => 1)
   let se : ℕ → Ω → ℝ := fun n ω =>
-    Real.sqrt ((R * olsHeteroskedasticCovarianceHC1Star
+    Real.sqrt ((R * olsHetCovHC1Star
       (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())
   let root : ℕ → ℝ := fun n => Real.sqrt (n : ℝ)
-  let c : ℝ := linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)
+  let c : ℝ := linearRestrictionStdError R (heteroAsymCov μ X e)
   have hroot : ∀ᶠ n in atTop, 0 < root n := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     have hnpos : (0 : ℝ) < n := by exact_mod_cast hn
     exact Real.sqrt_pos.mpr hnpos
   have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
     simpa [se, c] using
-      olsHC1LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+      olsHC1LinSEStar_tendstoInMeasure_of_bddWts_components
         (μ := μ) (X := X) (e := e) (y := y)
         h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight
-  have hAbs := olsHC1LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+  have hAbs := olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     (μ := μ) (X := X) (e := e) (y := y)
     h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
   have hGeneric : TendstoInDistribution
@@ -1599,12 +1599,12 @@ theorem olsHC1LinearCIOrZero_coverage_tendsto_standardNormal
     refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
     intro n
     exact ae_of_all μ (fun ω => by
-      dsimp [θ, θhat, se, root, olsLinearTStatisticOrZero,
-        olsLinearTStatisticNumeratorOrZero, linearRestrictionStdError]
+      dsimp [θ, θhat, se, root, olsLinearTStatOrZero,
+        olsLinearTNumeratorOrZero, linearRestrictionStdError]
       rw [linearMapUnit_smul_sub_dot_one])
   simpa [θ, θhat, se, root, c, olsLinearCIEventOrZero,
     linearRestrictionEstimate, linearRestrictionStdError] using
-    symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos
+    symmetricCI_coverage_of_abs_tstat_standardNormal_se_tendsto_pos
       (μ := μ) (θ := θ) (crit := crit)
       (θhat := θhat) (se := se) (root := root) (c := c)
       hroot (by simpa [c] using hse_pos) hse hGeneric
@@ -1615,7 +1615,7 @@ For every fixed direction `a`, the scaled totalized OLS error has Gaussian
 limit with asymptotic variance `((Q⁻¹)'a)' Ω ((Q⁻¹)'a)`. This is the complete
 projection-family form currently available before the vector/Cramér-Wold
 wrapper is formalized. -/
-theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all
+theorem scoreProj_olsBetaStar_tendstoInDistribution_gaussian_cov_all
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1624,7 +1624,7 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_al
     {Z : (k → ℝ) → Ω' → ℝ}
     (hZ : ∀ a : k → ℝ,
       HasLaw (Z a)
-        (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+        (gaussianReal 0 (olsProjectionAsymVar μ X e a).toNNReal) ν) :
     ∀ a : k → ℝ,
       TendstoInDistribution
         (fun (n : ℕ) ω =>
@@ -1632,7 +1632,7 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_al
             (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
         atTop (Z a) (fun _ => μ) ν :=
   fun a =>
-    scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    scoreProj_olsBetaStar_tendstoInDistribution_gaussian_cov
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h.toSampleCLTAssumption72 β a hmodel (hZ a)
 
@@ -1640,7 +1640,7 @@ theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_al
 
 This transfers the scalar totalized-OLS CLT to `olsBetaOrZero`, which is ordinary
 `olsBeta` on the nonsingular sample-Gram event and `0` otherwise. -/
-theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
+theorem scoreProj_olsBetaOrZero_tendstoInDistribution_gaussian_cov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1648,14 +1648,14 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
     {Z : Ω' → ℝ}
     (hZ : HasLaw Z
-      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+      (gaussianReal 0 (olsProjectionAsymVar μ X e a).toNNReal) ν) :
     TendstoInDistribution
       (fun (n : ℕ) ω =>
         (Real.sqrt (n : ℝ) •
           (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
       atTop Z (fun _ => μ) ν := by
   simpa using
-    scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+    scoreProj_olsBetaStar_tendstoInDistribution_gaussian_cov
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       h.toSampleCLTAssumption72 β a hmodel hZ
 
@@ -1664,7 +1664,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
 This is the textbook-facing projection-family form for `olsBetaOrZero`: for
 every fixed direction `a`, ordinary OLS on the nonsingular sample-Gram event has
 the same scalar Gaussian limit as the totalized estimator. -/
-theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all
+theorem scoreProj_olsBetaOrZero_tendstoInDistribution_gaussian_cov_all
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1673,7 +1673,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_
     {Z : (k → ℝ) → Ω' → ℝ}
     (hZ : ∀ a : k → ℝ,
       HasLaw (Z a)
-        (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
+        (gaussianReal 0 (olsProjectionAsymVar μ X e a).toNNReal) ν) :
     ∀ a : k → ℝ,
       TendstoInDistribution
         (fun (n : ℕ) ω =>
@@ -1681,7 +1681,7 @@ theorem scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_
             (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
         atTop (Z a) (fun _ => μ) ν :=
   fun a =>
-    scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance
+    scoreProj_olsBetaOrZero_tendstoInDistribution_gaussian_cov
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel (hZ a)
 
 end Assumption72

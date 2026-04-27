@@ -36,18 +36,18 @@ V_\beta := Q^{-1}\Omega Q^{-1}.
 \]
 
 That closure now feeds the public wrappers
-[linearMap_olsBetaStar_waldChiSquared_gaussian](../HansenEconometrics/Chapter7Asymptotics/Normality.lean)
+[linMap_olsBetaStar_waldChiSquared_gaussian](../HansenEconometrics/Chapter7Asymptotics/Normality.lean)
 and
-[linearMap_olsBetaOrZero_waldChiSquared_gaussian](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
+[linMap_olsBetaOrZero_waldChiSquared_gaussian](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
 
 ### 2. Concrete multivariate robust Wald wrappers
 
 Closed for HC0 and HC1 by
-[linearMap_olsHC0WaldStatisticStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
-[linearMap_olsHC0WaldStatisticOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
-[linearMap_olsHC1WaldStatisticStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
 and
-[linearMap_olsHC1WaldStatisticOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
+[linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
 
 LaTeX:
 
@@ -69,11 +69,11 @@ R \hat V_n R' \to_p R V_\beta R'.
 ### 3. Multivariate homoskedastic Wald wrapper
 
 Closed by
-[linearMap_olsHomoskedasticWaldStatisticStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
-[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
-[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_scoreCovariance](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHomoWaldStatStar_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
+[linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_scoreCov](../HansenEconometrics/Chapter7Asymptotics/Normality.lean),
 and
-[linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_homoskedastic](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
+[linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo](../HansenEconometrics/Chapter7Asymptotics/Normality.lean).
 
 LaTeX:
 
@@ -110,14 +110,14 @@ middle-matrix entries. Since those diagonal entries converge in probability to
 finite constants, they are `O_p(1)`.
 
 In Lean this is packaged through
-[sampleScoreCovarianceResidualAbsWeightStar_le_diag_add](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_middle](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovResAbsWtStar_le_diag_add](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovResAbsWtStar_boundedInProbability_middle](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
 and
-[sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_bounded_weights](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovResAbsWtStar_boundedInProbability_of_bddWts](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
 then fed into
-[sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+[sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
 and
-[sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
 with public HC2/HC3 covariance and Wald wrappers no longer assuming that
 absolute-weight boundedness separately.
 
@@ -135,12 +135,12 @@ h \mapsto (1-h)^{-2},
 
 applied to measurable leverage scores, multiplied by measurable residual-score
 outer products. In Lean this is packaged through
-[sampleScoreCovarianceLeverageAdjustedStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovarianceHC2AdjustmentStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovarianceHC3AdjustmentStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[olsHC2CovarianceStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovLevAdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovHC2AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovHC3AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[olsHC2CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
 and
-[olsHC3CovarianceStar_stack_aestronglyMeasurable_of_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean).
+[olsHC3CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean).
 
 The public HC2/HC3 covariance and Wald wrappers therefore no longer need a
 separate `hAdj_meas` premise.

@@ -148,7 +148,7 @@ For the totalized estimator, the finite-sample residual error at row `i` is
 bounded by the row norm times the coefficient error, with the explicit
 finite-dimensional sup-norm factor. This is the pointwise algebra behind the
 uniform residual consistency rate. -/
-theorem residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+theorem residualStar_sub_error_abs_le_card_rowNorm_betaErrorNorm
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
     |olsResidualStar X (X *ᵥ β + e) i - e i| ≤
       (Fintype.card k : ℝ) * ‖X i‖ *
@@ -173,7 +173,7 @@ private theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
       (Fintype.card k : ℝ) * ‖X i‖ *
         ‖olsBeta X (X *ᵥ β + e) - β‖ := by
   simpa [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
-    residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+    residualStar_sub_error_abs_le_card_rowNorm_betaErrorNorm
       (X := X) (β := β) (e := e) i
 
 /-- **Theorem 7.4 residual expansion, squared pointwise form.**
@@ -297,7 +297,7 @@ theorem invOf_sampleGram
 in the linear model `Y = X β + e`, the OLS error decomposes as
 `β̂ₙ - β = Q̂ₙ⁻¹ *ᵥ g̑ₙ`. This is the algebraic engine behind
 Theorem 7.1 (Consistency of Least Squares). -/
-theorem olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment
+theorem olsBeta_sub_eq_sampleGram_inv_sampleCrossMoment
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ)
     [Nonempty n] [Invertible (Xᵀ * X)] :
     olsBeta X (X *ᵥ β + e) - β = ⅟ (sampleGram X) *ᵥ sampleCrossMoment X e := by
@@ -402,7 +402,7 @@ theorem sum_fin_eq_sum_range_smul
 omit [Fintype k] [DecidableEq k] in
 /-- The Hansen CLT scaling `√n · ĝₙ(e)` equals the normalized score sum
 `(1 / √n) ∑_{i<n} eᵢXᵢ`, including the harmless `n = 0` totalized case. -/
-theorem sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum
+theorem sqrt_smul_sampleCrossMoment_stack_eq_inv_sqrt_sum
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     Real.sqrt (n : ℝ) • sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
       (Real.sqrt (n : ℝ))⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω := by
@@ -474,10 +474,10 @@ theorem olsSigmaSqHatStar_stack_linear_model
 /-- **Unconditional sample-moment form of `olsBetaStar`.**
 For every sample size `n` and every `ω`,
 `olsBetaStar X y = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)`, where `Q̂ₙ = n⁻¹ Xᵀ X` and `ĝₙ(y) = n⁻¹ Xᵀ y`.
-Unlike Phase 1's `olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`, this
+Unlike Phase 1's `olsBeta_sub_eq_sampleGram_inv_sampleCrossMoment`, this
 version uses `Matrix.nonsingInv` throughout and so holds on *all* of `Ω`,
 including the null event `{Q̂ₙ singular}` where both sides collapse to `0`. -/
-theorem olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment
+theorem olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment
     (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) =
       (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
@@ -508,7 +508,7 @@ theorem olsBetaStar_sub_identity
           sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
       ((sampleGram (stackRegressors X n ω))⁻¹ *
           sampleGram (stackRegressors X n ω) - 1) *ᵥ β := by
-  rw [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment,
+  rw [olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment,
       sampleCrossMoment_stackOutcomes_linear_model X e y β hmodel,
       Matrix.mulVec_add, Matrix.mulVec_mulVec,
       Matrix.sub_mulVec, Matrix.one_mulVec]
