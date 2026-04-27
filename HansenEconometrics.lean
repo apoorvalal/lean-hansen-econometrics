@@ -16,4 +16,5 @@ import HansenEconometrics.ChiSquared
 import HansenEconometrics.FDist
 import HansenEconometrics.StudentT
 import HansenEconometrics.Chapter5NormalRegression
+import HansenEconometrics.Chapter5LikelihoodRatioTest
 import HansenEconometrics.Chapter7Asymptotics

@@ -3,7 +3,7 @@ import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.ChiSquared
 import HansenEconometrics.Chapter7Asymptotics.Consistency
-import HansenEconometrics.Chapter7Asymptotics.RobustCovariance
+import HansenEconometrics.Chapter7Asymptotics.SandwichAssembly
 
 /-!
 # Chapter 7 Asymptotics: Normality

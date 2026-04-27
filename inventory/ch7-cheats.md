@@ -110,14 +110,14 @@ middle-matrix entries. Since those diagonal entries converge in probability to
 finite constants, they are `O_p(1)`.
 
 In Lean this is packaged through
-[sampleScoreCovResAbsWtStar_le_diag_add](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovResAbsWtStar_boundedInProbability_middle](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovResAbsWtStar_le_diag_add](../HansenEconometrics/Chapter7Asymptotics/MiddleConsistency.lean#L511),
+[sampleScoreCovResAbsWtStar_boundedInProbability_middle](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L350),
 and
-[sampleScoreCovResAbsWtStar_boundedInProbability_of_bddWts](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovResAbsWtStar_boundedInProbability_of_bddWts](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L402),
 then fed into
-[sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+[sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L429)
 and
-[sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_of_bddWts_maxLev](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L463),
 with public HC2/HC3 covariance and Wald wrappers no longer assuming that
 absolute-weight boundedness separately.
 
@@ -135,12 +135,12 @@ h \mapsto (1-h)^{-2},
 
 applied to measurable leverage scores, multiplied by measurable residual-score
 outer products. In Lean this is packaged through
-[sampleScoreCovLevAdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovHC2AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[sampleScoreCovHC3AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
-[olsHC2CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[sampleScoreCovLevAdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/MiddleConsistency.lean#L45),
+[sampleScoreCovHC2AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/MiddleConsistency.lean#L176),
+[sampleScoreCovHC3AdjStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/MiddleConsistency.lean#L194),
+[olsHC2CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L2092),
 and
-[olsHC3CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean).
+[olsHC3CovarianceStar_stack_aestronglyMeasurable_components](../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L2111).
 
 The public HC2/HC3 covariance and Wald wrappers therefore no longer need a
 separate `hAdj_meas` premise.
@@ -154,9 +154,9 @@ packaging. Several Chapter 7 public theorems use the repo’s sufficient
 assumption bundles such as
 [LeastSquaresConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/Consistency.lean),
 [ErrorVarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/Consistency.lean),
-[ScoreCLTConditions](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean),
+[ScoreCLTConditions](../HansenEconometrics/Chapter7Asymptotics/SampleMiddle.lean#L51),
 and
-[RobustCovarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+[RobustCovarianceConsistencyConditions](../HansenEconometrics/Chapter7Asymptotics/MiddleConsistency.lean#L909)
 instead of the literal textbook iid assumptions.
 
 The proof-engine-facing names `SampleMomentAssumption71`,

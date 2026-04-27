@@ -70,7 +70,8 @@ Deferred for now unless needed:
 
 ## Status
 - The Chapter 5 second-half exact-distribution layer is now substantially formalized in
-  `HansenEconometrics/Chapter5NormalRegression.lean`.
+  `HansenEconometrics/Chapter5NormalRegression.lean` and
+  `HansenEconometrics/Chapter5LikelihoodRatioTest.lean`.
 - The key reusable distribution results are:
   - residual variance chi-square law and independence from OLS coefficients;
   - exact Student-t law for the classical OLS t-statistic;
@@ -94,7 +95,8 @@ Conventions:
 ## Links
 
 - [Hansen excerpt](../textbook/ch05/ch5_excerpt.txt)
-- [Lean file](../../HansenEconometrics/Chapter5NormalRegression.lean)
+- [Lean file — normal-model finite-sample distribution theory](../../HansenEconometrics/Chapter5NormalRegression.lean)
+- [Lean file — likelihood-ratio / F-test layer](../../HansenEconometrics/Chapter5LikelihoodRatioTest.lean)
 
 ## Crosswalk
 
@@ -115,7 +117,7 @@ Conventions:
 | Theorem 5.10 rule-of-thumb $95\%$ interval | If $n-k \ge 61$, then $\hat{C} = [\hat{\beta} - 2 s(\hat{\beta}), \hat{\beta} + 2 s(\hat{\beta})]$ has coverage probability at least $0.95$ | [olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths](../../HansenEconometrics/Chapter5NormalRegression.lean#L1146) |
 | Theorem 5.11 error-variance confidence interval | $\hat{C} = \left[\dfrac{(n-k)s^2}{c_2}, \dfrac{(n-k)s^2}{c_1}\right]$ with $c_1 = F^{-1}(\alpha/2)$ and $c_2 = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\sigma^2 \in \hat{C}] = 1 - \alpha$ | [olsVarianceCI_coverage_eq_chiSquared_interval](../../HansenEconometrics/Chapter5NormalRegression.lean#L1210), [olsVarianceConfidenceInterval_coverage_eq_chiSquared_cdf](../../HansenEconometrics/Chapter5NormalRegression.lean#L1233), and [olsVarianceConfidenceInterval_coverage_eq_one_sub](../../HansenEconometrics/Chapter5NormalRegression.lean#L1262) |
 | Theorem 5.12 classical $t$ test | Under $H_0 : \beta = \beta_0$, if $T = \dfrac{\hat{\beta} - \beta_0}{s(\hat{\beta})}$ and $c$ satisfies $\mathbb{P}(|t_{n-k}| \ge c) = \alpha$, then the test "reject $H_0$ if $|T| > c$" has significance level $\alpha$ | [olsNullTStat_hasLaw_classicalStudentT](../../HansenEconometrics/Chapter5NormalRegression.lean#L883), [olsTStat_rejection_probability_eq_alpha_classical](../../HansenEconometrics/Chapter5NormalRegression.lean#L1348), and [olsTTest_rejection_probability_eq_alpha](../../HansenEconometrics/Chapter5NormalRegression.lean#L1372) |
-| Theorem 5.13 likelihood-ratio / $F$-test layer | Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F > c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$ | [olsFStatistic_hasLaw_classicalFDist](../../HansenEconometrics/Chapter5NormalRegression.lean#L1988) and [olsFStatistic_rejection_probability_eq_alpha_classical](../../HansenEconometrics/Chapter5NormalRegression.lean#L2035) |
+| Theorem 5.13 likelihood-ratio / $F$-test layer | Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F > c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$ | [olsFStatistic_hasLaw_classicalFDist](../../HansenEconometrics/Chapter5LikelihoodRatioTest.lean#L617) and [olsFStatistic_rejection_probability_eq_alpha_classical](../../HansenEconometrics/Chapter5LikelihoodRatioTest.lean#L665) |
 
 ## Notes
 
