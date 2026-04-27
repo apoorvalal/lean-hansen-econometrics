@@ -43,7 +43,16 @@ a non-blank Lean cell for Theorem 3.1 (with an explicit "(existence half)" annot
 
 ## Surprises & Discoveries
 
-(Fill in as work proceeds.)
+- Observation: An earlier draft of `hquad` (the quadratic-term identity inside the bridge
+  lemma) used `rw [..., Matrix.dotProduct_mulVec, ...]` without explicit arguments. This
+  fails because `Matrix.dotProduct_mulVec`'s LHS pattern `?v ⬝ᵥ (?A *ᵥ ?w)` matches both
+  sides of the goal `(X *ᵥ b) ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ (Xᵀ *ᵥ (X *ᵥ b))`; `rw` takes the LHS
+  match (instantiating `?v = X *ᵥ b`), which produces a goal containing no `(_)ᵀᵀ` and
+  therefore breaks the next rewrite (`Matrix.transpose_transpose`). The fix is to pass
+  explicit arguments `b Xᵀ (X *ᵥ b)` so the rewrite lands on the RHS instead.
+  Evidence: round-2 review trace (verified by independent step-by-step analysis).
+  This is the kind of error that is easy to miss in a plan document and only surfaces when
+  the file is actually loaded in the Lean server.
 
 ## Decision Log
 
@@ -108,6 +117,18 @@ a non-blank Lean cell for Theorem 3.1 (with an explicit "(existence half)" annot
   but is a separate ~10-line proof analogous to `linearProjectionBeta_eq_of_MSE_eq`. Keeping
   this PR focused on a single theorem keeps review simple.
   Date/Author: revised plan after feedback review.
+
+- Decision: In the proof of `hquad`, pass explicit arguments to `Matrix.dotProduct_mulVec`
+  and drop the trailing `dotProduct_comm`.
+  Rationale: The Mathlib lemma has the form `?v ⬝ᵥ (?A *ᵥ ?w) = vecMul ?v ?A ⬝ᵥ ?w`. After
+  the preceding `← Matrix.mulVec_mulVec` step, the goal has the pattern occurring on both
+  sides of `=`; default `rw` semantics rewrite the LHS occurrence, producing a goal with
+  no `(_)ᵀᵀ` for the next rewrite (`Matrix.transpose_transpose`) to fire on. Passing the
+  explicit arguments `b Xᵀ (X *ᵥ b)` directs `rw` to the RHS instance, which is the path
+  that closes the goal. The trailing `dotProduct_comm` is then redundant — `rw` closes the
+  goal by `rfl` after `Matrix.transpose_transpose` — and would itself fail with
+  "no progress" because `(X *ᵥ b) ⬝ᵥ (X *ᵥ b)` is its own commutator.
+  Date/Author: revised plan after round-2 feedback review.
 
 ## Outcomes & Retrospective
 
@@ -287,10 +308,16 @@ underlines indicate errors. This is your feedback loop.
 
 **Step 1 — Move `gram_transpose` to `LinearAlgebraUtils.lean`.**
 
-(a) Open `HansenEconometrics/Chapter3Projections.lean`. Delete lines 15–19 (the
-`gram_transpose` declaration). Save. The file will momentarily show errors at the call sites
-of `gram_transpose` (line 36 in `inv_gram_transpose` and elsewhere); these will resolve once
-step 1(b) is done and the file is rechecked.
+(a) Open `HansenEconometrics/Chapter3Projections.lean`. Delete the entire `gram_transpose`
+block, *including its docstring* — that is, both the line beginning
+`/-- Hansen Theorem 3.3.1 helper: the Gram matrix Xᵀ X is symmetric. -/` and the four-line
+`theorem` declaration that follows it (currently lines 15–19 of the file; recount if the
+file has changed). Leaving the docstring behind would create an orphan comment.
+
+Save. The file will momentarily show errors at the call sites of `gram_transpose`
+(`inv_gram_transpose` at line 33 of `Chapter3Projections.lean`, and references in
+`Chapter4LeastSquaresRegression.lean`); these will resolve once step 1(b) is done and the
+files are rechecked.
 
 (b) Open `HansenEconometrics/LinearAlgebraUtils.lean`. Insert near the top of the
 `namespace HansenEconometrics` block (e.g., immediately before `vecMul_eq_mulVec_transpose`):
@@ -303,7 +330,14 @@ step 1(b) is done and the file is rechecked.
         (Xᵀ * X)ᵀ = Xᵀ * X := by
       rw [Matrix.transpose_mul, Matrix.transpose_transpose]
 
-Save. The Chapter 3 projections file should now turn green again.
+Save.
+
+(c) Verify recovery. Re-open `HansenEconometrics/Chapter3Projections.lean` and confirm that
+the `inv_gram_transpose` declaration (which calls `gram_transpose` in its proof) shows no
+red underline. The relocated `gram_transpose` lives in the same `HansenEconometrics`
+namespace and `Chapter3Projections.lean` already imports `LinearAlgebraUtils`, so the
+reference resolves transparently. If `inv_gram_transpose` is green, downstream `Chapter4`
+references will also resolve.
 
 **Step 2 — Add `gram_quadratic_nonneg` to `LinearAlgebraUtils.lean`.**
 
@@ -349,8 +383,10 @@ Add one line:
 
     import HansenEconometrics.Chapter2LinearProjection
 
-after the existing imports. After saving, the Lean server will reload the file (the spinner
-will reappear briefly). All existing theorems should remain green.
+after the existing imports. The new import is genuinely necessary, not redundant:
+`Chapter2CondExp.lean` imports only `ProbabilityUtils` (verified), so it does not
+transitively pull in `Chapter2LinearProjection`. After saving, the Lean server will reload
+the file (the spinner will reappear briefly). All existing theorems should remain green.
 
 **Step 4 — Add `sumSquaredErrors_eq_linearProjectionMSE`.**
 
@@ -369,9 +405,10 @@ already declared; do NOT redeclare these in the new theorem signatures.
       have hcross : y ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ (Xᵀ *ᵥ y) := by
         rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
       have hquad : (X *ᵥ b) ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ ((Xᵀ * X) *ᵥ b) := by
-        rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec,
-            vecMul_eq_mulVec_transpose, Matrix.transpose_transpose,
-            dotProduct_comm]
+        rw [← Matrix.mulVec_mulVec,
+            Matrix.dotProduct_mulVec b Xᵀ (X *ᵥ b),
+            vecMul_eq_mulVec_transpose,
+            Matrix.transpose_transpose]
       unfold sumSquaredErrors linearProjectionMSE
       rw [sub_dotProduct, dotProduct_sub, dotProduct_sub,
           dotProduct_comm (X *ᵥ b) y, hcross, hquad]
@@ -385,6 +422,16 @@ polynomial identity in three named scalar quantities (`y ⬝ᵥ y`, `b ⬝ᵥ (X
 The named-`have` style is more robust than a long `rw` chain because each rewrite targets a
 unique subterm; multi-match `rw` (where the same lemma applies to several subterms) is
 brittle in Lean 4 and depends on syntactic occurrence order.
+
+About the explicit arguments on `Matrix.dotProduct_mulVec` in `hquad`. The lemma is
+`?v ⬝ᵥ (?A *ᵥ ?w) = vecMul ?v ?A ⬝ᵥ ?w`. After `← Matrix.mulVec_mulVec` fires, the goal
+is `(X *ᵥ b) ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ (Xᵀ *ᵥ (X *ᵥ b))`. The pattern matches twice — once on
+the LHS of `=` (with `?v = X *ᵥ b, ?A = X, ?w = b`) and once on the RHS (with
+`?v = b, ?A = Xᵀ, ?w = X *ᵥ b`). `rw` would take the LHS-first match by default,
+producing a goal in which no `(_)ᵀᵀ` appears, so the next rewrite
+(`Matrix.transpose_transpose`) would fail with "no progress". Passing the explicit
+arguments `b Xᵀ (X *ᵥ b)` forces the rewrite onto the RHS occurrence, which is the path
+that closes the goal.
 
 If the proof does not typecheck as written, paste it with the proof body replaced by `sorry`,
 then incrementally introduce tactics while watching the Lean infoview goal state.
@@ -455,6 +502,13 @@ have a "Lean-only bridge results" heading) below the main Crosswalk table:
     | [gram_quadratic_nonneg](../../HansenEconometrics/LinearAlgebraUtils.lean) | `0 ≤ v ⬝ᵥ ((Xᵀ * X) *ᵥ v)` for all `v`; the Gram matrix is positive semidefinite |
     | [gram_transpose](../../HansenEconometrics/LinearAlgebraUtils.lean) | `(Xᵀ * X)ᵀ = Xᵀ * X` (relocated from `Chapter3Projections.lean` to break a potential circular import) |
 
+Final-pass note on line anchors. Other rows in the existing crosswalk include line anchors
+of the form `#L20`, `#L32`, etc. After the new declarations are saved and their final line
+numbers are stable, edit the four new link entries above to include matching `#L<n>` anchors
+(four anchors total: `sumSquaredErrors_olsBeta_le`, `olsBeta_isMinOn`,
+`sumSquaredErrors_eq_linearProjectionMSE`, `gram_quadratic_nonneg`, and `gram_transpose`).
+This is purely cosmetic but keeps the inventory's link style consistent.
+
 Also update the "First-pass formalization order — Layer 1 / Status" bullet about Theorem 3.1
 ("Theorem 3.1 objective-level argmin statement is still pending") to record that the existence
 half landed and uniqueness is the remaining gap. A single replacement bullet:
@@ -493,7 +547,12 @@ Acceptance criteria:
    `gram_quadratic_nonneg` (new) exist and are accepted by Lean (no red underlines).
 
 4. In `HansenEconometrics/Chapter3Projections.lean`, the original `gram_transpose` declaration
-   has been removed (lines 15–19 of the original file).
+   has been removed in full (the docstring on line 15 of the original file plus the four-line
+   theorem block on lines 16–19; the block ends with the proof
+   `rw [Matrix.transpose_mul, Matrix.transpose_transpose]`). After deletion,
+   `inv_gram_transpose` (which references `gram_transpose`) must still typecheck — verifying
+   this confirms that the relocated declaration in `LinearAlgebraUtils.lean` is correctly
+   resolving in the same namespace.
 
 5. In `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`, the following three declarations
    exist and are accepted by Lean:
