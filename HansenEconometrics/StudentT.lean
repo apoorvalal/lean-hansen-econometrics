@@ -44,7 +44,7 @@ the resulting polynomial after expanding the falling-factorial derivative coeffi
 the even powers of `x`, and clearing a common denominator. The numerical corollary used in Hansen's
 Theorem 5.10 only needs this explicit rational function and its monotonicity in step-two degrees of
 freedom. -/
-private noncomputable def studentTTwoCoverageKernelLowerBound (ν : ℕ) : ℝ :=
+noncomputable def studentTTwoCoverageKernelLowerBound (ν : ℕ) : ℝ :=
   let νr : ℝ := ν
   (2 : ℝ) *
     (189153462893 * νr ^ 11
@@ -63,72 +63,72 @@ private noncomputable def studentTTwoCoverageKernelLowerBound (ν : ℕ) : ℝ :
 
 /-- The explicit lower bound for the symmetric central Student-t interval mass on `[-2,2]`
 obtained from `studentTTwoCoverageKernelLowerBound`. -/
-private noncomputable def studentTTwoCoverageLowerBound (ν : ℕ) : ℝ :=
+noncomputable def studentTTwoCoverageLowerBound (ν : ℕ) : ℝ :=
   2 * studentTDensityConstant ν * studentTTwoCoverageKernelLowerBound ν
 
 /-- The Student-t kernel on `[0,2]` whose integral gives the central mass on `[-2,2]` after
 multiplying by the density constant. -/
-private noncomputable def studentTTwoCoverageKernel (ν : ℕ) (x : ℝ) : ℝ :=
+noncomputable def studentTTwoCoverageKernel (ν : ℕ) (x : ℝ) : ℝ :=
   (1 + x ^ 2 / (ν : ℝ)) ^ (-(((ν : ℝ) + 1) / 2))
 
 /-- The degree-11 Taylor lower polynomial for `studentTTwoCoverageKernel`, expressed via the
 Taylor polynomial of `u ↦ (1 + u)^(-((ν+1)/2))` at `u = 0` and then pulled back along
 `u = x^2 / ν`. -/
-private noncomputable def studentTTwoCoverageTaylorLower (ν : ℕ) (x : ℝ) : ℝ :=
+noncomputable def studentTTwoCoverageTaylorLower (ν : ℕ) (x : ℝ) : ℝ :=
   let a : ℝ := (((ν : ℝ) + 1) / 2)
   let f : ℝ → ℝ := fun u => (1 + u) ^ (-a)
   ∑ k ∈ Finset.range 12,
     ((((Nat.factorial k : ℕ) : ℝ)⁻¹) * (x ^ 2 / (ν : ℝ)) ^ k) * iteratedDeriv k f 0
 
-private lemma studentTDensityConstant_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) :
+lemma studentTDensityConstant_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) :
     studentTDensityConstant ν = 0 := by
   simp [studentTDensityConstant, hν]
 
-private lemma studentTPDFReal_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) (x : ℝ) :
+lemma studentTPDFReal_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) (x : ℝ) :
     studentTPDFReal ν x = 0 := by
   simp [studentTPDFReal, hν]
 
-private lemma studentTPDF_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) (x : ℝ) :
+lemma studentTPDF_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) (x : ℝ) :
     studentTPDF ν x = 0 := by
   simp [studentTPDF, studentTPDFReal_eq_zero hν x]
 
-private lemma classicalStudentT_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) :
+lemma classicalStudentT_eq_zero {ν : ℕ} (hν : ¬ 0 < ν) :
     classicalStudentT ν = 0 := by
   have hpdf : studentTPDF ν = 0 := by
     funext x
     exact studentTPDF_eq_zero hν x
   simp [classicalStudentT, hpdf, withDensity_zero]
 
-private lemma studentTDensityConstant_of_pos {ν : ℕ} (hν : 0 < ν) :
+lemma studentTDensityConstant_of_pos {ν : ℕ} (hν : 0 < ν) :
     studentTDensityConstant ν =
       Real.Gamma (((ν : ℝ) + 1) / 2) /
         (Real.sqrt ((ν : ℝ) * Real.pi) * Real.Gamma ((ν : ℝ) / 2)) := by
   simp [studentTDensityConstant, hν]
 
-private lemma studentTPDFReal_of_pos {ν : ℕ} (hν : 0 < ν) (x : ℝ) :
+lemma studentTPDFReal_of_pos {ν : ℕ} (hν : 0 < ν) (x : ℝ) :
     studentTPDFReal ν x =
       studentTDensityConstant ν * (1 + x ^ 2 / (ν : ℝ)) ^ (-((ν : ℝ) + 1) / 2) := by
   simp [studentTPDFReal, hν]
 
 @[fun_prop]
-private lemma measurable_studentTPDFReal (ν : ℕ) : Measurable (studentTPDFReal ν) := by
+lemma measurable_studentTPDFReal (ν : ℕ) : Measurable (studentTPDFReal ν) := by
   unfold studentTPDFReal
   split_ifs <;> fun_prop
 
 @[fun_prop]
-private lemma stronglyMeasurable_studentTPDFReal (ν : ℕ) :
+lemma stronglyMeasurable_studentTPDFReal (ν : ℕ) :
     StronglyMeasurable (studentTPDFReal ν) :=
   (measurable_studentTPDFReal ν).stronglyMeasurable
 
 @[fun_prop]
-private lemma measurable_studentTPDF (ν : ℕ) : Measurable (studentTPDF ν) := by
+lemma measurable_studentTPDF (ν : ℕ) : Measurable (studentTPDF ν) := by
   simpa [studentTPDF] using (measurable_studentTPDFReal ν).ennreal_ofReal
 
 @[fun_prop]
 lemma measurable_gammaPDF (a r : ℝ) : Measurable (gammaPDF a r) := by
   simpa [gammaPDF] using (measurable_gammaPDFReal a r).ennreal_ofReal
 
-private lemma studentTPDFReal_nonneg (ν : ℕ) (x : ℝ) : 0 ≤ studentTPDFReal ν x := by
+lemma studentTPDFReal_nonneg (ν : ℕ) (x : ℝ) : 0 ≤ studentTPDFReal ν x := by
   by_cases hν : 0 < ν
   · rw [studentTPDFReal_of_pos hν]
     refine mul_nonneg ?_ ?_
@@ -140,7 +140,7 @@ private lemma studentTPDFReal_nonneg (ν : ℕ) (x : ℝ) : 0 ≤ studentTPDFRea
     · exact Real.rpow_nonneg (by positivity) _
   · simp [studentTPDFReal, hν]
 
-private lemma studentTDensityConstant_nonneg (ν : ℕ) : 0 ≤ studentTDensityConstant ν := by
+lemma studentTDensityConstant_nonneg (ν : ℕ) : 0 ≤ studentTDensityConstant ν := by
   by_cases hν : 0 < ν
   · rw [studentTDensityConstant_of_pos hν]
     refine div_nonneg ?_ ?_
@@ -149,13 +149,13 @@ private lemma studentTDensityConstant_nonneg (ν : ℕ) : 0 ≤ studentTDensityC
       exact Real.Gamma_nonneg_of_nonneg (by positivity)
   · simp [studentTDensityConstant, hν]
 
-private lemma studentTDensityConstant_pos {ν : ℕ} (hν : 0 < ν) :
+lemma studentTDensityConstant_pos {ν : ℕ} (hν : 0 < ν) :
     0 < studentTDensityConstant ν := by
   rw [studentTDensityConstant_of_pos hν]
   refine div_pos (Real.Gamma_pos_of_pos (by positivity)) ?_
   refine mul_pos (Real.sqrt_pos.2 (by positivity)) (Real.Gamma_pos_of_pos (by positivity))
 
-private lemma studentTDensityConstant_step_two {ν : ℕ} (hν : 0 < ν) :
+lemma studentTDensityConstant_step_two {ν : ℕ} (hν : 0 < ν) :
     studentTDensityConstant (ν + 2) =
       (((ν : ℝ) + 1) / Real.sqrt ((ν : ℝ) * ((ν : ℝ) + 2))) * studentTDensityConstant ν := by
   have hνr : (ν : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hν)
@@ -196,7 +196,7 @@ private lemma studentTDensityConstant_step_two {ν : ℕ} (hν : 0 < ν) :
     Real.sqrt_ne_zero'.2 Real.pi_pos]
   rw [Real.sq_sqrt hνr_pos.le]
 
-private lemma studentTDensityConstant_step_two_gt {ν : ℕ} (hν : 0 < ν) :
+lemma studentTDensityConstant_step_two_gt {ν : ℕ} (hν : 0 < ν) :
     studentTDensityConstant ν < studentTDensityConstant (ν + 2) := by
   rw [studentTDensityConstant_step_two hν]
   have hνr : 0 < (ν : ℝ) := by exact_mod_cast hν
@@ -217,7 +217,7 @@ private lemma studentTDensityConstant_step_two_gt {ν : ℕ} (hν : 0 < ν) :
     refine mul_pos (Real.sqrt_pos.2 (by positivity)) (Real.Gamma_pos_of_pos (by positivity))
   nlinarith
 
-private lemma studentTTwoCoverageKernelLowerBound_step_two_le {ν : ℕ} (hν : 0 < ν) :
+lemma studentTTwoCoverageKernelLowerBound_step_two_le {ν : ℕ} (hν : 0 < ν) :
     studentTTwoCoverageKernelLowerBound ν ≤ studentTTwoCoverageKernelLowerBound (ν + 2) := by
   have hνr : 0 < (ν : ℝ) := by exact_mod_cast hν
   have hdiff :
@@ -253,15 +253,15 @@ private lemma studentTTwoCoverageKernelLowerBound_step_two_le {ν : ℕ} (hν : 
   rw [hdiff]
   positivity
 
-private lemma sqrt_sixty_one_gt_781_div_100 : (781 : ℝ) / 100 < Real.sqrt 61 := by
+lemma sqrt_sixty_one_gt_781_div_100 : (781 : ℝ) / 100 < Real.sqrt 61 := by
   refine Real.lt_sqrt_of_sq_lt ?_
   norm_num
 
-private lemma sqrt_sixty_two_gt_3937_div_500 : (3937 : ℝ) / 500 < Real.sqrt 62 := by
+lemma sqrt_sixty_two_gt_3937_div_500 : (3937 : ℝ) / 500 < Real.sqrt 62 := by
   refine Real.lt_sqrt_of_sq_lt ?_
   norm_num
 
-private lemma studentTDensityConstant_sixty_one :
+lemma studentTDensityConstant_sixty_one :
     studentTDensityConstant 61 =
       72057594037927936 * Real.sqrt 61 / (450883717216034179 * Real.pi) := by
   rw [studentTDensityConstant_of_pos (by norm_num : 0 < 61)]
@@ -278,7 +278,7 @@ private lemma studentTDensityConstant_sixty_one :
   field_simp [Real.pi_pos.ne']
   norm_num
 
-private lemma studentTDensityConstant_sixty_two :
+lemma studentTDensityConstant_sixty_two :
     studentTDensityConstant 62 =
       14544636039226909 * Real.sqrt 62 / 288230376151711744 := by
   rw [studentTDensityConstant_of_pos (by norm_num : 0 < 62)]
@@ -291,7 +291,7 @@ private lemma studentTDensityConstant_sixty_two :
   ring_nf
   norm_num
 
-private lemma studentTTwoCoverageLowerBound_sixty_one :
+lemma studentTTwoCoverageLowerBound_sixty_one :
     studentTTwoCoverageLowerBound 61 =
       12839193878435967851780581165975117758464 * Real.sqrt 61 /
         (33597873425796219577310349341837952744273 * Real.pi) := by
@@ -299,14 +299,14 @@ private lemma studentTTwoCoverageLowerBound_sixty_one :
   norm_num [studentTTwoCoverageKernelLowerBound]
   ring_nf
 
-private lemma studentTTwoCoverageLowerBound_sixty_two :
+lemma studentTTwoCoverageLowerBound_sixty_two :
     studentTTwoCoverageLowerBound 62 =
       1767366759723588097819154232198439 * Real.sqrt 62 / 14646989706585683659367480482070528 := by
   rw [studentTTwoCoverageLowerBound, studentTDensityConstant_sixty_two]
   norm_num [studentTTwoCoverageKernelLowerBound]
   ring_nf
 
-private lemma studentTTwoCovLB_sixty_one_ge_nineteen_twentieths :
+lemma studentTTwoCovLB_sixty_one_ge_nineteen_twentieths :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 61 := by
   rw [studentTTwoCoverageLowerBound_sixty_one]
   have hsqrt : (781 : ℝ) / 100 ≤ Real.sqrt 61 := le_of_lt sqrt_sixty_one_gt_781_div_100
@@ -331,7 +331,7 @@ private lemma studentTTwoCovLB_sixty_one_ge_nineteen_twentieths :
             have hrat_pos : 0 < ((3927 : ℝ) / 1250) := by positivity
             gcongr
 
-private lemma studentTTwoCovLB_sixty_two_ge_nineteen_twentieths :
+lemma studentTTwoCovLB_sixty_two_ge_nineteen_twentieths :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 62 := by
   rw [studentTTwoCoverageLowerBound_sixty_two]
   have hsqrt : (3937 : ℝ) / 500 ≤ Real.sqrt 62 := le_of_lt sqrt_sixty_two_gt_3937_div_500
@@ -386,7 +386,7 @@ private lemma studentTTwoCovKLB_sixty_two_step_chain (m : ℕ) :
         _ = studentTTwoCoverageKernelLowerBound (62 + 2 * (m + 1)) := by
             congr 1
 
-private lemma studentTTwoCovKLB_nonneg_of_ge_sixty_one
+lemma studentTTwoCovKLB_nonneg_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     0 ≤ studentTTwoCoverageKernelLowerBound ν := by
   rcases Nat.even_or_odd' (ν - 61) with ⟨m, hm | hm⟩
@@ -405,7 +405,7 @@ private lemma studentTTwoCovKLB_nonneg_of_ge_sixty_one
         studentTTwoCovKLB_sixty_two_step_chain m
       _ = studentTTwoCoverageKernelLowerBound ν := by rw [hν_eq]
 
-private lemma studentTTwoCovLB_step_two_le_of_ge_sixty_one
+lemma studentTTwoCovLB_step_two_le_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     studentTTwoCoverageLowerBound ν ≤ studentTTwoCoverageLowerBound (ν + 2) := by
   -- Step-two monotonicity for the explicit lower bound used in Theorem 5.10: both the Student-t
@@ -457,7 +457,7 @@ private lemma studentTTwoCoverageLowerBound_sixty_two_step_chain (m : ℕ) :
         _ = studentTTwoCoverageLowerBound (62 + 2 * (m + 1)) := by
             congr 1
 
-private lemma studentTTwoCovLB_ge_nineteen_twentieths_of_ge_sixty_one
+lemma studentTTwoCovLB_ge_nineteen_twentieths_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound ν := by
   -- Parity argument for Theorem 5.10: start from the verified `ν = 61` and `ν = 62` base cases,
@@ -561,7 +561,7 @@ private lemma one_add_rpow_taylor_lower_eleven {a u : ℝ}
     rw [htaylor] at hremainder_nonneg
     linarith
 
-private lemma studentTTwoCoverageTaylorLower_le_kernel {ν : ℕ} (hν : 0 < ν)
+lemma studentTTwoCoverageTaylorLower_le_kernel {ν : ℕ} (hν : 0 < ν)
     {x : ℝ} (_hx : x ∈ Set.Icc (0 : ℝ) 2) :
     studentTTwoCoverageTaylorLower ν x ≤ studentTTwoCoverageKernel ν x := by
   let a : ℝ := (((ν : ℝ) + 1) / 2)
@@ -575,7 +575,7 @@ private lemma studentTTwoCoverageTaylorLower_le_kernel {ν : ℕ} (hν : 0 < ν)
   have hmain := one_add_rpow_taylor_lower_eleven (a := a) (u := u) ha hu
   simpa [studentTTwoCoverageTaylorLower, studentTTwoCoverageKernel, a, u] using hmain
 
-private lemma integral_studentTTwoCovTL_eq_kernelLowerBound {ν : ℕ} (hν : 0 < ν) :
+lemma integral_studentTTwoCovTL_eq_kernelLowerBound {ν : ℕ} (hν : 0 < ν) :
     ∫ x in (0 : ℝ)..2, studentTTwoCoverageTaylorLower ν x =
       studentTTwoCoverageKernelLowerBound ν := by
   have hνr : (ν : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hν)
@@ -625,7 +625,7 @@ private lemma integral_studentTTwoCovTL_eq_kernelLowerBound {ν : ℕ} (hν : 0 
             iteratedDeriv k (fun u : ℝ => (1 + u) ^ (-(((ν : ℝ) + 1) / 2))) 0).intervalIntegrable
           0 2
 
-private lemma studentTTwoCoverageKernelLowerBound_le_integral_kernel {ν : ℕ} (hν : 0 < ν) :
+lemma studentTTwoCoverageKernelLowerBound_le_integral_kernel {ν : ℕ} (hν : 0 < ν) :
     studentTTwoCoverageKernelLowerBound ν ≤
       ∫ x in (0 : ℝ)..2, studentTTwoCoverageKernel ν x := by
   rw [← integral_studentTTwoCovTL_eq_kernelLowerBound hν]
@@ -701,7 +701,7 @@ private lemma integral_Ioo_zero_one_betaKernel_eq_beta {a b : ℝ} (ha : 0 < a) 
   field_simp [hbeta_ne] at hscaled'
   exact hscaled'
 
-private lemma studentTPDFReal_abs (ν : ℕ) (x : ℝ) :
+lemma studentTPDFReal_abs (ν : ℕ) (x : ℝ) :
     studentTPDFReal ν |x| = studentTPDFReal ν x := by
   by_cases hν : 0 < ν
   · rw [studentTPDFReal_of_pos hν, studentTPDFReal_of_pos hν]
@@ -803,7 +803,7 @@ private lemma integral_Ioi_studentTKernel_eq_beta {ν : ℕ} (hν : 0 < ν) :
       · norm_num
       · positivity
 
-private lemma integral_studentTPDFReal_eq_one {ν : ℕ} (hν : 0 < ν) :
+lemma integral_studentTPDFReal_eq_one {ν : ℕ} (hν : 0 < ν) :
     ∫ x, studentTPDFReal ν x = 1 := by
   have hνr : 0 < (ν : ℝ) := by exact_mod_cast hν
   let a : ℝ := ((ν : ℝ) + 1) / 2
@@ -942,7 +942,7 @@ private lemma integral_studentTPDFReal_eq_one {ν : ℕ} (hν : 0 < ν) :
         Real.sqrt_ne_zero'.2 hνr, Real.pi_pos.ne']
 
 @[simp]
-private lemma lintegral_studentTPDF_eq_one {ν : ℕ} (hν : 0 < ν) :
+lemma lintegral_studentTPDF_eq_one {ν : ℕ} (hν : 0 < ν) :
     ∫⁻ x, studentTPDF ν x = 1 := by
   rw [← ENNReal.toReal_eq_one_iff]
   · unfold studentTPDF
@@ -951,7 +951,7 @@ private lemma lintegral_studentTPDF_eq_one {ν : ℕ} (hν : 0 < ν) :
       (stronglyMeasurable_studentTPDFReal ν).aestronglyMeasurable,
       integral_studentTPDFReal_eq_one hν]
 
-private lemma integrable_studentTPDFReal {ν : ℕ} (hν : 0 < ν) :
+lemma integrable_studentTPDFReal {ν : ℕ} (hν : 0 < ν) :
     Integrable (studentTPDFReal ν) := by
   have h_nonneg : 0 ≤ᵐ[volume] studentTPDFReal ν :=
     ae_of_all _ (studentTPDFReal_nonneg ν)
@@ -968,7 +968,7 @@ lemma isProbabilityMeasure_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
   refine ⟨?_⟩
   simpa [classicalStudentT] using lintegral_studentTPDF_eq_one hν
 
-private lemma classicalStudentT_real_eq_integral {ν : ℕ} (hν : 0 < ν) {s : Set ℝ}
+lemma classicalStudentT_real_eq_integral {ν : ℕ} (hν : 0 < ν) {s : Set ℝ}
     (hs : MeasurableSet s) :
     (classicalStudentT ν).real s = ∫ x in s, studentTPDFReal ν x := by
   have h_nonneg : 0 ≤ᵐ[volume.restrict s] studentTPDFReal ν :=
@@ -981,7 +981,7 @@ private lemma classicalStudentT_real_eq_integral {ν : ℕ} (hν : 0 < ν) {s : 
   rw [← ofReal_integral_eq_lintegral_ofReal h_int h_nonneg]
   exact ENNReal.toReal_ofReal (integral_nonneg_of_ae h_nonneg)
 
-private lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν) :
+lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν) :
     (classicalStudentT ν).real (Set.Icc (-2 : ℝ) 2) =
       2 * studentTDensityConstant ν *
         ∫ x in (0 : ℝ)..2, studentTTwoCoverageKernel ν x := by
@@ -1051,7 +1051,7 @@ private lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν
       rw [hpos]
       ring
 
-private lemma studentTTwoCovLB_le_classicalStudentT_Icc_neg_two_two
+lemma studentTTwoCovLB_le_classicalStudentT_Icc_neg_two_two
     {ν : ℕ} (hν : 0 < ν) :
     studentTTwoCoverageLowerBound ν ≤ (classicalStudentT ν).real (Set.Icc (-2 : ℝ) 2) := by
   rw [classicalStudentT_real_Icc_neg_two_two_eq hν, studentTTwoCoverageLowerBound]
@@ -1425,7 +1425,7 @@ lemma isProbabilityMeasure_studentT {ν : ℕ} (hν : 0 < ν) :
   dsimp [studentT]
   infer_instance
 
-private lemma studentT_eq_map_ratio_prod {ν : ℕ} (hν : 0 < ν) :
+lemma studentT_eq_map_ratio_prod {ν : ℕ} (hν : 0 < ν) :
     studentT ν =
       ((gaussianReal 0 1).prod (chiSquared ν)).map
         (fun p : ℝ × ℝ => p.1 * (Real.sqrt (ν : ℝ) / Real.sqrt p.2)) := by

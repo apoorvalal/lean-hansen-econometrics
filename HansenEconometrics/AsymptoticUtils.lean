@@ -138,7 +138,7 @@ projection.
 
 This is the small bridge needed to apply Mathlib's Lévy continuity theorem to
 finite-dimensional Cramér-Wold arguments. -/
-private theorem charFun_map_eq_charFun_dualMap_one
+theorem charFun_map_eq_charFun_dualMap_one
     {Ω E : Type*} [MeasurableSpace Ω] [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     [MeasurableSpace E] [OpensMeasurableSpace E]
     {μ : Measure Ω} {X : Ω → E} (hX : AEMeasurable X μ) (t : E) :
@@ -504,7 +504,7 @@ theorem TendstoInMeasure.mul_deterministic_bounded_zero_real
   exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hXn)
 
 /-- Negation of a real-valued `oₚ(1)` sequence is `oₚ(1)`. -/
-private theorem TendstoInMeasure.neg_zero_real
+theorem TendstoInMeasure.neg_zero_real
     {X : ℕ → α → ℝ}
     (hX : TendstoInMeasure μ X atTop (fun _ => 0)) :
     TendstoInMeasure μ (fun n ω => -X n ω) atTop (fun _ => 0) := by

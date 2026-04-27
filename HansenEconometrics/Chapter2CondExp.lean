@@ -34,7 +34,7 @@ theorem tower_property
       (m₁ := m₁) (m₂ := m₂) (m₀ := m₀) (μ := μ) (f := Y) hm₁₂ hm₂₀)
 
 /-- Theorem 2.2 written as `E[E[Y | X₁, X₂] | X₁] = E[Y | X₁]`. -/
-private theorem tower_property_X1_X2
+theorem tower_property_X1_X2
     {Y : Ω → ℝ} {X1 : Ω → β} {X2 : Ω → γ}
     (hX1 : Measurable X1)
     (hX2 : Measurable X2)
@@ -51,7 +51,7 @@ private theorem tower_property_X1_X2
       (sup_le hX1.comap_le hX2.comap_le))
 
 /-- Theorem 2.3, a.e. version: pull out an `m`-measurable factor from conditional expectation. -/
-private theorem conditioning_theorem_ae
+theorem conditioning_theorem_ae
     {g Y : Ω → ℝ}
     (hg : AEStronglyMeasurable[m] g μ)
     (hgY : Integrable (fun ω => g ω * Y ω) μ)
@@ -75,7 +75,7 @@ theorem conditioning_theorem_integral
   exact conditioning_theorem_ae (m := m) (μ := μ) hg hgY hY
 
 /-- Theorem 2.4.1: the CEF error has conditional mean zero. -/
-private theorem condExp_cefError_zero
+theorem condExp_cefError_zero
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [SigmaFinite (μ.trim hm)]
@@ -111,7 +111,7 @@ theorem integral_cefError_zero
   simp
 
 /-- Theorem 2.4.4: the CEF error is orthogonal to any `m`-measurable function. -/
-private theorem integral_mul_cefError_zero
+theorem integral_mul_cefError_zero
     {g Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [SigmaFinite (μ.trim hm)]
@@ -134,7 +134,7 @@ private theorem integral_mul_cefError_zero
 
 /-- Conditional expectation in `L²` is the orthogonal projection onto the space of
 `m`-measurable square-integrable functions, hence it minimizes `L²` distance. -/
-private theorem condExpL2_minimal
+theorem condExpL2_minimal
     {Y g : Ω → ℝ}
     (hm : m ≤ m₀)
     [IsFiniteMeasure μ]
@@ -172,7 +172,7 @@ private theorem condExpL2_minimal
 
 /-- Hansen Theorem 2.7 in sigma-algebra form: the conditional mean minimizes mean squared
 prediction error among `m`-measurable square-integrable predictors. -/
-private theorem integral_sq_sub_condExp_le_integral_sq_sub
+theorem integral_sq_sub_condExp_le_integral_sq_sub
     {Y g : Ω → ℝ}
     (hm : m ≤ m₀)
     [SigmaFinite (μ.trim hm)]
@@ -229,7 +229,7 @@ private theorem integral_sq_sub_condExp_le_integral_sq_sub
 
 /-- Hansen Theorem 2.7 written as `E[Y | X]` minimizes mean squared prediction error among
 predictors measurable with respect to `X`. -/
-private theorem integral_sq_sub_condExp_le_integral_sq_sub_X
+theorem integral_sq_sub_condExp_le_integral_sq_sub_X
     {Y g : Ω → ℝ} {X : Ω → β}
     (hX : Measurable X)
     [SigmaFinite (μ.trim hX.comap_le)]
@@ -246,7 +246,7 @@ private theorem integral_sq_sub_condExp_le_integral_sq_sub_X
 section ProbabilityOnRandomVars
 
 /-- The public CEF error wrapper is the existing sigma-algebra CEF error specialized to `σ(X)`. -/
-@[simp] private theorem cefErrorOn_eq_cefError
+@[simp] theorem cefErrorOn_eq_cefError
     {Y : Ω → ℝ} {X : Ω → β} :
     cefErrorOn μ Y X = cefError μ Y (conditioningSpace X) := by
   funext ω

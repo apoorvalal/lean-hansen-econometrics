@@ -75,7 +75,7 @@ noncomputable def olsHuberWhiteHC1VarianceEstimator
     olsHuberWhiteVarianceEstimator X y
 
 /-- The covariance formula written as `Aᵀ D A`, where `A = X (XᵀX)⁻¹`. -/
-private theorem olsConditionalVarianceMatrix_eq_Atranspose_D_A
+theorem olsConditionalVarianceMatrix_eq_Atranspose_D_A
     (X : Matrix n k ℝ) (D : Matrix n n ℝ) [Invertible (Xᵀ * X)] :
     (X * ⅟ (Xᵀ * X))ᵀ * D * (X * ⅟ (Xᵀ * X)) =
       olsConditionalVarianceMatrix X D := by
@@ -152,7 +152,7 @@ variable {Ω : Type*}
 variable {m m₀ : MeasurableSpace Ω} {μ : Measure Ω}
 
 /-- Componentwise conditional unbiasedness of OLS under conditional mean-zero errors. -/
-private theorem ols_condExp_coordinate_eq_beta
+theorem ols_condExp_coordinate_eq_beta
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (j : k)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -213,7 +213,7 @@ private theorem ols_condExp_coordinate_eq_beta
     _ =ᵐ[μ] fun _ => β j := by simp
 
 /-- Componentwise unconditional unbiasedness from the conditional mean-zero assumption. -/
-private theorem ols_integral_coordinate_eq_beta
+theorem ols_integral_coordinate_eq_beta
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (j : k)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -231,7 +231,7 @@ private theorem ols_integral_coordinate_eq_beta
     _ = β j := by simp
 
 /-- Uniform coordinatewise conditional unbiasedness of OLS. -/
-private theorem ols_condExp_all_coordinates_eq_beta
+theorem ols_condExp_all_coordinates_eq_beta
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -276,7 +276,7 @@ theorem ols_condExp_eq_beta
     exact hω j
 
 /-- Uniform coordinatewise unconditional unbiasedness of OLS. -/
-private theorem ols_integral_all_coordinates_eq_beta
+theorem ols_integral_all_coordinates_eq_beta
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -356,7 +356,7 @@ theorem ols_condExp_eq_beta_rv
 
 /-- Componentwise unconditional unbiasedness of OLS from a random-variable conditioning
 assumption. -/
-private theorem ols_integral_coordinate_eq_beta_rv
+theorem ols_integral_coordinate_eq_beta_rv
     {ζ : Type*} [MeasurableSpace ζ]
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ) (j : k)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
@@ -379,7 +379,7 @@ private theorem ols_integral_coordinate_eq_beta_rv
 
 /-- Uniform coordinatewise conditional unbiasedness of OLS stated by conditioning on a random
 variable. -/
-private theorem ols_condExp_all_coordinates_eq_beta_rv
+theorem ols_condExp_all_coordinates_eq_beta_rv
     {ζ : Type*} [MeasurableSpace ζ]
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
@@ -393,7 +393,7 @@ private theorem ols_condExp_all_coordinates_eq_beta_rv
 
 /-- Uniform coordinatewise unconditional unbiasedness of OLS from a random-variable conditioning
 assumption. -/
-private theorem ols_integral_all_coordinates_eq_beta_rv
+theorem ols_integral_all_coordinates_eq_beta_rv
     {ζ : Type*} [MeasurableSpace ζ]
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (Z : Ω → ζ)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
@@ -437,7 +437,7 @@ theorem ols_integral_eq_beta_rv
     _ = β j := ols_integral_coordinate_eq_beta_rv (μ := μ) X β e Z j hZ he_int he_zero
 
 /-- Coordinatewise conditional covariance bridge for OLS. -/
-private theorem ols_condExp_centered_mul_eq_variance_entry
+theorem ols_condExp_centered_mul_eq_variance_entry
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (j l : k)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -606,7 +606,7 @@ theorem ols_condExp_centered_mul_eq_variance_matrix
 
 /-- Coordinatewise conditional covariance bridge for OLS stated by conditioning on a random
 variable. -/
-private theorem ols_condExp_centered_mul_eq_variance_entry_rv
+theorem ols_condExp_centered_mul_eq_variance_entry_rv
     {ζ : Type*} [MeasurableSpace ζ]
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (Z : Ω → ζ) (j l : k)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
@@ -631,7 +631,7 @@ private theorem ols_condExp_centered_mul_eq_variance_entry_rv
 
 /-- Matrix-valued conditional covariance bridge for OLS stated by conditioning on a random
 variable. -/
-private theorem ols_condExp_centered_mul_eq_variance_matrix_rv
+theorem ols_condExp_centered_mul_eq_variance_matrix_rv
     {ζ : Type*} [MeasurableSpace ζ]
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ) (Z : Ω → ζ)
     [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
@@ -805,7 +805,7 @@ theorem glsBeta_linear_decomposition
   simp
 
 /-- If the GLS-weighted error is orthogonal to the regressors, GLS recovers `β`. -/
-private theorem glsBeta_eq_of_weighted_regressors_orthogonal_error
+theorem glsBeta_eq_of_weighted_regressors_orthogonal_error
     (X : Matrix n k ℝ) (Ω : Matrix n n ℝ) (β : k → ℝ) (e : n → ℝ)
     [DecidableEq n] [Invertible Ω] [Invertible (Xᵀ * ⅟Ω * X)]
     (he : Xᵀ *ᵥ ((⅟Ω) *ᵥ e) = 0) :

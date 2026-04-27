@@ -529,7 +529,7 @@ theorem sampleScoreCovLevAdjStar_stack_tendstoInMeasure_adj
 If the feasible HC0 middle matrix converges to `Ω` and the HC2 leverage
 adjustment is `oₚ(1)`, then the HC2 middle matrix also converges to `Ω`. This
 isolates the exact leverage remainder left for the HC2 proof. -/
-private theorem sampleScoreCovHC2Star_stack_tendstoInMeasure_scoreCovMat_adj
+theorem sampleScoreCovHC2Star_stack_tendstoInMeasure_scoreCovMat_adj
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hHC0_meas : ∀ n, AEStronglyMeasurable
@@ -560,7 +560,7 @@ private theorem sampleScoreCovHC2Star_stack_tendstoInMeasure_scoreCovMat_adj
 
 If the feasible HC0 middle matrix converges to `Ω` and the HC3 leverage
 adjustment is `oₚ(1)`, then the HC3 middle matrix also converges to `Ω`. -/
-private theorem sampleScoreCovHC3Star_stack_tendstoInMeasure_scoreCovMat_adj
+theorem sampleScoreCovHC3Star_stack_tendstoInMeasure_scoreCovMat_adj
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hHC0_meas : ∀ n, AEStronglyMeasurable
@@ -1855,7 +1855,7 @@ Once the HC2 leverage-weighted middle matrix is known to converge in
 probability to `Ω`, the totalized HC2 sandwich estimator converges to
 `Q⁻¹ Ω Q⁻¹`. The remaining HC2 work is the leverage argument showing that
 `(1-hᵢᵢ)⁻¹` is asymptotically harmless. -/
-private theorem olsHetCovHC2Star_tendstoInMeasure_middle
+theorem olsHetCovHC2Star_tendstoInMeasure_middle
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e)
@@ -1882,7 +1882,7 @@ Once the HC3 leverage-weighted middle matrix is known to converge in
 probability to `Ω`, the totalized HC3 sandwich estimator converges to
 `Q⁻¹ Ω Q⁻¹`. The remaining HC3 work is the stronger leverage-weight argument
 for `(1-hᵢᵢ)⁻²`. -/
-private theorem olsHetCovHC3Star_tendstoInMeasure_middle
+theorem olsHetCovHC3Star_tendstoInMeasure_middle
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e)
@@ -1905,7 +1905,7 @@ private theorem olsHetCovHC3Star_tendstoInMeasure_middle
 
 /-- Measurability of a leverage-adjusted sandwich estimator from component
 measurability and measurability of the scalar leverage weight. -/
-private theorem olsHetCovLevAdjStar_stack_aestronglyMeasurable_components
+theorem olsHetCovLevAdjStar_stack_aestronglyMeasurable_components
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (weight : ℝ → ℝ) (hweight_meas : Measurable weight)
@@ -1961,7 +1961,7 @@ private theorem olsHetCovLevAdjStar_stack_aestronglyMeasurable_components
 
 /-- Generic leverage-adjusted sandwich consistency from the HC0 bounded-weight
 layer, component measurability, and an `oₚ(1)` leverage adjustment. -/
-private theorem olsHetCovLevAdjStar_tendstoInMeasure_of_bddWts_components_adj
+theorem olsHetCovLevAdjStar_tendstoInMeasure_of_bddWts_components_adj
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (weight : ℝ → ℝ) (hweight_meas : Measurable weight)
@@ -2010,7 +2010,7 @@ private theorem olsHetCovLevAdjStar_tendstoInMeasure_of_bddWts_components_adj
     h.toSampleMomentAssumption71 weight hMiddle_meas hMiddle
 
 /-- Generic fixed-linear-map covariance assembly for leverage-adjusted HC estimators. -/
-private theorem linearMap_leverageAdjustedCovariance_tendstoInMeasure
+theorem linearMap_leverageAdjustedCovariance_tendstoInMeasure
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {q : Type*} [Fintype q]

@@ -11,7 +11,7 @@ variable {n k k₁ k₂ : Type*}
 variable [Fintype n]
 
 /-- Hansen model (3.31): normal equations for a column-partitioned regression, first block. -/
-private theorem normal_equations_fromCols_left
+theorem normal_equations_fromCols_left
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
@@ -22,7 +22,7 @@ private theorem normal_equations_fromCols_left
   simpa using congrFun h (Sum.inl j)
 
 /-- Hansen model (3.31): normal equations for a column-partitioned regression, second block. -/
-private theorem normal_equations_fromCols_right
+theorem normal_equations_fromCols_right
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
@@ -63,7 +63,7 @@ noncomputable def fwlBeta
   olsBeta (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y)
 
 /-- The first block of the full-regression coefficient on `[X₁ X₂]`. -/
-private noncomputable def fromColsLeftBeta
+noncomputable def fromColsLeftBeta
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
@@ -79,7 +79,7 @@ noncomputable def fromColsRightBeta
   fun j => olsBeta (Matrix.fromCols X₁ X₂) y (Sum.inr j)
 
 /-- The fitted vector from the full regression splits into its two regressor blocks. -/
-private theorem fromCols_full_fitted_eq
+theorem fromCols_full_fitted_eq
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
@@ -90,7 +90,7 @@ private theorem fromCols_full_fitted_eq
 
 /-- Hansen Section 3.18: the residualized regressors are orthogonal to the regressors
 they partial out. -/
-private theorem residualizedRegressors_orthogonal_left
+theorem residualizedRegressors_orthogonal_left
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁]
     [Invertible (X₁ᵀ * X₁)] :
@@ -102,7 +102,7 @@ private theorem residualizedRegressors_orthogonal_left
 The residual in the auxiliary FWL regression, evaluated at the second block of the full-regression
 coefficient, is the full-regression residual after applying `M₁`.
 -/
-private theorem fwl_auxiliary_residual_eq_annihilator_full_residual
+theorem fwl_auxiliary_residual_eq_annihilator_full_residual
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible (X₁ᵀ * X₁)]
@@ -119,7 +119,7 @@ private theorem fwl_auxiliary_residual_eq_annihilator_full_residual
   simp [sub_eq_add_neg, add_comm]
 
 /-- The full-regression right block satisfies the FWL auxiliary normal equations. -/
-private theorem fwl_fromColsRightBeta_normal_equations
+theorem fwl_fromColsRightBeta_normal_equations
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible (X₁ᵀ * X₁)]
@@ -191,7 +191,7 @@ Hansen Theorem 3.5 setup: the sequential FWL residual maker `M_{M₁X₂} M₁`
 annihilates both blocks of `[X₁ X₂]`. This is the projection-geometry core needed before
 proving the full FWL coefficient identity.
 -/
-private theorem fwl_residual_maker_mul_fromCols
+theorem fwl_residual_maker_mul_fromCols
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible (X₁ᵀ * X₁)]

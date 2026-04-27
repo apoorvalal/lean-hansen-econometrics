@@ -11,7 +11,7 @@ variable {μ : Measure Ω}
 
 /-- Hansen Chapter 2.12: the expected conditional variance equals the expected squared
 CEF error. This is the regression-error variance identity following Definitions 2.1-2.2. -/
-private theorem integral_condVar_eq_integral_cefError_sq
+theorem integral_condVar_eq_integral_cefError_sq
     {Y : Ω → ℝ}
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
     (hY2 : Integrable ((Y - μ[Y | m]) ^ 2) μ) :
@@ -23,14 +23,14 @@ private theorem integral_condVar_eq_integral_cefError_sq
 /-- Hansen Theorem 2.5: if `Y` has a finite second moment (`MemLp Y 2 μ`),
 then the CEF error `e = Y - E[Y|m]` also has a finite second moment,
 i.e., the regression-error variance σ² < ∞. -/
-private theorem memLp_cefError
+theorem memLp_cefError
     {Y : Ω → ℝ}
     (hY : MemLp Y 2 μ) :
     MemLp (cefError μ Y m) 2 μ :=
   hY.sub hY.condExp
 
 /-- Hansen Theorem 2.8 / law of total variance in Mathlib form. -/
-private theorem law_total_variance
+theorem law_total_variance
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [IsProbabilityMeasure μ]
@@ -40,7 +40,7 @@ private theorem law_total_variance
     (X := Y) hm hY
 
 /-- Hansen Theorem 2.8, rearranged. -/
-private theorem variance_decomposition
+theorem variance_decomposition
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [IsProbabilityMeasure μ]
@@ -50,7 +50,7 @@ private theorem variance_decomposition
   simpa using law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY
 
 /-- The explained variance is bounded by total variance, as a direct consequence of Theorem 2.8. -/
-private theorem variance_condExp_le_variance
+theorem variance_condExp_le_variance
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [IsProbabilityMeasure μ]
@@ -71,7 +71,7 @@ monotonic decrease of residual variance under larger conditioning sets.
 If `m₁ ≤ m₂ ≤ m₀`, then `Var[Y - E[Y|m₂]] ≤ Var[Y - E[Y|m₁]]`,
 i.e., conditioning on more information (weakly) reduces
 the variance of the regression error. -/
-private theorem variance_cefError_antitone
+theorem variance_cefError_antitone
     {m₁ m₂ : MeasurableSpace Ω}
     {Y : Ω → ℝ}
     (hm₁₂ : m₁ ≤ m₂)

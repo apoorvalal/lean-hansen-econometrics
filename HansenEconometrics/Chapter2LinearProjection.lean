@@ -48,7 +48,7 @@ theorem linearProjectionBeta_eq_of_normal_equations
   simp
 
 /-- At the projection coefficient, the quadratic criterion simplifies to `E[Y²] - β'QXY`. -/
-private theorem linearProjectionMSE_at_beta
+theorem linearProjectionMSE_at_beta
     (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX] :
     linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) =
       QYY - linearProjectionBeta QXX QXY ⬝ᵥ QXY := by
@@ -58,7 +58,7 @@ private theorem linearProjectionMSE_at_beta
 
 /-- Quadratic completion for the population projection criterion. This is the deterministic algebra
 behind the best-linear-predictor minimization statement. -/
-private theorem linearProjectionMSE_eq_at_beta_add_quadratic_form
+theorem linearProjectionMSE_eq_at_beta_add_quadratic_form
     (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) (b : k → ℝ)
     [Invertible QXX]
     (hQXXt : QXXᵀ = QXX) :
@@ -144,7 +144,7 @@ variable {μ : Measure Ω}
 omit [DecidableEq k] in
 /-- Covariances in the linear projection model decompose into the fitted part and the residual
 part. This is the Chapter 2-facing wrapper around the reusable affine-model covariance helper. -/
-private theorem covVec_linearProjectionModel
+theorem covVec_linearProjectionModel
     [IsProbabilityMeasure μ]
     (X : Ω → k → ℝ) (e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
     (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)

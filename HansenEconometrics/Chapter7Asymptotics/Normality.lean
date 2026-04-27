@@ -46,7 +46,7 @@ attribute [local instance] matrixBorelSpaceInst
 
 omit [DecidableEq k] in
 /-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
-private theorem mulVec_dotProduct_right {q : Type*} [Fintype q]
+theorem mulVec_dotProduct_right {q : Type*} [Fintype q]
     (M : Matrix q k ℝ) (v : k → ℝ) (a : q → ℝ) :
     (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
   rw [dotProduct_comm, Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
@@ -1315,7 +1315,7 @@ theorem linMap_olsBetaOrZero_waldChiSquared_scoreCLT_gaussian
       (Vhat := Vhat) (V := V) hV_meas hV hV_posDef hLimitLaw
 
 /-- Internal Gaussian-limit-law bridge for the full-rank linear-Wald theorem. -/
-private theorem linMap_olsBetaStar_waldChiSquared_gaussian_limitLaw
+theorem linMap_olsBetaStar_waldChiSquared_gaussian_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1363,7 +1363,7 @@ private theorem linMap_olsBetaStar_waldChiSquared_gaussian_limitLaw
 
 /-- Ordinary-wrapper version of
 `linMap_olsBetaStar_waldChiSquared_gaussian_limitLaw`. -/
-private theorem linMap_olsBetaOrZero_waldChiSquared_gaussian_limitLaw
+theorem linMap_olsBetaOrZero_waldChiSquared_gaussian_limitLaw
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1484,7 +1484,7 @@ theorem linMap_olsBetaOrZero_waldChiSquared_gaussian
 
 /-- Generic multivariate Wald packaging for a concrete covariance estimator
 family converging to Hansen's heteroskedastic asymptotic covariance. -/
-private theorem linMap_olsWaldStatStar_tendstoInDistribution_chiSquared_covEst
+theorem linMap_olsWaldStatStar_tendstoInDistribution_chiSquared_covEst
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]

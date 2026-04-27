@@ -676,7 +676,7 @@ theorem sampleScoreCovLevAdjmtStar_stack_tendstoInMeasure_zero_entries
     (y := stackOutcomes y n ω) a b).symm
 
 /-- HC2 adjustment convergence from scalar entrywise adjustment sums. -/
-private theorem sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_entries
+theorem sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_entries
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (hEntry : ∀ a b : k, TendstoInMeasure μ
       (fun n ω =>
@@ -693,7 +693,7 @@ private theorem sampleScoreCovHC2AdjStar_stack_tendstoInMeasure_zero_entries
       (μ := μ) (X := X) (y := y) (weight := fun h => (1 - h)⁻¹) hEntry
 
 /-- HC3 adjustment convergence from scalar entrywise adjustment sums. -/
-private theorem sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_entries
+theorem sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_entries
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (hEntry : ∀ a b : k, TendstoInMeasure μ
       (fun n ω =>
@@ -713,7 +713,7 @@ private theorem sampleScoreCovHC3AdjStar_stack_tendstoInMeasure_zero_entries
 
 /-- HC2 adjustment entries are `oₚ(1)` once maximal leverage is `oₚ(1)` and
 the corresponding residual absolute-weight averages are `Oₚ(1)`. -/
-private theorem sampleScoreCovHC2AdjEntryStar_tendstoInMeasure_zero_maxLevStar
+theorem sampleScoreCovHC2AdjEntryStar_tendstoInMeasure_zero_maxLevStar
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (a b : k)
     (hMax : TendstoInMeasure μ
@@ -736,7 +736,7 @@ private theorem sampleScoreCovHC2AdjEntryStar_tendstoInMeasure_zero_maxLevStar
 
 /-- HC3 adjustment entries are `oₚ(1)` once maximal leverage is `oₚ(1)` and
 the corresponding residual absolute-weight averages are `Oₚ(1)`. -/
-private theorem sampleScoreCovHC3AdjEntryStar_tendstoInMeasure_zero_maxLevStar
+theorem sampleScoreCovHC3AdjEntryStar_tendstoInMeasure_zero_maxLevStar
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
     (a b : k)
     (hMax : TendstoInMeasure μ

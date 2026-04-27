@@ -38,11 +38,11 @@ instance instNoAtomsChiSquared (k : ℕ) : NoAtoms (chiSquared k) := by
   change NoAtoms (volume.withDensity (gammaPDF ((k : ℝ) / 2) (1 / 2 : ℝ)))
   infer_instance
 
-private lemma chiSquared_gammaPDF_of_neg {k : ℕ} {x : ℝ} (hx : x < 0) :
+lemma chiSquared_gammaPDF_of_neg {k : ℕ} {x : ℝ} (hx : x < 0) :
     gammaPDF ((k : ℝ) / 2) (1 / 2 : ℝ) x = 0 :=
   gammaPDF_of_neg hx
 
-@[simp] private lemma chiSquared_one_eq :
+@[simp] lemma chiSquared_one_eq :
     chiSquared 1 = gammaMeasure (1 / 2 : ℝ) (1 / 2 : ℝ) := by
   simp [chiSquared]
 
@@ -51,7 +51,7 @@ lemma rpow_neg_half_eq_inv_sqrt {x : ℝ} (hx : 0 < x) :
   rw [Real.rpow_neg hx.le (1 / 2 : ℝ)]
   rw [Real.sqrt_eq_rpow]
 
-private lemma gaussian_exp_at_sqrt_eq {x : ℝ} (hx : 0 ≤ x) :
+lemma gaussian_exp_at_sqrt_eq {x : ℝ} (hx : 0 ≤ x) :
     Real.exp (-(Real.sqrt x - 0) ^ 2 / (2 : ℝ)) = Real.exp (-(x / 2)) := by
   have hsq : (Real.sqrt x - 0) ^ 2 = x := by
     simpa [pow_two] using Real.sq_sqrt hx
@@ -62,14 +62,14 @@ private lemma gaussian_exp_at_sqrt_eq {x : ℝ} (hx : 0 ≤ x) :
 /-! ### Preimage of Iic under squaring -/
 
 /-- For `t < 0`, no real squares into `Iic t`. -/
-private lemma sq_preimage_Iic_of_neg {t : ℝ} (ht : t < 0) :
+lemma sq_preimage_Iic_of_neg {t : ℝ} (ht : t < 0) :
     (fun x : ℝ => x ^ 2) ⁻¹' Set.Iic t = ∅ := by
   ext x
   simp only [Set.mem_preimage, Set.mem_Iic, Set.mem_empty_iff_false, iff_false, not_le]
   exact lt_of_lt_of_le ht (sq_nonneg x)
 
 /-- For `t ≥ 0`, the preimage of `Iic t` under squaring is `Icc (-√t) (√t)`. -/
-private lemma sq_preimage_Iic_of_nonneg {t : ℝ} (ht : 0 ≤ t) :
+lemma sq_preimage_Iic_of_nonneg {t : ℝ} (ht : 0 ≤ t) :
     (fun x : ℝ => x ^ 2) ⁻¹' Set.Iic t = Set.Icc (-Real.sqrt t) (Real.sqrt t) := by
   ext x
   simp only [Set.mem_preimage, Set.mem_Iic, Set.mem_Icc]
@@ -80,7 +80,7 @@ private lemma sq_preimage_Iic_of_nonneg {t : ℝ} (ht : 0 ≤ t) :
 /-- **Jacobian identity**: for `u > 0`, the Gamma(1/2,1/2) density at `u²` times the Jacobian
 `2u` equals twice the standard normal density at `u`.  This is the key algebraic step in the
 change-of-variables argument `t = u²` that converts the Gamma CDF into the Gaussian CDF. -/
-private lemma jacobian_pdf_eq {u : ℝ} (hu : 0 < u) :
+lemma jacobian_pdf_eq {u : ℝ} (hu : 0 < u) :
     gammaPDFReal (1 / 2 : ℝ) (1 / 2 : ℝ) (u ^ 2) * (2 * u) = 2 * gaussianPDFReal 0 1 u := by
   have hu2nn : (0 : ℝ) ≤ u ^ 2 := sq_nonneg u
   simp only [gammaPDFReal, if_pos hu2nn, gaussianPDFReal, NNReal.coe_one, mul_one, sub_zero]
@@ -108,14 +108,14 @@ private lemma jacobian_pdf_eq {u : ℝ} (hu : 0 < u) :
 /-! ### Helper lemmas for the change-of-variables proof -/
 
 /-- The Gaussian density at `0` mean unit variance is symmetric: `g(-x) = g(x)`. -/
-private lemma gaussianPDFReal_zero_one_neg (x : ℝ) :
+lemma gaussianPDFReal_zero_one_neg (x : ℝ) :
     gaussianPDFReal 0 1 (-x) = gaussianPDFReal 0 1 x := by
   simp only [gaussianPDFReal, sub_zero]
   congr 2
   ring
 
 /-- The standard normal pdf is continuous (derived from the explicit formula). -/
-private lemma continuous_gaussianPDFReal_zero_one : Continuous (gaussianPDFReal 0 1) := by
+lemma continuous_gaussianPDFReal_zero_one : Continuous (gaussianPDFReal 0 1) := by
   unfold gaussianPDFReal
   refine continuous_const.mul ?_
   refine Real.continuous_exp.comp ?_
@@ -124,7 +124,7 @@ private lemma continuous_gaussianPDFReal_zero_one : Continuous (gaussianPDFReal 
   exact (continuous_id'.sub continuous_const)
 
 /-- For any `t : ℝ`, the Gaussian integral on `[-√t, √t]` is twice the integral on `[0, √t]`. -/
-private lemma gaussian_integral_symm (t : ℝ) :
+lemma gaussian_integral_symm (t : ℝ) :
     ∫ x in (-Real.sqrt t)..Real.sqrt t, gaussianPDFReal 0 1 x =
       2 * ∫ x in (0 : ℝ)..Real.sqrt t, gaussianPDFReal 0 1 x := by
   have hint_neg :
@@ -155,7 +155,7 @@ private lemma gaussian_integral_symm (t : ℝ) :
   ring
 
 /-- Integrability of the gamma pdf on `Icc 0 t` follows from finite total lintegral. -/
-private lemma integrable_gammaPDFReal_on_Icc (t : ℝ) :
+lemma integrable_gammaPDFReal_on_Icc (t : ℝ) :
     IntegrableOn (gammaPDFReal (1 / 2 : ℝ) (1 / 2 : ℝ)) (Set.Icc (0 : ℝ) t) := by
   have ha : (0 : ℝ) < 1 / 2 := by norm_num
   have hr : (0 : ℝ) < 1 / 2 := by norm_num
@@ -277,7 +277,7 @@ theorem gaussianReal_map_sq_eq_chiSquared_one :
     -- Step 7: pull out the constant factor `2`.
     rw [intervalIntegral.integral_const_mul]
 
-private theorem hasLaw_sq_chiSquared_one
+theorem hasLaw_sq_chiSquared_one
     {Ω : Type*} [MeasureSpace Ω]
     {W : Ω → ℝ} (hLaw : HasLaw W (gaussianReal 0 1)) :
     HasLaw (fun ω => (W ω)^2) (chiSquared 1) := by
@@ -611,7 +611,7 @@ variables is Gamma(a+b, r).
 The proof reduces to the pointwise identity `gammaPDF_lconvolution_eq` (the additive
 convolution of two Gamma densities equals the sum-rate Gamma density a.e.) via the
 identity `withDensity f ∗ withDensity g = withDensity (f ⋆ₗ g)`. -/
-private lemma gammaMeasure_conv_same_rate_eq {a b r : ℝ} (hr : 0 < r) (ha : 0 < a) (hb : 0 < b) :
+lemma gammaMeasure_conv_same_rate_eq {a b r : ℝ} (hr : 0 < r) (ha : 0 < a) (hb : 0 < b) :
     gammaMeasure a r ∗ gammaMeasure b r = gammaMeasure (a + b) r := by
   have hmeas : ∀ a r : ℝ, Measurable (gammaPDF a r) := fun a r => by
     unfold gammaPDF
@@ -644,7 +644,7 @@ theorem hasLaw_add_chiSquared
   rw [chiSquared_eq (a + b)]
   exact hsum
 
-private theorem hasLaw_sumSquaresRV_chiSquared
+theorem hasLaw_sumSquaresRV_chiSquared
     {k : ℕ} (hk : 0 < k)
     {Ω : Type*} [MeasureSpace Ω]
     {W : Fin k → Ω → ℝ}
@@ -853,7 +853,7 @@ theorem hasLaw_stdGaussian_normSq_chiSquared
 
 /-- Whitening identity for a positive-definite covariance matrix. If `S = sqrt V`, then the
 Mahalanobis norm of `Sx` with covariance `V = S * S` is the Euclidean norm of `x`. -/
-private lemma cfcSqrt_mahalanobis_mulVec_eq_normSq
+lemma cfcSqrt_mahalanobis_mulVec_eq_normSq
     {n : ℕ} {V : Matrix (Fin n) (Fin n) ℝ} (hV : V.PosDef)
     (x : Fin n → ℝ) :
     let S : Matrix (Fin n) (Fin n) ℝ := CFC.sqrt V
@@ -891,7 +891,7 @@ private lemma cfcSqrt_mahalanobis_mulVec_eq_normSq
 /-- The Mahalanobis quadratic form of a centered positive-definite multivariate Gaussian has a
 `χ²(n)` law. This is the full-covariance version of
 `hasLaw_stdGaussian_normSq_chiSquared`. -/
-private theorem hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared
+theorem hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared
     {n : ℕ} (hn : 0 < n) {V : Matrix (Fin n) (Fin n) ℝ} (hV : V.PosDef) :
     HasLaw (fun z : EuclideanSpace ℝ (Fin n) =>
         (z : Fin n → ℝ) ⬝ᵥ (V⁻¹ *ᵥ (z : Fin n → ℝ)))
