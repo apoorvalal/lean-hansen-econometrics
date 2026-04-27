@@ -61,7 +61,7 @@ theorem hat_mul_y_eq_closed_form_fit
           simp
 
 /-- Hansen equation (3.23): the closed-form OLS residual vector equals `M Y`. -/
-theorem annihilator_mul_y_eq_closed_form_residual
+private theorem annihilator_mul_y_eq_closed_form_residual
     (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
     annihilatorMatrix X *ᵥ y = y - X *ᵥ ((⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by
   unfold annihilatorMatrix
@@ -79,7 +79,7 @@ theorem hat_mul_X
     _ = X := by simp
 
 /-- Hansen Section 3.11: the hat matrix fixes every matrix in the range of `X`. -/
-theorem hat_mul_range
+private theorem hat_mul_range
     (X : Matrix n k ℝ) (Γ : Matrix k l ℝ) [Invertible (Xᵀ * X)] :
     hatMatrix X * (X * Γ) = X * Γ := by
   rw [← Matrix.mul_assoc, hat_mul_X]
@@ -93,7 +93,7 @@ theorem annihilator_mul_X
   simp
 
 /-- Hansen Section 3.12: the annihilator kills every matrix in the range of `X`. -/
-theorem annihilator_mul_range
+private theorem annihilator_mul_range
     (X : Matrix n k ℝ) (Γ : Matrix k l ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
     annihilatorMatrix X * (X * Γ) = 0 := by
   rw [← Matrix.mul_assoc, annihilator_mul_X, Matrix.zero_mul]
@@ -128,7 +128,7 @@ theorem annihilatorMatrix_idempotent
   simp [annihilatorMatrix, Matrix.sub_mul, Matrix.mul_sub, hatMatrix_idempotent]
 
 /-- Hansen Exercise 3.7: the annihilator kills the hat matrix on the left. -/
-theorem annihilator_mul_hatMatrix
+private theorem annihilator_mul_hatMatrix
     (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
     annihilatorMatrix X * hatMatrix X = 0 := by
   simp [annihilatorMatrix, Matrix.sub_mul, hatMatrix_idempotent]
@@ -152,7 +152,7 @@ theorem annihilatorMatrix_isHermitian
   (Matrix.conjTranspose_eq_transpose_of_trivial _).trans (annihilatorMatrix_transpose X)
 
 /-- The hat matrix is Hermitian (equivalently, symmetric for real matrices). -/
-theorem hatMatrix_isHermitian
+private theorem hatMatrix_isHermitian
     (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
     (hatMatrix X).IsHermitian :=
   (Matrix.conjTranspose_eq_transpose_of_trivial _).trans (hatMatrix_transpose X)
@@ -185,7 +185,7 @@ theorem fitted_eq_hat_mul_y
   rw [← hat_mul_y_eq_closed_form_fit]
 
 /-- A vector orthogonal to the columns of `X` is killed by the hat matrix. -/
-theorem hat_mulVec_eq_zero_of_regressors_orthogonal
+private theorem hat_mulVec_eq_zero_of_regressors_orthogonal
     (X : Matrix n k ℝ) (v : n → ℝ) [Invertible (Xᵀ * X)]
     (hv : Xᵀ *ᵥ v = 0) :
     hatMatrix X *ᵥ v = 0 := by

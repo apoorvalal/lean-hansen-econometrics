@@ -16,7 +16,7 @@ variable behind chi-square style constructions. -/
 def sumSquaresRV [Fintype ι] (X : ι → Ω → ℝ) : Ω → ℝ :=
   fun ω => ∑ i, (X i ω) ^ 2
 
-lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
+private lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
     0 ≤ sumSquaresRV X ω := by
   unfold sumSquaresRV
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
@@ -45,7 +45,7 @@ end StandardizedCoords
 
 /-- Convenient wrapper around Mathlib's jointly-Gaussian + zero-covariance independence lemma for
 real-valued pairs. -/
-lemma indep_of_jointGaussian_cov_zero
+private lemma indep_of_jointGaussian_cov_zero
     {X Y : Ω → ℝ}
     (hXY : HasGaussianLaw (fun ω => (X ω, Y ω)) P)
     (hcov : cov[X, Y; P] = 0) :
@@ -53,7 +53,7 @@ lemma indep_of_jointGaussian_cov_zero
   hXY.indepFun_of_covariance_eq_zero hcov
 
 /-- Finite-family version of Gaussian independence from pairwise zero covariance. -/
-lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
+private lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
     {X : ι → Ω → ℝ}
     (hX : HasGaussianLaw (fun ω i => X i ω) P)
     (hcov : ∀ i j, i ≠ j → cov[X i, X j; P] = 0) :
@@ -79,7 +79,7 @@ theorem HasLaw.real_preimage_eq
   rw [measureReal_def, HasLaw.preimage_eq hX hs, measureReal_def]
 
 /-- If `X` has law `ν`, then the lower-tail event `{X ≤ x}` has probability `cdf ν x`. -/
-theorem HasLaw.real_preimage_Iic_eq_cdf
+private theorem HasLaw.real_preimage_Iic_eq_cdf
     [IsProbabilityMeasure ν]
     (hX : HasLaw X ν μ) (x : ℝ) :
     μ.real (X ⁻¹' Set.Iic x) = cdf ν x := by
@@ -102,7 +102,7 @@ theorem HasLaw.real_preimage_abs_le_eq_Icc
   exact HasLaw.real_preimage_Icc_eq hX (-c) c
 
 /-- For a real probability measure, the mass of `(a, b]` is the cdf increment `F(b) - F(a)`. -/
-theorem measureReal_Ioc_eq_cdf_sub
+private theorem measureReal_Ioc_eq_cdf_sub
     [IsProbabilityMeasure ν] {a b : ℝ} (hab : a ≤ b) :
     ν.real (Set.Ioc a b) = cdf ν b - cdf ν a := by
   calc
@@ -133,7 +133,7 @@ theorem HasLaw.real_preimage_abs_le_eq_cdf_sub_leftLim
 
 /-- For an atomless real probability measure, the mass of `[a, b]` is the cdf increment
 `F(b) - F(a)`. -/
-theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
+private theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
     [IsProbabilityMeasure ν] [NoAtoms ν] {a b : ℝ} (hab : a ≤ b) :
     ν.real (Set.Icc a b) = cdf ν b - cdf ν a := by
   have hleft :
@@ -256,7 +256,7 @@ theorem integral_dotProduct_eq_meanVec_dotProduct
 
 /-- The covariance vector with a linear form equals the covariance matrix times the coefficient
 vector. -/
-theorem covVec_dotProduct_eq_covMat_mulVec
+private theorem covVec_dotProduct_eq_covMat_mulVec
     [IsProbabilityMeasure μ]
     (X : Ω → k → ℝ) (b : k → ℝ)
     (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ) :
@@ -354,7 +354,7 @@ variable [MeasurableSpace β]
   MeasurableSpace.comap X inferInstance
 
 /-- `conditioningSpace X` is a thin wrapper around the standard `comap` construction. -/
-@[simp] theorem conditioningSpace_eq_comap (X : Ω → β) :
+@[simp] private theorem conditioningSpace_eq_comap (X : Ω → β) :
     conditioningSpace X = MeasurableSpace.comap X inferInstance := rfl
 
 end ConditioningSpaces
@@ -392,18 +392,18 @@ noncomputable def residualVarOn
 
 /-- Conditional expectation with respect to `X` is conditional expectation with respect to the
 generated sigma-algebra. -/
-@[simp] theorem condExpOn_eq_condExp
+@[simp] private theorem condExpOn_eq_condExp
     [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (Y : Ω → E) (X : Ω → β) :
     condExpOn μ Y X = μ[Y | conditioningSpace X] := rfl
 
 /-- The variable-conditioned error is definitionally `Y - E[Y | X]`. -/
-@[simp] theorem cefErrorOn_eq_sub
+@[simp] private theorem cefErrorOn_eq_sub
     (Y : Ω → ℝ) (X : Ω → β) :
     cefErrorOn μ Y X = fun ω => Y ω - condExpOn μ Y X ω := rfl
 
 /-- Conditional variance with respect to `X` is conditional variance with respect to `σ(X)`. -/
-@[simp] theorem condVarOn_eq_condVar
+@[simp] private theorem condVarOn_eq_condVar
     (Y : Ω → ℝ) (X : Ω → β) :
     condVarOn μ Y X = Var[Y; μ | conditioningSpace X] := rfl
 

@@ -48,7 +48,7 @@ noncomputable def olsResidualSumSquares
   dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)
 
 /-- A lightweight deterministic record of the Chapter 5 normal regression setup. -/
-structure NormalRegressionModel (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) where
+private structure NormalRegressionModel (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) where
   sigma2_nonneg : 0 ≤ σ2
 
 /-- Under the linear model, the residual variance estimator is the residual quadratic form
@@ -90,7 +90,7 @@ theorem olsResidualSumSquares_linear_model
 
 /-- Under the linear model, the residual sum of squares is the annihilator quadratic form `e'Me`.
 This is the likelihood-scale version of the Chapter 5 variance identity. -/
-theorem olsResidualSumSquares_linear_model_quadratic_form
+private theorem olsResidualSumSquares_linear_model_quadratic_form
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualSumSquares X (X *ᵥ β + e) = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
   rw [olsResidualSumSquares_linear_model]
@@ -151,7 +151,7 @@ theorem residual_hasGaussianLaw_of_error
 
 /-- The annihilator quadratic form is the sum of squared eigenbasis coordinates on the `1`-eigenspace.
 This is the deterministic bridge behind Hansen Theorem 5.7. -/
-theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
+private theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
     (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     let M := annihilatorMatrix X
     let hM : M.IsHermitian := annihilatorMatrix_isHermitian X
@@ -222,7 +222,7 @@ theorem residual_quadratic_form_eq_sum_sq_eigenvector_coords
 
 set_option maxHeartbeats 800000 in
 -- The deterministic normalization and eigenspace rewrite expand several large `let`-bound terms.
-theorem scaledOlsResidualVarianceStatistic_eq_sum_sq_eigenvector_coords
+private theorem scaledOlsResidualVarianceStatistic_eq_sum_sq_eigenvector_coords
     {Ω : Type*} [MeasurableSpace Ω]
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
@@ -316,7 +316,7 @@ theorem scaledOlsResidualVarianceStatistic_hasLaw_chiSquared
   · simpa [hM, W] using hEq.symm
 
 /-- The Chapter 5 statistic `((n-k)s²)/σ²` is the residual sum of squares divided by `σ²`. -/
-theorem scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div
+private theorem scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div
     {Ω : Type*} [MeasurableSpace Ω]
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
     (hdf : Fintype.card k < Fintype.card n)
@@ -690,7 +690,7 @@ theorem standardizedOlsBetaCoordinate_hasLaw_standardNormal
 
 /-- The Gaussian numerator in the t-statistic is independent of the scaled residual variance
 statistic. -/
-theorem standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic
+private theorem standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
@@ -707,7 +707,7 @@ theorem standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic
   fun_prop
 
 /-- The studentization factor is the inverse square-root transform of the chi-square statistic. -/
-theorem olsStudentizationFactor_hasLaw
+private theorem olsStudentizationFactor_hasLaw
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
@@ -840,7 +840,7 @@ theorem olsTStatistic_eq_centered_beta_div_estimatedSE
 /-- The Chapter 5 scaled residual variance statistic is almost surely nonzero under the normal
 regression model. This is the null-set exclusion needed to identify the classical confidence interval
 event with the `|T| ≤ c` event. -/
-theorem scaledOlsResidualVarianceStatistic_ne_zero_ae
+private theorem scaledOlsResidualVarianceStatistic_ne_zero_ae
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
@@ -868,7 +868,7 @@ theorem scaledOlsResidualVarianceStatistic_ne_zero_ae
 /-- Under the null restriction `β_j = β₀`, the literal null-centered t-statistic agrees almost
 surely with Hansen's Chapter 5 t-statistic. This is the bridge from textbook hypothesis-testing
 notation to the reusable `olsTStatistic` object. -/
-theorem ae_olsNullTStatistic_eq_olsTStatistic
+private theorem ae_olsNullTStatistic_eq_olsTStatistic
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (β0 : ℝ)
     (hnull : β j = β0)
@@ -899,7 +899,7 @@ theorem olsNullTStatistic_hasLaw_classicalStudentT
 
 /-- The classical coefficient confidence interval event is almost surely identical to the event
 `|T| ≤ c`. -/
-theorem ae_mem_olsConfidenceInterval_iff_abs_t_le
+private theorem ae_mem_olsConfidenceInterval_iff_abs_t_le
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)
@@ -940,7 +940,7 @@ theorem ae_mem_olsConfidenceInterval_iff_abs_t_le
 
 /-- Exact symmetric-interval coverage for the Chapter 5 t-statistic. This is the core probability
 identity underlying Hansen Theorem 5.9 before packaging the confidence interval itself. -/
-theorem olsTStatistic_abs_le_coverage_eq_studentT_interval
+private theorem olsTStatistic_abs_le_coverage_eq_studentT_interval
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k) (c : ℝ)
     (hσ2 : 0 < σ2) (hdf : Fintype.card k < Fintype.card n)

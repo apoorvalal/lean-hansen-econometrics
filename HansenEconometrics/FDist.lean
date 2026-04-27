@@ -47,42 +47,42 @@ distribution is proved separately. -/
 noncomputable def classicalFDist (q ν : ℕ) : Measure ℝ :=
   volume.withDensity (fPDF q ν)
 
-lemma fDensityConstant_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) :
+private lemma fDensityConstant_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) :
     fDensityConstant q ν = 0 := by
   simp [fDensityConstant, h]
 
-lemma fPDFReal_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) (x : ℝ) :
+private lemma fPDFReal_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) (x : ℝ) :
     fPDFReal q ν x = 0 := by
   simp [fPDFReal, h]
 
-lemma fPDF_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) (x : ℝ) :
+private lemma fPDF_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) (x : ℝ) :
     fPDF q ν x = 0 := by
   simp [fPDF, fPDFReal_eq_zero h x]
 
-lemma classicalFDist_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) :
+private lemma classicalFDist_eq_zero {q ν : ℕ} (h : ¬ (0 < q ∧ 0 < ν)) :
     classicalFDist q ν = 0 := by
   have hpdf : fPDF q ν = 0 := by
     funext x
     exact fPDF_eq_zero h x
   simp [classicalFDist, hpdf, withDensity_zero]
 
-lemma fDensityConstant_of_pos {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
+private lemma fDensityConstant_of_pos {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
     fDensityConstant q ν =
       (((q : ℝ) / (ν : ℝ)) ^ ((q : ℝ) / 2)) /
         ProbabilityTheory.beta ((q : ℝ) / 2) ((ν : ℝ) / 2) := by
   simp [fDensityConstant, hq, hν]
 
-lemma fPDFReal_of_pos {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) {x : ℝ} (hx : 0 ≤ x) :
+private lemma fPDFReal_of_pos {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) {x : ℝ} (hx : 0 ≤ x) :
     fPDFReal q ν x =
       fDensityConstant q ν * x ^ (((q : ℝ) / 2) - 1) *
         (1 + (((q : ℝ) / (ν : ℝ)) * x)) ^ (((-(ν : ℝ)) + (-(q : ℝ))) / 2) := by
   simp [fPDFReal, hq, hν, hx]
 
-lemma fPDFReal_of_neg {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) {x : ℝ} (hx : x < 0) :
+private lemma fPDFReal_of_neg {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) {x : ℝ} (hx : x < 0) :
     fPDFReal q ν x = 0 := by
   simp [fPDFReal, hq, hν, not_le_of_gt hx]
 
-lemma fPDFReal_nonneg (q ν : ℕ) (x : ℝ) : 0 ≤ fPDFReal q ν x := by
+private lemma fPDFReal_nonneg (q ν : ℕ) (x : ℝ) : 0 ≤ fPDFReal q ν x := by
   by_cases h : 0 < q ∧ 0 < ν
   · rcases h with ⟨hq, hν⟩
     by_cases hx : 0 ≤ x
@@ -727,7 +727,7 @@ private lemma lintegral_f_double_eq {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν)
                     rw [lintegral_f_kernel_eq_fPDF hq hν x]
           simpa [G, F] using hinner
 
-theorem ratio_prod_map_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
+private theorem ratio_prod_map_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
     ((chiSquared q).prod (chiSquared ν)).map
       (fun z : ℝ × ℝ => (z.1 / (q : ℝ)) / (z.2 / (ν : ℝ))) =
     classicalFDist q ν := by
@@ -776,7 +776,7 @@ theorem fDist_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
     fDist q ν = classicalFDist q ν := by
   rw [fDist, ratio_prod_map_eq_classicalFDist hq hν]
 
-lemma isProbabilityMeasure_fDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
+private lemma isProbabilityMeasure_fDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
     IsProbabilityMeasure (fDist q ν) := by
   haveI : IsProbabilityMeasure (chiSquared q) := isProbabilityMeasure_chiSquared hq
   haveI : IsProbabilityMeasure (chiSquared ν) := isProbabilityMeasure_chiSquared hν

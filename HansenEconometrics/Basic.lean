@@ -1,4 +1,4 @@
 prelude
 import Init.Prelude
 
-def hello := "world"
+private def hello := "world"

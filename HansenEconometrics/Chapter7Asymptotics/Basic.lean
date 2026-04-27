@@ -50,7 +50,7 @@ noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ
 
 /-- `olsBetaOrZero` is exactly the previously used totalized estimator `olsBetaStar`. -/
 @[simp]
-theorem olsBetaOrZero_eq_olsBetaStar
+private theorem olsBetaOrZero_eq_olsBetaStar
     (X : Matrix n k ℝ) (y : n → ℝ) :
     olsBetaOrZero X y = olsBetaStar X y := by
   classical
@@ -64,7 +64,7 @@ theorem olsBetaOrZero_eq_olsBetaStar
     rw [Matrix.nonsing_inv_apply_not_isUnit _ h, Matrix.zero_mulVec]
 
 /-- On nonsingular designs, `olsBetaOrZero` agrees with ordinary `olsBeta`. -/
-theorem olsBetaOrZero_eq_olsBeta
+private theorem olsBetaOrZero_eq_olsBeta
     (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
     olsBetaOrZero X y = olsBeta X y := by
   rw [olsBetaOrZero_eq_olsBetaStar, olsBetaStar_eq_olsBeta]
@@ -113,7 +113,7 @@ theorem olsResidualStar_linear_model
   simp [Matrix.mulVec, dotProduct]
 
 /-- On nonsingular designs, totalized residuals agree with ordinary OLS residuals. -/
-theorem olsResidualStar_eq_residual
+private theorem olsResidualStar_eq_residual
     (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualStar X y = residual X y := by
   unfold olsResidualStar residual fitted
@@ -122,7 +122,7 @@ theorem olsResidualStar_eq_residual
 omit [DecidableEq k] in
 /-- Finite-dimensional dot products are bounded by sup norms, with the explicit
 dimension factor used by the deterministic residual-uniformity layer. -/
-theorem abs_dotProduct_le_card_mul_norm_mul_norm (x y : k → ℝ) :
+private theorem abs_dotProduct_le_card_mul_norm_mul_norm (x y : k → ℝ) :
     |x ⬝ᵥ y| ≤ (Fintype.card k : ℝ) * ‖x‖ * ‖y‖ := by
   calc
     |x ⬝ᵥ y|
@@ -166,7 +166,7 @@ theorem residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
 
 On nonsingular finite samples, the same pointwise residual-error inequality
 holds for ordinary OLS residuals. -/
-theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+private theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n)
     [Invertible (Xᵀ * X)] :
     |residual X (X *ᵥ β + e) i - e i| ≤
@@ -194,7 +194,7 @@ theorem olsResidualStar_sq_linear_model_apply
 Writing `d = β̂* - β`, the totalized residual sum of squares is
 `e'e - 2(X'e)'d + d'(X'X)d`. This is the matrix form behind Hansen's averaged
 display (7.18). -/
-theorem olsResidualStar_sumSquares_linear_model
+private theorem olsResidualStar_sumSquares_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
     dotProduct (olsResidualStar X (X *ᵥ β + e))
         (olsResidualStar X (X *ᵥ β + e)) =
@@ -219,7 +219,7 @@ theorem olsResidualStar_sumSquares_linear_model
 
 This is Hansen display (7.18) in sample-moment notation:
 `σ̂² = n⁻¹e'e - 2 ĝₙ(e)'(β̂* - β) + (β̂* - β)'Q̂ₙ(β̂* - β)`. -/
-theorem olsSigmaSqHatStar_linear_model
+private theorem olsSigmaSqHatStar_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
     olsSigmaSqHatStar X (X *ᵥ β + e) =
       (Fintype.card n : ℝ)⁻¹ * dotProduct e e -
@@ -260,7 +260,7 @@ theorem olsS2Star_eq_card_div_df_mul_olsSigmaSqHatStar
 
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `Q̂ₙ` by the sample size recovers the unnormalized Gram `Xᵀ X`. -/
-theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
+private theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
     (Fintype.card n : ℝ) • sampleGram X = Xᵀ * X := by
   have hne : (Fintype.card n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
   unfold sampleGram
@@ -268,7 +268,7 @@ theorem smul_card_sampleGram (X : Matrix n k ℝ) [Nonempty n] :
 
 omit [Fintype k] [DecidableEq k] in
 /-- Scaling `g̑ₙ` by the sample size recovers `Xᵀ e`. -/
-theorem smul_card_sampleCrossMoment (X : Matrix n k ℝ) (e : n → ℝ) [Nonempty n] :
+private theorem smul_card_sampleCrossMoment (X : Matrix n k ℝ) (e : n → ℝ) [Nonempty n] :
     (Fintype.card n : ℝ) • sampleCrossMoment X e = Xᵀ *ᵥ e := by
   have hne : (Fintype.card n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
   unfold sampleCrossMoment
