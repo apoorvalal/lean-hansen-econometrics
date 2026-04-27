@@ -37,9 +37,20 @@ Hansen's decomposition of `σ̂²`. -/
 noncomputable def sampleErrorSecondMoment (e : n → ℝ) : ℝ :=
   (Fintype.card n : ℝ)⁻¹ * dotProduct e e
 
-/-- Textbook-facing totalization of ordinary OLS: use `olsBeta` on nonsingular designs and
-return `0` on singular designs. This exposes the ordinary-OLS formula on the high-probability
-nonsingularity event while remaining a genuine random variable for every sample size. -/
+/-- **OrZero primitive**: textbook-facing totalization of ordinary OLS.
+
+Branches explicitly on `IsUnit (Xᵀ * X).det`:
+- **nonsingular**: returns the ordinary `olsBeta X y` (typeclass inverse);
+- **singular**: returns `0`.
+
+This makes `olsBetaOrZero` suitable for textbook-facing statements that a reader would
+want to cite directly (e.g., consistency, asymptotic normality headlines), because the
+formula matches ordinary OLS on the high-probability nonsingularity event.
+
+For proofs, the equivalent `olsBetaStar` (a Star primitive using `Matrix.nonsingInv`) is
+typically more convenient; the bridge `olsBetaOrZero_eq_olsBetaStar` (private `@[simp]`)
+connects the two. See the **Star / OrZero totalization convention** in `AGENTS.md` for
+the full architecture. -/
 noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
   letI : Decidable (IsUnit (Xᵀ * X).det) := Classical.propDecidable _
   if h : IsUnit (Xᵀ * X).det then
@@ -69,7 +80,20 @@ private theorem olsBetaOrZero_eq_olsBeta
     olsBetaOrZero X y = olsBeta X y := by
   rw [olsBetaOrZero_eq_olsBetaStar, olsBetaStar_eq_olsBeta]
 
-/-- Totalized OLS residuals, defined for every design matrix via `olsBetaStar`. -/
+/-- **Derived Star**: totalized OLS residual vector, built from the Star primitive
+`olsBetaStar`.
+
+Defined as `y - X *ᵥ olsBetaStar X y` for every design matrix without a typeclass
+precondition.
+
+**Important**: this is a *derived* Star, not a primitive, and it is **not** identically
+zero on singular designs.  On a singular design `olsBetaStar X y = 0`, so
+`olsResidualStar X y = y - X *ᵥ 0 = y`, which is generally nonzero.  Do not describe
+this function as "returning 0 on singular designs."
+
+On nonsingular designs it agrees with the ordinary `residual` definition
+(see `olsResidualStar_eq_residual`).  It is the residual used inside the Chapter 7
+asymptotic consistency proofs for `σ̂²`. -/
 noncomputable def olsResidualStar (X : Matrix n k ℝ) (y : n → ℝ) : n → ℝ :=
   y - X *ᵥ olsBetaStar X y
 
