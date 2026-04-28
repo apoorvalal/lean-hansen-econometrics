@@ -1,0 +1,105 @@
+---
+title: "Theorem 2.9 — Linear projection minimizes MSE"
+lean_name: "HansenEconometrics.linearProjectionBeta_minimizes_MSE"
+chapter: 2
+---
+
+## Textbook statement
+
+Let $Q_{XX}$ be an invertible population second-moment matrix and $Q_{XY}$ the
+population cross moment. Define the linear projection coefficient
+
+$$
+\beta = Q_{XX}^{-1} Q_{XY}.
+$$
+
+For the quadratic population criterion
+
+$$
+S(b)=Q_{YY}-2b^\top Q_{XY}+b^\top Q_{XX}b,
+$$
+
+the coefficient $\beta$ minimizes $S(b)$ over all coefficient vectors $b$.
+The formal theorem assumes the
+[Chapter 2 linear-projection hypotheses](../../assumptions/chapter2.qmd):
+invertibility, symmetry, and positive semidefiniteness of $Q_{XX}$.
+
+### Proof sketch
+
+Complete the square:
+
+$$
+S(b)
+=
+S(\beta)
++ (b-\beta)^\top Q_{XX}(b-\beta).
+$$
+
+Since $Q_{XX}$ is positive semidefinite, the quadratic form is nonnegative.
+Therefore $S(\beta)\le S(b)$ for every $b$.
+
+## Lean statement
+
+The theorem lives in
+[`HansenEconometrics/Chapter2LinearProjection.lean`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L97):
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Best-linear-predictor minimization theorem.">theorem linearProjectionBeta_minimizes_MSE</span>
+    <span class="lean-token" tabindex="0" data-explain="Population moment matrix QXX, cross moment QXY, and scalar QYY.">(QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ)</span> [Invertible QXX]
+    <span class="lean-token" tabindex="0" data-explain="Symmetry of the population second-moment matrix.">(hQXXt : QXXᵀ = QXX)</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive semidefiniteness: every quadratic form v'QXXv is nonnegative.">(hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))</span>
+    <span class="lean-token" tabindex="0" data-explain="An arbitrary competing coefficient vector.">(b : k → ℝ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The MSE at β = QXX⁻¹QXY is weakly smaller than the MSE at b.">linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤
+      linearProjectionMSE QXX QXY QYY b</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `QXX : Matrix k k ℝ` | $Q_{XX}$ | Population second-moment matrix. |
+| `QXY : k → ℝ` | $Q_{XY}$ | Population cross moment. |
+| `QYY : ℝ` | $Q_{YY}$ | Scalar second moment of $Y$. |
+| `[Invertible QXX]` | $Q_{XX}^{-1}$ exists | Needed for `linearProjectionBeta QXX QXY`. |
+| `hQXXt : QXXᵀ = QXX` | $Q_{XX}$ symmetric | Used in the quadratic completion. |
+| `hQXX_nonneg` | $Q_{XX}$ positive semidefinite | Makes the completed-square term nonnegative. |
+| `b : k → ℝ` | competing coefficient | The theorem is pointwise in any alternative $b$. |
+
+## Translation notes
+
+- `linearProjectionBeta QXX QXY` is the formal $\beta = Q_{XX}^{-1}Q_{XY}$.
+- `linearProjectionMSE QXX QXY QYY b` is the quadratic criterion $S(b)$.
+- The moment-wrapper theorem
+  [`linearProjectionBeta_minimizes_MSE_of_moments`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L109)
+  has the same conclusion with textbook names `EXX`, `EXY`, and `EY2`.
+
+## Tactic-by-tactic walkthrough
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The minimization theorem: β = QXX⁻¹QXY is no worse than any competing b.">theorem linearProjectionBeta_minimizes_MSE
+    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]
+    (hQXXt : QXXᵀ = QXX)
+    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))
+    (b : k → ℝ) :
+    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤
+      linearProjectionMSE QXX QXY QYY b := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite S(b) as S(β) plus the completed-square quadratic form.">  rw [linearProjectionMSE_eq_at_beta_add_quadratic_form QXX QXY QYY b hQXXt]</span><span class="lean-line" tabindex="0" data-explain="The added quadratic form is nonnegative by positive semidefiniteness of QXX, so linear arithmetic finishes.">  linarith [hQXX_nonneg (b - linearProjectionBeta QXX QXY)]</span>
+</code></pre>
+```
+:::
+
+The only substantive algebra is the supporting completion theorem
+[`linearProjectionMSE_eq_at_beta_add_quadratic_form`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L63),
+which expands the criterion, uses the normal equations
+`QXX *ᵥ linearProjectionBeta QXX QXY = QXY`, and normalizes the result with
+`ring_nf`.
+
+## Downstream uses
+
+- This is the population analogue of the OLS least-squares minimization story
+  used in Chapter 3.
+- The normal-equation and uniqueness lemmas here are reused by the Chapter 2
+  covariance-form slope formula.

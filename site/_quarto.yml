@@ -41,6 +41,12 @@ website:
             text: Chapter 7
       - section: Walkthroughs
         contents:
+          - section: Chapter 2
+            contents:
+              - walkthroughs/chapter2/best-predictor.qmd
+              - walkthroughs/chapter2/variance-decomposition.qmd
+              - walkthroughs/chapter2/linear-projection-minimizes-mse.qmd
+              - walkthroughs/chapter2/linear-projection-covariance-formula.qmd
           - section: Chapter 3
             contents:
               - walkthroughs/chapter3/theorem-3-2.qmd

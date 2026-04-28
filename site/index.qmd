@@ -32,5 +32,6 @@ where the remaining gaps are tracked.
 
 - [Coverage overview](coverage.qmd)
 - [Assumption map](assumptions/index.qmd)
+- [Chapter 2 best predictor walkthrough](walkthroughs/chapter2/best-predictor.qmd)
 - [Theorem 3.2 walkthrough](walkthroughs/chapter3/theorem-3-2.qmd)
 - [Theorem 7.3 walkthrough](walkthroughs/chapter7/theorem-7-3.qmd)

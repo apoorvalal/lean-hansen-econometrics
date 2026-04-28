@@ -216,6 +216,150 @@
     ]
   },
   {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html",
+    "href": "walkthroughs/chapter2/variance-decomposition.html",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "",
+    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "",
+    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe public wrapper lives in HansenEconometrics/Chapter2Variance.lean:\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ]\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{Y : Ω → ℝ}\nY\nGiven: response variable.\n\n\n{X : Ω → β}\nX\nGiven: conditioning variable.\n\n\n(hX : Measurable X)\nX measurable\nLets Lean condition on \\sigma(X).\n\n\n[IsProbabilityMeasure μ]\nprobability measure\nVariance is stated under a probability law.\n\n\n(hY : MemLp Y 2 μ)\nY \\in L^2\nFinite second moment.\n\n\nμ[condVarOn μ Y X]\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\nResidual variance component.\n\n\nVar[condExpOn μ Y X; μ]\n\\operatorname{Var}(\\mathbb{E}[Y\\mid X])\nExplained variance component.\n\n\n= Var[Y; μ]\n=\\operatorname{Var}(Y)\nTotal variance.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Translation notes",
+    "text": "Translation notes\n\ncondVarOn μ Y X is the variable-facing conditional variance wrapper.\ncondExpOn μ Y X is the variable-facing conditional expectation wrapper.\nThe backend theorem variance_decomposition states Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ]; it is just the same equality in the opposite orientation.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ] := by  simpa [condVarOn, condExpOn, conditioningSpace] using    law_total_variance\n      (m := conditioningSpace X)\n      (m₀ := inferInstance)\n      (μ := μ)\n      (Y := Y)\n      (conditioningSpace_le hX)\n      hY\n\n\nThe backend theorem itself is a direct Mathlib specialization:\n\ntheorem variance_decomposition\n    {Y : Ω → ℝ}\n    (hm : m ≤ m₀)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ] := by  rw [eq_comm]  simpa using law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nvariance_condExpOn_le_variance extracts the explained-variance bound.\nresidualVarOn_antitone uses the decomposition to show that richer conditioning information weakly reduces residual variance.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "",
+    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "",
+    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y)\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n[IsProbabilityMeasure μ]\nprobability law\nNeeded for covariance and expectations.\n\n\nX : Ω → k → ℝ\nrandom vector X\nRegressor vector.\n\n\nY e : Ω → ℝ\nY, e\nResponse and projection error.\n\n\nα : ℝ, β : k → ℝ\nintercept and slope\nParameters in the affine model.\n\n\n[Invertible (covMat μ X)]\n\\operatorname{Var}(X) invertible\nLets Lean form the covariance-based projection coefficient.\n\n\nhX, he\nfinite second moments\nRequired for covariances.\n\n\nhmodel\nY=\\alpha+X^\\top\\beta+e\nPointwise model identity.\n\n\nhorth\n\\operatorname{Cov}(X,e)=0\nOrthogonality condition that produces the normal equations.\n\n\nconclusion\n\\beta=\\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y)\nTextbook covariance formula.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "Translation notes",
+    "text": "Translation notes\n\ncovMat μ X is Hansen’s \\operatorname{Var}(X).\ncovVec μ X Y is Hansen’s \\operatorname{Cov}(X,Y).\nlinearProjectionBeta (covMat μ X) (covVec μ X Y) is the formal covariance formula \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\nThe proof routes through linearProjectionBeta_eq_of_normal_equations: once covMat μ X *ᵥ β = covVec μ X Y is proved, uniqueness does the rest.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y) := by  symm  apply linearProjectionBeta_eq_of_normal_equations  have hcov :\n      covVec μ X Y = covMat μ X *ᵥ β + covVec μ X e := by    rw [hmodel]    exact covVec_linearProjectionModel (μ := μ) X e α β hX he  calc\n    covMat μ X *ᵥ β = covMat μ X *ᵥ β + covVec μ X e := by rw [horth]; simp\n    _ = covVec μ X Y := by rw [hcov]",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nThis theorem is the Chapter 2 population analogue of the closed-form OLS coefficient in Chapter 3.\nIt also explains why covariance matrices are the natural inputs to later variance and robust-covariance formulas.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
     "objectID": "assumptions/index.html",
     "href": "assumptions/index.html",
     "title": "Assumption Map",
@@ -283,7 +427,7 @@
     "href": "index.html#start-here",
     "title": "Hansen Econometrics in Lean",
     "section": "Start Here",
-    "text": "Start Here\n\nCoverage overview\nAssumption map\nTheorem 3.2 walkthrough\nTheorem 7.3 walkthrough",
+    "text": "Start Here\n\nCoverage overview\nAssumption map\nChapter 2 best predictor walkthrough\nTheorem 3.2 walkthrough\nTheorem 7.3 walkthrough",
     "crumbs": [
       "Home"
     ]
@@ -319,6 +463,150 @@
     "crumbs": [
       "Assumptions",
       "Chapter 7"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html",
+    "href": "walkthroughs/chapter2/best-predictor.html",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "",
+    "text": "For a response Y and conditioning variable X, Hansen’s best-predictor theorem says the conditional expectation \\mathbb{E}[Y\\mid X] minimizes mean squared prediction error among square-integrable predictors that are functions of X:\n\n\\mathbb{E}\\!\\left[(Y-\\mathbb{E}[Y\\mid X])^2\\right]\n\\le\n\\mathbb{E}\\!\\left[(Y-g(X))^2\\right].\n\nIn Lean, the candidate predictor is written as a function g : Ω → ℝ with the assumption that it is X-measurable. The page uses the public random-variable wrapper best_predictor_rv; the sigma-algebra theorem remains available as backend infrastructure.\n\n\nWrite\n\ne = Y-\\mathbb{E}[Y\\mid X], \\qquad d = \\mathbb{E}[Y\\mid X]-g.\n\nThen Y-g=e+d, so\n\n\\mathbb{E}[(Y-g)^2]\n=\n\\mathbb{E}[e^2] + \\mathbb{E}[d^2] + 2\\mathbb{E}[de].\n\nThe cross term is zero because d is X-measurable and the conditional expectation error is orthogonal to every X-measurable square-integrable function. The remaining term \\mathbb{E}[d^2] is nonnegative, so the conditional expectation has weakly smaller mean squared error.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html#textbook-statement",
+    "href": "walkthroughs/chapter2/best-predictor.html#textbook-statement",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "",
+    "text": "For a response Y and conditioning variable X, Hansen’s best-predictor theorem says the conditional expectation \\mathbb{E}[Y\\mid X] minimizes mean squared prediction error among square-integrable predictors that are functions of X:\n\n\\mathbb{E}\\!\\left[(Y-\\mathbb{E}[Y\\mid X])^2\\right]\n\\le\n\\mathbb{E}\\!\\left[(Y-g(X))^2\\right].\n\nIn Lean, the candidate predictor is written as a function g : Ω → ℝ with the assumption that it is X-measurable. The page uses the public random-variable wrapper best_predictor_rv; the sigma-algebra theorem remains available as backend infrastructure.\n\n\nWrite\n\ne = Y-\\mathbb{E}[Y\\mid X], \\qquad d = \\mathbb{E}[Y\\mid X]-g.\n\nThen Y-g=e+d, so\n\n\\mathbb{E}[(Y-g)^2]\n=\n\\mathbb{E}[e^2] + \\mathbb{E}[d^2] + 2\\mathbb{E}[de].\n\nThe cross term is zero because d is X-measurable and the conditional expectation error is orthogonal to every X-measurable square-integrable function. The remaining term \\mathbb{E}[d^2] is nonnegative, so the conditional expectation has weakly smaller mean squared error.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html#lean-statement",
+    "href": "walkthroughs/chapter2/best-predictor.html#lean-statement",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2CondExp.lean:\n\ntheorem best_predictor_rv\n    {Y g : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [SigmaFinite (μ.trim (conditioningSpace_le hX))]\n    [IsFiniteMeasure μ]\n    (hY : MemLp Y 2 μ) (hg : MemLp g 2 μ)\n    (hgX : XMeasurable μ X g) :\n    ∫ ω, (Y ω - condExpOn μ Y X ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{Y g : Ω → ℝ}\nY, g\nGiven: response and competing predictor.\n\n\n{X : Ω → β}\nX\nGiven: conditioning variable.\n\n\n(hX : Measurable X)\nX measurable\nNeeded to form the conditioning information \\sigma(X).\n\n\n[IsFiniteMeasure μ]\nfinite sample measure\nThe L^2 projection theorem is used in a finite-measure setting.\n\n\n(hY : MemLp Y 2 μ)\nY \\in L^2\nSquare-integrability of the response.\n\n\n(hg : MemLp g 2 μ)\ng \\in L^2\nSquare-integrability of the competing predictor.\n\n\n(hgX : XMeasurable μ X g)\ng is \\sigma(X)-measurable\nThe formal version of “predictors that are functions of X.”\n\n\n∫ ... ≤ ∫ ...\nMSE inequality\nThe conditional expectation has weakly lower squared prediction error.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html#translation-notes",
+    "href": "walkthroughs/chapter2/best-predictor.html#translation-notes",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "Translation notes",
+    "text": "Translation notes\n\ncondExpOn μ Y X is the public wrapper for \\mathbb{E}[Y\\mid X].\nXMeasurable μ X g is the Lean predicate saying that g is measurable with respect to the information generated by X.\nThe backend theorem integral_sq_sub_condExp_le_integral_sq_sub_X proves the same inequality at the sigma-algebra layer. The public theorem just specializes it to conditioning variables.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/best-predictor.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nThe public theorem is intentionally thin: it translates the variable-facing notation into the sigma-algebra theorem.\n\ntheorem best_predictor_rv\n    {Y g : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [SigmaFinite (μ.trim (conditioningSpace_le hX))]\n    [IsFiniteMeasure μ]\n    (hY : MemLp Y 2 μ)\n    (hg : MemLp g 2 μ)\n    (hgX : XMeasurable μ X g) :\n    ∫ ω, (Y ω - condExpOn μ Y X ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by  simpa [condExpOn, XMeasurable, conditioningSpace] using    integral_sq_sub_condExp_le_integral_sq_sub_X\n      (m₀ := inferInstance)\n      (μ := μ)\n      (Y := Y)\n      (g := g)\n      (X := X)\n      hX\n      hY\n      hg\n      hgX\n\n\nThe substantial backend proof is integral_sq_sub_condExp_le_integral_sq_sub: it expands (Y-g)^2, uses integral_mul_cefError_zero to kill the cross term, and uses nonnegativity of a square to finish.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/best-predictor.html#downstream-uses",
+    "href": "walkthroughs/chapter2/best-predictor.html#downstream-uses",
+    "title": "Theorem 2.7 — Conditional expectation as best predictor",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nThe theorem is the conceptual foundation for Chapter 2’s conditional mean interpretation.\nThe same orthogonality logic reappears in the linear-projection and OLS normal-equation arguments in Chapters 2 and 3.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.7 — Conditional expectation as best predictor"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "",
+    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "",
+    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nQXX : Matrix k k ℝ\nQ_{XX}\nPopulation second-moment matrix.\n\n\nQXY : k → ℝ\nQ_{XY}\nPopulation cross moment.\n\n\nQYY : ℝ\nQ_{YY}\nScalar second moment of Y.\n\n\n[Invertible QXX]\nQ_{XX}^{-1} exists\nNeeded for linearProjectionBeta QXX QXY.\n\n\nhQXXt : QXXᵀ = QXX\nQ_{XX} symmetric\nUsed in the quadratic completion.\n\n\nhQXX_nonneg\nQ_{XX} positive semidefinite\nMakes the completed-square term nonnegative.\n\n\nb : k → ℝ\ncompeting coefficient\nThe theorem is pointwise in any alternative b.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nlinearProjectionBeta QXX QXY is the formal \\beta = Q_{XX}^{-1}Q_{XY}.\nlinearProjectionMSE QXX QXY QYY b is the quadratic criterion S(b).\nThe moment-wrapper theorem linearProjectionBeta_minimizes_MSE_of_moments has the same conclusion with textbook names EXX, EXY, and EY2.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b := by  rw [linearProjectionMSE_eq_at_beta_add_quadratic_form QXX QXY QYY b hQXXt]  linarith [hQXX_nonneg (b - linearProjectionBeta QXX QXY)]\n\n\nThe only substantive algebra is the supporting completion theorem linearProjectionMSE_eq_at_beta_add_quadratic_form, which expands the criterion, uses the normal equations QXX *ᵥ linearProjectionBeta QXX QXY = QXY, and normalizes the result with ring_nf.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nThis is the population analogue of the OLS least-squares minimization story used in Chapter 3.\nThe normal-equation and uniqueness lemmas here are reused by the Chapter 2 covariance-form slope formula.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean - Chapter 5 Assumptions</title>
+<title>Hansen Econometrics in Lean - Theorem 2.7 — Conditional expectation as best predictor</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -110,7 +110,7 @@ window.Quarto = {
 };
 </script>
 
-<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -122,7 +122,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter5.html">Chapter 5</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter2/best-predictor.html">Chapter 2</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter2/best-predictor.html">Theorem 2.7 — Conditional expectation as best predictor</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -137,7 +137,7 @@ window.Quarto = {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -147,13 +147,13 @@ window.Quarto = {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -168,37 +168,37 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter5.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -215,34 +215,34 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
  <span class="menu-text">Chapter 2</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -259,13 +259,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -282,13 +282,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
@@ -305,13 +305,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
@@ -325,14 +325,30 @@ window.Quarto = {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter2/best-predictor.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter5.html">Chapter 5</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter2/best-predictor.html">Chapter 2</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter2/best-predictor.html">Theorem 2.7 — Conditional expectation as best predictor</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Chapter 5 Assumptions</h1>
+<h1 class="title">Theorem 2.7 — Conditional expectation as best predictor</h1>
 </div>
 
 
@@ -349,53 +365,147 @@ window.Quarto = {
 </header>
 
 
-<div class="chapter-kicker">
-<p>Normal regression and exact finite-sample inference</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>For a response <span class="math inline">Y</span> and conditioning variable <span class="math inline">X</span>, Hansen’s best-predictor theorem says the conditional expectation <span class="math inline">\mathbb{E}[Y\mid X]</span> minimizes mean squared prediction error among square-integrable predictors that are functions of <span class="math inline">X</span>:</p>
+<p><span class="math display">
+\mathbb{E}\!\left[(Y-\mathbb{E}[Y\mid X])^2\right]
+\le
+\mathbb{E}\!\left[(Y-g(X))^2\right].
+</span></p>
+<p>In Lean, the candidate predictor is written as a function <code>g : Ω → ℝ</code> with the assumption that it is <a href="../../assumptions/chapter2.html"><span class="math inline">X</span>-measurable</a>. The page uses the public random-variable wrapper <code>best_predictor_rv</code>; the sigma-algebra theorem remains available as backend infrastructure.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>Write</p>
+<p><span class="math display">
+e = Y-\mathbb{E}[Y\mid X], \qquad d = \mathbb{E}[Y\mid X]-g.
+</span></p>
+<p>Then <span class="math inline">Y-g=e+d</span>, so</p>
+<p><span class="math display">
+\mathbb{E}[(Y-g)^2]
+=
+\mathbb{E}[e^2] + \mathbb{E}[d^2] + 2\mathbb{E}[de].
+</span></p>
+<p>The cross term is zero because <span class="math inline">d</span> is <span class="math inline">X</span>-measurable and the conditional expectation error is orthogonal to every <span class="math inline">X</span>-measurable square-integrable function. The remaining term <span class="math inline">\mathbb{E}[d^2]</span> is nonnegative, so the conditional expectation has weakly smaller mean squared error.</p>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>The theorem lives in <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L380"><code>HansenEconometrics/Chapter2CondExp.lean</code></a>:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="The public random-variable wrapper for Hansen Theorem 2.7.">theorem best_predictor_rv</span>
+    <span class="lean-token" tabindex="0" data-explain="Response Y, competing predictor g, and conditioning variable X.">{Y g : Ω → ℝ} {X : Ω → β}</span>
+    <span class="lean-token" tabindex="0" data-explain="X must be measurable so conditioning on X means conditioning on the sigma-algebra generated by X.">(hX : Measurable X)</span>
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    [IsFiniteMeasure μ]
+    <span class="lean-token" tabindex="0" data-explain="Both Y and the competing predictor g are square-integrable.">(hY : MemLp Y 2 μ) (hg : MemLp g 2 μ)</span>
+    <span class="lean-token" tabindex="0" data-explain="The competing predictor is a function of X, expressed as measurability with respect to sigma(X).">(hgX : XMeasurable μ X g)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The MSE of the conditional mean is weakly smaller than the MSE of any square-integrable X-measurable predictor.">∫ ω, (Y ω - condExpOn μ Y X ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ</span>
+</code></pre>
 </div>
-<p>Chapter 5 turns the finite-sample algebra into exact distribution statements. The lighter <code>HasGaussianLaw</code> assumptions prove Gaussian closure results; the exact chi-square, Student-t, and F results use a fully specified spherical normal error law.</p>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
 <table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>Assumption</th>
-<th>Lean names</th>
-<th>Used in proofs</th>
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Linear model <span class="math inline">y = X\beta + e</span> with invertible <span class="math inline">X^\top X</span>.</td>
-<td><span class="lean-chip"><code>[Invertible (Xᵀ * X)]</code></span> <span class="lean-chip"><code>olsBeta_linear_decomposition</code></span> <span class="lean-chip"><code>residual_linear_model</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L106">OLS Gaussian law</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135">residual Gaussian law</a></span></td>
+<td><code>{Y g : Ω → ℝ}</code></td>
+<td><span class="math inline">Y</span>, <span class="math inline">g</span></td>
+<td><strong>Given:</strong> response and competing predictor.</td>
 </tr>
 <tr class="even">
-<td>Error vector has a Gaussian law; mean and covariance are left abstract.</td>
-<td><span class="lean-chip"><code>HasGaussianLaw e μ</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L106">OLS inherits Gaussian law</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135">residual inherits Gaussian law</a></span></td>
+<td><code>{X : Ω → β}</code></td>
+<td><span class="math inline">X</span></td>
+<td><strong>Given:</strong> conditioning variable.</td>
 </tr>
 <tr class="odd">
-<td>Exact classical laws assume spherical normal errors <span class="math inline">e \sim N(0,\sigma^2 I)</span> with <span class="math inline">\sigma^2 &gt; 0</span>.</td>
-<td><span class="lean-chip"><code>HasLaw ε (multivariateGaussian 0 (σ2 • 1)) μ</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L270">residual variance chi-square</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L361">OLS/residual-variance independence</a></span></td>
+<td><code>(hX : Measurable X)</code></td>
+<td><span class="math inline">X</span> measurable</td>
+<td>Needed to form the conditioning information <span class="math inline">\sigma(X)</span>.</td>
 </tr>
 <tr class="even">
-<td>Degrees of freedom require <span class="math inline">n-k</span> to be positive for residual variance, t, and F laws.</td>
-<td><span class="lean-chip"><code>ν := Fintype.card n - Fintype.card k</code></span> <span class="lean-chip"><code>0 &lt; ν</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759">Student-t law</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1210">variance interval coverage</a></span></td>
+<td><code>[IsFiniteMeasure μ]</code></td>
+<td>finite sample measure</td>
+<td>The <span class="math inline">L^2</span> projection theorem is used in a finite-measure setting.</td>
 </tr>
 <tr class="odd">
-<td>Exact t inference combines a standard-normal numerator with an independent chi-square denominator.</td>
-<td><span class="lean-chip"><code>olsTStatistic_hasLaw_classicalStudentT</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759">t law</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L984">coefficient CI coverage</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372">t-test size</a></span></td>
+<td><code>(hY : MemLp Y 2 μ)</code></td>
+<td><span class="math inline">Y \in L^2</span></td>
+<td>Square-integrability of the response.</td>
 </tr>
 <tr class="even">
-<td>Exact F inference assumes the partitioned-regression null and reuses independent chi-square numerator/denominator laws.</td>
-<td><span class="lean-chip"><code>olsFStatistic_hasLaw_classicalFDist</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1988">F law</a></span></td>
+<td><code>(hg : MemLp g 2 μ)</code></td>
+<td><span class="math inline">g \in L^2</span></td>
+<td>Square-integrability of the competing predictor.</td>
+</tr>
+<tr class="odd">
+<td><code>(hgX : XMeasurable μ X g)</code></td>
+<td><span class="math inline">g</span> is <span class="math inline">\sigma(X)</span>-measurable</td>
+<td>The formal version of “predictors that are functions of <span class="math inline">X</span>.”</td>
+</tr>
+<tr class="even">
+<td><code>∫ ... ≤ ∫ ...</code></td>
+<td>MSE inequality</td>
+<td>The conditional expectation has weakly lower squared prediction error.</td>
 </tr>
 </tbody>
 </table>
+</section>
+</section>
+<section id="translation-notes" class="level2">
+<h2 class="anchored" data-anchor-id="translation-notes">Translation notes</h2>
+<ul>
+<li><code>condExpOn μ Y X</code> is the public wrapper for <span class="math inline">\mathbb{E}[Y\mid X]</span>.</li>
+<li><code>XMeasurable μ X g</code> is the Lean predicate saying that <code>g</code> is measurable with respect to the information generated by <code>X</code>.</li>
+<li>The backend theorem <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L232"><code>integral_sq_sub_condExp_le_integral_sq_sub_X</code></a> proves the same inequality at the sigma-algebra layer. The public theorem just specializes it to conditioning variables.</li>
+</ul>
+</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>The public theorem is intentionally thin: it translates the variable-facing notation into the sigma-algebra theorem.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The public theorem statement: conditional expectation on X beats any square-integrable X-measurable predictor.">theorem best_predictor_rv
+    {Y g : Ω → ℝ} {X : Ω → β}
+    (hX : Measurable X)
+    [SigmaFinite (μ.trim (conditioningSpace_le hX))]
+    [IsFiniteMeasure μ]
+    (hY : MemLp Y 2 μ)
+    (hg : MemLp g 2 μ)
+    (hgX : XMeasurable μ X g) :
+    ∫ ω, (Y ω - condExpOn μ Y X ω) ^ 2 ∂μ ≤ ∫ ω, (Y ω - g ω) ^ 2 ∂μ := by</span><span class="lean-line" tabindex="0" data-explain="Unfold the public wrappers condExpOn, XMeasurable, and conditioningSpace, then use the backend theorem for sigma(X).">  simpa [condExpOn, XMeasurable, conditioningSpace] using</span><span class="lean-line" tabindex="0" data-explain="Apply the backend best-predictor theorem with m = sigma(X).">    integral_sq_sub_condExp_le_integral_sq_sub_X
+      (m₀ := inferInstance)
+      (μ := μ)
+      (Y := Y)
+      (g := g)
+      (X := X)
+      hX
+      hY
+      hg
+      hgX</span>
+</code></pre>
+</div>
+<p>The substantial backend proof is <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L175"><code>integral_sq_sub_condExp_le_integral_sq_sub</code></a>: it expands <span class="math inline">(Y-g)^2</span>, uses <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L114"><code>integral_mul_cefError_zero</code></a> to kill the cross term, and uses nonnegativity of a square to finish.</p>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<ul>
+<li>The theorem is the conceptual foundation for Chapter 2’s conditional mean interpretation.</li>
+<li>The same orthogonality logic reappears in the linear-projection and OLS normal-equation arguments in Chapters 2 and 3.</li>
+</ul>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -812,4 +922,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/assumptions/chapter5.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter2/best-predictor.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
