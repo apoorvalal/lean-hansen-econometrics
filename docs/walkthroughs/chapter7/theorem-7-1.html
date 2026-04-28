@@ -294,18 +294,16 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a></li>
-  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">Assumptions</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
   <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
   <ul class="collapse">
   <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
   </ul></li>
   <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
-  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
-  <li><a href="#lean-proof-structure" id="toc-lean-proof-structure" class="nav-link" data-scroll-target="#lean-proof-structure">Lean proof structure</a>
-  <ul class="collapse">
   <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
-  </ul></li>
   <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-1.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
@@ -339,18 +337,25 @@ window.Quarto = {
 \hat\beta_{(n)} \xrightarrow{p} \beta \qquad \text{as } n \to \infty.
 </span></p>
 <p>This is “consistency”: OLS recovers the true parameter <span class="math inline">\beta</span> in the large-sample limit.</p>
+<p>In Lean, the assumptions are bundled as <a href="../../assumptions/chapter7.html"><code>SampleMomentAssumption71 μ X e</code></a>, the compatibility name for the Chapter 7 consistency condition package. It contains the i.i.d. sampling structure, population Gram invertibility, finite regressor moments, finite cross-product moments, and the zero cross-moment condition. The linear model itself is supplied separately as <code>hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω</code>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>The standard textbook argument:</p>
+<ol type="1">
+<li><strong>Sample-moment WLLN.</strong> By the i.i.d. WLLN applied to <span class="math inline">X_i X_i^\top</span> and <span class="math inline">X_i e_i</span>: <span class="math display">
+\hat Q_n := \frac{1}{n}\sum_{i=1}^n X_i X_i^\top \xrightarrow{p} Q,
+\qquad
+\hat g_n := \frac{1}{n}\sum_{i=1}^n X_i e_i \xrightarrow{p} \mathbb{E}[X_i e_i].
+</span></li>
+<li><strong>Cross moment is zero in the linear model.</strong> Under the linear-model hypothesis the cross-moment limit reduces to <span class="math inline">0</span>.</li>
+<li><strong>Continuous mapping.</strong> Since <span class="math inline">Q</span> is invertible and inversion is continuous on the open set of invertible matrices, <span class="math inline">\hat Q_n^{-1} \xrightarrow{p}
+Q^{-1}</span> on the limit set.</li>
+<li><strong>OLS error decomposition.</strong> <span class="math inline">\hat\beta_n - \beta = \hat Q_n^{-1} \hat
+g_n</span>, so by Slutsky’s theorem <span class="math display">
+\hat\beta_n - \beta \xrightarrow{p} Q^{-1} \cdot 0 = 0.
+</span></li>
+</ol>
 </section>
-<section id="assumptions" class="level2">
-<h2 class="anchored" data-anchor-id="assumptions">Assumptions</h2>
-<p>Hansen Theorem 7.1 requires:</p>
-<ul>
-<li><strong>Linear model with stable parameter:</strong> <span class="math inline">y_i = X_i^\top \beta + e_i</span> for all <span class="math inline">i</span>, with <span class="math inline">\beta \in \mathbb{R}^k</span> fixed.</li>
-<li><strong>i.i.d. sampling</strong> under measure <span class="math inline">\mu</span>.</li>
-<li><strong>Population Gram matrix invertibility:</strong> <span class="math inline">\mathbb{E}[X_i X_i^\top] = Q</span> is invertible (full-rank regressors in population).</li>
-<li><strong>Finite second moment of regressors:</strong> <span class="math inline">\mathbb{E}\|X_i\|^2 &lt; \infty</span> — needed for the WLLN of the sample Gram.</li>
-<li><strong>Finite first moment of cross-product:</strong> <span class="math inline">\mathbb{E}\|X_i e_i\| &lt; \infty</span> — needed for the WLLN of the sample cross-moment.</li>
-</ul>
-<p>In Lean, these are bundled into a single typeclass <code>SampleMomentAssumption71 μ X e</code>.</p>
 </section>
 <section id="lean-statement" class="level2">
 <h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
@@ -358,14 +363,17 @@ window.Quarto = {
 <ul>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1183"><code>olsBetaOrZero_stack_tendstoInMeasure_beta</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:1183</code>.</li>
 </ul>
-<pre class="lean"><code>theorem olsBetaOrZero_stack_tendstoInMeasure_beta
-    {μ : Measure Ω} [IsFiniteMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
-    (h : SampleMomentAssumption71 μ X e)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
-    TendstoInMeasure μ
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Textbook-facing consistency theorem for the ordinary-wrapper OLS estimator.">theorem olsBetaOrZero_stack_tendstoInMeasure_beta</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample measure is finite, enough for convergence-in-measure statements.">{μ : Measure Ω} [IsFiniteMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes, plus the fixed target coefficient β.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled Theorem 7.1 conditions: i.i.d. structure, integrability, zero cross moment, and nonsingular population Gram.">(h : SampleMomentAssumption71 μ X e)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the estimator built from the first n observations converges in measure to the constant β.">TendstoInMeasure μ
       (fun n ω =&gt; olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ =&gt; β)</code></pre>
+      atTop (fun _ =&gt; β)</span>
+</code></pre>
+</div>
 <section id="reading-the-statement" class="level3">
 <h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
 <p>In English: <strong>given</strong> a probability space <span class="math inline">(\Omega, \mu)</span>, an i.i.d. sequence of regressor rows <span class="math inline">X_i</span> and errors <span class="math inline">e_i</span> satisfying the moment assumptions, and a true coefficient <span class="math inline">\beta</span> that links outcomes to regressors via <span class="math inline">y_i = X_i^\top \beta + e_i</span>, the OLS estimator built from the first <span class="math inline">n</span> stacked observations converges in probability to <span class="math inline">\beta</span> as <span class="math inline">n \to \infty</span>.</p>
@@ -453,79 +461,32 @@ window.Quarto = {
 <li>The theorem is stated for <code>olsBetaOrZero</code>, not <code>olsBeta</code>, because the latter requires <code>[Invertible (Xᵀ * X)]</code> as a typeclass — which we cannot guarantee on every <span class="math inline">\omega</span>. <code>olsBetaOrZero</code> returns <span class="math inline">0</span> outside the nonsingular set; on the asymptotic limit set, it agrees with ordinary OLS.</li>
 </ul>
 </section>
-<section id="proof-sketch" class="level2">
-<h2 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h2>
-<p>The standard textbook argument:</p>
-<ol type="1">
-<li><strong>Sample-moment WLLN.</strong> By the i.i.d. WLLN applied to <span class="math inline">X_i X_i^\top</span> and <span class="math inline">X_i e_i</span>: <span class="math display">
-\hat Q_n := \frac{1}{n}\sum_{i=1}^n X_i X_i^\top \xrightarrow{p} Q,
-\qquad
-\hat g_n := \frac{1}{n}\sum_{i=1}^n X_i e_i \xrightarrow{p} \mathbb{E}[X_i e_i].
-</span></li>
-<li><strong>Cross moment is zero in the linear model.</strong> Under the linear-model hypothesis the cross-moment limit reduces to <span class="math inline">0</span> (the Lean development states this directly as a tendsto-to-zero claim, sidestepping the intermediate orthogonality identity).</li>
-<li><strong>Continuous mapping.</strong> Since <span class="math inline">Q</span> is invertible and inversion is continuous on the open set of invertible matrices, <span class="math inline">\hat Q_n^{-1} \xrightarrow{p}
-Q^{-1}</span> on the limit set.</li>
-<li><strong>OLS error decomposition.</strong> <span class="math inline">\hat\beta_n - \beta = \hat Q_n^{-1} \hat
-g_n</span>, so by Slutsky’s theorem <span class="math display">
-\hat\beta_n - \beta \xrightarrow{p} Q^{-1} \cdot 0 = 0.
-</span></li>
-</ol>
-</section>
-<section id="lean-proof-structure" class="level2">
-<h2 class="anchored" data-anchor-id="lean-proof-structure">Lean proof structure</h2>
-<p>The Lean proof breaks into many supporting lemmas; the headline theorem is short because it composes pieces.</p>
-<p>The deterministic algebraic engine:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L303"><code>olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Basic.lean:303</code> — the pointwise identity <span class="math inline">\hat\beta - \beta = \hat Q_n^{-1}\, \hat g_n</span> on nonsingular samples.</li>
-</ul>
-<p>The sample-moment WLLN faces:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L189"><code>sampleGram_stackRegressors_tendstoInMeasure_popGram</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:189</code> — <span class="math inline">\hat Q_n
-\xrightarrow{p} Q</span>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L244"><code>sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:244</code> — <span class="math inline">\hat Q_n^{-1}
-\xrightarrow{p} Q^{-1}</span> via continuous mapping.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L261"><code>sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:261</code> — <span class="math inline">\hat g_n
-\xrightarrow{p} 0</span> in the linear-model setup.</li>
-</ul>
-<p>The Slutsky / continuous-mapping bridge that combines them:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L411"><code>sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:411</code> — combines <span class="math inline">\hat
-Q_n^{-1} \to_p Q^{-1}</span> with <span class="math inline">\hat g_n \to_p 0</span> to conclude <span class="math inline">\hat
-Q_n^{-1}\, \hat g_n \to_p 0</span>.</li>
-</ul>
-<p>The totalized consistency theorem packages all of this:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L960"><code>olsBetaStar_stack_tendstoInMeasure_beta</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:960</code>.</li>
-</ul>
-<p>The ordinary-wrapper version on line 1822 is then a one-liner:</p>
-<pre class="lean"><code>simpa [olsBetaOrZero_eq_olsBetaStar] using
-  olsBetaStar_stack_tendstoInMeasure_beta
-    (μ := μ) (X := X) (e := e) (y := y) β h hmodel</code></pre>
-<section id="tactic-by-tactic-walkthrough" class="level3">
-<h3 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h3>
-<p><strong>The headline wrapper (line 1822).</strong> The full proof body of <code>olsBetaOrZero_stack_tendstoInMeasure_beta</code> is two lines:</p>
-<pre class="lean"><code>theorem olsBetaOrZero_stack_tendstoInMeasure_beta … := by
-  simpa [olsBetaOrZero_eq_olsBetaStar] using
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p><strong>The headline wrapper (line 1183).</strong> The full proof body of <code>olsBetaOrZero_stack_tendstoInMeasure_beta</code> is two lines:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The public wrapper theorem states consistency for olsBetaOrZero, the ordinary-facing total estimator.">theorem olsBetaOrZero_stack_tendstoInMeasure_beta … := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite olsBetaOrZero to olsBetaStar and reuse the totalized consistency theorem.">  simpa [olsBetaOrZero_eq_olsBetaStar] using
     olsBetaStar_stack_tendstoInMeasure_beta
-      (μ := μ) (X := X) (e := e) (y := y) β h hmodel</code></pre>
-<p>There is essentially nothing to walk through here — the wrapper version reduces immediately to the totalized version. The <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L56"><code>olsBetaOrZero_eq_olsBetaStar</code></a> rewrite (line 265) replaces <code>olsBetaOrZero</code> by <code>olsBetaStar</code> pointwise, and <code>simpa</code> applies that rewrite to both sides of the totalized statement to produce the wrapper statement verbatim.</p>
-<p><strong>The totalized version (line 1600).</strong> The substantive proof is <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L960"><code>olsBetaStar_stack_tendstoInMeasure_beta</code></a>. It is too long to walk line by line; instead, here is the role each composed lemma plays in the high-level structure (the proof is built around the identity <span class="math inline">\hat\beta_n - \beta = R'_n + \hat Q_n^{-1}\,\hat g_n</span>, where <span class="math inline">R'_n</span> is a “residual” term that vanishes on the nonsingular event):</p>
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel</span>
+</code></pre>
+</div>
+<p>There is essentially nothing to walk through here — the wrapper version reduces immediately to the totalized version. The <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L56"><code>olsBetaOrZero_eq_olsBetaStar</code></a> rewrite replaces <code>olsBetaOrZero</code> by <code>olsBetaStar</code> pointwise, and <code>simpa</code> applies that rewrite to both sides of the totalized statement to produce the wrapper statement verbatim.</p>
+<p><strong>The totalized version (line 960).</strong> The substantive proof is <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L960"><code>olsBetaStar_stack_tendstoInMeasure_beta</code></a>. It is too long to walk line by line; instead, here is the role each composed lemma plays in the high-level structure (the proof is built around the identity <span class="math inline">\hat\beta_n - \beta = R'_n + \hat Q_n^{-1}\,\hat g_n</span>, where <span class="math inline">R'_n</span> is a “residual” term that vanishes on the nonsingular event):</p>
 <ul>
-<li><strong>Pointwise residual identity</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L505"><code>olsBetaStar_sub_identity</code></a> (line 714) gives, for <strong>every</strong> <span class="math inline">\omega</span>, the algebraic decomposition <span class="math inline">\hat\beta_n - \beta - \hat Q_n^{-1}\,\hat g_n = (\hat Q_n^{-1}\hat Q_n - 1)\,\beta</span>. The right-hand side is exactly <span class="math inline">R'_n</span> — it equals <span class="math inline">0</span> on <span class="math inline">\{\hat Q_n
+<li><strong>Pointwise residual identity</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L505"><code>olsBetaStar_sub_identity</code></a> gives, for <strong>every</strong> <span class="math inline">\omega</span>, the algebraic decomposition <span class="math inline">\hat\beta_n - \beta - \hat Q_n^{-1}\,\hat g_n = (\hat Q_n^{-1}\hat Q_n - 1)\,\beta</span>. The right-hand side is exactly <span class="math inline">R'_n</span> — it equals <span class="math inline">0</span> on <span class="math inline">\{\hat Q_n
 \text{ invertible}\}</span> and <span class="math inline">-\beta</span> off it.</li>
-<li><strong>Algebraic engine on nonsingular samples</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L303"><code>olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment</code></a> (line 512) is the deterministic Hansen §7.2 identity <span class="math inline">\hat\beta_n - \beta =
+<li><strong>Algebraic engine on nonsingular samples</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Basic.lean#L303"><code>olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment</code></a> is the deterministic Hansen §7.2 identity <span class="math inline">\hat\beta_n - \beta =
 \hat Q_n^{-1}\,\hat g_n</span> on the invertible event. <code>olsBetaStar_sub_identity</code> is its <code>olsBetaStar</code>-on-all-of-<span class="math inline">\Omega</span> extension.</li>
-<li><strong>Residual vanishes in probability</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L504"><code>residual_tendstoInMeasure_zero</code></a> (line 1144) shows <span class="math inline">R'_n \xrightarrow{p} 0</span>. Inside, it uses <code>measure_sampleGram_singular_tendsto_zero</code> (the singular set has vanishing measure) plus the fact that <span class="math inline">R'_n \equiv 0</span> on the nonsingular event. This is loaded as <code>hF6</code> and immediately re-shaped via the residual identity to give the “<span class="math inline">R'_n</span>” tendsto piece.</li>
-<li><strong>Sample Gram WLLN</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L189"><code>sampleGram_stackRegressors_tendstoInMeasure_popGram</code></a> (line 838) gives <span class="math inline">\hat Q_n \xrightarrow{p} Q</span> via the i.i.d. WLLN applied to <span class="math inline">X_i X_i^\top</span> (uses the second-moment hypothesis from <code>h</code>).</li>
-<li><strong>Inversion-continuity</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L244"><code>sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv</code></a> (line 875) lifts the Gram WLLN through matrix inversion: since matrix inversion is continuous at any nonsingular point and <code>h.Q_nonsing</code> guarantees <span class="math inline">Q</span> is invertible, <span class="math inline">\hat Q_n^{-1} \xrightarrow{p} Q^{-1}</span> on the limit set.</li>
-<li><strong>Cross-moment WLLN</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L261"><code>sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero</code></a> (line 892) gives <span class="math inline">\hat g_n \xrightarrow{p} 0</span>. The cross-product <span class="math inline">X_i \cdot e_i</span> has mean <span class="math inline">0</span> in the linear-model setup (Hansen’s orthogonality axiom) and finite first moment, so the WLLN delivers a zero limit.</li>
-<li><strong>Slutsky combination</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L411"><code>sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero</code></a> (line 1042) combines the inverted-Gram tendsto with the cross-moment tendsto via <code>tendstoInMeasure_mulVec</code> to conclude <span class="math inline">\hat Q_n^{-1}\,\hat g_n
+<li><strong>Residual vanishes in probability</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L504"><code>residual_tendstoInMeasure_zero</code></a> shows <span class="math inline">R'_n \xrightarrow{p} 0</span>. Inside, it uses <code>measure_sampleGram_singular_tendsto_zero</code> (the singular set has vanishing measure) plus the fact that <span class="math inline">R'_n \equiv 0</span> on the nonsingular event. This is loaded as <code>hF6</code> and immediately re-shaped via the residual identity to give the “<span class="math inline">R'_n</span>” tendsto piece.</li>
+<li><strong>Sample Gram WLLN</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L189"><code>sampleGram_stackRegressors_tendstoInMeasure_popGram</code></a> gives <span class="math inline">\hat Q_n \xrightarrow{p} Q</span> via the i.i.d. WLLN applied to <span class="math inline">X_i X_i^\top</span> (uses the second-moment hypothesis from <code>h</code>).</li>
+<li><strong>Inversion-continuity</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L244"><code>sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv</code></a> lifts the Gram WLLN through matrix inversion: since matrix inversion is continuous at any nonsingular point and <code>h.Q_nonsing</code> guarantees <span class="math inline">Q</span> is invertible, <span class="math inline">\hat Q_n^{-1} \xrightarrow{p} Q^{-1}</span> on the limit set.</li>
+<li><strong>Cross-moment WLLN</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L261"><code>sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero</code></a> gives <span class="math inline">\hat g_n \xrightarrow{p} 0</span>. The cross-product <span class="math inline">X_i \cdot e_i</span> has mean <span class="math inline">0</span> in the linear-model setup (Hansen’s orthogonality axiom) and finite first moment, so the WLLN delivers a zero limit.</li>
+<li><strong>Slutsky combination</strong> — <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L411"><code>sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero</code></a> combines the inverted-Gram tendsto with the cross-moment tendsto via <code>tendstoInMeasure_mulVec</code> to conclude <span class="math inline">\hat Q_n^{-1}\,\hat g_n
 \xrightarrow{p} Q^{-1} \cdot 0 = 0</span>. This is loaded as <code>hCore</code>.</li>
 <li><strong>Add the two convergences</strong> — the proof then uses <code>tendstoInMeasure_add</code> to combine <span class="math inline">R'_n \xrightarrow{p} 0</span> (<code>hR'</code>) and <span class="math inline">\hat Q_n^{-1}\,\hat g_n \xrightarrow{p} 0</span> (<code>hCore</code>), giving <span class="math inline">R'_n + \hat Q_n^{-1}\,\hat g_n \xrightarrow{p} 0</span>. A second <code>tendstoInMeasure_add</code> against the constant tendsto for <span class="math inline">\beta</span> shifts the limit to <span class="math inline">\beta</span>.</li>
 <li><strong>Congr back to <code>olsBetaStar</code></strong> — finally, <code>hSumPlus.congr_left</code> rewrites the sample function <span class="math inline">R'_n + \hat Q_n^{-1}\hat g_n + \beta</span> back to <span class="math inline">\hat\beta_n^*</span> using <code>olsBetaStar_sub_identity</code> once more, closing the goal.</li>
 </ul>
-<p>(The intervening <code>hGram_meas</code>, <code>hCrossE_meas</code>, <code>hInv_meas</code>, <code>hCoreMV_meas</code>, <code>hR'_meas</code> blocks at lines 1608-1656 are all measurability boilerplate — they expand each sample function into a <code>(1/n) • ∑ …</code> form and chain <code>AEStronglyMeasurable</code> through the algebra. They feed the <code>tendstoInMeasure_add</code> and <code>tendstoInMeasure_mulVec</code> calls but contribute nothing mathematically beyond “everything in sight is measurable.”)</p>
-</section>
+<p>(The intervening <code>hGram_meas</code>, <code>hCrossE_meas</code>, <code>hInv_meas</code>, <code>hCoreMV_meas</code>, <code>hR'_meas</code> blocks are measurability boilerplate — they expand each sample function into a <code>(1/n) • ∑ …</code> form and chain <code>AEStronglyMeasurable</code> through the algebra. They feed the <code>tendstoInMeasure_add</code> and <code>tendstoInMeasure_mulVec</code> calls but contribute nothing mathematically beyond “everything in sight is measurable.”)</p>
 </section>
 <section id="downstream-uses" class="level2">
 <h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>

@@ -294,18 +294,16 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a></li>
-  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">Assumptions</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
   <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
   <ul class="collapse">
   <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
   </ul></li>
   <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
-  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
-  <li><a href="#lean-proof-structure" id="toc-lean-proof-structure" class="nav-link" data-scroll-target="#lean-proof-structure">Lean proof structure</a>
-  <ul class="collapse">
   <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
-  </ul></li>
   <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/theorem-5-5.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
@@ -341,13 +339,22 @@ window.Quarto = {
 </span></p>
 <p>is jointly Gaussian, with mean <span class="math inline">\beta</span> and covariance <span class="math inline">\sigma^2 (X^\top X)^{-1}</span>. Equivalently, <span class="math inline">\hat\beta - \beta</span> is the linear image of <span class="math inline">e</span> under <span class="math inline">A := (X^\top X)^{-1} X^\top</span>, so it inherits Gaussianity from <span class="math inline">e</span>. The OLS residual vector <span class="math inline">\hat e = M y</span>, where <span class="math inline">M = I - X(X^\top X)^{-1} X^\top</span>, is also Gaussian, with mean <span class="math inline">0</span> and covariance <span class="math inline">\sigma^2 M</span>.</p>
 </blockquote>
+<p>In Lean, this is stated for a deterministic design <span class="math inline">X</span>, coefficient vector <span class="math inline">\beta</span>, and random error vector <span class="math inline">e</span> under the <a href="../../assumptions/chapter5.html">Chapter 5 Gaussian-law assumptions</a>: <code>[Invertible (Xᵀ * X)]</code> and <code>HasGaussianLaw e μ</code>. Hansen’s spherical <span class="math inline">e \sim N(0,\sigma^2 I)</span> is a specialization; the formal theorem leaves the mean and covariance abstract.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>Substituting <span class="math inline">y = X\beta + e</span> into the closed form for <span class="math inline">\hat\beta</span>,</p>
+<p><span class="math display">
+\hat\beta = (X^\top X)^{-1} X^\top (X\beta + e) = \beta + A e,
+\qquad A := (X^\top X)^{-1} X^\top.
+</span></p>
+<p>Since <span class="math inline">A</span> is a fixed (deterministic) linear map and <span class="math inline">e</span> is Gaussian, <span class="math inline">Ae</span> is Gaussian (linear images of Gaussians are Gaussian). Adding the deterministic shift <span class="math inline">\beta</span> keeps it Gaussian (translations of Gaussians are Gaussian). Hence <span class="math inline">\hat\beta</span> is Gaussian.</p>
+<p>For the residual,</p>
+<p><span class="math display">
+\hat e = My = M(X\beta + e) = Me,
+</span></p>
+<p>because <span class="math inline">MX = 0</span>. So <span class="math inline">\hat e</span> is the linear image <span class="math inline">Me</span>, again Gaussian.</p>
+<p>The whole argument is just the closure of Gaussianity under linear and affine maps. Spectral arguments only appear later for the chi-square law in Theorem 5.7.</p>
 </section>
-<section id="assumptions" class="level2">
-<h2 class="anchored" data-anchor-id="assumptions">Assumptions</h2>
-<ul>
-<li>Linear model: <span class="math inline">y = X\beta + e</span> with <span class="math inline">X \in \mathbb{R}^{n\times k}</span> of full column rank (so <span class="math inline">X^\top X</span> is invertible).</li>
-<li>The error vector <span class="math inline">e</span> has a Gaussian law on the underlying probability space — Lean phrases this as <code>HasGaussianLaw e μ</code>. Hansen typically assumes <span class="math inline">e \sim N(0, \sigma^2 I)</span>; the Lean form is more general because it doesn’t pin down the mean or covariance.</li>
-</ul>
 </section>
 <section id="lean-statement" class="level2">
 <h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
@@ -357,12 +364,15 @@ window.Quarto = {
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135"><code>residual_hasGaussianLaw_of_error</code></a> at <code>HansenEconometrics/Chapter5NormalRegression.lean:135</code> — the OLS residual vector inherits a Gaussian law from <span class="math inline">e</span>.</li>
 </ul>
 <p>The headline theorem reads:</p>
-<pre class="lean"><code>theorem olsBeta_hasGaussianLaw_of_error
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
-    [Invertible (Xᵀ * X)]
-    (he : HasGaussianLaw e μ) :
-    HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ</code></pre>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Headline Gaussian-closure theorem for the OLS coefficient vector.">theorem olsBeta_hasGaussianLaw_of_error</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Deterministic design X, true coefficient β, and random error vector e.">(X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the OLS closed form.">[Invertible (Xᵀ * X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Substantive probabilistic hypothesis: the error vector has a Gaussian law under μ.">(he : HasGaussianLaw e μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the OLS estimator computed from y = Xβ + e is itself Gaussian.">HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ</span>
+</code></pre>
+</div>
 <section id="reading-the-statement" class="level3">
 <h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
 <p>In English: <strong>given</strong> an underlying probability space <span class="math inline">(\Omega, \mu)</span>, a deterministic design matrix <span class="math inline">X</span>, a true coefficient vector <span class="math inline">\beta</span>, a random error vector <span class="math inline">e : \Omega \to \mathbb{R}^n</span> with a Gaussian law under <span class="math inline">\mu</span>, and a witness that <span class="math inline">X^\top X</span> is invertible, the result is that the random variable <span class="math inline">\omega \mapsto \hat\beta\bigl(X(X\beta + e(\omega))\bigr)</span> also has a Gaussian law under <span class="math inline">\mu</span>.</p>
@@ -438,96 +448,36 @@ window.Quarto = {
 <li>The proof goes through <code>Matrix.toLin'</code> to package the linear map <span class="math inline">A</span> as a <code>ContinuousLinearMap</code>, then uses <code>HasGaussianLaw.map_fun</code> together with the affine-shift lemma for Gaussian measures.</li>
 </ul>
 </section>
-<section id="proof-sketch" class="level2">
-<h2 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h2>
-<p>Substituting <span class="math inline">y = X\beta + e</span> into the closed form for <span class="math inline">\hat\beta</span>,</p>
-<p><span class="math display">
-\hat\beta = (X^\top X)^{-1} X^\top (X\beta + e) = \beta + A e,
-\qquad A := (X^\top X)^{-1} X^\top.
-</span></p>
-<p>Since <span class="math inline">A</span> is a fixed (deterministic) linear map and <span class="math inline">e</span> is Gaussian, <span class="math inline">Ae</span> is Gaussian (linear images of Gaussians are Gaussian). Adding the deterministic shift <span class="math inline">\beta</span> keeps it Gaussian (translations of Gaussians are Gaussian). Hence <span class="math inline">\hat\beta</span> is Gaussian.</p>
-<p>For the residual,</p>
-<p><span class="math display">
-\hat e = My = M(X\beta + e) = Me,
-</span></p>
-<p>because <span class="math inline">MX = 0</span>. So <span class="math inline">\hat e</span> is the linear image <span class="math inline">Me</span>, again Gaussian.</p>
-<p>The whole argument is just the closure of Gaussianity under linear and affine maps — no spectral or quadratic-form argument is needed for Theorem 5.5 / 5.6. Spectral arguments only appear later for the chi-square law in Theorem 5.7.</p>
-</section>
-<section id="lean-proof-structure" class="level2">
-<h2 class="anchored" data-anchor-id="lean-proof-structure">Lean proof structure</h2>
-<p>The proof in <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L106"><code>Chapter5NormalRegression.lean</code></a> proceeds as follows:</p>
-<ol type="1">
-<li>Define <code>L : (n → ℝ) →L[ℝ] (k → ℝ)</code> as the continuous linear map induced by the matrix <span class="math inline">(X^\top X)^{-1} X^\top</span>, via <code>Matrix.toLin'.toContinuousLinearMap</code>.</li>
-<li>Apply <code>he.map_fun L</code> (where <code>he : HasGaussianLaw e μ</code>) to get <code>HasGaussianLaw (L ∘ e) μ</code>.</li>
-<li>Translate by <span class="math inline">\beta</span>: push forward <code>μ.map (fun ω =&gt; L (e ω))</code> along <code>(β + ·)</code> and use the fact that an affine shift of a Gaussian measure on <span class="math inline">\mathbb{R}^k</span> is again Gaussian (the <code>IsGaussian.map_add</code> infrastructure).</li>
-<li>Finally invoke <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16"><code>olsBeta_linear_decomposition</code></a>, which states <span class="math inline">\hat\beta = \beta + A e</span>, to identify the constructed Gaussian random variable with <span class="math inline">\hat\beta</span> a.e. (<code>hAff.congr</code>).</li>
-</ol>
-<p>The residual version (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135"><code>residual_hasGaussianLaw_of_error</code></a>) is shorter: it skips the affine shift entirely. It packages the annihilator matrix <span class="math inline">M</span> as a continuous linear map, applies <code>he.map_fun</code>, and then rewrites with <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L45"><code>residual_linear_model</code></a> to identify <span class="math inline">Me</span> with the residual.</p>
-<p>The take-away: the proof is <em>purely</em> the closure of Gaussianity under linear and affine maps. No spectral decomposition, no quadratic-form identity, no characteristic-function calculation.</p>
-<section id="tactic-by-tactic-walkthrough" class="level3">
-<h3 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h3>
-<p>The full Lean proof body of <code>olsBeta_hasGaussianLaw_of_error</code>:</p>
-<pre class="lean"><code>theorem olsBeta_hasGaussianLaw_of_error
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>Hover over a proof line to read how the Gaussian-closure argument is assembled.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The coefficient theorem: if the error vector is Gaussian, then the OLS coefficient computed from Xβ + e is Gaussian.">theorem olsBeta_hasGaussianLaw_of_error
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
     [Invertible (Xᵀ * X)]
     (he : HasGaussianLaw e μ) :
-    HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ := by
-  let L : (n → ℝ) →L[ℝ] (k → ℝ) :=
-    (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap
-  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L
-  have hAff : HasGaussianLaw (fun ω =&gt; β + L (e ω)) μ := by
-    refine ⟨?_⟩
-    have hmap : (μ.map fun ω =&gt; L (e ω)).map (fun x =&gt; β + x) = μ.map (fun ω =&gt; β + L (e ω)) := by
+    HasGaussianLaw (fun ω =&gt; olsBeta X (X *ᵥ β + e ω)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Package A = (X'X)⁻¹X' as a continuous linear map, the form expected by Mathlib's Gaussian-law API.">  let L : (n → ℝ) →L[ℝ] (k → ℝ) :=
+    (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap</span><span class="lean-line" tabindex="0" data-explain="Linear images of Gaussian random vectors are Gaussian, so Ae is Gaussian.">  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L</span><span class="lean-line" tabindex="0" data-explain="Build the affine-shift version β + Ae. This is the Gaussian variable that the OLS decomposition will identify with β-hat.">  have hAff : HasGaussianLaw (fun ω =&gt; β + L (e ω)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Open HasGaussianLaw to prove the pushed-forward measure is Gaussian.">    refine ⟨?_⟩</span><span class="lean-line" tabindex="0" data-explain="Show that mapping μ by L∘e and then translating by β is the same pushforward as mapping directly by ω ↦ β + L(eω).">    have hmap : (μ.map fun ω =&gt; L (e ω)).map (fun x =&gt; β + x) = μ.map (fun ω =&gt; β + L (e ω)) := by
       simpa using
         (AEMeasurable.map_map_of_aemeasurable
           (μ := μ)
           (f := fun ω =&gt; L (e ω))
           (g := fun x =&gt; β + x)
           (Measurable.aemeasurable &lt;| by fun_prop)
-          hLin.aemeasurable)
-    rw [← hmap]
-    letI : IsGaussian (μ.map fun ω =&gt; L (e ω)) := hLin.isGaussian_map
-    infer_instance
-  refine hAff.congr ?_
-  filter_upwards with ω
-  rw [olsBeta_linear_decomposition]
-  simp [L]</code></pre>
-<p>Step by step:</p>
-<ul>
-<li><code>let L : (n → ℝ) →L[ℝ] (k → ℝ) := (Matrix.toLin' (⅟ (Xᵀ * X) * Xᵀ)).toContinuousLinearMap</code> — package the matrix <span class="math inline">A := (X^\top X)^{-1} X^\top</span> as a <em>continuous</em> linear map between Euclidean spaces. <code>Matrix.toLin'</code> produces an <code>(n → ℝ) →ₗ[ℝ] (k → ℝ)</code>, and <code>.toContinuousLinearMap</code> upgrades that to the <code>→L[ℝ]</code> arrow that Mathlib’s Gaussian-law machinery expects. This is the deterministic “<span class="math inline">A</span>” of the proof sketch.</li>
-<li><code>have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L</code> — apply the closure of Gaussianity under continuous linear maps: <code>HasGaussianLaw.map_fun</code> says that if <span class="math inline">e</span> is Gaussian under <span class="math inline">\mu</span> then so is <span class="math inline">L \circ e</span>. This gives us “<span class="math inline">Ae</span> is Gaussian” in one line.</li>
-<li><code>have hAff : HasGaussianLaw (fun ω =&gt; β + L (e ω)) μ := by …</code> — promote the Gaussianity of <span class="math inline">L \circ e</span> to the affine version <span class="math inline">\beta + L \circ e</span>. The body unfolds the constructor (<code>refine ⟨?_⟩</code> opens up the <code>HasGaussianLaw</code> structure to its <code>IsGaussian</code> content) and assembles three pieces:
-<ul>
-<li><code>hmap : (μ.map fun ω =&gt; L (e ω)).map (fun x =&gt; β + x) = μ.map (fun ω =&gt; β + L (e ω))</code> — this is pure Mathlib measure-theory plumbing: pushing forward by <span class="math inline">L \circ e</span> and then by the translation <span class="math inline">x \mapsto \beta + x</span> gives the same measure as pushing forward by <span class="math inline">\omega \mapsto \beta + L(e(\omega))</span> in one shot. <code>AEMeasurable.map_map_of_aemeasurable</code> is the lemma that does this; the <code>Measurable.aemeasurable &lt;| by fun_prop</code> discharges the measurability side-condition for <span class="math inline">x \mapsto \beta + x</span> automatically.</li>
-<li><code>rw [← hmap]</code> — restate the goal in the two-step form, so the outer pushforward is along the affine shift <span class="math inline">x \mapsto \beta + x</span>.</li>
-<li><code>letI : IsGaussian (μ.map fun ω =&gt; L (e ω)) := hLin.isGaussian_map</code> — register the Gaussian-measure instance for the inner pushforward. Once Mathlib knows the inner measure is Gaussian, the affine shift lemma <code>IsGaussian.map_add</code> (a registered instance) closes the goal, and <code>infer_instance</code> finds it.</li>
-</ul></li>
-<li><code>refine hAff.congr ?_</code> — we now have a Gaussian law for <span class="math inline">\omega \mapsto \beta + L(e(\omega))</span>. To conclude the same for <span class="math inline">\omega \mapsto \hat\beta\bigl(X(X\beta + e(\omega))\bigr)</span>, it suffices to show the two random variables agree <span class="math inline">\mu</span>-a.e. <code>congr</code> turns the goal into that almost-everywhere equality.</li>
-<li><code>filter_upwards with ω</code> — drop into the pointwise equality at a generic <span class="math inline">\omega</span>. The remaining goal is <span class="math inline">\beta + L(e(\omega)) = \hat\beta\bigl(X(X\beta + e(\omega))\bigr)</span>.</li>
-<li><code>rw [olsBeta_linear_decomposition]</code> — rewrite the right-hand side using the deterministic identity <span class="math inline">\hat\beta(X\beta + e) = \beta + (X^\top X)^{-1} X^\top e</span> (from <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16"><code>olsBeta_linear_decomposition</code></a>, Chapter 4). Both sides are now <span class="math inline">\beta + A e(\omega)</span> up to the packaging of <span class="math inline">A</span>.</li>
-<li><code>simp [L]</code> — unfold the local <code>let L</code> and let <code>simp</code> match <code>L (e ω)</code> with <code>(⅟ (X^\top X) X^\top) *ᵥ e ω</code>, finishing the equality.</li>
-</ul>
+          hLin.aemeasurable)</span><span class="lean-line" tabindex="0" data-explain="Switch to the two-step pushforward form so the affine-shift Gaussian instance can apply.">    rw [← hmap]</span><span class="lean-line" tabindex="0" data-explain="Register that the inner pushforward, the law of Ae, is Gaussian.">    letI : IsGaussian (μ.map fun ω =&gt; L (e ω)) := hLin.isGaussian_map</span><span class="lean-line" tabindex="0" data-explain="Mathlib's affine-shift instance now proves the translated measure is Gaussian.">    infer_instance</span><span class="lean-line" tabindex="0" data-explain="It remains to identify β + Ae with the actual OLS estimator almost everywhere.">  refine hAff.congr ?_</span><span class="lean-line" tabindex="0" data-explain="Reduce the almost-everywhere equality to a pointwise equality at an arbitrary sample point.">  filter_upwards with ω</span><span class="lean-line" tabindex="0" data-explain="Use the deterministic OLS decomposition β-hat(Xβ+e) = β + (X'X)⁻¹X'e.">  rw [olsBeta_linear_decomposition]</span><span class="lean-line" tabindex="0" data-explain="Unfold L and let simplification match the continuous-linear-map packaging with the matrix-vector expression.">  simp [L]</span>
+</code></pre>
+</div>
 <p>For the residual, <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135"><code>residual_hasGaussianLaw_of_error</code></a> is much shorter — there is no affine shift, only a linear map:</p>
-<pre class="lean"><code>theorem residual_hasGaussianLaw_of_error
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Residual theorem: the residual from Xβ + e is Gaussian because it is Me.">theorem residual_hasGaussianLaw_of_error
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ)
     [Invertible (Xᵀ * X)]
     (he : HasGaussianLaw e μ) :
-    HasGaussianLaw (fun ω =&gt; residual X (X *ᵥ β + e ω)) μ := by
-  let L : (n → ℝ) →L[ℝ] (n → ℝ) := (Matrix.toLin' (annihilatorMatrix X)).toContinuousLinearMap
-  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L
-  refine hLin.congr ?_
-  filter_upwards with ω
-  rw [residual_linear_model]
-  simp [L]</code></pre>
-<p>Same pattern, three steps shorter:</p>
-<ul>
-<li><code>let L := ...annihilatorMatrix X...</code> — package <span class="math inline">M = I - X(X^\top X)^{-1} X^\top</span> as a continuous linear map on <span class="math inline">\mathbb{R}^n</span>.</li>
-<li><code>he.map_fun L</code> — <span class="math inline">Me</span> is Gaussian because <span class="math inline">e</span> is and <span class="math inline">M</span> is linear.</li>
-<li><code>hLin.congr</code> + <code>residual_linear_model</code> — rewrite <span class="math inline">\hat e(X\beta + e) = M e</span> pointwise to identify <span class="math inline">Me</span> with the residual; <code>simp [L]</code> unfolds <span class="math inline">L</span> to finish. No affine shift needed because <span class="math inline">MX\beta = 0</span>.</li>
-</ul>
-</section>
+    HasGaussianLaw (fun ω =&gt; residual X (X *ᵥ β + e ω)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Package the annihilator M as a continuous linear map on Rⁿ.">  let L : (n → ℝ) →L[ℝ] (n → ℝ) := (Matrix.toLin' (annihilatorMatrix X)).toContinuousLinearMap</span><span class="lean-line" tabindex="0" data-explain="Linear images of Gaussian vectors are Gaussian, so Me is Gaussian.">  have hLin : HasGaussianLaw (fun ω =&gt; L (e ω)) μ := he.map_fun L</span><span class="lean-line" tabindex="0" data-explain="It remains to identify Me with the actual OLS residual almost everywhere.">  refine hLin.congr ?_</span><span class="lean-line" tabindex="0" data-explain="Reduce the almost-everywhere equality to a pointwise residual identity.">  filter_upwards with ω</span><span class="lean-line" tabindex="0" data-explain="Use the deterministic identity residual(X, Xβ+e) = Me.">  rw [residual_linear_model]</span><span class="lean-line" tabindex="0" data-explain="Unfold L to match the annihilator matrix-vector expression.">  simp [L]</span>
+</code></pre>
+</div>
 </section>
 <section id="downstream-uses" class="level2">
 <h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>

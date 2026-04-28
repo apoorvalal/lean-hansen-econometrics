@@ -294,18 +294,16 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a></li>
-  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">Assumptions</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
   <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
   <ul class="collapse">
   <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
   </ul></li>
   <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
-  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
-  <li><a href="#lean-proof-structure" id="toc-lean-proof-structure" class="nav-link" data-scroll-target="#lean-proof-structure">Lean proof structure</a>
-  <ul class="collapse">
   <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
-  </ul></li>
   <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
@@ -334,7 +332,7 @@ window.Quarto = {
 
 <section id="textbook-statement" class="level2">
 <h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
-<p>In the linear model <span class="math inline">y = X\beta + e</span> with <span class="math inline">X^\top X</span> invertible, define the residual variance estimator</p>
+<p>For a linear-model response <span class="math inline">y = X\beta + e</span> with <a href="../../assumptions/chapter5.html"><span class="math inline">X^\top X</span> invertible</a>, define the residual variance estimator</p>
 <p><span class="math display">
 s^2 := \frac{1}{n-k} \, \hat e^\top \hat e, \qquad \hat e = y - X\hat\beta.
 </span></p>
@@ -343,13 +341,23 @@ s^2 := \frac{1}{n-k} \, \hat e^\top \hat e, \qquad \hat e = y - X\hat\beta.
 (n-k)\, s^2 = e^\top M e,
 </span></p>
 <p>where <span class="math inline">M = I - X(X^\top X)^{-1} X^\top</span> is the annihilator matrix. So the residual sum of squares equals a quadratic form in the <em>true</em> error <span class="math inline">e</span>, with <span class="math inline">M</span> as the kernel — independent of <span class="math inline">X\beta</span>. This is the deterministic algebraic identity that lets Hansen Theorem 5.7 conclude <span class="math inline">\frac{(n-k) s^2}{\sigma^2} \sim \chi^2_{n-k}</span> when <span class="math inline">e \sim N(0, \sigma^2 I)</span>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>Two steps.</p>
+<p><strong>Step 1: <span class="math inline">\hat e = M e</span> under the linear model.</strong> Substitute <span class="math inline">y = X\beta + e</span> into the residual:</p>
+<p><span class="math display">
+\hat e = y - X\hat\beta = M y = M(X\beta + e) = MX\beta + Me = 0 + Me = Me,
+</span></p>
+<p>using <span class="math inline">MX = 0</span>. Hence</p>
+<p><span class="math display">
+(n-k) s^2 = \hat e^\top \hat e = (Me)^\top(Me) = e^\top M^\top M e.
+</span></p>
+<p><strong>Step 2: <span class="math inline">M^\top M = M</span> for symmetric idempotent <span class="math inline">M</span>.</strong> <span class="math inline">M</span> is symmetric (<span class="math inline">M^\top = M</span>) and idempotent (<span class="math inline">M M = M</span>), so</p>
+<p><span class="math display">
+e^\top M^\top M e = e^\top M M e = e^\top M e.
+</span></p>
+<p>Hence <span class="math inline">(n-k) s^2 = e^\top M e</span>. No distributional assumption on <span class="math inline">e</span> is used; the identity is finite-sample and pointwise.</p>
 </section>
-<section id="assumptions" class="level2">
-<h2 class="anchored" data-anchor-id="assumptions">Assumptions</h2>
-<ul>
-<li>Linear model: <span class="math inline">y = X\beta + e</span> with <span class="math inline">X \in \mathbb{R}^{n\times k}</span>, <span class="math inline">X^\top X</span> invertible.</li>
-<li>Purely algebraic — no distributional assumption on <span class="math inline">e</span>. The identity is finite-sample and pointwise in <span class="math inline">\omega</span>.</li>
-</ul>
 </section>
 <section id="lean-statement" class="level2">
 <h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
@@ -361,11 +369,14 @@ s^2 := \frac{1}{n-k} \, \hat e^\top \hat e, \qquad \hat e = y - X\hat\beta.
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L97"><code>olsResidualVarianceEstimator_linear_model_quadratic_form</code></a> (theorem, line 97) — the headline: <span class="math inline">s^2 = \dfrac{e^\top M e}{n-k}</span>, equivalently <span class="math inline">(n-k) s^2 = e^\top M e</span>.</li>
 </ul>
 <p>The headline theorem in Lean:</p>
-<pre class="lean"><code>theorem olsResidualVarianceEstimator_linear_model_quadratic_form
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    olsResidualVarianceEstimator X (X *ᵥ β + e)
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Headline residual-variance identity: under the linear model, s² is e'Me divided by n-k.">theorem olsResidualVarianceEstimator_linear_model_quadratic_form</span>
+    <span class="lean-token" tabindex="0" data-explain="Deterministic design X, coefficient β, and error vector e. The response is built as Xβ + e.">(X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the OLS formula and annihilator matrix.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="Left side: the residual variance estimator evaluated at the linear-model response.">olsResidualVarianceEstimator X (X *ᵥ β + e)</span>
       = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
-          (Fintype.card n - Fintype.card k : ℝ)</code></pre>
+          <span class="lean-token" tabindex="0" data-explain="Right side: the annihilator quadratic form e'Me divided by degrees of freedom n-k, computed in real numbers.">(Fintype.card n - Fintype.card k : ℝ)</span>
+</code></pre>
+</div>
 <section id="reading-the-statement" class="level3">
 <h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
 <p>In English: <strong>given</strong> a design matrix <span class="math inline">X</span>, a true coefficient vector <span class="math inline">\beta</span>, an error vector <span class="math inline">e</span>, and a witness that <span class="math inline">X^\top X</span> is invertible, the residual variance estimator <span class="math inline">s^2</span> evaluated at <span class="math inline">y = X\beta + e</span> equals the quadratic form <span class="math inline">e^\top M e</span> divided by <span class="math inline">(n-k)</span>.</p>
@@ -432,88 +443,41 @@ s^2 := \frac{1}{n-k} \, \hat e^\top \hat e, \qquad \hat e = y - X\hat\beta.
 <li>This identity is purely algebraic — <code>Invertible (Xᵀ * X)</code> is the only hypothesis. No measure, no Gaussianity. The chi-square distributional content lands later in Theorem 5.7.</li>
 </ul>
 </section>
-<section id="proof-sketch" class="level2">
-<h2 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h2>
-<p>Two steps.</p>
-<p><strong>Step 1: <span class="math inline">\hat e = M e</span> under the linear model.</strong> Substitute <span class="math inline">y = X\beta + e</span> into the residual:</p>
-<p><span class="math display">
-\hat e = y - X\hat\beta = M y = M(X\beta + e) = MX\beta + Me = 0 + Me = Me,
-</span></p>
-<p>using <span class="math inline">MX = 0</span>. Hence</p>
-<p><span class="math display">
-(n-k) s^2 = \hat e^\top \hat e = (Me)^\top(Me) = e^\top M^\top M e.
-</span></p>
-<p><strong>Step 2: <span class="math inline">M^\top M = M</span> for symmetric idempotent <span class="math inline">M</span>.</strong> <span class="math inline">M</span> is symmetric (<span class="math inline">M^\top = M</span>) and idempotent (<span class="math inline">M M = M</span>), so</p>
-<p><span class="math display">
-e^\top M^\top M e = e^\top M M e = e^\top M e.
-</span></p>
-<p>Hence <span class="math inline">(n-k) s^2 = e^\top M e</span>.</p>
-</section>
-<section id="lean-proof-structure" class="level2">
-<h2 class="anchored" data-anchor-id="lean-proof-structure">Lean proof structure</h2>
-<p>The Lean proof chain:</p>
-<ol type="1">
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L52"><code>olsResidualVarianceEstimator_linear_model</code></a> (line 52) handles Step 1: it uses <code>Matrix.mulVec_add</code> and <code>annihilator_mul_X</code> (via <code>Matrix.mulVec_mulVec</code>) to show <code>M *ᵥ (X *ᵥ β) = 0</code>, then drops the term to leave <code>(M e)^⊤ (M e) / (n-k)</code>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L64"><code>residual_quadratic_form_of_linear_model</code></a> (line 64) handles Step 2: it invokes a generic lemma <code>quadratic_form_eq_dotProduct_of_symm_idempotent</code> (in <code>LinearAlgebraUtils.lean</code>) that takes <code>(M^⊤ = M)</code> and <code>(M M = M)</code> as hypotheses and yields <code>(Me)^⊤ (Me) = e^⊤ M e</code>. The two hypotheses are supplied by <code>annihilatorMatrix_transpose</code> and <code>annihilatorMatrix_idempotent</code> from Chapter 3.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L97"><code>olsResidualVarianceEstimator_linear_model_quadratic_form</code></a> (line 97) chains the two via <code>rw</code>.</li>
-</ol>
-<p>Permalinks for the supporting lemmas:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48"><code>annihilatorMatrix_transpose</code></a> (Chapter3Projections.lean:48)</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127"><code>annihilatorMatrix_idempotent</code></a> (Chapter3Projections.lean:127)</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90"><code>annihilator_mul_X</code></a> (Chapter3Projections.lean:90)</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/LinearAlgebraUtils.lean#L47"><code>quadratic_form_eq_dotProduct_of_symm_idempotent</code></a> (LinearAlgebraUtils.lean:47)</li>
-</ul>
-<section id="tactic-by-tactic-walkthrough" class="level3">
-<h3 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h3>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
 <p>The headline theorem is a one-liner — the substantive work lives in the two supporting lemmas. We trace all three.</p>
 <p><strong>1. <code>olsResidualVarianceEstimator_linear_model</code> (line 52): Step 1 of the proof.</strong></p>
-<pre class="lean"><code>theorem olsResidualVarianceEstimator_linear_model
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Step 1 theorem: in the linear model, the residual variance estimator depends on Me rather than on Xβ + e.">theorem olsResidualVarianceEstimator_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualVarianceEstimator X (X *ᵥ β + e)
       = (dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)) /
-          (Fintype.card n - Fintype.card k : ℝ) := by
-  unfold olsResidualVarianceEstimator
-  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
+          (Fintype.card n - Fintype.card k : ℝ) := by</span><span class="lean-line" tabindex="0" data-explain="Open the definition of s² as the residual quadratic form divided by n-k.">  unfold olsResidualVarianceEstimator</span><span class="lean-line" tabindex="0" data-explain="Prove the key cancellation MXβ = 0 by transporting the matrix identity MX = 0 along multiplication by β.">  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
     simpa [Matrix.mulVec_mulVec] using
-      congrArg (fun M : Matrix n k ℝ =&gt; M *ᵥ β) (annihilator_mul_X X)
-  rw [Matrix.mulVec_add, hMXβ, zero_add]</code></pre>
-<p>Line by line:</p>
-<ul>
-<li><code>unfold olsResidualVarianceEstimator</code> — replace the LHS with its definitional body. The goal becomes <span class="math inline">(M(X\beta + e))^\top (M(X\beta + e)) / (n-k)
-= (Me)^\top(Me) / (n-k)</span>.</li>
-<li><code>have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0</code> — establish the key algebraic fact <span class="math inline">M X \beta = 0</span>. The proof transports <code>annihilator_mul_X X : M * X = 0</code> (a Chapter 3 result) along the function <code>M ↦ M *ᵥ β</code>, then uses <code>Matrix.mulVec_mulVec</code> to rewrite <span class="math inline">(M X) *ᵥ \beta</span> as <span class="math inline">M *ᵥ (X *ᵥ \beta)</span>. The <code>simpa</code> tactic does the rewriting and discharges the trivial <code>0 *ᵥ β = 0</code> step.</li>
-<li><code>rw [Matrix.mulVec_add, hMXβ, zero_add]</code> — three rewrites that finish the proof: <code>Matrix.mulVec_add</code> distributes <span class="math inline">M</span> over the sum to give <span class="math inline">M *ᵥ (X *ᵥ \beta) + M *ᵥ e</span>; <code>hMXβ</code> rewrites the first summand to <span class="math inline">0</span>; <code>zero_add</code> drops it, leaving exactly <span class="math inline">M e</span> on both sides of the dot product. The goal closes by <code>rfl</code> after the rewrites.</li>
-</ul>
+      congrArg (fun M : Matrix n k ℝ =&gt; M *ᵥ β) (annihilator_mul_X X)</span><span class="lean-line" tabindex="0" data-explain="Distribute M over Xβ + e, replace MXβ by 0, and drop the zero term.">  rw [Matrix.mulVec_add, hMXβ, zero_add]</span>
+</code></pre>
+</div>
 <p><strong>2. <code>residual_quadratic_form_of_linear_model</code> (line 64): Step 2 of the proof.</strong></p>
-<pre class="lean"><code>theorem residual_quadratic_form_of_linear_model
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Step 2 theorem: replace (Me)'(Me) by the simpler quadratic form e'Me.">theorem residual_quadratic_form_of_linear_model
     (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
-      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
-  symm
-  exact quadratic_form_eq_dotProduct_of_symm_idempotent
+      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by</span><span class="lean-line" tabindex="0" data-explain="Flip the equality to match the generic linear-algebra lemma's orientation.">  symm</span><span class="lean-line" tabindex="0" data-explain="Invoke the generic fact v'Av = (Av)'(Av) for symmetric idempotent A; here A is the annihilator M.">  exact quadratic_form_eq_dotProduct_of_symm_idempotent
     (annihilatorMatrix X)
     (annihilatorMatrix_transpose X)
     (annihilatorMatrix_idempotent X)
-    e</code></pre>
-<p>Line by line:</p>
-<ul>
-<li><code>symm</code> — flip the goal to the orientation that matches the supporting lemma. The goal becomes <span class="math inline">e^\top M e = (Me)^\top (Me)</span>.</li>
-<li><code>exact quadratic_form_eq_dotProduct_of_symm_idempotent ...</code> — invoke the generic linear-algebra fact: for any matrix <span class="math inline">A</span> with <span class="math inline">A^\top = A</span> and <span class="math inline">A A = A</span>, we have <span class="math inline">v^\top A v = (Av)^\top (Av)</span>. The two algebraic hypotheses are supplied by <code>annihilatorMatrix_transpose X</code> (<span class="math inline">M^\top = M</span>) and <code>annihilatorMatrix_idempotent X</code> (<span class="math inline">M M = M</span>), both proved back in Chapter 3.</li>
-</ul>
+    e</span>
+</code></pre>
+</div>
 <p><strong>3. <code>olsResidualVarianceEstimator_linear_model_quadratic_form</code> (line 97): the headline chain.</strong></p>
-<pre class="lean"><code>theorem olsResidualVarianceEstimator_linear_model_quadratic_form
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Headline theorem: chain the two supporting identities to express s² as e'Me divided by n-k.">theorem olsResidualVarianceEstimator_linear_model_quadratic_form
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsResidualVarianceEstimator X (X *ᵥ β + e)
       = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
-          (Fintype.card n - Fintype.card k : ℝ) := by
-  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]</code></pre>
-<p>Line by line:</p>
-<ul>
-<li><code>rw [olsResidualVarianceEstimator_linear_model, ...]</code> — apply Step 1 to rewrite the LHS as <span class="math inline">(Me)^\top (Me) / (n-k)</span>.</li>
-<li><code>rw [..., residual_quadratic_form_of_linear_model]</code> — apply Step 2 to rewrite the numerator <span class="math inline">(Me)^\top (Me)</span> as <span class="math inline">e^\top M e</span>. Both sides now match definitionally and the goal closes.</li>
-</ul>
-</section>
+          (Fintype.card n - Fintype.card k : ℝ) := by</span><span class="lean-line" tabindex="0" data-explain="First rewrite s² to (Me)'(Me)/(n-k), then rewrite the numerator to e'Me.">  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]</span>
+</code></pre>
+</div>
 </section>
 <section id="downstream-uses" class="level2">
 <h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>

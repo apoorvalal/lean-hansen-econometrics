@@ -294,18 +294,16 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a></li>
-  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">Assumptions</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
   <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
   <ul class="collapse">
   <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
   </ul></li>
   <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
-  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
-  <li><a href="#lean-proof-structure" id="toc-lean-proof-structure" class="nav-link" data-scroll-target="#lean-proof-structure">Lean proof structure</a>
-  <ul class="collapse">
   <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
-  </ul></li>
   <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-3.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
@@ -347,18 +345,25 @@ Q = \mathbb{E}[X_i X_i^\top], \qquad \Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
 <p><span class="math display">
 \sqrt{n}\, a^\top (\hat\beta_n - \beta) \xrightarrow{d} N(0,\, a^\top V a).
 </span></p>
+<p>The Lean theorem uses <a href="../../assumptions/chapter7.html"><code>SampleCLTAssumption72 μ X e</code></a>, the compatibility name for the Chapter 7 score-CLT condition package. It extends the consistency assumptions with score moment and CLT inputs, while the linear model is supplied separately as <code>hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω</code>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>The standard textbook proof in three steps:</p>
+<ol type="1">
+<li><p><strong>OLS error decomposition.</strong> From the closed form,</p>
+<p><span class="math display">
+\sqrt{n}(\hat\beta_n - \beta) = \hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n,
+\qquad \hat g_n := \frac{1}{n} \sum_i X_i e_i.
+</span></p></li>
+<li><p><strong>Score CLT (Theorem 7.2).</strong> For every fixed <span class="math inline">c \in \mathbb{R}^k</span>,</p>
+<p><span class="math display">
+\sqrt{n}\, c^\top \hat g_n \xrightarrow{d} N(0, c^\top \Omega c)
+</span></p>
+<p>by the multivariate CLT applied to <span class="math inline">X_i e_i</span> in direction <span class="math inline">c</span>.</p></li>
+<li><p><strong>Slutsky.</strong> Since <span class="math inline">\hat Q_n^{-1} \xrightarrow{p} Q^{-1}</span> (Theorem 7.1’s WLLN + continuous-mapping), the product <span class="math inline">\hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n \xrightarrow{d} Q^{-1} \cdot Z</span> where <span class="math inline">Z \sim N(0, \Omega)</span>, so the limit is <span class="math inline">N(0, Q^{-1} \Omega Q^{-1})</span>.</p></li>
+</ol>
+<p>For the scalar projection face: project everything onto direction <span class="math inline">a</span> first (i.e., apply <span class="math inline">a^\top</span>), apply the score CLT in direction <span class="math inline">Q^{-1} a</span>, then put it back together via Slutsky.</p>
 </section>
-<section id="assumptions" class="level2">
-<h2 class="anchored" data-anchor-id="assumptions">Assumptions</h2>
-<p>Hansen Theorem 7.3 requires:</p>
-<ul>
-<li><strong>Linear model:</strong> <span class="math inline">y_i = X_i^\top \beta + e_i</span>.</li>
-<li><strong>i.i.d. sampling</strong> under measure <span class="math inline">\mu</span>.</li>
-<li><strong>Population Gram matrix invertibility:</strong> <span class="math inline">Q := \mathbb{E}[X_i X_i^\top]</span> is invertible.</li>
-<li><strong>Score moment finiteness:</strong> <span class="math inline">\Omega := \mathbb{E}[e_i^2 X_i X_i^\top]</span> is finite (entries integrable). This is what powers Theorem 7.2’s CLT.</li>
-<li><strong>Mean-zero score:</strong> <span class="math inline">\mathbb{E}[X_i e_i] = 0</span> (which is automatic when <span class="math inline">\beta</span> is the projection coefficient and <span class="math inline">e_i</span> is the projection error).</li>
-</ul>
-<p>In Lean, these are bundled into <code>SampleCLTAssumption72 μ X e</code>, which extends <code>SampleMomentAssumption71</code>.</p>
 </section>
 <section id="lean-statement" class="level2">
 <h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
@@ -366,20 +371,23 @@ Q = \mathbb{E}[X_i X_i^\top], \qquad \Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
 <ul>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L749"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Normality.lean:749</code> — for every fixed direction <span class="math inline">a</span>, the scalar projection <span class="math inline">\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)</span> converges in distribution to <span class="math inline">N(0, V_a)</span> where <span class="math inline">V_a</span> is the named asymptotic variance <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L132"><code>olsProjectionAsymptoticVariance</code></a><code>μ X e a</code> <span class="math inline">= ((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)</span>.</li>
 </ul>
-<pre class="lean"><code>theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {ν : Measure Ω'} [IsProbabilityMeasure ν]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)
-    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Scalar Cramér-Wold face of Hansen Theorem 7.3.">theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance</span>
+    <span class="lean-token" tabindex="0" data-explain="Sample probability space for the data.">{μ : Measure Ω} [IsProbabilityMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Auxiliary probability space hosting the limiting Gaussian random variable Z.">{ν : Measure Ω'} [IsProbabilityMeasure ν]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Score-CLT assumptions plus the true coefficient β and scalar projection direction a.">(h : SampleCLTAssumption72 μ X e) (β a : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span>
     {Z : Ω' → ℝ}
-    (hZ : HasLaw Z
-      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν) :
-    TendstoInDistribution
+    <span class="lean-token" tabindex="0" data-explain="The chosen limit variable has law N(0, a'Va), where the named variance is olsProjectionAsymptoticVariance.">(hZ : HasLaw Z
+      (gaussianReal 0 (olsProjectionAsymptoticVariance μ X e a).toNNReal) ν)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: sqrt(n) times the scalar projection of the totalized OLS error converges in distribution to Z.">TendstoInDistribution
       (fun (n : ℕ) ω =&gt;
         (Real.sqrt (n : ℝ) •
           (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
-      atTop Z (fun _ =&gt; μ) ν</code></pre>
+      atTop Z (fun _ =&gt; μ) ν</span>
+</code></pre>
+</div>
 <section id="reading-the-statement" class="level3">
 <h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
 <p>In English: <strong>given</strong> an i.i.d. sample <span class="math inline">(X_i, e_i)</span> on probability space <span class="math inline">(\Omega, \mu)</span> satisfying the score-CLT moment assumptions of Theorem 7.2, a true coefficient <span class="math inline">\beta</span>, a fixed projection direction <span class="math inline">a</span>, the linear model <span class="math inline">y_i = X_i^\top \beta + e_i</span>, and a random variable <span class="math inline">Z</span> on an auxiliary probability space <span class="math inline">(\Omega', \nu)</span> with the named Gaussian law, the scalar projection <span class="math inline">\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta)</span> converges in distribution (under sample measure <span class="math inline">\mu</span>) to <span class="math inline">Z</span>.</p>
@@ -472,40 +480,11 @@ Q = \mathbb{E}[X_i X_i^\top], \qquad \Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
 <li>The score variance equality <span class="math inline">a^\top V a = \mathrm{Var}[e_0 \cdot (X_0 \cdot Q^{-1} a)]</span> is exposed as <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167"><code>scoreProjection_variance_eq_quadraticScoreCovariance</code></a> and is used to bridge between the variance form Lean works with and the textbook sandwich form.</li>
 </ul>
 </section>
-<section id="proof-sketch" class="level2">
-<h2 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h2>
-<p>The standard textbook proof in three steps:</p>
-<ol type="1">
-<li><p><strong>OLS error decomposition.</strong> From the closed form,</p>
-<p><span class="math display">
-\sqrt{n}(\hat\beta_n - \beta) = \hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n,
-\qquad \hat g_n := \frac{1}{n} \sum_i X_i e_i.
-</span></p></li>
-<li><p><strong>Score CLT (Theorem 7.2).</strong> For every fixed <span class="math inline">c \in \mathbb{R}^k</span>,</p>
-<p><span class="math display">
-\sqrt{n}\, c^\top \hat g_n \xrightarrow{d} N(0, c^\top \Omega c)
-</span></p>
-<p>by the multivariate CLT applied to <span class="math inline">X_i e_i</span> in direction <span class="math inline">c</span>.</p></li>
-<li><p><strong>Slutsky.</strong> Since <span class="math inline">\hat Q_n^{-1} \xrightarrow{p} Q^{-1}</span> (Theorem 7.1’s WLLN + continuous-mapping), the product <span class="math inline">\hat Q_n^{-1} \cdot \sqrt{n}\, \hat g_n \xrightarrow{d} Q^{-1} \cdot Z</span> where <span class="math inline">Z \sim N(0, \Omega)</span>, so the limit is <span class="math inline">N(0, Q^{-1} \Omega Q^{-1})</span>.</p></li>
-</ol>
-<p>For the scalar projection face: project everything onto direction <span class="math inline">a</span> first (i.e., apply <span class="math inline">a^\top</span>), apply the score CLT in direction <span class="math inline">Q^{-1} a</span>, then put it back together via Slutsky.</p>
-</section>
-<section id="lean-proof-structure" class="level2">
-<h2 class="anchored" data-anchor-id="lean-proof-structure">Lean proof structure</h2>
-<p>The Lean proof has serious moving parts. Trace the chain:</p>
-<ol type="1">
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61"><code>scoreProjection_sum_tendstoInDistribution_gaussian</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Normality.lean:61</code> — Theorem 7.2 scalar CLT for <span class="math inline">\sqrt{n}\, c^\top \hat g_n</span>.</li>
-<li>Slutsky bridges via the inverse-Gram convergence and the fixed-score decomposition. The key algebraic identity is <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L851"><code>scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:851</code> — this is the algebraic decomposition of <span class="math inline">\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)</span> into a fixed score, an inverse-gap term, and a residual; the latter two are <span class="math inline">o_p(1)</span>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L775"><code>inverseGapProjection_tendstoInMeasure_zero_of_coord</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean:775</code> — the inverse-gap residual goes to <span class="math inline">0</span> in probability.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L694"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Normality.lean:694</code> — packages the chain modulo a measurability hypothesis.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Normality.lean:724</code> — discharges the measurability via <code>scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable</code>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L749"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance</code></a> at <code>HansenEconometrics/Chapter7Asymptotics/Normality.lean:749</code> — restates the result using the named asymptotic variance, via <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167"><code>scoreProjection_variance_eq_quadraticScoreCovariance</code></a>.</li>
-</ol>
-<p>The chain is heavy because the Lean version handles <code>olsBetaStar</code> (the totalized estimator) and has to manage the singular-sample contribution explicitly — an issue Hansen sidesteps by working “modulo events of probability tending to zero.”</p>
-<section id="tactic-by-tactic-walkthrough" class="level3">
-<h3 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h3>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
 <p>The headline theorem at line 749 has a short body: it hypothesis-massages the Gaussian variance into the named-asymptotic-variance form, then defers to the variance-form sibling.</p>
-<pre class="lean"><code>theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Headline scalar asymptotic-normality theorem: for any direction a, the scaled OLS error projection converges to a Gaussian with sandwich variance.">theorem scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -518,34 +497,24 @@ Q = \mathbb{E}[X_i X_i^\top], \qquad \Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
       (fun (n : ℕ) ω =&gt;
         (Real.sqrt (n : ℝ) •
           (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)) ⬝ᵥ a)
-      atTop Z (fun _ =&gt; μ) ν := by
-  have hZ' : HasLaw Z
+      atTop Z (fun _ =&gt; μ) ν := by</span><span class="lean-line" tabindex="0" data-explain="Restate the law of Z using the variance-form parameter expected by the sibling theorem.">  have hZ' : HasLaw Z
       (gaussianReal 0
         (Var[fun ω =&gt; (e 0 ω • X 0 ω) ⬝ᵥ ((popGram μ X)⁻¹)ᵀ *ᵥ a; μ]).toNNReal)
-      ν := by
-    rw [scoreProjection_variance_eq_quadraticScoreCovariance
-      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]
-    simpa [olsProjectionAsymptoticVariance] using hZ
-  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
-    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'</code></pre>
-<p>What each step is doing:</p>
-<ul>
-<li><strong><code>have hZ' : … := by …</code></strong> — re-state the Gaussian-law hypothesis on <span class="math inline">Z</span> using the variance-form parameter, so we can hand it to the sibling <code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian</code>. The two variances are equal but have different syntactic shapes: <span class="math inline">\mathrm{Var}[(e_0 X_0) \cdot ((Q^{-1})^\top a); \mu]</span> on the variance-form side and <code>olsProjectionAsymptoticVariance μ X e a</code> (the named matrix-form <span class="math inline">((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)</span>) on the covariance-form side.</li>
-<li><strong><code>rw [scoreProjection_variance_eq_quadraticScoreCovariance …]</code></strong> — apply Theorem 7.2’s covariance-matrix face (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167">line 167</a>) in direction <span class="math inline">((Q^{-1})^\top a)</span>. This rewrites the variance of the score projection as the quadratic form <span class="math inline">((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)</span>.</li>
-<li><strong><code>simpa [olsProjectionAsymptoticVariance] using hZ</code></strong> — unfold the named asymptotic variance on the goal side; the resulting expression matches the hypothesis <code>hZ</code> directly.</li>
-<li><strong><code>exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian …</code></strong> — hand off to the variance-form headline at <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724">line 724</a> with the rewritten Gaussian hypothesis <code>hZ'</code>.</li>
-</ul>
-<p>So the line-5332 wrapper is essentially a one-line bridge: the real work sits in the variance-form chain it composes. Walking that chain top-down:</p>
+      ν := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite the scalar score variance as the quadratic sandwich form in direction (Q⁻¹)'a.">    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h (((popGram μ X)⁻¹)ᵀ *ᵥ a)]</span><span class="lean-line" tabindex="0" data-explain="Unfold the named asymptotic variance so the rewritten goal matches hZ.">    simpa [olsProjectionAsymptoticVariance] using hZ</span><span class="lean-line" tabindex="0" data-explain="Hand off to the variance-form asymptotic-normality theorem with the restated Gaussian-law hypothesis.">  exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) (y := y) h β a hmodel hZ'</span>
+</code></pre>
+</div>
+<p>So the line-749 wrapper is essentially a one-line bridge: the real work sits in the variance-form chain it composes. Walking that chain top-down:</p>
 <ul>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian</code></a> (line 724) — same Theorem 7.3 statement but with the Gaussian variance in variance-form. Its body discharges the measurability premise of the <code>_of_finalMeas</code> variant by applying <code>scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable</code>.</li>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L694"><code>scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas</code></a> (line 694) — same statement with an explicit <code>AEMeasurable</code> premise. Its body discharges the score-bounded premise of an even more upstream variant from <code>scoreCoordinate_sampleCrossMoment_boundedInProbability</code>, passing through a chain that eventually reduces the goal to a Slutsky combination of a CLT term and an <span class="math inline">o_p(1)</span> inverse-gap term.</li>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61"><code>scoreProjection_sum_tendstoInDistribution_gaussian</code></a> (line 61) — the <strong>score CLT</strong> (Theorem 7.2 face). Supplies the Gaussian limit for <span class="math inline">(\sqrt{n})^{-1} \sum_i (e_i X_i) \cdot c</span> in any fixed direction <span class="math inline">c</span>. Used in direction <span class="math inline">c = (Q^{-1})^\top a</span>.</li>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L851"><code>scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap</code></a> (line 851) — the <strong>algebraic decomposition</strong>: at every <span class="math inline">n</span> and <span class="math inline">\omega</span>, <span class="math inline">\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta)</span> equals the sum of (i) a scaled singular-sample residual, (ii) the fixed-<span class="math inline">Q^{-1}</span> score projection (which gets the CLT), and (iii) the random-inverse-gap projection (which needs Slutsky).</li>
 <li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L775"><code>inverseGapProjection_tendstoInMeasure_zero_of_coord</code></a> (line 775) — the <strong>Slutsky <span class="math inline">o_p(1)</span> control</strong>: the random-inverse-gap term <span class="math inline">((\hat Q_n^{-1} - Q^{-1}) \sqrt{n}\, \hat g_n) \cdot a</span> goes to zero in measure, because each coordinate weight goes to <span class="math inline">0</span> in probability (continuous mapping on <span class="math inline">\hat Q_n^{-1} \to Q^{-1}</span>) and the score coordinates are bounded in probability.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167"><code>scoreProjection_variance_eq_quadraticScoreCovariance</code></a> (line 167) — the <strong>variance bridge</strong> invoked by the line-5332 wrapper: rewrites <span class="math inline">\mathrm{Var}[(e_0 X_0) \cdot c; \mu] = c^\top \Omega c</span>, so the variance-form Gaussian and the named-covariance Gaussian agree.</li>
+<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167"><code>scoreProjection_variance_eq_quadraticScoreCovariance</code></a> (line 167) — the <strong>variance bridge</strong> invoked by the line-749 wrapper: rewrites <span class="math inline">\mathrm{Var}[(e_0 X_0) \cdot c; \mu] = c^\top \Omega c</span>, so the variance-form Gaussian and the named-covariance Gaussian agree.</li>
 </ul>
 <p>Putting it together: line 749 reformulates the limit Gaussian’s variance, line 724 discharges measurability, line 694 packages a Slutsky combination, line 61 supplies the CLT term, line 851 says what the OLS scalar projection is algebraically, and line 775 says the only remaining piece is <span class="math inline">o_p(1)</span>.</p>
-</section>
 </section>
 <section id="downstream-uses" class="level2">
 <h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>

@@ -6,14 +6,14 @@ chapter: N
 
 ## Textbook statement
 
-> Hansen's wording (paraphrased), with the equation:
->
-> $$\text{...}$$
+For the relevant objects and hypotheses, Hansen's statement says:
 
-## Assumptions
+$$\text{...}$$
 
-- ...
-- ...
+### Proof sketch
+
+Short mathematical proof idea. Keep this at the level of the textbook
+argument; the Lean-specific mechanics belong in the hover walkthrough below.
 
 ## Lean statement
 
@@ -40,16 +40,10 @@ Component-by-component interpretation table.
 
 Where the Lean phrasing differs from Hansen and why the difference is harmless.
 
-## Proof sketch
+## Tactic-by-tactic walkthrough
 
-Human-readable LaTeX walkthrough.
-
-## Lean proof structure
-
-Chain of supporting lemmas, each linked:
-
-- [`lemma_a`](<link>)
-- [`lemma_b`](<link>)
+Use hoverable Lean lines for short proof bodies, or a compact proof map for
+large composed theorems. Link supporting lemmas where they do real work.
 
 ## Downstream uses
 
