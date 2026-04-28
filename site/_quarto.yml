@@ -58,6 +58,9 @@ website:
             contents:
               - walkthroughs/chapter5/theorem-5-5.qmd
               - walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd
+              - walkthroughs/chapter5/theorem-5-7.qmd
+              - walkthroughs/chapter5/theorem-5-8-t-statistic.qmd
+              - walkthroughs/chapter5/theorem-5-13-f-test.qmd
           - section: Chapter 7
             contents:
               - walkthroughs/chapter7/theorem-7-1.qmd

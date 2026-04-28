@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean</title>
+<title>Hansen Econometrics in Lean - Theorems 5.8–5.12 — Exact t inference</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -66,8 +66,51 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
 
-<link rel="stylesheet" href="styles.css">
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -79,7 +122,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Home</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html">Theorems 5.8–5.12 — Exact t inference</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -94,7 +137,7 @@ ul.task-list li input[type="checkbox"] {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="./">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -104,13 +147,13 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -125,37 +168,37 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -181,25 +224,25 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -216,31 +259,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.3 — Hat and annihilator matrix identities</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Equation 3.17 — Residuals sum to zero with an intercept</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -248,40 +291,40 @@ ul.task-list li input[type="checkbox"] {
   </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
  <span class="menu-text">Chapter 5</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.7 — Residual variance chi-square law and independence</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorems 5.8–5.12 — Exact t inference</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.13 — Exact F test</span></a>
   </div>
 </li>
@@ -298,13 +341,13 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
@@ -322,16 +365,26 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#start-here" id="toc-start-here" class="nav-link active" data-scroll-target="#start-here">Start Here</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/theorem-5-8-t-statistic.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html">Theorems 5.8–5.12 — Exact t inference</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Hansen Econometrics in Lean</h1>
+<h1 class="title">Theorems 5.8–5.12 — Exact t inference</h1>
 </div>
 
 
@@ -348,33 +401,180 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="hero-panel">
-<p>This site is the reader-facing map for the Lean formalization of Hansen’s <em>Econometrics</em>: theorem walkthroughs, assumption inventories, and coverage notes that connect textbook statements to reusable Lean declarations.</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>In the homoskedastic normal regression model with <a href="../../assumptions/chapter5.html"><span class="math inline">X^\top X</span> invertible, <span class="math inline">\sigma^2&gt;0</span>, and <span class="math inline">n-k&gt;0</span></a>, the classical OLS t statistic for coefficient <span class="math inline">j</span>, <span class="math display">
+T_j = \frac{\hat\beta_j-\beta_j}
+{\sqrt{s^2[(X^\top X)^{-1}]_{jj}}},
+</span> has a Student-<span class="math inline">t</span> distribution with <span class="math inline">n-k</span> degrees of freedom. This is Hansen Theorem 5.8. The same formal layer also packages the coefficient confidence interval coverage result, the two-standard-error rule, and the classical two-sided t-test size theorem.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>Split the statistic into numerator and denominator: <span class="math display">
+T_j =
+\underbrace{\frac{\hat\beta_j-\beta_j}
+{\sqrt{\sigma^2[(X^\top X)^{-1}]_{jj}}}}_{\text{standard normal}}
+\times
+\underbrace{\frac{\sqrt{n-k}}{\sqrt{(n-k)s^2/\sigma^2}}}_{\text{studentization}}.
+</span> The numerator is standard normal because <span class="math inline">\hat\beta-\beta</span> is a fixed linear image of the spherical Gaussian error. The denominator is an independent chi-square transform by Theorem 5.7. The ratio-law theorem for a standard normal divided by an independent scaled chi-square gives Student-<span class="math inline">t</span>.</p>
+<p>Confidence intervals and t-tests then become event rewrites: membership in the interval is equivalent to <span class="math inline">|T_j|\le c</span>, and rejection is equivalent to <span class="math inline">|T_j|&gt;c</span>.</p>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>Key definitions and theorems in <code>HansenEconometrics/Chapter5NormalRegression.lean</code>:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean name</th>
+<th>Textbook role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L569"><code>standardizedOlsBetaCoordinate</code></a></td>
+<td>True-variance standardized coefficient error.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L578"><code>olsStudentizationFactor</code></a></td>
+<td>Inverse square-root transform of the chi-square statistic.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L587"><code>olsTStatistic</code></a></td>
+<td>Hansen’s exact t statistic.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759"><code>olsTStatistic_hasLaw_classicalStudentT</code></a></td>
+<td>Theorem 5.8, density-backed Student-<span class="math inline">t</span> law.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1128"><code>olsConfidenceInterval_coverage_eq_one_sub_classical</code></a></td>
+<td>Theorem 5.9, coefficient interval coverage.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1146"><code>olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths</code></a></td>
+<td>Theorem 5.10, two-standard-error lower bound.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372"><code>olsTTest_rejection_probability_eq_alpha</code></a></td>
+<td>Theorem 5.12, exact two-sided t-test size.</td>
+</tr>
+</tbody>
+</table>
+<p>The headline t-law theorem reads:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.8 in classical density-backed Student-t form.">theorem olsTStatistic_hasLaw_classicalStudentT</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Fixed design matrix, true coefficient vector, and coefficient coordinate j.">(X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive variance and positive residual degrees of freedom.">(hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Spherical normal error random vector.">(ε : Ω → EuclideanSpace ℝ n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the OLS closed form.">[Invertible (Xᵀ * X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="The classical normal-regression error law ε ~ N(0, σ²I).">(hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the t statistic has the classical Student-t law with n-k degrees of freedom.">HasLaw (olsTStatistic X β σ2 j ε)
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ</span>
+</code></pre>
 </div>
-<div class="coverage-grid">
-<section id="walkthroughs" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="walkthroughs">Walkthroughs</h3>
-<p>Hand-written theorem pages explain the statement, proof route, Lean formulation, and downstream uses.</p>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
+<table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>(j : k)</code></td>
+<td>coefficient coordinate <span class="math inline">j</span></td>
+<td>The theorem is coordinatewise.</td>
+</tr>
+<tr class="even">
+<td><code>standardizedOlsBetaCoordinate X β σ2 j ε</code></td>
+<td><span class="math inline">(\hat\beta_j-\beta_j)/\sqrt{\sigma^2[(X'X)^{-1}]_{jj}}</span></td>
+<td>The standard-normal numerator.</td>
+</tr>
+<tr class="odd">
+<td><code>scaledOlsResidualVarianceStatistic X β σ2 ε</code></td>
+<td><span class="math inline">(n-k)s^2/\sigma^2</span></td>
+<td>The chi-square denominator input from Theorem 5.7.</td>
+</tr>
+<tr class="even">
+<td><code>olsTStatistic X β σ2 j ε</code></td>
+<td><span class="math inline">T_j</span></td>
+<td>The exact finite-sample t statistic.</td>
+</tr>
+<tr class="odd">
+<td><code>classicalStudentT (Fintype.card n - Fintype.card k)</code></td>
+<td><span class="math inline">t_{n-k}</span></td>
+<td>The standalone Student-<span class="math inline">t</span> distribution used for critical values.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="assumption-maps" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="assumption-maps">Assumption Maps</h3>
-<p>Chapter pages collect the core mathematical hypotheses, their Lean names, and the proof endpoints that consume them.</p>
 </section>
-<section id="coverage" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="coverage">Coverage</h3>
-<p>The coverage page summarizes which chapters have theorem-level Lean surfaces and where the remaining gaps are tracked.</p>
-</section>
-</div>
-<section id="start-here" class="level2">
-<h2 class="anchored" data-anchor-id="start-here">Start Here</h2>
+<section id="translation-notes" class="level2">
+<h2 class="anchored" data-anchor-id="translation-notes">Translation notes</h2>
 <ul>
-<li><a href="./coverage.html">Coverage overview</a></li>
-<li><a href="./assumptions/index.html">Assumption map</a></li>
-<li><a href="./walkthroughs/chapter2/best-predictor.html">Chapter 2 best predictor walkthrough</a></li>
-<li><a href="./walkthroughs/chapter3/theorem-3-2.html">Theorem 3.2 walkthrough</a></li>
-<li><a href="./walkthroughs/chapter3/projection-matrices.html">Chapter 3 projection matrices</a></li>
-<li><a href="./walkthroughs/chapter5/theorem-5-8-t-statistic.html">Chapter 5 exact t inference</a></li>
-<li><a href="./walkthroughs/chapter7/theorem-7-3.html">Theorem 7.3 walkthrough</a></li>
+<li>Lean first proves the ratio law against an internal <code>studentT</code> measure and then rewrites it to <code>classicalStudentT</code>, the density-backed version used for CDF and critical-value statements.</li>
+<li><code>olsTStatistic_eq_centered_beta_div_estimatedSE</code> connects the internally factorized statistic back to the textbook quotient using the estimated standard error.</li>
+<li>The CI and test theorems do not reprove probability facts. They rewrite confidence-set or rejection events into events involving <code>|T_j|</code>.</li>
+</ul>
+</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>Hover over a proof line to read what it contributes.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The internal Student-t law theorem: it proves the ratio law before switching to the classical density-backed measure.">theorem olsTStatistic_hasLaw_studentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (olsTStatistic X β σ2 j ε)
+      (studentT (Fintype.card n - Fintype.card k)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Name the residual degrees of freedom ν = n-k.">  let ν : ℕ := Fintype.card n - Fintype.card k</span><span class="lean-line" tabindex="0" data-explain="Use k<n to prove ν is positive, as required by the Student-t construction.">  have hν : 0 &lt; ν := by
+    dsimp [ν]
+    exact Nat.sub_pos_of_lt hdf</span><span class="lean-line" tabindex="0" data-explain="The centered coefficient coordinate, standardized by the true variance, is standard normal.">  have hNum :
+      HasLaw (standardizedOlsBetaCoordinate X β σ2 j ε) (gaussianReal 0 1) μ :=
+    standardizedOlsBetaCoordinate_hasLaw_standardNormal X β j hσ2 ε hε</span><span class="lean-line" tabindex="0" data-explain="The scaled residual variance is chi-square with ν degrees of freedom.">  have hQ :
+      HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε) (chiSquared ν) μ :=
+    scaledOlsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="The numerator and chi-square denominator are independent.">  have hInd :
+      standardizedOlsBetaCoordinate X β σ2 j ε ⟂ᵢ[μ]
+        scaledOlsResidualVarianceStatistic X β σ2 ε :=
+    standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic X β j hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Apply the generic ratio theorem: standard normal divided by an independent chi-square factor has a Student-t law.">  refine (hasLaw_ratio_standardNormal_chiSquared_studentT hν hNum hQ hInd).congr ?_</span><span class="lean-line" tabindex="0" data-explain="Identify the generic ratio expression with this file's definition of olsTStatistic.">  exact Filter.Eventually.of_forall fun ω =&gt; by
+    simp [olsTStatistic, olsStudentizationFactor, ν, Nat.cast_sub hdf.le]</span>
+</code></pre>
+</div>
+<p>The classical theorem is a thin wrapper:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem users should usually cite: the t statistic has the classical Student-t law.">theorem olsTStatistic_hasLaw_classicalStudentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (olsTStatistic X β σ2 j ε)
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Record that n-k is positive so the internal and classical Student-t measures agree.">  have hν : 0 &lt; Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf</span><span class="lean-line" tabindex="0" data-explain="Invoke the internal ratio-law theorem.">  have hbase :
+      HasLaw (olsTStatistic X β σ2 j ε)
+        (studentT (Fintype.card n - Fintype.card k)) μ :=
+    olsTStatistic_hasLaw_studentT X β j hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Rewrite studentT to the density-backed classicalStudentT measure.">  rw [studentT_eq_classicalStudentT hν] at hbase</span><span class="lean-line" tabindex="0" data-explain="Return the rewritten law.">  exact hbase</span>
+</code></pre>
+</div>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<p>The t-law page covers the proof engine for:</p>
+<ul>
+<li>coefficient confidence interval coverage (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1128"><code>olsConfidenceInterval_coverage_eq_one_sub_classical</code></a>);</li>
+<li>the two-standard-error <span class="math inline">95\%</span> lower bound (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1146"><code>olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths</code></a>);</li>
+<li>exact t-test size under the null (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372"><code>olsTTest_rejection_probability_eq_alpha</code></a>).</li>
 </ul>
 
 
@@ -795,4 +995,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/theorem-5-8-t-statistic.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

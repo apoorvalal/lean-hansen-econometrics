@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean</title>
+<title>Hansen Econometrics in Lean - Theorem 5.13 — Exact F test</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -66,8 +66,51 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
 
-<link rel="stylesheet" href="styles.css">
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -79,7 +122,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Home</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html">Theorem 5.13 — Exact F test</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -94,7 +137,7 @@ ul.task-list li input[type="checkbox"] {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="./">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -104,13 +147,13 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -125,37 +168,37 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -181,25 +224,25 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -216,31 +259,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.3 — Hat and annihilator matrix identities</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Equation 3.17 — Residuals sum to zero with an intercept</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -248,40 +291,40 @@ ul.task-list li input[type="checkbox"] {
   </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
  <span class="menu-text">Chapter 5</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.7 — Residual variance chi-square law and independence</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 5.8–5.12 — Exact t inference</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorem 5.13 — Exact F test</span></a>
   </div>
 </li>
@@ -298,13 +341,13 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
@@ -322,16 +365,26 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#start-here" id="toc-start-here" class="nav-link active" data-scroll-target="#start-here">Start Here</a></li>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/theorem-5-13-f-test.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-5.html">Chapter 5</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html">Theorem 5.13 — Exact F test</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Hansen Econometrics in Lean</h1>
+<h1 class="title">Theorem 5.13 — Exact F test</h1>
 </div>
 
 
@@ -348,34 +401,201 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="hero-panel">
-<p>This site is the reader-facing map for the Lean formalization of Hansen’s <em>Econometrics</em>: theorem walkthroughs, assumption inventories, and coverage notes that connect textbook statements to reusable Lean declarations.</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>Partition the regressors as <span class="math inline">[X_1, X_2]</span> and test the block null <span class="math inline">H_0:\beta_2=0</span>. Under the null, the response has the form <span class="math display">
+y = X_1\beta_1+\varepsilon,\qquad
+\varepsilon\sim N(0,\sigma^2 I_n).
+</span> With the usual full-rank assumptions, <span class="math inline">\sigma^2&gt;0</span>, a positive number of tested restrictions <span class="math inline">q=\dim(X_2)&gt;0</span>, and positive residual degrees of freedom, Hansen Theorem 5.13 states that <span class="math display">
+F =
+\frac{(RSS_R-RSS_U)/q}{RSS_U/(n-k)}
+\sim F_{q,n-k}.
+</span> If the critical value <span class="math inline">c</span> has upper-tail probability <span class="math inline">\alpha</span> under that distribution, the test that rejects when <span class="math inline">F&gt;c</span> has exact size <span class="math inline">\alpha</span>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>Let <span class="math display">
+D = P_{[X_1,X_2]} - P_{X_1}.
+</span> This projection increment captures the fitted-value contribution of <span class="math inline">X_2</span> after controlling for <span class="math inline">X_1</span>. Lean proves <span class="math inline">D</span> is symmetric, idempotent, and has rank <span class="math inline">q</span>. Under the null, <span class="math display">
+\frac{RSS_R-RSS_U}{\sigma^2} = \frac{\varepsilon^\top D\varepsilon}{\sigma^2}
+\sim \chi^2_q.
+</span> The denominator statistic is the full-model residual variance component, already covered by Theorem 5.7: <span class="math display">
+\frac{RSS_U}{\sigma^2}\sim\chi^2_{n-k}.
+</span> The two statistics are independent because <span class="math inline">D M_{[X_1,X_2]}=0</span> and the underlying vector is Gaussian. The ratio of independent chi-square variables, each divided by its degrees of freedom, has the Fisher-Snedecor distribution.</p>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>Key definitions and theorems in <code>HansenEconometrics/Chapter5NormalRegression.lean</code>:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean name</th>
+<th>Textbook role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1403"><code>fTestProjectionMatrix</code></a></td>
+<td>Projection increment <span class="math inline">P_{[X_1,X_2]}-P_{X_1}</span>.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1496"><code>fTestProjectionMatrix_idempotent</code></a></td>
+<td><span class="math inline">D^2=D</span>.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1504"><code>rank_fTestProjectionMatrix</code></a></td>
+<td><span class="math inline">\operatorname{rank}(D)=q</span>.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1702"><code>scaledOlsFNumeratorStatistic_hasLaw_chiSquared</code></a></td>
+<td>Numerator <span class="math inline">\chi^2_q</span> law.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1741"><code>scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic</code></a></td>
+<td>Numerator/denominator independence.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1988"><code>olsFStatistic_hasLaw_classicalFDist</code></a></td>
+<td>Theorem 5.13 F law.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L2035"><code>olsFStatistic_rejection_probability_eq_alpha_classical</code></a></td>
+<td>Exact rejection probability.</td>
+</tr>
+</tbody>
+</table>
+<p>The headline theorem reads:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.13 in classical Fisher-Snedecor form.">theorem olsFStatistic_hasLaw_classicalFDist</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Restricted and additional regressor blocks, plus the restricted-regression coefficient β₁.">(X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive variance, positive number of tested restrictions, and positive full-model residual degrees of freedom.">(hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Spherical normal error random vector.">(ε : Ω → EuclideanSpace ℝ n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the restricted model.">[Invertible (X₁ᵀ * X₁)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the unrestricted model [X₁,X₂].">[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Classical normal-error law.">(hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: under the null y=X₁β₁+ε, the block F statistic has the classical F distribution.">HasLaw (fun ω =&gt; olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ</span>
+</code></pre>
 </div>
-<div class="coverage-grid">
-<section id="walkthroughs" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="walkthroughs">Walkthroughs</h3>
-<p>Hand-written theorem pages explain the statement, proof route, Lean formulation, and downstream uses.</p>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
+<table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Matrix.fromCols X₁ X₂</code></td>
+<td><span class="math inline">[X_1,X_2]</span></td>
+<td>The unrestricted design.</td>
+</tr>
+<tr class="even">
+<td><code>X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)</code></td>
+<td><span class="math inline">X_1\beta_1+\varepsilon</span></td>
+<td>The null model response.</td>
+</tr>
+<tr class="odd">
+<td><code>Fintype.card k₂</code></td>
+<td><span class="math inline">q</span></td>
+<td>Number of tested restrictions.</td>
+</tr>
+<tr class="even">
+<td><code>Fintype.card n - Fintype.card (Sum k₁ k₂)</code></td>
+<td><span class="math inline">n-k</span></td>
+<td>Full-model residual degrees of freedom.</td>
+</tr>
+<tr class="odd">
+<td><code>classicalFDist q (n-k)</code></td>
+<td><span class="math inline">F_{q,n-k}</span></td>
+<td>The density-backed F distribution used for critical values.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="assumption-maps" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="assumption-maps">Assumption Maps</h3>
-<p>Chapter pages collect the core mathematical hypotheses, their Lean names, and the proof endpoints that consume them.</p>
 </section>
-<section id="coverage" class="level3 coverage-card">
-<h3 class="anchored" data-anchor-id="coverage">Coverage</h3>
-<p>The coverage page summarizes which chapters have theorem-level Lean surfaces and where the remaining gaps are tracked.</p>
-</section>
-</div>
-<section id="start-here" class="level2">
-<h2 class="anchored" data-anchor-id="start-here">Start Here</h2>
+<section id="translation-notes" class="level2">
+<h2 class="anchored" data-anchor-id="translation-notes">Translation notes</h2>
 <ul>
-<li><a href="./coverage.html">Coverage overview</a></li>
-<li><a href="./assumptions/index.html">Assumption map</a></li>
-<li><a href="./walkthroughs/chapter2/best-predictor.html">Chapter 2 best predictor walkthrough</a></li>
-<li><a href="./walkthroughs/chapter3/theorem-3-2.html">Theorem 3.2 walkthrough</a></li>
-<li><a href="./walkthroughs/chapter3/projection-matrices.html">Chapter 3 projection matrices</a></li>
-<li><a href="./walkthroughs/chapter5/theorem-5-8-t-statistic.html">Chapter 5 exact t inference</a></li>
-<li><a href="./walkthroughs/chapter7/theorem-7-3.html">Theorem 7.3 walkthrough</a></li>
+<li>The formal null is encoded by building the response from <code>X₁ *ᵥ β₁</code>; the right block coefficient is therefore zero by construction.</li>
+<li>The proof uses <code>Sum k₁ k₂</code> as the column index type of the unrestricted design. Its cardinality is <code>Fintype.card k₁ + Fintype.card k₂</code>.</li>
+<li><code>olsFStatistic_rejection_probability_eq_alpha_classical</code> is the final testing statement: it transports the F law through the upper-tail event <code>{ω | c &lt; F(ω)}</code>.</li>
 </ul>
+</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>Hover over a proof line to read what it contributes.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The internal F-law theorem: prove the ratio law before rewriting to the classical density-backed F distribution.">theorem olsFStatistic_hasLaw_fDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω =&gt; olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by</span><span class="lean-line" tabindex="0" data-explain="Name the unrestricted design and its null coefficient vector, whose right block is zero.">  let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols X₁ X₂
+  let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ =&gt; 0)</span><span class="lean-line" tabindex="0" data-explain="The restricted-unrestricted RSS gap divided by σ² has a chi-square law with q degrees of freedom.">  have hNum :
+      HasLaw (scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε) (chiSquared (Fintype.card k₂)) μ :=
+    scaledOlsFNumeratorStatistic_hasLaw_chiSquared X₁ X₂ β₁ hσ2 hq ε hε</span><span class="lean-line" tabindex="0" data-explain="The unrestricted residual sum of squares divided by σ² has a chi-square law with n-k degrees of freedom.">  have hDen :
+      HasLaw (scaledOlsResidualVarianceStatistic fullX βfull σ2 ε)
+        (chiSquared (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    scaledOlsResidualVarianceStatistic_hasLaw_chiSquared fullX βfull hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="The numerator and denominator chi-square statistics are independent.">  have hInd :
+      scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε ⟂ᵢ[μ]
+        scaledOlsResidualVarianceStatistic fullX βfull σ2 ε :=
+    scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic
+      X₁ X₂ β₁ hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Apply the generic theorem that a normalized ratio of independent chi-square variables has an F law.">  have hRatio :
+      HasLaw
+        (fun ω =&gt;
+          ((scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε ω) / (Fintype.card k₂ : ℝ)) /
+            (scaledOlsResidualVarianceStatistic fullX βfull σ2 ε ω /
+              (Fintype.card n - Fintype.card (Sum k₁ k₂) : ℝ)))
+        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    by
+      have hdf' : Fintype.card k₁ + Fintype.card k₂ ≤ Fintype.card n := by
+        exact Nat.le_of_lt (by simpa [Fintype.card_sum] using hdf)
+      simpa [Fintype.card_sum, Nat.cast_add, Nat.cast_sub hdf'] using
+        (hasLaw_ratio_chiSquared_fDist hq (Nat.sub_pos_of_lt hdf) hNum hDen hInd)</span><span class="lean-line" tabindex="0" data-explain="Transport the ratio law across the deterministic identity connecting the defined F statistic to that normalized chi-square ratio.">  refine hRatio.congr ?_
+  filter_upwards with ω
+  simpa [fullX, βfull] using
+    congrFun (olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
+      X₁ X₂ β₁ hσ2 hdf ε) ω</span>
+</code></pre>
+</div>
+<p>The classical theorem then rewrites <code>fDist</code> to <code>classicalFDist</code>:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem users should cite for classical critical values.">theorem olsFStatistic_hasLaw_classicalFDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω =&gt; olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by</span><span class="lean-line" tabindex="0" data-explain="Invoke the internal ratio-law theorem.">  have hbase :
+      HasLaw (fun ω =&gt; olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    olsFStatistic_hasLaw_fDist X₁ X₂ β₁ hσ2 hq hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Rewrite the internal F measure to the density-backed classical F distribution.">  rw [fDist_eq_classicalFDist hq (Nat.sub_pos_of_lt hdf)] at hbase</span><span class="lean-line" tabindex="0" data-explain="Return the rewritten law.">  exact hbase</span>
+</code></pre>
+</div>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<p>The exact F-law theorem feeds <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L2035"><code>olsFStatistic_rejection_probability_eq_alpha_classical</code></a>, which states the finite-sample rejection probability of the upper-tail F test under the null.</p>
 
 
 </section>
@@ -795,4 +1015,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter5/theorem-5-13-f-test.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

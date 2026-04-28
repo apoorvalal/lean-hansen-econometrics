@@ -1,0 +1,175 @@
+---
+title: "Theorem 5.13 — Exact F test"
+lean_name: "HansenEconometrics.olsFStatistic_hasLaw_classicalFDist"
+chapter: 5
+---
+
+## Textbook statement
+
+Partition the regressors as $[X_1, X_2]$ and test the block null
+$H_0:\beta_2=0$. Under the null, the response has the form
+$$
+y = X_1\beta_1+\varepsilon,\qquad
+\varepsilon\sim N(0,\sigma^2 I_n).
+$$
+With the usual full-rank assumptions, $\sigma^2>0$, a positive number of
+tested restrictions $q=\dim(X_2)>0$, and positive residual degrees of freedom,
+Hansen Theorem 5.13 states that
+$$
+F =
+\frac{(RSS_R-RSS_U)/q}{RSS_U/(n-k)}
+\sim F_{q,n-k}.
+$$
+If the critical value $c$ has upper-tail probability $\alpha$ under that
+distribution, the test that rejects when $F>c$ has exact size $\alpha$.
+
+### Proof sketch
+
+Let
+$$
+D = P_{[X_1,X_2]} - P_{X_1}.
+$$
+This projection increment captures the fitted-value contribution of $X_2$
+after controlling for $X_1$. Lean proves $D$ is symmetric, idempotent, and has
+rank $q$. Under the null,
+$$
+\frac{RSS_R-RSS_U}{\sigma^2} = \frac{\varepsilon^\top D\varepsilon}{\sigma^2}
+\sim \chi^2_q.
+$$
+The denominator statistic is the full-model residual variance component,
+already covered by Theorem 5.7:
+$$
+\frac{RSS_U}{\sigma^2}\sim\chi^2_{n-k}.
+$$
+The two statistics are independent because $D M_{[X_1,X_2]}=0$ and the
+underlying vector is Gaussian. The ratio of independent chi-square variables,
+each divided by its degrees of freedom, has the Fisher-Snedecor distribution.
+
+## Lean statement
+
+Key definitions and theorems in
+`HansenEconometrics/Chapter5NormalRegression.lean`:
+
+| Lean name | Textbook role |
+|---|---|
+| [`fTestProjectionMatrix`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1403) | Projection increment $P_{[X_1,X_2]}-P_{X_1}$. |
+| [`fTestProjectionMatrix_idempotent`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1496) | $D^2=D$. |
+| [`rank_fTestProjectionMatrix`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1504) | $\operatorname{rank}(D)=q$. |
+| [`scaledOlsFNumeratorStatistic_hasLaw_chiSquared`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1702) | Numerator $\chi^2_q$ law. |
+| [`scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1741) | Numerator/denominator independence. |
+| [`olsFStatistic_hasLaw_classicalFDist`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1988) | Theorem 5.13 F law. |
+| [`olsFStatistic_rejection_probability_eq_alpha_classical`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L2035) | Exact rejection probability. |
+
+The headline theorem reads:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.13 in classical Fisher-Snedecor form.">theorem olsFStatistic_hasLaw_classicalFDist</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Restricted and additional regressor blocks, plus the restricted-regression coefficient β₁.">(X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive variance, positive number of tested restrictions, and positive full-model residual degrees of freedom.">(hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Spherical normal error random vector.">(ε : Ω → EuclideanSpace ℝ n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the restricted model.">[Invertible (X₁ᵀ * X₁)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the unrestricted model [X₁,X₂].">[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Classical normal-error law.">(hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: under the null y=X₁β₁+ε, the block F statistic has the classical F distribution.">HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `Matrix.fromCols X₁ X₂` | $[X_1,X_2]$ | The unrestricted design. |
+| `X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)` | $X_1\beta_1+\varepsilon$ | The null model response. |
+| `Fintype.card k₂` | $q$ | Number of tested restrictions. |
+| `Fintype.card n - Fintype.card (Sum k₁ k₂)` | $n-k$ | Full-model residual degrees of freedom. |
+| `classicalFDist q (n-k)` | $F_{q,n-k}$ | The density-backed F distribution used for critical values. |
+
+## Translation notes
+
+- The formal null is encoded by building the response from `X₁ *ᵥ β₁`; the
+  right block coefficient is therefore zero by construction.
+- The proof uses `Sum k₁ k₂` as the column index type of the unrestricted
+  design. Its cardinality is `Fintype.card k₁ + Fintype.card k₂`.
+- `olsFStatistic_rejection_probability_eq_alpha_classical` is the final
+  testing statement: it transports the F law through the upper-tail event
+  `{ω | c < F(ω)}`.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The internal F-law theorem: prove the ratio law before rewriting to the classical density-backed F distribution.">theorem olsFStatistic_hasLaw_fDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by</span><span class="lean-line" tabindex="0" data-explain="Name the unrestricted design and its null coefficient vector, whose right block is zero.">  let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols X₁ X₂
+  let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)</span><span class="lean-line" tabindex="0" data-explain="The restricted-unrestricted RSS gap divided by σ² has a chi-square law with q degrees of freedom.">  have hNum :
+      HasLaw (scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε) (chiSquared (Fintype.card k₂)) μ :=
+    scaledOlsFNumeratorStatistic_hasLaw_chiSquared X₁ X₂ β₁ hσ2 hq ε hε</span><span class="lean-line" tabindex="0" data-explain="The unrestricted residual sum of squares divided by σ² has a chi-square law with n-k degrees of freedom.">  have hDen :
+      HasLaw (scaledOlsResidualVarianceStatistic fullX βfull σ2 ε)
+        (chiSquared (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    scaledOlsResidualVarianceStatistic_hasLaw_chiSquared fullX βfull hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="The numerator and denominator chi-square statistics are independent.">  have hInd :
+      scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε ⟂ᵢ[μ]
+        scaledOlsResidualVarianceStatistic fullX βfull σ2 ε :=
+    scaledOlsFNumeratorStatistic_indep_scaledOlsResidualVarianceStatistic
+      X₁ X₂ β₁ hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Apply the generic theorem that a normalized ratio of independent chi-square variables has an F law.">  have hRatio :
+      HasLaw
+        (fun ω =>
+          ((scaledOlsFNumeratorStatistic X₁ X₂ β₁ σ2 ε ω) / (Fintype.card k₂ : ℝ)) /
+            (scaledOlsResidualVarianceStatistic fullX βfull σ2 ε ω /
+              (Fintype.card n - Fintype.card (Sum k₁ k₂) : ℝ)))
+        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    by
+      have hdf' : Fintype.card k₁ + Fintype.card k₂ ≤ Fintype.card n := by
+        exact Nat.le_of_lt (by simpa [Fintype.card_sum] using hdf)
+      simpa [Fintype.card_sum, Nat.cast_add, Nat.cast_sub hdf'] using
+        (hasLaw_ratio_chiSquared_fDist hq (Nat.sub_pos_of_lt hdf) hNum hDen hInd)</span><span class="lean-line" tabindex="0" data-explain="Transport the ratio law across the deterministic identity connecting the defined F statistic to that normalized chi-square ratio.">  refine hRatio.congr ?_
+  filter_upwards with ω
+  simpa [fullX, βfull] using
+    congrFun (olsFStatistic_eq_ratio_of_scaled_chiSquared_statistics
+      X₁ X₂ β₁ hσ2 hdf ε) ω</span>
+</code></pre>
+```
+:::
+
+The classical theorem then rewrites `fDist` to `classicalFDist`:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem users should cite for classical critical values.">theorem olsFStatistic_hasLaw_classicalFDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hq : 0 &lt; Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by</span><span class="lean-line" tabindex="0" data-explain="Invoke the internal ratio-law theorem.">  have hbase :
+      HasLaw (fun ω => olsFStatistic X₁ X₂ (X₁ *ᵥ β₁ + WithLp.ofLp (ε ω)))
+        (fDist (Fintype.card k₂) (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    olsFStatistic_hasLaw_fDist X₁ X₂ β₁ hσ2 hq hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Rewrite the internal F measure to the density-backed classical F distribution.">  rw [fDist_eq_classicalFDist hq (Nat.sub_pos_of_lt hdf)] at hbase</span><span class="lean-line" tabindex="0" data-explain="Return the rewritten law.">  exact hbase</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+The exact F-law theorem feeds
+[`olsFStatistic_rejection_probability_eq_alpha_classical`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L2035),
+which states the finite-sample rejection probability of the upper-tail F test
+under the null.
