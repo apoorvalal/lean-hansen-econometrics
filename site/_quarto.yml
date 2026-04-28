@@ -50,6 +50,9 @@ website:
           - section: Chapter 3
             contents:
               - walkthroughs/chapter3/theorem-3-2.qmd
+              - walkthroughs/chapter3/projection-matrices.qmd
+              - walkthroughs/chapter3/fitted-residual-decomposition.qmd
+              - walkthroughs/chapter3/residual-sum-zero.qmd
               - walkthroughs/chapter3/theorem-3-5.qmd
           - section: Chapter 5
             contents:

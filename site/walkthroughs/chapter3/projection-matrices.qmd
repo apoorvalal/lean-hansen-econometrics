@@ -1,0 +1,121 @@
+---
+title: "Theorem 3.3 — Hat and annihilator matrix identities"
+lean_name: "HansenEconometrics.hatMatrix_idempotent"
+chapter: 3
+---
+
+## Textbook statement
+
+For a design matrix $X \in \mathbb{R}^{n\times k}$ with
+[$X^\top X$ invertible](../../assumptions/chapter3.qmd), define the hat matrix
+and annihilator matrix
+$$
+P = X(X^\top X)^{-1}X^\top,\qquad M = I - P.
+$$
+
+Hansen's projection-matrix identities say that $P$ is symmetric and idempotent,
+$P X = X$, $\operatorname{tr}(P)=k$, and the residual-maker $M$ is symmetric and
+idempotent, $M X = 0$, $\operatorname{tr}(M)=n-k$.
+
+### Proof sketch
+
+The key calculation is $P X = X$:
+$$
+PX = X(X^\top X)^{-1}X^\top X = X.
+$$
+Idempotence then follows by tucking the right-hand copy of $P$ into $PX$:
+$$
+P^2 = P\,X(X^\top X)^{-1}X^\top = X(X^\top X)^{-1}X^\top = P.
+$$
+For $M$, expand $(I-P)^2$ and use $P^2=P$. The trace identities use cyclicity
+of trace and $\operatorname{tr}(I_k)=k$.
+
+## Lean statement
+
+The projection matrix API lives in
+`HansenEconometrics/Chapter3Projections.lean`:
+
+| Textbook identity | Lean theorem | Role |
+|---|---|---|
+| $P^\top=P$ | [`hatMatrix_transpose`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L40) | Symmetry of the hat matrix. |
+| $PX=X$ | [`hat_mul_X`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L73) | The hat matrix fixes the regressor space. |
+| $P^2=P$ | [`hatMatrix_idempotent`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L104) | Headline projection identity. |
+| $\operatorname{tr}(P)=k$ | [`hatMatrix_trace`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L113) | Effective dimension of the fitted-value space. |
+| $M^\top=M$ | [`annihilatorMatrix_transpose`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48) | Symmetry of the residual-maker. |
+| $MX=0$ | [`annihilator_mul_X`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90) | Residual-maker kills regressors. |
+| $M^2=M$ | [`annihilatorMatrix_idempotent`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127) | Headline residual-maker identity. |
+| $\operatorname{tr}(M)=n-k$ | [`annihilatorMatrix_trace`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L145) | Residual degrees of freedom. |
+
+The two idempotence statements read:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hat-matrix idempotence: applying the OLS projection twice is the same as applying it once.">theorem hatMatrix_idempotent</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix. The row and column index types are finite in the surrounding section.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The full-rank condition on the design, stated as invertibility of X'X.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The formal version of P squared equals P.">hatMatrix X * hatMatrix X = hatMatrix X</span>
+
+<span class="lean-token" tabindex="0" data-explain="Residual-maker idempotence: once a vector is residualized against X, residualizing it again changes nothing.">theorem annihilatorMatrix_idempotent</span>
+    <span class="lean-token" tabindex="0" data-explain="Same fixed design matrix.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Needed because the identity matrix in M = I - P uses equality of row indices.">[DecidableEq n]</span> <span class="lean-token" tabindex="0" data-explain="Again the substantive full-rank hypothesis X'X invertible.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The formal version of M squared equals M.">annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+In English: **given** a finite design matrix $X$ with invertible $X^\top X$,
+Lean proves that the fitted-value operator `hatMatrix X` and residual operator
+`annihilatorMatrix X` are genuine projection matrices.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `hatMatrix X` | $X(X^\top X)^{-1}X^\top$ | The orthogonal projection onto the column space of $X$. |
+| `annihilatorMatrix X` | $I - P$ | The projection onto the orthogonal complement of the column space of $X$. |
+| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | Hansen's full-column-rank condition. See the [Chapter 3 assumption map](../../assumptions/chapter3.qmd). |
+| `[DecidableEq n]` | decidable row equality | Mathlib bookkeeping needed for identity matrices such as $I_n$. |
+
+## Translation notes
+
+- Lean writes $P$ as `hatMatrix X` and $M$ as `annihilatorMatrix X`.
+- `*` is matrix multiplication; `ᵀ` is transpose; `Matrix.trace` is the usual
+  finite trace.
+- The row and column dimensions are finite index types, not natural-number
+  literals. That is why the statements mention `Fintype` and `DecidableEq`
+  assumptions around the theorem section.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: if X'X is invertible, the hat matrix is idempotent.">theorem hatMatrix_idempotent
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    hatMatrix X * hatMatrix X = hatMatrix X := by</span><span class="lean-line" tabindex="0" data-explain="Unfold just the right-hand copy of the hat matrix, making the goal look like P times X (X'X)⁻¹ X'.">  change hatMatrix X * (X * ⅟ (Xᵀ * X) * Xᵀ) =
+      X * ⅟ (Xᵀ * X) * Xᵀ</span><span class="lean-line" tabindex="0" data-explain="Reassociate the unfolded product on the right so X (X'X)⁻¹ X' is grouped consistently.">  rw [Matrix.mul_assoc X (⅟ (Xᵀ * X)) Xᵀ]</span><span class="lean-line" tabindex="0" data-explain="Move parentheses so the proof can use the already-proved identity P X = X.">  rw [← Matrix.mul_assoc (hatMatrix X) X (⅟ (Xᵀ * X) * Xᵀ)]</span><span class="lean-line" tabindex="0" data-explain="Replace P X by X. This collapses P squared back to P.">  rw [hat_mul_X]</span>
+</code></pre>
+```
+:::
+
+The corresponding annihilator proof is intentionally short:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: the residual-maker M is idempotent under the same full-rank condition.">theorem annihilatorMatrix_idempotent
+    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X := by</span><span class="lean-line" tabindex="0" data-explain="Expand M = I - P, distribute multiplication over subtraction, and simplify using P squared equals P.">  simp [annihilatorMatrix, Matrix.sub_mul, Matrix.mul_sub, hatMatrix_idempotent]</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+These identities feed almost every later OLS geometry result:
+
+- [`residual_eq_annihilator_mul_y`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L210)
+  expresses the residual vector as $My$.
+- [`fitted_residual_pythagorean`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L227)
+  uses the projection geometry to split total variation into fitted and
+  residual components.
+- [`fromColsRightBeta_eq_fwlBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
+  uses annihilator identities to formalize Frisch-Waugh-Lovell.

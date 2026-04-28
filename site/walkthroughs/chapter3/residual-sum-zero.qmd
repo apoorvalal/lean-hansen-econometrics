@@ -1,0 +1,86 @@
+---
+title: "Equation 3.17 — Residuals sum to zero with an intercept"
+lean_name: "HansenEconometrics.residual_sum_zero_of_one_mem_colspan"
+chapter: 3
+---
+
+## Textbook statement
+
+For a design matrix $X \in \mathbb{R}^{n\times k}$ and response vector
+$y \in \mathbb{R}^n$, when
+[$X^\top X$ is invertible](../../assumptions/chapter3.qmd) and the constant
+vector $\mathbf{1}$ lies in the column span of $X$, OLS residuals sum to zero:
+$$
+\sum_{i=1}^n \hat e_i = 0.
+$$
+
+The "intercept" condition is formalized as a vector of coefficients $c$ with
+$Xc=\mathbf{1}$.
+
+### Proof sketch
+
+The sum of residuals is the residual vector dotted with the all-ones vector:
+$$
+\sum_i \hat e_i = \hat e^\top \mathbf{1}.
+$$
+If $\mathbf{1}=Xc$, this becomes
+$$
+\hat e^\top Xc = (X^\top\hat e)^\top c.
+$$
+The normal equations say $X^\top\hat e=0$, so the expression is zero.
+
+## Lean statement
+
+The theorem lives in `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen equation 3.17: residuals sum to zero when the design contains a constant.">theorem residual_sum_zero_of_one_mem_colspan</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix and response vector.">(X : Matrix n k ℝ) (y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Full-rank condition, represented by invertibility of X'X.">[Invertible (Xᵀ * X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="The intercept condition: some coefficient vector c maps to the all-ones vector under X.">{c : k → ℝ} (hc : X *ᵥ c = 1)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The formal residual-sum statement. Finset summation ranges over the finite row index type n.">∑ i, residual X y i = 0</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `{c : k → ℝ}` | coefficient vector $c$ | A witness that the constant vector is a linear combination of the columns of $X$. |
+| `hc : X *ᵥ c = 1` | $Xc=\mathbf{1}$ | The intercept / constant-in-column-space assumption. See the [Chapter 3 assumption map](../../assumptions/chapter3.qmd). |
+| `∑ i, residual X y i = 0` | $\sum_i \hat e_i=0$ | Residuals have mean zero up to the conventional factor $1/n$. |
+
+## Translation notes
+
+- Lean writes the all-ones vector simply as `1`, because vectors `n → ℝ` have a
+  pointwise one.
+- The theorem uses a concrete witness `c` rather than an existential
+  hypothesis. That makes later proofs directly rewrite `1` as `X *ᵥ c`.
+- This is a consequence of the normal equations, not an extra property of the
+  objective function.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: if the constant vector is in the column span of X, OLS residuals sum to zero.">theorem residual_sum_zero_of_one_mem_colspan
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)]
+    {c : k → ℝ} (hc : X *ᵥ c = 1) :
+    ∑ i, residual X y i = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Start a calculation chain from the residual sum.">  calc</span><span class="lean-line" tabindex="0" data-explain="Rewrite the sum of coordinates as the dot product with the all-ones vector.">    ∑ i, residual X y i = residual X y ⬝ᵥ 1 := by
+      rw [dotProduct_one]</span><span class="lean-line" tabindex="0" data-explain="Use the intercept witness to replace the all-ones vector by X c.">    _ = residual X y ⬝ᵥ (X *ᵥ c) := by
+      rw [hc]</span><span class="lean-line" tabindex="0" data-explain="Move X across the dot product: e'(Xc) becomes (e'X)c.">    _ = (Matrix.vecMul (residual X y) X) ⬝ᵥ c := by
+      rw [Matrix.dotProduct_mulVec]</span><span class="lean-line" tabindex="0" data-explain="Finish by showing e'X is zero from the normal equations X'e = 0.">    _ = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Convert the normal equations from transpose-times-vector form into row-vector-times-matrix form.">      have h : Matrix.vecMul (residual X y) X = 0 := by
+        simpa [vecMul_eq_mulVec_transpose] using (normal_equations X y)</span><span class="lean-line" tabindex="0" data-explain="Replace e'X by zero.">      rw [h]</span><span class="lean-line" tabindex="0" data-explain="Simplify the zero dot product.">      simp</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+This is the theorem behind the familiar statement that residuals average to
+zero in a regression with an intercept. It also records the precise condition
+needed by later finite-sample decomposition arguments: the all-ones vector must
+be in the column space of the design.

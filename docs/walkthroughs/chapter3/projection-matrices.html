@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean - Chapter 3 Assumptions</title>
+<title>Hansen Econometrics in Lean - Theorem 3.3 — Hat and annihilator matrix identities</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -110,7 +110,7 @@ window.Quarto = {
 };
 </script>
 
-<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -122,7 +122,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter3.html">Chapter 3</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Chapter 3</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/projection-matrices.html">Theorem 3.3 — Hat and annihilator matrix identities</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -137,7 +137,7 @@ window.Quarto = {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -147,13 +147,13 @@ window.Quarto = {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -168,37 +168,37 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter3.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -224,25 +224,25 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -250,40 +250,40 @@ window.Quarto = {
   </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Chapter 3</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorem 3.3 — Hat and annihilator matrix identities</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Equation 3.17 — Residuals sum to zero with an intercept</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -300,13 +300,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
@@ -323,13 +323,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
@@ -343,14 +343,30 @@ window.Quarto = {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter3/projection-matrices.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter3.html">Chapter 3</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Chapter 3</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/projection-matrices.html">Theorem 3.3 — Hat and annihilator matrix identities</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Chapter 3 Assumptions</h1>
+<h1 class="title">Theorem 3.3 — Hat and annihilator matrix identities</h1>
 </div>
 
 
@@ -367,48 +383,159 @@ window.Quarto = {
 </header>
 
 
-<div class="chapter-kicker">
-<p>Finite-sample least-squares algebra</p>
-</div>
-<p>Chapter 3 is deliberately algebraic: no probability space and no distributional assumptions are needed. The substantive assumptions are rank/invertibility conditions on finite matrices.</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>For a design matrix <span class="math inline">X \in \mathbb{R}^{n\times k}</span> with <a href="../../assumptions/chapter3.html"><span class="math inline">X^\top X</span> invertible</a>, define the hat matrix and annihilator matrix <span class="math display">
+P = X(X^\top X)^{-1}X^\top,\qquad M = I - P.
+</span></p>
+<p>Hansen’s projection-matrix identities say that <span class="math inline">P</span> is symmetric and idempotent, <span class="math inline">P X = X</span>, <span class="math inline">\operatorname{tr}(P)=k</span>, and the residual-maker <span class="math inline">M</span> is symmetric and idempotent, <span class="math inline">M X = 0</span>, <span class="math inline">\operatorname{tr}(M)=n-k</span>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>The key calculation is <span class="math inline">P X = X</span>: <span class="math display">
+PX = X(X^\top X)^{-1}X^\top X = X.
+</span> Idempotence then follows by tucking the right-hand copy of <span class="math inline">P</span> into <span class="math inline">PX</span>: <span class="math display">
+P^2 = P\,X(X^\top X)^{-1}X^\top = X(X^\top X)^{-1}X^\top = P.
+</span> For <span class="math inline">M</span>, expand <span class="math inline">(I-P)^2</span> and use <span class="math inline">P^2=P</span>. The trace identities use cyclicity of trace and <span class="math inline">\operatorname{tr}(I_k)=k</span>.</p>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>The projection matrix API lives in <code>HansenEconometrics/Chapter3Projections.lean</code>:</p>
 <table class="table">
 <thead>
 <tr class="header">
-<th>Assumption</th>
-<th>Lean names</th>
-<th>Used in proofs</th>
+<th>Textbook identity</th>
+<th>Lean theorem</th>
+<th>Role</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>The design matrix <span class="math inline">X \in \mathbb{R}^{n \times k}</span> and response <span class="math inline">y \in \mathbb{R}^n</span> live on finite index types.</td>
-<td><span class="lean-chip"><code>Matrix n k ℝ</code></span> <span class="lean-chip"><code>n → ℝ</code></span> <span class="lean-chip"><code>[Fintype n]</code></span> <span class="lean-chip"><code>[Fintype k]</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L16">OLS definitions</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L24">projection matrices</a></span></td>
+<td><span class="math inline">P^\top=P</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L40"><code>hatMatrix_transpose</code></a></td>
+<td>Symmetry of the hat matrix.</td>
 </tr>
 <tr class="even">
-<td>Full column rank is represented as invertibility of the Gram matrix <span class="math inline">X^\top X</span>.</td>
-<td><span class="lean-chip"><code>[Invertible (Xᵀ * X)]</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46">normal equations</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61">residual orthogonality</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L40">hat matrix identities</a></span></td>
+<td><span class="math inline">PX=X</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L73"><code>hat_mul_X</code></a></td>
+<td>The hat matrix fixes the regressor space.</td>
 </tr>
 <tr class="odd">
-<td>Statements involving <span class="math inline">I</span>, <span class="math inline">P</span>, or <span class="math inline">M</span> need decidable equality on finite index types.</td>
-<td><span class="lean-chip"><code>[DecidableEq n]</code></span> <span class="lean-chip"><code>[DecidableEq k]</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L28">annihilator matrix</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L210">residual as <span class="math inline">My</span></a></span></td>
+<td><span class="math inline">P^2=P</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L104"><code>hatMatrix_idempotent</code></a></td>
+<td>Headline projection identity.</td>
 </tr>
 <tr class="even">
-<td>FWL needs three nonsingularity witnesses: <span class="math inline">X_1^\top X_1</span>, <span class="math inline">[X_1,X_2]^\top[X_1,X_2]</span>, and <span class="math inline">(M_1X_2)^\top(M_1X_2)</span>.</td>
-<td><span class="lean-chip"><code>[Invertible (X₁ᵀ * X₁)]</code></span> <span class="lean-chip"><code>[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]</code></span> <span class="lean-chip"><code>[Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147">FWL coefficient theorem</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163">FWL residual theorem</a></span></td>
+<td><span class="math inline">\operatorname{tr}(P)=k</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L113"><code>hatMatrix_trace</code></a></td>
+<td>Effective dimension of the fitted-value space.</td>
 </tr>
 <tr class="odd">
-<td>Residual-sum-zero requires the constant vector to lie in the column span of <span class="math inline">X</span>.</td>
-<td><span class="lean-chip"><code>∃ b, X *ᵥ b = fun _ =&gt; 1</code></span></td>
-<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98">residual sum zero</a></span></td>
+<td><span class="math inline">M^\top=M</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48"><code>annihilatorMatrix_transpose</code></a></td>
+<td>Symmetry of the residual-maker.</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">MX=0</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90"><code>annihilator_mul_X</code></a></td>
+<td>Residual-maker kills regressors.</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">M^2=M</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127"><code>annihilatorMatrix_idempotent</code></a></td>
+<td>Headline residual-maker identity.</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\operatorname{tr}(M)=n-k</span></td>
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L145"><code>annihilatorMatrix_trace</code></a></td>
+<td>Residual degrees of freedom.</td>
 </tr>
 </tbody>
 </table>
+<p>The two idempotence statements read:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hat-matrix idempotence: applying the OLS projection twice is the same as applying it once.">theorem hatMatrix_idempotent</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix. The row and column index types are finite in the surrounding section.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The full-rank condition on the design, stated as invertibility of X'X.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The formal version of P squared equals P.">hatMatrix X * hatMatrix X = hatMatrix X</span>
+
+<span class="lean-token" tabindex="0" data-explain="Residual-maker idempotence: once a vector is residualized against X, residualizing it again changes nothing.">theorem annihilatorMatrix_idempotent</span>
+    <span class="lean-token" tabindex="0" data-explain="Same fixed design matrix.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Needed because the identity matrix in M = I - P uses equality of row indices.">[DecidableEq n]</span> <span class="lean-token" tabindex="0" data-explain="Again the substantive full-rank hypothesis X'X invertible.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The formal version of M squared equals M.">annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X</span>
+</code></pre>
+</div>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
+<p>In English: <strong>given</strong> a finite design matrix <span class="math inline">X</span> with invertible <span class="math inline">X^\top X</span>, Lean proves that the fitted-value operator <code>hatMatrix X</code> and residual operator <code>annihilatorMatrix X</code> are genuine projection matrices.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>hatMatrix X</code></td>
+<td><span class="math inline">X(X^\top X)^{-1}X^\top</span></td>
+<td>The orthogonal projection onto the column space of <span class="math inline">X</span>.</td>
+</tr>
+<tr class="even">
+<td><code>annihilatorMatrix X</code></td>
+<td><span class="math inline">I - P</span></td>
+<td>The projection onto the orthogonal complement of the column space of <span class="math inline">X</span>.</td>
+</tr>
+<tr class="odd">
+<td><code>[Invertible (Xᵀ * X)]</code></td>
+<td><span class="math inline">X^\top X</span> invertible</td>
+<td>Hansen’s full-column-rank condition. See the <a href="../../assumptions/chapter3.html">Chapter 3 assumption map</a>.</td>
+</tr>
+<tr class="even">
+<td><code>[DecidableEq n]</code></td>
+<td>decidable row equality</td>
+<td>Mathlib bookkeeping needed for identity matrices such as <span class="math inline">I_n</span>.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="translation-notes" class="level2">
+<h2 class="anchored" data-anchor-id="translation-notes">Translation notes</h2>
+<ul>
+<li>Lean writes <span class="math inline">P</span> as <code>hatMatrix X</code> and <span class="math inline">M</span> as <code>annihilatorMatrix X</code>.</li>
+<li><code>*</code> is matrix multiplication; <code>ᵀ</code> is transpose; <code>Matrix.trace</code> is the usual finite trace.</li>
+<li>The row and column dimensions are finite index types, not natural-number literals. That is why the statements mention <code>Fintype</code> and <code>DecidableEq</code> assumptions around the theorem section.</li>
+</ul>
+</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>Hover over a proof line to read what it contributes.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: if X'X is invertible, the hat matrix is idempotent.">theorem hatMatrix_idempotent
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    hatMatrix X * hatMatrix X = hatMatrix X := by</span><span class="lean-line" tabindex="0" data-explain="Unfold just the right-hand copy of the hat matrix, making the goal look like P times X (X'X)⁻¹ X'.">  change hatMatrix X * (X * ⅟ (Xᵀ * X) * Xᵀ) =
+      X * ⅟ (Xᵀ * X) * Xᵀ</span><span class="lean-line" tabindex="0" data-explain="Reassociate the unfolded product on the right so X (X'X)⁻¹ X' is grouped consistently.">  rw [Matrix.mul_assoc X (⅟ (Xᵀ * X)) Xᵀ]</span><span class="lean-line" tabindex="0" data-explain="Move parentheses so the proof can use the already-proved identity P X = X.">  rw [← Matrix.mul_assoc (hatMatrix X) X (⅟ (Xᵀ * X) * Xᵀ)]</span><span class="lean-line" tabindex="0" data-explain="Replace P X by X. This collapses P squared back to P.">  rw [hat_mul_X]</span>
+</code></pre>
+</div>
+<p>The corresponding annihilator proof is intentionally short:</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: the residual-maker M is idempotent under the same full-rank condition.">theorem annihilatorMatrix_idempotent
+    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X := by</span><span class="lean-line" tabindex="0" data-explain="Expand M = I - P, distribute multiplication over subtraction, and simplify using P squared equals P.">  simp [annihilatorMatrix, Matrix.sub_mul, Matrix.mul_sub, hatMatrix_idempotent]</span>
+</code></pre>
+</div>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<p>These identities feed almost every later OLS geometry result:</p>
+<ul>
+<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L210"><code>residual_eq_annihilator_mul_y</code></a> expresses the residual vector as <span class="math inline">My</span>.</li>
+<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L227"><code>fitted_residual_pythagorean</code></a> uses the projection geometry to split total variation into fitted and residual components.</li>
+<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147"><code>fromColsRightBeta_eq_fwlBeta</code></a> uses annihilator identities to formalize Frisch-Waugh-Lovell.</li>
+</ul>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -825,4 +952,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/assumptions/chapter3.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter3/projection-matrices.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

@@ -216,253 +216,219 @@
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html",
-    "href": "walkthroughs/chapter2/variance-decomposition.html",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "",
-    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} and response vector y \\in \\mathbb{R}^n, when X^\\top X is invertible and the constant vector \\mathbf{1} lies in the column span of X, OLS residuals sum to zero: \n\\sum_{i=1}^n \\hat e_i = 0.\n\nThe “intercept” condition is formalized as a vector of coefficients c with Xc=\\mathbf{1}.\n\n\nThe sum of residuals is the residual vector dotted with the all-ones vector: \n\\sum_i \\hat e_i = \\hat e^\\top \\mathbf{1}.\n If \\mathbf{1}=Xc, this becomes \n\\hat e^\\top Xc = (X^\\top\\hat e)^\\top c.\n The normal equations say X^\\top\\hat e=0, so the expression is zero.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
-    "href": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html#textbook-statement",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html#textbook-statement",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "",
-    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} and response vector y \\in \\mathbb{R}^n, when X^\\top X is invertible and the constant vector \\mathbf{1} lies in the column span of X, OLS residuals sum to zero: \n\\sum_{i=1}^n \\hat e_i = 0.\n\nThe “intercept” condition is formalized as a vector of coefficients c with Xc=\\mathbf{1}.\n\n\nThe sum of residuals is the residual vector dotted with the all-ones vector: \n\\sum_i \\hat e_i = \\hat e^\\top \\mathbf{1}.\n If \\mathbf{1}=Xc, this becomes \n\\hat e^\\top Xc = (X^\\top\\hat e)^\\top c.\n The normal equations say X^\\top\\hat e=0, so the expression is zero.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
-    "href": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html#lean-statement",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html#lean-statement",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "Lean statement",
-    "text": "Lean statement\nThe public wrapper lives in HansenEconometrics/Chapter2Variance.lean:\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ]\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{Y : Ω → ℝ}\nY\nGiven: response variable.\n\n\n{X : Ω → β}\nX\nGiven: conditioning variable.\n\n\n(hX : Measurable X)\nX measurable\nLets Lean condition on \\sigma(X).\n\n\n[IsProbabilityMeasure μ]\nprobability measure\nVariance is stated under a probability law.\n\n\n(hY : MemLp Y 2 μ)\nY \\in L^2\nFinite second moment.\n\n\nμ[condVarOn μ Y X]\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\nResidual variance component.\n\n\nVar[condExpOn μ Y X; μ]\n\\operatorname{Var}(\\mathbb{E}[Y\\mid X])\nExplained variance component.\n\n\n= Var[Y; μ]\n=\\operatorname{Var}(Y)\nTotal variance.",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter3LeastSquaresAlgebra.lean:\n\ntheorem residual_sum_zero_of_one_mem_colspan\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)]\n    {c : k → ℝ} (hc : X *ᵥ c = 1) :\n    ∑ i, residual X y i = 0\n\n\n\nReading the statement\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{c : k → ℝ}\ncoefficient vector c\nA witness that the constant vector is a linear combination of the columns of X.\n\n\nhc : X *ᵥ c = 1\nXc=\\mathbf{1}\nThe intercept / constant-in-column-space assumption. See the Chapter 3 assumption map.\n\n\n∑ i, residual X y i = 0\n\\sum_i \\hat e_i=0\nResiduals have mean zero up to the conventional factor 1/n.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
-    "href": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html#translation-notes",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html#translation-notes",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "Translation notes",
-    "text": "Translation notes\n\ncondVarOn μ Y X is the variable-facing conditional variance wrapper.\ncondExpOn μ Y X is the variable-facing conditional expectation wrapper.\nThe backend theorem variance_decomposition states Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ]; it is just the same equality in the opposite orientation.",
+    "text": "Translation notes\n\nLean writes the all-ones vector simply as 1, because vectors n → ℝ have a pointwise one.\nThe theorem uses a concrete witness c rather than an existential hypothesis. That makes later proofs directly rewrite 1 as X *ᵥ c.\nThis is a consequence of the normal equations, not an extra property of the objective function.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
-    "href": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html#tactic-by-tactic-walkthrough",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "Tactic-by-tactic walkthrough",
-    "text": "Tactic-by-tactic walkthrough\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ] := by  simpa [condVarOn, condExpOn, conditioningSpace] using    law_total_variance\n      (m := conditioningSpace X)\n      (m₀ := inferInstance)\n      (μ := μ)\n      (Y := Y)\n      (conditioningSpace_le hX)\n      hY\n\n\nThe backend theorem itself is a direct Mathlib specialization:\n\ntheorem variance_decomposition\n    {Y : Ω → ℝ}\n    (hm : m ≤ m₀)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ] := by  rw [eq_comm]  simpa using law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY",
+    "text": "Tactic-by-tactic walkthrough\nHover over a proof line to read what it contributes.\n\ntheorem residual_sum_zero_of_one_mem_colspan\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)]\n    {c : k → ℝ} (hc : X *ᵥ c = 1) :\n    ∑ i, residual X y i = 0 := by  calc    ∑ i, residual X y i = residual X y ⬝ᵥ 1 := by\n      rw [dotProduct_one]    _ = residual X y ⬝ᵥ (X *ᵥ c) := by\n      rw [hc]    _ = (Matrix.vecMul (residual X y) X) ⬝ᵥ c := by\n      rw [Matrix.dotProduct_mulVec]    _ = 0 := by      have h : Matrix.vecMul (residual X y) X = 0 := by\n        simpa [vecMul_eq_mulVec_transpose] using (normal_equations X y)      rw [h]      simp",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
-    "href": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
-    "title": "Theorem 2.8 — Law of total variance",
+    "objectID": "walkthroughs/chapter3/residual-sum-zero.html#downstream-uses",
+    "href": "walkthroughs/chapter3/residual-sum-zero.html#downstream-uses",
+    "title": "Equation 3.17 — Residuals sum to zero with an intercept",
     "section": "Downstream uses",
-    "text": "Downstream uses\n\nvariance_condExpOn_le_variance extracts the explained-variance bound.\nresidualVarOn_antitone uses the decomposition to show that richer conditioning information weakly reduces residual variance.",
+    "text": "Downstream uses\nThis is the theorem behind the familiar statement that residuals average to zero in a regression with an intercept. It also records the precise condition needed by later finite-sample decomposition arguments: the all-ones vector must be in the column space of the design.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.8 — Law of total variance"
+      "Chapter 3",
+      "Equation 3.17 — Residuals sum to zero with an intercept"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "",
-    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} and response vector y \\in \\mathbb{R}^n, when X^\\top X is invertible, the fitted vector \\hat y = X\\hat\\beta and residual vector \\hat e = y-\\hat y satisfy \n\\hat y^\\top \\hat e = 0\n\\qquad\\text{and}\\qquad\ny^\\top y = \\hat y^\\top \\hat y + \\hat e^\\top \\hat e.\n\nThis is the finite-sample geometry behind the usual OLS decomposition: the data vector splits into an in-sample fitted component and an orthogonal residual component.\n\n\nThe normal equations give X^\\top \\hat e = 0. Since fitted values are of the form \\hat y = X\\hat\\beta, they are orthogonal to \\hat e: \n\\hat y^\\top \\hat e = \\hat\\beta^\\top X^\\top \\hat e = 0.\n Then use y=\\hat y+\\hat e and expand the dot product: \ny^\\top y = (\\hat y+\\hat e)^\\top(\\hat y+\\hat e)\n          = \\hat y^\\top\\hat y + 2\\hat y^\\top\\hat e + \\hat e^\\top\\hat e\n          = \\hat y^\\top\\hat y + \\hat e^\\top\\hat e.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html#textbook-statement",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html#textbook-statement",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "",
-    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} and response vector y \\in \\mathbb{R}^n, when X^\\top X is invertible, the fitted vector \\hat y = X\\hat\\beta and residual vector \\hat e = y-\\hat y satisfy \n\\hat y^\\top \\hat e = 0\n\\qquad\\text{and}\\qquad\ny^\\top y = \\hat y^\\top \\hat y + \\hat e^\\top \\hat e.\n\nThis is the finite-sample geometry behind the usual OLS decomposition: the data vector splits into an in-sample fitted component and an orthogonal residual component.\n\n\nThe normal equations give X^\\top \\hat e = 0. Since fitted values are of the form \\hat y = X\\hat\\beta, they are orthogonal to \\hat e: \n\\hat y^\\top \\hat e = \\hat\\beta^\\top X^\\top \\hat e = 0.\n Then use y=\\hat y+\\hat e and expand the dot product: \ny^\\top y = (\\hat y+\\hat e)^\\top(\\hat y+\\hat e)\n          = \\hat y^\\top\\hat y + 2\\hat y^\\top\\hat e + \\hat e^\\top\\hat e\n          = \\hat y^\\top\\hat y + \\hat e^\\top\\hat e.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html#lean-statement",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html#lean-statement",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "Lean statement",
-    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y)\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n[IsProbabilityMeasure μ]\nprobability law\nNeeded for covariance and expectations.\n\n\nX : Ω → k → ℝ\nrandom vector X\nRegressor vector.\n\n\nY e : Ω → ℝ\nY, e\nResponse and projection error.\n\n\nα : ℝ, β : k → ℝ\nintercept and slope\nParameters in the affine model.\n\n\n[Invertible (covMat μ X)]\n\\operatorname{Var}(X) invertible\nLets Lean form the covariance-based projection coefficient.\n\n\nhX, he\nfinite second moments\nRequired for covariances.\n\n\nhmodel\nY=\\alpha+X^\\top\\beta+e\nPointwise model identity.\n\n\nhorth\n\\operatorname{Cov}(X,e)=0\nOrthogonality condition that produces the normal equations.\n\n\nconclusion\n\\beta=\\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y)\nTextbook covariance formula.",
+    "text": "Lean statement\nThe formal statements live in HansenEconometrics/Chapter3Projections.lean.\n\ntheorem fitted_eq_hat_mul_y\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    fitted X y = hatMatrix X *ᵥ y\n\ntheorem residual_eq_annihilator_mul_y\n    (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :\n    residual X y = annihilatorMatrix X *ᵥ y\n\ntheorem fitted_dot_residual\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    fitted X y ⬝ᵥ residual X y = 0\n\ntheorem fitted_residual_pythagorean\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    y ⬝ᵥ y = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nfitted X y\n\\hat y=X\\hat\\beta\nThe in-sample fitted vector.\n\n\nresidual X y\n\\hat e=y-\\hat y\nThe OLS residual vector.\n\n\n⬝ᵥ\ndot product\nFinite vector inner product, so y ⬝ᵥ y is y^\\top y.\n\n\nfitted_dot_residual\n\\hat y^\\top\\hat e=0\nOrthogonality of fitted and residual components.\n\n\nfitted_residual_pythagorean\ny^\\top y=\\hat y^\\top\\hat y+\\hat e^\\top\\hat e\nThe squared-length decomposition.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html#translation-notes",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html#translation-notes",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "Translation notes",
-    "text": "Translation notes\n\ncovMat μ X is Hansen’s \\operatorname{Var}(X).\ncovVec μ X Y is Hansen’s \\operatorname{Cov}(X,Y).\nlinearProjectionBeta (covMat μ X) (covVec μ X Y) is the formal covariance formula \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\nThe proof routes through linearProjectionBeta_eq_of_normal_equations: once covMat μ X *ᵥ β = covVec μ X Y is proved, uniqueness does the rest.",
+    "text": "Translation notes\n\nLean’s fitted_add_residual is the identity y=\\hat y+\\hat e, with the sides written as fitted X y + residual X y = y.\nThe orthogonality proof leans directly on normal_equations. This keeps the proof aligned with the textbook: fitted values are in the column space, residuals are orthogonal to that column space.\nNo stochastic assumption is involved. This is linear algebra under the same full-rank condition as the normal equations.",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html#tactic-by-tactic-walkthrough",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "Tactic-by-tactic walkthrough",
-    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y) := by  symm  apply linearProjectionBeta_eq_of_normal_equations  have hcov :\n      covVec μ X Y = covMat μ X *ᵥ β + covVec μ X e := by    rw [hmodel]    exact covVec_linearProjectionModel (μ := μ) X e α β hX he  calc\n    covMat μ X *ᵥ β = covMat μ X *ᵥ β + covVec μ X e := by rw [horth]; simp\n    _ = covVec μ X Y := by rw [hcov]",
+    "text": "Tactic-by-tactic walkthrough\nHover over a proof line to read what it contributes.\n\ntheorem fitted_dot_residual\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    fitted X y ⬝ᵥ residual X y = 0 := by  rw [dotProduct_comm]  unfold fitted  rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]  rw [normal_equations]  simp\n\n\nThe squared-length decomposition is then the ordinary expansion of y=\\hat y+\\hat e with the cross terms killed:\n\ntheorem fitted_residual_pythagorean\n    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :\n    y ⬝ᵥ y = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y := by  calc    y ⬝ᵥ y = (fitted X y + residual X y) ⬝ᵥ (fitted X y + residual X y) := by\n      rw [fitted_add_residual]    _ = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y := by\n      rw [add_dotProduct, dotProduct_add, dotProduct_add]      rw [fitted_dot_residual]      rw [dotProduct_comm (residual X y) (fitted X y), fitted_dot_residual]      simp",
     "crumbs": [
       "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
-    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
-    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "objectID": "walkthroughs/chapter3/fitted-residual-decomposition.html#downstream-uses",
+    "href": "walkthroughs/chapter3/fitted-residual-decomposition.html#downstream-uses",
+    "title": "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition",
     "section": "Downstream uses",
-    "text": "Downstream uses\n\nThis theorem is the Chapter 2 population analogue of the closed-form OLS coefficient in Chapter 3.\nIt also explains why covariance matrices are the natural inputs to later variance and robust-covariance formulas.",
+    "text": "Downstream uses\nThis page is the bridge from normal equations to the geometry used in later finite-sample OLS facts. It is also the conceptual parent of the usual sum-of-squares identities and residual variance formulas in later chapters.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "",
+    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
     "crumbs": [
       "Walkthroughs",
       "Chapter 2",
-      "Theorem 2.10 — Linear projection covariance formula"
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
-    "objectID": "assumptions/index.html",
-    "href": "assumptions/index.html",
-    "title": "Assumption Map",
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
     "section": "",
-    "text": "These pages collect the assumptions that matter for the currently formalized chapters. Each table separates the mathematical condition from the Lean names and links to the proof endpoints that consume it.\n\n\n\nChapter 2\nConditional expectation, CEF error, variance decomposition, and population linear projection.\nOpen Chapter 2\n\n\nChapter 3\nFinite-dimensional OLS algebra, projection matrices, and FWL.\nOpen Chapter 3\n\n\nChapter 4\nFinite-sample regression assumptions, conditional mean zero, variance formulas, Gauss-Markov, GLS, and White/HC covariance definitions.\nOpen Chapter 4\n\n\nChapter 5\nNormal-regression and exact finite-sample distribution assumptions.\nOpen Chapter 5\n\n\nChapter 7\nAsymptotic condition packages for consistency, CLTs, robust covariance, and homoskedastic inference.\nOpen Chapter 7",
+    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
     "crumbs": [
-      "Assumptions",
-      "Overview"
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
-    "objectID": "assumptions/chapter5.html",
-    "href": "assumptions/chapter5.html",
-    "title": "Chapter 5 Assumptions",
-    "section": "",
-    "text": "Normal regression and exact finite-sample inference\n\nChapter 5 turns the finite-sample algebra into exact distribution statements. The lighter HasGaussianLaw assumptions prove Gaussian closure results; the exact chi-square, Student-t, and F results use a fully specified spherical normal error law.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nLinear model y = X\\beta + e with invertible X^\\top X.\n[Invertible (Xᵀ * X)] olsBeta_linear_decomposition residual_linear_model\nOLS Gaussian law residual Gaussian law\n\n\nError vector has a Gaussian law; mean and covariance are left abstract.\nHasGaussianLaw e μ\nOLS inherits Gaussian law residual inherits Gaussian law\n\n\nExact classical laws assume spherical normal errors e \\sim N(0,\\sigma^2 I) with \\sigma^2 &gt; 0.\nHasLaw ε (multivariateGaussian 0 (σ2 • 1)) μ\nresidual variance chi-square OLS/residual-variance independence\n\n\nDegrees of freedom require n-k to be positive for residual variance, t, and F laws.\nν := Fintype.card n - Fintype.card k 0 &lt; ν\nStudent-t law variance interval coverage\n\n\nExact t inference combines a standard-normal numerator with an independent chi-square denominator.\nolsTStatistic_hasLaw_classicalStudentT\nt law coefficient CI coverage t-test size\n\n\nExact F inference assumes the partitioned-regression null and reuses independent chi-square numerator/denominator laws.\nolsFStatistic_hasLaw_classicalFDist\nF law",
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nQXX : Matrix k k ℝ\nQ_{XX}\nPopulation second-moment matrix.\n\n\nQXY : k → ℝ\nQ_{XY}\nPopulation cross moment.\n\n\nQYY : ℝ\nQ_{YY}\nScalar second moment of Y.\n\n\n[Invertible QXX]\nQ_{XX}^{-1} exists\nNeeded for linearProjectionBeta QXX QXY.\n\n\nhQXXt : QXXᵀ = QXX\nQ_{XX} symmetric\nUsed in the quadratic completion.\n\n\nhQXX_nonneg\nQ_{XX} positive semidefinite\nMakes the completed-square term nonnegative.\n\n\nb : k → ℝ\ncompeting coefficient\nThe theorem is pointwise in any alternative b.",
     "crumbs": [
-      "Assumptions",
-      "Chapter 5"
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
-    "objectID": "assumptions/chapter3.html",
-    "href": "assumptions/chapter3.html",
-    "title": "Chapter 3 Assumptions",
-    "section": "",
-    "text": "Finite-sample least-squares algebra\n\nChapter 3 is deliberately algebraic: no probability space and no distributional assumptions are needed. The substantive assumptions are rank/invertibility conditions on finite matrices.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nThe design matrix X \\in \\mathbb{R}^{n \\times k} and response y \\in \\mathbb{R}^n live on finite index types.\nMatrix n k ℝ n → ℝ [Fintype n] [Fintype k]\nOLS definitions projection matrices\n\n\nFull column rank is represented as invertibility of the Gram matrix X^\\top X.\n[Invertible (Xᵀ * X)]\nnormal equations residual orthogonality hat matrix identities\n\n\nStatements involving I, P, or M need decidable equality on finite index types.\n[DecidableEq n] [DecidableEq k]\nannihilator matrix residual as My\n\n\nFWL needs three nonsingularity witnesses: X_1^\\top X_1, [X_1,X_2]^\\top[X_1,X_2], and (M_1X_2)^\\top(M_1X_2).\n[Invertible (X₁ᵀ * X₁)] [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]\nFWL coefficient theorem FWL residual theorem\n\n\nResidual-sum-zero requires the constant vector to lie in the column span of X.\n∃ b, X *ᵥ b = fun _ =&gt; 1\nresidual sum zero",
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nlinearProjectionBeta QXX QXY is the formal \\beta = Q_{XX}^{-1}Q_{XY}.\nlinearProjectionMSE QXX QXY QYY b is the quadratic criterion S(b).\nThe moment-wrapper theorem linearProjectionBeta_minimizes_MSE_of_moments has the same conclusion with textbook names EXX, EXY, and EY2.",
     "crumbs": [
-      "Assumptions",
-      "Chapter 3"
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
-    "objectID": "coverage.html",
-    "href": "coverage.html",
-    "title": "Coverage",
-    "section": "",
-    "text": "Coverage here means “what a reader can cite”: theorem statements, assumption packages, and walkthrough pages that connect Hansen’s prose to the current Lean API. The canonical planning notes still live in inventory/chN-inventory.md.",
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b := by  rw [linearProjectionMSE_eq_at_beta_add_quadratic_form QXX QXY QYY b hQXXt]  linarith [hQXX_nonneg (b - linearProjectionBeta QXX QXY)]\n\n\nThe only substantive algebra is the supporting completion theorem linearProjectionMSE_eq_at_beta_add_quadratic_form, which expands the criterion, uses the normal equations QXX *ᵥ linearProjectionBeta QXX QXY = QXY, and normalizes the result with ring_nf.",
     "crumbs": [
-      "Coverage"
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
-    "objectID": "coverage.html#canonical-inventories",
-    "href": "coverage.html#canonical-inventories",
-    "title": "Coverage",
-    "section": "Canonical Inventories",
-    "text": "Canonical Inventories\n\nChapter 2 inventory\nChapter 3 inventory\nChapter 4 inventory\nChapter 5 inventory\nChapter 7 inventory",
+    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
+    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
+    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nThis is the population analogue of the OLS least-squares minimization story used in Chapter 3.\nThe normal-equation and uniqueness lemmas here are reused by the Chapter 2 covariance-form slope formula.",
     "crumbs": [
-      "Coverage"
-    ]
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Hansen Econometrics in Lean",
-    "section": "",
-    "text": "This site is the reader-facing map for the Lean formalization of Hansen’s Econometrics: theorem walkthroughs, assumption inventories, and coverage notes that connect textbook statements to reusable Lean declarations.",
-    "crumbs": [
-      "Home"
-    ]
-  },
-  {
-    "objectID": "index.html#start-here",
-    "href": "index.html#start-here",
-    "title": "Hansen Econometrics in Lean",
-    "section": "Start Here",
-    "text": "Start Here\n\nCoverage overview\nAssumption map\nChapter 2 best predictor walkthrough\nTheorem 3.2 walkthrough\nTheorem 7.3 walkthrough",
-    "crumbs": [
-      "Home"
-    ]
-  },
-  {
-    "objectID": "assumptions/chapter2.html",
-    "href": "assumptions/chapter2.html",
-    "title": "Chapter 2 Assumptions",
-    "section": "",
-    "text": "Conditional expectation and projection\n\nChapter 2 has two layers: backend sigma-algebra theorems and public random-variable wrappers. The RV-facing names are the ones later chapters should usually cite.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nConditioning on a measurable variable X means using \\sigma(X), with \\sigma(X) \\le \\mathcal{F}.\nconditioningSpace conditioningSpace_le condExpOn\ntower property law of total variance\n\n\nNested information \\sigma(X_1) \\subseteq \\sigma(X_2) lets the tower property collapse.\nBackend: tower_propertyRV wrapper: tower_property_rv\nRV tower wrapper residual variance monotonicity\n\n\nPull-out theorem needs an X-measurable factor g and integrability of Y and gY.\nBackend: conditioning_theorem_ae, conditioning_theorem_integralRV wrappers: conditioning_theorem_ae_rv, conditioning_theorem_integral_rv\na.e. RV pull-out integrated RV pull-out\n\n\nCEF error e = Y - \\mathbb{E}[Y \\mid X] requires integrability of Y; orthogonality also requires integrability of g e.\nBackend: condExp_cefError_zero, integral_cefError_zero, integral_mul_cefError_zeroRV wrapper: condExp_cefErrorOn_zero\nconditional mean zero RV conditional mean zero\n\n\nVariance identities require Y \\in L^2(\\mu) and probability-measure structure.\nBackend: law_total_variance, variance_condExp_le_varianceRV wrappers: law_total_variance_rv, variance_condExpOn_le_variance\nbackend total variance RV total variance\n\n\nLinear projection needs population moment matrices Q_{XX} and Q_{XY}, plus invertibility of Q_{XX}.\nlinearProjectionBeta linearProjectionBeta_normal_equations linearProjectionBeta_minimizes_MSE\nnormal equations MSE minimizer covariance formula",
-    "crumbs": [
-      "Assumptions",
-      "Chapter 2"
-    ]
-  },
-  {
-    "objectID": "assumptions/chapter4.html",
-    "href": "assumptions/chapter4.html",
-    "title": "Chapter 4 Assumptions",
-    "section": "",
-    "text": "Least-squares regression\n\nChapter 4 adds probability to the finite-sample algebra. The main split is between sigma-algebra conditioning statements and random-variable-facing wrappers.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nLinear model y = X\\beta + e with deterministic X and invertible X^\\top X.\n[Invertible (Xᵀ * X)] olsBeta_linear_decomposition\nOLS decomposition residual model identity\n\n\nConditional mean-zero errors: \\mathbb{E}[e_i \\mid \\mathcal{G}] = 0 or \\mathbb{E}[e_i \\mid X] = 0, with coordinate integrability.\nMeasure-theory version: ols_condExp_eq_betaRV version: ols_condExp_eq_beta_rv\nconditional unbiasedness RV conditional unbiasedness\n\n\nUnconditional unbiasedness reuses the same conditional mean-zero assumption and integrates the conditional result.\nMeasure-theory version: ols_integral_eq_betaRV version: ols_integral_eq_beta_rv\nunconditional unbiasedness RV unconditional unbiasedness\n\n\nConditional covariance formula needs second-moment integrability for centered OLS coordinates and a conditional error covariance matrix D.\nMeasure-theory version: ols_condExp_centered_mul_eq_variance_matrixRV version: ols_condExp_centered_mul_eq_variance_matrix_rv\nmatrix covariance formula RV covariance formula\n\n\nHomoskedastic finite-sample simplification sets D = \\sigma^2 I.\nolsConditionalVarianceMatrix_homoskedastic\nhomoskedastic variance simplification\n\n\nGauss-Markov variance dominance is deterministic once a competing linear estimator A^\\top y is unbiased, i.e. A^\\top X = I.\ngaussMarkov_variance_gap_posSemidef generalizedGaussMarkov_variance_gap_posSemidef\nGauss-Markov core generalized Gauss-Markov core",
-    "crumbs": [
-      "Assumptions",
-      "Chapter 4"
-    ]
-  },
-  {
-    "objectID": "assumptions/chapter7.html",
-    "href": "assumptions/chapter7.html",
-    "title": "Chapter 7 Assumptions",
-    "section": "",
-    "text": "Asymptotic least-squares theory\n\nChapter 7 now exposes descriptive public condition packages. The older Sample...Assumption... names remain as compatibility aliases where internal proofs still use the shorter theorem-engine names.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nMoment-level WLLN layer: independent/identically distributed outer products X_iX_i^\\top, cross products e_iX_i, integrability, population Gram nonsingularity, and \\mathbb{E}[e_iX_i]=0.\nPublic: LeastSquaresConsistencyConditionsCompatibility: SampleMomentAssumption71\nsample Gram WLLN cross-moment WLLN OLS consistency\n\n\nResidual-variance layer extends the WLLN package with independence, identical distribution, and integrability of e_i^2.\nPublic: ErrorVarianceConsistencyConditionsCompatibility: SampleVarianceAssumption74\nerror variance consistency homoskedastic covariance consistency\n\n\nScore CLT layer extends consistency with full independence of score vectors and L^2 integrability of every scalar projection.\nPublic: ScoreCLTConditionsCompatibility: SampleCLTAssumption72\nscore projection CLT OLS scalar CLT all-directions wrapper\n\n\nRobust covariance layer extends the CLT package with true-error score-outer-product WLLN assumptions.\nPublic: RobustCovarianceConsistencyConditionsCompatibility: SampleHC0Assumption76\nHC0 consistency HC1/HC2/HC3 wrappers\n\n\nHomoskedasticity is variable-facing: \\mathbb{E}[e_0^2 \\mid X_0] = \\mathbb{E}[e_0^2].\nHomoskedasticErrorVariance\nscore covariance identity homoskedastic t-statistic wrapper\n\n\nLinear model is pointwise for all observations and sample points: y_i(\\omega)=X_i(\\omega)^\\top\\beta+e_i(\\omega).\nhmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω\nOLS consistency wrapper scalar CLT wrapper",
-    "crumbs": [
-      "Assumptions",
-      "Chapter 7"
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.9 — Linear projection minimizes MSE"
     ]
   },
   {
@@ -538,75 +504,325 @@
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "assumptions/chapter7.html",
+    "href": "assumptions/chapter7.html",
+    "title": "Chapter 7 Assumptions",
     "section": "",
-    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
+    "text": "Asymptotic least-squares theory\n\nChapter 7 now exposes descriptive public condition packages. The older Sample...Assumption... names remain as compatibility aliases where internal proofs still use the shorter theorem-engine names.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nMoment-level WLLN layer: independent/identically distributed outer products X_iX_i^\\top, cross products e_iX_i, integrability, population Gram nonsingularity, and \\mathbb{E}[e_iX_i]=0.\nPublic: LeastSquaresConsistencyConditionsCompatibility: SampleMomentAssumption71\nsample Gram WLLN cross-moment WLLN OLS consistency\n\n\nResidual-variance layer extends the WLLN package with independence, identical distribution, and integrability of e_i^2.\nPublic: ErrorVarianceConsistencyConditionsCompatibility: SampleVarianceAssumption74\nerror variance consistency homoskedastic covariance consistency\n\n\nScore CLT layer extends consistency with full independence of score vectors and L^2 integrability of every scalar projection.\nPublic: ScoreCLTConditionsCompatibility: SampleCLTAssumption72\nscore projection CLT OLS scalar CLT all-directions wrapper\n\n\nRobust covariance layer extends the CLT package with true-error score-outer-product WLLN assumptions.\nPublic: RobustCovarianceConsistencyConditionsCompatibility: SampleHC0Assumption76\nHC0 consistency HC1/HC2/HC3 wrappers\n\n\nHomoskedasticity is variable-facing: \\mathbb{E}[e_0^2 \\mid X_0] = \\mathbb{E}[e_0^2].\nHomoskedasticErrorVariance\nscore covariance identity homoskedastic t-statistic wrapper\n\n\nLinear model is pointwise for all observations and sample points: y_i(\\omega)=X_i(\\omega)^\\top\\beta+e_i(\\omega).\nhmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω\nOLS consistency wrapper scalar CLT wrapper",
     "crumbs": [
-      "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Assumptions",
+      "Chapter 7"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#textbook-statement",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "assumptions/chapter4.html",
+    "href": "assumptions/chapter4.html",
+    "title": "Chapter 4 Assumptions",
     "section": "",
-    "text": "Let Q_{XX} be an invertible population second-moment matrix and Q_{XY} the population cross moment. Define the linear projection coefficient\n\n\\beta = Q_{XX}^{-1} Q_{XY}.\n\nFor the quadratic population criterion\n\nS(b)=Q_{YY}-2b^\\top Q_{XY}+b^\\top Q_{XX}b,\n\nthe coefficient \\beta minimizes S(b) over all coefficient vectors b. The formal theorem assumes the Chapter 2 linear-projection hypotheses: invertibility, symmetry, and positive semidefiniteness of Q_{XX}.\n\n\nComplete the square:\n\nS(b)\n=\nS(\\beta)\n+ (b-\\beta)^\\top Q_{XX}(b-\\beta).\n\nSince Q_{XX} is positive semidefinite, the quadratic form is nonnegative. Therefore S(\\beta)\\le S(b) for every b.",
+    "text": "Least-squares regression\n\nChapter 4 adds probability to the finite-sample algebra. The main split is between sigma-algebra conditioning statements and random-variable-facing wrappers.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nLinear model y = X\\beta + e with deterministic X and invertible X^\\top X.\n[Invertible (Xᵀ * X)] olsBeta_linear_decomposition\nOLS decomposition residual model identity\n\n\nConditional mean-zero errors: \\mathbb{E}[e_i \\mid \\mathcal{G}] = 0 or \\mathbb{E}[e_i \\mid X] = 0, with coordinate integrability.\nMeasure-theory version: ols_condExp_eq_betaRV version: ols_condExp_eq_beta_rv\nconditional unbiasedness RV conditional unbiasedness\n\n\nUnconditional unbiasedness reuses the same conditional mean-zero assumption and integrates the conditional result.\nMeasure-theory version: ols_integral_eq_betaRV version: ols_integral_eq_beta_rv\nunconditional unbiasedness RV unconditional unbiasedness\n\n\nConditional covariance formula needs second-moment integrability for centered OLS coordinates and a conditional error covariance matrix D.\nMeasure-theory version: ols_condExp_centered_mul_eq_variance_matrixRV version: ols_condExp_centered_mul_eq_variance_matrix_rv\nmatrix covariance formula RV covariance formula\n\n\nHomoskedastic finite-sample simplification sets D = \\sigma^2 I.\nolsConditionalVarianceMatrix_homoskedastic\nhomoskedastic variance simplification\n\n\nGauss-Markov variance dominance is deterministic once a competing linear estimator A^\\top y is unbiased, i.e. A^\\top X = I.\ngaussMarkov_variance_gap_posSemidef generalizedGaussMarkov_variance_gap_posSemidef\nGauss-Markov core generalized Gauss-Markov core",
     "crumbs": [
-      "Walkthroughs",
-      "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Assumptions",
+      "Chapter 4"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#lean-statement",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "assumptions/chapter2.html",
+    "href": "assumptions/chapter2.html",
+    "title": "Chapter 2 Assumptions",
+    "section": "",
+    "text": "Conditional expectation and projection\n\nChapter 2 has two layers: backend sigma-algebra theorems and public random-variable wrappers. The RV-facing names are the ones later chapters should usually cite.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nConditioning on a measurable variable X means using \\sigma(X), with \\sigma(X) \\le \\mathcal{F}.\nconditioningSpace conditioningSpace_le condExpOn\ntower property law of total variance\n\n\nNested information \\sigma(X_1) \\subseteq \\sigma(X_2) lets the tower property collapse.\nBackend: tower_propertyRV wrapper: tower_property_rv\nRV tower wrapper residual variance monotonicity\n\n\nPull-out theorem needs an X-measurable factor g and integrability of Y and gY.\nBackend: conditioning_theorem_ae, conditioning_theorem_integralRV wrappers: conditioning_theorem_ae_rv, conditioning_theorem_integral_rv\na.e. RV pull-out integrated RV pull-out\n\n\nCEF error e = Y - \\mathbb{E}[Y \\mid X] requires integrability of Y; orthogonality also requires integrability of g e.\nBackend: condExp_cefError_zero, integral_cefError_zero, integral_mul_cefError_zeroRV wrapper: condExp_cefErrorOn_zero\nconditional mean zero RV conditional mean zero\n\n\nVariance identities require Y \\in L^2(\\mu) and probability-measure structure.\nBackend: law_total_variance, variance_condExp_le_varianceRV wrappers: law_total_variance_rv, variance_condExpOn_le_variance\nbackend total variance RV total variance\n\n\nLinear projection needs population moment matrices Q_{XX} and Q_{XY}, plus invertibility of Q_{XX}.\nlinearProjectionBeta linearProjectionBeta_normal_equations linearProjectionBeta_minimizes_MSE\nnormal equations MSE minimizer covariance formula",
+    "crumbs": [
+      "Assumptions",
+      "Chapter 2"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Hansen Econometrics in Lean",
+    "section": "",
+    "text": "This site is the reader-facing map for the Lean formalization of Hansen’s Econometrics: theorem walkthroughs, assumption inventories, and coverage notes that connect textbook statements to reusable Lean declarations.",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "index.html#start-here",
+    "href": "index.html#start-here",
+    "title": "Hansen Econometrics in Lean",
+    "section": "Start Here",
+    "text": "Start Here\n\nCoverage overview\nAssumption map\nChapter 2 best predictor walkthrough\nTheorem 3.2 walkthrough\nChapter 3 projection matrices\nTheorem 7.3 walkthrough",
+    "crumbs": [
+      "Home"
+    ]
+  },
+  {
+    "objectID": "coverage.html",
+    "href": "coverage.html",
+    "title": "Coverage",
+    "section": "",
+    "text": "Coverage here means “what a reader can cite”: theorem statements, assumption packages, and walkthrough pages that connect Hansen’s prose to the current Lean API. The canonical planning notes still live in inventory/chN-inventory.md.",
+    "crumbs": [
+      "Coverage"
+    ]
+  },
+  {
+    "objectID": "coverage.html#canonical-inventories",
+    "href": "coverage.html#canonical-inventories",
+    "title": "Coverage",
+    "section": "Canonical Inventories",
+    "text": "Canonical Inventories\n\nChapter 2 inventory\nChapter 3 inventory\nChapter 4 inventory\nChapter 5 inventory\nChapter 7 inventory",
+    "crumbs": [
+      "Coverage"
+    ]
+  },
+  {
+    "objectID": "assumptions/chapter3.html",
+    "href": "assumptions/chapter3.html",
+    "title": "Chapter 3 Assumptions",
+    "section": "",
+    "text": "Finite-sample least-squares algebra\n\nChapter 3 is deliberately algebraic: no probability space and no distributional assumptions are needed. The substantive assumptions are rank/invertibility conditions on finite matrices.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nThe design matrix X \\in \\mathbb{R}^{n \\times k} and response y \\in \\mathbb{R}^n live on finite index types.\nMatrix n k ℝ n → ℝ [Fintype n] [Fintype k]\nOLS definitions projection matrices\n\n\nFull column rank is represented as invertibility of the Gram matrix X^\\top X.\n[Invertible (Xᵀ * X)]\nnormal equations residual orthogonality hat matrix identities\n\n\nStatements involving I, P, or M need decidable equality on finite index types.\n[DecidableEq n] [DecidableEq k]\nannihilator matrix residual as My\n\n\nFWL needs three nonsingularity witnesses: X_1^\\top X_1, [X_1,X_2]^\\top[X_1,X_2], and (M_1X_2)^\\top(M_1X_2).\n[Invertible (X₁ᵀ * X₁)] [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]\nFWL coefficient theorem FWL residual theorem\n\n\nResidual-sum-zero requires the constant vector to lie in the column span of X.\n∃ b, X *ᵥ b = fun _ =&gt; 1\nresidual sum zero",
+    "crumbs": [
+      "Assumptions",
+      "Chapter 3"
+    ]
+  },
+  {
+    "objectID": "assumptions/chapter5.html",
+    "href": "assumptions/chapter5.html",
+    "title": "Chapter 5 Assumptions",
+    "section": "",
+    "text": "Normal regression and exact finite-sample inference\n\nChapter 5 turns the finite-sample algebra into exact distribution statements. The lighter HasGaussianLaw assumptions prove Gaussian closure results; the exact chi-square, Student-t, and F results use a fully specified spherical normal error law.\n\n\n\nAssumption\nLean names\nUsed in proofs\n\n\n\n\nLinear model y = X\\beta + e with invertible X^\\top X.\n[Invertible (Xᵀ * X)] olsBeta_linear_decomposition residual_linear_model\nOLS Gaussian law residual Gaussian law\n\n\nError vector has a Gaussian law; mean and covariance are left abstract.\nHasGaussianLaw e μ\nOLS inherits Gaussian law residual inherits Gaussian law\n\n\nExact classical laws assume spherical normal errors e \\sim N(0,\\sigma^2 I) with \\sigma^2 &gt; 0.\nHasLaw ε (multivariateGaussian 0 (σ2 • 1)) μ\nresidual variance chi-square OLS/residual-variance independence\n\n\nDegrees of freedom require n-k to be positive for residual variance, t, and F laws.\nν := Fintype.card n - Fintype.card k 0 &lt; ν\nStudent-t law variance interval coverage\n\n\nExact t inference combines a standard-normal numerator with an independent chi-square denominator.\nolsTStatistic_hasLaw_classicalStudentT\nt law coefficient CI coverage t-test size\n\n\nExact F inference assumes the partitioned-regression null and reuses independent chi-square numerator/denominator laws.\nolsFStatistic_hasLaw_classicalFDist\nF law",
+    "crumbs": [
+      "Assumptions",
+      "Chapter 5"
+    ]
+  },
+  {
+    "objectID": "assumptions/index.html",
+    "href": "assumptions/index.html",
+    "title": "Assumption Map",
+    "section": "",
+    "text": "These pages collect the assumptions that matter for the currently formalized chapters. Each table separates the mathematical condition from the Lean names and links to the proof endpoints that consume it.\n\n\n\nChapter 2\nConditional expectation, CEF error, variance decomposition, and population linear projection.\nOpen Chapter 2\n\n\nChapter 3\nFinite-dimensional OLS algebra, projection matrices, and FWL.\nOpen Chapter 3\n\n\nChapter 4\nFinite-sample regression assumptions, conditional mean zero, variance formulas, Gauss-Markov, GLS, and White/HC covariance definitions.\nOpen Chapter 4\n\n\nChapter 5\nNormal-regression and exact finite-sample distribution assumptions.\nOpen Chapter 5\n\n\nChapter 7\nAsymptotic condition packages for consistency, CLTs, robust covariance, and homoskedastic inference.\nOpen Chapter 7",
+    "crumbs": [
+      "Assumptions",
+      "Overview"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "",
+    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#textbook-statement",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
+    "section": "",
+    "text": "In the linear projection model\n\nY = \\alpha + X^\\top\\beta + e,\n\\qquad \\operatorname{cov}(X,e)=0,\n\nthe slope coefficient has the covariance formula\n\n\\beta = \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\n\nIn Lean, the theorem assumes the Chapter 2 covariance and projection hypotheses: finite second moments, a probability measure, invertibility of covMat μ X, the pointwise affine model, and the orthogonality condition covVec μ X e = 0.\n\n\nTake covariance with X on both sides of the model:\n\n\\operatorname{Cov}(X,Y)\n= \\operatorname{Cov}(X,\\alpha + X^\\top\\beta + e)\n= \\operatorname{Var}(X)\\beta + \\operatorname{Cov}(X,e).\n\nThe orthogonality condition sets \\operatorname{Cov}(X,e)=0, so\n\n\\operatorname{Cov}(X,Y)=\\operatorname{Var}(X)\\beta.\n\nThe population normal-equations uniqueness theorem then identifies \\beta with linearProjectionBeta (covMat μ X) (covVec μ X Y).",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#lean-statement",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
     "section": "Lean statement",
-    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nQXX : Matrix k k ℝ\nQ_{XX}\nPopulation second-moment matrix.\n\n\nQXY : k → ℝ\nQ_{XY}\nPopulation cross moment.\n\n\nQYY : ℝ\nQ_{YY}\nScalar second moment of Y.\n\n\n[Invertible QXX]\nQ_{XX}^{-1} exists\nNeeded for linearProjectionBeta QXX QXY.\n\n\nhQXXt : QXXᵀ = QXX\nQ_{XX} symmetric\nUsed in the quadratic completion.\n\n\nhQXX_nonneg\nQ_{XX} positive semidefinite\nMakes the completed-square term nonnegative.\n\n\nb : k → ℝ\ncompeting coefficient\nThe theorem is pointwise in any alternative b.",
+    "text": "Lean statement\nThe theorem lives in HansenEconometrics/Chapter2LinearProjection.lean:\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y)\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n[IsProbabilityMeasure μ]\nprobability law\nNeeded for covariance and expectations.\n\n\nX : Ω → k → ℝ\nrandom vector X\nRegressor vector.\n\n\nY e : Ω → ℝ\nY, e\nResponse and projection error.\n\n\nα : ℝ, β : k → ℝ\nintercept and slope\nParameters in the affine model.\n\n\n[Invertible (covMat μ X)]\n\\operatorname{Var}(X) invertible\nLets Lean form the covariance-based projection coefficient.\n\n\nhX, he\nfinite second moments\nRequired for covariances.\n\n\nhmodel\nY=\\alpha+X^\\top\\beta+e\nPointwise model identity.\n\n\nhorth\n\\operatorname{Cov}(X,e)=0\nOrthogonality condition that produces the normal equations.\n\n\nconclusion\n\\beta=\\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y)\nTextbook covariance formula.",
     "crumbs": [
       "Walkthroughs",
       "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Theorem 2.10 — Linear projection covariance formula"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#translation-notes",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#translation-notes",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
     "section": "Translation notes",
-    "text": "Translation notes\n\nlinearProjectionBeta QXX QXY is the formal \\beta = Q_{XX}^{-1}Q_{XY}.\nlinearProjectionMSE QXX QXY QYY b is the quadratic criterion S(b).\nThe moment-wrapper theorem linearProjectionBeta_minimizes_MSE_of_moments has the same conclusion with textbook names EXX, EXY, and EY2.",
+    "text": "Translation notes\n\ncovMat μ X is Hansen’s \\operatorname{Var}(X).\ncovVec μ X Y is Hansen’s \\operatorname{Cov}(X,Y).\nlinearProjectionBeta (covMat μ X) (covVec μ X Y) is the formal covariance formula \\operatorname{Var}(X)^{-1}\\operatorname{Cov}(X,Y).\nThe proof routes through linearProjectionBeta_eq_of_normal_equations: once covMat μ X *ᵥ β = covVec μ X Y is proved, uniqueness does the rest.",
     "crumbs": [
       "Walkthroughs",
       "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Theorem 2.10 — Linear projection covariance formula"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#tactic-by-tactic-walkthrough",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
     "section": "Tactic-by-tactic walkthrough",
-    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_minimizes_MSE\n    (QXX : Matrix k k ℝ) (QXY : k → ℝ) (QYY : ℝ) [Invertible QXX]\n    (hQXXt : QXXᵀ = QXX)\n    (hQXX_nonneg : ∀ v : k → ℝ, 0 ≤ v ⬝ᵥ (QXX *ᵥ v))\n    (b : k → ℝ) :\n    linearProjectionMSE QXX QXY QYY (linearProjectionBeta QXX QXY) ≤\n      linearProjectionMSE QXX QXY QYY b := by  rw [linearProjectionMSE_eq_at_beta_add_quadratic_form QXX QXY QYY b hQXXt]  linarith [hQXX_nonneg (b - linearProjectionBeta QXX QXY)]\n\n\nThe only substantive algebra is the supporting completion theorem linearProjectionMSE_eq_at_beta_add_quadratic_form, which expands the criterion, uses the normal equations QXX *ᵥ linearProjectionBeta QXX QXY = QXY, and normalizes the result with ring_nf.",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem linearProjectionBeta_eq_covMat_inv_covVec\n    [IsProbabilityMeasure μ]\n    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)\n    [Invertible (covMat μ X)]\n    (hX : ∀ i, MemLp (fun ω =&gt; X ω i) 2 μ)\n    (he : MemLp e 2 μ)\n    (hmodel : Y = fun ω =&gt; α + dotProduct (X ω) β + e ω)\n    (horth : covVec μ X e = 0) :\n    β = linearProjectionBeta (covMat μ X) (covVec μ X Y) := by  symm  apply linearProjectionBeta_eq_of_normal_equations  have hcov :\n      covVec μ X Y = covMat μ X *ᵥ β + covVec μ X e := by    rw [hmodel]    exact covVec_linearProjectionModel (μ := μ) X e α β hX he  calc\n    covMat μ X *ᵥ β = covMat μ X *ᵥ β + covVec μ X e := by rw [horth]; simp\n    _ = covVec μ X Y := by rw [hcov]",
     "crumbs": [
       "Walkthroughs",
       "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Theorem 2.10 — Linear projection covariance formula"
     ]
   },
   {
-    "objectID": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
-    "href": "walkthroughs/chapter2/linear-projection-minimizes-mse.html#downstream-uses",
-    "title": "Theorem 2.9 — Linear projection minimizes MSE",
+    "objectID": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
+    "href": "walkthroughs/chapter2/linear-projection-covariance-formula.html#downstream-uses",
+    "title": "Theorem 2.10 — Linear projection covariance formula",
     "section": "Downstream uses",
-    "text": "Downstream uses\n\nThis is the population analogue of the OLS least-squares minimization story used in Chapter 3.\nThe normal-equation and uniqueness lemmas here are reused by the Chapter 2 covariance-form slope formula.",
+    "text": "Downstream uses\n\nThis theorem is the Chapter 2 population analogue of the closed-form OLS coefficient in Chapter 3.\nIt also explains why covariance matrices are the natural inputs to later variance and robust-covariance formulas.",
     "crumbs": [
       "Walkthroughs",
       "Chapter 2",
-      "Theorem 2.9 — Linear projection minimizes MSE"
+      "Theorem 2.10 — Linear projection covariance formula"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html",
+    "href": "walkthroughs/chapter2/variance-decomposition.html",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "",
+    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#textbook-statement",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "",
+    "text": "For a square-integrable response Y and measurable conditioning variable X, Hansen’s law of total variance decomposes total variation into residual and explained components:\n\n\\operatorname{Var}(Y)\n=\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid X]).\n\nIn Lean, the random-variable-facing theorem is law_total_variance_rv. The rearranged backend theorem variance_decomposition states the same identity directly for a sigma-algebra.\n\n\nThis is exactly Mathlib’s conditional-variance identity:\n\n\\mathbb{E}[\\operatorname{Var}(Y\\mid\\mathcal{G})]\n+ \\operatorname{Var}(\\mathbb{E}[Y\\mid\\mathcal{G}])\n= \\operatorname{Var}(Y).\n\nThe Chapter 2 wrapper does two things: it specializes \\mathcal{G} to \\sigma(X) and rewrites the notation to condVarOn μ Y X and condExpOn μ Y X. The rearranged backend theorem flips the equality so it reads in Hansen’s usual direction.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#lean-statement",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe public wrapper lives in HansenEconometrics/Chapter2Variance.lean:\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ]\n\n\n\nReading the statement\n\n\n\n\n\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{Y : Ω → ℝ}\nY\nGiven: response variable.\n\n\n{X : Ω → β}\nX\nGiven: conditioning variable.\n\n\n(hX : Measurable X)\nX measurable\nLets Lean condition on \\sigma(X).\n\n\n[IsProbabilityMeasure μ]\nprobability measure\nVariance is stated under a probability law.\n\n\n(hY : MemLp Y 2 μ)\nY \\in L^2\nFinite second moment.\n\n\nμ[condVarOn μ Y X]\n\\mathbb{E}[\\operatorname{Var}(Y\\mid X)]\nResidual variance component.\n\n\nVar[condExpOn μ Y X; μ]\n\\operatorname{Var}(\\mathbb{E}[Y\\mid X])\nExplained variance component.\n\n\n= Var[Y; μ]\n=\\operatorname{Var}(Y)\nTotal variance.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#translation-notes",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Translation notes",
+    "text": "Translation notes\n\ncondVarOn μ Y X is the variable-facing conditional variance wrapper.\ncondExpOn μ Y X is the variable-facing conditional expectation wrapper.\nThe backend theorem variance_decomposition states Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ]; it is just the same equality in the opposite orientation.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\n\ntheorem law_total_variance_rv\n    {Y : Ω → ℝ} {X : Ω → β}\n    (hX : Measurable X)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ] := by  simpa [condVarOn, condExpOn, conditioningSpace] using    law_total_variance\n      (m := conditioningSpace X)\n      (m₀ := inferInstance)\n      (μ := μ)\n      (Y := Y)\n      (conditioningSpace_le hX)\n      hY\n\n\nThe backend theorem itself is a direct Mathlib specialization:\n\ntheorem variance_decomposition\n    {Y : Ω → ℝ}\n    (hm : m ≤ m₀)\n    [IsProbabilityMeasure μ]\n    (hY : MemLp Y 2 μ) :\n    Var[Y; μ] = μ[Var[Y; μ | m]] + Var[μ[Y | m]; μ] := by  rw [eq_comm]  simpa using law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
+    "href": "walkthroughs/chapter2/variance-decomposition.html#downstream-uses",
+    "title": "Theorem 2.8 — Law of total variance",
+    "section": "Downstream uses",
+    "text": "Downstream uses\n\nvariance_condExpOn_le_variance extracts the explained-variance bound.\nresidualVarOn_antitone uses the decomposition to show that richer conditioning information weakly reduces residual variance.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 2",
+      "Theorem 2.8 — Law of total variance"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html",
+    "href": "walkthroughs/chapter3/projection-matrices.html",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} with X^\\top X invertible, define the hat matrix and annihilator matrix \nP = X(X^\\top X)^{-1}X^\\top,\\qquad M = I - P.\n\nHansen’s projection-matrix identities say that P is symmetric and idempotent, P X = X, \\operatorname{tr}(P)=k, and the residual-maker M is symmetric and idempotent, M X = 0, \\operatorname{tr}(M)=n-k.\n\n\nThe key calculation is P X = X: \nPX = X(X^\\top X)^{-1}X^\\top X = X.\n Idempotence then follows by tucking the right-hand copy of P into PX: \nP^2 = P\\,X(X^\\top X)^{-1}X^\\top = X(X^\\top X)^{-1}X^\\top = P.\n For M, expand (I-P)^2 and use P^2=P. The trace identities use cyclicity of trace and \\operatorname{tr}(I_k)=k.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html#textbook-statement",
+    "href": "walkthroughs/chapter3/projection-matrices.html#textbook-statement",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "",
+    "text": "For a design matrix X \\in \\mathbb{R}^{n\\times k} with X^\\top X invertible, define the hat matrix and annihilator matrix \nP = X(X^\\top X)^{-1}X^\\top,\\qquad M = I - P.\n\nHansen’s projection-matrix identities say that P is symmetric and idempotent, P X = X, \\operatorname{tr}(P)=k, and the residual-maker M is symmetric and idempotent, M X = 0, \\operatorname{tr}(M)=n-k.\n\n\nThe key calculation is P X = X: \nPX = X(X^\\top X)^{-1}X^\\top X = X.\n Idempotence then follows by tucking the right-hand copy of P into PX: \nP^2 = P\\,X(X^\\top X)^{-1}X^\\top = X(X^\\top X)^{-1}X^\\top = P.\n For M, expand (I-P)^2 and use P^2=P. The trace identities use cyclicity of trace and \\operatorname{tr}(I_k)=k.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html#lean-statement",
+    "href": "walkthroughs/chapter3/projection-matrices.html#lean-statement",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe projection matrix API lives in HansenEconometrics/Chapter3Projections.lean:\n\n\n\nTextbook identity\nLean theorem\nRole\n\n\n\n\nP^\\top=P\nhatMatrix_transpose\nSymmetry of the hat matrix.\n\n\nPX=X\nhat_mul_X\nThe hat matrix fixes the regressor space.\n\n\nP^2=P\nhatMatrix_idempotent\nHeadline projection identity.\n\n\n\\operatorname{tr}(P)=k\nhatMatrix_trace\nEffective dimension of the fitted-value space.\n\n\nM^\\top=M\nannihilatorMatrix_transpose\nSymmetry of the residual-maker.\n\n\nMX=0\nannihilator_mul_X\nResidual-maker kills regressors.\n\n\nM^2=M\nannihilatorMatrix_idempotent\nHeadline residual-maker identity.\n\n\n\\operatorname{tr}(M)=n-k\nannihilatorMatrix_trace\nResidual degrees of freedom.\n\n\n\nThe two idempotence statements read:\n\ntheorem hatMatrix_idempotent\n    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :\n    hatMatrix X * hatMatrix X = hatMatrix X\n\ntheorem annihilatorMatrix_idempotent\n    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :\n    annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X\n\n\n\nReading the statement\nIn English: given a finite design matrix X with invertible X^\\top X, Lean proves that the fitted-value operator hatMatrix X and residual operator annihilatorMatrix X are genuine projection matrices.\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nhatMatrix X\nX(X^\\top X)^{-1}X^\\top\nThe orthogonal projection onto the column space of X.\n\n\nannihilatorMatrix X\nI - P\nThe projection onto the orthogonal complement of the column space of X.\n\n\n[Invertible (Xᵀ * X)]\nX^\\top X invertible\nHansen’s full-column-rank condition. See the Chapter 3 assumption map.\n\n\n[DecidableEq n]\ndecidable row equality\nMathlib bookkeeping needed for identity matrices such as I_n.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html#translation-notes",
+    "href": "walkthroughs/chapter3/projection-matrices.html#translation-notes",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "Translation notes",
+    "text": "Translation notes\n\nLean writes P as hatMatrix X and M as annihilatorMatrix X.\n* is matrix multiplication; ᵀ is transpose; Matrix.trace is the usual finite trace.\nThe row and column dimensions are finite index types, not natural-number literals. That is why the statements mention Fintype and DecidableEq assumptions around the theorem section.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter3/projection-matrices.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nHover over a proof line to read what it contributes.\n\ntheorem hatMatrix_idempotent\n    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :\n    hatMatrix X * hatMatrix X = hatMatrix X := by  change hatMatrix X * (X * ⅟ (Xᵀ * X) * Xᵀ) =\n      X * ⅟ (Xᵀ * X) * Xᵀ  rw [Matrix.mul_assoc X (⅟ (Xᵀ * X)) Xᵀ]  rw [← Matrix.mul_assoc (hatMatrix X) X (⅟ (Xᵀ * X) * Xᵀ)]  rw [hat_mul_X]\n\n\nThe corresponding annihilator proof is intentionally short:\n\ntheorem annihilatorMatrix_idempotent\n    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :\n    annihilatorMatrix X * annihilatorMatrix X = annihilatorMatrix X := by  simp [annihilatorMatrix, Matrix.sub_mul, Matrix.mul_sub, hatMatrix_idempotent]",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter3/projection-matrices.html#downstream-uses",
+    "href": "walkthroughs/chapter3/projection-matrices.html#downstream-uses",
+    "title": "Theorem 3.3 — Hat and annihilator matrix identities",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nThese identities feed almost every later OLS geometry result:\n\nresidual_eq_annihilator_mul_y expresses the residual vector as My.\nfitted_residual_pythagorean uses the projection geometry to split total variation into fitted and residual components.\nfromColsRightBeta_eq_fwlBeta uses annihilator identities to formalize Frisch-Waugh-Lovell.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 3",
+      "Theorem 3.3 — Hat and annihilator matrix identities"
     ]
   },
   {
