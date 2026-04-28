@@ -113,6 +113,7 @@ theorem residual_sum_zero_of_one_mem_colspan
       rw [h]
       simp
 
+omit [DecidableEq k] in
 /-- Bridge lemma: the Chapter 3 sum-of-squared-errors equals the Chapter 2
 `linearProjectionMSE` when the moment matrices are the sample Gram matrix and
 cross-moment vector. This connects the two notations so we can reuse the

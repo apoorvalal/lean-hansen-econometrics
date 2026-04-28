@@ -31,7 +31,7 @@ theorem nonsingInv_smul {k : Type*} [Fintype k] [DecidableEq k]
 /-- Hansen Theorem 3.3.1 helper: the Gram matrix `Xᵀ * X` is symmetric. Relocated here from
 `Chapter3Projections.lean` so that earlier files (e.g., `Chapter3LeastSquaresAlgebra.lean`)
 can use it without creating a circular import. -/
-theorem gram_transpose {n k : Type*} [Fintype n] [Fintype k]
+theorem gram_transpose {n k : Type*} [Fintype n]
     (X : Matrix n k ℝ) :
     (Xᵀ * X)ᵀ = Xᵀ * X := by
   rw [Matrix.transpose_mul, Matrix.transpose_transpose]

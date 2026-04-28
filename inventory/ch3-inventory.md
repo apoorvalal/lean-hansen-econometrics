@@ -94,7 +94,7 @@ Conventions:
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Theorem 3.1 objective-level argmin statement (existence half) | $\hat{\beta} = \arg\min_b (Y - X b)'(Y - X b)$ | [sumSquaredErrors_olsBeta_le](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L141)<br>`sumSquaredErrors X y (olsBeta X y) ≤ sumSquaredErrors X y b`<br>[olsBeta_isMinOn](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L152)<br>`IsMinOn (sumSquaredErrors X y) Set.univ (olsBeta X y)` |
+| Theorem 3.1 objective-level argmin statement (existence half) | $\hat{\beta} = \arg\min_b (Y - X b)'(Y - X b)$ | [sumSquaredErrors_olsBeta_le](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L142)<br>`sumSquaredErrors X y (olsBeta X y) ≤ sumSquaredErrors X y b`<br>[olsBeta_isMinOn](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L153)<br>`IsMinOn (sumSquaredErrors X y) Set.univ (olsBeta X y)` |
 | Definition 3.1 sum of squared errors | $S(b) = (Y - X b)'(Y - X b)$ | [sumSquaredErrors](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L16)<br><code>sumSquaredErrors X y b := (y - X *ᵥ b) ⬝ᵥ (y - X *ᵥ b)</code> |
 | Theorem 3.2 closed-form OLS coefficient | $\hat{\beta} = (X'X)^{-1} X' Y$ | [olsBeta](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)<br><code>olsBeta X y := (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)</code> |
 | Theorem 3.2 normal equations | $X' \hat{e} = 0$ | [normal_equations](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L32)<br><code>Xᵀ *ᵥ residual X y = 0</code> |
@@ -116,7 +116,7 @@ Conventions:
 
 | Lean theorem | Role |
 | --- | --- |
-| [sumSquaredErrors_eq_linearProjectionMSE](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L120) | Identifies `sumSquaredErrors X y b` with `linearProjectionMSE (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y) b`, connecting Chapter 3 and Chapter 2 notation |
+| [sumSquaredErrors_eq_linearProjectionMSE](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L121) | Identifies `sumSquaredErrors X y b` with `linearProjectionMSE (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y) b`, connecting Chapter 3 and Chapter 2 notation |
 | [gram_quadratic_nonneg](../../HansenEconometrics/LinearAlgebraUtils.lean#L81) | `0 ≤ v ⬝ᵥ ((Xᵀ * X) *ᵥ v)` for all `v`; the Gram matrix is positive semidefinite |
 | [gram_transpose](../../HansenEconometrics/LinearAlgebraUtils.lean#L34) | `(Xᵀ * X)ᵀ = Xᵀ * X` (relocated from `Chapter3Projections.lean` to break a potential circular import) |
 

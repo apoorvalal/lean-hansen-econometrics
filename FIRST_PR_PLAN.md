@@ -30,16 +30,18 @@ a non-blank Lean cell for Theorem 3.1 (with an explicit "(existence half)" annot
 
 ## Progress
 
-- [ ] Read and understand all files listed in "Context and Orientation" below.
-- [ ] Move `gram_transpose` from `Chapter3Projections.lean` to `LinearAlgebraUtils.lean`.
-- [ ] Add `gram_quadratic_nonneg` to `LinearAlgebraUtils.lean`.
-- [ ] Add `import HansenEconometrics.Chapter2LinearProjection` to `Chapter3LeastSquaresAlgebra.lean`.
-- [ ] Add `sumSquaredErrors_eq_linearProjectionMSE` to `Chapter3LeastSquaresAlgebra.lean`.
-- [ ] Add `sumSquaredErrors_olsBeta_le` to `Chapter3LeastSquaresAlgebra.lean`.
-- [ ] Add `olsBeta_isMinOn` to `Chapter3LeastSquaresAlgebra.lean`.
-- [ ] Update the Theorem 3.1 row in `inventory/ch3-inventory.md` (with "existence half" annotation).
-- [ ] Add a "Lean-only bridge results" subsection to `inventory/ch3-inventory.md` (new section).
-- [ ] Run `lake build` and confirm it succeeds with zero errors and zero `sorry`s.
+- [x] (2026-04-27) Read and understand all files listed in "Context and Orientation" below.
+- [x] (2026-04-27) Move `gram_transpose` from `Chapter3Projections.lean` to `LinearAlgebraUtils.lean`.
+- [x] (2026-04-27) Add `gram_quadratic_nonneg` to `LinearAlgebraUtils.lean`.
+- [x] (2026-04-27) Add `import HansenEconometrics.Chapter2LinearProjection` to `Chapter3LeastSquaresAlgebra.lean`.
+- [x] (2026-04-27) Add `sumSquaredErrors_eq_linearProjectionMSE` to `Chapter3LeastSquaresAlgebra.lean`.
+- [x] (2026-04-27) Add `sumSquaredErrors_olsBeta_le` to `Chapter3LeastSquaresAlgebra.lean`.
+- [x] (2026-04-27) Add `olsBeta_isMinOn` to `Chapter3LeastSquaresAlgebra.lean`.
+- [x] (2026-04-27) Drop unused `[Fintype k]` from `gram_transpose` and add `omit [DecidableEq k] in` above the bridge lemma to silence linter warnings (see Surprises & Discoveries).
+- [x] (2026-04-27) Run `lake build` and confirm it succeeds with zero errors, zero `sorry`s, and no linter warnings on the two modified files.
+- [x] (2026-04-27) Update the Theorem 3.1 row in `inventory/ch3-inventory.md` (with "existence half" annotation).
+- [x] (2026-04-27) Add a "Lean-only bridge results" subsection to `inventory/ch3-inventory.md` (new section).
+- [x] (2026-04-27) Backfill `#L<n>` line anchors on the new crosswalk links in `inventory/ch3-inventory.md`. Note: three anchors needed a +1 adjustment after the `omit [DecidableEq k] in` linter fix shifted declarations down by one line; final values are `#L121` (bridge lemma), `#L142` (`sumSquaredErrors_olsBeta_le`), `#L153` (`olsBeta_isMinOn`); `gram_transpose#L34` and `gram_quadratic_nonneg#L81` were unaffected.
 
 ## Surprises & Discoveries
 
@@ -53,6 +55,24 @@ a non-blank Lean cell for Theorem 3.1 (with an explicit "(existence half)" annot
   Evidence: round-2 review trace (verified by independent step-by-step analysis).
   This is the kind of error that is easy to miss in a plan document and only surfaces when
   the file is actually loaded in the Lean server.
+
+- Observation: After the first successful `lake build`, the repo's strict linters flagged
+  two unused-hypothesis warnings on the new declarations. (1) `gram_transpose` was declared
+  with `[Fintype k]`, but the proof only uses `Matrix.transpose_mul` and
+  `Matrix.transpose_transpose`, neither of which enumerates over `k`. (2)
+  `sumSquaredErrors_eq_linearProjectionMSE` inherited `[DecidableEq k]` from the file-level
+  `variable` block in `Chapter3LeastSquaresAlgebra.lean`, but the bridge lemma is purely
+  algebraic (no case analysis on indices) and never uses it.
+  Evidence: build output `gram_transpose does not use the following hypothesis in its
+  type: [Fintype k]` and `sumSquaredErrors_eq_linearProjectionMSE does not use the
+  following hypothesis in its type: [DecidableEq k]`.
+  Fix: drop `[Fintype k]` from `gram_transpose`'s explicit binders, and add an
+  `omit [DecidableEq k] in` directive immediately above
+  `sumSquaredErrors_eq_linearProjectionMSE`. Both are baked into Steps 1(b) and 4 of the
+  Concrete Steps below, so a fresh implementer never sees the warnings. After the fix,
+  `lake build` reports clean (✔) on both `LinearAlgebraUtils` and
+  `Chapter3LeastSquaresAlgebra`; the remaining warnings on Chapter 4 / Chapter 5 are
+  pre-existing in the repo and unrelated to this PR.
 
 ## Decision Log
 
@@ -130,9 +150,58 @@ a non-blank Lean cell for Theorem 3.1 (with an explicit "(existence half)" annot
   "no progress" because `(X *ᵥ b) ⬝ᵥ (X *ᵥ b)` is its own commutator.
   Date/Author: revised plan after round-2 feedback review.
 
+- Decision: Drop `[Fintype k]` from `gram_transpose`'s signature, and add
+  `omit [DecidableEq k] in` above `sumSquaredErrors_eq_linearProjectionMSE`.
+  Rationale: The repo's `unusedFintypeInType` and `unusedDecidableInType` linters flag
+  hypotheses that appear in a declaration's type but are never referenced. Both
+  declarations had inherited or declared instances that the actual statement and proof
+  did not need. Removing them silences the linter and matches the original
+  `gram_transpose` signature in `Chapter3Projections.lean` (which had only `[Fintype n]`).
+  The repo evidently treats these linters as build hygiene — pre-existing files that
+  pass cleanly do not have such warnings on their declarations.
+  Date/Author: revised plan after empirical `lake build` run.
+
 ## Outcomes & Retrospective
 
-(Fill in after completion.)
+Implementation completed 2026-04-27. All declared theorems compile cleanly, no `sorry`s
+remain, and `lake build` reports `Build completed successfully (8263 jobs).` with ✔
+(clean) status on both modified files.
+
+What was achieved:
+- Hansen Theorem 3.1 (existence half) is now machine-verified via `sumSquaredErrors_olsBeta_le`
+  and `olsBeta_isMinOn`.
+- The reusable infrastructure layer gained two lemmas: `gram_transpose` (relocated) and
+  `gram_quadratic_nonneg` (new). Both are available to later chapters via
+  `LinearAlgebraUtils.lean`.
+- The crosswalk in `inventory/ch3-inventory.md` is updated, including a new "Lean-only
+  bridge results" subsection that documents the connective tissue between Chapter 2's
+  abstract projection algebra and Chapter 3's sample-moment notation.
+
+What remains for the follow-up PR (uniqueness):
+- Derive strict positive-definiteness `(b - β̂)' X'X (b - β̂) > 0 for b ≠ β̂` from
+  `[Invertible (Xᵀ * X)]` plus `gram_quadratic_nonneg`.
+- Prove `sumSquaredErrors_eq_olsBeta_add_gram_form` (the SSE-side completing-the-square
+  decomposition), which becomes live again here as the setup for uniqueness.
+- Prove `olsBeta_eq_of_minimizer`: `b = olsBeta X y` whenever `SSE(b) = SSE(olsBeta X y)`,
+  mirroring Chapter 2's `linearProjectionBeta_eq_of_MSE_eq`.
+- Update the inventory cell to drop the "(existence half)" qualifier.
+
+Lessons learned:
+1. The two-round feedback cycle caught both a dependency bug (circular import on
+   `gram_transpose`) and a tactic-elaboration bug (multi-match `rw` in `hquad`) that the
+   initial plan missed. Plans benefit from independent review even when they look complete.
+2. `lake build` surfaces a class of issues — strict linter warnings on inherited but unused
+   binders — that no amount of paper review can predict. Always run the build before
+   declaring a plan implementable, even when the proofs themselves typecheck.
+3. Reusing `linearProjectionBeta_minimizes_MSE` (the abstract minimization theorem in
+   Chapter 2) collapsed what was originally planned as a two-theorem proof into a
+   three-rewrite-plus-`exact` proof. The repo's existing reusable infrastructure was
+   already strong enough to package this result with minimal new code — AGENTS.md
+   principle 2 ("reuse repo theorems") was load-bearing here.
+4. Line-anchor maintenance is sensitive to tactic-level changes. A single inserted
+   `omit [DecidableEq k] in` directive cascaded into three off-by-one anchor corrections
+   in the inventory. Future contributors should backfill anchors as the *last* step,
+   after all proof-body edits have stabilized.
 
 ## Context and Orientation
 
@@ -325,12 +394,18 @@ files are rechecked.
     /-- Hansen Theorem 3.3.1 helper: the Gram matrix `Xᵀ * X` is symmetric. Relocated here from
     `Chapter3Projections.lean` so that earlier files (e.g., `Chapter3LeastSquaresAlgebra.lean`)
     can use it without creating a circular import. -/
-    theorem gram_transpose {n k : Type*} [Fintype n] [Fintype k]
+    theorem gram_transpose {n k : Type*} [Fintype n]
         (X : Matrix n k ℝ) :
         (Xᵀ * X)ᵀ = Xᵀ * X := by
       rw [Matrix.transpose_mul, Matrix.transpose_transpose]
 
 Save.
+
+Note on binders: the signature has `[Fintype n]` but no `[Fintype k]`. The proof only uses
+`Matrix.transpose_mul` and `Matrix.transpose_transpose`, neither of which enumerates over
+the column index `k`. Including `[Fintype k]` would trigger an `unusedFintypeInType` linter
+warning. This matches the original signature of `gram_transpose` in `Chapter3Projections.lean`
+before the move.
 
 (c) Verify recovery. Re-open `HansenEconometrics/Chapter3Projections.lean` and confirm that
 the `inv_gram_transpose` declaration (which calls `gram_transpose` in its proof) shows no
@@ -394,6 +469,7 @@ Insert in `Chapter3LeastSquaresAlgebra.lean` immediately before `end HansenEcono
 Note: the surrounding file has `variable {n k : Type*} [Fintype n] [Fintype k] [DecidableEq k]`
 already declared; do NOT redeclare these in the new theorem signatures.
 
+    omit [DecidableEq k] in
     /-- Bridge lemma: the Chapter 3 sum-of-squared-errors equals the Chapter 2
     `linearProjectionMSE` when the moment matrices are the sample Gram matrix and
     cross-moment vector. This connects the two notations so we can reuse the
@@ -413,6 +489,15 @@ already declared; do NOT redeclare these in the new theorem signatures.
       rw [sub_dotProduct, dotProduct_sub, dotProduct_sub,
           dotProduct_comm (X *ᵥ b) y, hcross, hquad]
       ring
+
+Note on the `omit [DecidableEq k] in` directive: the file-level `variable` block declares
+`[DecidableEq k]` for the benefit of theorems like `normal_equations` that use Lean's
+matrix machinery (which sometimes needs decidable equality on indices). The bridge lemma
+is purely algebraic and never relies on it; without the `omit`, the
+`unusedDecidableInType` linter flags this as a warning. The companion theorems
+`sumSquaredErrors_olsBeta_le` and `olsBeta_isMinOn` *do* use `[DecidableEq k]` indirectly
+(via `olsBeta`, which involves the matrix inverse `⅟ (Xᵀ * X)`), so they keep the inherited
+binder and do not need their own `omit`.
 
 Proof explanation: The two `have` lemmas isolate the only non-trivial dot-product moves —
 the cross-term identity and the quadratic-term identity. After `unfold`, the goal is a
@@ -523,10 +608,19 @@ Run from the repository root:
 
     lake build
 
-Expected output: a series of compilation lines ending with no errors. If the build succeeds,
-the terminal returns to the prompt with exit code 0. If there are errors, read the first error
-message carefully — Lean error messages typically tell you exactly which tactic step failed and
-what the current goal state is.
+Expected output: a series of compilation lines ending with `Build completed successfully (N
+jobs).` and exit code 0. The two files this PR modifies — `HansenEconometrics.LinearAlgebraUtils`
+and `HansenEconometrics.Chapter3LeastSquaresAlgebra` — should both display ✔ (clean) status
+markers, NOT ⚠ (warning). If either shows ⚠, the linter is flagging an unused-binder issue
+and one of Steps 1(b) or 4 was applied incorrectly. See the Surprises & Discoveries section
+for the two known fixes (drop `[Fintype k]` from `gram_transpose`; add `omit [DecidableEq k] in`
+above the bridge lemma).
+
+The remaining ⚠ status on `HansenEconometrics.Chapter4LeastSquaresRegression` and
+`HansenEconometrics.Chapter5NormalRegression` is pre-existing — those warnings (long-line,
+flexible-tactic, unused `[DecidableEq n]`) are not related to this PR. Verify by running
+`git diff main -- HansenEconometrics/Chapter4LeastSquaresRegression.lean
+HansenEconometrics/Chapter5NormalRegression.lean`; the diff should be empty.
 
 Also run, from the repository root:
 
@@ -539,7 +633,9 @@ incomplete.
 
 Acceptance criteria:
 
-1. `lake build` exits 0 with no errors.
+1. `lake build` exits 0 with no errors. The two files this PR modifies
+   (`HansenEconometrics.LinearAlgebraUtils` and `HansenEconometrics.Chapter3LeastSquaresAlgebra`)
+   both display ✔ (clean) in the build output, with no linter warnings.
 
 2. `grep -rn "sorry" HansenEconometrics/ --include="*.lean"` returns no results.
 
@@ -629,7 +725,7 @@ New declarations and their signatures after this plan is complete:
 
 In `HansenEconometrics/LinearAlgebraUtils.lean` (relocated):
 
-    theorem gram_transpose {n k : Type*} [Fintype n] [Fintype k]
+    theorem gram_transpose {n k : Type*} [Fintype n]
         (X : Matrix n k ℝ) :
         (Xᵀ * X)ᵀ = Xᵀ * X
 
@@ -640,8 +736,10 @@ In `HansenEconometrics/LinearAlgebraUtils.lean` (new):
         0 ≤ v ⬝ᵥ ((Xᵀ * X) *ᵥ v)
 
 In `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean` (new; type-parameter and instance
-binders are inherited from the file-level `variable` block):
+binders are inherited from the file-level `variable` block, except the bridge lemma
+`omit`s `[DecidableEq k]`):
 
+    omit [DecidableEq k] in
     lemma sumSquaredErrors_eq_linearProjectionMSE
         (X : Matrix n k ℝ) (y : n → ℝ) (b : k → ℝ) :
         sumSquaredErrors X y b =
