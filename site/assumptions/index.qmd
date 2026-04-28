@@ -1,0 +1,49 @@
+---
+title: "Assumption Map"
+---
+
+::: {.hero-panel}
+These pages collect the assumptions that matter for the currently formalized
+chapters. Each table separates the mathematical condition from the Lean names
+and links to the proof endpoints that consume it.
+:::
+
+::: {.assumption-grid}
+::: {.assumption-card}
+### Chapter 2
+Conditional expectation, CEF error, variance decomposition, and population
+linear projection.
+
+[Open Chapter 2](chapter2.qmd)
+:::
+
+::: {.assumption-card}
+### Chapter 3
+Finite-dimensional OLS algebra, projection matrices, and FWL.
+
+[Open Chapter 3](chapter3.qmd)
+:::
+
+::: {.assumption-card}
+### Chapter 4
+Finite-sample regression assumptions, conditional mean zero, variance formulas,
+Gauss-Markov, GLS, and White/HC covariance definitions.
+
+[Open Chapter 4](chapter4.qmd)
+:::
+
+::: {.assumption-card}
+### Chapter 5
+Normal-regression and exact finite-sample distribution assumptions.
+
+[Open Chapter 5](chapter5.qmd)
+:::
+
+::: {.assumption-card}
+### Chapter 7
+Asymptotic condition packages for consistency, CLTs, robust covariance, and
+homoskedastic inference.
+
+[Open Chapter 7](chapter7.qmd)
+:::
+:::

@@ -6,48 +6,59 @@ chapter: 3
 
 ## Textbook statement
 
-Hansen Theorem 3.2 states: when $X^\top X$ is invertible, the OLS estimator
+For a design matrix $X \in \mathbb{R}^{n\times k}$ and response vector
+$y \in \mathbb{R}^n$, Hansen Theorem 3.2 states that when
+[$X^\top X$ is invertible](../../assumptions/chapter3.qmd), the OLS estimator
 $$\hat\beta = (X^\top X)^{-1} X^\top y$$
 satisfies the **normal equations**
 $$X^\top (y - X\hat\beta) = 0,$$
 equivalently $X^\top \hat e = 0$ where $\hat e = y - X\hat\beta$ is the residual
-vector. So the regressors are orthogonal to the OLS residuals.
+vector. So the regressors are orthogonal to the OLS residuals. No
+distributional assumption is needed; Theorem 3.2 is purely linear-algebraic.
 
-## Assumptions
+### Proof sketch
 
-- Design matrix $X \in \mathbb{R}^{n\times k}$.
-- $X^\top X$ is invertible (equivalently, $X$ has full column rank, $k \le n$).
-- $y \in \mathbb{R}^n$ is the response vector. No distributional assumption is
-  needed — Theorem 3.2 is purely linear-algebraic.
+Substitute the closed form $\hat\beta = (X^\top X)^{-1} X^\top y$ into
+$X^\top (y - X\hat\beta)$:
+$$X^\top y - X^\top X (X^\top X)^{-1} X^\top y = X^\top y - X^\top y = 0.$$
+That's the whole proof: the normal equations are immediate from the definition
+of $\hat\beta$.
+
+Uniqueness (`olsBeta_eq_of_normal_equations`) goes the other direction: from
+$X^\top(y - Xb) = 0$, multiply through by $(X^\top X)^{-1}$ to recover
+$b = (X^\top X)^{-1} X^\top y = \hat\beta$.
 
 ## Lean statement
 
 The corresponding Lean objects all live in
 `HansenEconometrics/Chapter3LeastSquaresAlgebra.lean`:
 
-- [`olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)
+- [`olsBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20)
   (definition, line 20) — the closed-form OLS coefficient
   $(X^\top X)^{-1} X^\top y$, defined under `[Invertible (Xᵀ * X)]`.
-- [`fitted`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38)
+- [`fitted`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38)
   (definition, line 38) — the fitted vector $X\hat\beta$.
-- [`residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42)
+- [`residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42)
   (definition, line 42) — the residual vector $y - X\hat\beta$.
-- [`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
+- [`normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
   (theorem, **line 46**) — the headline result:
   `Xᵀ *ᵥ residual X y = 0`.
-- [`regressors_orthogonal_to_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61)
+- [`regressors_orthogonal_to_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61)
   (theorem, line 61) — same statement, packaged under the orthogonality reading.
-- [`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+- [`olsBeta_eq_of_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
   (theorem, line 67) — uniqueness: any `b` satisfying the normal equations
   equals `olsBeta`.
 
 The headline Lean theorem reads:
 
-```lean
-theorem normal_equations
-    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
-    Xᵀ *ᵥ residual X y = 0
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="The citeable theorem name for Hansen Theorem 3.2's normal-equations face.">theorem normal_equations</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix. Lean indexes rows by n and columns by k instead of using natural-number dimensions directly.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The response vector, represented as a function from row indices to real values.">(y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Hansen's full-column-rank hypothesis, packaged as an instance so the closed-form inverse elaborates.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="Premultiply the OLS residual by X transpose: this is X' e-hat in textbook notation.">Xᵀ *ᵥ residual X y</span> = <span class="lean-token" tabindex="0" data-explain="The zero vector in the regressor-coordinate space. This says every regressor column is orthogonal to the residual.">0</span>
+</code></pre>
 ```
+:::
 
 ### Reading the statement
 
@@ -59,9 +70,8 @@ of $X$.
 |---|---|---|
 | `(X : Matrix n k ℝ)` | $X \in \mathbb{R}^{n\times k}$ | **Given:** design matrix. The index types `n` (observations) and `k` (regressors) are arbitrary `Fintype`s, supplied by the section variables. |
 | `(y : n → ℝ)` | $y \in \mathbb{R}^n$ | **Given:** response vector. Lean models a real vector as a function `n → ℝ` from the index type to reals. |
-| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | **Given (hypothesis):** the Gram matrix is invertible — Hansen's full-column-rank assumption. The square brackets mark this as an instance argument: it is supplied by typeclass resolution rather than as an explicit `have`. |
-| `Xᵀ *ᵥ residual X y` | $X^\top \hat e$ | **Conclusion:** matrix-times-vector applied to the residual. `Matrix.transpose` is written `Xᵀ`; `*ᵥ` is `Matrix.mulVec`. |
-| `= 0` | $= 0$ | The right-hand side is the zero vector in $\mathbb{R}^k$. |
+| `[Invertible (Xᵀ * X)]` | $X^\top X$ invertible | **Given (hypothesis):** the Gram matrix is invertible — Hansen's full-column-rank assumption. See the [Chapter 3 assumption map](../../assumptions/chapter3.qmd). The square brackets mark this as an instance argument: it is supplied by typeclass resolution rather than as an explicit `have`. |
+| `Xᵀ *ᵥ residual X y = 0` | $X^\top \hat e = 0$ | **Conclusion:** matrix-times-vector applied to the residual equals the zero vector in $\mathbb{R}^k$. `Matrix.transpose` is written `Xᵀ`; `*ᵥ` is `Matrix.mulVec`. |
 
 (The usual ambient typeclasses `[Fintype n] [Fintype k] [DecidableEq k]` are
 hoisted into the file's `variable` block, which is why they don't appear in
@@ -79,81 +89,26 @@ the signature.)
 - The pair `olsBeta` (using `⅟`) and `olsBetaStar` (using `Matrix.nonsingInv`)
   coexist because Chapter 7's stochastic story needs the total version. They
   agree under invertibility
-  ([`olsBetaStar_eq_olsBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31)
+  ([`olsBetaStar_eq_olsBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31)
   at line 31).
 
-## Proof sketch
+## Tactic-by-tactic walkthrough
 
-Substitute the closed form $\hat\beta = (X^\top X)^{-1} X^\top y$ into
-$X^\top (y - X\hat\beta)$:
-$$X^\top y - X^\top X (X^\top X)^{-1} X^\top y = X^\top y - X^\top y = 0.$$
-That's the whole proof — the normal equations are immediate from the
-definition of $\hat\beta$.
+Hover over a proof line to read what it contributes.
 
-Uniqueness (`olsBeta_eq_of_normal_equations`) goes the other direction: from
-$X^\top(y - Xb) = 0$, multiply through by $(X^\top X)^{-1}$ to recover
-$b = (X^\top X)^{-1} X^\top y = \hat\beta$.
-
-## Lean proof structure
-
-The Lean proof of
-[`normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46)
-mirrors the textbook proof in three short steps:
-
-- Unfold `residual`, `fitted`, and `olsBeta`, then split the `mulVec` over
-  subtraction with `Matrix.mulVec_sub`.
-- Use `Matrix.mulVec_mulVec` to commute the two `*ᵥ` applications into a
-  single matrix product, then reassociate via `Matrix.mul_assoc` so that
-  $X^\top X$ sits next to its inverse.
-- Collapse $(X^\top X) \cdot ⅟(X^\top X)$ to $1$ using `mul_invOf_self`,
-  leaving $X^\top y - X^\top y$, which `simp` reduces to $0$.
-
-### Tactic-by-tactic walkthrough
-
-The full Lean proof body:
-
-```lean
-theorem normal_equations
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: for any fixed design matrix X and response vector y, if X'X is invertible, the residual is orthogonal to the columns of X.">theorem normal_equations
     (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
-    Xᵀ *ᵥ residual X y = 0 := by
-  unfold residual fitted olsBeta
-  rw [mulVec_sub]
-  have hmul : Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
-            = (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by
-    rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
-  calc
-    Xᵀ *ᵥ y - Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
-        = Xᵀ *ᵥ y - (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by rw [hmul]
-    _ = Xᵀ *ᵥ y - (((Xᵀ * X) * ⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by rw [Matrix.mul_assoc]
-    _ = Xᵀ *ᵥ y - (1 *ᵥ (Xᵀ *ᵥ y)) := by rw [mul_invOf_self]
-    _ = 0 := by simp
+    Xᵀ *ᵥ residual X y = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Replace residual, fitted, and olsBeta by their definitions. The goal becomes the textbook substitution X'(y - X (X'X)⁻¹ X'y) = 0.">  unfold residual fitted olsBeta</span><span class="lean-line" tabindex="0" data-explain="Distribute the outer X' over subtraction, turning X'(y - fitted) into X'y minus X' fitted.">  rw [mulVec_sub]</span><span class="lean-line" tabindex="0" data-explain="Introduce a local helper that converts the nested matrix-vector action X'(X((X'X)⁻¹(X'y))) into one matrix product acting on X'y.">  have hmul : Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
+            = (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by</span><span class="lean-line" tabindex="0" data-explain="Prove the helper by applying Matrix.mulVec_mulVec backwards twice, fusing adjacent matrix-vector multiplications into matrix multiplication.">    rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]</span><span class="lean-line" tabindex="0" data-explain="Start a calculation chain from the distributed expression. Each following line rewrites the second term until the subtraction is v - v.">  calc</span><span class="lean-line" tabindex="0" data-explain="Apply hmul to rewrite the nested fitted-value term as a single matrix product multiplying X'y.">    Xᵀ *ᵥ y - Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
+        = Xᵀ *ᵥ y - (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by rw [hmul]</span><span class="lean-line" tabindex="0" data-explain="Reassociate matrix multiplication so X'X sits directly next to its inverse. This exposes the cancellation.">    _ = Xᵀ *ᵥ y - (((Xᵀ * X) * ⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by rw [Matrix.mul_assoc]</span><span class="lean-line" tabindex="0" data-explain="Use invertibility to collapse (X'X)(X'X)⁻¹ to the identity matrix.">    _ = Xᵀ *ᵥ y - (1 *ᵥ (Xᵀ *ᵥ y)) := by rw [mul_invOf_self]</span><span class="lean-line" tabindex="0" data-explain="Simplify identity-times-vector and v - v. This is the final textbook cancellation X'y - X'y = 0.">    _ = 0 := by simp</span>
+</code></pre>
 ```
-
-Line by line:
-
-- `unfold residual fitted olsBeta` — replace the three definitions by their
-  bodies. The goal becomes
-  $X^\top \!\bigl(y - X \cdot ⅟(X^\top X) \cdot X^\top y\bigr) = 0$.
-- `rw [mulVec_sub]` — distribute the outer `Xᵀ *ᵥ` over the subtraction
-  ($X^\top(u - v) = X^\top u - X^\top v$). The goal becomes
-  $X^\top y - X^\top \!\bigl(X \cdot ⅟(X^\top X) \cdot X^\top y\bigr) = 0$.
-- `have hmul := ...` — prove a helper equality stating that the nested
-  matrix-vector applications $X^\top(X(⅟(X^\top X)(X^\top y)))$ equal the
-  single product $\bigl(X^\top \cdot X \cdot ⅟(X^\top X)\bigr) \cdot (X^\top y)$.
-  The proof of `hmul` rewrites with `Matrix.mulVec_mulVec` (applied
-  backwards twice) to fuse the matrix actions into one.
-- **`calc` step 1** — apply `hmul` to rewrite the second term; the goal is
-  now $X^\top y - \bigl(X^\top X \cdot ⅟(X^\top X)\bigr) \cdot X^\top y = 0$
-  modulo association.
-- **`calc` step 2** — `Matrix.mul_assoc` re-associates
-  $X^\top \cdot (X \cdot ⅟(X^\top X))$ to $(X^\top X) \cdot ⅟(X^\top X)$,
-  putting the Gram matrix next to its inverse.
-- **`calc` step 3** — `mul_invOf_self` collapses $(X^\top X) \cdot ⅟(X^\top X)$
-  to the identity matrix `1`. The expression simplifies to $X^\top y - 1 \cdot (X^\top y)$.
-- **`calc` step 4** — `simp` clears `1 *ᵥ v = v`, then $X^\top y - X^\top y = 0$.
+:::
 
 For uniqueness,
-[`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
+[`olsBeta_eq_of_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67)
 (line 67) takes the hypothesis $X^\top(y - Xb) = 0$, rewrites it as
 $X^\top y = (X^\top X) b$, and multiplies both sides by $⅟(X^\top X)$ to
 identify $b$ with `olsBeta X y`.
@@ -163,12 +118,12 @@ identify $b$ with `olsBeta X y`.
 `normal_equations` is one of the most reused lemmas in the algebra of OLS.
 Direct consumers in this repo include:
 
-- [`residual_sum_zero_of_one_mem_colspan`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)
+- [`residual_sum_zero_of_one_mem_colspan`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)
   (Chapter3LeastSquaresAlgebra.lean:98) — when $\mathbf{1} \in \mathrm{col}(X)$,
   residuals sum to zero (Hansen equation 3.17).
-- [`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+- [`regressors_transpose_mul_annihilator`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
   (Chapter3FWL.lean:37) — $X^\top M = 0$, used throughout FWL.
-- [`fitted_dot_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217)
+- [`fitted_dot_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217)
   (Chapter3Projections.lean:217) — fitted values are orthogonal to residuals.
 - The Frisch–Waugh–Lovell theorems of Hansen Theorem 3.5 consume this
   transitively through the annihilator identity.

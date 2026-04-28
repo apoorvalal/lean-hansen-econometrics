@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean - Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</title>
+<title>Hansen Econometrics in Lean - Chapter 2 Assumptions</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../../">
-<script src="../../site_libs/quarto-html/quarto.js"></script>
-<script src="../../site_libs/quarto-html/popper.min.js"></script>
-<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -110,7 +110,7 @@ window.Quarto = {
 };
 </script>
 
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -122,7 +122,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Chapter 3</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter2.html">Chapter 2</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -137,7 +137,7 @@ window.Quarto = {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../../">Hansen Econometrics in Lean</a> 
+      <a href="../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -147,13 +147,13 @@ window.Quarto = {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -168,37 +168,37 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/chapter2.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -215,22 +215,22 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
  <span class="menu-text">Chapter 3</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link active">
+  <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -247,13 +247,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
@@ -270,13 +270,13 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
@@ -290,30 +290,14 @@ window.Quarto = {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">On this page</h2>
-   
-  <ul>
-  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
-  <ul class="collapse">
-  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
-  </ul></li>
-  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
-  <ul class="collapse">
-  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
-  </ul></li>
-  <li><a href="#translation-notes" id="toc-translation-notes" class="nav-link" data-scroll-target="#translation-notes">Translation notes</a></li>
-  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
-  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
-  </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter3/theorem-3-2.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Chapter 3</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter3/theorem-3-2.html">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/chapter2.html">Chapter 2</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</h1>
+<h1 class="title">Chapter 2 Assumptions</h1>
 </div>
 
 
@@ -330,103 +314,53 @@ window.Quarto = {
 </header>
 
 
-<section id="textbook-statement" class="level2">
-<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
-<p>For a design matrix <span class="math inline">X \in \mathbb{R}^{n\times k}</span> and response vector <span class="math inline">y \in \mathbb{R}^n</span>, Hansen Theorem 3.2 states that when <a href="../../assumptions/chapter3.html"><span class="math inline">X^\top X</span> is invertible</a>, the OLS estimator <span class="math display">\hat\beta = (X^\top X)^{-1} X^\top y</span> satisfies the <strong>normal equations</strong> <span class="math display">X^\top (y - X\hat\beta) = 0,</span> equivalently <span class="math inline">X^\top \hat e = 0</span> where <span class="math inline">\hat e = y - X\hat\beta</span> is the residual vector. So the regressors are orthogonal to the OLS residuals. No distributional assumption is needed; Theorem 3.2 is purely linear-algebraic.</p>
-<section id="proof-sketch" class="level3">
-<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
-<p>Substitute the closed form <span class="math inline">\hat\beta = (X^\top X)^{-1} X^\top y</span> into <span class="math inline">X^\top (y - X\hat\beta)</span>: <span class="math display">X^\top y - X^\top X (X^\top X)^{-1} X^\top y = X^\top y - X^\top y = 0.</span> That’s the whole proof: the normal equations are immediate from the definition of <span class="math inline">\hat\beta</span>.</p>
-<p>Uniqueness (<code>olsBeta_eq_of_normal_equations</code>) goes the other direction: from <span class="math inline">X^\top(y - Xb) = 0</span>, multiply through by <span class="math inline">(X^\top X)^{-1}</span> to recover <span class="math inline">b = (X^\top X)^{-1} X^\top y = \hat\beta</span>.</p>
-</section>
-</section>
-<section id="lean-statement" class="level2">
-<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
-<p>The corresponding Lean objects all live in <code>HansenEconometrics/Chapter3LeastSquaresAlgebra.lean</code>:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L20"><code>olsBeta</code></a> (definition, line 20) — the closed-form OLS coefficient <span class="math inline">(X^\top X)^{-1} X^\top y</span>, defined under <code>[Invertible (Xᵀ * X)]</code>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L38"><code>fitted</code></a> (definition, line 38) — the fitted vector <span class="math inline">X\hat\beta</span>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L42"><code>residual</code></a> (definition, line 42) — the residual vector <span class="math inline">y - X\hat\beta</span>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46"><code>normal_equations</code></a> (theorem, <strong>line 46</strong>) — the headline result: <code>Xᵀ *ᵥ residual X y = 0</code>.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61"><code>regressors_orthogonal_to_residual</code></a> (theorem, line 61) — same statement, packaged under the orthogonality reading.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67"><code>olsBeta_eq_of_normal_equations</code></a> (theorem, line 67) — uniqueness: any <code>b</code> satisfying the normal equations equals <code>olsBeta</code>.</li>
-</ul>
-<p>The headline Lean theorem reads:</p>
-<div class="lean-hover-panel">
-<pre><code><span class="lean-token" tabindex="0" data-explain="The citeable theorem name for Hansen Theorem 3.2's normal-equations face.">theorem normal_equations</span>
-    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix. Lean indexes rows by n and columns by k instead of using natural-number dimensions directly.">(X : Matrix n k ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The response vector, represented as a function from row indices to real values.">(y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Hansen's full-column-rank hypothesis, packaged as an instance so the closed-form inverse elaborates.">[Invertible (Xᵀ * X)]</span> :
-    <span class="lean-token" tabindex="0" data-explain="Premultiply the OLS residual by X transpose: this is X' e-hat in textbook notation.">Xᵀ *ᵥ residual X y</span> = <span class="lean-token" tabindex="0" data-explain="The zero vector in the regressor-coordinate space. This says every regressor column is orthogonal to the residual.">0</span>
-</code></pre>
+<div class="chapter-kicker">
+<p>Conditional expectation and projection</p>
 </div>
-<section id="reading-the-statement" class="level3">
-<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
-<p>In English: <strong>given</strong> a design matrix <span class="math inline">X</span>, a response vector <span class="math inline">y</span>, and a witness that <span class="math inline">X^\top X</span> is invertible, the OLS residual is orthogonal to every column of <span class="math inline">X</span>.</p>
+<p>Chapter 2 has two layers: backend sigma-algebra theorems and public random-variable wrappers. The RV-facing names are the ones later chapters should usually cite.</p>
 <table class="table">
 <thead>
 <tr class="header">
-<th>Lean</th>
-<th>Math</th>
-<th>What it gives us</th>
+<th>Assumption</th>
+<th>Lean names</th>
+<th>Used in proofs</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>(X : Matrix n k ℝ)</code></td>
-<td><span class="math inline">X \in \mathbb{R}^{n\times k}</span></td>
-<td><strong>Given:</strong> design matrix. The index types <code>n</code> (observations) and <code>k</code> (regressors) are arbitrary <code>Fintype</code>s, supplied by the section variables.</td>
+<td>Conditioning on a measurable variable <span class="math inline">X</span> means using <span class="math inline">\sigma(X)</span>, with <span class="math inline">\sigma(X) \le \mathcal{F}</span>.</td>
+<td><span class="lean-chip"><code>conditioningSpace</code></span> <span class="lean-chip"><code>conditioningSpace_le</code></span> <span class="lean-chip"><code>condExpOn</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L270">tower property</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L122">law of total variance</a></span></td>
 </tr>
 <tr class="even">
-<td><code>(y : n → ℝ)</code></td>
-<td><span class="math inline">y \in \mathbb{R}^n</span></td>
-<td><strong>Given:</strong> response vector. Lean models a real vector as a function <code>n → ℝ</code> from the index type to reals.</td>
+<td>Nested information <span class="math inline">\sigma(X_1) \subseteq \sigma(X_2)</span> lets the tower property collapse.</td>
+<td>Backend: <span class="lean-chip"><code>tower_property</code></span><br>RV wrapper: <span class="lean-chip"><code>tower_property_rv</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L270">RV tower wrapper</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L153">residual variance monotonicity</a></span></td>
 </tr>
 <tr class="odd">
-<td><code>[Invertible (Xᵀ * X)]</code></td>
-<td><span class="math inline">X^\top X</span> invertible</td>
-<td><strong>Given (hypothesis):</strong> the Gram matrix is invertible — Hansen’s full-column-rank assumption. See the <a href="../../assumptions/chapter3.html">Chapter 3 assumption map</a>. The square brackets mark this as an instance argument: it is supplied by typeclass resolution rather than as an explicit <code>have</code>.</td>
+<td>Pull-out theorem needs an <span class="math inline">X</span>-measurable factor <span class="math inline">g</span> and integrability of <span class="math inline">Y</span> and <span class="math inline">gY</span>.</td>
+<td>Backend: <span class="lean-chip"><code>conditioning_theorem_ae</code></span>, <span class="lean-chip"><code>conditioning_theorem_integral</code></span><br>RV wrappers: <span class="lean-chip"><code>conditioning_theorem_ae_rv</code></span>, <span class="lean-chip"><code>conditioning_theorem_integral_rv</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L287">a.e. RV pull-out</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L305">integrated RV pull-out</a></span></td>
 </tr>
 <tr class="even">
-<td><code>Xᵀ *ᵥ residual X y = 0</code></td>
-<td><span class="math inline">X^\top \hat e = 0</span></td>
-<td><strong>Conclusion:</strong> matrix-times-vector applied to the residual equals the zero vector in <span class="math inline">\mathbb{R}^k</span>. <code>Matrix.transpose</code> is written <code>Xᵀ</code>; <code>*ᵥ</code> is <code>Matrix.mulVec</code>.</td>
+<td>CEF error <span class="math inline">e = Y - \mathbb{E}[Y \mid X]</span> requires integrability of <span class="math inline">Y</span>; orthogonality also requires integrability of <span class="math inline">g e</span>.</td>
+<td>Backend: <span class="lean-chip"><code>condExp_cefError_zero</code></span>, <span class="lean-chip"><code>integral_cefError_zero</code></span>, <span class="lean-chip"><code>integral_mul_cefError_zero</code></span><br>RV wrapper: <span class="lean-chip"><code>condExp_cefErrorOn_zero</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L78">conditional mean zero</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L326">RV conditional mean zero</a></span></td>
+</tr>
+<tr class="odd">
+<td>Variance identities require <span class="math inline">Y \in L^2(\mu)</span> and probability-measure structure.</td>
+<td>Backend: <span class="lean-chip"><code>law_total_variance</code></span>, <span class="lean-chip"><code>variance_condExp_le_variance</code></span><br>RV wrappers: <span class="lean-chip"><code>law_total_variance_rv</code></span>, <span class="lean-chip"><code>variance_condExpOn_le_variance</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L35">backend total variance</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L122">RV total variance</a></span></td>
+</tr>
+<tr class="even">
+<td>Linear projection needs population moment matrices <span class="math inline">Q_{XX}</span> and <span class="math inline">Q_{XY}</span>, plus invertibility of <span class="math inline">Q_{XX}</span>.</td>
+<td><span class="lean-chip"><code>linearProjectionBeta</code></span> <span class="lean-chip"><code>linearProjectionBeta_normal_equations</code></span> <span class="lean-chip"><code>linearProjectionBeta_minimizes_MSE</code></span></td>
+<td><span class="use-links"><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L26">normal equations</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L97">MSE minimizer</a> <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L189">covariance formula</a></span></td>
 </tr>
 </tbody>
 </table>
-<p>(The usual ambient typeclasses <code>[Fintype n] [Fintype k] [DecidableEq k]</code> are hoisted into the file’s <code>variable</code> block, which is why they don’t appear in the signature.)</p>
-</section>
-</section>
-<section id="translation-notes" class="level2">
-<h2 class="anchored" data-anchor-id="translation-notes">Translation notes</h2>
-<ul>
-<li>Hansen writes <span class="math inline">X' \hat e = 0</span> in matrix-of-real-numbers notation. Lean’s <code>Xᵀ *ᵥ residual X y = 0</code> is the same statement under Mathlib’s <code>Matrix.mulVec</code> / transpose conventions.</li>
-<li>Lean parameterizes by typeclasses <code>[Fintype n] [Fintype k] [DecidableEq k]</code> and an <code>[Invertible (Xᵀ * X)]</code> instance instead of a side condition. This is the same hypothesis as Hansen’s “<span class="math inline">X^\top X</span> is invertible,” packaged for elaboration.</li>
-<li>The pair <code>olsBeta</code> (using <code>⅟</code>) and <code>olsBetaStar</code> (using <code>Matrix.nonsingInv</code>) coexist because Chapter 7’s stochastic story needs the total version. They agree under invertibility (<a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L31"><code>olsBetaStar_eq_olsBeta</code></a> at line 31).</li>
-</ul>
-</section>
-<section id="tactic-by-tactic-walkthrough" class="level2">
-<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
-<p>Hover over a proof line to read what it contributes.</p>
-<div class="lean-hover-panel">
-<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: for any fixed design matrix X and response vector y, if X'X is invertible, the residual is orthogonal to the columns of X.">theorem normal_equations
-    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
-    Xᵀ *ᵥ residual X y = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Replace residual, fitted, and olsBeta by their definitions. The goal becomes the textbook substitution X'(y - X (X'X)⁻¹ X'y) = 0.">  unfold residual fitted olsBeta</span><span class="lean-line" tabindex="0" data-explain="Distribute the outer X' over subtraction, turning X'(y - fitted) into X'y minus X' fitted.">  rw [mulVec_sub]</span><span class="lean-line" tabindex="0" data-explain="Introduce a local helper that converts the nested matrix-vector action X'(X((X'X)⁻¹(X'y))) into one matrix product acting on X'y.">  have hmul : Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
-            = (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by</span><span class="lean-line" tabindex="0" data-explain="Prove the helper by applying Matrix.mulVec_mulVec backwards twice, fusing adjacent matrix-vector multiplications into matrix multiplication.">    rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]</span><span class="lean-line" tabindex="0" data-explain="Start a calculation chain from the distributed expression. Each following line rewrites the second term until the subtraction is v - v.">  calc</span><span class="lean-line" tabindex="0" data-explain="Apply hmul to rewrite the nested fitted-value term as a single matrix product multiplying X'y.">    Xᵀ *ᵥ y - Xᵀ *ᵥ (X *ᵥ (⅟ (Xᵀ * X) *ᵥ (Xᵀ *ᵥ y)))
-        = Xᵀ *ᵥ y - (Xᵀ * (X * ⅟ (Xᵀ * X))) *ᵥ (Xᵀ *ᵥ y) := by rw [hmul]</span><span class="lean-line" tabindex="0" data-explain="Reassociate matrix multiplication so X'X sits directly next to its inverse. This exposes the cancellation.">    _ = Xᵀ *ᵥ y - (((Xᵀ * X) * ⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)) := by rw [Matrix.mul_assoc]</span><span class="lean-line" tabindex="0" data-explain="Use invertibility to collapse (X'X)(X'X)⁻¹ to the identity matrix.">    _ = Xᵀ *ᵥ y - (1 *ᵥ (Xᵀ *ᵥ y)) := by rw [mul_invOf_self]</span><span class="lean-line" tabindex="0" data-explain="Simplify identity-times-vector and v - v. This is the final textbook cancellation X'y - X'y = 0.">    _ = 0 := by simp</span>
-</code></pre>
-</div>
-<p>For uniqueness, <a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67"><code>olsBeta_eq_of_normal_equations</code></a> (line 67) takes the hypothesis <span class="math inline">X^\top(y - Xb) = 0</span>, rewrites it as <span class="math inline">X^\top y = (X^\top X) b</span>, and multiplies both sides by <span class="math inline">⅟(X^\top X)</span> to identify <span class="math inline">b</span> with <code>olsBeta X y</code>.</p>
-</section>
-<section id="downstream-uses" class="level2">
-<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
-<p><code>normal_equations</code> is one of the most reused lemmas in the algebra of OLS. Direct consumers in this repo include:</p>
-<ul>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98"><code>residual_sum_zero_of_one_mem_colspan</code></a> (Chapter3LeastSquaresAlgebra.lean:98) — when <span class="math inline">\mathbf{1} \in \mathrm{col}(X)</span>, residuals sum to zero (Hansen equation 3.17).</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37"><code>regressors_transpose_mul_annihilator</code></a> (Chapter3FWL.lean:37) — <span class="math inline">X^\top M = 0</span>, used throughout FWL.</li>
-<li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L217"><code>fitted_dot_residual</code></a> (Chapter3Projections.lean:217) — fitted values are orthogonal to residuals.</li>
-<li>The Frisch–Waugh–Lovell theorems of Hansen Theorem 3.5 consume this transitively through the annihilator identity.</li>
-</ul>
 
 
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -843,4 +777,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter3/theorem-3-2.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/assumptions/chapter2.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

@@ -1,0 +1,20 @@
+---
+title: "Chapter 4 Assumptions"
+---
+
+::: {.chapter-kicker}
+Least-squares regression
+:::
+
+Chapter 4 adds probability to the finite-sample algebra. The main split is
+between sigma-algebra conditioning statements and random-variable-facing
+wrappers.
+
+| Assumption | Lean names | Used in proofs |
+|---|---|---|
+| Linear model $y = X\beta + e$ with deterministic $X$ and invertible $X^\top X$. | <span class="lean-chip">`[Invertible (Xᵀ * X)]`</span> <span class="lean-chip">`olsBeta_linear_decomposition`</span> | <span class="use-links">[OLS decomposition](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16) [residual model identity](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L45)</span> |
+| Conditional mean-zero errors: $\mathbb{E}[e_i \mid \mathcal{G}] = 0$ or $\mathbb{E}[e_i \mid X] = 0$, with coordinate integrability. | Measure-theory version: <span class="lean-chip">`ols_condExp_eq_beta`</span><br>RV version: <span class="lean-chip">`ols_condExp_eq_beta_rv`</span> | <span class="use-links">[conditional unbiasedness](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L243) [RV conditional unbiasedness](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L336)</span> |
+| Unconditional unbiasedness reuses the same conditional mean-zero assumption and integrates the conditional result. | Measure-theory version: <span class="lean-chip">`ols_integral_eq_beta`</span><br>RV version: <span class="lean-chip">`ols_integral_eq_beta_rv`</span> | <span class="use-links">[unconditional unbiasedness](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L288) [RV unconditional unbiasedness](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L408)</span> |
+| Conditional covariance formula needs second-moment integrability for centered OLS coordinates and a conditional error covariance matrix $D$. | Measure-theory version: <span class="lean-chip">`ols_condExp_centered_mul_eq_variance_matrix`</span><br>RV version: <span class="lean-chip">`ols_condExp_centered_mul_eq_variance_matrix_rv`</span> | <span class="use-links">[matrix covariance formula](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L549) [RV covariance formula](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L636)</span> |
+| Homoskedastic finite-sample simplification sets $D = \sigma^2 I$. | <span class="lean-chip">`olsConditionalVarianceMatrix_homoskedastic`</span> | <span class="use-links">[homoskedastic variance simplification](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L84)</span> |
+| Gauss-Markov variance dominance is deterministic once a competing linear estimator $A^\top y$ is unbiased, i.e. $A^\top X = I$. | <span class="lean-chip">`gaussMarkov_variance_gap_posSemidef`</span> <span class="lean-chip">`generalizedGaussMarkov_variance_gap_posSemidef`</span> | <span class="use-links">[Gauss-Markov core](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L111) [generalized Gauss-Markov core](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter4LeastSquaresRegression.lean#L824)</span> |

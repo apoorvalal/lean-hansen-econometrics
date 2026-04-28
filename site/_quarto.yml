@@ -6,13 +6,16 @@ project:
   # "Auto-generated reference" sidebar section below.
   render:
     - "index.qmd"
+    - "coverage.qmd"
+    - "assumptions/**/*.qmd"
     - "walkthroughs/**/*.qmd"
 
 website:
   title: "Hansen Econometrics in Lean"
   search:
     type: overlay
-  repo-url: https://github.com/paulgp/lean-hansen-econometrics
+  repo-url: https://github.com/apoorvalal/lean-hansen-econometrics
+  repo-subdir: site
   repo-actions: [source]
   sidebar:
     style: docked
@@ -20,6 +23,22 @@ website:
     contents:
       - href: index.qmd
         text: Home
+      - href: coverage.qmd
+        text: Coverage
+      - section: Assumptions
+        contents:
+          - href: assumptions/index.qmd
+            text: Overview
+          - href: assumptions/chapter2.qmd
+            text: Chapter 2
+          - href: assumptions/chapter3.qmd
+            text: Chapter 3
+          - href: assumptions/chapter4.qmd
+            text: Chapter 4
+          - href: assumptions/chapter5.qmd
+            text: Chapter 5
+          - href: assumptions/chapter7.qmd
+            text: Chapter 7
       - section: Walkthroughs
         contents:
           - section: Chapter 3
@@ -44,9 +63,11 @@ website:
 format:
   html:
     theme: cosmo
+    css: styles.css
     toc: true
     html-math-method: katex
     code-overflow: wrap
+    code-copy: true
 
 # Custom metadata consumed by build_stubs.py
-github_repo: https://github.com/paulgp/lean-hansen-econometrics
+github_repo: https://github.com/apoorvalal/lean-hansen-econometrics

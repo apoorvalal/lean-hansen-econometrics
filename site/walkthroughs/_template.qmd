@@ -21,9 +21,20 @@ The corresponding Lean theorem:
 
 - [`<name>`](<github source link>) at `HansenEconometrics/...lean:<line>`
 
-```lean
-theorem ... := ...
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="The public theorem name; this should be citeable and stable.">theorem theorem_name</span>
+    <span class="lean-token" tabindex="0" data-explain="Explicit mathematical inputs. Prefer these over hiding important assumptions inside opaque aliases.">(X : Matrix n k ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Substantive assumptions should be named or packaged so downstream users can see what is being used.">(h : AssumptionPackage X)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The conclusion should match the chapter-facing mathematical statement, with bridge wrappers when needed.">Conclusion X</span> := by
+  ...
+</code></pre>
 ```
+:::
+
+### Reading the statement
+
+Component-by-component interpretation table.
 
 ## Translation notes
 

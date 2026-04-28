@@ -34,10 +34,10 @@ $\frac{(n-k) s^2}{\sigma^2} \sim \chi^2_{n-k}$ when $e \sim N(0, \sigma^2 I)$.
 
 Three Lean theorems in `HansenEconometrics/Chapter5NormalRegression.lean`:
 
-- [`olsResidualVarianceEstimator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L20) (definition, line 20) — `s²` as the residual quadratic form divided by `n - k`.
-- [`olsResidualVarianceEstimator_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L31) (theorem, line 31) — under the linear model, `s²` equals $(M e)^\top (M e) / (n-k)$.
-- [`residual_quadratic_form_of_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L43) (theorem, line 43) — the bridge: $(M e)^\top (M e) = e^\top M e$ (using $M^\top M = M$ for symmetric idempotent $M$).
-- [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L56) (theorem, line 56) — the headline: $s^2 = \dfrac{e^\top M e}{n-k}$, equivalently $(n-k) s^2 = e^\top M e$.
+- [`olsResidualVarianceEstimator`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L25) (definition, line 25) — `s²` as the residual quadratic form divided by `n - k`.
+- [`olsResidualVarianceEstimator_linear_model`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L52) (theorem, line 52) — under the linear model, `s²` equals $(M e)^\top (M e) / (n-k)$.
+- [`residual_quadratic_form_of_linear_model`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L64) (theorem, line 64) — the bridge: $(M e)^\top (M e) = e^\top M e$ (using $M^\top M = M$ for symmetric idempotent $M$).
+- [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L97) (theorem, line 97) — the headline: $s^2 = \dfrac{e^\top M e}{n-k}$, equivalently $(n-k) s^2 = e^\top M e$.
 
 The headline theorem in Lean:
 
@@ -114,32 +114,32 @@ Hence $(n-k) s^2 = e^\top M e$.
 
 The Lean proof chain:
 
-1. [`olsResidualVarianceEstimator_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L31) (line 31) handles Step 1: it
+1. [`olsResidualVarianceEstimator_linear_model`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L52) (line 52) handles Step 1: it
    uses `Matrix.mulVec_add` and `annihilator_mul_X` (via
    `Matrix.mulVec_mulVec`) to show `M *ᵥ (X *ᵥ β) = 0`, then drops the term to
    leave `(M e)^⊤ (M e) / (n-k)`.
-2. [`residual_quadratic_form_of_linear_model`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L43) (line 43) handles Step 2: it
+2. [`residual_quadratic_form_of_linear_model`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L64) (line 64) handles Step 2: it
    invokes a generic lemma `quadratic_form_eq_dotProduct_of_symm_idempotent`
    (in `LinearAlgebraUtils.lean`) that takes `(M^⊤ = M)` and `(M M = M)` as
    hypotheses and yields `(Me)^⊤ (Me) = e^⊤ M e`. The two hypotheses are
    supplied by `annihilatorMatrix_transpose` and `annihilatorMatrix_idempotent`
    from Chapter 3.
-3. [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L56) (line 56)
+3. [`olsResidualVarianceEstimator_linear_model_quadratic_form`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L97) (line 97)
    chains the two via `rw`.
 
 Permalinks for the supporting lemmas:
 
-- [`annihilatorMatrix_transpose`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48) (Chapter3Projections.lean:48)
-- [`annihilatorMatrix_idempotent`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127) (Chapter3Projections.lean:127)
-- [`annihilator_mul_X`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90) (Chapter3Projections.lean:90)
-- [`quadratic_form_eq_dotProduct_of_symm_idempotent`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/LinearAlgebraUtils.lean#L47) (LinearAlgebraUtils.lean:47)
+- [`annihilatorMatrix_transpose`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L48) (Chapter3Projections.lean:48)
+- [`annihilatorMatrix_idempotent`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L127) (Chapter3Projections.lean:127)
+- [`annihilator_mul_X`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L90) (Chapter3Projections.lean:90)
+- [`quadratic_form_eq_dotProduct_of_symm_idempotent`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/LinearAlgebraUtils.lean#L47) (LinearAlgebraUtils.lean:47)
 
 ### Tactic-by-tactic walkthrough
 
 The headline theorem is a one-liner — the substantive work lives in the two
 supporting lemmas. We trace all three.
 
-**1. `olsResidualVarianceEstimator_linear_model` (line 31): Step 1 of the proof.**
+**1. `olsResidualVarianceEstimator_linear_model` (line 52): Step 1 of the proof.**
 
 ```lean
 theorem olsResidualVarianceEstimator_linear_model
@@ -172,7 +172,7 @@ Line by line:
   `zero_add` drops it, leaving exactly $M e$ on both sides of the dot
   product. The goal closes by `rfl` after the rewrites.
 
-**2. `residual_quadratic_form_of_linear_model` (line 43): Step 2 of the proof.**
+**2. `residual_quadratic_form_of_linear_model` (line 64): Step 2 of the proof.**
 
 ```lean
 theorem residual_quadratic_form_of_linear_model
@@ -199,7 +199,7 @@ Line by line:
   and `annihilatorMatrix_idempotent X` ($M M = M$), both proved back in
   Chapter 3.
 
-**3. `olsResidualVarianceEstimator_linear_model_quadratic_form` (line 56): the headline chain.**
+**3. `olsResidualVarianceEstimator_linear_model_quadratic_form` (line 97): the headline chain.**
 
 ```lean
 theorem olsResidualVarianceEstimator_linear_model_quadratic_form

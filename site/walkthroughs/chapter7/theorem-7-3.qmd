@@ -48,14 +48,14 @@ In Lean, these are bundled into `SampleCLTAssumption72 μ X e`, which extends
 
 ## Lean statement
 
-The headline theorem in `HansenEconometrics/Chapter7Asymptotics.lean`:
+The headline theorem lives in `HansenEconometrics/Chapter7Asymptotics/Normality.lean`:
 
-- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5332)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:5332` — for every fixed
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L749)
+  at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:749` — for every fixed
   direction $a$, the scalar projection $\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)$
   converges in distribution to $N(0, V_a)$ where $V_a$ is the named
   asymptotic variance
-  [`olsProjectionAsymptoticVariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2468)`μ X e a`
+  [`olsProjectionAsymptoticVariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L132)`μ X e a`
   $= ((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$.
 
 ```lean
@@ -104,14 +104,14 @@ structures on `Ω`, `Ω'` are in the file's `variable` block.)
 
 Companion / related theorems:
 
-- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6888)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:6888` — packages all
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1618)
+  at `HansenEconometrics/Chapter7Asymptotics/Inference.lean:1618` — packages all
   directions $a$ at once (Cramér–Wold facing for the joint vector CLT).
-- [`scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6912)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:6912` — the
+- [`scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1643)
+  at `HansenEconometrics/Chapter7Asymptotics/Inference.lean:1643` — the
   ordinary-wrapper face for nonsingular samples.
-- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:4773` — Theorem 7.2 score
+- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61)
+  at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:61` — Theorem 7.2 score
   CLT, the upstream input.
 
 ## Translation notes
@@ -120,20 +120,20 @@ Companion / related theorems:
   $\sqrt{n}\, (\hat\beta - \beta) \Rightarrow N(0, V)$. Lean works through the
   Cramér–Wold face: every scalar projection converges to a normal limit. The
   aggregator
-  [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L6888)
+  [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1618)
   combines all directions.
 - The auxiliary measure space $(\Omega', \nu)$ hosts the limiting random
   variable $Z$. This is a Lean idiom: rather than asserting a measure equals
   a Gaussian, the theorem says "for any $Z$ defined on any auxiliary space
   with the right law, the sample statistics converge in distribution to $Z$."
 - The named asymptotic variance
-  [`olsProjectionAsymptoticVariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2468)`μ X e a`
+  [`olsProjectionAsymptoticVariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L132)`μ X e a`
   unfolds to $((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$. By the
   symmetry of $Q$, $(Q^{-1})^\top = Q^{-1}$, so this is exactly
   $a^\top Q^{-1} \Omega Q^{-1} a = a^\top V a$.
 - The score variance equality $a^\top V a = \mathrm{Var}[e_0 \cdot (X_0 \cdot Q^{-1} a)]$
   is exposed as
-  [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503)
+  [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167)
   and is used to bridge between the variance form Lean works with and the
   textbook sandwich form.
 
@@ -169,29 +169,29 @@ it back together via Slutsky.
 
 The Lean proof has serious moving parts. Trace the chain:
 
-1. [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:4773` — Theorem 7.2 scalar
+1. [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61)
+   at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:61` — Theorem 7.2 scalar
    CLT for $\sqrt{n}\, c^\top \hat g_n$.
 2. Slutsky bridges via the inverse-Gram convergence and the fixed-score
    decomposition. The key algebraic identity is
-   [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1491)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:1491` — this is the
+   [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L851)
+   at `HansenEconometrics/Chapter7Asymptotics/Consistency.lean:851` — this is the
    algebraic decomposition of $\sqrt{n}\, a^\top (\hat\beta^\ast_n - \beta)$
    into a fixed score, an inverse-gap term, and a residual; the latter two
    are $o_p(1)$.
-3. [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1415)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:1415` — the inverse-gap
+3. [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L775)
+   at `HansenEconometrics/Chapter7Asymptotics/Consistency.lean:775` — the inverse-gap
    residual goes to $0$ in probability.
-4. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5277)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:5277` — packages the chain
+4. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L694)
+   at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:694` — packages the chain
    modulo a measurability hypothesis.
-5. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:5307` — discharges the
+5. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724)
+   at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:724` — discharges the
    measurability via `scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable`.
-6. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5332)
-   at `HansenEconometrics/Chapter7Asymptotics.lean:5332` — restates the
+6. [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L749)
+   at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:749` — restates the
    result using the named asymptotic variance, via
-   [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503).
+   [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167).
 
 The chain is heavy because the Lean version handles `olsBetaStar` (the
 totalized estimator) and has to manage the singular-sample contribution
@@ -200,7 +200,7 @@ probability tending to zero."
 
 ### Tactic-by-tactic walkthrough
 
-The headline theorem at line 5332 has a short body: it hypothesis-massages
+The headline theorem at line 749 has a short body: it hypothesis-massages
 the Gaussian variance into the named-asymptotic-variance form, then defers
 to the variance-form sibling.
 
@@ -242,7 +242,7 @@ What each step is doing:
   side.
 - **`rw [scoreProjection_variance_eq_quadraticScoreCovariance …]`** — apply
   Theorem 7.2's covariance-matrix face
-  ([line 2503](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503))
+  ([line 167](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167))
   in direction $((Q^{-1})^\top a)$. This rewrites the variance of the score
   projection as the quadratic form
   $((Q^{-1})^\top a)^\top \Omega ((Q^{-1})^\top a)$.
@@ -251,61 +251,61 @@ What each step is doing:
   hypothesis `hZ` directly.
 - **`exact scoreProjection_olsBetaStar_tendstoInDistribution_gaussian …`** —
   hand off to the variance-form headline at
-  [line 5307](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
+  [line 724](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724)
   with the rewritten Gaussian hypothesis `hZ'`.
 
 So the line-5332 wrapper is essentially a one-line bridge: the real work
 sits in the variance-form chain it composes. Walking that chain
 top-down:
 
-- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5307)
-  (line 5307) — same Theorem 7.3 statement but with the Gaussian variance in
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L724)
+  (line 724) — same Theorem 7.3 statement but with the Gaussian variance in
   variance-form. Its body discharges the measurability premise of the
   `_of_finalMeas` variant by applying
   `scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable`.
-- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5277)
-  (line 5277) — same statement with an explicit `AEMeasurable` premise. Its
+- [`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_finalMeas`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L694)
+  (line 694) — same statement with an explicit `AEMeasurable` premise. Its
   body discharges the score-bounded premise of an even more upstream
   variant from `scoreCoordinate_sampleCrossMoment_boundedInProbability`,
   passing through a chain that eventually reduces the goal to a Slutsky
   combination of a CLT term and an $o_p(1)$ inverse-gap term.
-- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L4773)
-  (line 4773) — the **score CLT** (Theorem 7.2 face). Supplies the Gaussian
+- [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61)
+  (line 61) — the **score CLT** (Theorem 7.2 face). Supplies the Gaussian
   limit for $(\sqrt{n})^{-1} \sum_i (e_i X_i) \cdot c$ in any fixed direction
   $c$. Used in direction $c = (Q^{-1})^\top a$.
-- [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1491)
-  (line 1491) — the **algebraic decomposition**: at every $n$ and $\omega$,
+- [`scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L851)
+  (line 851) — the **algebraic decomposition**: at every $n$ and $\omega$,
   $\sqrt{n}\, a^\top (\hat\beta_n^\ast - \beta)$ equals the sum of (i) a
   scaled singular-sample residual, (ii) the fixed-$Q^{-1}$ score projection
   (which gets the CLT), and (iii) the random-inverse-gap projection (which
   needs Slutsky).
-- [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L1415)
-  (line 1415) — the **Slutsky $o_p(1)$ control**: the random-inverse-gap
+- [`inverseGapProjection_tendstoInMeasure_zero_of_coord`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L775)
+  (line 775) — the **Slutsky $o_p(1)$ control**: the random-inverse-gap
   term $((\hat Q_n^{-1} - Q^{-1}) \sqrt{n}\, \hat g_n) \cdot a$ goes to zero
   in measure, because each coordinate weight goes to $0$ in probability
   (continuous mapping on $\hat Q_n^{-1} \to Q^{-1}$) and the score
   coordinates are bounded in probability.
-- [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L2503)
-  (line 2503) — the **variance bridge** invoked by the line-5332 wrapper:
+- [`scoreProjection_variance_eq_quadraticScoreCovariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L167)
+  (line 167) — the **variance bridge** invoked by the line-5332 wrapper:
   rewrites $\mathrm{Var}[(e_0 X_0) \cdot c; \mu] = c^\top \Omega c$, so the
   variance-form Gaussian and the named-covariance Gaussian agree.
 
-Putting it together: line 5332 reformulates the limit Gaussian's variance,
-line 5307 discharges measurability, line 5277 packages a Slutsky combination,
-line 4773 supplies the CLT term, line 1491 says what the OLS scalar projection
-is algebraically, and line 1415 says the only remaining piece is $o_p(1)$.
+Putting it together: line 749 reformulates the limit Gaussian's variance,
+line 724 discharges measurability, line 694 packages a Slutsky combination,
+line 61 supplies the CLT term, line 851 says what the OLS scalar projection
+is algebraically, and line 775 says the only remaining piece is $o_p(1)$.
 
 ## Downstream uses
 
 - **Theorem 7.9** (linear functions of OLS):
-  [`scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5362)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:5362`.
+  [`scoreProjection_linearMap_olsBetaStar_tendstoInDistribution_gaussian_covariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L779)
+  at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:779`.
 - **Theorem 7.11 / 7.14** (t-statistics, Wald statistics): the
   asymptotic-normality result powers the standard normal / chi-square limits
   of studentized statistics.
 - **Theorem 7.13** (multivariate Wald):
-  [`linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5524)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:5524`.
+  [`linearMap_olsBetaStar_waldQuadraticForm_tendstoInDistribution_chiSquared_of_scoreCLT`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L1032)
+  at `HansenEconometrics/Chapter7Asymptotics/Normality.lean:1032`.
 - **Theorem 7.12** (CI coverage):
-  [`olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics.lean#L5995)
-  at `HansenEconometrics/Chapter7Asymptotics.lean:5995`.
+  [`olsHomoskedasticLinearCIOrZero_coverage_tendsto_standardNormal`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L651)
+  at `HansenEconometrics/Chapter7Asymptotics/Inference.lean:651`.

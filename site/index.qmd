@@ -2,7 +2,35 @@
 title: "Hansen Econometrics in Lean"
 ---
 
-A companion site for the Lean formalization of Hansen's *Econometrics*.
+::: {.hero-panel}
+This site is the reader-facing map for the Lean formalization of Hansen's
+*Econometrics*: theorem walkthroughs, assumption inventories, and coverage notes
+that connect textbook statements to reusable Lean declarations.
+:::
 
-- **Walkthroughs** — hand-written explanations of headline theorems with assumptions, proof sketches, and Lean-vs-textbook contrasts.
-- **Auto-generated reference** — every public declaration in the Lean library, grouped by chapter.
+::: {.coverage-grid}
+::: {.coverage-card}
+### Walkthroughs
+Hand-written theorem pages explain the statement, proof route, Lean formulation,
+and downstream uses.
+:::
+
+::: {.coverage-card}
+### Assumption Maps
+Chapter pages collect the core mathematical hypotheses, their Lean names, and
+the proof endpoints that consume them.
+:::
+
+::: {.coverage-card}
+### Coverage
+The coverage page summarizes which chapters have theorem-level Lean surfaces and
+where the remaining gaps are tracked.
+:::
+:::
+
+## Start Here
+
+- [Coverage overview](coverage.qmd)
+- [Assumption map](assumptions/index.qmd)
+- [Theorem 3.2 walkthrough](walkthroughs/chapter3/theorem-3-2.qmd)
+- [Theorem 7.3 walkthrough](walkthroughs/chapter7/theorem-7-3.qmd)

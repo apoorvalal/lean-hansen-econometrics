@@ -1,0 +1,25 @@
+---
+title: "Coverage"
+---
+
+::: {.hero-panel}
+Coverage here means "what a reader can cite": theorem statements, assumption
+packages, and walkthrough pages that connect Hansen's prose to the current Lean
+API. The canonical planning notes still live in `inventory/chN-inventory.md`.
+:::
+
+| Chapter | Website surface | Lean coverage | Next useful website work |
+|---|---|---|---|
+| 2 | [Assumptions](assumptions/chapter2.qmd) | <span class="status-pill done">foundational</span> Conditional expectation, CEF error, variance decomposition, and linear projection wrappers. | Add walkthroughs for best predictor and linear projection. |
+| 3 | [Assumptions](assumptions/chapter3.qmd), [T3.2](walkthroughs/chapter3/theorem-3-2.qmd), [T3.5](walkthroughs/chapter3/theorem-3-5.qmd) | <span class="status-pill done">strong</span> OLS algebra, projection matrices, orthogonality, and FWL. | Add theorem pages for projection matrices and Pythagorean decomposition. |
+| 4 | [Assumptions](assumptions/chapter4.qmd) | <span class="status-pill partial">partial</span> Linear-model decomposition, conditional/unconditional unbiasedness, variance matrices, Gauss-Markov, GLS, and robust finite-sample covariance definitions. | Add theorem walkthroughs for unbiasedness and Gauss-Markov. |
+| 5 | [Assumptions](assumptions/chapter5.qmd), [Gaussian OLS](walkthroughs/chapter5/theorem-5-5.qmd), [Residual variance identity](walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd) | <span class="status-pill done">strong</span> Gaussian law, residual variance chi-square, t/F laws, confidence intervals, and test rejection probabilities. | Add exact-distribution walkthroughs for the t statistic and F statistic. |
+| 7 | [Assumptions](assumptions/chapter7.qmd), [T7.1](walkthroughs/chapter7/theorem-7-1.qmd), [T7.3](walkthroughs/chapter7/theorem-7-3.qmd) | <span class="status-pill done">broad</span> Consistency, CLT packaging, covariance estimators, t statistics, confidence intervals, Wald statistics, and leverage signposts. | Keep tightening the assumption-package pages as the Lean packages become closer to literal textbook iid assumptions. |
+
+## Canonical Inventories
+
+- [Chapter 2 inventory](../inventory/ch2-inventory.md)
+- [Chapter 3 inventory](../inventory/ch3-inventory.md)
+- [Chapter 4 inventory](../inventory/ch4-inventory.md)
+- [Chapter 5 inventory](../inventory/ch5-inventory.md)
+- [Chapter 7 inventory](../inventory/ch7-inventory.md)

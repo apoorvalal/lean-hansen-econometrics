@@ -1,0 +1,21 @@
+---
+title: "Chapter 5 Assumptions"
+---
+
+::: {.chapter-kicker}
+Normal regression and exact finite-sample inference
+:::
+
+Chapter 5 turns the finite-sample algebra into exact distribution statements.
+The lighter `HasGaussianLaw` assumptions prove Gaussian closure results; the
+exact chi-square, Student-t, and F results use a fully specified spherical
+normal error law.
+
+| Assumption | Lean names | Used in proofs |
+|---|---|---|
+| Linear model $y = X\beta + e$ with invertible $X^\top X$. | <span class="lean-chip">`[Invertible (Xᵀ * X)]`</span> <span class="lean-chip">`olsBeta_linear_decomposition`</span> <span class="lean-chip">`residual_linear_model`</span> | <span class="use-links">[OLS Gaussian law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L106) [residual Gaussian law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135)</span> |
+| Error vector has a Gaussian law; mean and covariance are left abstract. | <span class="lean-chip">`HasGaussianLaw e μ`</span> | <span class="use-links">[OLS inherits Gaussian law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L106) [residual inherits Gaussian law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L135)</span> |
+| Exact classical laws assume spherical normal errors $e \sim N(0,\sigma^2 I)$ with $\sigma^2 > 0$. | <span class="lean-chip">`HasLaw ε (multivariateGaussian 0 (σ2 • 1)) μ`</span> | <span class="use-links">[residual variance chi-square](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L270) [OLS/residual-variance independence](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L361)</span> |
+| Degrees of freedom require $n-k$ to be positive for residual variance, t, and F laws. | <span class="lean-chip">`ν := Fintype.card n - Fintype.card k`</span> <span class="lean-chip">`0 < ν`</span> | <span class="use-links">[Student-t law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759) [variance interval coverage](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1210)</span> |
+| Exact t inference combines a standard-normal numerator with an independent chi-square denominator. | <span class="lean-chip">`olsTStatistic_hasLaw_classicalStudentT`</span> | <span class="use-links">[t law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759) [coefficient CI coverage](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L984) [t-test size](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372)</span> |
+| Exact F inference assumes the partitioned-regression null and reuses independent chi-square numerator/denominator laws. | <span class="lean-chip">`olsFStatistic_hasLaw_classicalFDist`</span> | <span class="use-links">[F law](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1988)</span> |
