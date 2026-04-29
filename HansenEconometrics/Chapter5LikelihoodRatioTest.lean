@@ -2,7 +2,6 @@ import HansenEconometrics.ChiSquared
 import HansenEconometrics.FDist
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
-import HansenEconometrics.StudentT
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter3FWL
 import HansenEconometrics.Chapter4LeastSquaresRegression

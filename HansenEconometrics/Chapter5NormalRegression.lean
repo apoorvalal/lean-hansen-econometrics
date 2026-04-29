@@ -1,5 +1,4 @@
 import HansenEconometrics.ChiSquared
-import HansenEconometrics.FDist
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.StudentT

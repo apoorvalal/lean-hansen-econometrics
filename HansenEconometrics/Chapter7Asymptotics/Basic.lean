@@ -1,7 +1,6 @@
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter4LeastSquaresRegression
-import HansenEconometrics.ProbabilityUtils
 
 /-!
 # Chapter 7 Asymptotics: Basic Definitions
