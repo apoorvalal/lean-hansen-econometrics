@@ -167,7 +167,6 @@ lemma studentTDensityConstant_step_two {ν : ℕ} (hν : 0 < ν) :
         ((((ν : ℝ) + 1) / 2) * Real.Gamma (((ν : ℝ) + 1) / 2)) := by
     have : ((((ν + 2 : ℕ) : ℝ) + 1) / 2) = (((ν : ℝ) + 1) / 2) + 1 := by
       norm_num
-      norm_num
       ring
     rw [this, Real.Gamma_add_one]
     nlinarith
@@ -269,7 +268,7 @@ lemma studentTDensityConstant_sixty_one :
   norm_num
   have hΓ : Real.Gamma ((61 : ℝ) / 2) =
       (((Nat.doubleFactorial 59 : ℕ) * Real.sqrt Real.pi / (2 ^ 30)) : ℝ) := by
-    convert (Real.Gamma_nat_add_half 30) using 1 <;> norm_num
+    convert (Real.Gamma_nat_add_half 30) using 1; norm_num
   rw [hΓ]
   field_simp [Real.pi_pos.ne']
   ring_nf
@@ -286,7 +285,7 @@ lemma studentTDensityConstant_sixty_two :
   norm_num
   have hΓ : Real.Gamma ((63 : ℝ) / 2) =
       (((Nat.doubleFactorial 61 : ℕ) * Real.sqrt Real.pi / (2 ^ 31)) : ℝ) := by
-    convert (Real.Gamma_nat_add_half 31) using 1 <;> norm_num
+    convert (Real.Gamma_nat_add_half 31) using 1; norm_num
   rw [hΓ]
   field_simp
   ring_nf
@@ -307,7 +306,7 @@ lemma studentTTwoCoverageLowerBound_sixty_two :
   norm_num [studentTTwoCoverageKernelLowerBound]
   ring_nf
 
-lemma studentTTwoCoverageLowerBound_sixty_one_ge_nineteen_twentieths :
+lemma studentTTwoCovLB_sixty_one_ge_nineteen_twentieths :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 61 := by
   rw [studentTTwoCoverageLowerBound_sixty_one]
   have hsqrt : (781 : ℝ) / 100 ≤ Real.sqrt 61 := le_of_lt sqrt_sixty_one_gt_781_div_100
@@ -332,7 +331,7 @@ lemma studentTTwoCoverageLowerBound_sixty_one_ge_nineteen_twentieths :
             have hrat_pos : 0 < ((3927 : ℝ) / 1250) := by positivity
             gcongr
 
-lemma studentTTwoCoverageLowerBound_sixty_two_ge_nineteen_twentieths :
+lemma studentTTwoCovLB_sixty_two_ge_nineteen_twentieths :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 62 := by
   rw [studentTTwoCoverageLowerBound_sixty_two]
   have hsqrt : (3937 : ℝ) / 500 ≤ Real.sqrt 62 := le_of_lt sqrt_sixty_two_gt_3937_div_500
@@ -357,7 +356,7 @@ private lemma studentTTwoCoverageKernelLowerBound_sixty_two_nonneg :
     0 ≤ studentTTwoCoverageKernelLowerBound 62 := by
   norm_num [studentTTwoCoverageKernelLowerBound]
 
-private lemma studentTTwoCoverageKernelLowerBound_sixty_one_step_chain (m : ℕ) :
+private lemma studentTTwoCovKLB_sixty_one_step_chain (m : ℕ) :
     studentTTwoCoverageKernelLowerBound 61 ≤
       studentTTwoCoverageKernelLowerBound (61 + 2 * m) := by
   induction m with
@@ -372,7 +371,7 @@ private lemma studentTTwoCoverageKernelLowerBound_sixty_one_step_chain (m : ℕ)
         _ = studentTTwoCoverageKernelLowerBound (61 + 2 * (m + 1)) := by
             congr 1
 
-private lemma studentTTwoCoverageKernelLowerBound_sixty_two_step_chain (m : ℕ) :
+private lemma studentTTwoCovKLB_sixty_two_step_chain (m : ℕ) :
     studentTTwoCoverageKernelLowerBound 62 ≤
       studentTTwoCoverageKernelLowerBound (62 + 2 * m) := by
   induction m with
@@ -387,7 +386,7 @@ private lemma studentTTwoCoverageKernelLowerBound_sixty_two_step_chain (m : ℕ)
         _ = studentTTwoCoverageKernelLowerBound (62 + 2 * (m + 1)) := by
             congr 1
 
-lemma studentTTwoCoverageKernelLowerBound_nonneg_of_ge_sixty_one
+lemma studentTTwoCovKLB_nonneg_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     0 ≤ studentTTwoCoverageKernelLowerBound ν := by
   rcases Nat.even_or_odd' (ν - 61) with ⟨m, hm | hm⟩
@@ -396,17 +395,17 @@ lemma studentTTwoCoverageKernelLowerBound_nonneg_of_ge_sixty_one
       0 ≤ studentTTwoCoverageKernelLowerBound 61 :=
         studentTTwoCoverageKernelLowerBound_sixty_one_nonneg
       _ ≤ studentTTwoCoverageKernelLowerBound (61 + 2 * m) :=
-        studentTTwoCoverageKernelLowerBound_sixty_one_step_chain m
+        studentTTwoCovKLB_sixty_one_step_chain m
       _ = studentTTwoCoverageKernelLowerBound ν := by rw [hν_eq]
   · have hν_eq : ν = 62 + 2 * m := by omega
     calc
       0 ≤ studentTTwoCoverageKernelLowerBound 62 :=
         studentTTwoCoverageKernelLowerBound_sixty_two_nonneg
       _ ≤ studentTTwoCoverageKernelLowerBound (62 + 2 * m) :=
-        studentTTwoCoverageKernelLowerBound_sixty_two_step_chain m
+        studentTTwoCovKLB_sixty_two_step_chain m
       _ = studentTTwoCoverageKernelLowerBound ν := by rw [hν_eq]
 
-lemma studentTTwoCoverageLowerBound_step_two_le_of_ge_sixty_one
+lemma studentTTwoCovLB_step_two_le_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     studentTTwoCoverageLowerBound ν ≤ studentTTwoCoverageLowerBound (ν + 2) := by
   -- Step-two monotonicity for the explicit lower bound used in Theorem 5.10: both the Student-t
@@ -420,7 +419,7 @@ lemma studentTTwoCoverageLowerBound_step_two_le_of_ge_sixty_one
     studentTTwoCoverageKernelLowerBound_step_two_le hνpos
   have hk_nonneg :
       0 ≤ studentTTwoCoverageKernelLowerBound ν :=
-    studentTTwoCoverageKernelLowerBound_nonneg_of_ge_sixty_one hν
+    studentTTwoCovKLB_nonneg_of_ge_sixty_one hν
   have hc_next_nonneg : 0 ≤ studentTDensityConstant (ν + 2) :=
     studentTDensityConstant_nonneg (ν + 2)
   have hprod :
@@ -440,7 +439,7 @@ private lemma studentTTwoCoverageLowerBound_sixty_one_step_chain (m : ℕ) :
         studentTTwoCoverageLowerBound 61
             ≤ studentTTwoCoverageLowerBound (61 + 2 * m) := ih
         _ ≤ studentTTwoCoverageLowerBound ((61 + 2 * m) + 2) :=
-            studentTTwoCoverageLowerBound_step_two_le_of_ge_sixty_one (by omega)
+            studentTTwoCovLB_step_two_le_of_ge_sixty_one (by omega)
         _ = studentTTwoCoverageLowerBound (61 + 2 * (m + 1)) := by
             congr 1
 
@@ -454,11 +453,11 @@ private lemma studentTTwoCoverageLowerBound_sixty_two_step_chain (m : ℕ) :
         studentTTwoCoverageLowerBound 62
             ≤ studentTTwoCoverageLowerBound (62 + 2 * m) := ih
         _ ≤ studentTTwoCoverageLowerBound ((62 + 2 * m) + 2) :=
-            studentTTwoCoverageLowerBound_step_two_le_of_ge_sixty_one (by omega)
+            studentTTwoCovLB_step_two_le_of_ge_sixty_one (by omega)
         _ = studentTTwoCoverageLowerBound (62 + 2 * (m + 1)) := by
             congr 1
 
-lemma studentTTwoCoverageLowerBound_ge_nineteen_twentieths_of_ge_sixty_one
+lemma studentTTwoCovLB_ge_nineteen_twentieths_of_ge_sixty_one
     {ν : ℕ} (hν : 61 ≤ ν) :
     (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound ν := by
   -- Parity argument for Theorem 5.10: start from the verified `ν = 61` and `ν = 62` base cases,
@@ -467,14 +466,14 @@ lemma studentTTwoCoverageLowerBound_ge_nineteen_twentieths_of_ge_sixty_one
   · have hν_eq : ν = 61 + 2 * m := by omega
     calc
       (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 61 :=
-        studentTTwoCoverageLowerBound_sixty_one_ge_nineteen_twentieths
+        studentTTwoCovLB_sixty_one_ge_nineteen_twentieths
       _ ≤ studentTTwoCoverageLowerBound (61 + 2 * m) :=
         studentTTwoCoverageLowerBound_sixty_one_step_chain m
       _ = studentTTwoCoverageLowerBound ν := by rw [hν_eq]
   · have hν_eq : ν = 62 + 2 * m := by omega
     calc
       (19 : ℝ) / 20 ≤ studentTTwoCoverageLowerBound 62 :=
-        studentTTwoCoverageLowerBound_sixty_two_ge_nineteen_twentieths
+        studentTTwoCovLB_sixty_two_ge_nineteen_twentieths
       _ ≤ studentTTwoCoverageLowerBound (62 + 2 * m) :=
         studentTTwoCoverageLowerBound_sixty_two_step_chain m
       _ = studentTTwoCoverageLowerBound ν := by rw [hν_eq]
@@ -576,7 +575,7 @@ lemma studentTTwoCoverageTaylorLower_le_kernel {ν : ℕ} (hν : 0 < ν)
   have hmain := one_add_rpow_taylor_lower_eleven (a := a) (u := u) ha hu
   simpa [studentTTwoCoverageTaylorLower, studentTTwoCoverageKernel, a, u] using hmain
 
-lemma integral_studentTTwoCoverageTaylorLower_eq_kernelLowerBound {ν : ℕ} (hν : 0 < ν) :
+lemma integral_studentTTwoCovTL_eq_kernelLowerBound {ν : ℕ} (hν : 0 < ν) :
     ∫ x in (0 : ℝ)..2, studentTTwoCoverageTaylorLower ν x =
       studentTTwoCoverageKernelLowerBound ν := by
   have hνr : (ν : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hν)
@@ -629,7 +628,7 @@ lemma integral_studentTTwoCoverageTaylorLower_eq_kernelLowerBound {ν : ℕ} (h�
 lemma studentTTwoCoverageKernelLowerBound_le_integral_kernel {ν : ℕ} (hν : 0 < ν) :
     studentTTwoCoverageKernelLowerBound ν ≤
       ∫ x in (0 : ℝ)..2, studentTTwoCoverageKernel ν x := by
-  rw [← integral_studentTTwoCoverageTaylorLower_eq_kernelLowerBound hν]
+  rw [← integral_studentTTwoCovTL_eq_kernelLowerBound hν]
   refine intervalIntegral.integral_mono_on (a := (0 : ℝ)) (b := 2) (μ := volume)
     (by norm_num)
     ?_ ?_ ?_
@@ -840,11 +839,11 @@ lemma integral_studentTPDFReal_eq_one {ν : ℕ} (hν : 0 < ν) :
                     have hxpow : x ^ ((2 : ℝ) - 1) = x := by
                       rw [show (2 - 1 : ℝ) = (1 : ℝ) by norm_num, Real.rpow_one]
                     have hxterm' : x * (x ^ 2) ^ (-1 / 2 : ℝ) = 1 := by
-                      convert hxterm using 1 <;> ring
+                      convert hxterm using 1; ring
                     have hνterm0 : 1 + x ^ 2 * (↑ν)⁻¹ = ↑ν * (↑ν)⁻¹ + x ^ 2 * (↑ν)⁻¹ := by
                       field_simp [hνr.ne']
                     have hxterm2 : x * (x ^ 2) ^ (-((2 : ℝ)⁻¹)) = 1 := by
-                      convert hxterm using 1 <;> ring
+                      convert hxterm using 1; ring
                     have hνterm3 : 1 + x ^ 2 / (ν : ℝ) = ↑ν * (↑ν)⁻¹ + x ^ 2 * (↑ν)⁻¹ := by
                       field_simp [hνr.ne']
                     rw [hxpow]
@@ -949,7 +948,8 @@ lemma lintegral_studentTPDF_eq_one {ν : ℕ} (hν : 0 < ν) :
   · unfold studentTPDF
     rw [← integral_eq_lintegral_of_nonneg_ae
       (ae_of_all _ fun x => studentTPDFReal_nonneg ν x)
-      (stronglyMeasurable_studentTPDFReal ν).aestronglyMeasurable, integral_studentTPDFReal_eq_one hν]
+      (stronglyMeasurable_studentTPDFReal ν).aestronglyMeasurable,
+      integral_studentTPDFReal_eq_one hν]
 
 lemma integrable_studentTPDFReal {ν : ℕ} (hν : 0 < ν) :
     Integrable (studentTPDFReal ν) := by
@@ -1007,7 +1007,8 @@ lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν) :
     calc
       ∫ x in (-2 : ℝ)..0, f x
           = ∫ x in (0 : ℝ)..2, f (-x) := by
-            simpa using
+            conv_lhs => rw [show (0 : ℝ) = -0 by norm_num]
+            exact
               (intervalIntegral.integral_comp_neg (f := f) (a := (0 : ℝ)) (b := 2)).symm
       _ = ∫ x in (0 : ℝ)..2, f x := by
         refine intervalIntegral.integral_congr ?_
@@ -1050,7 +1051,7 @@ lemma classicalStudentT_real_Icc_neg_two_two_eq {ν : ℕ} (hν : 0 < ν) :
       rw [hpos]
       ring
 
-lemma studentTTwoCoverageLowerBound_le_classicalStudentT_Icc_neg_two_two
+lemma studentTTwoCovLB_le_classicalStudentT_Icc_neg_two_two
     {ν : ℕ} (hν : 0 < ν) :
     studentTTwoCoverageLowerBound ν ≤ (classicalStudentT ν).real (Set.Icc (-2 : ℝ) 2) := by
   rw [classicalStudentT_real_Icc_neg_two_two_eq hν, studentTTwoCoverageLowerBound]
@@ -1063,8 +1064,8 @@ Hansen's Theorem 5.10. -/
 theorem classicalStudentT_Icc_neg_two_two_ge_nineteen_twentieths
     {ν : ℕ} (hν : 61 ≤ ν) :
     (19 : ℝ) / 20 ≤ (classicalStudentT ν).real (Set.Icc (-2 : ℝ) 2) := by
-  exact (studentTTwoCoverageLowerBound_ge_nineteen_twentieths_of_ge_sixty_one hν).trans
-    (studentTTwoCoverageLowerBound_le_classicalStudentT_Icc_neg_two_two (by omega))
+  exact (studentTTwoCovLB_ge_nineteen_twentieths_of_ge_sixty_one hν).trans
+    (studentTTwoCovLB_le_classicalStudentT_Icc_neg_two_two (by omega))
 
 private lemma sqrt_ratio_gaussian_denom {ν : ℕ} {q : ℝ} (hq : 0 < q) :
     Real.sqrt (2 * Real.pi * ((ν : ℝ) / q)) =
@@ -1218,7 +1219,7 @@ private lemma integral_Ioi_ratio_kernel_eq_studentTPDFReal {ν : ℕ}
           field_simp [hνr.ne']]
         rw [Real.div_rpow (by norm_num : 0 ≤ (2 : ℝ)) hbase_nonneg]
         rw [Real.rpow_neg hbase_nonneg]
-        simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        simp [div_eq_mul_inv, mul_comm]
       have hsqrt :
           Real.sqrt (2 * Real.pi * (ν : ℝ)) =
             Real.sqrt 2 * Real.sqrt (Real.pi * (ν : ℝ)) := by
@@ -1332,7 +1333,8 @@ private lemma lintegral_Ioi_ratio_kernel_eq_studentTPDF {ν : ℕ}
     have hνr : 0 < (ν : ℝ) := by
       exact_mod_cast hν
     exact ae_of_all _ fun q =>
-      mul_nonneg (gaussianPDFReal_nonneg 0 _ _) (gammaPDFReal_nonneg (by positivity) (by positivity) q)
+      mul_nonneg (gaussianPDFReal_nonneg 0 _ _)
+        (gammaPDFReal_nonneg (by positivity) (by positivity) q)
   rw [← ofReal_integral_eq_lintegral_ofReal h_int h_nonneg]
   simpa using congrArg ENNReal.ofReal (integral_Ioi_ratio_kernel_eq_studentTPDFReal hν x)
 
@@ -1387,7 +1389,7 @@ private lemma lintegral_ratio_kernel_eq_studentTPDF {ν : ℕ}
         _ = ENNReal.ofReal
               (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x *
                 gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ) q) := by
-              simp [gammaPDFReal, hq.le, mul_assoc, mul_left_comm, mul_comm]
+              simp [gammaPDFReal, hq.le, mul_assoc, mul_comm]
         _ = (Set.Ioi (0 : ℝ)).indicator
               (fun q =>
                 ENNReal.ofReal
@@ -1491,7 +1493,7 @@ private lemma lintegral_gaussian_scaled_eq_ratio_pdf {ν : ℕ} (hν : 0 < ν)
                 (fun x => ENNReal.ofReal (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x))
                 volume))
             (hg := hφ.aemeasurable)]
-          simpa [Pi.mul_apply, mul_comm]
+          simp [Pi.mul_apply, mul_comm]
 
 private lemma measurable_ratio_gaussian_kernel_fixed {ν : ℕ} (x : ℝ) :
     Measurable (fun q : ℝ =>
@@ -1571,7 +1573,7 @@ private lemma lintegral_ratio_double_eq {ν : ℕ} (hν : 0 < ν) {φ : ℝ → 
                         ENNReal.ofReal
                           (gaussianPDFReal 0 (Real.toNNReal ((ν : ℝ) / q)) x)) ∂ volume := by
                     refine lintegral_congr_ae (ae_of_all _ fun q => ?_)
-                    simp [F, mul_assoc, mul_left_comm, mul_comm]
+                    simp [F, mul_left_comm]
               _ =
                   φ x *
                     ∫⁻ q,
@@ -1631,7 +1633,7 @@ theorem ratio_prod_map_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
   rw [lintegral_ratio_double_eq hν hφ]
   rw [classicalStudentT, lintegral_withDensity_eq_lintegral_mul₀
     (hf := (measurable_studentTPDF ν).aemeasurable) (hg := hφ.aemeasurable)]
-  simp [studentTPDF, mul_comm, mul_left_comm, mul_assoc]
+  simp [studentTPDF, mul_comm]
 
 theorem studentT_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
     studentT ν = classicalStudentT ν := by

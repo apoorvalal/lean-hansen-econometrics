@@ -1,4 +1,6 @@
-import Mathlib
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.Analysis.Matrix.Spectrum
+import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
 open scoped Matrix
 
@@ -44,6 +46,7 @@ theorem nonsingInv_smul {k : Type*} [Fintype k] [DecidableEq k]
         Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
 
 /-- Left-multiplication by a row vector is right-multiplication by the transpose. -/
+@[simp]
 lemma vecMul_eq_mulVec_transpose {m n : Type*} [Fintype m]
     (M : Matrix m n ℝ) (x : m → ℝ) :
     Matrix.vecMul x M = Mᵀ *ᵥ x := by
@@ -54,7 +57,8 @@ as a column vector. -/
 lemma vecMul_eq_mulVec_of_transpose_eq_self {n : Type*} [Fintype n]
     (M : Matrix n n ℝ) (hM : Mᵀ = M) (x : n → ℝ) :
     Matrix.vecMul x M = M *ᵥ x := by
-  simpa [hM] using vecMul_eq_mulVec_transpose M x
+  conv_rhs => rw [← hM]
+  exact vecMul_eq_mulVec_transpose M x
 
 /-- For a symmetric idempotent matrix, the associated quadratic form equals the squared norm of
 the projected vector. This is the linear-algebra identity behind projection-based chi-square

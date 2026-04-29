@@ -118,6 +118,81 @@ Examples:
 - When choosing between a sigma-algebra theorem and a variable wrapper, optimize for the theorem that
   later chapters will naturally want to reuse, not for the most abstract possible statement.
 
+## Star / OrZero totalization convention
+
+Many OLS definitions come in two or three variants. This section explains the architecture
+so that contributors can pick the right variant and name new ones consistently.
+
+### Two-level architecture
+
+**Primitive totalization:**
+- **Base** (`olsBeta`, `residual`, `fitted`): Require `[Invertible (Xᵀ * X)]` typeclass.
+  Used for finite-sample algebra in Chapters 3–5.
+- **Star primitives** (`olsBetaStar`, `leverageStar`): Replace `⅟(Xᵀ * X)` with
+  `(Xᵀ * X)⁻¹` (`Matrix.nonsingInv`). These return `0` when the design is singular
+  (because `Matrix.nonsingInv` returns `0` on singular matrices).
+- **Derived Star** (`olsResidualStar`, `olsSigmaSqHatStar`, covariance estimators): Built
+  from Star primitives. These are total but **generally nonzero on singular designs**
+  (e.g., `olsResidualStar = y - X *ᵥ 0 = y` when singular). Do not describe them as
+  "returning 0."
+
+**Textbook-facing wrappers:**
+- **OrZero primitives** (`olsBetaOrZero`): Branch explicitly on
+  `IsUnit (Xᵀ * X).det`, returning the base definition when nonsingular and `0`
+  otherwise. Use for textbook-facing results a reader would want to cite.
+- **Derived OrZero** (`olsLinearTStatOrZero`, `olsLinearCIEventOrZero`,
+  `olsLinearWaldStatOrZero`): Compose `olsBetaOrZero` directly. They do **not**
+  independently branch and do **not** require Star siblings.
+
+### When to use which
+- **Finite-sample algebra** (Chapters 3–5): Use base definitions with typeclass inverse.
+- **Asymptotic proofs** (Chapter 7+): Use Star definitions as the proof engine. Add OrZero
+  wrappers only for textbook-facing results.
+- **Covariance estimators**: Star-only is correct. They appear inside convergence statements
+  and are total by construction. No OrZero or branching needed.
+- **Inference statistics** (t-stat, Wald, CI): OrZero for textbook-facing results; Star for
+  proofs.
+
+### Bridge lemmas
+- Primitive bridge: `olsBetaOrZero_eq_olsBetaStar` — private `@[simp]`.
+- Derived bridges follow whatever equivalence is natural:
+  - `fooOrZero_eq_star` when a Star sibling exists
+    (e.g., `olsLinearTNumeratorOrZero_eq_star`, `olsLinearTStatOrZero_eq_star`)
+  - `fooOrZero_eq_sq` when the equivalence is to a squared form
+    (e.g., `olsLinearWaldStatOrZero_eq_sq`)
+- Do not force `fooOrZero_eq_fooStar` when no Star sibling exists.
+- Bridge visibility: private `@[simp]` for primitive bridges; public for derived bridges
+  that downstream proofs cite directly.
+
+### When NOT to add variants
+- Do not add Star siblings for thin OrZero composites (`olsLinearCIEventOrZero`,
+  `olsLinearWaldStatOrZero`) unless a proof needs them.
+- Do not add OrZero wrappers for covariance estimators — they are already total and appear
+  only inside convergence statements.
+
+## Import hygiene policy
+
+- Do not add `import Mathlib` to project Lean files. If a temporary broad import is unavoidable,
+  document why in the PR/update note and open a follow-up to remove it.
+- Prefer the narrowest stable `Mathlib.*` imports that keep the file readable. `Mathlib.Tactic` may
+  be used as tactic support, but should not be used as the sole replacement for domain imports.
+- Use the import minimizer when changing imports:
+  1. start from a green `lake build`
+  2. run `lake exe shake --cfg /tmp/noshake.json HansenEconometrics`
+  3. apply actionable suggestions
+  4. rebuild and rerun shake until there are no project import suggestions, or document any retained
+     import with a concrete rationale
+- Be careful with transitive imports. When narrowing imports in foundational files such as
+  `LinearAlgebraUtils`, `ProbabilityUtils`, or `AsymptoticUtils`, downstream chapter files may need
+  new direct imports. Rebuild and rerun shake after the foundational change before editing chapters.
+- When a chapter file only compiled because another module re-exported broad Mathlib coverage, add
+  direct imports to the chapter or submodule that actually uses the declarations. Do not rely on
+  unrelated transitive imports for public dependencies.
+- Final import cleanup gates should include:
+  - no exact `import Mathlib` matches in project Lean files
+  - `lake build`
+  - a final `lake exe shake --cfg /tmp/noshake.json HansenEconometrics` pass
+
 ## Module boundary policy
 
 - Extend [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)

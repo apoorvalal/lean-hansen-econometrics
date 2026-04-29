@@ -1,10 +1,6 @@
-import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter4LeastSquaresRegression
-import HansenEconometrics.AsymptoticUtils
-import HansenEconometrics.ProbabilityUtils
-import HansenEconometrics.ChiSquared
 
 /-!
 # Chapter 7 Asymptotics: Basic Definitions
@@ -40,9 +36,20 @@ Hansen's decomposition of `σ̂²`. -/
 noncomputable def sampleErrorSecondMoment (e : n → ℝ) : ℝ :=
   (Fintype.card n : ℝ)⁻¹ * dotProduct e e
 
-/-- Textbook-facing totalization of ordinary OLS: use `olsBeta` on nonsingular designs and
-return `0` on singular designs. This exposes the ordinary-OLS formula on the high-probability
-nonsingularity event while remaining a genuine random variable for every sample size. -/
+/-- **OrZero primitive**: textbook-facing totalization of ordinary OLS.
+
+Branches explicitly on `IsUnit (Xᵀ * X).det`:
+- **nonsingular**: returns the ordinary `olsBeta X y` (typeclass inverse);
+- **singular**: returns `0`.
+
+This makes `olsBetaOrZero` suitable for textbook-facing statements that a reader would
+want to cite directly (e.g., consistency, asymptotic normality headlines), because the
+formula matches ordinary OLS on the high-probability nonsingularity event.
+
+For proofs, the equivalent `olsBetaStar` (a Star primitive using `Matrix.nonsingInv`) is
+typically more convenient; the bridge `olsBetaOrZero_eq_olsBetaStar` (private `@[simp]`)
+connects the two. See the **Star / OrZero totalization convention** in `AGENTS.md` for
+the full architecture. -/
 noncomputable def olsBetaOrZero (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
   letI : Decidable (IsUnit (Xᵀ * X).det) := Classical.propDecidable _
   if h : IsUnit (Xᵀ * X).det then
@@ -72,7 +79,20 @@ theorem olsBetaOrZero_eq_olsBeta
     olsBetaOrZero X y = olsBeta X y := by
   rw [olsBetaOrZero_eq_olsBetaStar, olsBetaStar_eq_olsBeta]
 
-/-- Totalized OLS residuals, defined for every design matrix via `olsBetaStar`. -/
+/-- **Derived Star**: totalized OLS residual vector, built from the Star primitive
+`olsBetaStar`.
+
+Defined as `y - X *ᵥ olsBetaStar X y` for every design matrix without a typeclass
+precondition.
+
+**Important**: this is a *derived* Star, not a primitive, and it is **not** identically
+zero on singular designs.  On a singular design `olsBetaStar X y = 0`, so
+`olsResidualStar X y = y - X *ᵥ 0 = y`, which is generally nonzero.  Do not describe
+this function as "returning 0 on singular designs."
+
+On nonsingular designs it agrees with the ordinary `residual` definition
+(see `olsResidualStar_eq_residual`).  It is the residual used inside the Chapter 7
+asymptotic consistency proofs for `σ̂²`. -/
 noncomputable def olsResidualStar (X : Matrix n k ℝ) (y : n → ℝ) : n → ℝ :=
   y - X *ᵥ olsBetaStar X y
 
@@ -90,6 +110,7 @@ noncomputable def olsS2Star (X : Matrix n k ℝ) (y : n → ℝ) : ℝ :=
 Under the linear model, each totalized OLS residual is the structural error
 minus the fitted coefficient error evaluated at that row:
 `êᵢ = eᵢ - Xᵢ'(β̂* - β)`. -/
+@[simp]
 theorem olsResidualStar_linear_model_apply
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
     olsResidualStar X (X *ᵥ β + e) i =
@@ -151,7 +172,7 @@ For the totalized estimator, the finite-sample residual error at row `i` is
 bounded by the row norm times the coefficient error, with the explicit
 finite-dimensional sup-norm factor. This is the pointwise algebra behind the
 uniform residual consistency rate. -/
-theorem residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+theorem residualStar_sub_error_abs_le_card_rowNorm_betaErrorNorm
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (i : n) :
     |olsResidualStar X (X *ᵥ β + e) i - e i| ≤
       (Fintype.card k : ℝ) * ‖X i‖ *
@@ -175,8 +196,8 @@ theorem residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
     |residual X (X *ᵥ β + e) i - e i| ≤
       (Fintype.card k : ℝ) * ‖X i‖ *
         ‖olsBeta X (X *ᵥ β + e) - β‖ := by
-  simpa [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
-    residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm
+  simpa only [olsResidualStar_eq_residual, olsBetaStar_eq_olsBeta] using
+    residualStar_sub_error_abs_le_card_rowNorm_betaErrorNorm
       (X := X) (β := β) (e := e) i
 
 /-- **Theorem 7.4 residual expansion, squared pointwise form.**
@@ -300,7 +321,7 @@ theorem invOf_sampleGram
 in the linear model `Y = X β + e`, the OLS error decomposes as
 `β̂ₙ - β = Q̂ₙ⁻¹ *ᵥ g̑ₙ`. This is the algebraic engine behind
 Theorem 7.1 (Consistency of Least Squares). -/
-theorem olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment
+theorem olsBeta_sub_eq_sampleGram_inv_sampleCrossMoment
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ)
     [Nonempty n] [Invertible (Xᵀ * X)] :
     olsBeta X (X *ᵥ β + e) - β = ⅟ (sampleGram X) *ᵥ sampleCrossMoment X e := by
@@ -355,6 +376,7 @@ theorem stackRegressors_transpose_mul_self_eq_sum
 omit [Fintype k] [DecidableEq k] in
 /-- The sample Gram matrix of the stacked design equals the sample mean of rank-1
 outer products `Xᵢ Xᵢᵀ`. -/
+@[simp]
 theorem sampleGram_stackRegressors_eq_avg
     (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) :
     sampleGram (stackRegressors X n ω) =
@@ -376,6 +398,7 @@ theorem stackRegressors_transpose_mulVec_stackErrors_eq_sum
 omit [Fintype k] [DecidableEq k] in
 /-- The sample cross moment of the stacked design with stacked errors equals the
 sample mean of error-weighted regressors. -/
+@[simp]
 theorem sampleCrossMoment_stackRegressors_stackErrors_eq_avg
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
@@ -387,6 +410,7 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_eq_avg
 omit [Fintype k] [DecidableEq k] in
 /-- Bridge `Fin n` summation to `Finset.range n` summation for outer products of
 regressors — matches the indexing of Mathlib's WLLN. -/
+@[simp]
 theorem sum_fin_eq_sum_range_vecMulVec
     (X : ℕ → Ω → (k → ℝ)) (n : ℕ) (ω : Ω) :
     (∑ i : Fin n, Matrix.vecMulVec (X i.val ω) (X i.val ω)) =
@@ -396,6 +420,7 @@ theorem sum_fin_eq_sum_range_vecMulVec
 omit [Fintype k] [DecidableEq k] in
 /-- Bridge `Fin n` summation to `Finset.range n` summation for error-weighted
 regressors — matches the indexing of Mathlib's WLLN. -/
+@[simp]
 theorem sum_fin_eq_sum_range_smul
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     (∑ i : Fin n, e i.val ω • X i.val ω) =
@@ -405,7 +430,7 @@ theorem sum_fin_eq_sum_range_smul
 omit [Fintype k] [DecidableEq k] in
 /-- The Hansen CLT scaling `√n · ĝₙ(e)` equals the normalized score sum
 `(1 / √n) ∑_{i<n} eᵢXᵢ`, including the harmless `n = 0` totalized case. -/
-theorem sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum
+theorem sqrt_smul_sampleCrossMoment_stack_eq_inv_sqrt_sum
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     Real.sqrt (n : ℝ) • sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
       (Real.sqrt (n : ℝ))⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω := by
@@ -477,10 +502,10 @@ theorem olsSigmaSqHatStar_stack_linear_model
 /-- **Unconditional sample-moment form of `olsBetaStar`.**
 For every sample size `n` and every `ω`,
 `olsBetaStar X y = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)`, where `Q̂ₙ = n⁻¹ Xᵀ X` and `ĝₙ(y) = n⁻¹ Xᵀ y`.
-Unlike Phase 1's `olsBeta_sub_eq_sampleGram_inv_mulVec_sampleCrossMoment`, this
+Unlike Phase 1's `olsBeta_sub_eq_sampleGram_inv_sampleCrossMoment`, this
 version uses `Matrix.nonsingInv` throughout and so holds on *all* of `Ω`,
 including the null event `{Q̂ₙ singular}` where both sides collapse to `0`. -/
-theorem olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment
+theorem olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment
     (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
     olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) =
       (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
@@ -511,7 +536,7 @@ theorem olsBetaStar_sub_identity
           sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) =
       ((sampleGram (stackRegressors X n ω))⁻¹ *
           sampleGram (stackRegressors X n ω) - 1) *ᵥ β := by
-  rw [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment,
+  rw [olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment,
       sampleCrossMoment_stackOutcomes_linear_model X e y β hmodel,
       Matrix.mulVec_add, Matrix.mulVec_mulVec,
       Matrix.sub_mulVec, Matrix.one_mulVec]

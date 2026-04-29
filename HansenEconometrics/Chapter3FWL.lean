@@ -1,5 +1,4 @@
-import Mathlib
-import HansenEconometrics.Basic
+import Mathlib.Data.Matrix.ColumnRowPartitioned
 import HansenEconometrics.Chapter3Projections
 
 open scoped Matrix

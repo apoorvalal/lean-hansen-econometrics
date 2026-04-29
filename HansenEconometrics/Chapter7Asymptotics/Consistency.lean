@@ -1,3 +1,4 @@
+import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.Chapter7Asymptotics.Basic
 
 /-!
@@ -194,12 +195,7 @@ theorem sampleGram_stackRegressors_tendstoInMeasure_popGram
       (fun n ω => sampleGram (stackRegressors X n ω))
       atTop
       (fun _ => popGram μ X) := by
-  have hfun_eq : (fun n ω => sampleGram (stackRegressors X n ω)) =
-      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-    funext n ω
-    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-  rw [hfun_eq]
+  simp only [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
   exact tendstoInMeasure_wlln
     (fun i ω => Matrix.vecMulVec (X i ω) (X i ω))
     h.int_outer h.indep_outer h.ident_outer
@@ -211,30 +207,20 @@ theorem sampleGram_stackRegressors_aestronglyMeasurable
     (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => sampleGram (stackRegressors X n ω)) μ := by
-  have hform : (fun ω => sampleGram (stackRegressors X n ω)) =
-      (fun ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, Matrix.vecMulVec (X i ω) (X i ω)) := by
-    funext ω
-    rw [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
-  rw [hform]
+  simp only [sampleGram_stackRegressors_eq_avg, sum_fin_eq_sum_range_vecMulVec]
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
 
 /-- Measurability of the stacked sample cross moment under the Chapter 7.1 moment layer. -/
-theorem sampleCrossMoment_stackRegressors_stackErrors_aestronglyMeasurable
+theorem sampleCrossMoment_stack_aestronglyMeasurable
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) (n : ℕ) :
     AEStronglyMeasurable
       (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
-  have hform : (fun ω => sampleCrossMoment (stackRegressors X n ω)
-        (stackErrors e n ω)) =
-      (fun ω => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, e i ω • X i ω) := by
-    funext ω
-    rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
-        sum_fin_eq_sum_range_smul]
-  rw [hform]
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_cross i).integrable_iff.mpr h.int_cross).aestronglyMeasurable
@@ -258,7 +244,7 @@ theorem sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
 /-- **WLLN for the sample cross moment.** Under the moment-level assumptions, the sample
 cross moment `ĝₙ = n⁻¹ ∑ eᵢ Xᵢ` of the stacked design converges in probability to
 `0`, since the population cross moment `𝔼[e X] = 0` by the orthogonality axiom. -/
-theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
+theorem sampleCrossMoment_stack_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) :
@@ -266,14 +252,9 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
       (fun n ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
       atTop
       (fun _ => 0) := by
-  have hfun_eq : (fun n ω => sampleCrossMoment (stackRegressors X n ω)
-        (stackErrors e n ω)) =
-      (fun (n : ℕ) ω => (n : ℝ)⁻¹ •
-        ∑ i ∈ Finset.range n, e i ω • X i ω) := by
-    funext n ω
-    rw [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
-        sum_fin_eq_sum_range_smul]
-  rw [hfun_eq, show (fun _ : Ω => (0 : k → ℝ)) =
+  simp only [sampleCrossMoment_stackRegressors_stackErrors_eq_avg,
+    sum_fin_eq_sum_range_smul]
+  rw [show (fun _ : Ω => (0 : k → ℝ)) =
       (fun _ : Ω => μ[fun ω => e 0 ω • X 0 ω]) by rw [h.orthogonality]]
   exact tendstoInMeasure_wlln
     (fun i ω => e i ω • X i ω)
@@ -283,7 +264,7 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
 
 Under the 7.4 squared-error assumptions, the sample average of the true squared
 errors converges in probability to `σ² = E[e₀²]`. -/
-theorem sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
+theorem sampleErrorSecondMoment_stack_tendstoInMeasure_errVariance
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleVarianceAssumption74 μ X e) :
@@ -302,7 +283,7 @@ theorem sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
       h.int_error_sq h.indep_error_sq h.ident_error_sq
 
 /-- Centered form of the Theorem 7.4 squared-error WLLN. -/
-theorem sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_zero
+theorem sampleErrorSecondMoment_stack_sub_errVar_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleVarianceAssumption74 μ X e) :
@@ -311,7 +292,7 @@ theorem sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_z
       atTop
       (fun _ => 0) := by
   have hraw :=
-    sampleErrorSecondMoment_stackErrors_tendstoInMeasure_errorVariance
+    sampleErrorSecondMoment_stack_tendstoInMeasure_errVariance
       (μ := μ) (X := X) (e := e) h
   rw [tendstoInMeasure_iff_dist] at hraw ⊢
   intro ε hε
@@ -323,7 +304,7 @@ Once Hansen's two residual-decomposition remainders are known to be `oₚ(1)`,
 the centered residual average `σ̂² - σ²` is `oₚ(1)`. The remaining work for the
 unconditional Theorem 7.4 statement is to discharge `hcross` and `hquad` from
 Theorem 7.1 consistency and the sample-moment WLLNs. -/
-theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+theorem olsSigmaSqHatStar_sub_errVar_tendstoInMeasure_zero_remainders
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
@@ -346,7 +327,7 @@ theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
       atTop
       (fun _ => 0) := by
   have herr :=
-    sampleErrorSecondMoment_stackErrors_sub_errorVariance_tendstoInMeasure_zero
+    sampleErrorSecondMoment_stack_sub_errVar_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) h
   have hsum :=
     TendstoInMeasure.add_zero_real
@@ -366,10 +347,10 @@ theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
 /-- **Theorem 7.4 conditional `σ̂²` consistency.**
 
 This is the uncentered presentation of
-`olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders`:
+`olsSigmaSqHatStar_sub_errVar_tendstoInMeasure_zero_remainders`:
 `σ̂² →ₚ σ²`, conditional on the two residual-decomposition remainders being
 `oₚ(1)`. -/
-theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
+theorem olsSigmaSqHatStar_tendstoInMeasure_errVariance_remainders
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleVarianceAssumption74 μ X e) (β : k → ℝ)
@@ -390,7 +371,7 @@ theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
       atTop
       (fun _ => errorVariance μ e) := by
   have hsub :=
-    olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+    olsSigmaSqHatStar_sub_errVar_tendstoInMeasure_zero_remainders
       (μ := μ) (X := X) (e := e) (y := y) h β hmodel hcross hquad
   rw [tendstoInMeasure_iff_dist] at hsub ⊢
   intro ε hε
@@ -408,7 +389,7 @@ Proof chain:
 * `tendstoInMeasure_mulVec` joins these to `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ Q⁻¹ *ᵥ 0 = 0`.
 
 This theorem is the core stochastic term in the consistency proof below. -/
-theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
+theorem sampleGramInv_sampleCrossMoment_e_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) :
@@ -419,7 +400,7 @@ theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
       atTop
       (fun _ => (0 : k → ℝ)) := by
   have hGram := sampleGram_stackRegressors_tendstoInMeasure_popGram h
-  have hCross := sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero h
+  have hCross := sampleCrossMoment_stack_tendstoInMeasure_zero h
   -- Measurability of sampleGram via (1/n) • ∑ Xᵢ Xᵢᵀ
   have hGram_meas : ∀ n, AEStronglyMeasurable
       (fun ω => sampleGram (stackRegressors X n ω)) μ := by
@@ -436,7 +417,7 @@ theorem sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero
   have hCross_meas : ∀ n, AEStronglyMeasurable
       (fun ω => sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) μ := by
     intro n
-    exact sampleCrossMoment_stackRegressors_stackErrors_aestronglyMeasurable h n
+    exact sampleCrossMoment_stack_aestronglyMeasurable h n
   have hInv : TendstoInMeasure μ
       (fun n ω => (sampleGram (stackRegressors X n ω))⁻¹)
       atTop (fun _ => (popGram μ X)⁻¹) :=
@@ -567,7 +548,7 @@ projection vector `a`, the scalar projection of the singular-event residual is
 `oₚ(1)`.
 
 This is the projectionwise form needed by the Cramér-Wold-facing CLT layer. -/
-theorem scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero
+theorem scoreProj_sqrt_smul_residual_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (β a : k → ℝ)
@@ -605,7 +586,7 @@ plus the feasible leading score term:
 This is pure deterministic algebra. The preceding theorem proves
 `√n·Rₙ →ₚ 0`; the remaining Chapter 7 CLT work is to transfer the score CLT
 through the random inverse `Q̂ₙ⁻¹`. -/
-theorem sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score
+theorem sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_feasibleScore
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (β : k → ℝ) (n : ℕ) (ω : Ω) :
     Real.sqrt (n : ℝ) •
@@ -649,7 +630,7 @@ theorem sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score
 The difference between the scaled totalized OLS error and the feasible leading
 score `Q̂ₙ⁻¹√nĝₙ(e)` is `oₚ(1)`. This is the vector form needed by Mathlib's
 distributional Slutsky theorem. -/
-theorem sqrt_smul_olsBetaStar_sub_sub_feasibleScore_tendstoInMeasure_zero
+theorem sqrt_smul_olsBetaStar_sub_sub_feasScore_tendstoInMeasure_zero
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
     (h : SampleMomentAssumption71 μ X e)
@@ -706,7 +687,7 @@ the random weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa`.
 This is the deterministic algebra behind the remaining tightness/product step:
 the weight should converge to zero in probability, while the scaled score is
 tight by the CLT. -/
-theorem inverseGapProjection_eq_scoreProjection_randomWeight
+theorem inverseGapProjection_eq_scoreProj_randomWeight
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (a : k → ℝ) (n : ℕ) (ω : Ω) :
     (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
@@ -770,7 +751,7 @@ each coordinate of the random weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` is `oₚ(1)` a
 coordinate of the scaled score `√n·ĝₙ(e)` is `Oₚ(1)`.
 
 This is the product-rule heart of the remaining proof of Hansen Theorem 7.3:
-after `inverseGapProjection_eq_scoreProjection_randomWeight`, the inverse gap
+after `inverseGapProjection_eq_scoreProj_randomWeight`, the inverse gap
 is a finite sum of coordinate products. -/
 theorem inverseGapProjection_tendstoInMeasure_zero_of_coord
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
@@ -808,7 +789,7 @@ theorem inverseGapProjection_tendstoInMeasure_zero_of_coord
     (X := fun j n ω => weight n ω j * score n ω j) hprod
   refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
   dsimp [score, weight]
-  rw [inverseGapProjection_eq_scoreProjection_randomWeight (μ := μ) (X := X) (e := e) a n ω]
+  rw [inverseGapProjection_eq_scoreProj_randomWeight (μ := μ) (X := X) (e := e) a n ω]
   simp [dotProduct, mul_comm]
 
 /-- **Inverse-gap projection from scaled-score boundedness.**
@@ -819,7 +800,7 @@ The random-weight side is now discharged by
 `inverseGapWeight_coord_tendstoInMeasure_zero`; the remaining theorem-facing
 task is supplying score boundedness, which `SampleCLTAssumption72` later
 provides via the scalar score CLT. -/
-theorem inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded
+theorem inverseGapProjection_tendstoInMeasure_zero_scoreBounded
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) (a : k → ℝ)
@@ -848,7 +829,7 @@ into:
 
 This is the exact algebraic roadmap for the remaining proof of Hansen's
 Theorem 7.3. -/
-theorem scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap
+theorem scoreProj_olsBetaStar_sub_eq_residual_fixedScore_inverseGap
     {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     {y : ℕ → Ω → ℝ} (β a : k → ℝ) (n : ℕ) (ω : Ω) :
     (Real.sqrt (n : ℝ) •
@@ -863,7 +844,7 @@ theorem scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add
         (((sampleGram (stackRegressors X n ω))⁻¹ - (popGram μ X)⁻¹) *ᵥ
           (Real.sqrt (n : ℝ) •
             sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a := by
-  rw [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score,
+  rw [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_feasibleScore,
       feasibleScore_eq_fixedScore_add_inverseGap (μ := μ), Matrix.mulVec_smul,
       add_dotProduct, add_dotProduct]
   ring
@@ -874,9 +855,9 @@ OLS projection and the fixed-`Q⁻¹` score projection is `oₚ(1)` once the
 random-inverse gap projection is `oₚ(1)`.
 
 The scaled residual part is already controlled by
-`scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero`; this theorem makes
+`scoreProj_sqrt_smul_residual_tendstoInMeasure_zero`; this theorem makes
 the remaining target exactly the inverse-gap/tightness step. -/
-theorem scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap
+theorem scoreProj_olsBetaStar_remainder_tendstoInMeasure_zero_invGap
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (β a : k → ℝ)
@@ -907,7 +888,7 @@ theorem scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGa
         sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))) ⬝ᵥ a
   have hresConv : TendstoInMeasure μ residual atTop (fun _ => 0) := by
     simpa [residual] using
-      scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero β a h hmodel
+      scoreProj_sqrt_smul_residual_tendstoInMeasure_zero β a h hmodel
   have hgapConv : TendstoInMeasure μ gap atTop (fun _ => 0) := by
     simpa [gap] using hinvGap
   have hsumConv : TendstoInMeasure μ (fun n ω => residual n ω + gap n ω)
@@ -941,7 +922,7 @@ theorem scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGa
       exact (not_le.mpr hlt) hω
   refine hsumConv.congr_left (fun n => ae_of_all μ (fun ω => ?_))
   dsimp [residual, gap]
-  rw [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap]
+  rw [scoreProj_olsBetaStar_sub_eq_residual_fixedScore_inverseGap]
   ring
 
 /-- **Consistency of the totalized least-squares estimator.**
@@ -1024,7 +1005,7 @@ theorem olsBetaStar_stack_tendstoInMeasure_beta
       olsBetaStar_sub_identity X e y β hmodel n ω))
   -- Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0 (Task 11)
   have hCore :=
-    sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero h.toSampleMomentAssumption71
+    sampleGramInv_sampleCrossMoment_e_tendstoInMeasure_zero h.toSampleMomentAssumption71
   -- R'_n + Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0
   have hSum := tendstoInMeasure_add hR'_meas hCoreMV_meas hR' hCore
   simp only [add_zero] at hSum
@@ -1105,7 +1086,7 @@ theorem olsBetaStar_stack_aestronglyMeasurable
           sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)) =
       olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω)
   rw [← sampleCrossMoment_stackOutcomes_linear_model X e y β hmodel,
-      ← olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment X y n ω]
+      ← olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment X y n ω]
 
 /-- **Hansen Theorem 7.8, continuous functions of totalized OLS.**
 
@@ -1248,7 +1229,7 @@ theorem olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
           (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))
       atTop (fun _ => 0) := by
   have hCross :=
-    sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero
+    sampleCrossMoment_stack_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71
   have hBeta :=
     olsBetaStar_stack_tendstoInMeasure_beta
@@ -1386,7 +1367,7 @@ theorem olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero
         olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω) -
           errorVariance μ e)
       atTop (fun _ => 0) := by
-  exact olsSigmaSqHatStar_sub_errorVariance_tendstoInMeasure_zero_of_remainders
+  exact olsSigmaSqHatStar_sub_errVar_tendstoInMeasure_zero_remainders
     (μ := μ) (X := X) (e := e) (y := y) h β hmodel
     (olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) (y := y) h β hmodel)
@@ -1406,7 +1387,7 @@ theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance
       (fun n ω => olsSigmaSqHatStar (stackRegressors X n ω) (stackOutcomes y n ω))
       atTop
       (fun _ => errorVariance μ e) := by
-  exact olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_remainders
+  exact olsSigmaSqHatStar_tendstoInMeasure_errVariance_remainders
     (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel
     (olsSigmaSqHatStar_crossRemainder_tendstoInMeasure_zero
       (μ := μ) (X := X) (e := e) (y := y) h.toSampleVarianceAssumption74 β hmodel)
@@ -1518,12 +1499,12 @@ theorem olsS2Star_tendstoInMeasure_errorVariance
 
 /-- Hansen's homoskedastic asymptotic covariance matrix
 `V⁰_β := σ² Q⁻¹`. -/
-noncomputable def homoskedasticAsymptoticCovariance
+noncomputable def homoAsymCov
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) : Matrix k k ℝ :=
   errorVariance μ e • (popGram μ X)⁻¹
 
 /-- The totalized plug-in estimator `V̂⁰_β := s² Q̂⁻¹` for Hansen Theorem 7.5. -/
-noncomputable def olsHomoskedasticCovarianceStar
+noncomputable def olsHomoCovStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   olsS2Star X y • (sampleGram X)⁻¹
 
@@ -1532,16 +1513,16 @@ noncomputable def olsHomoskedasticCovarianceStar
 Under the variance-estimator assumptions and the linear model, the plug-in
 homoskedastic covariance estimator `V̂⁰_β = s² Q̂⁻¹` converges in probability to
 `V⁰_β = σ² Q⁻¹`. -/
-theorem olsHomoskedasticCovarianceStar_tendstoInMeasure
+theorem olsHomoCovStar_tendstoInMeasure
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)
     (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :
     TendstoInMeasure μ
       (fun n ω =>
-        olsHomoskedasticCovarianceStar
+        olsHomoCovStar
           (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => homoskedasticAsymptoticCovariance μ X e) := by
+      atTop (fun _ => homoAsymCov μ X e) := by
   let s2 : ℕ → Ω → ℝ := fun n ω =>
     olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)
   let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =>
@@ -1565,12 +1546,12 @@ theorem olsHomoskedasticCovarianceStar_tendstoInMeasure
       (by simpa [s2] using hs2) hInvCoord
   refine tendstoInMeasure_pi (μ := μ) (fun i => ?_)
   refine tendstoInMeasure_pi (μ := μ) (fun j => ?_)
-  simpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,
+  simpa [olsHomoCovStar, homoAsymCov,
     s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j
 
 /-- AEMeasurability of the totalized homoskedastic covariance estimator from
 component measurability. -/
-theorem olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
+theorem olsHomoskedasticCovStar_stack_aestronglyMeasurable_components
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) (β : k → ℝ)
@@ -1579,7 +1560,7 @@ theorem olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
     (he_meas : ∀ i, AEStronglyMeasurable (e i) μ) :
     ∀ n, AEStronglyMeasurable
       (fun ω =>
-        olsHomoskedasticCovarianceStar
+        olsHomoCovStar
           (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
   intro n
   have hBeta_meas := olsBetaStar_stack_aestronglyMeasurable
@@ -1646,7 +1627,7 @@ theorem olsHomoskedasticCovarianceStar_stack_aestronglyMeasurable_of_components
         olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)) μ := by
     simpa [olsS2Star] using
       hss.const_mul (((Fintype.card (Fin n) : ℝ) - Fintype.card k)⁻¹)
-  simpa [olsHomoskedasticCovarianceStar] using hs2.smul hInv_meas
+  simpa [olsHomoCovStar] using hs2.smul hInv_meas
 
 /-- **AEMeasurability of the scaled totalized-OLS projection.**
 
@@ -1655,7 +1636,7 @@ sample-moment hypotheses and the pointwise linear model. The proof avoids a
 standalone measurability theorem for `olsBetaStar` by rewriting
 `olsBetaStar - β` with `olsBetaStar_sub_identity` into the measurable
 sample-Gram and sample-score pieces. -/
-theorem scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable
+theorem scoreProj_sqrt_smul_olsBetaStar_sub_aemeasurable
     {μ : Measure Ω} [IsFiniteMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : SampleMomentAssumption71 μ X e) (β a : k → ℝ)

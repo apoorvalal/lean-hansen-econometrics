@@ -1,6 +1,5 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.ProbabilityUtils
+import HansenEconometrics.Chapter2CondExp
 import HansenEconometrics.Chapter3Projections
 
 open scoped Matrix
@@ -13,6 +12,7 @@ variable {n k : Type*}
 variable [Fintype n] [Fintype k] [DecidableEq k]
 
 /-- Hansen equation (4.6): OLS equals the true coefficient plus the projected error. -/
+@[simp]
 theorem olsBeta_linear_decomposition
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
     olsBeta X (X *ᵥ β + e) = β + (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ e) := by
@@ -42,6 +42,7 @@ theorem fitted_linear_model
   rw [← hat_mul_y_eq_closed_form_fit]
 
 /-- In the finite-sample linear model, OLS residuals are the annihilator applied to the error. -/
+@[simp]
 theorem residual_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [DecidableEq n]
     [Invertible (Xᵀ * X)] :
@@ -56,7 +57,8 @@ noncomputable def olsConditionalVarianceMatrix
     (X : Matrix n k ℝ) (D : Matrix n n ℝ) [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
   ⅟ (Xᵀ * X) * Xᵀ * D * X * ⅟ (Xᵀ * X)
 
-/-- Hansen Section 4.16 infeasible heteroskedastic covariance estimator using the true squared errors. -/
+/-- Hansen Section 4.16 infeasible heteroskedastic covariance estimator using the true
+squared errors. -/
 noncomputable def olsIdealVarianceEstimator
     (X : Matrix n k ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
   olsConditionalVarianceMatrix X (Matrix.diagonal fun i => e i ^ 2)
@@ -69,7 +71,8 @@ noncomputable def olsHuberWhiteVarianceEstimator
 /-- HC1 degrees-of-freedom adjustment to the Huber-White covariance estimator. -/
 noncomputable def olsHuberWhiteHC1VarianceEstimator
     (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
-  ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) • olsHuberWhiteVarianceEstimator X y
+  ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
+    olsHuberWhiteVarianceEstimator X y
 
 /-- The covariance formula written as `Aᵀ D A`, where `A = X (XᵀX)⁻¹`. -/
 theorem olsConditionalVarianceMatrix_eq_Atranspose_D_A
@@ -96,8 +99,7 @@ theorem olsHuberWhiteVarianceEstimator_linear_model
     olsHuberWhiteVarianceEstimator X (X *ᵥ β + e) =
       olsConditionalVarianceMatrix X
         (Matrix.diagonal fun i => (annihilatorMatrix X *ᵥ e) i ^ 2) := by
-  unfold olsHuberWhiteVarianceEstimator
-  rw [residual_linear_model]
+  simp [olsHuberWhiteVarianceEstimator]
 
 /-- HC1 is a degrees-of-freedom rescaling of White's HC0 estimator. -/
 theorem olsHuberWhiteHC1VarianceEstimator_eq_smul
@@ -107,7 +109,8 @@ theorem olsHuberWhiteHC1VarianceEstimator_eq_smul
       ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
         olsHuberWhiteVarianceEstimator X y := rfl
 
-/-- Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive semidefinite. -/
+/-- Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive
+semidefinite. -/
 theorem gaussMarkov_variance_gap_posSemidef
     (X A : Matrix n k ℝ) [Invertible (Xᵀ * X)]
     (hAX : Aᵀ * X = (1 : Matrix k k ℝ)) :
@@ -160,7 +163,6 @@ theorem ols_condExp_coordinate_eq_beta
   have hrepr : (fun ω => olsBeta X (X *ᵥ β + e ω) j) =
       fun ω => β j + ∑ i, w j i * e ω i := by
     funext ω
-    rw [olsBeta_linear_decomposition]
     simp [w, Matrix.mulVec, dotProduct]
   rw [hrepr]
   have hsum_int : Integrable (fun ω => ∑ i, w j i * e ω i) μ := by
@@ -447,11 +449,9 @@ theorem ols_condExp_centered_mul_eq_variance_entry
   let w : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ
   have hj : (fun ω => olsBeta X (X *ᵥ β + e ω) j - β j) = fun ω => ∑ i, w j i * e ω i := by
     funext ω
-    rw [olsBeta_linear_decomposition]
     simp [w, Matrix.mulVec, dotProduct]
   have hl : (fun ω => olsBeta X (X *ᵥ β + e ω) l - β l) = fun ω => ∑ r, w l r * e ω r := by
     funext ω
-    rw [olsBeta_linear_decomposition]
     simp [w, Matrix.mulVec, dotProduct]
   have hprod :
       (fun ω => (olsBeta X (X *ᵥ β + e ω) j - β j) *
@@ -568,10 +568,8 @@ theorem ols_condExp_centered_mul_eq_variance_matrix
       funext ω
       dsimp [f]
       rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       calc
         (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
@@ -683,10 +681,8 @@ theorem ols_integral_centered_mul_eq_variance_matrix_rv
       funext ω
       dsimp [f]
       rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       calc
         (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)
@@ -745,10 +741,8 @@ theorem ols_integral_centered_mul_eq_variance_matrix
       funext ω
       dsimp [f]
       rw [show olsBeta X (X *ᵥ β + e ω) j - β j = ∑ i, w j i * e ω i by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       rw [show olsBeta X (X *ᵥ β + e ω) l - β l = ∑ r, w l r * e ω r by
-          rw [olsBeta_linear_decomposition]
           simp [w, Matrix.mulVec, dotProduct]]
       calc
         (∑ i, w j i * e ω i) * (∑ r, w l r * e ω r)

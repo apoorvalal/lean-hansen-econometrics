@@ -321,7 +321,7 @@ private lemma integral_Ioi_fKernel_eq_fPDFReal
                   ]
               rw [Real.div_rpow (by norm_num : 0 ≤ (2 : ℝ)) hbase_nonneg]
               rw [Real.rpow_neg hbase_nonneg]
-              simp [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
+              simp [div_eq_mul_inv, mul_comm]
             have hscale :
                 (((q : ℝ) / (2 * (ν : ℝ))) ^ ((q : ℝ) / 2)) =
                   (((q : ℝ) / (ν : ℝ)) ^ ((q : ℝ) / 2)) * (1 / 2 : ℝ) ^ ((q : ℝ) / 2) := by
@@ -497,7 +497,10 @@ private lemma integrableOn_Ioi_fKernel
     refine IntegrableOn.congr_fun hbase ?_ measurableSet_Ioi
     intro v hv
     simpa [a, r, C] using (fKernel_eq_const_rpow_exp hq hν hx hv).symm
-  · refine IntegrableOn.congr_fun (integrableOn_zero : IntegrableOn (fun _ : ℝ => (0 : ℝ)) (Set.Ioi (0 : ℝ))) ?_ measurableSet_Ioi
+  · refine
+      IntegrableOn.congr_fun
+        (integrableOn_zero : IntegrableOn (fun _ : ℝ => (0 : ℝ)) (Set.Ioi (0 : ℝ)))
+        ?_ measurableSet_Ioi
     intro v hv
     simp [gammaPDFReal, hx]
 
@@ -604,7 +607,7 @@ private lemma lintegral_f_kernel_eq_fPDF {q ν : ℕ}
     filter_upwards [hv0_ae] with v hv0
     rcases lt_or_gt_of_ne hv0 with hvneg | hvpos
     · rw [gammaPDF_of_neg hvneg]
-      simp [Set.indicator, hvneg, gammaPDFReal, not_le_of_gt hvneg]
+      simp [Set.indicator, gammaPDFReal, not_le_of_gt hvneg]
     · have hgamma_eq :
           gammaPDF ((ν : ℝ) / 2) (1 / 2 : ℝ) v =
             ENNReal.ofReal (gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ) v) := by
@@ -686,8 +689,10 @@ private lemma lintegral_f_double_eq {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν)
   let G : ℝ × ℝ → ℝ≥0∞ := fun z => F z.1 z.2
   have hG : Measurable G := by
     dsimp [G, F]
-    exact (((measurable_gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ)).ennreal_ofReal).comp measurable_fst).mul
-      ((hφ.comp measurable_snd).mul measurable_f_kernel)
+    exact
+      (((measurable_gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ)).ennreal_ofReal).comp
+        measurable_fst).mul
+          ((hφ.comp measurable_snd).mul measurable_f_kernel)
   calc
     ∫⁻ v, ∫⁻ x, F v x ∂ volume ∂ volume
       = ∫⁻ z, G z ∂ volume.prod volume := by
@@ -704,15 +709,17 @@ private lemma lintegral_f_double_eq {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν)
                     φ x *
                       (gammaPDF ((ν : ℝ) / 2) (1 / 2 : ℝ) v *
                         ENNReal.ofReal
-                          (gammaPDFReal ((q : ℝ) / 2) (((q : ℝ) * v) / (2 * (ν : ℝ))) x)) ∂ volume := by
+                          (gammaPDFReal ((q : ℝ) / 2)
+                            (((q : ℝ) * v) / (2 * (ν : ℝ))) x)) ∂ volume := by
                       refine lintegral_congr_ae (ae_of_all _ fun v => ?_)
-                      simp [F, mul_assoc, mul_left_comm, mul_comm]
+                      simp [F, mul_left_comm, mul_comm]
               _ =
                   φ x *
                     ∫⁻ v,
                       gammaPDF ((ν : ℝ) / 2) (1 / 2 : ℝ) v *
                         ENNReal.ofReal
-                          (gammaPDFReal ((q : ℝ) / 2) (((q : ℝ) * v) / (2 * (ν : ℝ))) x) ∂ volume := by
+                          (gammaPDFReal ((q : ℝ) / 2)
+                            (((q : ℝ) * v) / (2 * (ν : ℝ))) x) ∂ volume := by
                     have hmeas :
                         AEMeasurable
                           (fun v =>
@@ -720,8 +727,9 @@ private lemma lintegral_f_double_eq {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν)
                               ENNReal.ofReal
                                 (gammaPDFReal ((q : ℝ) / 2) (((q : ℝ) * v) / (2 * (ν : ℝ))) x))
                           volume :=
-                      (((measurable_gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ)).ennreal_ofReal).aemeasurable).mul
-                        ((measurable_f_kernel_fixed (q := q) (ν := ν) x).aemeasurable)
+                      (Measurable.aemeasurable
+                        ((measurable_gammaPDFReal ((ν : ℝ) / 2) (1 / 2 : ℝ)).ennreal_ofReal)).mul
+                          ((measurable_f_kernel_fixed (q := q) (ν := ν) x).aemeasurable)
                     simpa using (lintegral_const_mul'' (φ x) hmeas)
               _ = φ x * ENNReal.ofReal (fPDFReal q ν x) := by
                     rw [lintegral_f_kernel_eq_fPDF hq hν x]
@@ -770,7 +778,7 @@ theorem ratio_prod_map_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν
   rw [lintegral_f_double_eq hq hν hφ]
   rw [classicalFDist, lintegral_withDensity_eq_lintegral_mul₀
     (hf := (measurable_fPDF q ν).aemeasurable) (hg := hφ.aemeasurable)]
-  simp [fPDF, mul_comm, mul_left_comm, mul_assoc]
+  simp [fPDF, mul_comm]
 
 theorem fDist_eq_classicalFDist {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) :
     fDist q ν = classicalFDist q ν := by
