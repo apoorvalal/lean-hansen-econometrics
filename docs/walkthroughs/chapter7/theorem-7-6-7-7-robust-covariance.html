@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean - Assumption Map</title>
+<title>Hansen Econometrics in Lean - Theorems 7.6-7.7 — Robust covariance consistency</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -66,8 +66,51 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
 
-<link rel="stylesheet" href="../styles.css">
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -79,7 +122,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/index.html">Overview</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html">Theorems 7.6-7.7 — Robust covariance consistency</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -94,7 +137,7 @@ ul.task-list li input[type="checkbox"] {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -104,13 +147,13 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -125,37 +168,37 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -181,25 +224,25 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -216,31 +259,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.3 — Hat and annihilator matrix identities</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Equation 3.17 — Residuals sum to zero with an intercept</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -257,31 +300,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.7 — Residual variance chi-square law and independence</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 5.8–5.12 — Exact t inference</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.13 — Exact F test</span></a>
   </div>
 </li>
@@ -289,46 +332,46 @@ ul.task-list li input[type="checkbox"] {
   </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">
  <span class="menu-text">Chapter 7</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-2-score-clt.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-2-score-clt.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.2 — Score CLT</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorems 7.6-7.7 — Robust covariance consistency</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-11-7-13-inference.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-11-7-13-inference.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference</span></a>
   </div>
 </li>
@@ -342,14 +385,29 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/index.html">Overview</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html">Theorems 7.6-7.7 — Robust covariance consistency</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Assumption Map</h1>
+<h1 class="title">Theorems 7.6-7.7 — Robust covariance consistency</h1>
 </div>
 
 
@@ -366,38 +424,165 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="hero-panel">
-<p>These pages collect the assumptions that matter for the currently formalized chapters. Each table separates the mathematical condition from the Lean names and links to the proof endpoints that consume it.</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>With heteroskedasticity, the population asymptotic covariance of OLS is the sandwich matrix</p>
+<p><span class="math display">
+V_\beta = Q^{-1}\Omega Q^{-1},
+\qquad
+\Omega = \mathbb{E}[e_i^2 X_iX_i^\top].
+</span></p>
+<p>Theorem 7.6 states that the feasible HC0 estimator converges to this sandwich target:</p>
+<p><span class="math display">
+\hat V_{\beta,n}^{HC0} \xrightarrow{p} V_\beta.
+</span></p>
+<p>Theorem 7.7 adds the finite-sample variants HC1, HC2, and HC3. HC1 differs by a scalar degrees-of-freedom factor, while HC2 and HC3 require leverage conditions ensuring the additional denominator corrections are asymptotically negligible.</p>
+<p>In Lean, the core assumptions are bundled as <a href="../../assumptions/chapter7.html"><code>RobustCovarianceConsistencyConditions μ X e</code></a>, with the textbook-compatible alias <a href="../../assumptions/chapter7.html"><code>SampleHC0Assumption76 μ X e</code></a>. The current component-facing theorems also take explicit measurability and bounded-weight remainder controls.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>The robust covariance proof is a sandwich assembly:</p>
+<ol type="1">
+<li>Prove the ideal score covariance matrix converges to <span class="math inline">\Omega</span>.</li>
+<li>Show replacing true errors by OLS residuals only adds negligible remainder terms. These are the cross-weight and quadratic-weight controls.</li>
+<li>Combine the middle-matrix convergence with <span class="math inline">\hat Q_n^{-1}\to_p Q^{-1}</span> on both sides.</li>
+<li>For HC1, multiply by a scalar factor converging to one.</li>
+<li>For HC2 and HC3, add leverage controls to show their extra corrections vanish.</li>
+</ol>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>The relevant endpoints live in <code>HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean</code>:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean endpoint</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L125"><code>scoreCovarianceMatrix</code></a></td>
+<td>population <span class="math inline">\Omega</span></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L132"><code>olsProjectionAsymptoticVariance</code></a></td>
+<td>scalar <span class="math inline">a^\top Q^{-1}\Omega Q^{-1}a</span></td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1600"><code>sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix</code></a></td>
+<td>ideal middle matrix <span class="math inline">\to_p\Omega</span></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2927"><code>olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components</code></a></td>
+<td>HC0 sandwich consistency</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3181"><code>olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components</code></a></td>
+<td>HC1 sandwich consistency</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3625"><code>olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage</code></a></td>
+<td>HC2 sandwich consistency</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3662"><code>olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage</code></a></td>
+<td>HC3 sandwich consistency</td>
+</tr>
+</tbody>
+</table>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Component-facing HC0 robust covariance consistency theorem.">theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample space is a probability space.">{μ : Measure Ω} [IsProbabilityMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled HC0 robust covariance assumptions.">(h : SampleHC0Assumption76 μ X e)</span> <span class="lean-token" tabindex="0" data-explain="The true coefficient vector.">(β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span>
+    <span class="lean-token" tabindex="0" data-explain="Component measurability hypotheses used to build the estimator's measurability.">(hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Empirical remainder controls for residual-vs-error cross terms.">(hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =&gt;
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))</span>
+    <span class="lean-token" tabindex="0" data-explain="Empirical remainder controls for residual-vs-error quadratic terms.">(hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =&gt;
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the feasible HC0 covariance estimator converges in probability to the heteroskedastic sandwich target.">TendstoInMeasure μ
+      (fun n ω =&gt;
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ =&gt; heteroskedasticAsymptoticCovariance μ X e)</span>
+</code></pre>
 </div>
-<div class="assumption-grid">
-<section id="chapter-2" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-2">Chapter 2</h3>
-<p>Conditional expectation, CEF error, variance decomposition, and population linear projection.</p>
-<p><a href="../assumptions/chapter2.html">Open Chapter 2</a></p>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>SampleHC0Assumption76 μ X e</code></td>
+<td>Hansen robust covariance assumptions</td>
+<td><strong>Hypothesis:</strong> i.i.d. and moment structure for the HC0 sandwich, linked on the <a href="../../assumptions/chapter7.html">Chapter 7 assumption page</a>.</td>
+</tr>
+<tr class="even">
+<td><code>hCrossWeight</code></td>
+<td>cross remainder control</td>
+<td><strong>Hypothesis:</strong> residual substitution cross terms are bounded enough to vanish after consistency.</td>
+</tr>
+<tr class="odd">
+<td><code>hQuadWeight</code></td>
+<td>quadratic remainder control</td>
+<td><strong>Hypothesis:</strong> residual substitution quadratic terms are bounded enough to vanish.</td>
+</tr>
+<tr class="even">
+<td><code>olsHeteroskedasticCovarianceStar</code></td>
+<td><span class="math inline">\hat V_{\beta,n}^{HC0}</span></td>
+<td>The totalized feasible HC0 estimator.</td>
+</tr>
+<tr class="odd">
+<td><code>heteroskedasticAsymptoticCovariance μ X e</code></td>
+<td><span class="math inline">Q^{-1}\Omega Q^{-1}</span></td>
+<td>The population sandwich target.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="chapter-3" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-3">Chapter 3</h3>
-<p>Finite-dimensional OLS algebra, projection matrices, and FWL.</p>
-<p><a href="../assumptions/chapter3.html">Open Chapter 3</a></p>
 </section>
-<section id="chapter-4" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-4">Chapter 4</h3>
-<p>Finite-sample regression assumptions, conditional mean zero, variance formulas, Gauss-Markov, GLS, and White/HC covariance definitions.</p>
-<p><a href="../assumptions/chapter4.html">Open Chapter 4</a></p>
-</section>
-<section id="chapter-5" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-5">Chapter 5</h3>
-<p>Normal-regression and exact finite-sample distribution assumptions.</p>
-<p><a href="../assumptions/chapter5.html">Open Chapter 5</a></p>
-</section>
-<section id="chapter-7" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-7">Chapter 7</h3>
-<p>Asymptotic condition packages for consistency, CLTs, robust covariance, and homoskedastic inference.</p>
-<p><a href="../assumptions/chapter7.html">Open Chapter 7</a></p>
-</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>The component-facing HC0 theorem is a wrapper around the core sandwich theorem: derive measurability from component assumptions, then pass through the remainder controls.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Build measurability of the feasible residual middle matrix from the component measurability of X and e.">have hScore_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas</span><span class="lean-line" tabindex="0" data-explain="Apply the core HC0 consistency theorem: ideal Ω convergence plus residual-remainder controls plus inverse-Gram consistency.">exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight</span>
+</code></pre>
 </div>
+<p>HC1 has the same outer shape; the core theorem adds the finite-sample scaling factor and proves it tends to one.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="HC1 uses the same feasible middle-matrix measurability argument as HC0.">have hScore_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas</span><span class="lean-line" tabindex="0" data-explain="The HC1-specific core theorem combines HC0 consistency with the finite-sample scale factor tending to one.">exact olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight</span>
+</code></pre>
+</div>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<p>These covariance consistency theorems feed the heteroskedastic versions of Chapter 7 inference: standard-normal t statistics, confidence interval coverage, and one-degree-of-freedom Wald statistics.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -814,4 +999,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/assumptions/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

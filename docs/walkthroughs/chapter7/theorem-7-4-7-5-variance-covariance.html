@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Hansen Econometrics in Lean - Assumption Map</title>
+<title>Hansen Econometrics in Lean - Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -66,8 +66,51 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
 
-<link rel="stylesheet" href="../styles.css">
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-sidebar docked">
@@ -79,7 +122,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/index.html">Overview</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html">Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
@@ -94,7 +137,7 @@ ul.task-list li input[type="checkbox"] {
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">Hansen Econometrics in Lean</a> 
+      <a href="../../">Hansen Econometrics in Lean</a> 
         <div class="sidebar-tools-main">
     <div id="quarto-search" class="quarto-navigation-tool px-1" title="Search"></div>
 </div>
@@ -104,13 +147,13 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Home</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../coverage.html" class="sidebar-item-text sidebar-link">
+  <a href="../../coverage.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coverage</span></a>
   </div>
 </li>
@@ -125,37 +168,37 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../assumptions/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Overview</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 3</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter4.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 4</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 5</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../assumptions/chapter7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Chapter 7</span></a>
   </div>
 </li>
@@ -181,25 +224,25 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/best-predictor.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.7 — Conditional expectation as best predictor</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/variance-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.8 — Law of total variance</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-minimizes-mse.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.9 — Linear projection minimizes MSE</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter2/linear-projection-covariance-formula.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 2.10 — Linear projection covariance formula</span></a>
   </div>
 </li>
@@ -216,31 +259,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-2.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.2 — OLS normal equations and orthogonality of regressors and residuals</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/projection-matrices.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.3 — Hat and annihilator matrix identities</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/fitted-residual-decomposition.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/residual-sum-zero.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Equation 3.17 — Residuals sum to zero with an intercept</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter3/theorem-3-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 3.5 — Frisch–Waugh–Lovell</span></a>
   </div>
 </li>
@@ -257,31 +300,31 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-5.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.5 — Gaussian law of the OLS estimator under Gaussian errors</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/quadratic-form-of-residual-variance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Lemma — (n−k) s² = eᵀMe in the linear model</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-7.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.7 — Residual variance chi-square law and independence</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-8-t-statistic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 5.8–5.12 — Exact t inference</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter5/theorem-5-13-f-test.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 5.13 — Exact F test</span></a>
   </div>
 </li>
@@ -289,46 +332,46 @@ ul.task-list li input[type="checkbox"] {
   </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">
  <span class="menu-text">Chapter 7</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-1.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.1 — Consistency of OLS</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-2-score-clt.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-2-score-clt.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.2 — Score CLT</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-3.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorem 7.3 — Asymptotic normality of OLS (scalar projection)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 7.6-7.7 — Robust covariance consistency</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../walkthroughs/chapter7/theorem-7-11-7-13-inference.html" class="sidebar-item-text sidebar-link">
+  <a href="../../walkthroughs/chapter7/theorem-7-11-7-13-inference.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference</span></a>
   </div>
 </li>
@@ -342,14 +385,29 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#textbook-statement" id="toc-textbook-statement" class="nav-link active" data-scroll-target="#textbook-statement">Textbook statement</a>
+  <ul class="collapse">
+  <li><a href="#proof-sketch" id="toc-proof-sketch" class="nav-link" data-scroll-target="#proof-sketch">Proof sketch</a></li>
+  </ul></li>
+  <li><a href="#lean-statement" id="toc-lean-statement" class="nav-link" data-scroll-target="#lean-statement">Lean statement</a>
+  <ul class="collapse">
+  <li><a href="#reading-the-statement" id="toc-reading-the-statement" class="nav-link" data-scroll-target="#reading-the-statement">Reading the statement</a></li>
+  </ul></li>
+  <li><a href="#tactic-by-tactic-walkthrough" id="toc-tactic-by-tactic-walkthrough" class="nav-link" data-scroll-target="#tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</a></li>
+  <li><a href="#downstream-uses" id="toc-downstream-uses" class="nav-link" data-scroll-target="#downstream-uses">Downstream uses</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../assumptions/index.html">Assumptions</a></li><li class="breadcrumb-item"><a href="../assumptions/index.html">Overview</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Walkthroughs</li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-1.html">Chapter 7</a></li><li class="breadcrumb-item"><a href="../../walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html">Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Assumption Map</h1>
+<h1 class="title">Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency</h1>
 </div>
 
 
@@ -366,38 +424,157 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div class="hero-panel">
-<p>These pages collect the assumptions that matter for the currently formalized chapters. Each table separates the mathematical condition from the Lean names and links to the proof endpoints that consume it.</p>
+<section id="textbook-statement" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-statement">Textbook statement</h2>
+<p>For the linear model <span class="math inline">y_i = X_i^\top\beta + e_i</span>, Theorem 7.4 states that the residual variance estimators converge to the population error variance:</p>
+<p><span class="math display">
+\hat\sigma_n^2 \xrightarrow{p} \sigma^2,
+\qquad
+s_n^2 \xrightarrow{p} \sigma^2.
+</span></p>
+<p>Theorem 7.5 then plugs this variance estimator into the homoskedastic asymptotic covariance formula:</p>
+<p><span class="math display">
+\hat V_{\beta,n}^0 = s_n^2 \hat Q_n^{-1}
+\xrightarrow{p}
+V_\beta^0 = \sigma^2 Q^{-1}.
+</span></p>
+<p>In Lean, the assumptions are bundled as <a href="../../assumptions/chapter7.html"><code>ErrorVarianceConsistencyConditions μ X e</code></a>, with the textbook-compatible alias <a href="../../assumptions/chapter7.html"><code>SampleVarianceAssumption74 μ X e</code></a>. The linear model itself remains a separate pointwise hypothesis <code>hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω</code>.</p>
+<section id="proof-sketch" class="level3">
+<h3 class="anchored" data-anchor-id="proof-sketch">Proof sketch</h3>
+<p>The variance estimator is handled first: show that the residual sum of squares differs from the true error variance by terms that vanish in probability. Then Theorem 7.5 combines two already-proved convergences:</p>
+<ol type="1">
+<li><span class="math inline">s_n^2 \to_p \sigma^2</span> from Theorem 7.4.</li>
+<li><span class="math inline">\hat Q_n^{-1} \to_p Q^{-1}</span> from Theorem 7.1 plus continuous mapping.</li>
+<li>Entrywise multiplication gives <span class="math inline">s_n^2(\hat Q_n^{-1})_{ij} \to_p
+\sigma^2(Q^{-1})_{ij}</span> for every <span class="math inline">i,j</span>.</li>
+<li>The matrix convergence is rebuilt from those coordinatewise limits.</li>
+</ol>
+</section>
+</section>
+<section id="lean-statement" class="level2">
+<h2 class="anchored" data-anchor-id="lean-statement">Lean statement</h2>
+<p>The relevant declarations live in <code>HansenEconometrics/Chapter7Asymptotics/Consistency.lean</code>:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean endpoint</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1400"><code>olsSigmaSqHatStar_tendstoInMeasure_errorVariance</code></a></td>
+<td>unadjusted residual variance consistency</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1506"><code>olsS2Star_tendstoInMeasure_errorVariance</code></a></td>
+<td>degrees-of-freedom residual variance consistency</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1521"><code>homoskedasticAsymptoticCovariance</code></a></td>
+<td>population target <span class="math inline">V_\beta^0=\sigma^2Q^{-1}</span></td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1526"><code>olsHomoskedasticCovarianceStar</code></a></td>
+<td>feasible estimator <span class="math inline">\hat V_{\beta,n}^0=s_n^2\hat Q_n^{-1}</span></td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1535"><code>olsHomoskedasticCovarianceStar_tendstoInMeasure</code></a></td>
+<td>Theorem 7.5 consistency</td>
+</tr>
+</tbody>
+</table>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 7.5: consistency of the homoskedastic plug-in covariance estimator.">theorem olsHomoskedasticCovarianceStar_tendstoInMeasure</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample measure is finite, enough for convergence in measure.">{μ : Measure Ω} [IsFiniteMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled Theorem 7.4 variance-estimator assumptions.">(h : ErrorVarianceConsistencyConditions μ X e)</span> <span class="lean-token" tabindex="0" data-explain="The true coefficient vector.">(β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the feasible matrix estimator s² Qhat⁻¹ converges in probability to σ² Q⁻¹.">TendstoInMeasure μ
+      (fun n ω =&gt;
+        olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ =&gt; homoskedasticAsymptoticCovariance μ X e)</span>
+</code></pre>
 </div>
-<div class="assumption-grid">
-<section id="chapter-2" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-2">Chapter 2</h3>
-<p>Conditional expectation, CEF error, variance decomposition, and population linear projection.</p>
-<p><a href="../assumptions/chapter2.html">Open Chapter 2</a></p>
+<section id="reading-the-statement" class="level3">
+<h3 class="anchored" data-anchor-id="reading-the-statement">Reading the statement</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Lean</th>
+<th>Math</th>
+<th>What it gives us</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ErrorVarianceConsistencyConditions μ X e</code></td>
+<td>Assumption 7.4 package</td>
+<td><strong>Hypothesis:</strong> WLLN and moment inputs for residual variance consistency, linked on the <a href="../../assumptions/chapter7.html">Chapter 7 assumption page</a>.</td>
+</tr>
+<tr class="even">
+<td><code>β : k → ℝ</code></td>
+<td><span class="math inline">\beta \in \mathbb{R}^k</span></td>
+<td><strong>Given:</strong> the fixed population coefficient.</td>
+</tr>
+<tr class="odd">
+<td><code>hmodel</code></td>
+<td><span class="math inline">y_i=X_i^\top\beta+e_i</span></td>
+<td><strong>Hypothesis:</strong> the model connecting outcomes to regressors and errors.</td>
+</tr>
+<tr class="even">
+<td><code>olsS2Star</code></td>
+<td><span class="math inline">s_n^2</span></td>
+<td>The degrees-of-freedom adjusted residual variance estimator.</td>
+</tr>
+<tr class="odd">
+<td><code>olsHomoskedasticCovarianceStar</code></td>
+<td><span class="math inline">s_n^2\hat Q_n^{-1}</span></td>
+<td>The totalized feasible homoskedastic covariance estimator.</td>
+</tr>
+<tr class="even">
+<td><code>homoskedasticAsymptoticCovariance μ X e</code></td>
+<td><span class="math inline">\sigma^2 Q^{-1}</span></td>
+<td>The population covariance target.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="chapter-3" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-3">Chapter 3</h3>
-<p>Finite-dimensional OLS algebra, projection matrices, and FWL.</p>
-<p><a href="../assumptions/chapter3.html">Open Chapter 3</a></p>
 </section>
-<section id="chapter-4" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-4">Chapter 4</h3>
-<p>Finite-sample regression assumptions, conditional mean zero, variance formulas, Gauss-Markov, GLS, and White/HC covariance definitions.</p>
-<p><a href="../assumptions/chapter4.html">Open Chapter 4</a></p>
-</section>
-<section id="chapter-5" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-5">Chapter 5</h3>
-<p>Normal-regression and exact finite-sample distribution assumptions.</p>
-<p><a href="../assumptions/chapter5.html">Open Chapter 5</a></p>
-</section>
-<section id="chapter-7" class="level3 assumption-card">
-<h3 class="anchored" data-anchor-id="chapter-7">Chapter 7</h3>
-<p>Asymptotic condition packages for consistency, CLTs, robust covariance, and homoskedastic inference.</p>
-<p><a href="../assumptions/chapter7.html">Open Chapter 7</a></p>
-</section>
+<section id="tactic-by-tactic-walkthrough" class="level2">
+<h2 class="anchored" data-anchor-id="tactic-by-tactic-walkthrough">Tactic-by-tactic walkthrough</h2>
+<p>The proof of Theorem 7.5 is a clean Slutsky-style composition.</p>
+<div class="lean-hover-panel">
+<pre><code><span class="lean-line" tabindex="0" data-explain="Name the scalar variance estimator so the coordinate products are readable.">let s2 : ℕ → Ω → ℝ := fun n ω =&gt;
+    olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)</span><span class="lean-line" tabindex="0" data-explain="Name the inverse sample Gram matrix.">let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =&gt;
+    (sampleGram (stackRegressors X n ω))⁻¹</span><span class="lean-line" tabindex="0" data-explain="Theorem 7.4 supplies s²ₙ →p σ².">have hs2 := olsS2Star_tendstoInMeasure_errorVariance
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel</span><span class="lean-line" tabindex="0" data-explain="Theorem 7.1's Gram inverse result supplies Qhat⁻¹ →p Q⁻¹.">have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71</span><span class="lean-line" tabindex="0" data-explain="For each matrix entry, multiply the scalar variance convergence by the matching inverse-Gram coordinate convergence.">have hEntry : ∀ i j : k,
+      TendstoInMeasure μ
+        (fun n ω =&gt; s2 n ω * invGram n ω i j)
+        atTop
+        (fun _ =&gt; errorVariance μ e * ((popGram μ X)⁻¹) i j) := by
+    intro i j
+    have hInvCoord : TendstoInMeasure μ
+        (fun n ω =&gt; invGram n ω i j)
+        atTop (fun _ =&gt; ((popGram μ X)⁻¹) i j) := by
+      simpa [invGram] using
+        TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hInv i) j
+    exact TendstoInMeasure.mul_limits_real
+      (by simpa [s2] using hs2) hInvCoord</span><span class="lean-line" tabindex="0" data-explain="Reassemble the coordinatewise limits into matrix convergence and unfold the estimator/target names.">refine tendstoInMeasure_pi (μ := μ) (fun i =&gt; ?_)
+refine tendstoInMeasure_pi (μ := μ) (fun j =&gt; ?_)
+simpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,
+  s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j</span>
+</code></pre>
 </div>
+</section>
+<section id="downstream-uses" class="level2">
+<h2 class="anchored" data-anchor-id="downstream-uses">Downstream uses</h2>
+<p>The homoskedastic covariance result feeds the homoskedastic versions of the Chapter 7 t and Wald statistics. The robust covariance page replaces <span class="math inline">\sigma^2 Q^{-1}</span> with the sandwich target <span class="math inline">Q^{-1}\Omega Q^{-1}</span>.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -814,4 +991,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/assumptions/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/site/walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li></ul></div></div></div></footer></body></html>

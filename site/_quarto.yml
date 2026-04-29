@@ -64,7 +64,11 @@ website:
           - section: Chapter 7
             contents:
               - walkthroughs/chapter7/theorem-7-1.qmd
+              - walkthroughs/chapter7/theorem-7-2-score-clt.qmd
               - walkthroughs/chapter7/theorem-7-3.qmd
+              - walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.qmd
+              - walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.qmd
+              - walkthroughs/chapter7/theorem-7-11-7-13-inference.qmd
       # Auto-generated reference paused — re-enable along with `render:` above.
       # - section: Auto-generated reference
       #   contents:

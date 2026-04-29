@@ -1,0 +1,121 @@
+---
+title: "Theorem 7.2 — Score CLT"
+lean_name: "HansenEconometrics.scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian"
+chapter: 7
+---
+
+## Textbook statement
+
+For an i.i.d. sample with score vector $e_i X_i$, assume the Chapter 7 score
+CLT conditions: the score has mean zero, the relevant second moments exist, and
+the score covariance matrix
+
+$$
+\Omega = \mathbb{E}[e_i^2 X_i X_i^\top]
+$$
+
+is finite. Then the scaled sample score converges in distribution:
+
+$$
+\sqrt{n}\,\hat g_n(e)
+= \frac{1}{\sqrt{n}}\sum_{i=1}^n e_i X_i
+\Rightarrow N(0,\Omega).
+$$
+
+In Lean, the assumptions are bundled as
+[`ScoreCLTConditions μ X e`](../../assumptions/chapter7.qmd), with the
+textbook-compatible alias
+[`SampleCLTAssumption72 μ X e`](../../assumptions/chapter7.qmd). The theorem
+is stated for the stacked sample cross moment
+`sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω)`.
+
+### Proof sketch
+
+The Lean proof follows the textbook route but makes the Cramer-Wold step
+explicit.
+
+1. Fix a direction $a \in \mathbb{R}^k$.
+2. Apply Mathlib's real-valued i.i.d. CLT to the scalar sequence
+   $(e_i X_i)^\top a$.
+3. Rewrite the scalar variance as the quadratic form $a^\top \Omega a$.
+4. Use the reusable Cramer-Wold bridge to assemble the vector-valued Gaussian
+   convergence.
+
+## Lean statement
+
+The public vector theorem lives in
+`HansenEconometrics/Chapter7Asymptotics/Normality.lean`:
+
+| Lean endpoint | Role |
+|---|---|
+| [`scoreProjection_sum_tendstoInDistribution_gaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L61) | scalar real CLT for $(1/\sqrt n)\sum (e_iX_i)^\top a$ |
+| [`scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L129) | same scalar CLT in sample-cross-moment notation with variance $a^\top\Omega a$ |
+| [`scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L155) | all scalar projections, ready for Cramer-Wold |
+| [`scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L232) | public vector score CLT |
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Public Chapter 7 vector score CLT.">theorem scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample space is a probability space.">{μ : Measure Ω} [IsProbabilityMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="The regressor and error processes; observation i at sample point ω gives X i ω and e i ω.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled Theorem 7.2 assumptions: i.i.d. score structure, zero mean, moment bounds, and covariance information.">(h : ScoreCLTConditions μ X e)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: sqrt(n) times the sample cross moment converges in distribution to a centered multivariate Gaussian with covariance Ω.">TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        Real.sqrt (n : ℝ) •
+          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))
+      atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ)
+      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e))</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `{μ : Measure Ω} [IsProbabilityMeasure μ]` | $(\Omega,\mu)$ | **Given:** the probability space on which the sample is defined. |
+| `{X : ℕ → Ω → (k → ℝ)}` | $X_i : \Omega \to \mathbb{R}^k$ | **Given:** the regressor sequence. |
+| `{e : ℕ → Ω → ℝ}` | $e_i : \Omega \to \mathbb{R}$ | **Given:** the scalar error sequence. |
+| `(h : ScoreCLTConditions μ X e)` | Hansen Assumption 7.2 | **Hypothesis:** the bundled score-CLT assumptions, linked on the [Chapter 7 assumption page](../../assumptions/chapter7.qmd). |
+| `sampleCrossMoment ...` | $\hat g_n(e)=n^{-1}\sum_i X_i e_i$ | The sample score / cross moment built from the first $n$ observations. |
+| `Real.sqrt (n : ℝ) • sampleCrossMoment ...` | $\sqrt n\,\hat g_n(e)$ | The CLT-scaled score. |
+| `multivariateGaussian 0 (scoreCovarianceMatrix μ X e)` | $N(0,\Omega)$ | The centered Gaussian limit with score covariance matrix $\Omega$. |
+
+## Tactic-by-tactic walkthrough
+
+The vector theorem is short because all scalar projections have already been
+proved.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="Start from the Euclidean-space version of the score CLT, already assembled by Cramer-Wold.">have hEuclid := scoreEuclidean_sampleCrossMoment_tendstoInDistribution_multivariateGaussian
+    (μ := μ) (X := X) (e := e) h.toSampleCLTAssumption72</span><span class="lean-line" tabindex="0" data-explain="Compose the Euclidean-valued convergence with the continuous coordinate map back into the chapter's k → ℝ vector notation.">have hMap := TendstoInDistribution.continuous_comp
+    (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid</span><span class="lean-line" tabindex="0" data-explain="After unfolding function composition, the mapped theorem is exactly the public statement.">simpa [Function.comp_def] using hMap</span>
+</code></pre>
+```
+:::
+
+The upstream scalar covariance-form theorem is the piece closest to the
+textbook calculation.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The covariance-form scalar theorem takes the Gaussian variance as a'Ωa.">theorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance … := by</span><span class="lean-line" tabindex="0" data-explain="Restate the law of the limiting Gaussian in the variance form expected by the Mathlib CLT.">  have hZ' : HasLaw Z
+      (gaussianReal 0 (Var[fun ω => (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal) ν := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite Var((eX)'a) as the quadratic form a'Ωa.">    rw [scoreProjection_variance_eq_quadraticScoreCovariance
+      (μ := μ) (X := X) (e := e) h a]</span><span class="lean-line" tabindex="0" data-explain="The original Gaussian-law hypothesis now has the required shape.">    exact hZ</span><span class="lean-line" tabindex="0" data-explain="Apply the sample-cross-moment scalar CLT with the rewritten Gaussian law.">  exact scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian
+    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ'</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+The score CLT is the distributional input for Theorem 7.3's OLS asymptotic
+normality and for the later t/Wald inference pages. In particular,
+[`scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance`](theorem-7-3.qmd)
+uses it after applying the inverse population Gram matrix and Slutsky's
+theorem.
+

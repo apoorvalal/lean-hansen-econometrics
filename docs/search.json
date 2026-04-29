@@ -1,5 +1,65 @@
 [
   {
+    "objectID": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html",
+    "href": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html",
+    "title": "Theorems 7.6-7.7 — Robust covariance consistency",
+    "section": "",
+    "text": "With heteroskedasticity, the population asymptotic covariance of OLS is the sandwich matrix\n\nV_\\beta = Q^{-1}\\Omega Q^{-1},\n\\qquad\n\\Omega = \\mathbb{E}[e_i^2 X_iX_i^\\top].\n\nTheorem 7.6 states that the feasible HC0 estimator converges to this sandwich target:\n\n\\hat V_{\\beta,n}^{HC0} \\xrightarrow{p} V_\\beta.\n\nTheorem 7.7 adds the finite-sample variants HC1, HC2, and HC3. HC1 differs by a scalar degrees-of-freedom factor, while HC2 and HC3 require leverage conditions ensuring the additional denominator corrections are asymptotically negligible.\nIn Lean, the core assumptions are bundled as RobustCovarianceConsistencyConditions μ X e, with the textbook-compatible alias SampleHC0Assumption76 μ X e. The current component-facing theorems also take explicit measurability and bounded-weight remainder controls.\n\n\nThe robust covariance proof is a sandwich assembly:\n\nProve the ideal score covariance matrix converges to \\Omega.\nShow replacing true errors by OLS residuals only adds negligible remainder terms. These are the cross-weight and quadratic-weight controls.\nCombine the middle-matrix convergence with \\hat Q_n^{-1}\\to_p Q^{-1} on both sides.\nFor HC1, multiply by a scalar factor converging to one.\nFor HC2 and HC3, add leverage controls to show their extra corrections vanish.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.6-7.7 — Robust covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#textbook-statement",
+    "title": "Theorems 7.6-7.7 — Robust covariance consistency",
+    "section": "",
+    "text": "With heteroskedasticity, the population asymptotic covariance of OLS is the sandwich matrix\n\nV_\\beta = Q^{-1}\\Omega Q^{-1},\n\\qquad\n\\Omega = \\mathbb{E}[e_i^2 X_iX_i^\\top].\n\nTheorem 7.6 states that the feasible HC0 estimator converges to this sandwich target:\n\n\\hat V_{\\beta,n}^{HC0} \\xrightarrow{p} V_\\beta.\n\nTheorem 7.7 adds the finite-sample variants HC1, HC2, and HC3. HC1 differs by a scalar degrees-of-freedom factor, while HC2 and HC3 require leverage conditions ensuring the additional denominator corrections are asymptotically negligible.\nIn Lean, the core assumptions are bundled as RobustCovarianceConsistencyConditions μ X e, with the textbook-compatible alias SampleHC0Assumption76 μ X e. The current component-facing theorems also take explicit measurability and bounded-weight remainder controls.\n\n\nThe robust covariance proof is a sandwich assembly:\n\nProve the ideal score covariance matrix converges to \\Omega.\nShow replacing true errors by OLS residuals only adds negligible remainder terms. These are the cross-weight and quadratic-weight controls.\nCombine the middle-matrix convergence with \\hat Q_n^{-1}\\to_p Q^{-1} on both sides.\nFor HC1, multiply by a scalar factor converging to one.\nFor HC2 and HC3, add leverage controls to show their extra corrections vanish.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.6-7.7 — Robust covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#lean-statement",
+    "title": "Theorems 7.6-7.7 — Robust covariance consistency",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe relevant endpoints live in HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean:\n\n\n\nLean endpoint\nRole\n\n\n\n\nscoreCovarianceMatrix\npopulation \\Omega\n\n\nolsProjectionAsymptoticVariance\nscalar a^\\top Q^{-1}\\Omega Q^{-1}a\n\n\nsampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix\nideal middle matrix \\to_p\\Omega\n\n\nolsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components\nHC0 sandwich consistency\n\n\nolsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components\nHC1 sandwich consistency\n\n\nolsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage\nHC2 sandwich consistency\n\n\nolsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage\nHC3 sandwich consistency\n\n\n\n\ntheorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components\n    {μ : Measure Ω} [IsProbabilityMeasure μ]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}\n    (h : SampleHC0Assumption76 μ X e) (β : k → ℝ)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\n    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)\n    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)\n    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ\n      (fun n ω =&gt;\n        sampleScoreCovarianceCrossWeight\n          (stackRegressors X n ω) (stackErrors e n ω) a b l))\n    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ\n      (fun n ω =&gt;\n        sampleScoreCovarianceQuadraticWeight\n          (stackRegressors X n ω) a b l m)) :\n    TendstoInMeasure μ\n      (fun n ω =&gt;\n        olsHeteroskedasticCovarianceStar\n          (stackRegressors X n ω) (stackOutcomes y n ω))\n      atTop (fun _ =&gt; heteroskedasticAsymptoticCovariance μ X e)\n\n\n\nReading the statement\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nSampleHC0Assumption76 μ X e\nHansen robust covariance assumptions\nHypothesis: i.i.d. and moment structure for the HC0 sandwich, linked on the Chapter 7 assumption page.\n\n\nhCrossWeight\ncross remainder control\nHypothesis: residual substitution cross terms are bounded enough to vanish after consistency.\n\n\nhQuadWeight\nquadratic remainder control\nHypothesis: residual substitution quadratic terms are bounded enough to vanish.\n\n\nolsHeteroskedasticCovarianceStar\n\\hat V_{\\beta,n}^{HC0}\nThe totalized feasible HC0 estimator.\n\n\nheteroskedasticAsymptoticCovariance μ X e\nQ^{-1}\\Omega Q^{-1}\nThe population sandwich target.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.6-7.7 — Robust covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#tactic-by-tactic-walkthrough",
+    "title": "Theorems 7.6-7.7 — Robust covariance consistency",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nThe component-facing HC0 theorem is a wrapper around the core sandwich theorem: derive measurability from component assumptions, then pass through the remainder controls.\n\nhave hScore_meas :=\n    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components\n      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel\n      hX_meas he_measexact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights\n    (μ := μ) (X := X) (e := e) (y := y)\n    h β hmodel hScore_meas hCrossWeight hQuadWeight\n\n\nHC1 has the same outer shape; the core theorem adds the finite-sample scaling factor and proves it tends to one.\n\nhave hScore_meas :=\n    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components\n      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel\n      hX_meas he_measexact olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights\n    (μ := μ) (X := X) (e := e) (y := y)\n    h β hmodel hScore_meas hCrossWeight hQuadWeight",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.6-7.7 — Robust covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.html#downstream-uses",
+    "title": "Theorems 7.6-7.7 — Robust covariance consistency",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nThese covariance consistency theorems feed the heteroskedastic versions of Chapter 7 inference: standard-normal t statistics, confidence interval coverage, and one-degree-of-freedom Wald statistics.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.6-7.7 — Robust covariance consistency"
+    ]
+  },
+  {
     "objectID": "walkthroughs/chapter7/theorem-7-3.html",
     "href": "walkthroughs/chapter7/theorem-7-3.html",
     "title": "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)",
@@ -69,6 +129,66 @@
       "Walkthroughs",
       "Chapter 7",
       "Theorem 7.3 — Asymptotic normality of OLS (scalar projection)"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html",
+    "href": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html",
+    "title": "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference",
+    "section": "",
+    "text": "For a one-row linear restriction R\\beta = r, robust covariance consistency and OLS asymptotic normality imply the usual large-sample inference results:\n\nt_n =\n\\frac{\\sqrt{n}\\,R(\\hat\\beta_n-\\beta)}\n{\\sqrt{R\\hat V_{\\beta,n}R^\\top}}\n\\Rightarrow N(0,1),\n\nthe associated symmetric confidence interval has limiting Gaussian coverage, and the one-degree-of-freedom Wald statistic satisfies\n\nW_n = t_n^2 \\Rightarrow \\chi^2_1.\n\nLean formalizes homoskedastic, HC0, HC1, HC2, and HC3 variants. This page focuses on the HC0 face because it is the cleanest robust path; the neighboring declarations share the same proof shape.\nThe assumptions are the robust covariance assumptions from RobustCovarianceConsistencyConditions μ X e, plus component measurability, bounded residual-replacement remainders, the linear model hmodel, and positivity of the population standard error linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e).\n\n\nThe asymptotic inference results are built from two ingredients:\n\nThe scalar asymptotic normality theorem gives the numerator \\sqrt n\\,R(\\hat\\beta_n-\\beta) a centered normal limit.\nRobust covariance consistency gives the denominator \\sqrt{R\\hat V_{\\beta,n}R^\\top} a positive probability limit.\n\nSlutsky’s theorem gives the standard-normal t statistic. The confidence interval theorem then rewrites coverage as an event involving |t_n|, and the Wald theorem maps t_n through the square function.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#textbook-statement",
+    "title": "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference",
+    "section": "",
+    "text": "For a one-row linear restriction R\\beta = r, robust covariance consistency and OLS asymptotic normality imply the usual large-sample inference results:\n\nt_n =\n\\frac{\\sqrt{n}\\,R(\\hat\\beta_n-\\beta)}\n{\\sqrt{R\\hat V_{\\beta,n}R^\\top}}\n\\Rightarrow N(0,1),\n\nthe associated symmetric confidence interval has limiting Gaussian coverage, and the one-degree-of-freedom Wald statistic satisfies\n\nW_n = t_n^2 \\Rightarrow \\chi^2_1.\n\nLean formalizes homoskedastic, HC0, HC1, HC2, and HC3 variants. This page focuses on the HC0 face because it is the cleanest robust path; the neighboring declarations share the same proof shape.\nThe assumptions are the robust covariance assumptions from RobustCovarianceConsistencyConditions μ X e, plus component measurability, bounded residual-replacement remainders, the linear model hmodel, and positivity of the population standard error linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e).\n\n\nThe asymptotic inference results are built from two ingredients:\n\nThe scalar asymptotic normality theorem gives the numerator \\sqrt n\\,R(\\hat\\beta_n-\\beta) a centered normal limit.\nRobust covariance consistency gives the denominator \\sqrt{R\\hat V_{\\beta,n}R^\\top} a positive probability limit.\n\nSlutsky’s theorem gives the standard-normal t statistic. The confidence interval theorem then rewrites coverage as an event involving |t_n|, and the Wald theorem maps t_n through the square function.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#lean-statement",
+    "title": "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe relevant endpoints live in HansenEconometrics/Chapter7Asymptotics/Inference.lean and HansenEconometrics/Chapter7Asymptotics/Normality.lean:\n\n\n\nLean endpoint\nRole\n\n\n\n\nolsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal\nHC0 t statistic \\Rightarrow N(0,1)\n\n\nolsHC0LinearCIOrZero_coverage_tendsto_standardNormal\nHC0 confidence interval limiting coverage\n\n\nolsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one\nHC0 Wald statistic \\Rightarrow \\chi^2_1\n\n\nlinearMap_olsHC0WaldStatisticOrZero_tendstoInDistribution_chiSquared\nmultirestriction HC0 Wald theorem\n\n\nolsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal\nHC1 t statistic companion\n\n\nolsHC1LinearCIOrZero_coverage_tendsto_standardNormal\nHC1 confidence interval companion\n\n\n\n\ntheorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal\n    {μ : Measure Ω} [IsProbabilityMeasure μ]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}\n    (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)\n    (R : Matrix Unit k ℝ)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)\n    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)\n    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)\n    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ\n      (fun n ω =&gt;\n        sampleScoreCovarianceCrossWeight\n          (stackRegressors X n ω) (stackErrors e n ω) a b l))\n    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ\n      (fun n ω =&gt;\n        sampleScoreCovarianceQuadraticWeight\n          (stackRegressors X n ω) a b l m))\n    (hse_pos : 0 &lt;\n      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)) :\n    TendstoInDistribution\n      (fun (n : ℕ) ω =&gt;\n        olsLinearTStatisticOrZero R\n          (olsHeteroskedasticCovarianceStar\n            (stackRegressors X n ω) (stackOutcomes y n ω))\n          (stackRegressors X n ω) (stackOutcomes y n ω) β\n          (Real.sqrt (n : ℝ)))\n      atTop (fun x : ℝ =&gt; x) (fun _ =&gt; μ) (gaussianReal 0 1)\n\n\n\nReading the statement\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nRobustCovarianceConsistencyConditions μ X e\nrobust Chapter 7 assumptions\nHypothesis: score CLT plus robust covariance consistency structure, linked on the Chapter 7 assumption page.\n\n\nR : Matrix Unit k ℝ\none linear restriction\nA one-row matrix, so R\\beta is scalar.\n\n\nolsHeteroskedasticCovarianceStar\n\\hat V_{\\beta,n}^{HC0}\nThe HC0 covariance estimator used in the denominator.\n\n\nhse_pos\n\\sqrt{RV_\\beta R^\\top}&gt;0\nHypothesis: the population standard error is nonzero.\n\n\ngaussianReal 0 1\nN(0,1)\nThe standard-normal limit.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#tactic-by-tactic-walkthrough",
+    "title": "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nThe public ordinary-wrapper t theorem just delegates to the totalized HC0 t theorem.\n\ntheorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal … := by  simpa using\n    olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal\n      (μ := μ) (X := X) (e := e) (y := y)\n      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos\n\n\nThe confidence interval theorem shows the richer proof pattern: convert the interval event into an absolute t-statistic event, then use convergence of the absolute t statistic and the standard error.\n\nlet θ : ℝ := (R *ᵥ β) ⬝ᵥ (fun _ : Unit =&gt; 1)let θhat : ℕ → Ω → ℝ := fun n ω =&gt;\n    (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ\n      (fun _ : Unit =&gt; 1)let se : ℕ → Ω → ℝ := fun n ω =&gt;\n    Real.sqrt ((R * olsHeteroskedasticCovarianceStar\n      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())have hse : TendstoInMeasure μ se atTop (fun _ =&gt; c) := by\n    simpa [se, c] using\n      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components\n        (μ := μ) (X := X) (e := e) (y := y)\n        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeighthave hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs\n    (μ := μ) (X := X) (e := e) (y := y)\n    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_poshave hGeneric : TendstoInDistribution\n      (fun n ω =&gt; |root n * (θhat n ω - θ) / se n ω|)\n      atTop (fun x : ℝ =&gt; |x|) (fun _ =&gt; μ) (gaussianReal 0 1) := by\n    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs\n    intro n\n    exact ae_of_all μ (fun ω =&gt; by\n      dsimp [θ, θhat, se, root, olsLinearTStatisticOrZero,\n        olsLinearTStatisticNumeratorOrZero, linearRestrictionStdError]\n      rw [linearMapUnit_smul_sub_dot_one])simpa [θ, θhat, se, root, c, olsLinearCIEventOrZero,\n  linearRestrictionEstimate, linearRestrictionStdError] using\n  symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos …",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-11-7-13-inference.html#downstream-uses",
+    "title": "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nThese declarations are the reader-facing endpoint for Chapter 7 asymptotic inference. The same architecture supports homoskedastic, HC1, HC2, and HC3 variants, and the multirestriction Wald theorem in Normality.lean handles the higher-dimensional restriction case.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
     ]
   },
   {
@@ -643,7 +763,7 @@
     "href": "index.html#start-here",
     "title": "Hansen Econometrics in Lean",
     "section": "Start Here",
-    "text": "Start Here\n\nCoverage overview\nAssumption map\nChapter 2 best predictor walkthrough\nTheorem 3.2 walkthrough\nChapter 3 projection matrices\nChapter 5 exact t inference\nTheorem 7.3 walkthrough",
+    "text": "Start Here\n\nCoverage overview\nAssumption map\nChapter 2 best predictor walkthrough\nTheorem 3.2 walkthrough\nChapter 3 projection matrices\nChapter 5 exact t inference\nTheorem 7.3 walkthrough\nChapter 7 asymptotic inference",
     "crumbs": [
       "Home"
     ]
@@ -1255,6 +1375,126 @@
       "Walkthroughs",
       "Chapter 7",
       "Theorem 7.1 — Consistency of OLS"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-2-score-clt.html",
+    "href": "walkthroughs/chapter7/theorem-7-2-score-clt.html",
+    "title": "Theorem 7.2 — Score CLT",
+    "section": "",
+    "text": "For an i.i.d. sample with score vector e_i X_i, assume the Chapter 7 score CLT conditions: the score has mean zero, the relevant second moments exist, and the score covariance matrix\n\n\\Omega = \\mathbb{E}[e_i^2 X_i X_i^\\top]\n\nis finite. Then the scaled sample score converges in distribution:\n\n\\sqrt{n}\\,\\hat g_n(e)\n= \\frac{1}{\\sqrt{n}}\\sum_{i=1}^n e_i X_i\n\\Rightarrow N(0,\\Omega).\n\nIn Lean, the assumptions are bundled as ScoreCLTConditions μ X e, with the textbook-compatible alias SampleCLTAssumption72 μ X e. The theorem is stated for the stacked sample cross moment sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω).\n\n\nThe Lean proof follows the textbook route but makes the Cramer-Wold step explicit.\n\nFix a direction a \\in \\mathbb{R}^k.\nApply Mathlib’s real-valued i.i.d. CLT to the scalar sequence (e_i X_i)^\\top a.\nRewrite the scalar variance as the quadratic form a^\\top \\Omega a.\nUse the reusable Cramer-Wold bridge to assemble the vector-valued Gaussian convergence.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.2 — Score CLT"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-2-score-clt.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-2-score-clt.html#textbook-statement",
+    "title": "Theorem 7.2 — Score CLT",
+    "section": "",
+    "text": "For an i.i.d. sample with score vector e_i X_i, assume the Chapter 7 score CLT conditions: the score has mean zero, the relevant second moments exist, and the score covariance matrix\n\n\\Omega = \\mathbb{E}[e_i^2 X_i X_i^\\top]\n\nis finite. Then the scaled sample score converges in distribution:\n\n\\sqrt{n}\\,\\hat g_n(e)\n= \\frac{1}{\\sqrt{n}}\\sum_{i=1}^n e_i X_i\n\\Rightarrow N(0,\\Omega).\n\nIn Lean, the assumptions are bundled as ScoreCLTConditions μ X e, with the textbook-compatible alias SampleCLTAssumption72 μ X e. The theorem is stated for the stacked sample cross moment sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω).\n\n\nThe Lean proof follows the textbook route but makes the Cramer-Wold step explicit.\n\nFix a direction a \\in \\mathbb{R}^k.\nApply Mathlib’s real-valued i.i.d. CLT to the scalar sequence (e_i X_i)^\\top a.\nRewrite the scalar variance as the quadratic form a^\\top \\Omega a.\nUse the reusable Cramer-Wold bridge to assemble the vector-valued Gaussian convergence.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.2 — Score CLT"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-2-score-clt.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-2-score-clt.html#lean-statement",
+    "title": "Theorem 7.2 — Score CLT",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe public vector theorem lives in HansenEconometrics/Chapter7Asymptotics/Normality.lean:\n\n\n\nLean endpoint\nRole\n\n\n\n\nscoreProjection_sum_tendstoInDistribution_gaussian\nscalar real CLT for (1/\\sqrt n)\\sum (e_iX_i)^\\top a\n\n\nscoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance\nsame scalar CLT in sample-cross-moment notation with variance a^\\top\\Omega a\n\n\nscoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all\nall scalar projections, ready for Cramer-Wold\n\n\nscoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian\npublic vector score CLT\n\n\n\n\ntheorem scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian\n    {μ : Measure Ω} [IsProbabilityMeasure μ]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}\n    (h : ScoreCLTConditions μ X e) :\n    TendstoInDistribution\n      (fun (n : ℕ) ω =&gt;\n        Real.sqrt (n : ℝ) •\n          sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω))\n      atTop\n      (fun z : EuclideanSpace ℝ k =&gt; z.ofLp)\n      (fun _ =&gt; μ)\n      (multivariateGaussian 0 (scoreCovarianceMatrix μ X e))\n\n\n\nReading the statement\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\n{μ : Measure Ω} [IsProbabilityMeasure μ]\n(\\Omega,\\mu)\nGiven: the probability space on which the sample is defined.\n\n\n{X : ℕ → Ω → (k → ℝ)}\nX_i : \\Omega \\to \\mathbb{R}^k\nGiven: the regressor sequence.\n\n\n{e : ℕ → Ω → ℝ}\ne_i : \\Omega \\to \\mathbb{R}\nGiven: the scalar error sequence.\n\n\n(h : ScoreCLTConditions μ X e)\nHansen Assumption 7.2\nHypothesis: the bundled score-CLT assumptions, linked on the Chapter 7 assumption page.\n\n\nsampleCrossMoment ...\n\\hat g_n(e)=n^{-1}\\sum_i X_i e_i\nThe sample score / cross moment built from the first n observations.\n\n\nReal.sqrt (n : ℝ) • sampleCrossMoment ...\n\\sqrt n\\,\\hat g_n(e)\nThe CLT-scaled score.\n\n\nmultivariateGaussian 0 (scoreCovarianceMatrix μ X e)\nN(0,\\Omega)\nThe centered Gaussian limit with score covariance matrix \\Omega.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.2 — Score CLT"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-2-score-clt.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter7/theorem-7-2-score-clt.html#tactic-by-tactic-walkthrough",
+    "title": "Theorem 7.2 — Score CLT",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nThe vector theorem is short because all scalar projections have already been proved.\n\nhave hEuclid := scoreEuclidean_sampleCrossMoment_tendstoInDistribution_multivariateGaussian\n    (μ := μ) (X := X) (e := e) h.toSampleCLTAssumption72have hMap := TendstoInDistribution.continuous_comp\n    (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))\n    (PiLp.continuous_ofLp 2 (fun _ : k =&gt; ℝ)) hEuclidsimpa [Function.comp_def] using hMap\n\n\nThe upstream scalar covariance-form theorem is the piece closest to the textbook calculation.\n\ntheorem scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance … := by  have hZ' : HasLaw Z\n      (gaussianReal 0 (Var[fun ω =&gt; (e 0 ω • X 0 ω) ⬝ᵥ a; μ]).toNNReal) ν := by    rw [scoreProjection_variance_eq_quadraticScoreCovariance\n      (μ := μ) (X := X) (e := e) h a]    exact hZ  exact scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian\n    (μ := μ) (ν := ν) (X := X) (e := e) h a hZ'",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.2 — Score CLT"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-2-score-clt.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-2-score-clt.html#downstream-uses",
+    "title": "Theorem 7.2 — Score CLT",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nThe score CLT is the distributional input for Theorem 7.3’s OLS asymptotic normality and for the later t/Wald inference pages. In particular, scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance uses it after applying the inverse population Gram matrix and Slutsky’s theorem.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorem 7.2 — Score CLT"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html",
+    "href": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html",
+    "title": "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency",
+    "section": "",
+    "text": "For the linear model y_i = X_i^\\top\\beta + e_i, Theorem 7.4 states that the residual variance estimators converge to the population error variance:\n\n\\hat\\sigma_n^2 \\xrightarrow{p} \\sigma^2,\n\\qquad\ns_n^2 \\xrightarrow{p} \\sigma^2.\n\nTheorem 7.5 then plugs this variance estimator into the homoskedastic asymptotic covariance formula:\n\n\\hat V_{\\beta,n}^0 = s_n^2 \\hat Q_n^{-1}\n\\xrightarrow{p}\nV_\\beta^0 = \\sigma^2 Q^{-1}.\n\nIn Lean, the assumptions are bundled as ErrorVarianceConsistencyConditions μ X e, with the textbook-compatible alias SampleVarianceAssumption74 μ X e. The linear model itself remains a separate pointwise hypothesis hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω.\n\n\nThe variance estimator is handled first: show that the residual sum of squares differs from the true error variance by terms that vanish in probability. Then Theorem 7.5 combines two already-proved convergences:\n\ns_n^2 \\to_p \\sigma^2 from Theorem 7.4.\n\\hat Q_n^{-1} \\to_p Q^{-1} from Theorem 7.1 plus continuous mapping.\nEntrywise multiplication gives s_n^2(\\hat Q_n^{-1})_{ij} \\to_p\n\\sigma^2(Q^{-1})_{ij} for every i,j.\nThe matrix convergence is rebuilt from those coordinatewise limits.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#textbook-statement",
+    "href": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#textbook-statement",
+    "title": "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency",
+    "section": "",
+    "text": "For the linear model y_i = X_i^\\top\\beta + e_i, Theorem 7.4 states that the residual variance estimators converge to the population error variance:\n\n\\hat\\sigma_n^2 \\xrightarrow{p} \\sigma^2,\n\\qquad\ns_n^2 \\xrightarrow{p} \\sigma^2.\n\nTheorem 7.5 then plugs this variance estimator into the homoskedastic asymptotic covariance formula:\n\n\\hat V_{\\beta,n}^0 = s_n^2 \\hat Q_n^{-1}\n\\xrightarrow{p}\nV_\\beta^0 = \\sigma^2 Q^{-1}.\n\nIn Lean, the assumptions are bundled as ErrorVarianceConsistencyConditions μ X e, with the textbook-compatible alias SampleVarianceAssumption74 μ X e. The linear model itself remains a separate pointwise hypothesis hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω.\n\n\nThe variance estimator is handled first: show that the residual sum of squares differs from the true error variance by terms that vanish in probability. Then Theorem 7.5 combines two already-proved convergences:\n\ns_n^2 \\to_p \\sigma^2 from Theorem 7.4.\n\\hat Q_n^{-1} \\to_p Q^{-1} from Theorem 7.1 plus continuous mapping.\nEntrywise multiplication gives s_n^2(\\hat Q_n^{-1})_{ij} \\to_p\n\\sigma^2(Q^{-1})_{ij} for every i,j.\nThe matrix convergence is rebuilt from those coordinatewise limits.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#lean-statement",
+    "href": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#lean-statement",
+    "title": "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency",
+    "section": "Lean statement",
+    "text": "Lean statement\nThe relevant declarations live in HansenEconometrics/Chapter7Asymptotics/Consistency.lean:\n\n\n\nLean endpoint\nRole\n\n\n\n\nolsSigmaSqHatStar_tendstoInMeasure_errorVariance\nunadjusted residual variance consistency\n\n\nolsS2Star_tendstoInMeasure_errorVariance\ndegrees-of-freedom residual variance consistency\n\n\nhomoskedasticAsymptoticCovariance\npopulation target V_\\beta^0=\\sigma^2Q^{-1}\n\n\nolsHomoskedasticCovarianceStar\nfeasible estimator \\hat V_{\\beta,n}^0=s_n^2\\hat Q_n^{-1}\n\n\nolsHomoskedasticCovarianceStar_tendstoInMeasure\nTheorem 7.5 consistency\n\n\n\n\ntheorem olsHomoskedasticCovarianceStar_tendstoInMeasure\n    {μ : Measure Ω} [IsFiniteMeasure μ]\n    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}\n    (h : ErrorVarianceConsistencyConditions μ X e) (β : k → ℝ)\n    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω) :\n    TendstoInMeasure μ\n      (fun n ω =&gt;\n        olsHomoskedasticCovarianceStar\n          (stackRegressors X n ω) (stackOutcomes y n ω))\n      atTop (fun _ =&gt; homoskedasticAsymptoticCovariance μ X e)\n\n\n\nReading the statement\n\n\n\nLean\nMath\nWhat it gives us\n\n\n\n\nErrorVarianceConsistencyConditions μ X e\nAssumption 7.4 package\nHypothesis: WLLN and moment inputs for residual variance consistency, linked on the Chapter 7 assumption page.\n\n\nβ : k → ℝ\n\\beta \\in \\mathbb{R}^k\nGiven: the fixed population coefficient.\n\n\nhmodel\ny_i=X_i^\\top\\beta+e_i\nHypothesis: the model connecting outcomes to regressors and errors.\n\n\nolsS2Star\ns_n^2\nThe degrees-of-freedom adjusted residual variance estimator.\n\n\nolsHomoskedasticCovarianceStar\ns_n^2\\hat Q_n^{-1}\nThe totalized feasible homoskedastic covariance estimator.\n\n\nhomoskedasticAsymptoticCovariance μ X e\n\\sigma^2 Q^{-1}\nThe population covariance target.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#tactic-by-tactic-walkthrough",
+    "href": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#tactic-by-tactic-walkthrough",
+    "title": "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency",
+    "section": "Tactic-by-tactic walkthrough",
+    "text": "Tactic-by-tactic walkthrough\nThe proof of Theorem 7.5 is a clean Slutsky-style composition.\n\nlet s2 : ℕ → Ω → ℝ := fun n ω =&gt;\n    olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =&gt;\n    (sampleGram (stackRegressors X n ω))⁻¹have hs2 := olsS2Star_tendstoInMeasure_errorVariance\n    (μ := μ) (X := X) (e := e) (y := y) h β hmodelhave hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv\n    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71have hEntry : ∀ i j : k,\n      TendstoInMeasure μ\n        (fun n ω =&gt; s2 n ω * invGram n ω i j)\n        atTop\n        (fun _ =&gt; errorVariance μ e * ((popGram μ X)⁻¹) i j) := by\n    intro i j\n    have hInvCoord : TendstoInMeasure μ\n        (fun n ω =&gt; invGram n ω i j)\n        atTop (fun _ =&gt; ((popGram μ X)⁻¹) i j) := by\n      simpa [invGram] using\n        TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hInv i) j\n    exact TendstoInMeasure.mul_limits_real\n      (by simpa [s2] using hs2) hInvCoordrefine tendstoInMeasure_pi (μ := μ) (fun i =&gt; ?_)\nrefine tendstoInMeasure_pi (μ := μ) (fun j =&gt; ?_)\nsimpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,\n  s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
+    ]
+  },
+  {
+    "objectID": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#downstream-uses",
+    "href": "walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.html#downstream-uses",
+    "title": "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency",
+    "section": "Downstream uses",
+    "text": "Downstream uses\nThe homoskedastic covariance result feeds the homoskedastic versions of the Chapter 7 t and Wald statistics. The robust covariance page replaces \\sigma^2 Q^{-1} with the sandwich target Q^{-1}\\Omega Q^{-1}.",
+    "crumbs": [
+      "Walkthroughs",
+      "Chapter 7",
+      "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
     ]
   }
 ]

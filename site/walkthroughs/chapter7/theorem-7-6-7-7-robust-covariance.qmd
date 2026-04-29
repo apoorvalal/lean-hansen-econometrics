@@ -1,0 +1,139 @@
+---
+title: "Theorems 7.6-7.7 — Robust covariance consistency"
+lean_name: "HansenEconometrics.olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components"
+chapter: 7
+---
+
+## Textbook statement
+
+With heteroskedasticity, the population asymptotic covariance of OLS is the
+sandwich matrix
+
+$$
+V_\beta = Q^{-1}\Omega Q^{-1},
+\qquad
+\Omega = \mathbb{E}[e_i^2 X_iX_i^\top].
+$$
+
+Theorem 7.6 states that the feasible HC0 estimator converges to this sandwich
+target:
+
+$$
+\hat V_{\beta,n}^{HC0} \xrightarrow{p} V_\beta.
+$$
+
+Theorem 7.7 adds the finite-sample variants HC1, HC2, and HC3. HC1 differs by
+a scalar degrees-of-freedom factor, while HC2 and HC3 require leverage
+conditions ensuring the additional denominator corrections are asymptotically
+negligible.
+
+In Lean, the core assumptions are bundled as
+[`RobustCovarianceConsistencyConditions μ X e`](../../assumptions/chapter7.qmd),
+with the textbook-compatible alias
+[`SampleHC0Assumption76 μ X e`](../../assumptions/chapter7.qmd). The current
+component-facing theorems also take explicit measurability and bounded-weight
+remainder controls.
+
+### Proof sketch
+
+The robust covariance proof is a sandwich assembly:
+
+1. Prove the ideal score covariance matrix converges to $\Omega$.
+2. Show replacing true errors by OLS residuals only adds negligible remainder
+   terms. These are the cross-weight and quadratic-weight controls.
+3. Combine the middle-matrix convergence with
+   $\hat Q_n^{-1}\to_p Q^{-1}$ on both sides.
+4. For HC1, multiply by a scalar factor converging to one.
+5. For HC2 and HC3, add leverage controls to show their extra corrections
+   vanish.
+
+## Lean statement
+
+The relevant endpoints live in
+`HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean`:
+
+| Lean endpoint | Role |
+|---|---|
+| [`scoreCovarianceMatrix`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L125) | population $\Omega$ |
+| [`olsProjectionAsymptoticVariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L132) | scalar $a^\top Q^{-1}\Omega Q^{-1}a$ |
+| [`sampleScoreCovarianceIdeal_stack_tendstoInMeasure_scoreCovarianceMatrix`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1600) | ideal middle matrix $\to_p\Omega$ |
+| [`olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2927) | HC0 sandwich consistency |
+| [`olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3181) | HC1 sandwich consistency |
+| [`olsHeteroskedasticCovarianceHC2Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3625) | HC2 sandwich consistency |
+| [`olsHeteroskedasticCovarianceHC3Star_tendstoInMeasure_of_bounded_weights_components_and_maxLeverage`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L3662) | HC3 sandwich consistency |
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Component-facing HC0 robust covariance consistency theorem.">theorem olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample space is a probability space.">{μ : Measure Ω} [IsProbabilityMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled HC0 robust covariance assumptions.">(h : SampleHC0Assumption76 μ X e)</span> <span class="lean-token" tabindex="0" data-explain="The true coefficient vector.">(β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span>
+    <span class="lean-token" tabindex="0" data-explain="Component measurability hypotheses used to build the estimator's measurability.">(hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Empirical remainder controls for residual-vs-error cross terms.">(hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))</span>
+    <span class="lean-token" tabindex="0" data-explain="Empirical remainder controls for residual-vs-error quadratic terms.">(hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the feasible HC0 covariance estimator converges in probability to the heteroskedastic sandwich target.">TendstoInMeasure μ
+      (fun n ω =>
+        olsHeteroskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => heteroskedasticAsymptoticCovariance μ X e)</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `SampleHC0Assumption76 μ X e` | Hansen robust covariance assumptions | **Hypothesis:** i.i.d. and moment structure for the HC0 sandwich, linked on the [Chapter 7 assumption page](../../assumptions/chapter7.qmd). |
+| `hCrossWeight` | cross remainder control | **Hypothesis:** residual substitution cross terms are bounded enough to vanish after consistency. |
+| `hQuadWeight` | quadratic remainder control | **Hypothesis:** residual substitution quadratic terms are bounded enough to vanish. |
+| `olsHeteroskedasticCovarianceStar` | $\hat V_{\beta,n}^{HC0}$ | The totalized feasible HC0 estimator. |
+| `heteroskedasticAsymptoticCovariance μ X e` | $Q^{-1}\Omega Q^{-1}$ | The population sandwich target. |
+
+## Tactic-by-tactic walkthrough
+
+The component-facing HC0 theorem is a wrapper around the core sandwich theorem:
+derive measurability from component assumptions, then pass through the
+remainder controls.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="Build measurability of the feasible residual middle matrix from the component measurability of X and e.">have hScore_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas</span><span class="lean-line" tabindex="0" data-explain="Apply the core HC0 consistency theorem: ideal Ω convergence plus residual-remainder controls plus inverse-Gram consistency.">exact olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight</span>
+</code></pre>
+```
+:::
+
+HC1 has the same outer shape; the core theorem adds the finite-sample scaling
+factor and proves it tends to one.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="HC1 uses the same feasible middle-matrix measurability argument as HC0.">have hScore_meas :=
+    sampleScoreCovarianceStar_stack_aestronglyMeasurable_of_components
+      (μ := μ) (X := X) (e := e) (y := y) β h.toSampleMomentAssumption71 hmodel
+      hX_meas he_meas</span><span class="lean-line" tabindex="0" data-explain="The HC1-specific core theorem combines HC0 consistency with the finite-sample scale factor tending to one.">exact olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β hmodel hScore_meas hCrossWeight hQuadWeight</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+These covariance consistency theorems feed the heteroskedastic versions of
+Chapter 7 inference: standard-normal t statistics, confidence interval
+coverage, and one-degree-of-freedom Wald statistics.
+
