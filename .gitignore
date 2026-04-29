@@ -8,6 +8,10 @@ build/
 *.out
 textextract/
 .mcp.json
-
 # Walkthrough site build artifacts
 site/_generated/
+.DS_Store
+.agent-sync/
+.agents/
+.pi/
+
