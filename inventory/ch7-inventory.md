@@ -8,6 +8,56 @@
   `uv run python scripts/1_extract_all_chapter_text.py`
 - The chapter-level LaTeX/Lean crosswalk has been folded into this file.
 
+## Current structure
+
+Chapter 7 is now split into:
+
+- `HansenEconometrics/Chapter7Asymptotics/Basic.lean`
+- `HansenEconometrics/Chapter7Asymptotics/Consistency.lean`
+- `HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean`
+- `HansenEconometrics/Chapter7Asymptotics/Normality.lean`
+- `HansenEconometrics/Chapter7Asymptotics/Inference.lean`
+
+The umbrella import
+`HansenEconometrics/Chapter7Asymptotics.lean` remains the stable public entry
+point.
+
+Code-size pass notes:
+
+- matrix Borel setup is shared through `LinearAlgebraUtils.lean`
+- `olsBetaStar` remains the proof engine, with `olsBetaOrZero` as a thin wrapper
+- scalar inference statements use named restriction, standard-error, t-statistic,
+  CI-event, and one-degree Wald definitions
+- HC2/HC3 covariance wrappers share the generic leverage-adjusted covariance
+  pipeline
+- descriptive condition structures are primary; numbered `Sample...` names are
+  compatibility aliases
+
+## Public assumption packages
+
+Public Chapter 7 endpoint theorems now advertise descriptive sufficient
+condition structures:
+
+- `LeastSquaresConsistencyConditions`
+- `ErrorVarianceConsistencyConditions`
+- `ScoreCLTConditions`
+- `RobustCovarianceConsistencyConditions`
+- `HomoskedasticErrorVariance`
+
+The older `SampleMomentAssumption71`, `SampleVarianceAssumption74`,
+`SampleCLTAssumption72`, and `SampleHC0Assumption76` names are now compatibility
+aliases for those descriptive structures, used only where theorem-engine code
+still benefits from the shorter proof-oriented names.
+
+## Estimator API note
+
+Chapter 7 currently keeps `olsBetaStar` as the total proof engine and
+`olsBetaOrZero` as the textbook-facing ordinary-OLS wrapper. The wrapper agrees
+with ordinary `olsBeta` on nonsingular designs and is usable as a random
+variable at every sample size. Crosswalk rows should prefer `olsBetaOrZero`
+when the textbook statement is about ordinary OLS, and list `olsBetaStar` when
+the result is genuinely a total-estimator bridge.
+
 ## First-pass formalization order
 
 ### Layer 1: deterministic OLS-error algebra
@@ -25,7 +75,8 @@ Status: landed in `HansenEconometrics/Chapter7Asymptotics.lean`
 Status: landed via `stackRegressors` / `stackErrors` / `stackOutcomes`,
 `stack_linear_model`, `sampleGram_stackRegressors_eq_avg`,
 `sampleCrossMoment_stackRegressors_stackErrors_eq_avg`, and
-`SampleMomentAssumption71`.
+the public proof bundle `LeastSquaresConsistencyConditions`
+(`SampleMomentAssumption71` is the compatibility alias).
 
 ### Layer 3: probabilistic convergence to Theorem 7.1
 6. `Q̂ₙ →ₚ Q` via WLLN on outer products
@@ -50,7 +101,8 @@ scalar-matrix inverse identity `nonsingInv_smul` lives in
 15. apply Mathlib's one-dimensional CLT to every fixed scalar projection
 16. push the scalar-projection CLT through the fixed population inverse `Q⁻¹`
 
-Status: scalar-projection CLTs landed via `SampleCLTAssumption72`,
+Status: scalar-projection CLTs landed via the public sufficient package
+`ScoreCLTConditions` (`SampleCLTAssumption72` is the compatibility alias),
 `scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian`, and
 `scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian`.
 The score covariance matrix `Ω` is now named as `scoreCovarianceMatrix`, with
@@ -90,20 +142,22 @@ Status: landed for the totalized estimators via
 `olsSigmaSqHatStar_tendstoInMeasure_errorVariance` and
 `olsS2Star_tendstoInMeasure_errorVariance`, and for the homoskedastic covariance
 plug-in via `olsHomoskedasticCovarianceStar_tendstoInMeasure`. The assumptions
-are moment-level sufficient conditions extending `SampleMomentAssumption71`, not
-yet a literal encoding of Hansen's iid Assumption 7.1.
+are advertised publicly as `ErrorVarianceConsistencyConditions`, with
+`SampleVarianceAssumption74` retained as the compatibility alias for theorem
+statements that still use the proof-oriented name.
 
 ## Immediate target
-Continue closing the post-CLT inference layer: the variance-identity and
-law-normalization step now turns the Theorem 7.11 t-statistic ratio limits into
-explicit standard-normal limits, so the next targets are confidence intervals
-and Wald statistics. Generic matrix-vector Slutsky bridges for random covariance
-and Gram matrices are now landed; Vector/Cramér-Wold packaging for Theorems
-7.2-7.3 remains a separate textbook-facing task.
+The main remaining Chapter 7 item is assumption packaging: the public theorem
+surface now uses descriptive aliases, but those aliases still package stronger
+sufficient conditions than the literal textbook iid assumptions. The large
+proof gaps from the earlier Chapter 7 pass are closed: vector CLT packaging,
+Gaussian linear-image/Wald law identification, multivariate homoskedastic and
+HC0/HC1/HC2/HC3 Wald wrappers, HC2/HC3 max-leverage closure, residual
+absolute-weight closure, and HC2/HC3 adjustment measurability are all landed.
 
 ## Status
 - The totalized-estimator consistency theorem corresponding to the start of Theorem 7.1 is formalized.
-- Theorem 7.2 is partially formalized: the projection-family CLT for `√n · ĝₙ(e)` is landed, and the score-covariance `Ω` wrappers are landed; the literal vector-valued score CLT is pending.
+- Theorem 7.2 is formalized at the current assumption layer: the projection-family CLT, score-covariance `Ω` wrappers, and vector-valued score CLT are landed.
 - Scalar-projection CLTs for fixed-`Q⁻¹` leading terms are formalized.
 - The scaled singular-event residual for the totalized OLS estimator is formalized.
 - The deterministic feasible-score decomposition and random-inverse gap are formalized.
@@ -112,20 +166,20 @@ and Gram matrices are now landed; Vector/Cramér-Wold packaging for Theorems
 - Generic vector Slutsky bridges are formalized for `ÂₙTₙ ⇒ AZ` and `Âₙ⁻¹Tₙ ⇒ A⁻¹Z`.
 - The conditional feasible-score vector bridge `Q̂ₙ⁻¹√nĝₙ(e) ⇒ Q⁻¹Z` is formalized in `feasibleScore_tendstoInDistribution_of_scoreCLT`.
 - The conditional vector OLS assembly `√n(β̂*ₙ-β) ⇒ Q⁻¹Z` from a vector score CLT is formalized in `olsBetaStar_vector_tendstoInDistribution_of_scoreCLT`.
-- The ordinary-wrapper conditional vector OLS theorem is formalized in `olsBetaOrZero_vector_tendstoInDistribution_of_scoreCLT`.
+- The non-conditional vector OLS CLT is formalized in `olsBetaStar_vector_tendstoInDistribution_multivariateGaussian`, with the ordinary-wrapper version in `olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian`.
 - The main projection-family totalized-OLS CLT is formalized in `scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all`.
 - The ordinary-on-nonsingular OLS wrapper `olsBetaOrZero` is connected to `olsBetaStar`, with consistency and scalar CLT corollaries.
-- Vector packaging for full textbook Theorem 7.3 remains pending.
+- Vector packaging for Theorem 7.3 is landed for the totalized and ordinary-wrapper estimators.
 - Theorem 7.4 is formalized for totalized residual variance estimators `olsSigmaSqHatStar` and `olsS2Star`.
 - Theorem 7.5 is formalized for the totalized homoskedastic plug-in covariance estimator.
 - Theorem 7.6 has ideal and feasible HC0 sandwich consistency faces, with the feasible version reduced to bounded empirical third/fourth weight hypotheses and component measurability.
-- Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly; HC2/HC3 still require the leverage-adjustment convergence theorem.
+- Theorem 7.7 has HC1 consistency and conditional HC2/HC3 assembly factored through a generic leverage-adjusted middle-matrix engine; HC2/HC3 now derive the largest-adjustment-weight `oₚ(1)` condition from max leverage, derive bounded absolute residual-score averages from HC0 diagonal convergence, and package covariance consistency from the existing HC0 bounded-weight assumptions plus max leverage.
 - Theorem 7.8 has global and local-at-`β` continuous-function faces for `olsBetaStar` and `olsBetaOrZero`; Theorem 7.9 has fixed-linear-function projection faces. Nonlinear delta-method and vector packaging remain.
 - Theorem 7.10 has the generic fixed and random linear covariance CMTs plus concrete homoskedastic and HC0/HC1 fixed-linear-function covariance wrappers.
-- Theorem 7.11 has the standard-error CMT, homoskedastic and HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers for both `olsBetaStar` and `olsBetaOrZero`.
-- Theorem 7.12 has the generic symmetric confidence-interval coverage bridge from absolute t-statistic convergence, with the standard-normal continuity-set side condition discharged; ordinary homoskedastic and HC0/HC1 absolute-value t-statistic limits and concrete ordinary-wrapper interval coverage theorems are formalized.
-- Theorem 7.13 has the generic multivariate Wald continuous-mapping bridge, a named `χ²(r)` law-identification wrapper, conditional linear-Wald OLS wrappers from a vector score CLT, and scalar one-degree-of-freedom HC0/HC1 Wald statistic limits to `χ²(1)`; vector CLT/covariance packaging and concrete multivariate Gaussian law identification remain.
-- Theorem 7.14 has a scalar one-degree-of-freedom homoskedastic Wald statistic limit to `χ²(1)` under the moment-level bridge `Ω = σ²Q`; the full multivariate homoskedastic Wald theorem remains.
+- Theorem 7.11 has the standard-error CMT, homoskedastic and HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers for both `olsBetaStar` and `olsBetaOrZero`. The public scalar theorem statements now use the named statistic definitions `linearRestrictionEstimate`, `linearRestrictionStdError`, `olsLinearTStatisticStar`, and `olsLinearTStatisticOrZero` rather than repeating the same matrix expression inline.
+- Theorem 7.12 has the generic symmetric confidence-interval coverage bridge from absolute t-statistic convergence, with the standard-normal continuity-set side condition discharged; ordinary homoskedastic and HC0/HC1 absolute-value t-statistic limits and concrete ordinary-wrapper interval coverage theorems are formalized without pointwise eventual standard-error positivity. The concrete CI statements use `olsLinearCIEventOrZero`.
+- Theorem 7.13 has the generic multivariate Wald continuous-mapping bridge, a Lean-only named-law bridge, the positive-definite Gaussian/Mahalanobis `χ²(r)` law, the Gaussian linear-image law for `RQ⁻¹Z`, public full-rank Gaussian linear-Wald OLS wrappers using the proved vector OLS CLT, concrete multivariate HC0/HC1/HC2/HC3 Wald wrappers, and the multivariate homoskedastic Wald wrapper; the remaining cleanup is assumption packaging.
+- Theorem 7.14 has scalar and multivariate homoskedastic Wald statistic limits, including the variable-facing wrapper from `HomoskedasticErrorVariance`.
 - Theorem 7.16 has the deterministic pointwise residual-error inequalities for totalized and ordinary OLS; the probabilistic max-rate packaging remains.
 - Theorem 7.17 has finite-sample leverage trace/average identities and pointwise `0 ≤ hᵢᵢ ≤ 1` bounds on nonsingular designs; the probabilistic max-leverage rate remains.
 
@@ -133,20 +187,20 @@ and Gram matrices are now landed; Vector/Cramér-Wold packaging for Theorems
 
 | Textbook result | Current Lean status | What remains |
 | --- | --- | --- |
-| Theorem 7.1 consistency of least squares | Totalized-estimator analogue is done: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L1370). Ordinary-on-nonsingular wrapper is done: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L1460). | Literal dependent `olsBeta` cannot be formed on singular samples; `olsBetaOrZero` is the current high-probability nonsingularity interface. |
-| Theorem 7.2 score CLT | Projection-family score CLT is done: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2184). `Ω` is named by [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics.lean#L1965), with finite entries, PSD, and quadratic-form variance wrappers via [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics.lean#L1984), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics.lean#L2028), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L2007). | Full vector-valued CLT remains. |
-| Theorem 7.3 OLS asymptotic normality | Projection-family totalized-OLS CLT is done, including inverse-gap/tightness: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2554). Ordinary-on-nonsingular projection-family version is done: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2601). Generic matrix-vector Slutsky bridges plus conditional vector OLS theorems for `olsBetaStar` and `olsBetaOrZero` are formalized. | Package the vector score CLT/Cramér-Wold theorem. |
-| Theorem 7.4 variance-estimator consistency | Totalized `σ̂²` consistency is done: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637). Totalized degrees-of-freedom `s²` consistency is done: [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743). | The assumptions are packaged by [SampleVarianceAssumption74](../../HansenEconometrics/Chapter7Asymptotics.lean#L629), a sufficient moment-level layer rather than literal iid Assumption 7.1. |
-| Theorem 7.5 homoskedastic covariance consistency | Totalized plug-in `s²Q̂⁻¹` consistency is done: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). | Same `SampleVarianceAssumption74` caveat as Theorem 7.4; vector packaging for Theorem 7.3 remains separate. |
+| Theorem 7.1 consistency of least squares | Totalized-estimator analogue is done: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L886). Ordinary-on-nonsingular wrapper is done: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1108). | Literal dependent `olsBeta` cannot be formed on singular samples; `olsBetaOrZero` is the current high-probability nonsingularity interface. |
+| Theorem 7.2 score CLT | Projection-family score CLT is done: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L150). Vector score CLT is done through Cramér-Wold: [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222). `Ω` is named by [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L94), with finite entries, PSD, and quadratic-form variance wrappers via [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L113), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L157), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L136). | Publicly this is packaged by `ScoreCLTConditions`, which is still a stronger sufficient layer than a literal textbook iid encoding. |
+| Theorem 7.3 OLS asymptotic normality | Projection-family totalized-OLS CLT is done, including inverse-gap/tightness: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1323). Ordinary-on-nonsingular projection-family version is done: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1370). Vector OLS CLTs are done for `olsBetaStar` and `olsBetaOrZero`: [olsBetaStar_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L371) and [olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398). | Literal dependent `olsBeta` still uses the ordinary-wrapper interface on high-probability nonsingularity. |
+| Theorem 7.4 variance-estimator consistency | Totalized `σ̂²` consistency is done: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325). Totalized degrees-of-freedom `s²` consistency is done: [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431). | Publicly this is packaged by `ErrorVarianceConsistencyConditions`, with `SampleVarianceAssumption74` retained as a compatibility alias. It remains a sufficient moment-level layer rather than literal iid Assumption 7.1. |
+| Theorem 7.5 homoskedastic covariance consistency | Totalized plug-in `s²Q̂⁻¹` consistency is done: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460). | Same `ErrorVarianceConsistencyConditions` caveat as Theorem 7.4. |
 | Theorem 7.6 HC0 covariance consistency | Ideal sandwich consistency and feasible HC0 sandwich consistency are formalized through `olsHeteroskedasticCovarianceIdealStar_tendstoInMeasure` and `olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components`. | Discharge bounded empirical weight hypotheses from more primitive iid/moment assumptions. |
-| Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 have definitions and conditional/leverage-adjustment assembly theorems. | Prove leverage-adjustment convergence, likely using the max-leverage result later in the chapter. |
+| Theorem 7.7 alternative covariance estimators | HC1 consistency is formalized; HC2/HC3 are thin wrappers around the generic leverage-adjusted middle-matrix and sandwich engines. Max leverage now discharges the largest-adjustment-weight `oₚ(1)` step, bounded absolute residual-score averages are derived from HC0 diagonal convergence, HC2/HC3 adjustment measurability is derived from component measurability, and HC2/HC3 covariance consistency is packaged from the existing HC0 bounded-weight assumptions plus max leverage. | Tighten the assumption packaging. |
 | Theorem 7.8 functions of parameters | Global continuous-map and local-at-`β` faces are formalized for `olsBetaStar` and `olsBetaOrZero`, using `continuous_function_...` and `continuousAt_function_...` wrappers. | Extend to a richer theorem-level API for common nonlinear transforms. |
 | Theorem 7.9 functions asymptotic normality | Fixed-linear-function scalar projection face is formalized for `olsBetaStar` and `olsBetaOrZero`. | Nonlinear delta method and vector packaging remain. |
 | Theorem 7.10 covariance of functions | Generic fixed `R V̂ Rᵀ` and random `R̂ V̂ R̂ᵀ` covariance CMTs plus homoskedastic/HC0/HC1 fixed-linear-function wrappers are formalized. | Concrete nonlinear derivative estimators remain. |
-| Theorem 7.11 t-statistic | Standard-error CMT, homoskedastic/HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized for totalized and ordinary-wrapper estimators. | Extend beyond fixed linear maps and package interval/Wald consequences. |
-| Theorem 7.12 confidence intervals | Generic coverage convergence is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat`, with `standardNormalAbs_frontier_Iic_null` and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal` discharging the standard-normal continuity-set side condition; absolute-value homoskedastic/HC0/HC1 t-statistic limits, `mem_symmetric_ci_iff_abs_tstat_le`, and concrete homoskedastic/HC0/HC1 ordinary-wrapper interval coverage theorems are formalized. | Extend beyond fixed one-row linear maps. |
-| Theorem 7.13 Wald statistics | Generic multivariate Wald CMT is formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`, with matrix-vector Slutsky support in `matrixMulVec_tendstoInDistribution_of_vector_and_matrix`; the named-law bridge `waldQuadraticForm_tendstoInDistribution_chiSquared_of_limit_hasLaw` converts any identified quadratic-form limit law into `χ²(r)` convergence; conditional linear-Wald OLS wrappers from a vector score CLT and scalar one-degree-of-freedom HC0/HC1 Wald limits are formalized. | Add vector CLT/covariance packaging and prove the concrete multivariate Gaussian quadratic-form law for OLS limits. |
-| Theorem 7.14 homoskedastic Wald statistic | Scalar one-degree-of-freedom homoskedastic Wald limit is formalized under the moment-level bridge `Ω = σ²Q`. | Prove `Ω = σ²Q` from a literal conditional homoskedasticity assumption and add the full multivariate theorem. |
+| Theorem 7.11 t-statistic | Standard-error CMT, homoskedastic/HC0/HC1 linear standard-error consistency, scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized for totalized and ordinary-wrapper estimators. The scalar theorem statements use named restriction/statistic definitions instead of duplicated inline formulas. | Extend beyond fixed linear maps and package interval/Wald consequences. |
+| Theorem 7.12 confidence intervals | Generic coverage convergence is formalized in `symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero`, with `standardNormalAbs_frontier_Iic_null` and `symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos` discharging the standard-normal continuity-set and high-probability standard-error positivity side conditions; absolute-value homoskedastic/HC0/HC1 t-statistic limits, `mem_symmetric_ci_iff_abs_tstat_le`, and concrete homoskedastic/HC0/HC1 ordinary-wrapper interval coverage theorems are formalized through `olsLinearCIEventOrZero`. | Extend beyond fixed one-row linear maps. |
+| Theorem 7.13 Wald statistics | Generic multivariate Wald CMT is formalized in `waldQuadraticForm_tendstoInDistribution_of_vector_and_covariance`, with matrix-vector Slutsky support in `matrixMulVec_tendstoInDistribution_of_vector_and_matrix`; `hasLaw_multivariateGaussian_zero_linearMap` and `hasLaw_gaussian_mahalanobis_chiSquared` discharge the Gaussian restriction-map and Mahalanobis `χ²(r)` laws; public full-rank Gaussian linear-Wald OLS wrappers, concrete multivariate HC0/HC1/HC2/HC3 Wald wrappers, and multivariate homoskedastic Wald wrappers are formalized. | Tighten the assumption layer. |
+| Theorem 7.14 homoskedastic Wald statistic | Scalar and multivariate homoskedastic Wald limits are formalized from the variable-facing homoskedasticity assumption `HomoskedasticErrorVariance`, via `scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic` and the covariance bridge `V_\beta^0 = V_\beta`. | Tighten the assumption layer to match textbook packaging more literally. |
 | Theorem 7.16 residual uniformity | Deterministic pointwise residual-error inequalities are formalized for totalized and ordinary OLS. | Add rate vocabulary and max-over-sample probabilistic packaging. |
 | Theorem 7.17 asymptotic leverage | Finite-sample leverage trace/average identities and pointwise `0 ≤ hᵢᵢ ≤ 1` bounds are formalized on nonsingular designs. | Add eigenvalue/operator-norm bounds and probabilistic max-leverage rate packaging. |
 | Theorem 7.15 Edgeworth expansion | Pending/signpost-only. | Add Edgeworth expansion infrastructure. |
@@ -246,7 +300,12 @@ Conventions:
 ## Links
 
 - [Hansen excerpt](../textbook/ch07/ch7_excerpt.txt)
-- [Chapter 7 file](../../HansenEconometrics/Chapter7Asymptotics.lean)
+- [Chapter 7 umbrella import](../../HansenEconometrics/Chapter7Asymptotics.lean)
+- [Basic definitions and stacking](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean)
+- [Consistency and residual variance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean)
+- [Robust covariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean)
+- [Normality and Wald bridges](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean)
+- [Inference](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean)
 - [Asymptotic utilities](../../HansenEconometrics/AsymptoticUtils.lean)
 - [Linear algebra utilities](../../HansenEconometrics/LinearAlgebraUtils.lean)
 
@@ -254,27 +313,35 @@ Conventions:
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Partially represented by [SampleMomentAssumption71](../../HansenEconometrics/Chapter7Asymptotics.lean#L600). This is a moment-level sufficient assumption for the WLLN proof, not a literal iid-sample encoding. |
-| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L1370). Ordinary-on-nonsingular wrapper: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics.lean#L1460). |
-| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Partially represented by [SampleCLTAssumption72](../../HansenEconometrics/Chapter7Asymptotics.lean#L1916). This adds full score independence and projectionwise square integrability; it is not yet a literal textbook encoding. |
-| Theorem 7.2 score CLT bridge | Assumption 7.2 implies `Ω < ∞` and `(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)` | Partially done. Projection-family form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2184). Score-covariance wrappers: [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics.lean#L1965), [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics.lean#L1984), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics.lean#L2028), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L2007). Literal vector CLT pending. |
-| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Projection-family totalized-OLS CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2554). Ordinary-on-nonsingular projection-family version: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics.lean#L2601). Generic random-matrix Slutsky bridges and conditional vector OLS theorems for `olsBetaStar`/`olsBetaOrZero` are formalized. Vector score CLT/Cramér-Wold packaging pending. |
-| Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. | Totalized estimator face: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637) and [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743), under [SampleVarianceAssumption74](../../HansenEconometrics/Chapter7Asymptotics.lean#L629). |
-| Theorem 7.5 | Under Assumption 7.1, ˆV | Totalized homoskedastic plug-in covariance face: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772). |
-| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV | HC0 middle/sandwich faces are formalized, including feasible HC0 under bounded-weight/component hypotheses. |
-| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized; HC2/HC3 are reduced to leverage-adjustment convergence. |
+| Assumption 7.1 iid sample with finite second moments and nonsingular population Gram | $(Y_i, X_i)$ i.i.d., $\mathbb{E}[Y^2] < \infty$, $\mathbb{E}\lVert X\rVert^2 < \infty$, $Q_{XX} = \mathbb{E}[X X'] \succ 0$ | Publicly packaged by [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean), with `SampleMomentAssumption71` retained as a compatibility alias. It is a moment-level sufficient assumption for the current WLLN proof, not a literal iid-sample encoding. |
+| Theorem 7.1 consistency of least squares | Under Assumption 7.1, $\hat{\beta} \xrightarrow{p} \beta$ as $n \to \infty$ | Totalized-estimator analogue: [olsBetaStar_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L886). Ordinary-on-nonsingular wrapper: [olsBetaOrZero_stack_tendstoInMeasure_beta](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1108). |
+| Assumption 7.2 / score CLT setup | Stronger moment assumptions for asymptotic normality | Publicly packaged by [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean), with `SampleCLTAssumption72` retained as a compatibility alias. It adds full score independence and projectionwise square integrability, so it is still stronger than a literal textbook encoding. |
+| Theorem 7.2 score CLT bridge | Assumption 7.2 implies `Ω < ∞` and `(1 / √n)∑ Xᵢeᵢ ⇒ N(0, Ω)` | Done at the current assumption layer. Projection-family form: [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L150). Vector form: [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222). Score-covariance wrappers: [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L94), [scoreSecondMoment_integrable](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L113), [scoreCovarianceMatrix_posSemidef](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L157), and [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L136). |
+| Theorem 7.3 | Asymptotic Normality of Least Squares Estimator | Projection-family totalized-OLS CLT: [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1323). Ordinary-on-nonsingular projection-family version: [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance_all](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1370). Vector CLTs: [olsBetaStar_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L371) and [olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398). |
+| Theorem 7.4 | Under Assumption 7.1, ˆσ2 − →p σ2 and s2 − →p σ2 as n → ∞. | Totalized estimator face: [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325) and [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431), under [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean), with `SampleVarianceAssumption74` retained as a compatibility alias. |
+| Theorem 7.5 | Under Assumption 7.1, ˆV | Totalized homoskedastic plug-in covariance face: [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460). |
+| Theorem 7.6 | Under Assumption 7.2, as n → ∞, ˆΩ − →p Ω and ˆV | HC0 middle/sandwich faces are formalized, including feasible HC0 under bounded-weight/component hypotheses: [olsHeteroskedasticCovarianceStar_tendstoInMeasure_of_bounded_weights_and_components](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1760). |
+| Theorem 7.7 | Under Assumption 7.2, as n → ∞, ˜Ω − →p Ω, Ω − →p Ω, ˆV | HC1 is formalized via [hc1FiniteSampleScale_tendsto_one](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2284) and [olsHeteroskedasticCovarianceHC1Star_tendstoInMeasure_of_bounded_weights_and_components](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2370); HC2/HC3 now reduce leverage-adjustment convergence to max leverage, derive residual absolute-weight `Oₚ(1)` from HC0 diagonal convergence via [sampleScoreCovarianceResidualAbsWeightStar_boundedInProbability_of_bounded_weights](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1658), and package adjustment/covariance convergence via [sampleScoreCovarianceHC2AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1685) and [sampleScoreCovarianceHC3AdjustmentStar_stack_tendstoInMeasure_zero_of_bounded_weights_and_maxLeverage](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1719). |
 | Theorem 7.8 | Under Assumption 7.1, if r (β) is continuous at the true value of | Global and local-at-`β` continuous-map faces for `olsBetaStar` and `olsBetaOrZero` are formalized. |
 | Theorem 7.9 | Asymptotic Distribution of Functions of Parameters | Fixed-linear-function scalar projection faces are formalized for `olsBetaStar` and `olsBetaOrZero`. |
 | Theorem 7.10 | Under Assumptions 7.2 and 7.3, as n → ∞, ˆV θ − →p V θ. | Generic fixed and random linear covariance CMTs plus homoskedastic/HC0/HC1 fixed-linear-function covariance wrappers are formalized. |
-| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, homoskedastic/HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. |
-| Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with | Generic symmetric confidence-interval coverage convergence is formalized from absolute t-statistic convergence; concrete homoskedastic/HC0/HC1 ordinary-wrapper interval theorems are formalized. |
-| Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → | Generic multivariate Wald CMT, matrix-vector Slutsky support, a named `χ²(r)` law-identification wrapper, and scalar one-degree-of-freedom HC0/HC1 Wald limits to `χ²(1)` are formalized; vector CLT/covariance packaging and concrete multivariate Gaussian law identification remain. |
-| Theorem 7.14 | Under Assumptions 7.2, 7.3, and E | Scalar one-degree-of-freedom homoskedastic Wald limit to `χ²(1)` is formalized under the moment-level bridge `Ω = σ²Q`; multivariate and literal conditional-homoskedasticity bridge remain. |
+| Theorem 7.11 | Under Assumptions 7.2, 7.3, and 7.4, T (θ) − → | Standard-error CMT, generic studentization [studentizedLimit_tendstoInDistribution](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean), homoskedastic/HC0/HC1 scalar linear t-statistic convergence, and explicit standard-normal wrappers are formalized. Statement shapes now use `linearRestrictionStdError`, `olsLinearTStatisticStar`, and `olsLinearTStatisticOrZero`. |
+| Theorem 7.12 | Under Assumptions 7.2, 7.3 and 7.4, for ˆC deﬁned in (7.35) with | Generic symmetric confidence-interval coverage convergence is formalized from absolute t-statistic convergence in [symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean). Concrete homoskedastic/HC0/HC1 ordinary-wrapper interval theorems now use `olsLinearCIEventOrZero` and derive the standard-error positivity side condition from convergence in probability via [symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean). |
+| Theorem 7.13 | Under Assumptions 7.2, 7.3 and 7.4, as n → ∞, W (θ) − → | Generic multivariate Wald CMT, matrix-vector Slutsky support, positive-definite Gaussian/Mahalanobis `χ²(r)` law identification, public full-rank Gaussian linear-Wald OLS wrappers using the proved vector OLS CLT, concrete multivariate HC0/HC1/HC2/HC3 Wald wrappers, and multivariate homoskedastic Wald wrappers are formalized. The Wald law layer now reuses the Chapter 5 / Gaussian-law infrastructure `hasLaw_stdGaussian_normSq_chiSquared`, `hasLaw_gaussian_mahalanobis_chiSquared`, and `hasLaw_multivariateGaussian_zero_linearMap`. Remaining: tighten the chapter-facing assumption packaging. |
+| Theorem 7.14 | Under Assumptions 7.2, 7.3, and E | Scalar and multivariate homoskedastic Wald limits to `χ²` are formalized from the variable-facing homoskedasticity assumption [HomoskedasticErrorVariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L208), using [scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L227), [olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L804), and [linearMap_olsHomoskedasticWaldStatisticOrZero_tendstoInDistribution_chiSquared_of_homoskedastic](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean). |
 | Theorem 7.15 | Under Assumptions 7.2, 7.3, Ω > 0, E ∥e∥16 < ∞, E ∥X ∥16 < |  |
 | Theorem 7.16 | Under Assumption 7.2 and E ∥X ∥r < ∞, then | Deterministic pointwise residual-error inequalities are formalized; max-rate convergence remains. |
 | Theorem 7.17 | If Xi is i.i.d., Q X X > 0, and E ∥X ∥r < ∞ for some r ≥ 2, then | Finite-sample leverage trace/average identities and pointwise `0 ≤ hᵢᵢ ≤ 1` bounds are formalized; max-leverage rate remains. |
 
 ## Lean-only bridge results
+
+### Public assumption packages
+
+- [LeastSquaresConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public structure for the current consistency proof package behind Hansen Assumption 7.1.
+- [ErrorVarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean) — descriptive public structure for the residual-variance / homoskedastic-covariance consistency package.
+- [ScoreCLTConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public structure for the current score-CLT package behind Hansen Assumption 7.2.
+- [RobustCovarianceConsistencyConditions](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean) — descriptive public structure for the current robust covariance package. This remains stronger than bare textbook Assumption 7.2 because the primitive robust-weight discharge is still deferred.
+- [HomoskedasticErrorVariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L208) — variable-facing conditional homoskedasticity assumption used by the Chapter 7.14 wrappers.
 
 These are the key intermediate theorems behind Theorem 7.1 that do not correspond to
 named textbook statements. They stay here as navigation aids for the proof architecture.
@@ -282,65 +349,99 @@ named textbook statements. They stay here as navigation aids for the proof archi
 Phase 1 deterministic identities (algebra, no probability):
 
 - [olsBetaStar](../../HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L27) — total OLS via `Matrix.nonsingInv`, defined on every design matrix; agrees with `olsBeta` when `Xᵀ X` is invertible, returns `0` otherwise.
-- [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment](../../HansenEconometrics/Chapter7Asymptotics.lean#L533) — `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` on every `ω`.
-- [sampleCrossMoment_stackOutcomes_linear_model](../../HansenEconometrics/Chapter7Asymptotics.lean#L498) — `ĝₙ(y) = Q̂ₙ β + ĝₙ(e)` under `yᵢ = Xᵢ · β + eᵢ`.
-- [olsBetaStar_sub_identity](../../HansenEconometrics/Chapter7Asymptotics.lean#L555) — `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ Q̂ₙ − 1) *ᵥ β`.
+- [olsBetaStar_stack_eq_sampleGramInv_mulVec_sampleCrossMoment](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L481) — `β̂*ₙ = Q̂ₙ⁻¹ *ᵥ ĝₙ(y)` on every `ω`.
+- [sampleCrossMoment_stackOutcomes_linear_model](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L446) — `ĝₙ(y) = Q̂ₙ β + ĝₙ(e)` under `yᵢ = Xᵢ · β + eᵢ`.
+- [olsBetaStar_sub_identity](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L503) — `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ Q̂ₙ − 1) *ᵥ β`.
 
 Phase 2/3 probabilistic pieces:
 
-- [sampleGram_stackRegressors_tendstoInMeasure_popGram](../../HansenEconometrics/Chapter7Asymptotics.lean#L650) — `Q̂ₙ →ₚ Q`.
-- [sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L695) — `ĝₙ(e) →ₚ 0`.
-- [sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L845) — `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
-- [measure_sampleGram_singular_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L902) — `μ{Q̂ₙ singular} → 0`.
-- [residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L947) — the residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
-- [sqrt_smul_residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L980) — the same residual remains negligible after `√n` scaling.
-- [scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L1013) — scalar projections of the scaled residual are `oₚ(1)`.
+- [sampleGram_stackRegressors_tendstoInMeasure_popGram](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L124) — `Q̂ₙ →ₚ Q`.
+- [sampleCrossMoment_stackRegressors_stackErrors_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L178) — `ĝₙ(e) →ₚ 0`.
+- [sampleGramInv_mulVec_sampleCrossMoment_e_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L328) — `Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [measure_sampleGram_singular_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L385) — `μ{Q̂ₙ singular} → 0`.
+- [residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L430) — the residual `β̂*ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) →ₚ 0`.
+- [sqrt_smul_residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L463) — the same residual remains negligible after `√n` scaling.
+- [scoreProjection_sqrt_smul_residual_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L496) — scalar projections of the scaled residual are `oₚ(1)`.
 
 Phase 4 CLT pieces:
 
-- [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum](../../HansenEconometrics/Chapter7Asymptotics.lean#L458) — `√n · ĝₙ(e) = (1/√n)∑eᵢXᵢ`.
-- [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics.lean#L1965) — Hansen's score covariance matrix `Ω := Var(e₀X₀)`.
-- [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L2007) — scalar score variances are quadratic forms of `Ω`.
-- [scoreCovarianceMatrix_apply_eq_secondMoment](../../HansenEconometrics/Chapter7Asymptotics.lean#L2051) — under orthogonality, entries of `Ω` are score second moments.
-- [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score](../../HansenEconometrics/Chapter7Asymptotics.lean#L1051) — `√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
-- [feasibleScore_eq_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1097) — `Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.
-- [inverseGapProjection_eq_scoreProjection_randomWeight](../../HansenEconometrics/Chapter7Asymptotics.lean#L1119) — rewrites the inverse-gap projection as a scaled-score projection against `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa`.
-- [sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv](../../HansenEconometrics/Chapter7Asymptotics.lean#L670) — `Q̂ₙ⁻¹ →ₚ Q⁻¹` as a named inverse-Gram CMT.
-- [inverseGapWeight_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics.lean#L1136) — the random inverse-gap weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` is `oₚ(1)`.
-- [inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded](../../HansenEconometrics/Chapter7Asymptotics.lean#L1232) — inverse-gap projection is `oₚ(1)` from scaled-score coordinate `Oₚ(1)`.
-- [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1261) — projection-level decomposition of `√n(β̂*ₙ - β)`.
-- [scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1289) — the scalar Slutsky remainder is `oₚ(1)` if the inverse-gap projection is.
+- [sqrt_smul_sampleCrossMoment_stackRegressors_stackErrors_eq_inv_sqrt_sum](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L406) — `√n · ĝₙ(e) = (1/√n)∑eᵢXᵢ`.
+- [scoreCovarianceMatrix](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L94) — Hansen's score covariance matrix `Ω := Var(e₀X₀)`.
+- [scoreProjection_variance_eq_quadraticScoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L136) — scalar score variances are quadratic forms of `Ω`.
+- [scoreCovarianceMatrix_apply_eq_secondMoment](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L180) — under orthogonality, entries of `Ω` are score second moments.
+- [cramerWold_tendstoInDistribution](../../HansenEconometrics/AsymptoticUtils.lean#L154) — finite-dimensional Cramér-Wold convergence bridge from all inner-product projections.
+- [hasLaw_multivariateGaussian_zero_dotProduct](../../HansenEconometrics/ProbabilityUtils.lean#L447) — one-dimensional law of a fixed projection of a centered multivariate Gaussian.
+- [hasLaw_multivariateGaussian_zero_linearMap](../../HansenEconometrics/ProbabilityUtils.lean#L489) — fixed matrix images of centered multivariate Gaussians have covariance `R S Rᵀ`.
+- [scoreVector_sampleCrossMoment_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L222) — vector score CLT assembled from the scalar projection CLTs.
+- [sqrt_smul_olsBetaStar_sub_eq_sqrt_smul_residual_add_feasible_score](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L534) — `√n(β̂*ₙ - β) = √n·Rₙ + Q̂ₙ⁻¹ *ᵥ (√n·ĝₙ(e))`.
+- [feasibleScore_eq_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L613) — `Q̂ₙ⁻¹√nĝₙ(e) = Q⁻¹√nĝₙ(e) + (Q̂ₙ⁻¹ - Q⁻¹)√nĝₙ(e)`.
+- [inverseGapProjection_eq_scoreProjection_randomWeight](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L635) — rewrites the inverse-gap projection as a scaled-score projection against `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa`.
+- [sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L161) — `Q̂ₙ⁻¹ →ₚ Q⁻¹` as a named inverse-Gram CMT.
+- [inverseGapWeight_tendstoInMeasure_zero](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L652) — the random inverse-gap weight `(Q̂ₙ⁻¹ - Q⁻¹)ᵀa` is `oₚ(1)`.
+- [inverseGapProjection_tendstoInMeasure_zero_of_scoreBounded](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L748) — inverse-gap projection is `oₚ(1)` from scaled-score coordinate `Oₚ(1)`.
+- [scoreProjection_sqrt_smul_olsBetaStar_sub_eq_residual_add_fixedScore_add_inverseGap](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L777) — projection-level decomposition of `√n(β̂*ₙ - β)`.
+- [scoreProjection_olsBetaStar_remainder_tendstoInMeasure_zero_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L805) — the scalar Slutsky remainder is `oₚ(1)` if the inverse-gap projection is.
 
 Phase 5 variance-estimator pieces:
 
-- [SampleVarianceAssumption74](../../HansenEconometrics/Chapter7Asymptotics.lean#L629) — squared-error WLLN assumptions extending `SampleMomentAssumption71`.
-- [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1637) — totalized `σ̂²ₙ →ₚ σ²`.
-- [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1743) — totalized degrees-of-freedom `s²ₙ →ₚ σ²`.
-- [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics.lean#L1772) — totalized homoskedastic plug-in `V̂⁰_β →ₚ V⁰_β`.
-- `linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure` — fixed-linear homoskedastic covariance convergence `R V̂⁰β Rᵀ →ₚ R V⁰β Rᵀ`.
-- `olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal` — ordinary-wrapper scalar homoskedastic t-statistic standard-normal limit under `V⁰β = Vβ`.
-- `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one` — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `V⁰β = Vβ`.
-- `homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance` — converts `Ω = σ²Q` into `V⁰β = Vβ`.
-- `olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance` — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `Ω = σ²Q`.
-- `residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` — totalized pointwise residual-error bound behind Theorem 7.16.
-- `residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm` — ordinary-OLS pointwise residual-error bound on nonsingular samples.
-- `sum_leverageStar_eq_card_of_nonsingular` — nonsingular leverage diagonal sums to the number of regressors.
-- `average_leverageStar_eq_card_div_card_of_nonsingular` — nonsingular average leverage is `k / n`.
-- `leverageStar_nonneg_of_nonsingular` — nonsingular leverage scores are nonnegative.
-- `leverageStar_le_one_of_nonsingular` — nonsingular leverage scores are bounded above by one.
-- [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1349) — scalar CLT for projected score sums.
-- [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1463) — scalar CLT for `√n · ĝₙ(e)`.
-- [scoreCoordinate_sampleCrossMoment_boundedInProbability](../../HansenEconometrics/Chapter7Asymptotics.lean#L1420) — each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)` by score CLT tightness.
-- [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1491) — scalar CLT for the fixed-`Q⁻¹` leading term.
-- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics.lean#L1522) — Slutsky assembly for the totalized OLS projection from an `oₚ(1)` remainder.
-- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics.lean#L1570) — Slutsky assembly from the inverse-gap `oₚ(1)` condition.
-- [scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable](../../HansenEconometrics/Chapter7Asymptotics.lean#L1108) — final scaled totalized-OLS projection is a.e. measurable.
-- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics.lean#L1805) — main scalar-projection totalized-OLS CLT.
-- [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance](../../HansenEconometrics/Chapter7Asymptotics.lean#L1858) — scalar CLT for ordinary OLS on nonsingular samples, using the `Ω` variance form.
+- `SampleMomentAssumption71`, `SampleVarianceAssumption74`, `SampleCLTAssumption72`, and `SampleHC0Assumption76` are compatibility aliases for the descriptive public condition structures.
+- [olsSigmaSqHatStar_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1325) — totalized `σ̂²ₙ →ₚ σ²`.
+- [olsS2Star_tendstoInMeasure_errorVariance](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1431) — totalized degrees-of-freedom `s²ₙ →ₚ σ²`.
+- [olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1460) — totalized homoskedastic plug-in `V̂⁰_β →ₚ V⁰_β`.
+- [linearMap_olsHomoskedasticCovarianceStar_tendstoInMeasure](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1234) — fixed-linear homoskedastic covariance convergence `R V̂⁰β Rᵀ →ₚ R V⁰β Rᵀ`.
+- [olsHomoskedasticLinearTStatisticOrZero_tendstoInDistribution_standardNormal](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L380) — ordinary-wrapper scalar homoskedastic t-statistic standard-normal limit under `V⁰β = Vβ`.
+- [olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L508) — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `V⁰β = Vβ`.
+- [HomoskedasticErrorVariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L208) — variable-facing conditional homoskedasticity assumption for Chapter 7.
+- [scoreCovarianceMatrix_eq_errorVariance_smul_popGram_of_homoskedastic](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L227) — derives Hansen's covariance identity `Ω = σ²Q` from `HomoskedasticErrorVariance`.
+- [homoskedasticAsymptoticCovariance_eq_heteroskedasticAsymptoticCovariance](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L935) — converts `Ω = σ²Q` into `V⁰β = Vβ`.
+- [olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_scoreCovariance](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L576) — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` under `Ω = σ²Q`.
+- [olsHomoskedasticLinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one_of_homoskedastic](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L804) — ordinary-wrapper scalar homoskedastic Wald limit to `χ²(1)` from the variable-facing homoskedasticity assumption.
+- [residualStar_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L152) — totalized pointwise residual-error bound behind Theorem 7.16.
+- [residual_sub_error_abs_le_card_mul_row_norm_mul_beta_error_norm](../../HansenEconometrics/Chapter7Asymptotics/Basic.lean#L170) — ordinary-OLS pointwise residual-error bound on nonsingular samples.
+- [sum_leverageStar_eq_card_of_nonsingular](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L349) — nonsingular leverage diagonal sums to the number of regressors.
+- [average_leverageStar_eq_card_div_card_of_nonsingular](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L367) — nonsingular average leverage is `k / n`.
+- [leverageStar_nonneg_of_nonsingular](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L323) — nonsingular leverage scores are nonnegative.
+- [leverageStar_le_one_of_nonsingular](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L332) — nonsingular leverage scores are bounded above by one.
+- [hc1FiniteSampleScale_tendsto_one](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2178) — generic HC1 finite-sample scale convergence.
+- [sampleScoreCovarianceLeverageAdjustedStar](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L498) — generic leverage-weighted HC middle matrix behind HC2/HC3.
+- [leverageAdjustmentWeightNormStar](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L519) — sup-norm of the scalar leverage adjustment weights `w(hᵢᵢ)-1`.
+- [sampleScoreCovarianceResidualAbsWeightStar](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L524) — absolute residual-score average used as the `Oₚ(1)` factor in HC2/HC3 adjustment bounds.
+- [sampleScoreCovarianceLeverageAdjustmentEntryStar_abs_le](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L623) — deterministic entrywise HC adjustment bound by adjustment-weight norm times absolute residual-score average.
+- [sampleScoreCovarianceLeverageAdjustmentEntryStar_tendstoInMeasure_zero_of_weight_norm](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L665) — scalar HC adjustment convergence from an `oₚ(1)` adjustment-weight norm and an `Oₚ(1)` absolute residual-score average.
+- [sampleScoreCovarianceLeverageAdjustmentStar_stack_tendstoInMeasure_zero_of_entries](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L703) — reduces matrix HC2/HC3 adjustment convergence to scalar entrywise adjustment sums.
+- [sampleScoreCovarianceLeverageAdjustedStar_stack_tendstoInMeasure_of_adjustment](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L1185) — generic HC0-plus-adjustment middle-matrix assembly for leverage-adjusted HC estimators.
+- [olsHeteroskedasticCovarianceLeverageAdjustedStar_tendstoInMeasure_of_middle](../../HansenEconometrics/Chapter7Asymptotics/RobustCovariance.lean#L2511) — generic sandwich assembly for leverage-adjusted HC estimators.
+- [TendstoInMeasure.of_abs_le_zero_real](../../HansenEconometrics/AsymptoticUtils.lean#L519) — reusable real-valued squeeze-to-zero-in-probability helper.
+- [scoreProjection_sum_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L55) — scalar CLT for projected score sums.
+- [scoreProjection_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L98) — scalar CLT for `√n · ĝₙ(e)`.
+- [scoreCoordinate_sampleCrossMoment_boundedInProbability](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L299) — each coordinate of `√n · ĝₙ(e)` is `Oₚ(1)` by score CLT tightness.
+- [scoreProjection_popGramInv_mulVec_sampleCrossMoment_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L370) — scalar CLT for the fixed-`Q⁻¹` leading term.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_remainder](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L429) — Slutsky assembly for the totalized OLS projection from an `oₚ(1)` remainder.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian_of_inverseGap](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L477) — Slutsky assembly from the inverse-gap `oₚ(1)` condition.
+- [scoreProjection_sqrt_smul_olsBetaStar_sub_aemeasurable](../../HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1583) — final scaled totalized-OLS projection is a.e. measurable.
+- [scoreProjection_olsBetaStar_tendstoInDistribution_gaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L589) — main scalar-projection totalized-OLS CLT.
+- [olsBetaStar_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L371) — non-conditional vector CLT for the totalized OLS estimator.
+- [olsBetaOrZero_vector_tendstoInDistribution_multivariateGaussian](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L398) — ordinary-wrapper vector CLT using `olsBetaOrZero_eq_olsBetaStar`.
+- [scoreProjection_olsBetaOrZero_tendstoInDistribution_gaussian_covariance](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1347) — scalar CLT for ordinary OLS on nonsingular samples, using the `Ω` variance form.
+- [linearRestrictionEstimate](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) — scalar value of a fixed one-row linear restriction.
+- [linearRestrictionStdError](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) — standard error induced by a covariance estimator for a fixed one-row restriction.
+- [olsLinearTStatisticStar](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) / [olsLinearTStatisticOrZero](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) — named totalized and ordinary-wrapper scalar t-statistics used by the homoskedastic, HC0, and HC1 public endpoints.
+- [olsLinearCIEventOrZero](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) — named ordinary-wrapper symmetric CI membership event used by the concrete coverage theorems.
+- [olsLinearWaldStatisticOrZero](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean) — named one-degree scalar Wald statistic used by the scalar Wald endpoints.
+- [linearCovarianceStdError_aemeasurable](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L177) — reusable measurability bridge for scalar standard errors induced by a covariance estimator.
+- [studentizedLimit_tendstoInDistribution](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L197) — generic studentization lemma reused by homoskedastic, HC0, and HC1 t-statistic limits.
+- [symmetricCI_coverage_tendsto_of_abs_tstat_of_nonpos_tendsto_zero](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L181) — generic CI coverage bridge where nonpositive standard-error events are only required to vanish in probability.
+- [symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos](../../HansenEconometrics/Chapter7Asymptotics/Inference.lean#L272) — standard-normal CI bridge deriving the nonpositive standard-error event from convergence in probability to a positive limit.
+- [hasLaw_stdGaussian_normSq_chiSquared](../../HansenEconometrics/ChiSquared.lean#L842) — Chapter 5 reusable law result identifying the squared norm of an identity-covariance standard Gaussian vector with `χ²`.
+- [hasLaw_gaussian_mahalanobis_chiSquared](../../HansenEconometrics/ChiSquared.lean#L954) — reusable positive-definite Gaussian Mahalanobis law identifying `ZᵀV⁻¹Z` with `χ²`.
+- [waldQuadraticForm_tendstoInDistribution_chiSquared_of_stdGaussian_identity](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L807) — Chapter 7 identity-covariance Wald bridge using the Chapter 5 chi-square law without assuming the final law.
+- [waldQuadraticForm_tendstoInDistribution_chiSquared_of_gaussian_mahalanobis](../../HansenEconometrics/Chapter7Asymptotics/Normality.lean#L856) — Chapter 7 full-covariance Wald bridge using the Gaussian Mahalanobis law without assuming the final law.
+- [tendsto_measure_nonpos_of_tendstoInMeasure_const_pos](../../HansenEconometrics/AsymptoticUtils.lean#L526) — convergence-in-probability positivity bridge for standard-error proofs.
 
 Reusable convergence-in-measure helpers (`AsymptoticUtils.lean`):
 
 - `tendstoInMeasure_continuous_comp` — CMT along `atTop`.
+- `cramerWold_tendstoInDistribution` — Cramér-Wold convergence bridge for finite-dimensional inner-product spaces.
 - `TendstoInMeasure.pi_apply` / `tendstoInMeasure_pi` — coordinatewise convergence for Pi types over a `Fintype`.
 - `tendstoInMeasure_wlln` — Banach-valued pairwise-independent WLLN, wrapping Mathlib `strong_law_ae`.
 - `aestronglyMeasurable_matrix_inv` — matrix inversion preserves strong measurability.
@@ -360,7 +461,8 @@ Reusable linear-algebra helpers (`LinearAlgebraUtils.lean`):
 ## Notes
 
 - Chapter 7 builds on Chapter 3 least-squares algebra and Chapter 4 least-squares regression.
-- The current consistency theorem is stated for `olsBetaStar` (not `olsBeta`): the total inverse form is defined on every design matrix, so the convergence statement does not need to restrict to an a.s. invertibility event.
-- A textbook-facing `olsBeta` theorem remains a follow-up once we expose a clean high-probability nonsingularity wrapper.
-- The CLT layer currently uses Mathlib's real-valued CLT projectionwise. A full vector-valued OLS theorem still needs a Cramér-Wold/Slutsky bridge for replacing `Q⁻¹` with `Q̂ₙ⁻¹`.
+- The current consistency theorem is stated for both the total proof engine `olsBetaStar` and the
+  textbook-facing wrapper `olsBetaOrZero`; a literal dependent `olsBeta` theorem remains a follow-up
+  because it must be stated only on nonsingular samples.
+- The CLT layer still starts from Mathlib's real-valued CLT projectionwise, but Cramér-Wold now packages the vector score CLT and the random-inverse Slutsky bridge packages vector OLS normality.
 - The LaTeX column uses textbook extraction output for theorems 7.2 onward; it is intentionally rough until those theorems are formalized.

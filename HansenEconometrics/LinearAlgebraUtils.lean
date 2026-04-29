@@ -6,6 +6,21 @@ namespace HansenEconometrics
 
 open Matrix
 
+/-- Product measurable space used for finite real matrix coordinates.
+
+This is intentionally not a global instance; downstream files can install it
+locally when they need matrix-valued Borel measurability. -/
+@[reducible]
+noncomputable def matrixBorelMeasurableSpace (m n : Type*) [Fintype m] [Fintype n] :
+    MeasurableSpace (Matrix m n ℝ) :=
+  borel _
+
+/-- Borel-space certificate for `matrixBorelMeasurableSpace`. -/
+lemma matrixBorelSpace (m n : Type*) [Fintype m] [Fintype n] :
+    @BorelSpace (Matrix m n ℝ) inferInstance (matrixBorelMeasurableSpace m n) := by
+  letI : MeasurableSpace (Matrix m n ℝ) := matrixBorelMeasurableSpace m n
+  exact ⟨rfl⟩
+
 /-- **Scalar-scaled matrix inverse (unconditional).** For `c : ℝ` and any square
 matrix `M` over `ℝ`, the total inverse `Matrix.nonsingInv` satisfies
 `(c • M)⁻¹ = c⁻¹ • M⁻¹`. Mathlib's `Matrix.inv_smul` requires `Invertible c`
@@ -88,18 +103,27 @@ lemma gram_quadratic_nonneg {n k : Type*} [Fintype n] [Fintype k]
 /-- For a real symmetric idempotent matrix, rank equals the natural-number value of the trace.
 Eigenvalues of such a matrix are 0 or 1, so
 rank = #{nonzero eigenvalues} = ∑ eigenvalues = trace. -/
+/-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
+theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
+    {A : Matrix n n ℝ}
+    (hH : A.IsHermitian)
+    (hI : IsIdempotentElem A) :
+    ∀ i : n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := by
+  intro i
+  have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+  simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
+  exact hmem
+
+/-- For a real Hermitian idempotent matrix, rank equals the trace. This packages the spectral
+argument that the eigenvalues are all `0` or `1`, so the rank counts the same terms that the trace
+sums. -/
 theorem rank_eq_natCast_trace_of_isHermitian_idempotent {n : Type*} [Fintype n]
     {A : Matrix n n ℝ}
     (hH : A.IsHermitian)
     (hI : IsIdempotentElem A) :
     (A.rank : ℝ) = A.trace := by
   classical
-  -- Eigenvalues of a Hermitian idempotent are 0 or 1.
-  have heig : ∀ i : n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := by
-    intro i
-    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
-    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hmem
-    exact hmem
+  have heig := eigenvalues_zero_or_one_of_isHermitian_idempotent hH hI
   rw [hH.rank_eq_card_non_zero_eigs, hH.trace_eq_sum_eigenvalues]
   -- ↑(card {i // eigenvalues i ≠ 0}) = ∑ i, (eigenvalues i : ℝ)
   simp only [RCLike.ofReal_real_eq_id, id]
@@ -116,6 +140,29 @@ theorem rank_eq_natCast_trace_of_isHermitian_idempotent {n : Type*} [Fintype n]
           congr 1
           exact (Fintype.card_of_subtype _ (fun x => by
             simp only [Finset.mem_filter, Finset.mem_univ, true_and])).symm
+
+/-- For a Hermitian idempotent real matrix, rank is the number of `1`-eigenvalues. -/
+theorem rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent {n : Type*}
+    [Fintype n] [DecidableEq n]
+    {A : Matrix n n ℝ}
+    (hH : A.IsHermitian)
+    (hI : IsIdempotentElem A) :
+    A.rank = Fintype.card {i : n // hH.eigenvalues i = 1} := by
+  classical
+  have heig := eigenvalues_zero_or_one_of_isHermitian_idempotent hH hI
+  rw [hH.rank_eq_card_non_zero_eigs]
+  refine Fintype.card_congr ?_
+  exact
+    { toFun := fun i => ⟨i.1, (heig i.1).resolve_left i.2⟩
+      invFun := fun i => ⟨i.1, by rw [i.2]; norm_num⟩
+      left_inv := by
+        intro i
+        cases i
+        rfl
+      right_inv := by
+        intro i
+        cases i
+        rfl }
 
 /-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
 Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/

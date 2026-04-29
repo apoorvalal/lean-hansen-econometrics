@@ -166,7 +166,7 @@ theorem rank_annihilatorMatrix_add
 
 /-- The rank of the hat matrix equals the number of regressors. -/
 theorem rank_hatMatrix
-    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    (X : Matrix n k ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
     (hatMatrix X).rank = Fintype.card k := by
   have h := rank_eq_natCast_trace_of_isHermitian_idempotent
     (hatMatrix_isHermitian X) (hatMatrix_idempotent X)

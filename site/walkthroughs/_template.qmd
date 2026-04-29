@@ -1,0 +1,45 @@
+---
+title: "Theorem X.Y — <short name>"
+lean_name: "<HansenEconometrics.fully.qualified.Name>"
+chapter: N
+---
+
+## Textbook statement
+
+> Hansen's wording (paraphrased), with the equation:
+>
+> $$\text{...}$$
+
+## Assumptions
+
+- ...
+- ...
+
+## Lean statement
+
+The corresponding Lean theorem:
+
+- [`<name>`](<github source link>) at `HansenEconometrics/...lean:<line>`
+
+```lean
+theorem ... := ...
+```
+
+## Translation notes
+
+Where the Lean phrasing differs from Hansen and why the difference is harmless.
+
+## Proof sketch
+
+Human-readable LaTeX walkthrough.
+
+## Lean proof structure
+
+Chain of supporting lemmas, each linked:
+
+- [`lemma_a`](<link>)
+- [`lemma_b`](<link>)
+
+## Downstream uses
+
+- (optional) where this theorem is consumed elsewhere in the formalization.

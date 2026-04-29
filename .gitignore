@@ -9,3 +9,6 @@ build/
 textextract/
 .mcp.json
 .DS_Store
+
+# Walkthrough site build artifacts
+site/_generated/

@@ -1,6 +1,7 @@
 import Mathlib
 
 open MeasureTheory ProbabilityTheory
+open Matrix
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 
 namespace HansenEconometrics
@@ -16,6 +17,28 @@ lemma sumSquaresRV_nonneg [Fintype ι] (X : ι → Ω → ℝ) (ω : Ω) :
     0 ≤ sumSquaresRV X ω := by
   unfold sumSquaresRV
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
+
+section StandardizedCoords
+
+variable {n : Type*} [Fintype n] [DecidableEq n]
+
+/-- Coordinates of a Euclidean-space random vector in an orthonormal basis, standardized by
+`√σ²`. -/
+noncomputable def standardizedCoords
+    (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))
+    (σ2 : ℝ) (ε : Ω → EuclideanSpace ℝ n) : n → Ω → ℝ :=
+  fun i ω => b.repr (ε ω) i / Real.sqrt σ2
+
+/-- Restrict the standardized coordinate family along an index map. No injectivity is needed for
+the definition itself; downstream independence results can add it when they need distinct
+coordinates. -/
+noncomputable def restrictedStandardizedCoords
+    {ι : Type*} [Fintype ι]
+    (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))
+    (φ : ι → n) (σ2 : ℝ) (ε : Ω → EuclideanSpace ℝ n) : ι → Ω → ℝ :=
+  fun i => standardizedCoords b σ2 ε (φ i)
+
+end StandardizedCoords
 
 /-- Convenient wrapper around Mathlib's jointly-Gaussian + zero-covariance independence lemma for
 real-valued pairs. -/
@@ -33,6 +56,110 @@ lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
     (hcov : ∀ i j, i ≠ j → cov[X i, X j; P] = 0) :
     iIndepFun X P :=
   hX.iIndepFun_of_covariance_eq_zero hcov
+
+section RealDistributionHelpers
+
+variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+variable {X : Ω → ℝ} {ν : Measure ℝ}
+
+/-- If `X` has law `ν`, then the probability of any measurable event of the form `X ∈ s` is just
+the mass of `s` under `ν`. -/
+theorem HasLaw.preimage_eq
+    (hX : HasLaw X ν μ) {s : Set ℝ} (hs : MeasurableSet s) :
+    μ (X ⁻¹' s) = ν s := by
+  rw [← hX.map_eq, Measure.map_apply_of_aemeasurable hX.aemeasurable hs]
+
+/-- Real-valued version of `HasLaw.preimage_eq`, expressed with `Measure.real`. -/
+theorem HasLaw.real_preimage_eq
+    (hX : HasLaw X ν μ) {s : Set ℝ} (hs : MeasurableSet s) :
+    μ.real (X ⁻¹' s) = ν.real s := by
+  rw [measureReal_def, HasLaw.preimage_eq hX hs, measureReal_def]
+
+/-- If `X` has law `ν`, then the lower-tail event `{X ≤ x}` has probability `cdf ν x`. -/
+theorem HasLaw.real_preimage_Iic_eq_cdf
+    [IsProbabilityMeasure ν]
+    (hX : HasLaw X ν μ) (x : ℝ) :
+    μ.real (X ⁻¹' Set.Iic x) = cdf ν x := by
+  rw [HasLaw.real_preimage_eq hX measurableSet_Iic, ProbabilityTheory.cdf_eq_real]
+
+/-- If `X` has law `ν`, then interval events for `X` can be read directly from `ν`. -/
+theorem HasLaw.real_preimage_Icc_eq
+    (hX : HasLaw X ν μ) (a b : ℝ) :
+    μ.real (X ⁻¹' Set.Icc a b) = ν.real (Set.Icc a b) := by
+  exact HasLaw.real_preimage_eq hX measurableSet_Icc
+
+/-- The symmetric event `|X| ≤ c` is the same as `X ∈ [-c, c]`, so its probability can be read
+from the law of `X`. -/
+theorem HasLaw.real_preimage_abs_le_eq_Icc
+    (hX : HasLaw X ν μ) (c : ℝ) :
+    μ.real {ω | |X ω| ≤ c} = ν.real (Set.Icc (-c) c) := by
+  rw [show {ω | |X ω| ≤ c} = X ⁻¹' Set.Icc (-c) c by
+    ext ω
+    simp [abs_le]]
+  exact HasLaw.real_preimage_Icc_eq hX (-c) c
+
+/-- For a real probability measure, the mass of `(a, b]` is the cdf increment `F(b) - F(a)`. -/
+theorem measureReal_Ioc_eq_cdf_sub
+    [IsProbabilityMeasure ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Ioc a b) = cdf ν b - cdf ν a := by
+  calc
+    ν.real (Set.Ioc a b) = ((cdf ν).measure).real (Set.Ioc a b) := by
+      rw [ProbabilityTheory.measure_cdf (μ := ν)]
+    _ = cdf ν b - cdf ν a := by
+      rw [measureReal_def, StieltjesFunction.measure_Ioc, ENNReal.toReal_ofReal]
+      exact (sub_nonneg).2 ((ProbabilityTheory.monotone_cdf ν) hab)
+
+/-- For a real probability measure, the mass of `[a, b]` is `F(b)` minus the left limit at `a`. -/
+theorem measureReal_Icc_eq_cdf_sub_leftLim
+    [IsProbabilityMeasure ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Icc a b) = cdf ν b - Function.leftLim (cdf ν) a := by
+  calc
+    ν.real (Set.Icc a b) = ((cdf ν).measure).real (Set.Icc a b) := by
+      rw [ProbabilityTheory.measure_cdf (μ := ν)]
+    _ = cdf ν b - Function.leftLim (cdf ν) a := by
+      rw [measureReal_def, StieltjesFunction.measure_Icc, ENNReal.toReal_ofReal]
+      exact (sub_nonneg).2 ((ProbabilityTheory.monotone_cdf ν).leftLim_le hab)
+
+/-- CDF version of `HasLaw.real_preimage_abs_le_eq_Icc` for probability measures. -/
+theorem HasLaw.real_preimage_abs_le_eq_cdf_sub_leftLim
+    [IsProbabilityMeasure ν]
+    (hX : HasLaw X ν μ) {c : ℝ} (hc : 0 ≤ c) :
+    μ.real {ω | |X ω| ≤ c} = cdf ν c - Function.leftLim (cdf ν) (-c) := by
+  rw [HasLaw.real_preimage_abs_le_eq_Icc hX c]
+  simpa using measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) (a := -c) (b := c) (by linarith)
+
+/-- For an atomless real probability measure, the mass of `[a, b]` is the cdf increment
+`F(b) - F(a)`. -/
+theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν] {a b : ℝ} (hab : a ≤ b) :
+    ν.real (Set.Icc a b) = cdf ν b - cdf ν a := by
+  have hleft :
+      Function.leftLim (cdf ν) a = cdf ν a := by
+    have hzero : ENNReal.ofReal (cdf ν a - Function.leftLim (cdf ν) a) = 0 := by
+      calc
+        ENNReal.ofReal (cdf ν a - Function.leftLim (cdf ν) a)
+            = (cdf ν).measure {a} := by
+              rw [StieltjesFunction.measure_singleton]
+        _ = ν {a} := by
+              rw [ProbabilityTheory.measure_cdf (μ := ν)]
+        _ = 0 := by
+              simp
+    have hle : cdf ν a - Function.leftLim (cdf ν) a ≤ 0 := ENNReal.ofReal_eq_zero.mp hzero
+    have hleft_le : Function.leftLim (cdf ν) a ≤ cdf ν a :=
+      (ProbabilityTheory.monotone_cdf ν).leftLim_le le_rfl
+    have hcdf_le : cdf ν a ≤ Function.leftLim (cdf ν) a := by linarith
+    exact le_antisymm hleft_le hcdf_le
+  rw [measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) hab, hleft]
+
+/-- If `X` has an atomless real probability law `ν`, then closed-interval events for `X` can be
+read off directly from the cdf increment of `ν`. -/
+theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν]
+    (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
+    μ.real (X ⁻¹' Set.Icc a b) = cdf ν b - cdf ν a := by
+  rw [HasLaw.real_preimage_Icc_eq hX, measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
+end RealDistributionHelpers
 
 section ConditionalExpectationHelpers
 
@@ -307,6 +434,223 @@ theorem conditioningSpace_le_of_factor
   exact hmeas.comap_le
 
 end ConditioningSpaceFactors
+
+section MultivariateGaussian
+
+variable {n : Type*}
+variable [Fintype n] [DecidableEq n]
+
+/-- Move a fixed matrix multiplication from the left side of a dot product to the right side. -/
+private theorem mulVec_dotProduct_right
+    {n : Type*} [Fintype n] {m : Type*} [Fintype m]
+    (M : Matrix m n ℝ) (v : n → ℝ) (a : m → ℝ) :
+    (M *ᵥ v) ⬝ᵥ a = v ⬝ᵥ (Mᵀ *ᵥ a) := by
+  have hvec : a ᵥ* M = Mᵀ *ᵥ a := by
+    ext i
+    simp [Matrix.vecMul, Matrix.mulVec, dotProduct, mul_comm]
+  rw [dotProduct_comm, Matrix.dotProduct_mulVec, hvec, dotProduct_comm]
+
+/-- A fixed dot-product projection of a centered multivariate Gaussian is a
+one-dimensional Gaussian with variance given by the matching quadratic form. -/
+theorem hasLaw_multivariateGaussian_zero_dotProduct
+    {S : Matrix n n ℝ} (hS : S.PosSemidef) (a : n → ℝ) :
+    HasLaw (fun z : EuclideanSpace ℝ n => z.ofLp ⬝ᵥ a)
+      (gaussianReal 0 (a ⬝ᵥ (S *ᵥ a)).toNNReal) (multivariateGaussian 0 S) := by
+  let u : EuclideanSpace ℝ n := WithLp.toLp 2 a
+  let L : EuclideanSpace ℝ n →L[ℝ] ℝ := (innerSL ℝ) u
+  have hEq := IsGaussian.map_eq_gaussianReal (μ := multivariateGaussian 0 S) L
+  have hMean : (multivariateGaussian 0 S)[L] = 0 := by
+    rw [ContinuousLinearMap.integral_comp_id_comm]
+    · simp [L, integral_id_multivariateGaussian]
+    · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+  have hVar : Var[L; multivariateGaussian 0 S] = a ⬝ᵥ (S *ᵥ a) := by
+    have hLfun : (⇑L : EuclideanSpace ℝ n → ℝ) = fun x => inner ℝ u x := by
+      rfl
+    rw [← covariance_self (Measurable.aemeasurable <| by fun_prop), hLfun,
+      ← covarianceBilin_apply_eq_cov]
+    · calc
+        covarianceBilin (multivariateGaussian 0 S) u u = u ⬝ᵥ (S *ᵥ u) := by
+          rw [covarianceBilin_multivariateGaussian hS]
+        _ = a ⬝ᵥ (S *ᵥ a) := by
+          simp [u]
+    · exact IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)
+  rw [hMean, hVar] at hEq
+  refine ⟨by fun_prop, ?_⟩
+  rw [show (fun z : EuclideanSpace ℝ n => z.ofLp ⬝ᵥ a) = L by
+    funext z
+    change z.ofLp ⬝ᵥ a = inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) z
+    calc
+      z.ofLp ⬝ᵥ a =
+          inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) (WithLp.toLp 2 z.ofLp) := by
+        simpa using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := n) a z.ofLp).symm
+      _ = inner ℝ (WithLp.toLp 2 a : EuclideanSpace ℝ n) z := by simp,
+    hEq]
+
+/-- A fixed matrix image of a centered multivariate Gaussian is a centered
+multivariate Gaussian with covariance `R S Rᵀ`. -/
+theorem hasLaw_multivariateGaussian_zero_linearMap
+    {q : Type*} [Fintype q] [DecidableEq q]
+    {S : Matrix n n ℝ} (hS : S.PosSemidef) (R : Matrix q n ℝ) :
+    HasLaw
+      (fun z : EuclideanSpace ℝ n => WithLp.toLp 2 (R *ᵥ z.ofLp))
+      (multivariateGaussian 0 (R * S * Rᵀ))
+      (multivariateGaussian 0 S) := by
+  let L : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ q :=
+    (Matrix.toEuclideanLin R).toContinuousLinearMap
+  have hLadjointLin :
+      (Matrix.toEuclideanLin R).adjoint = Matrix.toEuclideanLin Rᵀ := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.toEuclideanLin_conjTranspose_eq_adjoint (A := R)).symm
+  have hLadjoint : L.adjoint = (Matrix.toEuclideanLin Rᵀ).toContinuousLinearMap := by
+    simpa [L, LinearMap.adjoint_toContinuousLinearMap] using
+      congrArg LinearMap.toContinuousLinearMap hLadjointLin
+  have hRSR : (R * S * Rᵀ).PosSemidef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.PosSemidef.mul_mul_conjTranspose_same hS R)
+  have hMap : (multivariateGaussian 0 S).map L = multivariateGaussian 0 (R * S * Rᵀ) := by
+    refine ProbabilityTheory.IsGaussian.ext ?_ ?_
+    · change ∫ x, x ∂((multivariateGaussian 0 S).map L) =
+          ∫ x, x ∂(multivariateGaussian 0 (R * S * Rᵀ))
+      rw [ContinuousLinearMap.integral_id_map]
+      · simp [integral_id_multivariateGaussian]
+      · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+    · ext x y
+      calc
+        covarianceBilin ((multivariateGaussian 0 S).map L) x y
+            = (Rᵀ *ᵥ x.ofLp) ⬝ᵥ (S *ᵥ (Rᵀ *ᵥ y.ofLp)) := by
+                rw [covarianceBilin_map
+                  (h := IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)) L x y]
+                rw [hLadjoint, covarianceBilin_multivariateGaussian hS]
+                simp
+        _ = x.ofLp ⬝ᵥ (R *ᵥ (S *ᵥ (Rᵀ *ᵥ y.ofLp))) := by
+              simpa [Matrix.transpose_transpose] using
+                (mulVec_dotProduct_right (M := Rᵀ) (v := x.ofLp)
+                  (a := S *ᵥ (Rᵀ *ᵥ y.ofLp)))
+        _ = x.ofLp ⬝ᵥ ((R * S * Rᵀ) *ᵥ y.ofLp) := by
+              simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+        _ = covarianceBilin (multivariateGaussian 0 (R * S * Rᵀ)) x y := by
+              rw [covarianceBilin_multivariateGaussian hRSR]
+  refine ⟨by fun_prop, ?_⟩
+  simpa [L] using hMap
+
+/-- In an isotropic multivariate Gaussian, the coordinates in any orthonormal basis, scaled by the
+standard deviation, are independent standard normals. This is the bridge from Gaussian vectors to
+chi-square arguments in Chapter 5. -/
+theorem orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n))
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (e : Ω → EuclideanSpace ℝ n)
+    (he : HasLaw e (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    let W : n → Ω → ℝ := fun i ω => (b.repr (e ω)).ofLp i / Real.sqrt σ2
+    (∀ i, HasLaw (W i) (gaussianReal 0 1) μ) ∧ ProbabilityTheory.iIndepFun W μ := by
+  let Z : n → Ω → ℝ := fun i ω => (b.repr (e ω)).ofLp i
+  let S : Matrix n n ℝ := (σ2 : ℝ) • (1 : Matrix n n ℝ)
+  have hS : S.PosSemidef := by
+    simpa [S, smul_one_eq_diagonal] using
+      (Matrix.PosSemidef.diagonal (n := n) (d := fun _ => σ2) fun _ => hσ2.le)
+  have hZ_gauss : HasGaussianLaw (fun ω => b.repr (e ω)) μ := by
+    let L : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ n :=
+      b.repr.toContinuousLinearEquiv.toContinuousLinearMap
+    simpa [L] using (he.hasGaussianLaw.map_fun L)
+  have hmeanZ : ∀ i, μ[Z i] = 0 := by
+    intro i
+    let Li : EuclideanSpace ℝ n →L[ℝ] ℝ :=
+      (EuclideanSpace.proj i).comp b.repr.toContinuousLinearEquiv.toContinuousLinearMap
+    rw [show (fun ω => Z i ω) = Li ∘ e by
+      funext ω
+      simp [Z, Li]]
+    rw [he.integral_comp (Measurable.aestronglyMeasurable <| by fun_prop)]
+    rw [ContinuousLinearMap.integral_comp_id_comm]
+    · simp [integral_id_multivariateGaussian]
+    · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+  have hcovZ : ∀ i j, cov[Z i, Z j; μ] = if i = j then σ2 else 0 := by
+    intro i j
+    have hZi : (fun x : EuclideanSpace ℝ n => (b.repr x).ofLp i) =
+        fun x => inner ℝ (b i) x := by
+      funext x
+      simpa using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := i))
+    have hZj : (fun x : EuclideanSpace ℝ n => (b.repr x).ofLp j) =
+        fun x => inner ℝ (b j) x := by
+      funext x
+      simpa using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := j))
+    rw [he.covariance_fun_comp (f := fun x : EuclideanSpace ℝ n => (b.repr x).ofLp i)
+      (g := fun x : EuclideanSpace ℝ n => (b.repr x).ofLp j) (by fun_prop) (by fun_prop), hZi, hZj,
+      ← covarianceBilin_apply_eq_cov]
+    · rw [covarianceBilin_multivariateGaussian hS]
+      by_cases hij : i = j
+      · subst hij
+        rw [smul_mulVec, one_mulVec, dotProduct_smul]
+        have hdot : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
+          calc
+            (b i).ofLp ⬝ᵥ (b i).ofLp = ‖b i‖ ^ 2 := by
+              simpa [dotProduct, pow_two] using (EuclideanSpace.real_norm_sq_eq (b i)).symm
+            _ = 1 := by nlinarith [b.norm_eq_one i]
+        simp [hdot]
+      · rw [smul_mulVec, one_mulVec, dotProduct_smul]
+        have hdot : (b i).ofLp ⬝ᵥ (b j).ofLp = 0 := by
+          have hInner : inner ℝ (b i) (b j) = 0 := by
+            simpa [hij] using (orthonormal_iff_ite.mp b.orthonormal i j)
+          have htoInner' : inner ℝ (b j) (b i) = (b i).ofLp ⬝ᵥ (b j).ofLp := by
+            rw [PiLp.inner_apply, dotProduct]
+            refine Finset.sum_congr rfl ?_
+            intro a ha
+            have hscalar : inner ℝ ((b j).ofLp a) ((b i).ofLp a) =
+                (b j).ofLp a * (b i).ofLp a := by
+              simpa using (RCLike.inner_apply' ((b j).ofLp a) ((b i).ofLp a))
+            simpa [mul_comm] using hscalar
+          calc
+            (b i).ofLp ⬝ᵥ (b j).ofLp = inner ℝ (b j) (b i) := by
+              exact htoInner'.symm
+            _ = inner ℝ (b i) (b j) := by rw [real_inner_comm]
+            _ = 0 := hInner
+        simp [hij, hdot]
+    · exact IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)
+  have hZ_gauss_family : HasGaussianLaw (fun ω ↦ (Z · ω)) μ := by
+    simpa [Z] using
+      hZ_gauss.map_equiv (EuclideanSpace.equiv n ℝ)
+  have hZ_indep : ProbabilityTheory.iIndepFun Z μ :=
+    hZ_gauss_family.iIndepFun_of_covariance_eq_zero fun i j hij => by
+      rw [hcovZ i j, if_neg hij]
+  have hW_law : ∀ i, HasLaw (fun ω => Z i ω / Real.sqrt σ2) (gaussianReal 0 1) μ := by
+    intro i
+    have hZi_law : HasLaw (Z i) (gaussianReal 0 ⟨σ2, hσ2.le⟩) μ := by
+      let Li : EuclideanSpace ℝ n →L[ℝ] ℝ :=
+        (EuclideanSpace.proj i).comp b.repr.toContinuousLinearEquiv.toContinuousLinearMap
+      have hLiMap : (multivariateGaussian 0 S).map Li = gaussianReal 0 ⟨σ2, hσ2.le⟩ := by
+        have hEq := IsGaussian.map_eq_gaussianReal (μ := multivariateGaussian 0 S) Li
+        have hMean : (multivariateGaussian 0 S)[Li] = 0 := by
+          rw [ContinuousLinearMap.integral_comp_id_comm]
+          · simp [integral_id_multivariateGaussian]
+          · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
+        have hVar : Var[Li; multivariateGaussian 0 S] = σ2 := by
+          rw [← covariance_self (Measurable.aemeasurable <| by fun_prop), show Li = fun x => inner ℝ (b i) x by
+            ext x
+            simpa [Li] using (OrthonormalBasis.repr_apply_apply (b := b) (v := x) (i := i))
+            , ← covarianceBilin_apply_eq_cov]
+          · rw [covarianceBilin_multivariateGaussian hS, smul_mulVec, one_mulVec, dotProduct_smul]
+            have hdot : (b i).ofLp ⬝ᵥ (b i).ofLp = 1 := by
+              calc
+                (b i).ofLp ⬝ᵥ (b i).ofLp = ‖b i‖ ^ 2 := by
+                  simpa [dotProduct, pow_two] using (EuclideanSpace.real_norm_sq_eq (b i)).symm
+                _ = 1 := by nlinarith [b.norm_eq_one i]
+            simp [hdot]
+          · exact IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)
+        rw [hMean, hVar, Real.toNNReal_of_nonneg hσ2.le] at hEq
+        simpa using hEq
+      refine (HasLaw.comp ⟨by fun_prop, hLiMap⟩ he).congr ?_
+      filter_upwards with ω
+      simp [Z, Li]
+    convert gaussianReal_div_const hZi_law (Real.sqrt σ2) using 2
+    · simp
+    · ext
+      simp [Real.sq_sqrt hσ2.le, hσ2.ne']
+  have hW_indep : ProbabilityTheory.iIndepFun (fun i ω => Z i ω / Real.sqrt σ2) μ := by
+    exact hZ_indep.comp (fun _ x => x / Real.sqrt σ2) fun _ => measurable_id.div_const _
+  change (∀ i, HasLaw (fun ω => Z i ω / Real.sqrt σ2) (gaussianReal 0 1) μ) ∧
+      ProbabilityTheory.iIndepFun (fun i ω => Z i ω / Real.sqrt σ2) μ
+  exact And.intro hW_law hW_indep
+
+end MultivariateGaussian
 
 section GaussianCoordinates
 

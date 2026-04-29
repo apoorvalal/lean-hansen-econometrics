@@ -69,12 +69,17 @@ Deferred for now unless needed:
 - likelihood-ratio / F-test equivalence beyond the basic t-statistic route
 
 ## Status
-- in progress
-- landed a deterministic step-4 scaffold in `HansenEconometrics/Chapter5NormalRegression.lean`:
-  - `residual_quadratic_form_of_linear_model`
-  - `olsResidualVarianceEstimator_linear_model_quadratic_form`
-- these rewrite the residual sum of squares as the annihilator quadratic form `e'Me` and then rewrite `s²` accordingly, which is the clean algebraic setup for the later chi-square argument.
-- next target: connect this quadratic form to whatever Mathlib support exists for Gaussian quadratic forms / orthogonal projections; if that support is too thin, the fallback is to formalize the finite-dimensional orthogonal decomposition first and push the distribution theorem through independent standard normals.
+- The Chapter 5 second-half exact-distribution layer is now substantially formalized in
+  `HansenEconometrics/Chapter5NormalRegression.lean`.
+- The key reusable distribution results are:
+  - residual variance chi-square law and independence from OLS coefficients;
+  - exact Student-t law for the classical OLS t-statistic;
+  - coefficient confidence-interval coverage, including the two-standard-error lower bound;
+  - error-variance confidence-interval coverage;
+  - classical t-test rejection probability;
+  - F-statistic law and F-test rejection probability.
+- These Chapter 5 distribution results are the intended reusable layer for Chapter 7 Wald,
+  t-statistic, and confidence-interval law-identification work.
 
 ## LaTeX / Lean Crosswalk
 
@@ -104,18 +109,17 @@ Conventions:
 | Residual variance estimator | $s^2 = \hat{e}' \hat{e} / (n-k)$ | [olsResidualVarianceEstimator](../../HansenEconometrics/Chapter5NormalRegression.lean#L20)<br><code>olsResidualVarianceEstimator X y := dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y) / (Fintype.card n - Fintype.card k : ℝ)</code> |
 | Residual variance under the linear model | $s^2 = (M e)' (M e) / (n-k)$ | [olsResidualVarianceEstimator_linear_model](../../HansenEconometrics/Chapter5NormalRegression.lean#L31)<br><code>olsResidualVarianceEstimator X (X *ᵥ β + e) = dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e) / (Fintype.card n - Fintype.card k : ℝ)</code> |
 | Residual quadratic form identity | $\hat{e}' \hat{e} = e' M e$ | [residual_quadratic_form_of_linear_model](../../HansenEconometrics/Chapter5NormalRegression.lean#L43)<br><code>dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e) = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e</code> |
-| Theorem 5.7 residual variance estimator distribution | $\dfrac{(n-k)s^2}{\sigma^2} \sim \chi^2_{n-k}$ and $s^2$ is independent of $\hat{\beta}$ |  |
-| Theorem 5.8 exact $t$ statistic law | $T = \dfrac{\hat{\beta}_j - \beta_j}{\sqrt{s^2[(X'X)^{-1}]_{jj}}} \sim t_{n-k}$ |  |
-| Theorem 5.9 regression-coefficient confidence interval | $\hat{C} = [\hat{\beta} - c\, s(\hat{\beta}), \hat{\beta} + c\, s(\hat{\beta})]$ with $c = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\beta \in \hat{C}] = 1 - \alpha$ |  |
-| Theorem 5.10 rule-of-thumb $95\%$ interval | If $n-k \ge 61$, then $\hat{C} = [\hat{\beta} - 2 s(\hat{\beta}), \hat{\beta} + 2 s(\hat{\beta})]$ has coverage probability at least $0.95$ |  |
-| Theorem 5.11 error-variance confidence interval | $\hat{C} = \left[\dfrac{(n-k)s^2}{c_2}, \dfrac{(n-k)s^2}{c_1}\right]$ with $c_1 = F^{-1}(\alpha/2)$ and $c_2 = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\sigma^2 \in \hat{C}] = 1 - \alpha$ |  |
-| Theorem 5.12 classical $t$ test | Under $H_0 : \beta = \beta_0$, if $T = \dfrac{\hat{\beta} - \beta_0}{s(\hat{\beta})}$ and $c$ satisfies $\mathbb{P}(|t_{n-k}| \ge c) = \alpha$, then the test "reject $H_0$ if $|T| > c$" has significance level $\alpha$ |  |
-| Theorem 5.13 likelihood-ratio / $F$-test layer | Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F > c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$ |  |
+| Theorem 5.7 residual variance estimator distribution | $\dfrac{(n-k)s^2}{\sigma^2} \sim \chi^2_{n-k}$ and $s^2$ is independent of $\hat{\beta}$ | [scaledOlsResidualVarianceStatistic_hasLaw_chiSquared](../../HansenEconometrics/Chapter5NormalRegression.lean#L270) and [olsBeta_indep_scaledOlsResidualVarianceStatistic](../../HansenEconometrics/Chapter5NormalRegression.lean#L361) |
+| Theorem 5.8 exact $t$ statistic law | $T = \dfrac{\hat{\beta}_j - \beta_j}{\sqrt{s^2[(X'X)^{-1}]_{jj}}} \sim t_{n-k}$ | [olsTStatistic_hasLaw_classicalStudentT](../../HansenEconometrics/Chapter5NormalRegression.lean#L759) |
+| Theorem 5.9 regression-coefficient confidence interval | $\hat{C} = [\hat{\beta} - c\, s(\hat{\beta}), \hat{\beta} + c\, s(\hat{\beta})]$ with $c = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\beta \in \hat{C}] = 1 - \alpha$ | [olsConfidenceInterval_coverage_eq_classicalStudentT_interval](../../HansenEconometrics/Chapter5NormalRegression.lean#L984), [olsConfidenceInterval_coverage_eq_classicalStudentT_cdf](../../HansenEconometrics/Chapter5NormalRegression.lean#L1054), and [olsConfidenceInterval_coverage_eq_one_sub_classical](../../HansenEconometrics/Chapter5NormalRegression.lean#L1128) |
+| Theorem 5.10 rule-of-thumb $95\%$ interval | If $n-k \ge 61$, then $\hat{C} = [\hat{\beta} - 2 s(\hat{\beta}), \hat{\beta} + 2 s(\hat{\beta})]$ has coverage probability at least $0.95$ | [olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths](../../HansenEconometrics/Chapter5NormalRegression.lean#L1146) |
+| Theorem 5.11 error-variance confidence interval | $\hat{C} = \left[\dfrac{(n-k)s^2}{c_2}, \dfrac{(n-k)s^2}{c_1}\right]$ with $c_1 = F^{-1}(\alpha/2)$ and $c_2 = F^{-1}(1-\alpha/2)$ satisfies $\mathbb{P}[\sigma^2 \in \hat{C}] = 1 - \alpha$ | [olsVarianceConfidenceInterval_coverage_eq_chiSquared_interval](../../HansenEconometrics/Chapter5NormalRegression.lean#L1210), [olsVarianceConfidenceInterval_coverage_eq_chiSquared_cdf](../../HansenEconometrics/Chapter5NormalRegression.lean#L1233), and [olsVarianceConfidenceInterval_coverage_eq_one_sub](../../HansenEconometrics/Chapter5NormalRegression.lean#L1262) |
+| Theorem 5.12 classical $t$ test | Under $H_0 : \beta = \beta_0$, if $T = \dfrac{\hat{\beta} - \beta_0}{s(\hat{\beta})}$ and $c$ satisfies $\mathbb{P}(|t_{n-k}| \ge c) = \alpha$, then the test "reject $H_0$ if $|T| > c$" has significance level $\alpha$ | [olsNullTStatistic_hasLaw_classicalStudentT](../../HansenEconometrics/Chapter5NormalRegression.lean#L883), [olsTStatistic_rejection_probability_eq_alpha_classical](../../HansenEconometrics/Chapter5NormalRegression.lean#L1348), and [olsTTest_rejection_probability_eq_alpha](../../HansenEconometrics/Chapter5NormalRegression.lean#L1372) |
+| Theorem 5.13 likelihood-ratio / $F$-test layer | Under $H_0 : \beta_2 = 0$, if $F = \dfrac{(\tilde{\sigma}^2 - \hat{\sigma}^2)/q}{\hat{\sigma}^2/(n-k)}$, then $F \sim F_{q,n-k}$ and the test "reject $H_0$ if $F > c$" has significance level $\alpha$ when $\mathbb{P}(F_{q,n-k} \ge c) = \alpha$ | [olsFStatistic_hasLaw_classicalFDist](../../HansenEconometrics/Chapter5NormalRegression.lean#L1988) and [olsFStatistic_rejection_probability_eq_alpha_classical](../../HansenEconometrics/Chapter5NormalRegression.lean#L2035) |
 
 ## Notes
 
-- Chapter 5 is only partially formalized. The current Lean layer provides the deterministic quadratic-
-  form setup and the Gaussian-law bridge, but not yet the exact chi-square / $t$ / confidence-interval
-  consequences.
-- The LaTeX side now tracks the textbook theorem sequence more fully; the Lean side is only filled in
-  where there is already an actual theorem or definition in the repo.
+- The early normal-distribution background theorems 5.1-5.3 and Kinal theorem 5.5 remain
+  intentionally absent unless later chapters need them.
+- The second-half exact regression-inference results are now present and should be reused by
+  Chapter 7 rather than re-identifying Student-t, chi-square, or F laws from scratch.
