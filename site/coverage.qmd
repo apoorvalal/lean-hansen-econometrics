@@ -1,0 +1,25 @@
+---
+title: "Coverage"
+---
+
+::: {.hero-panel}
+Coverage here means "what a reader can cite": theorem statements, assumption
+packages, and walkthrough pages that connect Hansen's prose to the current Lean
+API. The canonical planning notes still live in `inventory/chN-inventory.md`.
+:::
+
+| Chapter | Website surface | Lean coverage | Next useful website work |
+|---|---|---|---|
+| 2 | [Assumptions](assumptions/chapter2.qmd), [T2.7](walkthroughs/chapter2/best-predictor.qmd), [T2.8](walkthroughs/chapter2/variance-decomposition.qmd), [T2.9](walkthroughs/chapter2/linear-projection-minimizes-mse.qmd), [T2.10](walkthroughs/chapter2/linear-projection-covariance-formula.qmd) | <span class="status-pill done">foundational</span> Conditional expectation, CEF error, variance decomposition, and linear projection wrappers. | Add shorter pages for tower property and CEF-error orthogonality if readers need more Chapter 2 probability background. |
+| 3 | [Assumptions](assumptions/chapter3.qmd), [T3.2](walkthroughs/chapter3/theorem-3-2.qmd), [T3.3](walkthroughs/chapter3/projection-matrices.qmd), [Pythagorean](walkthroughs/chapter3/fitted-residual-decomposition.qmd), [Residual sum zero](walkthroughs/chapter3/residual-sum-zero.qmd), [T3.5](walkthroughs/chapter3/theorem-3-5.qmd) | <span class="status-pill done">strong</span> OLS algebra, projection matrices, orthogonality, residual identities, and FWL. | Add pages for Theorem 3.1 and 3.4 after those statement-level formalizations land. |
+| 4 | [Assumptions](assumptions/chapter4.qmd) | <span class="status-pill partial">partial</span> Linear-model decomposition, conditional/unconditional unbiasedness, variance matrices, Gauss-Markov, GLS, and robust finite-sample covariance definitions. | Add theorem walkthroughs for unbiasedness and Gauss-Markov. |
+| 5 | [Assumptions](assumptions/chapter5.qmd), [Gaussian OLS](walkthroughs/chapter5/theorem-5-5.qmd), [Residual variance identity](walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd), [T5.7](walkthroughs/chapter5/theorem-5-7.qmd), [T5.8-5.12](walkthroughs/chapter5/theorem-5-8-t-statistic.qmd), [T5.13](walkthroughs/chapter5/theorem-5-13-f-test.qmd) | <span class="status-pill done">strong</span> Gaussian law, residual variance chi-square, t/F laws, confidence intervals, and test rejection probabilities. | Split out focused confidence-interval and t-test pages if readers want more detail than the exact t-inference overview. |
+| 7 | [Assumptions](assumptions/chapter7.qmd), [T7.1](walkthroughs/chapter7/theorem-7-1.qmd), [T7.2](walkthroughs/chapter7/theorem-7-2-score-clt.qmd), [T7.3](walkthroughs/chapter7/theorem-7-3.qmd), [T7.4-7.5](walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.qmd), [T7.6-7.7](walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.qmd), [T7.11-7.13](walkthroughs/chapter7/theorem-7-11-7-13-inference.qmd) | <span class="status-pill done">broad</span> Consistency, score CLT, asymptotic normality, covariance estimators, t statistics, confidence intervals, Wald statistics, and leverage signposts. | Add short pages for Theorems 7.16-7.17 finite-sample residual/leverage facts if those become reader priorities. |
+
+## Canonical Inventories
+
+- [Chapter 2 inventory](../inventory/ch2-inventory.md)
+- [Chapter 3 inventory](../inventory/ch3-inventory.md)
+- [Chapter 4 inventory](../inventory/ch4-inventory.md)
+- [Chapter 5 inventory](../inventory/ch5-inventory.md)
+- [Chapter 7 inventory](../inventory/ch7-inventory.md)

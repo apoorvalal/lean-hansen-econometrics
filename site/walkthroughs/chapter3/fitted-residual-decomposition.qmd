@@ -1,0 +1,114 @@
+---
+title: "Section 3.14 — Fitted/residual orthogonality and Pythagorean decomposition"
+lean_name: "HansenEconometrics.fitted_residual_pythagorean"
+chapter: 3
+---
+
+## Textbook statement
+
+For a design matrix $X \in \mathbb{R}^{n\times k}$ and response vector
+$y \in \mathbb{R}^n$, when
+[$X^\top X$ is invertible](../../assumptions/chapter3.qmd), the fitted vector
+$\hat y = X\hat\beta$ and residual vector $\hat e = y-\hat y$ satisfy
+$$
+\hat y^\top \hat e = 0
+\qquad\text{and}\qquad
+y^\top y = \hat y^\top \hat y + \hat e^\top \hat e.
+$$
+
+This is the finite-sample geometry behind the usual OLS decomposition: the data
+vector splits into an in-sample fitted component and an orthogonal residual
+component.
+
+### Proof sketch
+
+The normal equations give $X^\top \hat e = 0$. Since fitted values are of the
+form $\hat y = X\hat\beta$, they are orthogonal to $\hat e$:
+$$
+\hat y^\top \hat e = \hat\beta^\top X^\top \hat e = 0.
+$$
+Then use $y=\hat y+\hat e$ and expand the dot product:
+$$
+y^\top y = (\hat y+\hat e)^\top(\hat y+\hat e)
+          = \hat y^\top\hat y + 2\hat y^\top\hat e + \hat e^\top\hat e
+          = \hat y^\top\hat y + \hat e^\top\hat e.
+$$
+
+## Lean statement
+
+The formal statements live in `HansenEconometrics/Chapter3Projections.lean`.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Fitted values are the hat matrix applied to the response vector.">theorem fitted_eq_hat_mul_y</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix and response vector.">(X : Matrix n k ℝ) (y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Full-rank condition, represented by invertibility of X'X.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The textbook identity y-hat equals P y.">fitted X y = hatMatrix X *ᵥ y</span>
+
+<span class="lean-token" tabindex="0" data-explain="Residuals are the annihilator matrix applied to the response vector.">theorem residual_eq_annihilator_mul_y</span>
+    <span class="lean-token" tabindex="0" data-explain="The fixed design matrix and response vector.">(X : Matrix n k ℝ) (y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="Needed for the identity matrix inside M = I - P.">[DecidableEq n]</span> <span class="lean-token" tabindex="0" data-explain="Full-rank condition, represented by invertibility of X'X.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="The textbook identity e-hat equals M y.">residual X y = annihilatorMatrix X *ᵥ y</span>
+
+<span class="lean-token" tabindex="0" data-explain="The fitted vector and residual vector are orthogonal.">theorem fitted_dot_residual</span>
+    <span class="lean-token" tabindex="0" data-explain="The same fixed design matrix and response vector.">(X : Matrix n k ℝ) (y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The full-rank condition needed to define beta-hat.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="Lean's dot product notation for y-hat' e-hat equals zero.">fitted X y ⬝ᵥ residual X y = 0</span>
+
+<span class="lean-token" tabindex="0" data-explain="The Pythagorean decomposition of total sum of squares into fitted and residual pieces.">theorem fitted_residual_pythagorean</span>
+    <span class="lean-token" tabindex="0" data-explain="The same fixed design matrix and response vector.">(X : Matrix n k ℝ) (y : n → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The full-rank condition needed to define beta-hat.">[Invertible (Xᵀ * X)]</span> :
+    <span class="lean-token" tabindex="0" data-explain="This is y'y = y-hat'y-hat + e-hat'e-hat.">y ⬝ᵥ y = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `fitted X y` | $\hat y=X\hat\beta$ | The in-sample fitted vector. |
+| `residual X y` | $\hat e=y-\hat y$ | The OLS residual vector. |
+| `⬝ᵥ` | dot product | Finite vector inner product, so `y ⬝ᵥ y` is $y^\top y$. |
+| `fitted_dot_residual` | $\hat y^\top\hat e=0$ | Orthogonality of fitted and residual components. |
+| `fitted_residual_pythagorean` | $y^\top y=\hat y^\top\hat y+\hat e^\top\hat e$ | The squared-length decomposition. |
+
+## Translation notes
+
+- Lean's `fitted_add_residual` is the identity $y=\hat y+\hat e$, with the
+  sides written as `fitted X y + residual X y = y`.
+- The orthogonality proof leans directly on
+  [`normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46).
+  This keeps the proof aligned with the textbook: fitted values are in the
+  column space, residuals are orthogonal to that column space.
+- No stochastic assumption is involved. This is linear algebra under the same
+  full-rank condition as the normal equations.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: fitted values are orthogonal to residuals.">theorem fitted_dot_residual
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    fitted X y ⬝ᵥ residual X y = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Swap the dot product order so the residual appears on the left, matching Mathlib's matrix-vector dot-product lemma.">  rw [dotProduct_comm]</span><span class="lean-line" tabindex="0" data-explain="Replace fitted values by X beta-hat.">  unfold fitted</span><span class="lean-line" tabindex="0" data-explain="Move X from the right side of the dot product to the left as X transpose; this exposes X' residual.">  rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]</span><span class="lean-line" tabindex="0" data-explain="Use the normal equations X' e-hat = 0.">  rw [normal_equations]</span><span class="lean-line" tabindex="0" data-explain="Simplify the remaining zero dot product.">  simp</span>
+</code></pre>
+```
+:::
+
+The squared-length decomposition is then the ordinary expansion of
+$y=\hat y+\hat e$ with the cross terms killed:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem statement: total squared length equals fitted squared length plus residual squared length.">theorem fitted_residual_pythagorean
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    y ⬝ᵥ y = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y := by</span><span class="lean-line" tabindex="0" data-explain="Start a calculation chain from y'y.">  calc</span><span class="lean-line" tabindex="0" data-explain="Replace y by fitted plus residual, using the definition of residual.">    y ⬝ᵥ y = (fitted X y + residual X y) ⬝ᵥ (fitted X y + residual X y) := by
+      rw [fitted_add_residual]</span><span class="lean-line" tabindex="0" data-explain="Distribute the dot product over addition in both arguments.">    _ = fitted X y ⬝ᵥ fitted X y + residual X y ⬝ᵥ residual X y := by
+      rw [add_dotProduct, dotProduct_add, dotProduct_add]</span><span class="lean-line" tabindex="0" data-explain="Set the fitted-residual cross term to zero.">      rw [fitted_dot_residual]</span><span class="lean-line" tabindex="0" data-explain="Commute the other cross term, then use fitted-residual orthogonality again.">      rw [dotProduct_comm (residual X y) (fitted X y), fitted_dot_residual]</span><span class="lean-line" tabindex="0" data-explain="Clean up additions with zero.">      simp</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+This page is the bridge from normal equations to the geometry used in later
+finite-sample OLS facts. It is also the conceptual parent of the usual
+sum-of-squares identities and residual variance formulas in later chapters.

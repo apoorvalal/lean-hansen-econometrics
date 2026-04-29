@@ -1,0 +1,151 @@
+---
+title: "Theorems 5.8–5.12 — Exact t inference"
+lean_name: "HansenEconometrics.olsTStatistic_hasLaw_classicalStudentT"
+chapter: 5
+---
+
+## Textbook statement
+
+In the homoskedastic normal regression model with
+[$X^\top X$ invertible, $\sigma^2>0$, and $n-k>0$](../../assumptions/chapter5.qmd),
+the classical OLS t statistic for coefficient $j$,
+$$
+T_j = \frac{\hat\beta_j-\beta_j}
+{\sqrt{s^2[(X^\top X)^{-1}]_{jj}}},
+$$
+has a Student-$t$ distribution with $n-k$ degrees of freedom. This is Hansen
+Theorem 5.8. The same formal layer also packages the coefficient confidence
+interval coverage result, the two-standard-error rule, and the classical
+two-sided t-test size theorem.
+
+### Proof sketch
+
+Split the statistic into numerator and denominator:
+$$
+T_j =
+\underbrace{\frac{\hat\beta_j-\beta_j}
+{\sqrt{\sigma^2[(X^\top X)^{-1}]_{jj}}}}_{\text{standard normal}}
+\times
+\underbrace{\frac{\sqrt{n-k}}{\sqrt{(n-k)s^2/\sigma^2}}}_{\text{studentization}}.
+$$
+The numerator is standard normal because $\hat\beta-\beta$ is a fixed linear
+image of the spherical Gaussian error. The denominator is an independent
+chi-square transform by Theorem 5.7. The ratio-law theorem for a standard
+normal divided by an independent scaled chi-square gives Student-$t$.
+
+Confidence intervals and t-tests then become event rewrites: membership in the
+interval is equivalent to $|T_j|\le c$, and rejection is equivalent to
+$|T_j|>c$.
+
+## Lean statement
+
+Key definitions and theorems in
+`HansenEconometrics/Chapter5NormalRegression.lean`:
+
+| Lean name | Textbook role |
+|---|---|
+| [`standardizedOlsBetaCoordinate`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L569) | True-variance standardized coefficient error. |
+| [`olsStudentizationFactor`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L578) | Inverse square-root transform of the chi-square statistic. |
+| [`olsTStatistic`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L587) | Hansen's exact t statistic. |
+| [`olsTStatistic_hasLaw_classicalStudentT`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L759) | Theorem 5.8, density-backed Student-$t$ law. |
+| [`olsConfidenceInterval_coverage_eq_one_sub_classical`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1128) | Theorem 5.9, coefficient interval coverage. |
+| [`olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1146) | Theorem 5.10, two-standard-error lower bound. |
+| [`olsTTest_rejection_probability_eq_alpha`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372) | Theorem 5.12, exact two-sided t-test size. |
+
+The headline t-law theorem reads:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.8 in classical density-backed Student-t form.">theorem olsTStatistic_hasLaw_classicalStudentT</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Fixed design matrix, true coefficient vector, and coefficient coordinate j.">(X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive variance and positive residual degrees of freedom.">(hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Spherical normal error random vector.">(ε : Ω → EuclideanSpace ℝ n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-rank condition for the OLS closed form.">[Invertible (Xᵀ * X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="The classical normal-regression error law ε ~ N(0, σ²I).">(hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the t statistic has the classical Student-t law with n-k degrees of freedom.">HasLaw (olsTStatistic X β σ2 j ε)
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `(j : k)` | coefficient coordinate $j$ | The theorem is coordinatewise. |
+| `standardizedOlsBetaCoordinate X β σ2 j ε` | $(\hat\beta_j-\beta_j)/\sqrt{\sigma^2[(X'X)^{-1}]_{jj}}$ | The standard-normal numerator. |
+| `scaledOlsResidualVarianceStatistic X β σ2 ε` | $(n-k)s^2/\sigma^2$ | The chi-square denominator input from Theorem 5.7. |
+| `olsTStatistic X β σ2 j ε` | $T_j$ | The exact finite-sample t statistic. |
+| `classicalStudentT (Fintype.card n - Fintype.card k)` | $t_{n-k}$ | The standalone Student-$t$ distribution used for critical values. |
+
+## Translation notes
+
+- Lean first proves the ratio law against an internal `studentT` measure and
+  then rewrites it to `classicalStudentT`, the density-backed version used for
+  CDF and critical-value statements.
+- `olsTStatistic_eq_centered_beta_div_estimatedSE` connects the internally
+  factorized statistic back to the textbook quotient using the estimated
+  standard error.
+- The CI and test theorems do not reprove probability facts. They rewrite
+  confidence-set or rejection events into events involving `|T_j|`.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The internal Student-t law theorem: it proves the ratio law before switching to the classical density-backed measure.">theorem olsTStatistic_hasLaw_studentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (olsTStatistic X β σ2 j ε)
+      (studentT (Fintype.card n - Fintype.card k)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Name the residual degrees of freedom ν = n-k.">  let ν : ℕ := Fintype.card n - Fintype.card k</span><span class="lean-line" tabindex="0" data-explain="Use k<n to prove ν is positive, as required by the Student-t construction.">  have hν : 0 &lt; ν := by
+    dsimp [ν]
+    exact Nat.sub_pos_of_lt hdf</span><span class="lean-line" tabindex="0" data-explain="The centered coefficient coordinate, standardized by the true variance, is standard normal.">  have hNum :
+      HasLaw (standardizedOlsBetaCoordinate X β σ2 j ε) (gaussianReal 0 1) μ :=
+    standardizedOlsBetaCoordinate_hasLaw_standardNormal X β j hσ2 ε hε</span><span class="lean-line" tabindex="0" data-explain="The scaled residual variance is chi-square with ν degrees of freedom.">  have hQ :
+      HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε) (chiSquared ν) μ :=
+    scaledOlsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="The numerator and chi-square denominator are independent.">  have hInd :
+      standardizedOlsBetaCoordinate X β σ2 j ε ⟂ᵢ[μ]
+        scaledOlsResidualVarianceStatistic X β σ2 ε :=
+    standardizedOlsBetaCoordinate_indep_scaledOlsResidualVarianceStatistic X β j hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Apply the generic ratio theorem: standard normal divided by an independent chi-square factor has a Student-t law.">  refine (hasLaw_ratio_standardNormal_chiSquared_studentT hν hNum hQ hInd).congr ?_</span><span class="lean-line" tabindex="0" data-explain="Identify the generic ratio expression with this file's definition of olsTStatistic.">  exact Filter.Eventually.of_forall fun ω => by
+    simp [olsTStatistic, olsStudentizationFactor, ν, Nat.cast_sub hdf.le]</span>
+</code></pre>
+```
+:::
+
+The classical theorem is a thin wrapper:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The theorem users should usually cite: the t statistic has the classical Student-t law.">theorem olsTStatistic_hasLaw_classicalStudentT
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (j : k)
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (olsTStatistic X β σ2 j ε)
+      (classicalStudentT (Fintype.card n - Fintype.card k)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Record that n-k is positive so the internal and classical Student-t measures agree.">  have hν : 0 &lt; Fintype.card n - Fintype.card k := Nat.sub_pos_of_lt hdf</span><span class="lean-line" tabindex="0" data-explain="Invoke the internal ratio-law theorem.">  have hbase :
+      HasLaw (olsTStatistic X β σ2 j ε)
+        (studentT (Fintype.card n - Fintype.card k)) μ :=
+    olsTStatistic_hasLaw_studentT X β j hσ2 hdf ε hε</span><span class="lean-line" tabindex="0" data-explain="Rewrite studentT to the density-backed classicalStudentT measure.">  rw [studentT_eq_classicalStudentT hν] at hbase</span><span class="lean-line" tabindex="0" data-explain="Return the rewritten law.">  exact hbase</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+The t-law page covers the proof engine for:
+
+- coefficient confidence interval coverage
+  ([`olsConfidenceInterval_coverage_eq_one_sub_classical`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1128));
+- the two-standard-error $95\%$ lower bound
+  ([`olsConfidenceInterval_two_se_coverage_ge_nineteen_twentieths`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1146));
+- exact t-test size under the null
+  ([`olsTTest_rejection_probability_eq_alpha`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L1372)).

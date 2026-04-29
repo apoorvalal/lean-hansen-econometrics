@@ -31,122 +31,18 @@ The **Frisch–Waugh–Lovell theorem** states:
    \tilde y - \tilde X_2 \hat\beta_2 = \hat e.
    $$
 
+For partitioned design matrices $X_1 \in \mathbb{R}^{n\times k_1}$ and
+$X_2 \in \mathbb{R}^{n\times k_2}$ and response vector $y \in \mathbb{R}^n$,
+the formalized coefficient theorem assumes three nonsingularity witnesses:
+[$X_1^\top X_1$, $[X_1,X_2]^\top[X_1,X_2]$, and
+$(M_1X_2)^\top(M_1X_2)$ are invertible](../../assumptions/chapter3.qmd). No
+distributional assumption is needed; FWL is purely algebraic.
+
 So you can recover the partial effect $\hat\beta_2$ — and the same residuals
 — by first partialling out $X_1$ from both $y$ and $X_2$, then running OLS on
 the residualized variables.
 
-## Assumptions
-
-- Partitioned design $X = [X_1, X_2]$ with $X_1 \in \mathbb{R}^{n\times k_1}$,
-  $X_2 \in \mathbb{R}^{n\times k_2}$.
-- $X_1^\top X_1$ is invertible (the first block has full column rank).
-- The full Gram matrix $[X_1, X_2]^\top [X_1, X_2]$ is invertible (the joint
-  design has full column rank).
-- The residualized Gram matrix
-  $\tilde X_2^\top \tilde X_2 = (M_1 X_2)^\top (M_1 X_2)$ is invertible.
-- No distributional assumption — FWL is a purely algebraic identity.
-
-## Lean statement
-
-All in `HansenEconometrics/Chapter3FWL.lean`:
-
-- [`residualizedRegressors`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L51)
-  at `Chapter3FWL.lean:51` — defined as `annihilatorMatrix X₁ * X₂`, i.e.
-  $\tilde X_2 = M_1 X_2$.
-- [`fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L58)
-  at `Chapter3FWL.lean:58` — OLS coefficient from regressing $\tilde y = M_1 y$
-  on $\tilde X_2$.
-- [`fromColsRightBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L75)
-  at `Chapter3FWL.lean:75` — the $X_2$-block of the full-regression
-  coefficient on $[X_1, X_2]$.
-- [`fromColsRightBeta_eq_fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
-  at `Chapter3FWL.lean:147` — coefficient part of FWL.
-- [`fwl_residual_eq_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)
-  at `Chapter3FWL.lean:163` — residual part of FWL.
-
-The two headline theorems:
-
-```lean
-theorem fromColsRightBeta_eq_fwlBeta
-    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
-    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
-    [Invertible (X₁ᵀ * X₁)]
-    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
-    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
-    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y
-
-theorem fwl_residual_eq_full_residual
-    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
-    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
-    [Invertible (X₁ᵀ * X₁)]
-    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
-    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
-    residual (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y) =
-      residual (Matrix.fromCols X₁ X₂) y
-```
-
-### Reading the statement
-
-In English (coefficient part): **given** a partitioned design $[X_1, X_2]$, a
-response vector $y$, and witnesses that $X_1^\top X_1$, the full Gram matrix,
-and the residualized Gram matrix are all invertible, the second-block
-coefficient from the full regression equals the OLS coefficient from
-regressing $M_1 y$ on $M_1 X_2$.
-
-| Lean | Math | What it gives us |
-|---|---|---|
-| `(X₁ : Matrix n k₁ ℝ)` | $X_1 \in \mathbb{R}^{n\times k_1}$ | **Given:** first block of regressors. The index types `n`, `k₁`, `k₂` come from the file's `variable` block. |
-| `(X₂ : Matrix n k₂ ℝ)` | $X_2 \in \mathbb{R}^{n\times k_2}$ | **Given:** second block of regressors. Same row index `n` so the two blocks can be column-glued. |
-| `(y : n → ℝ)` | $y \in \mathbb{R}^n$ | **Given:** response vector, modeled as a function `n → ℝ`. |
-| `[DecidableEq n]` | (decidable equality on $\{1,\ldots,n\}$) | Mathlib bookkeeping: Lean needs to decide row equality to define the annihilator $M_1 = I - X_1(X_1^\top X_1)^{-1}X_1^\top$ (the identity matrix is built using `if i = j`). |
-| `[Fintype k₁] [Fintype k₂]` | $k_1, k_2$ finite | Mathlib bookkeeping: column index types are finite, so matrix sums and products are well-defined. |
-| `[DecidableEq k₁] [DecidableEq k₂]` | (decidable equality on column indices) | Mathlib bookkeeping: needed for identity matrices on the column spaces and for `fromCols`-style index manipulation. |
-| `[Invertible (X₁ᵀ * X₁)]` | $X_1^\top X_1$ invertible | **Given (hypothesis):** first block has full column rank — needed so $M_1$ is well-defined. |
-| `[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]` | $[X_1,X_2]^\top[X_1,X_2]$ invertible | **Given (hypothesis):** the joint design has full column rank — needed so the full-regression coefficient `olsBeta (fromCols X₁ X₂) y` exists. |
-| `[Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]` | $\tilde X_2^\top \tilde X_2$ invertible | **Given (hypothesis):** the residualized regressors have full column rank — needed so `fwlBeta`, the auxiliary OLS coefficient, exists. |
-| `fromColsRightBeta X₁ X₂ y` | $\hat\beta_2$ from the full regression | LHS of the conclusion. Defined as `fun j => olsBeta (fromCols X₁ X₂) y (Sum.inr j)` — projecting the full coefficient vector to its $X_2$ block via `Sum.inr`. |
-| `= fwlBeta X₁ X₂ y` | $= (\tilde X_2^\top\tilde X_2)^{-1}\tilde X_2^\top\tilde y$ | **Conclusion:** equality of the two `k₂ → ℝ` vectors. `fwlBeta` is defined as `olsBeta (M₁ X₂) (M₁ y)`. |
-
-(Square brackets mark instance arguments — they are filled in by Lean's
-typeclass resolution rather than supplied positionally. The three `Invertible`
-instances are the substantive economic/algebraic hypotheses; the
-`DecidableEq`/`Fintype` instances are Mathlib boilerplate that lets the
-machinery run.)
-
-Supporting / helper theorems used internally:
-
-- [`normal_equations_fromCols_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L15)
-  / [`normal_equations_fromCols_right`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L26)
-  at lines 15 and 26.
-- [`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
-  at line 37 — $X^\top M = 0$.
-- [`residualizedRegressors_orthogonal_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L94)
-  at line 94 — $X_1^\top \tilde X_2 = 0$.
-- [`fwl_auxiliary_residual_eq_annihilator_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L106)
-  at line 106 — bridges auxiliary residual to $M_1 \hat e_{\text{full}}$.
-- [`fwl_fromColsRightBeta_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
-  at line 123 — full-regression $\hat\beta_2$ satisfies the auxiliary normal
-  equations.
-
-## Translation notes
-
-- Hansen states FWL with $\hat\beta_2$ from regressing $\tilde y$ on
-  $\tilde X_2$; Lean defines `fwlBeta := olsBeta (M_1 X_2) (M_1 y)`.
-  Identical.
-- Lean uses `Matrix.fromCols X₁ X₂` for the column-partitioned $[X_1, X_2]$.
-  The full-regression coefficients are projected to their two blocks via
-  `Sum.inl` / `Sum.inr` (the index type is `k₁ ⊕ k₂`).
-- The residual part of FWL is stated using the auxiliary regression's
-  residual; the textbook commonly states
-  "$\tilde y - \tilde X_2 \hat\beta_2 = \hat e$" with $\hat\beta_2$ from the
-  *full* regression. Lean's `fwl_residual_eq_full_residual` is the
-  corresponding equality in the formalization.
-- Three invertibility instances are required for the coefficient theorem:
-  $X_1^\top X_1$, $[X_1, X_2]^\top [X_1, X_2]$, and
-  $\tilde X_2^\top \tilde X_2$. The third is genuinely needed — without it,
-  `fwlBeta` is undefined.
-
-## Proof sketch
+### Proof sketch
 
 The argument has two halves.
 
@@ -181,138 +77,153 @@ identity once you observe that the auxiliary regression's residual at the FWL
 coefficient is $\tilde y - \tilde X_2 \hat\beta_2^{\text{FWL}}$ and
 $\hat\beta_2^{\text{FWL}} = \hat\beta_2$ by the coefficient part.
 
-## Lean proof structure
+## Lean statement
 
-The proof in Lean follows the sketch closely:
+All in `HansenEconometrics/Chapter3FWL.lean`:
 
-1. [`fwl_auxiliary_residual_eq_annihilator_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L106)
-   (line 106) shows
-   $\tilde y - \tilde X_2 \cdot \hat\beta_2^{\text{full}} = M_1 \hat e_{\text{full}}$.
-   It unfolds `residual` and `fitted`, splits the full fit via
-   [`fromCols_full_fitted_eq`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L83)
-   (line 83), and uses `Matrix.mulVec_mulVec` plus `annihilator_mul_X` to drop
-   the $X_1$ contribution.
-2. [`fwl_fromColsRightBeta_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
-   (line 123) takes that bridge and applies $X_1^\top \hat e = 0$ to collapse
-   $M_1 \hat e = \hat e$ via
-   `annihilator_mulVec_eq_self_of_regressors_orthogonal`. Then it
-   premultiplies by $\tilde X_2^\top$ and uses
-   `normal_equations_fromCols_right` to finish.
-3. [`fromColsRightBeta_eq_fwlBeta`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
-   (line 147) is the symmetric closure: from the auxiliary normal equations,
-   `olsBeta_eq_of_normal_equations`
-   (`Chapter3LeastSquaresAlgebra.lean:67`) yields
-   `fwlBeta = fromColsRightBeta`.
-4. [`fwl_residual_eq_full_residual`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)
-   (line 163) reuses the same bridge and the orthogonal-fixed-point lemma to
-   conclude.
+- [`residualizedRegressors`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L51)
+  at `Chapter3FWL.lean:51` — defined as `annihilatorMatrix X₁ * X₂`, i.e.
+  $\tilde X_2 = M_1 X_2$.
+- [`fwlBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L58)
+  at `Chapter3FWL.lean:58` — OLS coefficient from regressing $\tilde y = M_1 y$
+  on $\tilde X_2$.
+- [`fromColsRightBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L75)
+  at `Chapter3FWL.lean:75` — the $X_2$-block of the full-regression
+  coefficient on $[X_1, X_2]$.
+- [`fromColsRightBeta_eq_fwlBeta`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147)
+  at `Chapter3FWL.lean:147` — coefficient part of FWL.
+- [`fwl_residual_eq_full_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)
+  at `Chapter3FWL.lean:163` — residual part of FWL.
 
-The orthogonality "infrastructure" underpinning the proof is
-[`regressors_transpose_mul_annihilator`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
-(line 37, $X^\top M = 0$) and
-[`residualizedRegressors_orthogonal_left`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L94)
-(line 94, $X_1^\top \tilde X_2 = 0$). Every collapse of $M_1$-products in the
-proof above ultimately reduces to one of these.
+The two headline theorems:
 
-### Tactic-by-tactic walkthrough
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Coefficient face of FWL: the right block of the full-regression coefficient equals the residualized-regression coefficient.">theorem fromColsRightBeta_eq_fwlBeta</span>
+    <span class="lean-token" tabindex="0" data-explain="The two regressor blocks and response vector. Matrix.fromCols glues X₁ and X₂ into the full design.">(X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)</span>
+    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
+    <span class="lean-token" tabindex="0" data-explain="First-block full-rank condition, needed to define the annihilator M₁.">[Invertible (X₁ᵀ * X₁)]</span>
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
+    <span class="lean-token" tabindex="0" data-explain="The conclusion: the full-regression X₂ coefficient equals the auxiliary OLS coefficient on M₁y and M₁X₂.">fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y</span>
+
+<span class="lean-token" tabindex="0" data-explain="Residual face of FWL: the auxiliary residual equals the full-regression residual.">theorem fwl_residual_eq_full_residual</span>
+    <span class="lean-token" tabindex="0" data-explain="Same partitioned design and response vector.">(X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)</span>
+    [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
+    <span class="lean-token" tabindex="0" data-explain="The residual from regressing M₁y on M₁X₂ is exactly the residual from regressing y on [X₁, X₂].">residual (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y) =
+      residual (Matrix.fromCols X₁ X₂) y</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+In English (coefficient part): **given** a partitioned design $[X_1, X_2]$, a
+response vector $y$, and witnesses that $X_1^\top X_1$, the full Gram matrix,
+and the residualized Gram matrix are all invertible, the second-block
+coefficient from the full regression equals the OLS coefficient from
+regressing $M_1 y$ on $M_1 X_2$.
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `(X₁ : Matrix n k₁ ℝ)` | $X_1 \in \mathbb{R}^{n\times k_1}$ | **Given:** first block of regressors. The index types `n`, `k₁`, `k₂` come from the file's `variable` block. |
+| `(X₂ : Matrix n k₂ ℝ)` | $X_2 \in \mathbb{R}^{n\times k_2}$ | **Given:** second block of regressors. Same row index `n` so the two blocks can be column-glued. |
+| `(y : n → ℝ)` | $y \in \mathbb{R}^n$ | **Given:** response vector, modeled as a function `n → ℝ`. |
+| `[DecidableEq n]` | (decidable equality on $\{1,\ldots,n\}$) | Mathlib bookkeeping: Lean needs to decide row equality to define the annihilator $M_1 = I - X_1(X_1^\top X_1)^{-1}X_1^\top$ (the identity matrix is built using `if i = j`). |
+| `[Fintype k₁] [Fintype k₂]` | $k_1, k_2$ finite | Mathlib bookkeeping: column index types are finite, so matrix sums and products are well-defined. |
+| `[DecidableEq k₁] [DecidableEq k₂]` | (decidable equality on column indices) | Mathlib bookkeeping: needed for identity matrices on the column spaces and for `fromCols`-style index manipulation. |
+| `[Invertible (X₁ᵀ * X₁)]` | $X_1^\top X_1$ invertible | **Given (hypothesis):** first block has full column rank — needed so $M_1$ is well-defined. |
+| `[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]` | $[X_1,X_2]^\top[X_1,X_2]$ invertible | **Given (hypothesis):** the joint design has full column rank — needed so the full-regression coefficient `olsBeta (fromCols X₁ X₂) y` exists. |
+| `[Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]` | $\tilde X_2^\top \tilde X_2$ invertible | **Given (hypothesis):** the residualized regressors have full column rank — needed so `fwlBeta`, the auxiliary OLS coefficient, exists. |
+| `fromColsRightBeta X₁ X₂ y` | $\hat\beta_2$ from the full regression | LHS of the conclusion. Defined as `fun j => olsBeta (fromCols X₁ X₂) y (Sum.inr j)` — projecting the full coefficient vector to its $X_2$ block via `Sum.inr`. |
+| `= fwlBeta X₁ X₂ y` | $= (\tilde X_2^\top\tilde X_2)^{-1}\tilde X_2^\top\tilde y$ | **Conclusion:** equality of the two `k₂ → ℝ` vectors. `fwlBeta` is defined as `olsBeta (M₁ X₂) (M₁ y)`. |
+
+(Square brackets mark instance arguments — they are filled in by Lean's
+typeclass resolution rather than supplied positionally. The three `Invertible`
+instances are the substantive economic/algebraic hypotheses; the
+`DecidableEq`/`Fintype` instances are Mathlib boilerplate that lets the
+machinery run.)
+
+Supporting / helper theorems used internally:
+
+- [`normal_equations_fromCols_left`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L15)
+  / [`normal_equations_fromCols_right`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L26)
+  at lines 15 and 26.
+- [`regressors_transpose_mul_annihilator`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L37)
+  at line 37 — $X^\top M = 0$.
+- [`residualizedRegressors_orthogonal_left`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L94)
+  at line 94 — $X_1^\top \tilde X_2 = 0$.
+- [`fwl_auxiliary_residual_eq_annihilator_full_residual`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L106)
+  at line 106 — bridges auxiliary residual to $M_1 \hat e_{\text{full}}$.
+- [`fwl_fromColsRightBeta_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
+  at line 123 — full-regression $\hat\beta_2$ satisfies the auxiliary normal
+  equations.
+
+## Translation notes
+
+- Hansen states FWL with $\hat\beta_2$ from regressing $\tilde y$ on
+  $\tilde X_2$; Lean defines `fwlBeta := olsBeta (M_1 X_2) (M_1 y)`.
+  Identical.
+- Lean uses `Matrix.fromCols X₁ X₂` for the column-partitioned $[X_1, X_2]$.
+  The full-regression coefficients are projected to their two blocks via
+  `Sum.inl` / `Sum.inr` (the index type is `k₁ ⊕ k₂`).
+- The residual part of FWL is stated using the auxiliary regression's
+  residual; the textbook commonly states
+  "$\tilde y - \tilde X_2 \hat\beta_2 = \hat e$" with $\hat\beta_2$ from the
+  *full* regression. Lean's `fwl_residual_eq_full_residual` is the
+  corresponding equality in the formalization.
+- Three invertibility instances are required for the coefficient theorem:
+  $X_1^\top X_1$, $[X_1, X_2]^\top [X_1, X_2]$, and
+  $\tilde X_2^\top \tilde X_2$. The third is genuinely needed — without it,
+  `fwlBeta` is undefined.
+
+## Tactic-by-tactic walkthrough
 
 The headline theorem itself is short — it just packages uniqueness of OLS:
 
-```lean
-theorem fromColsRightBeta_eq_fwlBeta
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The coefficient theorem: the X₂ block from the full regression equals the auxiliary OLS coefficient after residualizing y and X₂ against X₁.">theorem fromColsRightBeta_eq_fwlBeta
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible (X₁ᵀ * X₁)]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
     [Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)] :
-    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y := by
-  symm
-  unfold fwlBeta
-  exact olsBeta_eq_of_normal_equations
+    fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y := by</span><span class="lean-line" tabindex="0" data-explain="Flip the goal so it has the shape produced by the OLS uniqueness theorem: auxiliary OLS equals a candidate coefficient vector.">  symm</span><span class="lean-line" tabindex="0" data-explain="Replace fwlBeta by the OLS coefficient from the residualized regression of M₁y on M₁X₂.">  unfold fwlBeta</span><span class="lean-line" tabindex="0" data-explain="Apply the normal-equations uniqueness theorem with design M₁X₂, response M₁y, and candidate coefficient equal to the full-regression X₂ block.">  exact olsBeta_eq_of_normal_equations
     (residualizedRegressors X₁ X₂)
     (annihilatorMatrix X₁ *ᵥ y)
     (fromColsRightBeta X₁ X₂ y)
-    (fwl_fromColsRightBeta_normal_equations X₁ X₂ y)
+    (fwl_fromColsRightBeta_normal_equations X₁ X₂ y)</span>
+</code></pre>
 ```
-
-Line by line:
-
-- `symm` — flip the goal from `fromColsRightBeta X₁ X₂ y = fwlBeta X₁ X₂ y` to
-  `fwlBeta X₁ X₂ y = fromColsRightBeta X₁ X₂ y`. This sets things up so the
-  `=` reads "the auxiliary OLS coefficient equals this candidate vector," which
-  is the shape `olsBeta_eq_of_normal_equations` produces.
-- `unfold fwlBeta` — replace `fwlBeta X₁ X₂ y` by its definition,
-  `olsBeta (residualizedRegressors X₁ X₂) (annihilatorMatrix X₁ *ᵥ y)`. The
-  goal becomes
-  `olsBeta (M₁ X₂) (M₁ y) = fromColsRightBeta X₁ X₂ y`.
-- `exact olsBeta_eq_of_normal_equations …` — apply the OLS uniqueness lemma
-  ([`olsBeta_eq_of_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L67))
-  with design matrix $\tilde X_2$, response $\tilde y = M_1 y$, candidate
-  coefficient $\hat\beta_2 = $ `fromColsRightBeta X₁ X₂ y`, and the proof that
-  this candidate satisfies the auxiliary normal equations. That last argument
-  is `fwl_fromColsRightBeta_normal_equations X₁ X₂ y`, which is where the
-  actual FWL algebra happens.
+:::
 
 The substantive work lives in
-[`fwl_fromColsRightBeta_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
+[`fwl_fromColsRightBeta_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L123)
 (line 123). Its proof body:
 
-```lean
-theorem fwl_fromColsRightBeta_normal_equations
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The auxiliary normal-equations lemma: the full-regression X₂ coefficient satisfies the residualized regression's normal equations.">theorem fwl_fromColsRightBeta_normal_equations
     (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
     [DecidableEq n] [Fintype k₁] [DecidableEq k₁] [Fintype k₂] [DecidableEq k₂]
     [Invertible (X₁ᵀ * X₁)]
     [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
     (residualizedRegressors X₁ X₂)ᵀ *ᵥ
         (annihilatorMatrix X₁ *ᵥ y -
-          residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y) = 0 := by
-  rw [fwl_auxiliary_residual_eq_annihilator_full_residual]
-  have hM :
+          residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y) = 0 := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite the auxiliary residual ỹ - X̃₂ β₂(full) as M₁ times the full-regression residual.">  rw [fwl_auxiliary_residual_eq_annihilator_full_residual]</span><span class="lean-line" tabindex="0" data-explain="Record that M₁ fixes the full residual, because the full residual is orthogonal to X₁ by the left-block normal equations.">  have hM :
       annihilatorMatrix X₁ *ᵥ residual (Matrix.fromCols X₁ X₂) y =
         residual (Matrix.fromCols X₁ X₂) y :=
     annihilator_mulVec_eq_self_of_regressors_orthogonal X₁
       (residual (Matrix.fromCols X₁ X₂) y)
-      (normal_equations_fromCols_left X₁ X₂ y)
-  rw [hM]
-  unfold residualizedRegressors
-  rw [Matrix.transpose_mul, annihilatorMatrix_transpose]
-  rw [← Matrix.mulVec_mulVec (residual (Matrix.fromCols X₁ X₂) y) X₂ᵀ
-    (annihilatorMatrix X₁)]
-  rw [hM]
-  exact normal_equations_fromCols_right X₁ X₂ y
+      (normal_equations_fromCols_left X₁ X₂ y)</span><span class="lean-line" tabindex="0" data-explain="Use hM once to replace M₁ e_full by e_full.">  rw [hM]</span><span class="lean-line" tabindex="0" data-explain="Replace residualizedRegressors by its definition M₁X₂.">  unfold residualizedRegressors</span><span class="lean-line" tabindex="0" data-explain="Transpose M₁X₂ as X₂ᵀM₁, using symmetry of the annihilator matrix.">  rw [Matrix.transpose_mul, annihilatorMatrix_transpose]</span><span class="lean-line" tabindex="0" data-explain="Re-express (X₂ᵀM₁)e as X₂ᵀ(M₁e), so hM can remove the remaining M₁.">  rw [← Matrix.mulVec_mulVec (residual (Matrix.fromCols X₁ X₂) y) X₂ᵀ
+    (annihilatorMatrix X₁)]</span><span class="lean-line" tabindex="0" data-explain="Use hM a second time: M₁ fixes the full residual.">  rw [hM]</span><span class="lean-line" tabindex="0" data-explain="Finish with the right-block normal equations for the full regression, X₂ᵀ e_full = 0.">  exact normal_equations_fromCols_right X₁ X₂ y</span>
+</code></pre>
 ```
-
-Line by line:
-
-- `rw [fwl_auxiliary_residual_eq_annihilator_full_residual]` — rewrite the
-  inner subtraction $\tilde y - \tilde X_2 \hat\beta_2$ as
-  $M_1 \hat e_{\text{full}}$ using the bridge lemma at line 106. The goal
-  becomes
-  $\tilde X_2^\top \cdot (M_1 \hat e_{\text{full}}) = 0$.
-- `have hM := …` — record the fact that $M_1$ acts as the identity on the
-  full residual: $M_1 \hat e_{\text{full}} = \hat e_{\text{full}}$. This uses
-  [`annihilator_mulVec_eq_self_of_regressors_orthogonal`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean)
-  applied to the first-block normal equations
-  `normal_equations_fromCols_left X₁ X₂ y` (which says
-  $X_1^\top \hat e_{\text{full}} = 0$).
-- `rw [hM]` — apply that identity. The goal is now
-  $\tilde X_2^\top \cdot \hat e_{\text{full}} = 0$.
-- `unfold residualizedRegressors` — replace $\tilde X_2$ by $M_1 X_2$ on the
-  left of the matrix-vector product. Goal:
-  $(M_1 X_2)^\top \cdot \hat e_{\text{full}} = 0$.
-- `rw [Matrix.transpose_mul, annihilatorMatrix_transpose]` — distribute the
-  transpose: $(M_1 X_2)^\top = X_2^\top M_1^\top = X_2^\top M_1$ (the
-  annihilator is symmetric). Goal:
-  $(X_2^\top M_1) \cdot \hat e_{\text{full}} = 0$.
-- `rw [← Matrix.mulVec_mulVec …]` — rewrite the matrix product
-  $(X_2^\top M_1) \cdot v$ as the iterated matrix-vector application
-  $X_2^\top \cdot (M_1 \cdot v)$, applied backwards (the `←` direction).
-  Goal: $X_2^\top \cdot (M_1 \hat e_{\text{full}}) = 0$.
-- `rw [hM]` — collapse $M_1 \hat e_{\text{full}}$ to $\hat e_{\text{full}}$
-  again. Goal: $X_2^\top \cdot \hat e_{\text{full}} = 0$.
-- `exact normal_equations_fromCols_right X₁ X₂ y` — discharge the goal: this
-  is exactly the second-block normal equations for the full regression
-  ($X_2^\top \hat e_{\text{full}} = 0$, line 26).
+:::
 
 The shape of the proof is "rewrite using the bridge, kill the $M_1$ on both
 sides using $X_1^\top \hat e = 0$, then finish with $X_2^\top \hat e = 0$" —
@@ -320,10 +231,10 @@ exactly the algebraic sketch above, broken into seven `rw`/`exact` steps.
 
 ## Downstream uses
 
-- [`fwl_normal_equations`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L181)
+- [`fwl_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L181)
   (line 181) — straightforward consequence, packaged as the auxiliary
   regression's normal equations.
-- [`fwl_residual_maker_mul_fromCols`](https://github.com/paulgp/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L195)
+- [`fwl_residual_maker_mul_fromCols`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L195)
   (line 195) — the sequential residual-maker $M_{\tilde X_2} M_1$ kills both
   $X_1$ and $X_2$, used in projection-geometry arguments downstream.
 - (Future) Chapter 4 / 7 partial-effect arguments will likely consume FWL —

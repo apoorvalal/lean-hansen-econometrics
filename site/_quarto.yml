@@ -6,13 +6,16 @@ project:
   # "Auto-generated reference" sidebar section below.
   render:
     - "index.qmd"
+    - "coverage.qmd"
+    - "assumptions/**/*.qmd"
     - "walkthroughs/**/*.qmd"
 
 website:
   title: "Hansen Econometrics in Lean"
   search:
     type: overlay
-  repo-url: https://github.com/paulgp/lean-hansen-econometrics
+  repo-url: https://github.com/apoorvalal/lean-hansen-econometrics
+  repo-subdir: site
   repo-actions: [source]
   sidebar:
     style: docked
@@ -20,20 +23,52 @@ website:
     contents:
       - href: index.qmd
         text: Home
+      - href: coverage.qmd
+        text: Coverage
+      - section: Assumptions
+        contents:
+          - href: assumptions/index.qmd
+            text: Overview
+          - href: assumptions/chapter2.qmd
+            text: Chapter 2
+          - href: assumptions/chapter3.qmd
+            text: Chapter 3
+          - href: assumptions/chapter4.qmd
+            text: Chapter 4
+          - href: assumptions/chapter5.qmd
+            text: Chapter 5
+          - href: assumptions/chapter7.qmd
+            text: Chapter 7
       - section: Walkthroughs
         contents:
+          - section: Chapter 2
+            contents:
+              - walkthroughs/chapter2/best-predictor.qmd
+              - walkthroughs/chapter2/variance-decomposition.qmd
+              - walkthroughs/chapter2/linear-projection-minimizes-mse.qmd
+              - walkthroughs/chapter2/linear-projection-covariance-formula.qmd
           - section: Chapter 3
             contents:
               - walkthroughs/chapter3/theorem-3-2.qmd
+              - walkthroughs/chapter3/projection-matrices.qmd
+              - walkthroughs/chapter3/fitted-residual-decomposition.qmd
+              - walkthroughs/chapter3/residual-sum-zero.qmd
               - walkthroughs/chapter3/theorem-3-5.qmd
           - section: Chapter 5
             contents:
               - walkthroughs/chapter5/theorem-5-5.qmd
               - walkthroughs/chapter5/quadratic-form-of-residual-variance.qmd
+              - walkthroughs/chapter5/theorem-5-7.qmd
+              - walkthroughs/chapter5/theorem-5-8-t-statistic.qmd
+              - walkthroughs/chapter5/theorem-5-13-f-test.qmd
           - section: Chapter 7
             contents:
               - walkthroughs/chapter7/theorem-7-1.qmd
+              - walkthroughs/chapter7/theorem-7-2-score-clt.qmd
               - walkthroughs/chapter7/theorem-7-3.qmd
+              - walkthroughs/chapter7/theorem-7-4-7-5-variance-covariance.qmd
+              - walkthroughs/chapter7/theorem-7-6-7-7-robust-covariance.qmd
+              - walkthroughs/chapter7/theorem-7-11-7-13-inference.qmd
       # Auto-generated reference paused — re-enable along with `render:` above.
       # - section: Auto-generated reference
       #   contents:
@@ -44,9 +79,11 @@ website:
 format:
   html:
     theme: cosmo
+    css: styles.css
     toc: true
     html-math-method: katex
     code-overflow: wrap
+    code-copy: true
 
 # Custom metadata consumed by build_stubs.py
-github_repo: https://github.com/paulgp/lean-hansen-econometrics
+github_repo: https://github.com/apoorvalal/lean-hansen-econometrics

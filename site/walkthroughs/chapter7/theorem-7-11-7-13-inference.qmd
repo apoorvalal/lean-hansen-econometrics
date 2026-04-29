@@ -1,0 +1,158 @@
+---
+title: "Theorems 7.11-7.13 — Asymptotic t, confidence interval, and Wald inference"
+lean_name: "HansenEconometrics.olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal"
+chapter: 7
+---
+
+## Textbook statement
+
+For a one-row linear restriction $R\beta = r$, robust covariance consistency
+and OLS asymptotic normality imply the usual large-sample inference results:
+
+$$
+t_n =
+\frac{\sqrt{n}\,R(\hat\beta_n-\beta)}
+{\sqrt{R\hat V_{\beta,n}R^\top}}
+\Rightarrow N(0,1),
+$$
+
+the associated symmetric confidence interval has limiting Gaussian coverage,
+and the one-degree-of-freedom Wald statistic satisfies
+
+$$
+W_n = t_n^2 \Rightarrow \chi^2_1.
+$$
+
+Lean formalizes homoskedastic, HC0, HC1, HC2, and HC3 variants. This page
+focuses on the HC0 face because it is the cleanest robust path; the neighboring
+declarations share the same proof shape.
+
+The assumptions are the robust covariance assumptions from
+[`RobustCovarianceConsistencyConditions μ X e`](../../assumptions/chapter7.qmd),
+plus component measurability, bounded residual-replacement remainders, the
+linear model `hmodel`, and positivity of the population standard error
+`linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e)`.
+
+### Proof sketch
+
+The asymptotic inference results are built from two ingredients:
+
+1. The scalar asymptotic normality theorem gives the numerator
+   $\sqrt n\,R(\hat\beta_n-\beta)$ a centered normal limit.
+2. Robust covariance consistency gives the denominator
+   $\sqrt{R\hat V_{\beta,n}R^\top}$ a positive probability limit.
+
+Slutsky's theorem gives the standard-normal t statistic. The confidence
+interval theorem then rewrites coverage as an event involving `|t_n|`, and the
+Wald theorem maps `t_n` through the square function.
+
+## Lean statement
+
+The relevant endpoints live in
+`HansenEconometrics/Chapter7Asymptotics/Inference.lean` and
+`HansenEconometrics/Chapter7Asymptotics/Normality.lean`:
+
+| Lean endpoint | Role |
+|---|---|
+| [`olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1093) | HC0 t statistic $\Rightarrow N(0,1)$ |
+| [`olsHC0LinearCIOrZero_coverage_tendsto_standardNormal`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1165) | HC0 confidence interval limiting coverage |
+| [`olsHC0LinearWaldStatisticOrZero_tendstoInDistribution_chiSquared_one`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1230) | HC0 Wald statistic $\Rightarrow \chi^2_1$ |
+| [`linearMap_olsHC0WaldStatisticOrZero_tendstoInDistribution_chiSquared`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Normality.lean#L1706) | multirestriction HC0 Wald theorem |
+| [`olsHC1LinearTStatisticOrZero_tendstoInDistribution_standardNormal`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1443) | HC1 t statistic companion |
+| [`olsHC1LinearCIOrZero_coverage_tendsto_standardNormal`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Inference.lean#L1548) | HC1 confidence interval companion |
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 7.11, HC0 standard-normal t-statistic face.">theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample space is a probability space.">{μ : Measure Ω} [IsProbabilityMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Robust covariance and asymptotic-normality assumptions.">(h : RobustCovarianceConsistencyConditions μ X e)</span> <span class="lean-token" tabindex="0" data-explain="The true coefficient and one-row restriction.">(β : k → ℝ)
+    (R : Matrix Unit k ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model plus measurability and remainder controls for the robust covariance estimator.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (he_meas : ∀ i, AEStronglyMeasurable (e i) μ)
+    (hCrossWeight : ∀ a b l : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceCrossWeight
+          (stackRegressors X n ω) (stackErrors e n ω) a b l))
+    (hQuadWeight : ∀ a b l m : k, BoundedInProbability μ
+      (fun n ω =>
+        sampleScoreCovarianceQuadraticWeight
+          (stackRegressors X n ω) a b l m))</span>
+    <span class="lean-token" tabindex="0" data-explain="The population standard error is strictly positive, so studentization is well behaved.">(hse_pos : 0 <
+      linearRestrictionStdError R (heteroskedasticAsymptoticCovariance μ X e))</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the HC0 studentized linear restriction converges to the standard normal law.">TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        olsLinearTStatisticOrZero R
+          (olsHeteroskedasticCovarianceStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1)</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `RobustCovarianceConsistencyConditions μ X e` | robust Chapter 7 assumptions | **Hypothesis:** score CLT plus robust covariance consistency structure, linked on the [Chapter 7 assumption page](../../assumptions/chapter7.qmd). |
+| `R : Matrix Unit k ℝ` | one linear restriction | A one-row matrix, so $R\beta$ is scalar. |
+| `olsHeteroskedasticCovarianceStar` | $\hat V_{\beta,n}^{HC0}$ | The HC0 covariance estimator used in the denominator. |
+| `hse_pos` | $\sqrt{RV_\beta R^\top}>0$ | **Hypothesis:** the population standard error is nonzero. |
+| `gaussianReal 0 1` | $N(0,1)$ | The standard-normal limit. |
+
+## Tactic-by-tactic walkthrough
+
+The public ordinary-wrapper t theorem just delegates to the totalized HC0 t
+theorem.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The ordinary-wrapper HC0 t statistic has the same asymptotic law as the totalized statistic.">theorem olsHC0LinearTStatisticOrZero_tendstoInDistribution_standardNormal … := by</span><span class="lean-line" tabindex="0" data-explain="Reuse the star theorem and simplify the wrapper notation.">  simpa using
+    olsHC0LinearTStatisticStar_tendstoInDistribution_standardNormal
+      (μ := μ) (X := X) (e := e) (y := y)
+      h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos</span>
+</code></pre>
+```
+:::
+
+The confidence interval theorem shows the richer proof pattern: convert the
+interval event into an absolute t-statistic event, then use convergence of the
+absolute t statistic and the standard error.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="Name the true scalar restriction θ = Rβ.">let θ : ℝ := (R *ᵥ β) ⬝ᵥ (fun _ : Unit => 1)</span><span class="lean-line" tabindex="0" data-explain="Name the estimated scalar restriction Rβhat.">let θhat : ℕ → Ω → ℝ := fun n ω =>
+    (R *ᵥ olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) ⬝ᵥ
+      (fun _ : Unit => 1)</span><span class="lean-line" tabindex="0" data-explain="Name the HC0 standard error denominator.">let se : ℕ → Ω → ℝ := fun n ω =>
+    Real.sqrt ((R * olsHeteroskedasticCovarianceStar
+      (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) () ())</span><span class="lean-line" tabindex="0" data-explain="Robust covariance consistency implies the sample standard error converges to its positive population limit.">have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
+    simpa [se, c] using
+      olsHC0LinearStdErrorStar_tendstoInMeasure_of_bounded_weights_and_components
+        (μ := μ) (X := X) (e := e) (y := y)
+        h.toSampleHC0Assumption76 β R () hmodel hX_meas he_meas hCrossWeight hQuadWeight</span><span class="lean-line" tabindex="0" data-explain="The absolute-value continuous mapping theorem turns t ⇒ N(0,1) into |t| ⇒ |N(0,1)|.">have hAbs := olsHC0LinearTStatisticOrZero_abs_tendstoInDistribution_standardNormalAbs
+    (μ := μ) (X := X) (e := e) (y := y)
+    h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos</span><span class="lean-line" tabindex="0" data-explain="Rewrite Lean's named t statistic into the generic form expected by the symmetric confidence-interval coverage theorem.">have hGeneric : TendstoInDistribution
+      (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) := by
+    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hAbs
+    intro n
+    exact ae_of_all μ (fun ω => by
+      dsimp [θ, θhat, se, root, olsLinearTStatisticOrZero,
+        olsLinearTStatisticNumeratorOrZero, linearRestrictionStdError]
+      rw [linearMapUnit_smul_sub_dot_one])</span><span class="lean-line" tabindex="0" data-explain="Apply the reusable symmetric-CI coverage theorem.">simpa [θ, θhat, se, root, c, olsLinearCIEventOrZero,
+  linearRestrictionEstimate, linearRestrictionStdError] using
+  symmetricCI_coverage_tendsto_of_abs_tstat_standardNormal_of_se_tendsto_pos …</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+These declarations are the reader-facing endpoint for Chapter 7 asymptotic
+inference. The same architecture supports homoskedastic, HC1, HC2, and HC3
+variants, and the multirestriction Wald theorem in `Normality.lean` handles
+the higher-dimensional restriction case.
+

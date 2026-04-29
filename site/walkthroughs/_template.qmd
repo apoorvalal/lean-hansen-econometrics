@@ -6,14 +6,14 @@ chapter: N
 
 ## Textbook statement
 
-> Hansen's wording (paraphrased), with the equation:
->
-> $$\text{...}$$
+For the relevant objects and hypotheses, Hansen's statement says:
 
-## Assumptions
+$$\text{...}$$
 
-- ...
-- ...
+### Proof sketch
+
+Short mathematical proof idea. Keep this at the level of the textbook
+argument; the Lean-specific mechanics belong in the hover walkthrough below.
 
 ## Lean statement
 
@@ -21,24 +21,29 @@ The corresponding Lean theorem:
 
 - [`<name>`](<github source link>) at `HansenEconometrics/...lean:<line>`
 
-```lean
-theorem ... := ...
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="The public theorem name; this should be citeable and stable.">theorem theorem_name</span>
+    <span class="lean-token" tabindex="0" data-explain="Explicit mathematical inputs. Prefer these over hiding important assumptions inside opaque aliases.">(X : Matrix n k ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Substantive assumptions should be named or packaged so downstream users can see what is being used.">(h : AssumptionPackage X)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The conclusion should match the chapter-facing mathematical statement, with bridge wrappers when needed.">Conclusion X</span> := by
+  ...
+</code></pre>
 ```
+:::
+
+### Reading the statement
+
+Component-by-component interpretation table.
 
 ## Translation notes
 
 Where the Lean phrasing differs from Hansen and why the difference is harmless.
 
-## Proof sketch
+## Tactic-by-tactic walkthrough
 
-Human-readable LaTeX walkthrough.
-
-## Lean proof structure
-
-Chain of supporting lemmas, each linked:
-
-- [`lemma_a`](<link>)
-- [`lemma_b`](<link>)
+Use hoverable Lean lines for short proof bodies, or a compact proof map for
+large composed theorems. Link supporting lemmas where they do real work.
 
 ## Downstream uses
 

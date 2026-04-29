@@ -1,0 +1,19 @@
+---
+title: "Chapter 3 Assumptions"
+---
+
+::: {.chapter-kicker}
+Finite-sample least-squares algebra
+:::
+
+Chapter 3 is deliberately algebraic: no probability space and no distributional
+assumptions are needed. The substantive assumptions are rank/invertibility
+conditions on finite matrices.
+
+| Assumption | Lean names | Used in proofs |
+|---|---|---|
+| The design matrix $X \in \mathbb{R}^{n \times k}$ and response $y \in \mathbb{R}^n$ live on finite index types. | <span class="lean-chip">`Matrix n k ℝ`</span> <span class="lean-chip">`n → ℝ`</span> <span class="lean-chip">`[Fintype n]`</span> <span class="lean-chip">`[Fintype k]`</span> | <span class="use-links">[OLS definitions](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L16) [projection matrices](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L24)</span> |
+| Full column rank is represented as invertibility of the Gram matrix $X^\top X$. | <span class="lean-chip">`[Invertible (Xᵀ * X)]`</span> | <span class="use-links">[normal equations](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L46) [residual orthogonality](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L61) [hat matrix identities](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L40)</span> |
+| Statements involving $I$, $P$, or $M$ need decidable equality on finite index types. | <span class="lean-chip">`[DecidableEq n]`</span> <span class="lean-chip">`[DecidableEq k]`</span> | <span class="use-links">[annihilator matrix](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L28) [residual as $My$](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3Projections.lean#L210)</span> |
+| FWL needs three nonsingularity witnesses: $X_1^\top X_1$, $[X_1,X_2]^\top[X_1,X_2]$, and $(M_1X_2)^\top(M_1X_2)$. | <span class="lean-chip">`[Invertible (X₁ᵀ * X₁)]`</span> <span class="lean-chip">`[Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]`</span> <span class="lean-chip">`[Invertible ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)]`</span> | <span class="use-links">[FWL coefficient theorem](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L147) [FWL residual theorem](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3FWL.lean#L163)</span> |
+| Residual-sum-zero requires the constant vector to lie in the column span of $X$. | <span class="lean-chip">`∃ b, X *ᵥ b = fun _ => 1`</span> | <span class="use-links">[residual sum zero](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter3LeastSquaresAlgebra.lean#L98)</span> |

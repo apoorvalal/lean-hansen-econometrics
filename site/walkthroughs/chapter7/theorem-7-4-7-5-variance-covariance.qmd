@@ -1,0 +1,121 @@
+---
+title: "Theorems 7.4-7.5 — Residual variance and homoskedastic covariance consistency"
+lean_name: "HansenEconometrics.olsHomoskedasticCovarianceStar_tendstoInMeasure"
+chapter: 7
+---
+
+## Textbook statement
+
+For the linear model $y_i = X_i^\top\beta + e_i$, Theorem 7.4 states that the
+residual variance estimators converge to the population error variance:
+
+$$
+\hat\sigma_n^2 \xrightarrow{p} \sigma^2,
+\qquad
+s_n^2 \xrightarrow{p} \sigma^2.
+$$
+
+Theorem 7.5 then plugs this variance estimator into the homoskedastic
+asymptotic covariance formula:
+
+$$
+\hat V_{\beta,n}^0 = s_n^2 \hat Q_n^{-1}
+\xrightarrow{p}
+V_\beta^0 = \sigma^2 Q^{-1}.
+$$
+
+In Lean, the assumptions are bundled as
+[`ErrorVarianceConsistencyConditions μ X e`](../../assumptions/chapter7.qmd),
+with the textbook-compatible alias
+[`SampleVarianceAssumption74 μ X e`](../../assumptions/chapter7.qmd). The
+linear model itself remains a separate pointwise hypothesis
+`hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω`.
+
+### Proof sketch
+
+The variance estimator is handled first: show that the residual sum of squares
+differs from the true error variance by terms that vanish in probability. Then
+Theorem 7.5 combines two already-proved convergences:
+
+1. $s_n^2 \to_p \sigma^2$ from Theorem 7.4.
+2. $\hat Q_n^{-1} \to_p Q^{-1}$ from Theorem 7.1 plus continuous mapping.
+3. Entrywise multiplication gives $s_n^2(\hat Q_n^{-1})_{ij} \to_p
+   \sigma^2(Q^{-1})_{ij}$ for every $i,j$.
+4. The matrix convergence is rebuilt from those coordinatewise limits.
+
+## Lean statement
+
+The relevant declarations live in
+`HansenEconometrics/Chapter7Asymptotics/Consistency.lean`:
+
+| Lean endpoint | Role |
+|---|---|
+| [`olsSigmaSqHatStar_tendstoInMeasure_errorVariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1400) | unadjusted residual variance consistency |
+| [`olsS2Star_tendstoInMeasure_errorVariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1506) | degrees-of-freedom residual variance consistency |
+| [`homoskedasticAsymptoticCovariance`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1521) | population target $V_\beta^0=\sigma^2Q^{-1}$ |
+| [`olsHomoskedasticCovarianceStar`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1526) | feasible estimator $\hat V_{\beta,n}^0=s_n^2\hat Q_n^{-1}$ |
+| [`olsHomoskedasticCovarianceStar_tendstoInMeasure`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter7Asymptotics/Consistency.lean#L1535) | Theorem 7.5 consistency |
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 7.5: consistency of the homoskedastic plug-in covariance estimator.">theorem olsHomoskedasticCovarianceStar_tendstoInMeasure</span>
+    <span class="lean-token" tabindex="0" data-explain="The sample measure is finite, enough for convergence in measure.">{μ : Measure Ω} [IsFiniteMeasure μ]</span>
+    <span class="lean-token" tabindex="0" data-explain="Regressor, error, and outcome processes.">{X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Bundled Theorem 7.4 variance-estimator assumptions.">(h : ErrorVarianceConsistencyConditions μ X e)</span> <span class="lean-token" tabindex="0" data-explain="The true coefficient vector.">(β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear model yᵢ = Xᵢ'β + eᵢ.">(hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the feasible matrix estimator s² Qhat⁻¹ converges in probability to σ² Q⁻¹.">TendstoInMeasure μ
+      (fun n ω =>
+        olsHomoskedasticCovarianceStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      atTop (fun _ => homoskedasticAsymptoticCovariance μ X e)</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `ErrorVarianceConsistencyConditions μ X e` | Assumption 7.4 package | **Hypothesis:** WLLN and moment inputs for residual variance consistency, linked on the [Chapter 7 assumption page](../../assumptions/chapter7.qmd). |
+| `β : k → ℝ` | $\beta \in \mathbb{R}^k$ | **Given:** the fixed population coefficient. |
+| `hmodel` | $y_i=X_i^\top\beta+e_i$ | **Hypothesis:** the model connecting outcomes to regressors and errors. |
+| `olsS2Star` | $s_n^2$ | The degrees-of-freedom adjusted residual variance estimator. |
+| `olsHomoskedasticCovarianceStar` | $s_n^2\hat Q_n^{-1}$ | The totalized feasible homoskedastic covariance estimator. |
+| `homoskedasticAsymptoticCovariance μ X e` | $\sigma^2 Q^{-1}$ | The population covariance target. |
+
+## Tactic-by-tactic walkthrough
+
+The proof of Theorem 7.5 is a clean Slutsky-style composition.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="Name the scalar variance estimator so the coordinate products are readable.">let s2 : ℕ → Ω → ℝ := fun n ω =>
+    olsS2Star (stackRegressors X n ω) (stackOutcomes y n ω)</span><span class="lean-line" tabindex="0" data-explain="Name the inverse sample Gram matrix.">let invGram : ℕ → Ω → Matrix k k ℝ := fun n ω =>
+    (sampleGram (stackRegressors X n ω))⁻¹</span><span class="lean-line" tabindex="0" data-explain="Theorem 7.4 supplies s²ₙ →p σ².">have hs2 := olsS2Star_tendstoInMeasure_errorVariance
+    (μ := μ) (X := X) (e := e) (y := y) h β hmodel</span><span class="lean-line" tabindex="0" data-explain="Theorem 7.1's Gram inverse result supplies Qhat⁻¹ →p Q⁻¹.">have hInv := sampleGramInv_stackRegressors_tendstoInMeasure_popGramInv
+    (μ := μ) (X := X) (e := e) h.toSampleMomentAssumption71</span><span class="lean-line" tabindex="0" data-explain="For each matrix entry, multiply the scalar variance convergence by the matching inverse-Gram coordinate convergence.">have hEntry : ∀ i j : k,
+      TendstoInMeasure μ
+        (fun n ω => s2 n ω * invGram n ω i j)
+        atTop
+        (fun _ => errorVariance μ e * ((popGram μ X)⁻¹) i j) := by
+    intro i j
+    have hInvCoord : TendstoInMeasure μ
+        (fun n ω => invGram n ω i j)
+        atTop (fun _ => ((popGram μ X)⁻¹) i j) := by
+      simpa [invGram] using
+        TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hInv i) j
+    exact TendstoInMeasure.mul_limits_real
+      (by simpa [s2] using hs2) hInvCoord</span><span class="lean-line" tabindex="0" data-explain="Reassemble the coordinatewise limits into matrix convergence and unfold the estimator/target names.">refine tendstoInMeasure_pi (μ := μ) (fun i => ?_)
+refine tendstoInMeasure_pi (μ := μ) (fun j => ?_)
+simpa [olsHomoskedasticCovarianceStar, homoskedasticAsymptoticCovariance,
+  s2, invGram, Pi.smul_apply, smul_eq_mul] using hEntry i j</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+The homoskedastic covariance result feeds the homoskedastic versions of the
+Chapter 7 t and Wald statistics. The robust covariance page replaces
+$\sigma^2 Q^{-1}$ with the sandwich target $Q^{-1}\Omega Q^{-1}$.
+

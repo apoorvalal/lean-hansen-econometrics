@@ -1,0 +1,149 @@
+---
+title: "Theorem 5.7 — Residual variance chi-square law and independence"
+lean_name: "HansenEconometrics.scaledOlsResidualVarianceStatistic_hasLaw_chiSquared"
+chapter: 5
+---
+
+## Textbook statement
+
+In the homoskedastic normal regression model
+$$
+y = X\beta + \varepsilon,\qquad
+\varepsilon \sim N(0,\sigma^2 I_n),
+$$
+with [$X^\top X$ invertible, $\sigma^2>0$, and $n-k>0$](../../assumptions/chapter5.qmd),
+Hansen Theorem 5.7 states
+$$
+\frac{(n-k)s^2}{\sigma^2} \sim \chi^2_{n-k},
+$$
+and this scaled residual-variance statistic is independent of the OLS
+coefficient vector $\hat\beta$.
+
+### Proof sketch
+
+The deterministic identity from the residual-variance page gives
+$$
+\frac{(n-k)s^2}{\sigma^2} = \frac{\varepsilon^\top M\varepsilon}{\sigma^2},
+\qquad M = I - X(X^\top X)^{-1}X^\top.
+$$
+Since $M$ is symmetric and idempotent with rank $n-k$, its $1$-eigenspace has
+dimension $n-k$. Expanding $\varepsilon$ in an orthonormal eigenbasis turns the
+quadratic form into a sum of $n-k$ squared standardized Gaussian coordinates.
+That is exactly the definition of a $\chi^2_{n-k}$ law.
+
+For independence, write
+$$
+\hat\beta - \beta = (X^\top X)^{-1}X^\top\varepsilon,
+\qquad
+\hat e = M\varepsilon.
+$$
+These are jointly Gaussian linear images of the same Gaussian vector. Their
+cross-covariance is zero because $X^\top M=0$, so the coefficient vector is
+independent of the residual component, and hence independent of any measurable
+function of that residual component, including $(n-k)s^2/\sigma^2$.
+
+## Lean statement
+
+The relevant Lean API lives in
+`HansenEconometrics/Chapter5NormalRegression.lean`:
+
+| Lean theorem | Textbook role |
+|---|---|
+| [`scaledOlsResidualVarianceStatistic`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L32) | Random variable $\omega \mapsto (n-k)s^2/\sigma^2$. |
+| [`scaledOlsResidualVarianceStatistic_hasLaw_chiSquared`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L270) | The $\chi^2_{n-k}$ law. |
+| [`olsBeta_indep_scaledOlsResidualVarianceStatistic`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L361) | Independence of $\hat\beta$ and the scaled residual variance. |
+| [`scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L315) | Translation back to $\hat e^\top\hat e/\sigma^2$. |
+
+The headline distribution theorem reads:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.7, distribution face: the scaled residual variance has a chi-square law.">theorem scaledOlsResidualVarianceStatistic_hasLaw_chiSquared</span>
+    <span class="lean-token" tabindex="0" data-explain="Underlying sample space, measurable structure, and measure.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}</span>
+    <span class="lean-token" tabindex="0" data-explain="Fixed design matrix and true coefficient vector.">(X : Matrix n k ℝ) (β : k → ℝ)</span> <span class="lean-token" tabindex="0" data-explain="The true error variance.">{σ2 : ℝ}</span>
+    <span class="lean-token" tabindex="0" data-explain="Positive variance assumption.">(hσ2 : 0 &lt; σ2)</span> <span class="lean-token" tabindex="0" data-explain="Positive residual degrees of freedom, stated as k < n.">(hdf : Fintype.card k &lt; Fintype.card n)</span>
+    <span class="lean-token" tabindex="0" data-explain="The Gaussian error vector, represented as a Euclidean-space random variable.">(ε : Ω → EuclideanSpace ℝ n)</span>
+    <span class="lean-token" tabindex="0" data-explain="Full-column-rank condition for the design.">[Invertible (Xᵀ * X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Classical spherical normal error law: ε has law N(0, σ²I).">(hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Conclusion: the statistic (n-k)s²/σ² has χ² with n-k degrees of freedom.">HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε)
+      (chiSquared (Fintype.card n - Fintype.card k)) μ</span>
+</code></pre>
+```
+:::
+
+The independence theorem has the same hypotheses and concludes:
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Hansen Theorem 5.7, independence face.">theorem olsBeta_indep_scaledOlsResidualVarianceStatistic</span>
+    <span class="lean-token" tabindex="0" data-explain="Same normal-regression setup as the chi-square theorem.">{Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n) [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)</span> :
+    <span class="lean-token" tabindex="0" data-explain="Lean's notation for independence of random variables under μ. The left random variable is β-hat; the right is (n-k)s²/σ².">(fun ω => olsBeta X (X *ᵥ β + WithLp.ofLp (ε ω))) ⟂ᵢ[μ]
+      scaledOlsResidualVarianceStatistic X β σ2 ε</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `hσ2 : 0 < σ2` | $\sigma^2>0$ | The variance is strictly positive, so standardization by $\sqrt{\sigma^2}$ is valid. |
+| `hdf : Fintype.card k < Fintype.card n` | $k<n$ | Positive residual degrees of freedom. |
+| `HasLaw ε (multivariateGaussian 0 (σ2 • 1)) μ` | $\varepsilon\sim N(0,\sigma^2I_n)$ | The classical spherical normal-error assumption. |
+| `chiSquared (Fintype.card n - Fintype.card k)` | $\chi^2_{n-k}$ | The residual degrees of freedom in the theorem conclusion. |
+| `⟂ᵢ[μ]` | independence under $\mu$ | Independence of the coefficient vector and scaled residual variance statistic. |
+
+## Translation notes
+
+- Lean represents the random error as `ε : Ω → EuclideanSpace ℝ n`; the
+  response vector used in OLS is recovered with `WithLp.ofLp (ε ω)`.
+- The theorem proves the law of `(n-k)s²/σ²` as a named random variable,
+  `scaledOlsResidualVarianceStatistic`.
+- The companion identity
+  [`scaledOlsResidualVarianceStatistic_eq_residual_norm_sq_div`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter5NormalRegression.lean#L315)
+  connects the formal statistic back to $\hat e^\top \hat e/\sigma^2$.
+
+## Tactic-by-tactic walkthrough
+
+Hover over a proof line to read what it contributes.
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The distribution theorem: the scaled residual variance statistic has a chi-square law.">theorem scaledOlsResidualVarianceStatistic_hasLaw_chiSquared
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ}
+    (hσ2 : 0 &lt; σ2) (hdf : Fintype.card k &lt; Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible (Xᵀ * X)]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (scaledOlsResidualVarianceStatistic X β σ2 ε)
+      (chiSquared (Fintype.card n - Fintype.card k)) μ := by</span><span class="lean-line" tabindex="0" data-explain="Use classical choice for the finite eigenbasis machinery.">  classical</span><span class="lean-line" tabindex="0" data-explain="Record that the annihilator matrix M is Hermitian, so it has an orthonormal eigenbasis.">  let hM : (annihilatorMatrix X).IsHermitian := annihilatorMatrix_isHermitian X</span><span class="lean-line" tabindex="0" data-explain="Define the standardized Gaussian coordinates of ε along the 1-eigenspace of M.">  let W : {j : n // hM.eigenvalues j = 1} → Ω → ℝ :=
+    restrictedStandardizedCoords hM.eigenvectorBasis
+      (fun i : {j : n // hM.eigenvalues j = 1} => i.1) σ2 ε</span><span class="lean-line" tabindex="0" data-explain="Identify the number of 1-eigenvectors with the rank of M.">  have hRankEqCard :
+      (annihilatorMatrix X).rank = Fintype.card {j : n // hM.eigenvalues j = 1} := by
+    simpa [hM] using rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hM
+      (annihilatorMatrix_idempotent X)</span><span class="lean-line" tabindex="0" data-explain="Use rank(M)=n-k and k<n to show there is a positive number of residual degrees of freedom.">  have hCardPos : 0 &lt; Fintype.card {j : n // hM.eigenvalues j = 1} := by
+    rw [← hRankEqCard, Nat.eq_sub_of_add_eq (rank_annihilatorMatrix_add X)]
+    exact Nat.sub_pos_of_lt hdf</span><span class="lean-line" tabindex="0" data-explain="Get the reusable theorem that orthonormal coordinates of spherical Gaussian errors are independent standard normals.">  have hcoords := orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
+    (b := hM.eigenvectorBasis) hσ2 ε hε</span><span class="lean-line" tabindex="0" data-explain="Each coordinate Wᵢ has the standard normal law.">  have hLawW : ∀ i, HasLaw (W i) (gaussianReal 0 1) μ := by
+    intro i
+    simpa [W, restrictedStandardizedCoords, standardizedCoords] using hcoords.1 i.1</span><span class="lean-line" tabindex="0" data-explain="The coordinates Wᵢ are mutually independent.">  have hIndepW : ProbabilityTheory.iIndepFun W μ := by
+    simpa [W, restrictedStandardizedCoords, standardizedCoords] using
+      hcoords.2.precomp Subtype.val_injective</span><span class="lean-line" tabindex="0" data-explain="Apply the generic theorem: a sum of squared independent standard normals is chi-square.">  have hLawSumSq : HasLaw (sumSquaresRV W)
+      (chiSquared (Fintype.card {j : n // hM.eigenvalues j = 1})) μ := by
+    simpa [W, sumSquaresRV] using hasLaw_sum_sq_chiSquared_fintype hCardPos hLawW hIndepW</span><span class="lean-line" tabindex="0" data-explain="Use the deterministic spectral rewrite that identifies the residual-variance statistic with that sum of squares.">  have hEq := scaledOlsResidualVarianceStatistic_eq_sum_sq_eigenvector_coords X β hσ2 hdf ε</span><span class="lean-line" tabindex="0" data-explain="Transport the law across the almost-everywhere equality and rewrite the eigenvalue count as n-k.">  convert hLawSumSq.congr ?_ using 1
+  · rw [← hRankEqCard, Nat.eq_sub_of_add_eq (rank_annihilatorMatrix_add X)]
+  · simpa [hM, W] using hEq.symm</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+Theorem 5.7 supplies the denominator and independence input for the exact
+t-statistic theorem, coefficient confidence intervals, variance confidence
+intervals, and the block F-test theorem.

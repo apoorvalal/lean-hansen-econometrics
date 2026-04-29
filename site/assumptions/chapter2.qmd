@@ -1,0 +1,20 @@
+---
+title: "Chapter 2 Assumptions"
+---
+
+::: {.chapter-kicker}
+Conditional expectation and projection
+:::
+
+Chapter 2 has two layers: backend sigma-algebra theorems and public
+random-variable wrappers. The RV-facing names are the ones later chapters should
+usually cite.
+
+| Assumption | Lean names | Used in proofs |
+|---|---|---|
+| Conditioning on a measurable variable $X$ means using $\sigma(X)$, with $\sigma(X) \le \mathcal{F}$. | <span class="lean-chip">`conditioningSpace`</span> <span class="lean-chip">`conditioningSpace_le`</span> <span class="lean-chip">`condExpOn`</span> | <span class="use-links">[tower property](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L270) [law of total variance](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L122)</span> |
+| Nested information $\sigma(X_1) \subseteq \sigma(X_2)$ lets the tower property collapse. | Backend: <span class="lean-chip">`tower_property`</span><br>RV wrapper: <span class="lean-chip">`tower_property_rv`</span> | <span class="use-links">[RV tower wrapper](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L270) [residual variance monotonicity](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L153)</span> |
+| Pull-out theorem needs an $X$-measurable factor $g$ and integrability of $Y$ and $gY$. | Backend: <span class="lean-chip">`conditioning_theorem_ae`</span>, <span class="lean-chip">`conditioning_theorem_integral`</span><br>RV wrappers: <span class="lean-chip">`conditioning_theorem_ae_rv`</span>, <span class="lean-chip">`conditioning_theorem_integral_rv`</span> | <span class="use-links">[a.e. RV pull-out](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L287) [integrated RV pull-out](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L305)</span> |
+| CEF error $e = Y - \mathbb{E}[Y \mid X]$ requires integrability of $Y$; orthogonality also requires integrability of $g e$. | Backend: <span class="lean-chip">`condExp_cefError_zero`</span>, <span class="lean-chip">`integral_cefError_zero`</span>, <span class="lean-chip">`integral_mul_cefError_zero`</span><br>RV wrapper: <span class="lean-chip">`condExp_cefErrorOn_zero`</span> | <span class="use-links">[conditional mean zero](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L78) [RV conditional mean zero](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2CondExp.lean#L326)</span> |
+| Variance identities require $Y \in L^2(\mu)$ and probability-measure structure. | Backend: <span class="lean-chip">`law_total_variance`</span>, <span class="lean-chip">`variance_condExp_le_variance`</span><br>RV wrappers: <span class="lean-chip">`law_total_variance_rv`</span>, <span class="lean-chip">`variance_condExpOn_le_variance`</span> | <span class="use-links">[backend total variance](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L35) [RV total variance](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2Variance.lean#L122)</span> |
+| Linear projection needs population moment matrices $Q_{XX}$ and $Q_{XY}$, plus invertibility of $Q_{XX}$. | <span class="lean-chip">`linearProjectionBeta`</span> <span class="lean-chip">`linearProjectionBeta_normal_equations`</span> <span class="lean-chip">`linearProjectionBeta_minimizes_MSE`</span> | <span class="use-links">[normal equations](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L26) [MSE minimizer](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L97) [covariance formula](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L189)</span> |

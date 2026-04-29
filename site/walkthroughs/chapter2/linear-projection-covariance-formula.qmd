@@ -1,0 +1,115 @@
+---
+title: "Theorem 2.10 — Linear projection covariance formula"
+lean_name: "HansenEconometrics.linearProjectionBeta_eq_covMat_inv_covVec"
+chapter: 2
+---
+
+## Textbook statement
+
+In the linear projection model
+
+$$
+Y = \alpha + X^\top\beta + e,
+\qquad \operatorname{cov}(X,e)=0,
+$$
+
+the slope coefficient has the covariance formula
+
+$$
+\beta = \operatorname{Var}(X)^{-1}\operatorname{Cov}(X,Y).
+$$
+
+In Lean, the theorem assumes the
+[Chapter 2 covariance and projection hypotheses](../../assumptions/chapter2.qmd):
+finite second moments, a probability measure, invertibility of `covMat μ X`,
+the pointwise affine model, and the orthogonality condition `covVec μ X e = 0`.
+
+### Proof sketch
+
+Take covariance with $X$ on both sides of the model:
+
+$$
+\operatorname{Cov}(X,Y)
+= \operatorname{Cov}(X,\alpha + X^\top\beta + e)
+= \operatorname{Var}(X)\beta + \operatorname{Cov}(X,e).
+$$
+
+The orthogonality condition sets $\operatorname{Cov}(X,e)=0$, so
+
+$$
+\operatorname{Cov}(X,Y)=\operatorname{Var}(X)\beta.
+$$
+
+The population normal-equations uniqueness theorem then identifies
+$\beta$ with `linearProjectionBeta (covMat μ X) (covVec μ X Y)`.
+
+## Lean statement
+
+The theorem lives in
+[`HansenEconometrics/Chapter2LinearProjection.lean`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L189):
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-token" tabindex="0" data-explain="Covariance-form slope theorem for the linear projection model.">theorem linearProjectionBeta_eq_covMat_inv_covVec</span>
+    [IsProbabilityMeasure μ]
+    <span class="lean-token" tabindex="0" data-explain="Regressor vector X, response Y, error e, intercept α, and slope β.">(X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)</span>
+    <span class="lean-token" tabindex="0" data-explain="The covariance matrix of X is invertible.">[Invertible (covMat μ X)]</span>
+    <span class="lean-token" tabindex="0" data-explain="Each coordinate of X and the error have finite second moments.">(hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ)</span>
+    <span class="lean-token" tabindex="0" data-explain="Pointwise linear projection model.">(hmodel : Y = fun ω => α + dotProduct (X ω) β + e ω)</span>
+    <span class="lean-token" tabindex="0" data-explain="Projection-error orthogonality: cov(X,e)=0.">(horth : covVec μ X e = 0)</span> :
+    <span class="lean-token" tabindex="0" data-explain="The coefficient β equals covMat(X)⁻¹ covVec(X,Y), packaged as linearProjectionBeta.">β = linearProjectionBeta (covMat μ X) (covVec μ X Y)</span>
+</code></pre>
+```
+:::
+
+### Reading the statement
+
+| Lean | Math | What it gives us |
+|---|---|---|
+| `[IsProbabilityMeasure μ]` | probability law | Needed for covariance and expectations. |
+| `X : Ω → k → ℝ` | random vector $X$ | Regressor vector. |
+| `Y e : Ω → ℝ` | $Y$, $e$ | Response and projection error. |
+| `α : ℝ`, `β : k → ℝ` | intercept and slope | Parameters in the affine model. |
+| `[Invertible (covMat μ X)]` | $\operatorname{Var}(X)$ invertible | Lets Lean form the covariance-based projection coefficient. |
+| `hX`, `he` | finite second moments | Required for covariances. |
+| `hmodel` | $Y=\alpha+X^\top\beta+e$ | Pointwise model identity. |
+| `horth` | $\operatorname{Cov}(X,e)=0$ | Orthogonality condition that produces the normal equations. |
+| conclusion | $\beta=\operatorname{Var}(X)^{-1}\operatorname{Cov}(X,Y)$ | Textbook covariance formula. |
+
+## Translation notes
+
+- `covMat μ X` is Hansen's $\operatorname{Var}(X)$.
+- `covVec μ X Y` is Hansen's $\operatorname{Cov}(X,Y)$.
+- `linearProjectionBeta (covMat μ X) (covVec μ X Y)` is the formal
+  covariance formula $\operatorname{Var}(X)^{-1}\operatorname{Cov}(X,Y)$.
+- The proof routes through
+  [`linearProjectionBeta_eq_of_normal_equations`](https://github.com/apoorvalal/lean-hansen-econometrics/blob/main/HansenEconometrics/Chapter2LinearProjection.lean#L42):
+  once `covMat μ X *ᵥ β = covVec μ X Y` is proved, uniqueness does the rest.
+
+## Tactic-by-tactic walkthrough
+
+::: {.lean-hover-panel}
+```{=html}
+<pre><code><span class="lean-line" tabindex="0" data-explain="The covariance-form slope theorem.">theorem linearProjectionBeta_eq_covMat_inv_covVec
+    [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
+    [Invertible (covMat μ X)]
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (he : MemLp e 2 μ)
+    (hmodel : Y = fun ω => α + dotProduct (X ω) β + e ω)
+    (horth : covVec μ X e = 0) :
+    β = linearProjectionBeta (covMat μ X) (covVec μ X Y) := by</span><span class="lean-line" tabindex="0" data-explain="Flip the goal to match the normal-equations uniqueness theorem, which returns linearProjectionBeta = candidate.">  symm</span><span class="lean-line" tabindex="0" data-explain="Use the theorem saying any b satisfying QXX b = QXY equals the projection coefficient.">  apply linearProjectionBeta_eq_of_normal_equations</span><span class="lean-line" tabindex="0" data-explain="Prove the normal-equation identity covVec(X,Y)=covMat(X)β+covVec(X,e).">  have hcov :
+      covVec μ X Y = covMat μ X *ᵥ β + covVec μ X e := by</span><span class="lean-line" tabindex="0" data-explain="Rewrite Y by the affine model.">    rw [hmodel]</span><span class="lean-line" tabindex="0" data-explain="Apply the reusable affine-model covariance decomposition.">    exact covVec_linearProjectionModel (μ := μ) X e α β hX he</span><span class="lean-line" tabindex="0" data-explain="Finish the normal equations: the error covariance term is zero by orthogonality.">  calc
+    covMat μ X *ᵥ β = covMat μ X *ᵥ β + covVec μ X e := by rw [horth]; simp
+    _ = covVec μ X Y := by rw [hcov]</span>
+</code></pre>
+```
+:::
+
+## Downstream uses
+
+- This theorem is the Chapter 2 population analogue of the closed-form OLS
+  coefficient in Chapter 3.
+- It also explains why covariance matrices are the natural inputs to later
+  variance and robust-covariance formulas.
