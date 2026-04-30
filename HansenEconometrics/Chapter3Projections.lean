@@ -10,12 +10,6 @@ open Matrix
 variable {n k l : Type*}
 variable [Fintype n]
 
-/-- Hansen Theorem 3.3.1 helper: the Gram matrix `Xᵀ X` is symmetric. -/
-theorem gram_transpose
-    (X : Matrix n k ℝ) :
-    (Xᵀ * X)ᵀ = Xᵀ * X := by
-  rw [Matrix.transpose_mul, Matrix.transpose_transpose]
-
 variable [Fintype k] [DecidableEq k]
 
 /-- Hansen Section 3.11: the OLS projection / hat matrix `P = X (Xᵀ X)⁻¹ Xᵀ`. -/

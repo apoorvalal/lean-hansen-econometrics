@@ -1,4 +1,6 @@
 import HansenEconometrics.LinearAlgebraUtils
+import HansenEconometrics.Chapter2CondExp
+import HansenEconometrics.Chapter2LinearProjection
 
 open scoped Matrix
 
@@ -117,5 +119,48 @@ theorem residual_sum_zero_of_one_mem_colspan
         simpa [vecMul_eq_mulVec_transpose] using (normal_equations X y)
       rw [h]
       simp
+
+omit [DecidableEq k] in
+/-- Bridge lemma: the Chapter 3 sum-of-squared-errors equals the Chapter 2
+`linearProjectionMSE` when the moment matrices are the sample Gram matrix and
+cross-moment vector. This connects the two notations so we can reuse the
+Chapter 2 minimization theorem. -/
+lemma sumSquaredErrors_eq_linearProjectionMSE
+    (X : Matrix n k ℝ) (y : n → ℝ) (b : k → ℝ) :
+    sumSquaredErrors X y b =
+      linearProjectionMSE (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y) b := by
+  have hcross : y ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ (Xᵀ *ᵥ y) := by
+    rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, dotProduct_comm]
+  have hquad : (X *ᵥ b) ⬝ᵥ (X *ᵥ b) = b ⬝ᵥ ((Xᵀ * X) *ᵥ b) := by
+    rw [← Matrix.mulVec_mulVec,
+        Matrix.dotProduct_mulVec b Xᵀ (X *ᵥ b),
+        vecMul_eq_mulVec_transpose,
+        Matrix.transpose_transpose]
+  unfold sumSquaredErrors linearProjectionMSE
+  rw [sub_dotProduct, dotProduct_sub, dotProduct_sub,
+      dotProduct_comm (X *ᵥ b) y, hcross, hquad]
+  ring
+
+/-- Hansen Theorem 3.1 (existence half): `olsBeta X y` attains the minimum of the sum
+of squared errors. For any coefficient vector `b`, `SSE(olsBeta X y) ≤ SSE(b)`.
+
+Uniqueness — `b = olsBeta X y` whenever `SSE(b) = SSE(olsBeta X y)` — requires strict
+positive-definiteness of `Xᵀ * X` and is left to a follow-up. -/
+theorem sumSquaredErrors_olsBeta_le
+    (X : Matrix n k ℝ) (y : n → ℝ) (b : k → ℝ) [Invertible (Xᵀ * X)] :
+    sumSquaredErrors X y (olsBeta X y) ≤ sumSquaredErrors X y b := by
+  rw [sumSquaredErrors_eq_linearProjectionMSE X y b,
+      sumSquaredErrors_eq_linearProjectionMSE X y (olsBeta X y),
+      show olsBeta X y = linearProjectionBeta (Xᵀ * X) (Xᵀ *ᵥ y) from rfl]
+  exact linearProjectionBeta_minimizes_MSE (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y)
+    (gram_transpose X) (gram_quadratic_nonneg X) b
+
+/-- Hansen Theorem 3.1 (existence half), packaged as `IsMinOn`: `olsBeta X y` is a
+global minimizer of `sumSquaredErrors X y` over all of `k → ℝ`. -/
+theorem olsBeta_isMinOn
+    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    IsMinOn (sumSquaredErrors X y) Set.univ (olsBeta X y) := by
+  intro b _
+  exact sumSquaredErrors_olsBeta_le X y b
 
 end HansenEconometrics
