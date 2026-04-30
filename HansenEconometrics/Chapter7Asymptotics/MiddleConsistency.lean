@@ -307,62 +307,101 @@ theorem hc3Weight_abs_sub_one_le_eight_mul
         nlinarith
       nlinarith
 
-/-- If the maximal leverage is smaller than `δ ≤ 1/2`, then the HC2
-adjustment-weight norm is smaller than `2δ`. -/
-theorem levAdjWtNormStar_hc2_lt_maxLevStar_lt
-    (X : Matrix n k ℝ) {δ : ℝ} (hδ : 0 < δ) (hδ_half : δ ≤ 1 / 2)
+/-- If a leverage weight satisfies `|w(h) - 1| ≤ C · h` on `[0, 1/2]` and
+maximal leverage is below `δ ≤ 1/2`, then the leverage-adjustment weight norm is bounded
+by `C · δ`. Backend helper for per-family weight-norm convergence wrappers. -/
+private theorem levAdjWtNormStar_le_of_linearBound
+    (X : Matrix n k ℝ) (weight : ℝ → ℝ) {C : ℝ} (hC : 0 ≤ C)
+    (hbound : ∀ {h : ℝ}, 0 ≤ h → h ≤ 1 / 2 → |weight h - 1| ≤ C * h)
+    {δ : ℝ} (hδ_nonneg : 0 ≤ δ) (hδ_half : δ ≤ 1 / 2)
     (hmax : maxLeverageStar X < δ) :
-    levAdjWtNormStar (fun h => (1 - h)⁻¹) X < 2 * δ := by
-  let z : n → ℝ := fun i => (1 - leverageStar X i)⁻¹ - 1
+    levAdjWtNormStar weight X ≤ C * δ := by
+  let z : n → ℝ := fun i => weight (leverageStar X i) - 1
   have hcoords : ∀ i : n, leverageStar X i < δ := by
     intro i
     exact lt_of_le_of_lt (leverageStar_le_maxLeverageStar X i) hmax
-  have hz : ‖z‖ < 2 * δ := by
+  have hz : ‖z‖ ≤ C * δ := by
     refine
-      (@pi_norm_lt_iff n (fun _ : n => ℝ) _
-        (fun _ => (by infer_instance : SeminormedAddGroup ℝ)) z (2 * δ)
-        (show 0 < 2 * δ by positivity)).2 ?_
+      (@pi_norm_le_iff_of_nonneg n (fun _ : n => ℝ) _
+        (fun _ => (by infer_instance : SeminormedAddGroup ℝ)) z (C * δ)
+        (mul_nonneg hC hδ_nonneg)).2 ?_
     intro i
     have hi_nonneg : 0 ≤ leverageStar X i := leverageStar_nonneg X i
     have hi_lt : leverageStar X i < δ := hcoords i
     have hi_half : leverageStar X i ≤ 1 / 2 := by
       linarith
-    have hbound :
-        |(1 - leverageStar X i)⁻¹ - 1| ≤ 2 * leverageStar X i :=
-      hc2Weight_abs_sub_one_le_two_mul hi_nonneg hi_half
-    have hlt : 2 * leverageStar X i < 2 * δ := by
-      exact mul_lt_mul_of_pos_left hi_lt (by positivity)
-    simpa [z, Real.norm_eq_abs] using lt_of_le_of_lt hbound hlt
+    have hweight : |weight (leverageStar X i) - 1| ≤ C * leverageStar X i :=
+      hbound hi_nonneg hi_half
+    have hlev : C * leverageStar X i ≤ C * δ := by
+      exact mul_le_mul_of_nonneg_left (le_of_lt hi_lt) hC
+    simpa [z, Real.norm_eq_abs] using hweight.trans hlev
   simpa [levAdjWtNormStar, z] using hz
 
-/-- If the maximal leverage is smaller than `δ ≤ 1/2`, then the HC3
-adjustment-weight norm is smaller than `8δ`. -/
-theorem levAdjWtNormStar_hc3_lt_maxLevStar_lt
-    (X : Matrix n k ℝ) {δ : ℝ} (hδ : 0 < δ) (hδ_half : δ ≤ 1 / 2)
-    (hmax : maxLeverageStar X < δ) :
-    levAdjWtNormStar (fun h => ((1 - h)⁻¹) ^ 2) X < 8 * δ := by
-  let z : n → ℝ := fun i => ((1 - leverageStar X i) ^ 2)⁻¹ - 1
-  have hcoords : ∀ i : n, leverageStar X i < δ := by
-    intro i
-    exact lt_of_le_of_lt (leverageStar_le_maxLeverageStar X i) hmax
-  have hz : ‖z‖ < 8 * δ := by
-    refine
-      (@pi_norm_lt_iff n (fun _ : n => ℝ) _
-        (fun _ => (by infer_instance : SeminormedAddGroup ℝ)) z (8 * δ)
-        (show 0 < 8 * δ by positivity)).2 ?_
-    intro i
-    have hi_nonneg : 0 ≤ leverageStar X i := leverageStar_nonneg X i
-    have hi_lt : leverageStar X i < δ := hcoords i
-    have hi_half : leverageStar X i ≤ 1 / 2 := by
+/-- A linear-in-leverage bound `|w(h) - 1| ≤ C · h` on `[0, 1/2]` upgrades
+`oₚ(1)` maximal leverage to `oₚ(1)` leverage-adjustment weight norm. Backend helper
+for per-family weight-norm convergence wrappers. -/
+private theorem levAdjWtNormStar_tendstoInMeasure_zero_of_linearBound
+    {μ : Measure Ω} {X : ℕ → Ω → (k → ℝ)} (weight : ℝ → ℝ)
+    {C : ℝ} (hC : 0 < C)
+    (hbound : ∀ {h : ℝ}, 0 ≤ h → h ≤ 1 / 2 → |weight h - 1| ≤ C * h)
+    (hMax : TendstoInMeasure μ
+      (fun n ω => maxLeverageStar (stackRegressors X n ω))
+      atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => levAdjWtNormStar weight (stackRegressors X n ω))
+      atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hMax ⊢
+  intro ε hε
+  rw [ENNReal.tendsto_atTop_zero]
+  intro η hη
+  let δ : ℝ := min (1 / 4 : ℝ) (ε / (2 * C))
+  have hδ : 0 < δ := by
+    dsimp [δ]
+    refine lt_min ?_ ?_
+    · norm_num
+    · positivity
+  have hδ_nonneg : 0 ≤ δ := le_of_lt hδ
+  have hδ_half : δ ≤ 1 / 2 := by
+    dsimp [δ]
+    have hle : min (1 / 4 : ℝ) (ε / (2 * C)) ≤ 1 / 4 := min_le_left _ _
+    linarith
+  have hCδ_lt_ε : C * δ < ε := by
+    dsimp [δ]
+    have hle : min (1 / 4 : ℝ) (ε / (2 * C)) ≤ ε / (2 * C) := min_le_right _ _
+    have hmul : C * min (1 / 4 : ℝ) (ε / (2 * C)) ≤ C * (ε / (2 * C)) := by
+      exact mul_le_mul_of_nonneg_left hle hC.le
+    have hhalf : C * (ε / (2 * C)) = ε / 2 := by
+      field_simp [hC.ne']
+    have hgap : ε / 2 < ε := by
       linarith
-    have hbound :
-        |((1 - leverageStar X i) ^ 2)⁻¹ - 1| ≤ 8 * leverageStar X i := by
-      simpa [pow_two] using
-        (hc3Weight_abs_sub_one_le_eight_mul (h := leverageStar X i) hi_nonneg hi_half)
-    have hlt : 8 * leverageStar X i < 8 * δ := by
-      exact mul_lt_mul_of_pos_left hi_lt (by positivity)
-    simpa [z, Real.norm_eq_abs] using lt_of_le_of_lt hbound hlt
-  simpa [levAdjWtNormStar, z, pow_two] using hz
+    exact lt_of_le_of_lt (by simpa [hhalf] using hmul) hgap
+  have hMaxevent := (hMax δ hδ).eventually_lt_const hη
+  obtain ⟨N, hN⟩ := eventually_atTop.1 hMaxevent
+  refine ⟨N, fun n hn => ?_⟩
+  have hMaxn : μ {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} < η :=
+    hN n hn
+  have hcover :
+      {ω | ε ≤ dist
+          (levAdjWtNormStar weight (stackRegressors X n ω)) 0} ⊆
+        {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} := by
+    intro ω hω
+    by_contra hsmall
+    have hmax_lt : maxLeverageStar (stackRegressors X n ω) < δ := by
+      have hdist_lt : dist (maxLeverageStar (stackRegressors X n ω)) 0 < δ :=
+        not_le.mp hsmall
+      simpa [Real.dist_eq, maxLeverageStar, abs_of_nonneg (norm_nonneg _)] using hdist_lt
+    have hweight_le :
+        levAdjWtNormStar weight (stackRegressors X n ω) ≤ C * δ :=
+      levAdjWtNormStar_le_of_linearBound
+        (X := stackRegressors X n ω) (weight := weight) hC.le hbound
+        hδ_nonneg hδ_half hmax_lt
+    have hdist_lt :
+        dist (levAdjWtNormStar weight (stackRegressors X n ω)) 0 < ε := by
+      simpa [Real.dist_eq, levAdjWtNormStar,
+        abs_of_nonneg (norm_nonneg _)] using
+        lt_of_le_of_lt hweight_le hCδ_lt_ε
+    exact (not_le_of_gt hdist_lt) hω
+  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hMaxn)
 
 /-- HC2 adjustment-weight norms are `oₚ(1)` once maximal leverage is `oₚ(1)`. -/
 theorem levAdjWtNormStar_hc2_tendstoInMeasure_zero_maxLevStar
@@ -374,56 +413,11 @@ theorem levAdjWtNormStar_hc2_tendstoInMeasure_zero_maxLevStar
       (fun n ω =>
         levAdjWtNormStar (fun h => (1 - h)⁻¹)
           (stackRegressors X n ω))
-      atTop (fun _ => 0) := by
-  rw [tendstoInMeasure_iff_dist] at hMax ⊢
-  intro ε hε
-  rw [ENNReal.tendsto_atTop_zero]
-  intro η hη
-  let δ : ℝ := min (1 / 4 : ℝ) (ε / 4)
-  have hδ : 0 < δ := by
-    dsimp [δ]
-    refine lt_min ?_ ?_
-    · norm_num
-    · positivity
-  have hδ_half : δ ≤ 1 / 2 := by
-    dsimp [δ]
-    have hle : min (1 / 4 : ℝ) (ε / 4) ≤ 1 / 4 := min_le_left _ _
-    linarith
-  have htwoδ_lt_ε : 2 * δ < ε := by
-    dsimp [δ]
-    have hle : min (1 / 4 : ℝ) (ε / 4) ≤ ε / 4 := min_le_right _ _
-    nlinarith
-  have hMaxevent := (hMax δ hδ).eventually_lt_const hη
-  obtain ⟨N, hN⟩ := eventually_atTop.1 hMaxevent
-  refine ⟨N, fun n hn => ?_⟩
-  have hMaxn : μ {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} < η :=
-    hN n hn
-  have hcover :
-      {ω | ε ≤ dist
-          (levAdjWtNormStar (fun h => (1 - h)⁻¹)
-            (stackRegressors X n ω)) 0} ⊆
-        {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} := by
-    intro ω hω
-    by_contra hsmall
-    have hmax_lt : maxLeverageStar (stackRegressors X n ω) < δ := by
-      have hdist_lt : dist (maxLeverageStar (stackRegressors X n ω)) 0 < δ :=
-        not_le.mp hsmall
-      simpa [Real.dist_eq, maxLeverageStar, abs_of_nonneg (norm_nonneg _)] using hdist_lt
-    have hweight_lt :
-        levAdjWtNormStar (fun h => (1 - h)⁻¹)
-          (stackRegressors X n ω) < 2 * δ :=
-      levAdjWtNormStar_hc2_lt_maxLevStar_lt
-        (X := stackRegressors X n ω) hδ hδ_half hmax_lt
-    have hdist_lt :
-        dist
-            (levAdjWtNormStar (fun h => (1 - h)⁻¹)
-              (stackRegressors X n ω))
-            0 < ε := by
-      simpa [Real.dist_eq, levAdjWtNormStar,
-        abs_of_nonneg (norm_nonneg _)] using
-        lt_trans hweight_lt htwoδ_lt_ε
-    exact (not_le_of_gt hdist_lt) hω
-  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hMaxn)
+      atTop (fun _ => 0) :=
+  levAdjWtNormStar_tendstoInMeasure_zero_of_linearBound
+    (weight := fun h => (1 - h)⁻¹) (C := 2) (by norm_num)
+    (fun {h} hh_nonneg hh_half =>
+      hc2Weight_abs_sub_one_le_two_mul hh_nonneg hh_half) hMax
 
 /-- HC3 adjustment-weight norms are `oₚ(1)` once maximal leverage is `oₚ(1)`. -/
 theorem levAdjWtNormStar_hc3_tendstoInMeasure_zero_maxLevStar
@@ -435,56 +429,11 @@ theorem levAdjWtNormStar_hc3_tendstoInMeasure_zero_maxLevStar
       (fun n ω =>
         levAdjWtNormStar (fun h => ((1 - h)⁻¹) ^ 2)
           (stackRegressors X n ω))
-      atTop (fun _ => 0) := by
-  rw [tendstoInMeasure_iff_dist] at hMax ⊢
-  intro ε hε
-  rw [ENNReal.tendsto_atTop_zero]
-  intro η hη
-  let δ : ℝ := min (1 / 4 : ℝ) (ε / 16)
-  have hδ : 0 < δ := by
-    dsimp [δ]
-    refine lt_min ?_ ?_
-    · norm_num
-    · positivity
-  have hδ_half : δ ≤ 1 / 2 := by
-    dsimp [δ]
-    have hle : min (1 / 4 : ℝ) (ε / 16) ≤ 1 / 4 := min_le_left _ _
-    linarith
-  have heightδ_lt_ε : 8 * δ < ε := by
-    dsimp [δ]
-    have hle : min (1 / 4 : ℝ) (ε / 16) ≤ ε / 16 := min_le_right _ _
-    nlinarith
-  have hMaxevent := (hMax δ hδ).eventually_lt_const hη
-  obtain ⟨N, hN⟩ := eventually_atTop.1 hMaxevent
-  refine ⟨N, fun n hn => ?_⟩
-  have hMaxn : μ {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} < η :=
-    hN n hn
-  have hcover :
-      {ω | ε ≤ dist
-          (levAdjWtNormStar (fun h => ((1 - h)⁻¹) ^ 2)
-            (stackRegressors X n ω)) 0} ⊆
-        {ω | δ ≤ dist (maxLeverageStar (stackRegressors X n ω)) 0} := by
-    intro ω hω
-    by_contra hsmall
-    have hmax_lt : maxLeverageStar (stackRegressors X n ω) < δ := by
-      have hdist_lt : dist (maxLeverageStar (stackRegressors X n ω)) 0 < δ :=
-        not_le.mp hsmall
-      simpa [Real.dist_eq, maxLeverageStar, abs_of_nonneg (norm_nonneg _)] using hdist_lt
-    have hweight_lt :
-        levAdjWtNormStar (fun h => ((1 - h)⁻¹) ^ 2)
-          (stackRegressors X n ω) < 8 * δ :=
-      levAdjWtNormStar_hc3_lt_maxLevStar_lt
-        (X := stackRegressors X n ω) hδ hδ_half hmax_lt
-    have hdist_lt :
-        dist
-            (levAdjWtNormStar (fun h => ((1 - h)⁻¹) ^ 2)
-              (stackRegressors X n ω))
-            0 < ε := by
-      simpa [Real.dist_eq, levAdjWtNormStar,
-        abs_of_nonneg (norm_nonneg _)] using
-        lt_trans hweight_lt heightδ_lt_ε
-    exact (not_le_of_gt hdist_lt) hω
-  exact le_of_lt (lt_of_le_of_lt (measure_mono hcover) hMaxn)
+      atTop (fun _ => 0) :=
+  levAdjWtNormStar_tendstoInMeasure_zero_of_linearBound
+    (weight := fun h => ((1 - h)⁻¹) ^ 2) (C := 8) (by norm_num)
+    (fun {h} hh_nonneg hh_half =>
+      hc3Weight_abs_sub_one_le_eight_mul hh_nonneg hh_half) hMax
 
 /-- The residual absolute-weight average is nonnegative. -/
 theorem sampleScoreCovResAbsWtStar_nonneg
