@@ -1,5 +1,3 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter2CondExp
 import HansenEconometrics.Chapter2LinearProjection
@@ -21,10 +19,19 @@ noncomputable def sumSquaredErrors (X : Matrix n k ℝ) (y : n → ℝ) (b : k �
 noncomputable def olsBeta (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : k → ℝ :=
   (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ y)
 
-/-- Total version of `olsBeta`: uses `Matrix.nonsingInv` so it is defined on *every*
-design matrix, agreeing with `olsBeta` when `Xᵀ * X` is invertible and returning `0`
-otherwise. Required for the Chapter 7 stochastic story, where the invertibility of
-`Xᵀ * X` holds only a.s., not by typeclass. -/
+/-- **Star primitive**: totalized OLS coefficient that is defined on every design matrix.
+
+Uses `Matrix.nonsingInv` in place of the typeclass inverse `⅟(Xᵀ * X)`, so it is a genuine
+function with no typeclass precondition.  On **singular** designs `(Xᵀ * X)⁻¹ = 0` by
+definition, so `olsBetaStar X y = 0`; on **nonsingular** designs it agrees with `olsBeta`
+(see `olsBetaStar_eq_olsBeta`).
+
+Role in the project architecture:
+- **Chapters 3–5** use `olsBeta` (typeclass inverse) for finite-sample algebra.
+- **Chapter 7+** use `olsBetaStar` as the proof engine for asymptotic results, where
+  nonsingularity holds only a.s. and cannot be supplied as a global typeclass.
+- Textbook-facing statements that a reader would want to cite use `olsBetaOrZero`
+  (Chapter 7), which is provably equal to `olsBetaStar` (see `olsBetaOrZero_eq_olsBetaStar`). -/
 noncomputable def olsBetaStar (X : Matrix n k ℝ) (y : n → ℝ) : k → ℝ :=
   (Xᵀ * X)⁻¹ *ᵥ (Xᵀ *ᵥ y)
 

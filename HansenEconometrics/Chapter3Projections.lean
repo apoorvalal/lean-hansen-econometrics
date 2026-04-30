@@ -1,5 +1,3 @@
-import Mathlib
-import HansenEconometrics.Basic
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 
@@ -24,6 +22,7 @@ noncomputable def annihilatorMatrix (X : Matrix n k ℝ) [DecidableEq n] [Invert
   (1 : Matrix n n ℝ) - hatMatrix X
 
 /-- Hansen Theorem 3.3.1 helper: the inverse of the symmetric Gram matrix is symmetric. -/
+@[simp]
 theorem inv_gram_transpose
     (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
     (⅟ (Xᵀ * X))ᵀ = ⅟ (Xᵀ * X) := by
