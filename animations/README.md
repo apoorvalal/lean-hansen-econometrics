@@ -12,6 +12,15 @@ uv run --active manim -pql --media_dir animations/media animations/fwl_structure
 
 For a higher-quality render, use `-pqh` instead of `-pql`.
 
+Generate and splice in the voiceover with:
+
+```bash
+source .venv/bin/activate
+uv run --active python animations/fwl_voiceover.py
+```
+
+This writes `animations/media/videos/fwl_structure/1080p15/FWLStructure_voiceover.mp4`.
+
 The animation is organized around the Lean proof dependencies:
 
 - partitioned full-regression normal equations;
