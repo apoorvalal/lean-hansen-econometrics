@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -28,8 +29,8 @@ SEGMENTS = [
     Segment(
         0.0,
         5.7,
-        "Here is the formal spine of Frisch Waugh Lovell in Chapter three F W L: "
-        "compare the full beta two block with the residualized regression.",
+        "This is the formal spine of Frisch Waugh Lovell in Chapter three F W L: "
+        "full beta two equals residualized beta.",
     ),
     Segment(
         5.7,
@@ -59,21 +60,19 @@ SEGMENTS = [
     Segment(
         37.0,
         5.3,
-        "The coefficient identity is then reused to prove the two residual vectors "
-        "are equal, using the fact that the full residual is already orthogonal to X one.",
+        "The coefficient identity gives matching residuals; the full residual is "
+        "already orthogonal to X one.",
     ),
     Segment(
         42.3,
         4.3,
-        "The dependency map shows the proof architecture: block normal equations, "
-        "annihilator bridges, the auxiliary residual rewrite, then coefficient and "
-        "residual identities.",
+        "Proof map: normal equations plus annihilator bridges feed the coefficient "
+        "and residual identities.",
     ),
     Segment(
         46.6,
         4.0,
-        "So the Lean file packages F W L as a chain of reusable theorem-shaped "
-        "bridges, not as one monolithic calculation.",
+        "Lean packages F W L as reusable bridges, not one long calculation.",
     ),
 ]
 
@@ -101,9 +100,31 @@ def fit_to_duration(audio: AudioSegment, duration_s: float, tail_padding_ms: int
 
 
 def speed_change(audio: AudioSegment, factor: float) -> AudioSegment:
-    factor = min(max(factor, 1.0), 1.55)
-    shifted = audio._spawn(audio.raw_data, overrides={"frame_rate": int(audio.frame_rate * factor)})
-    return shifted.set_frame_rate(audio.frame_rate)
+    factor = max(factor, 1.0)
+    with tempfile.NamedTemporaryFile(suffix=".wav", dir=VOICEOVER_DIR, delete=False) as in_file:
+        input_path = Path(in_file.name)
+    output_path = input_path.with_name(f"{input_path.stem}_tempo.wav")
+
+    try:
+        audio.export(input_path, format="wav")
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                str(input_path),
+                "-filter:a",
+                f"atempo={factor:.6f}",
+                str(output_path),
+            ],
+            check=True,
+        )
+        return AudioSegment.from_file(output_path)
+    finally:
+        input_path.unlink(missing_ok=True)
+        output_path.unlink(missing_ok=True)
 
 
 async def build_voiceover(voice: str, rate: str) -> Path:
