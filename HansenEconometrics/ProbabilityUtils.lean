@@ -2,6 +2,7 @@ import Mathlib.Probability.CDF
 import Mathlib.Probability.CondVar
 import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
+import HansenEconometrics.MultivariateNormal
 
 open MeasureTheory ProbabilityTheory
 open Matrix
@@ -498,43 +499,10 @@ theorem hasLaw_multivariateGaussian_zero_linearMap
       (fun z : EuclideanSpace ℝ n => WithLp.toLp 2 (R *ᵥ z.ofLp))
       (multivariateGaussian 0 (R * S * Rᵀ))
       (multivariateGaussian 0 S) := by
-  let L : EuclideanSpace ℝ n →L[ℝ] EuclideanSpace ℝ q :=
-    (Matrix.toEuclideanLin R).toContinuousLinearMap
-  have hLadjointLin :
-      (Matrix.toEuclideanLin R).adjoint = Matrix.toEuclideanLin Rᵀ := by
-    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-      (Matrix.toEuclideanLin_conjTranspose_eq_adjoint (A := R)).symm
-  have hLadjoint : L.adjoint = (Matrix.toEuclideanLin Rᵀ).toContinuousLinearMap := by
-    simpa [L, LinearMap.adjoint_toContinuousLinearMap] using
-      congrArg LinearMap.toContinuousLinearMap hLadjointLin
-  have hRSR : (R * S * Rᵀ).PosSemidef := by
-    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-      (Matrix.PosSemidef.mul_mul_conjTranspose_same hS R)
-  have hMap : (multivariateGaussian 0 S).map L = multivariateGaussian 0 (R * S * Rᵀ) := by
-    refine ProbabilityTheory.IsGaussian.ext ?_ ?_
-    · change ∫ x, x ∂((multivariateGaussian 0 S).map L) =
-          ∫ x, x ∂(multivariateGaussian 0 (R * S * Rᵀ))
-      rw [ContinuousLinearMap.integral_id_map]
-      · simp [integral_id_multivariateGaussian]
-      · exact IsGaussian.integrable_id (μ := multivariateGaussian 0 S)
-    · ext x y
-      calc
-        covarianceBilin ((multivariateGaussian 0 S).map L) x y
-            = (Rᵀ *ᵥ x.ofLp) ⬝ᵥ (S *ᵥ (Rᵀ *ᵥ y.ofLp)) := by
-                rw [covarianceBilin_map
-                  (h := IsGaussian.memLp_two_id (μ := multivariateGaussian 0 S)) L x y]
-                rw [hLadjoint, covarianceBilin_multivariateGaussian hS]
-                simp
-        _ = x.ofLp ⬝ᵥ (R *ᵥ (S *ᵥ (Rᵀ *ᵥ y.ofLp))) := by
-              simpa [Matrix.transpose_transpose] using
-                (mulVec_dotProduct_right (M := Rᵀ) (v := x.ofLp)
-                  (a := S *ᵥ (Rᵀ *ᵥ y.ofLp)))
-        _ = x.ofLp ⬝ᵥ ((R * S * Rᵀ) *ᵥ y.ofLp) := by
-              simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
-        _ = covarianceBilin (multivariateGaussian 0 (R * S * Rᵀ)) x y := by
-              rw [covarianceBilin_multivariateGaussian hRSR]
-  refine ⟨by fun_prop, ?_⟩
-  simpa [L] using hMap
+  simpa [matrixContinuousLinearMap, Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hasLaw_affine_multivariateGaussian
+      (Ω := EuclideanSpace ℝ n) (P := multivariateGaussian 0 S) (X := id)
+      (μ := 0) (S := S) hS ProbabilityTheory.HasLaw.id (0 : EuclideanSpace ℝ q) R
 
 /-- In an isotropic multivariate Gaussian, the coordinates in any orthonormal basis, scaled by the
 standard deviation, are independent standard normals. This is the bridge from Gaussian vectors to
