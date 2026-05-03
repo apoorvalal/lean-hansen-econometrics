@@ -1,0 +1,7 @@
+[project]
+name = "lean-formalization"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "manim>=0.20.1",
+]

@@ -2,10 +2,15 @@
 .lean/
 build/
 .tmp/
+.venv/
+__pycache__/
+*.pyc
 *.olean
 *.ilean
 *.trace
 *.out
+media/
+animations/media/
 textextract/
 .mcp.json
 # Walkthrough site build artifacts
@@ -14,4 +19,3 @@ site/_generated/
 .agent-sync/
 .agents/
 .pi/
-
