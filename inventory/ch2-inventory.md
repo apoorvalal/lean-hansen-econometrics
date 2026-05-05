@@ -17,6 +17,7 @@ Lean files:
 - [Chapter2CondExp.lean](../HansenEconometrics/Chapter2CondExp.lean)
 - [Chapter2Variance.lean](../HansenEconometrics/Chapter2Variance.lean)
 - [Chapter2LinearProjection.lean](../HansenEconometrics/Chapter2LinearProjection.lean)
+- [Chapter2PotentialOutcomes.lean](../HansenEconometrics/Chapter2PotentialOutcomes.lean)
 - reusable helpers in [ProbabilityUtils.lean](../HansenEconometrics/ProbabilityUtils.lean)
 
 ## Status
@@ -27,6 +28,9 @@ Current Lean coverage:
 - conditional variance / total variance package
 - best predictor theorem
 - population linear projection algebra through Theorems 2.9 and 2.10
+- initial potential-outcomes API for Section 2.30:
+  observed outcomes, individual/average/conditional treatment effects, and a mean-independence bridge
+  toward Theorem 2.12
 
 Current strategy:
 - prove the strongest sigma-algebra or abstract statement first
@@ -34,8 +38,9 @@ Current strategy:
 - reuse Mathlib conditional-expectation and `L²` projection infrastructure where possible
 
 Next likely Chapter 2 targets:
+- strengthen the potential-outcomes layer from the mean-independence bridge to a full CIA theorem
+  using Mathlib conditional independence or regular conditional distributions
 - decide whether any remaining Chapter 2 results are worth formalizing before moving on
-- otherwise treat Chapter 2 as a finished foundation layer for later chapters
 
 ## Proof Architecture
 
@@ -82,6 +87,21 @@ Then prove:
   `α = μY - μX' β`
   and
   `β = var[X]⁻¹ cov(X, Y)`
+
+### Level 5: potential-outcomes package
+Define:
+- observed outcome `Y = Y(1)` on treated units and `Y = Y(0)` on untreated units
+- individual treatment effect `Y(1) - Y(0)`
+- average treatment effect `E[Y(1) - Y(0)]`
+- conditional average treatment effect `E[Y(1) - Y(0) | X]`
+
+Then prove:
+- **D2.6/D2.7** `ATE = E[Y(1)] - E[Y(0)]`
+- **D2.8** `CATE(X) = E[Y(1) | X] - E[Y(0) | X]`
+- `ATE = E[CATE(X)]` by the tower property
+- a mean-independence bridge toward **T2.12**:
+  if conditioning additionally on treatment does not change the potential-outcome conditional means,
+  then the `(D, X)` potential-outcome contrast equals the CATE
 
 ## Textbook-numbered Results
 
@@ -245,6 +265,42 @@ Links:
 Notes:
 - The slope formula is a covariance-form corollary of the earlier normal-equations theorem.
 
+### D2.6-D2.9 Potential Outcomes and Conditional Independence
+
+Links:
+- [Hansen excerpt](../textbook/ch02/ch2_excerpt.txt#L2334)
+- [Potential-outcomes definitions](../HansenEconometrics/Chapter2PotentialOutcomes.lean)
+
+| LaTeX | Lean conclusion |
+| --- | --- |
+| $Y = Y(1)$ if $D=1$, and $Y = Y(0)$ if $D=0$ | <code>observedOutcome D Y0 Y1</code> |
+| $C = Y(1) - Y(0)$ | <code>treatmentEffect Y0 Y1</code> |
+| $ACE = E[Y(1)-Y(0)]$ | <code>averageTreatmentEffect μ Y0 Y1</code> |
+| $ACE(X) = E[Y(1)-Y(0) \mid X]$ | <code>conditionalAverageTreatmentEffectOn μ Y0 Y1 X</code> |
+| CIA mean-independence consequence | <code>TreatmentMeanIndependentOn μ Y0 Y1 D X</code> |
+
+Notes:
+- Hansen calls the population quantity the average causal effect, `ACE`. The Lean API uses the more
+  common causal-inference name `averageTreatmentEffect`.
+- The current Lean layer is variable-facing and a.e.-based. It does not yet formalize the pointwise
+  density notation `ACE(x)` or the full CIA-to-mean-independence implication.
+
+### T2.12 Conditional Average Causal Effects
+
+Links:
+- [Hansen excerpt](../textbook/ch02/ch2_excerpt.txt#L2521)
+- [Mean-independence bridge](../HansenEconometrics/Chapter2PotentialOutcomes.lean)
+
+| LaTeX | Lean conclusion |
+| --- | --- |
+| $ACE = \int ACE(x) f(x)\,dx$ | <code>averageTreatmentEffect μ Y0 Y1 = ∫ ω, conditionalAverageTreatmentEffectOn μ Y0 Y1 X ω ∂μ</code> |
+| Under the mean-independence consequence of CIA, the treatment-and-covariate potential-outcome contrast equals CATE | <code>conditionalPotentialOutcomeContrastOn μ Y0 Y1 (fun ω => (D ω, X ω)) =ᵐ[μ] conditionalAverageTreatmentEffectOn μ Y0 Y1 X</code> |
+
+Notes:
+- This is a first formal bridge toward Theorem 2.12, not the final theorem as written in Hansen.
+- The final pointwise theorem should probably use Mathlib's `CondIndepFun`/`condDistrib` layer and
+  explicit standard-Borel, integrability, and overlap assumptions.
+
 ## Lean-only Bridge Results
 
 These theorems are not direct textbook labels, but they are the key translation lemmas between
@@ -274,3 +330,10 @@ Hansen's notation and the Lean formalization.
 - [`covVec_linearProjectionModel`](../HansenEconometrics/Chapter2LinearProjection.lean#L149):
   $\operatorname{cov}(X, \alpha + X' \beta + e) = \operatorname{covMat}(X)\beta +
   \operatorname{cov}(X, e)$.
+- [`conditionalAverageTreatmentEffectOn_eq_conditionalPotentialOutcomeContrastOn`](../HansenEconometrics/Chapter2PotentialOutcomes.lean):
+  $E[Y(1)-Y(0) \mid X] = E[Y(1) \mid X] - E[Y(0) \mid X]$.
+- [`averageTreatmentEffect_eq_integral_conditionalPotentialOutcomeContrastOn`](../HansenEconometrics/Chapter2PotentialOutcomes.lean):
+  the a.e. Lean version of Hansen's identity `ACE = ∫ ACE(x) f(x) dx` after rewriting CATE as a
+  difference of conditional potential-outcome means.
+- [`conditionalPotentialOutcomeContrastOn_treatment_covariates_eq_cate_of_meanIndependent`](../HansenEconometrics/Chapter2PotentialOutcomes.lean):
+  mean-independence bridge from conditioning on `(D, X)` to the CATE.

@@ -1,3 +1,4 @@
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.Chapter2CondExp
 import HansenEconometrics.Chapter3Projections
@@ -109,6 +110,135 @@ theorem olsHuberWhiteHC1VarianceEstimator_eq_smul
       ((Fintype.card n : ℝ) / (Fintype.card n - Fintype.card k : ℝ)) •
         olsHuberWhiteVarianceEstimator X y := rfl
 
+/-- HC2 covariance estimator: leverage-adjusted by `(1 - hᵢᵢ)⁻¹`.
+Lean totalizes `(1 - hᵢᵢ)⁻¹` to `0` at saturated observations
+(`hᵢᵢ = 1`); textbook agreement requires `hᵢᵢ < 1`. -/
+noncomputable def olsHuberWhiteHC2VarianceEstimator
+    (X : Matrix n k ℝ) (y : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
+  olsConditionalVarianceMatrix X
+    (Matrix.diagonal fun i => (1 - hatMatrix X i i)⁻¹ * residual X y i ^ 2)
+
+/-- HC3 covariance estimator: leverage-adjusted by `(1 - hᵢᵢ)⁻²`.
+Same totalization caveat as HC2 (zero at `hᵢᵢ = 1`). -/
+noncomputable def olsHuberWhiteHC3VarianceEstimator
+    (X : Matrix n k ℝ) (y : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
+  olsConditionalVarianceMatrix X
+    (Matrix.diagonal fun i => ((1 - hatMatrix X i i)⁻¹)^2 * residual X y i ^ 2)
+
+/-- Clustered covariance: sandwich on cluster-summed scores. -/
+noncomputable def olsClusteredVarianceEstimator
+    {G : Type*} [Fintype G] [DecidableEq G]
+    (X : Matrix n k ℝ) (y : n → ℝ) (cluster : n → G)
+    [DecidableEq n] [Invertible (Xᵀ * X)] : Matrix k k ℝ :=
+  let s : G → k → ℝ := fun g a =>
+    ∑ i, (if cluster i = g then residual X y i * X i a else 0)
+  ⅟ (Xᵀ * X) *
+    (∑ g, Matrix.vecMulVec (s g) (s g)) *
+    ⅟ (Xᵀ * X)
+
+/-- In the linear model, HC2 uses annihilator-transformed errors. -/
+theorem olsHuberWhiteHC2VarianceEstimator_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsHuberWhiteHC2VarianceEstimator X (X *ᵥ β + e) =
+      olsConditionalVarianceMatrix X
+        (Matrix.diagonal fun i =>
+          (1 - hatMatrix X i i)⁻¹ * (annihilatorMatrix X *ᵥ e) i ^ 2) := by
+  simp [olsHuberWhiteHC2VarianceEstimator]
+
+/-- In the linear model, HC3 uses annihilator-transformed errors. -/
+theorem olsHuberWhiteHC3VarianceEstimator_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsHuberWhiteHC3VarianceEstimator X (X *ᵥ β + e) =
+      olsConditionalVarianceMatrix X
+        (Matrix.diagonal fun i =>
+          ((1 - hatMatrix X i i)⁻¹)^2 * (annihilatorMatrix X *ᵥ e) i ^ 2) := by
+  simp [olsHuberWhiteHC3VarianceEstimator]
+
+/-- In the linear model, clustered covariance uses cluster-summed annihilator scores. -/
+theorem olsClusteredVarianceEstimator_linear_model
+    {G : Type*} [Fintype G] [DecidableEq G]
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (cluster : n → G)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsClusteredVarianceEstimator X (X *ᵥ β + e) cluster =
+      let s : G → k → ℝ := fun g a =>
+        ∑ i, (if cluster i = g then (annihilatorMatrix X *ᵥ e) i * X i a else 0)
+      ⅟ (Xᵀ * X) *
+        (∑ g, Matrix.vecMulVec (s g) (s g)) *
+        ⅟ (Xᵀ * X) := by
+  simp [olsClusteredVarianceEstimator]
+
+/-- Finite-sample residual variance estimator in the homoskedastic linear regression model. -/
+noncomputable def olsResidualVarianceEstimator
+    (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : ℝ :=
+  (dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)) /
+    (Fintype.card n - Fintype.card k : ℝ)
+
+/-- The OLS residual sum of squares `RSS = ê'ê`. This is the likelihood-scale quadratic form that
+appears in Hansen's Chapter 5 likelihood-ratio / F-test derivation. -/
+noncomputable def olsResidualSumSquares
+    (X : Matrix n k ℝ) (y : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] : ℝ :=
+  dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)
+
+/-- Under the linear model, the residual variance estimator is the residual quadratic form
+ divided by `n-k`, expressed directly in terms of the model error. -/
+theorem olsResidualVarianceEstimator_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)) /
+          (Fintype.card n - Fintype.card k : ℝ) := by
+  unfold olsResidualVarianceEstimator
+  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
+    simpa [Matrix.mulVec_mulVec] using
+      congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
+  rw [Matrix.mulVec_add, hMXβ, zero_add]
+
+/-- The residual sum of squares in the linear model is the annihilator quadratic form `e'Me`. -/
+theorem residual_quadratic_form_of_linear_model
+    (X : Matrix n k ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
+      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
+  symm
+  exact quadratic_form_eq_dotProduct_of_symm_idempotent
+    (annihilatorMatrix X)
+    (annihilatorMatrix_transpose X)
+    (annihilatorMatrix_idempotent X)
+    e
+
+/-- Under the linear model, the residual sum of squares can be written directly in terms of the
+model error. -/
+theorem olsResidualSumSquares_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsResidualSumSquares X (X *ᵥ β + e) =
+      dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e) := by
+  unfold olsResidualSumSquares
+  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
+    simpa [Matrix.mulVec_mulVec] using
+      congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
+  rw [Matrix.mulVec_add, hMXβ, zero_add]
+
+/-- Under the linear model, the residual sum of squares is the annihilator quadratic form `e'Me`.
+This is the likelihood-scale version of the Chapter 5 variance identity. -/
+theorem olsResidualSumSquares_linear_model_quadratic_form
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsResidualSumSquares X (X *ᵥ β + e) = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
+  rw [olsResidualSumSquares_linear_model]
+  exact residual_quadratic_form_of_linear_model X e
+
+/-- Under the linear model, the residual variance estimator is the annihilator quadratic form
+divided by `n-k`. This is the deterministic identity underlying the chi-square step. -/
+theorem olsResidualVarianceEstimator_linear_model_quadratic_form
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsResidualVarianceEstimator X (X *ᵥ β + e)
+      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
+          (Fintype.card n - Fintype.card k : ℝ) := by
+  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]
+
+
+
 /-- Deterministic core of the Gauss-Markov theorem: the variance-gap matrix is positive
 semidefinite. -/
 theorem gaussMarkov_variance_gap_posSemidef
@@ -150,6 +280,182 @@ open MeasureTheory
 
 variable {Ω : Type*}
 variable {m m₀ : MeasurableSpace Ω} {μ : Measure Ω}
+
+/-- Private proof engine. Conditional expectation of the random quadratic form `e' M e`
+reduces to the deterministic double sum `∑ᵢⱼ Mᵢⱼ Dᵢⱼ` whenever the entrywise second-moment
+matrix `E[eᵢeⱼ | m] = Dᵢⱼ` is a.e. constant on the conditioning σ-algebra.
+
+This is the linearity-of-conditional-expectation core used by
+`ols_condExp_residualVarianceEstimator_eq_sigmaSq`. The proof pulls the deterministic matrix
+entries `Mᵢⱼ` out of the conditional expectation and then evaluates each `E[eᵢeⱼ | m]` against
+`Dᵢⱼ` under the hypothesis `hD`. -/
+private theorem condExp_quadratic_form_eq_sum
+    (M : Matrix n n ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ)
+    [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i j, Integrable (fun ω => e ω i * e ω j) μ)
+    (hD : ∀ i j, μ[fun ω => e ω i * e ω j | m] =ᵐ[μ] fun _ => D i j) :
+    μ[fun ω => e ω ⬝ᵥ M *ᵥ e ω | m] =ᵐ[μ]
+      fun _ => ∑ i, ∑ j, M i j * D i j := by
+  have hrepr : (fun ω => e ω ⬝ᵥ M *ᵥ e ω) =
+      fun ω => ∑ i, ∑ j, M i j * (e ω i * e ω j) := by
+    funext ω
+    simp [dotProduct, Matrix.mulVec, Finset.mul_sum, mul_left_comm]
+  rw [hrepr]
+  have hsum1 :
+      μ[(fun ω => ∑ i, ∑ j, M i j * (e ω i * e ω j)) | m] =ᵐ[μ]
+        ∑ i, μ[(fun ω => ∑ j, M i j * (e ω i * e ω j)) | m] := by
+    have hsum_repr :
+        (fun ω => ∑ i, ∑ j, M i j * (e ω i * e ω j)) =
+          ∑ i, fun ω => ∑ j, M i j * (e ω i * e ω j) := by
+      funext ω
+      simp
+    rw [hsum_repr]
+    simpa using MeasureTheory.condExp_finset_sum (μ := μ) (m := m)
+      (s := Finset.univ)
+      (f := fun i ω => ∑ j, M i j * (e ω i * e ω j))
+      (fun i _ => by
+        simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+          (f := fun j ω => M i j * (e ω i * e ω j))
+          (fun j _ => (hee_int i j).const_mul (M i j)))
+  have hsum2 :
+      (∑ i, μ[(fun ω => ∑ j, M i j * (e ω i * e ω j)) | m]) =ᵐ[μ]
+        ∑ i, ∑ j, (fun _ : Ω => M i j * D i j) := by
+    have hinner : ∀ i,
+        μ[(fun ω => ∑ j, M i j * (e ω i * e ω j)) | m] =ᵐ[μ]
+          ∑ j, μ[(fun ω => M i j * (e ω i * e ω j)) | m] := by
+      intro i
+      have hinner_repr :
+          (fun ω => ∑ j, M i j * (e ω i * e ω j)) =
+            ∑ j, fun ω => M i j * (e ω i * e ω j) := by
+        funext ω
+        simp
+      rw [hinner_repr]
+      simpa using MeasureTheory.condExp_finset_sum (μ := μ) (m := m)
+        (s := Finset.univ)
+        (f := fun j ω => M i j * (e ω i * e ω j))
+        (fun j _ => (hee_int i j).const_mul (M i j))
+    have hcoord : ∀ i j,
+        μ[(fun ω => M i j * (e ω i * e ω j)) | m] =ᵐ[μ]
+          fun _ => M i j * D i j := by
+      intro i j
+      refine (MeasureTheory.condExp_smul (μ := μ) (m := m) (M i j)
+        (fun ω => e ω i * e ω j)).trans ?_
+      filter_upwards [hD i j] with ω hω
+      simp [Pi.smul_apply, smul_eq_mul, hω]
+    have hall1 : ∀ᵐ ω ∂μ, ∀ i,
+        μ[(fun ω => ∑ j, M i j * (e ω i * e ω j)) | m] ω =
+          ∑ j, μ[(fun ω => M i j * (e ω i * e ω j)) | m] ω := by
+      exact ae_all_iff.2 fun i => by simpa [Filter.EventuallyEq] using hinner i
+    have hall2 : ∀ᵐ ω ∂μ, ∀ i, ∀ j,
+        μ[(fun ω => M i j * (e ω i * e ω j)) | m] ω = M i j * D i j := by
+      exact ae_all_iff.2 fun i => ae_all_iff.2 fun j => hcoord i j
+    filter_upwards [hall1, hall2] with ω h1 h2
+    simp [h1, h2]
+  exact (hsum1.trans hsum2).trans <| by
+    filter_upwards [] with ω
+    simp
+
+/-- Private proof engine. Homoskedastic specialization of the previous double sum: when the
+conditional second-moment matrix is `σ² · I`, the sum `∑ᵢⱼ Mᵢⱼ (σ² · δᵢⱼ)` collapses to
+`σ² · tr(M)`. Used together with `condExp_quadratic_form_eq_sum` to discharge the
+`E[s² | X] = σ²` step against `tr(M) = n - k`. -/
+private theorem sum_quadratic_homoskedastic_eq_trace
+    (M : Matrix n n ℝ) [DecidableEq n] (σ2 : ℝ) :
+    (∑ i, ∑ j, M i j * (σ2 * (1 : Matrix n n ℝ) i j)) = σ2 * Matrix.trace M := by
+  classical
+  rw [Matrix.trace]
+  calc
+    (∑ i, ∑ j, M i j * (σ2 * (1 : Matrix n n ℝ) i j)) = ∑ i, M i i * σ2 := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [Finset.sum_eq_single i]
+      · simp [mul_comm]
+      · intro j _ hji
+        simp [hji.symm]
+      · intro hi
+        simp at hi
+    _ = σ2 * ∑ i, M i i := by
+      rw [Finset.mul_sum]
+      simp [mul_comm]
+
+/-- Hansen equation (4.26): under a homoskedastic conditional second-moment assumption,
+`E[s² | X] = σ²`.  The hypothesis `hee_homo` is a second-moment condition on
+`E[eᵢeⱼ | m]`; with conditional mean zero it specializes to the usual conditional
+variance/covariance statement. -/
+theorem ols_condExp_residualVarianceEstimator_eq_sigmaSq
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (σ2 : ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i j, Integrable (fun ω => e ω i * e ω j) μ)
+    (hee_homo : ∀ i j,
+      μ[fun ω => e ω i * e ω j | m] =ᵐ[μ]
+        fun _ => σ2 * (1 : Matrix n n ℝ) i j)
+    (h_df : (Fintype.card n : ℝ) - Fintype.card k ≠ 0) :
+    μ[fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω) | m]
+      =ᵐ[μ] fun _ => σ2 := by
+  let M : Matrix n n ℝ := annihilatorMatrix X
+  let df : ℝ := (Fintype.card n : ℝ) - Fintype.card k
+  have hrewrite : (fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω)) =
+      fun ω => (e ω ⬝ᵥ M *ᵥ e ω) / df := by
+    funext ω
+    simp [M, df, olsResidualVarianceEstimator_linear_model_quadratic_form]
+  rw [hrewrite]
+  have hscale : μ[(fun ω => (e ω ⬝ᵥ M *ᵥ e ω) / df) | m] =ᵐ[μ]
+      fun ω => df⁻¹ * μ[fun ω => e ω ⬝ᵥ M *ᵥ e ω | m] ω := by
+    have hdiv : (fun ω => (e ω ⬝ᵥ M *ᵥ e ω) / df) =
+        (fun ω => df⁻¹ • (e ω ⬝ᵥ M *ᵥ e ω)) := by
+      funext ω
+      simp [div_eq_mul_inv, mul_comm]
+    rw [hdiv]
+    simpa [Pi.smul_apply, smul_eq_mul] using
+      (MeasureTheory.condExp_smul (μ := μ) (m := m) df⁻¹
+        (fun ω => e ω ⬝ᵥ M *ᵥ e ω))
+  have hquad : μ[fun ω => e ω ⬝ᵥ M *ᵥ e ω | m] =ᵐ[μ]
+      fun _ => σ2 * df := by
+    have hsum := condExp_quadratic_form_eq_sum (μ := μ) (m := m) (m₀ := m₀)
+      M e (σ2 • (1 : Matrix n n ℝ)) hm hee_int
+      (fun i j => by
+        simpa [Pi.smul_apply, smul_eq_mul] using hee_homo i j)
+    refine hsum.trans ?_
+    filter_upwards [] with ω
+    dsimp [df]
+    calc
+      (∑ i, ∑ j, M i j * (σ2 • (1 : Matrix n n ℝ)) i j)
+          = ∑ i, ∑ j, M i j * (σ2 * (1 : Matrix n n ℝ) i j) := by simp [smul_eq_mul]
+      _ = σ2 * Matrix.trace M := sum_quadratic_homoskedastic_eq_trace M σ2
+      _ = σ2 * ((Fintype.card n : ℝ) - Fintype.card k) := by
+        simp [M, annihilatorMatrix_trace]
+  exact hscale.trans <| by
+    filter_upwards [hquad] with ω hω
+    rw [hω]
+    dsimp [df] at h_df ⊢
+    field_simp [h_df]
+
+/-- Unconditional unbiasedness of `s²` obtained by integrating the conditional statement. -/
+theorem ols_integral_residualVarianceEstimator_eq_sigmaSq
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (σ2 : ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] [IsProbabilityMeasure μ]
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i j, Integrable (fun ω => e ω i * e ω j) μ)
+    (hee_homo : ∀ i j,
+      μ[fun ω => e ω i * e ω j | m] =ᵐ[μ]
+        fun _ => σ2 * (1 : Matrix n n ℝ) i j)
+    (h_df : (Fintype.card n : ℝ) - Fintype.card k ≠ 0)
+    (h_int : Integrable (fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω)) μ) :
+    ∫ ω, olsResidualVarianceEstimator X (X *ᵥ β + e ω) ∂μ = σ2 := by
+  have _hf_int : Integrable (fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω)) μ := h_int
+  calc
+    ∫ ω, olsResidualVarianceEstimator X (X *ᵥ β + e ω) ∂μ =
+        ∫ ω, μ[fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω) | m] ω ∂μ := by
+      symm
+      exact MeasureTheory.integral_condExp (μ := μ) (m := m) (m₀ := m₀)
+        (f := fun ω => olsResidualVarianceEstimator X (X *ᵥ β + e ω)) hm
+    _ = ∫ _ω, σ2 ∂μ := by
+      refine MeasureTheory.integral_congr_ae ?_
+      exact ols_condExp_residualVarianceEstimator_eq_sigmaSq
+        (μ := μ) (m := m) X β e σ2 hm hee_int hee_homo h_df
+    _ = σ2 := by simp
 
 /-- Componentwise conditional unbiasedness of OLS under conditional mean-zero errors. -/
 theorem ols_condExp_coordinate_eq_beta

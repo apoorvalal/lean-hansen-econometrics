@@ -1213,6 +1213,100 @@ noncomputable def olsHetCovHC3Star
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   olsHetCovLevAdjStar (fun h => ((1 - h)⁻¹) ^ 2) X y
 
+/-- Private proof engine. Bridges the Chapter 7 normalized Gram matrix
+`sampleGram X = n⁻¹ · Xᵀ X` to the Chapter 4 unnormalized typeclass inverse `⅟(Xᵀ X)`:
+on nonsingular designs, `(sampleGram X)⁻¹ = n · ⅟(Xᵀ X)`. Used when reconciling totalized
+sandwich estimators with the finite-sample HC family. -/
+private theorem sampleGram_nonsingInv_eq_card_smul_invOf
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    (sampleGram X)⁻¹ = (Fintype.card n : ℝ) • ⅟ (Xᵀ * X) := by
+  unfold sampleGram
+  rw [nonsingInv_smul]
+  simp [invOf_eq_nonsing_inv]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Private proof engine. Standard outer-product / sandwich identity:
+`∑ᵢ dᵢ · xᵢ xᵢᵀ = Xᵀ · diag(d) · X`. Used to rewrite the row-by-row sum that defines
+`sampleScoreCovLevAdjStar` into the matrix sandwich form needed by
+`olsConditionalVarianceMatrix`. -/
+private theorem sum_smul_vecMulVec_eq_transpose_diag_mul
+    (X : Matrix n k ℝ) (d : n → ℝ) [DecidableEq n] :
+    (∑ i, d i • Matrix.vecMulVec (X i) (X i)) = Xᵀ * Matrix.diagonal d * X := by
+  ext a b
+  simp only [Matrix.sum_apply, Matrix.mul_apply, Matrix.transpose_apply, Matrix.diagonal_apply]
+  simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  simp [Matrix.vecMulVec_apply]
+  ring
+
+/-- Private proof engine. Generic Star-versus-base bridge: on nonsingular designs, the
+totalized leverage-adjusted sandwich `olsHetCovLevAdjStar weight` equals `n` times the
+Chapter 4 finite-sample sandwich built from the same leverage weights and squared residuals.
+Factors out the algebra shared by the public HC2 and HC3 bridges
+(`olsHetCovHC2Star_eq_smul_olsHuberWhiteHC2VarianceEstimator` and its HC3 counterpart):
+rewrite the score covariance via `sum_smul_vecMulVec_eq_transpose_diag_mul`, then collapse
+the `n · n⁻¹ · n` scaling that arises from `sampleGram_nonsingInv_eq_card_smul_invOf`. -/
+private theorem olsHetCovLevAdjStar_eq_card_smul_base
+    (weight : ℝ → ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsHetCovLevAdjStar weight X y =
+      (Fintype.card n : ℝ) •
+        olsConditionalVarianceMatrix X
+          (Matrix.diagonal fun i => weight (hatMatrix X i i) * residual X y i ^ 2) := by
+  let c : ℝ := Fintype.card n
+  let D : Matrix n n ℝ := Matrix.diagonal fun i => weight (hatMatrix X i i) * residual X y i ^ 2
+  have hmiddle : sampleScoreCovLevAdjStar weight X y = c⁻¹ • (Xᵀ * D * X) := by
+    unfold sampleScoreCovLevAdjStar
+    congr 1
+    calc
+      (∑ i : n,
+          (weight (leverageStar X i) * olsResidualStar X y i ^ 2) •
+            Matrix.vecMulVec (X i) (X i)) =
+          ∑ i : n, (weight (hatMatrix X i i) * residual X y i ^ 2) •
+            Matrix.vecMulVec (X i) (X i) := by
+        refine Finset.sum_congr rfl ?_
+        intro i _
+        rw [leverageStar_eq_hatMatrix_diag, congrFun (olsResidualStar_eq_residual X y) i]
+      _ = Xᵀ * D * X := by
+        simp [D, sum_smul_vecMulVec_eq_transpose_diag_mul]
+  unfold olsHetCovLevAdjStar olsConditionalVarianceMatrix
+  rw [hmiddle, sampleGram_nonsingInv_eq_card_smul_invOf]
+  simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul, Matrix.mul_assoc]
+  change (c * (c⁻¹ * c)) • (⅟ (Xᵀ * X) * (Xᵀ * (D * (X * ⅟ (Xᵀ * X))))) =
+    c • (⅟ (Xᵀ * X) * (Xᵀ * (D * (X * ⅟ (Xᵀ * X)))))
+  have hc : c * (c⁻¹ * c) = c := by
+    by_cases hcz : c = 0
+    · simp [hcz]
+    · field_simp [hcz]
+  rw [hc]
+
+/-- On nonsingular designs, the Chapter 7 totalized HC2 sandwich is `n` times the
+Chapter 4 finite-sample HC2 covariance estimator. -/
+theorem olsHetCovHC2Star_eq_smul_olsHuberWhiteHC2VarianceEstimator
+    (X : Matrix n k ℝ) (y : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsHetCovHC2Star X y =
+      (Fintype.card n : ℝ) • olsHuberWhiteHC2VarianceEstimator X y := by
+  change olsHetCovLevAdjStar (fun h => (1 - h)⁻¹) X y =
+    (Fintype.card n : ℝ) •
+      olsConditionalVarianceMatrix X
+        (Matrix.diagonal fun i => (1 - hatMatrix X i i)⁻¹ * residual X y i ^ 2)
+  exact olsHetCovLevAdjStar_eq_card_smul_base (fun h => (1 - h)⁻¹) X y
+
+/-- On nonsingular designs, the Chapter 7 totalized HC3 sandwich is `n` times the
+Chapter 4 finite-sample HC3 covariance estimator. -/
+theorem olsHetCovHC3Star_eq_smul_olsHuberWhiteHC3VarianceEstimator
+    (X : Matrix n k ℝ) (y : n → ℝ)
+    [DecidableEq n] [Invertible (Xᵀ * X)] :
+    olsHetCovHC3Star X y =
+      (Fintype.card n : ℝ) • olsHuberWhiteHC3VarianceEstimator X y := by
+  change olsHetCovLevAdjStar (fun h => ((1 - h)⁻¹) ^ 2) X y =
+    (Fintype.card n : ℝ) •
+      olsConditionalVarianceMatrix X
+        (Matrix.diagonal fun i => ((1 - hatMatrix X i i)⁻¹) ^ 2 * residual X y i ^ 2)
+  exact olsHetCovLevAdjStar_eq_card_smul_base (fun h => ((1 - h)⁻¹) ^ 2) X y
+
 /-- **Hansen Theorem 7.6, ideal sandwich consistency.**
 
 The infeasible heteroskedastic sandwich estimator built from true errors

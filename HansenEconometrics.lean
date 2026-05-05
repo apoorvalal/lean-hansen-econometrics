@@ -7,6 +7,7 @@ import HansenEconometrics.Chapter2CondExp
 
 import HansenEconometrics.Chapter2LinearProjection
 import HansenEconometrics.Chapter2Variance
+import HansenEconometrics.Chapter2PotentialOutcomes
 import HansenEconometrics.Chapter3LeastSquaresAlgebra
 import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter3FWL

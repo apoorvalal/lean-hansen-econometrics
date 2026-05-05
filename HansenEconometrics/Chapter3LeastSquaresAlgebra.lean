@@ -164,4 +164,18 @@ theorem olsBeta_isMinOn
   intro b _
   exact sumSquaredErrors_olsBeta_le X y b
 
+/-- Hansen Theorem 3.1 (uniqueness half): if `b` attains the minimum of the SSE, then
+`b = olsBeta X y`. Combined with `sumSquaredErrors_olsBeta_le` and `olsBeta_isMinOn`,
+this completes Hansen's Theorem 3.1: `olsBeta X y` is the unique minimizer of
+`sumSquaredErrors X y` over `k → ℝ` whenever `Xᵀ * X` is invertible. -/
+theorem olsBeta_eq_of_minimizer
+    (X : Matrix n k ℝ) (y : n → ℝ) (b : k → ℝ) [Invertible (Xᵀ * X)]
+    (hb : sumSquaredErrors X y b = sumSquaredErrors X y (olsBeta X y)) :
+    b = olsBeta X y := by
+  rw [sumSquaredErrors_eq_linearProjectionMSE X y b,
+      sumSquaredErrors_eq_linearProjectionMSE X y (olsBeta X y)] at hb
+  exact linearProjectionBeta_eq_of_MSE_eq
+    (Xᵀ * X) (Xᵀ *ᵥ y) (y ⬝ᵥ y) b
+    (gram_transpose X) (fun v hv => gram_quadratic_pos X hv) hb
+
 end HansenEconometrics

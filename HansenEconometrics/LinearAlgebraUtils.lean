@@ -114,6 +114,29 @@ lemma gram_quadratic_nonneg {n k : Type*} [Fintype n] [Fintype k]
       vecMul_eq_mulVec_transpose, Matrix.transpose_transpose]
   exact dotProduct_star_self_nonneg (X *ᵥ v)
 
+/-- Strict positive-definiteness of the Gram matrix under invertibility: for any
+`v ≠ 0`, `0 < v ⬝ᵥ ((Xᵀ * X) *ᵥ v)`. Strengthens `gram_quadratic_nonneg` whenever
+`Xᵀ * X` is invertible. Used to discharge the strict-positivity hypothesis of Chapter 2's
+`linearProjectionBeta_eq_of_MSE_eq` when specialized to sample moments. -/
+lemma gram_quadratic_pos {n k : Type*} [Fintype n] [Fintype k] [DecidableEq k]
+    (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] {v : k → ℝ} (hv : v ≠ 0) :
+    0 < v ⬝ᵥ ((Xᵀ * X) *ᵥ v) := by
+  rcases (gram_quadratic_nonneg X v).lt_or_eq with h | h
+  · exact h
+  · exfalso
+    have hquad : v ⬝ᵥ ((Xᵀ * X) *ᵥ v) = (X *ᵥ v) ⬝ᵥ (X *ᵥ v) := by
+      rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec,
+          vecMul_eq_mulVec_transpose, Matrix.transpose_transpose]
+    rw [hquad] at h
+    have hXv : X *ᵥ v = 0 := dotProduct_self_eq_zero.mp h.symm
+    have hXtXv : (Xᵀ * X) *ᵥ v = 0 := by
+      rw [← Matrix.mulVec_mulVec, hXv, Matrix.mulVec_zero]
+    have hv0 : v = 0 := by
+      have h1 : ⅟ (Xᵀ * X) *ᵥ ((Xᵀ * X) *ᵥ v) = 0 := by
+        rw [hXtXv, Matrix.mulVec_zero]
+      rwa [Matrix.mulVec_mulVec, invOf_mul_self, Matrix.one_mulVec] at h1
+    exact hv hv0
+
 /-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
 theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℝ}

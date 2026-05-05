@@ -18,12 +18,6 @@ open Matrix
 variable {n k : Type*}
 variable [Fintype n] [Fintype k] [DecidableEq n] [DecidableEq k]
 
-/-- Finite-sample residual variance estimator in the homoskedastic normal regression model. -/
-noncomputable def olsResidualVarianceEstimator
-    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : ℝ :=
-  (dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)) /
-    (Fintype.card n - Fintype.card k : ℝ)
-
 /-- Hansen Theorem 5.7 statistic `(n-k)s²/σ²`, written as a reusable random variable on the
 probability space carrying the regression error. -/
 noncomputable def scaledOlsResidualVarianceStatistic
@@ -34,69 +28,9 @@ noncomputable def scaledOlsResidualVarianceStatistic
     ((Fintype.card n - Fintype.card k : ℝ) *
       olsResidualVarianceEstimator X (X *ᵥ β + WithLp.ofLp (ε ω))) / σ2
 
-/-- The OLS residual sum of squares `RSS = ê'ê`. This is the likelihood-scale quadratic form that
-appears in Hansen's Chapter 5 likelihood-ratio / F-test derivation. -/
-noncomputable def olsResidualSumSquares
-    (X : Matrix n k ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] : ℝ :=
-  dotProduct (annihilatorMatrix X *ᵥ y) (annihilatorMatrix X *ᵥ y)
-
 /-- A lightweight deterministic record of the Chapter 5 normal regression setup. -/
 structure NormalRegressionModel (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) where
   sigma2_nonneg : 0 ≤ σ2
-
-/-- Under the linear model, the residual variance estimator is the residual quadratic form
- divided by `n-k`, expressed directly in terms of the model error. -/
-theorem olsResidualVarianceEstimator_linear_model
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    olsResidualVarianceEstimator X (X *ᵥ β + e)
-      = (dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)) /
-          (Fintype.card n - Fintype.card k : ℝ) := by
-  unfold olsResidualVarianceEstimator
-  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
-    simpa [Matrix.mulVec_mulVec] using
-      congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
-  rw [Matrix.mulVec_add, hMXβ, zero_add]
-
-/-- The residual sum of squares in the linear model is the annihilator quadratic form `e'Me`. -/
-theorem residual_quadratic_form_of_linear_model
-    (X : Matrix n k ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e)
-      = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
-  symm
-  exact quadratic_form_eq_dotProduct_of_symm_idempotent
-    (annihilatorMatrix X)
-    (annihilatorMatrix_transpose X)
-    (annihilatorMatrix_idempotent X)
-    e
-
-/-- Under the linear model, the residual sum of squares can be written directly in terms of the
-model error. -/
-theorem olsResidualSumSquares_linear_model
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    olsResidualSumSquares X (X *ᵥ β + e) =
-      dotProduct (annihilatorMatrix X *ᵥ e) (annihilatorMatrix X *ᵥ e) := by
-  unfold olsResidualSumSquares
-  have hMXβ : annihilatorMatrix X *ᵥ (X *ᵥ β) = 0 := by
-    simpa [Matrix.mulVec_mulVec] using
-      congrArg (fun M : Matrix n k ℝ => M *ᵥ β) (annihilator_mul_X X)
-  rw [Matrix.mulVec_add, hMXβ, zero_add]
-
-/-- Under the linear model, the residual sum of squares is the annihilator quadratic form `e'Me`.
-This is the likelihood-scale version of the Chapter 5 variance identity. -/
-theorem olsResidualSumSquares_linear_model_quadratic_form
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    olsResidualSumSquares X (X *ᵥ β + e) = e ⬝ᵥ (annihilatorMatrix X) *ᵥ e := by
-  rw [olsResidualSumSquares_linear_model]
-  exact residual_quadratic_form_of_linear_model X e
-
-/-- Under the linear model, the residual variance estimator is the annihilator quadratic form
-divided by `n-k`. This is the deterministic identity underlying the chi-square step. -/
-theorem olsResidualVarianceEstimator_linear_model_quadratic_form
-    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Invertible (Xᵀ * X)] :
-    olsResidualVarianceEstimator X (X *ᵥ β + e)
-      = (e ⬝ᵥ (annihilatorMatrix X) *ᵥ e) /
-          (Fintype.card n - Fintype.card k : ℝ) := by
-  rw [olsResidualVarianceEstimator_linear_model, residual_quadratic_form_of_linear_model]
 
 /-- If the error vector has a Gaussian law, then the OLS coefficient vector is Gaussian as an affine
 image of the error vector. -/

@@ -163,10 +163,10 @@ theorem linearProjectionIntercept_eq_mean_sub_dotProduct
     (hmodel : Y = fun ω => α + dotProduct (X ω) β + e ω)
     (he_zero : ∫ ω, e ω ∂μ = 0) :
     α = ∫ ω, Y ω ∂μ - meanVec μ X ⬝ᵥ β := by
+  classical
   have hX_int : ∀ i, Integrable (fun ω => X ω i) μ := fun i => hX i |>.integrable (by norm_num)
   have he_int : Integrable e μ := he.integrable (by norm_num)
   have hlin_int : Integrable (fun ω => dotProduct (X ω) β) μ := by
-    classical
     convert (MeasureTheory.integrable_finset_sum (s := Finset.univ) (f := fun j ω => X ω j * β j)
       (fun j _ => (hX_int j).mul_const (β j))) using 1
   have hmean :

@@ -60,24 +60,20 @@ The deterministic GLS coefficient algebra now exists: definition of `glsBeta`, t
 The positive-semidefinite Gauss-Markov lower-bound proof has also landed, and the generalized
 weighted lower bound is now formalized as
 `generalizedGaussMarkov_variance_gap_posSemidef`.
-For covariance estimators,
-the chapter now includes the core heteroskedastic-robust objects:
-- `olsIdealVarianceEstimator`
-- `olsHuberWhiteVarianceEstimator` (HC0 / White)
-- `olsHuberWhiteHC1VarianceEstimator`
-plus the linear-model rewrite `olsHuberWhiteVarianceEstimator_linear_model`.
-Still pending are residual variance estimators and the more refined covariance-estimator layer
-(HC2/HC3 and clustered covariance).
+For estimator bookkeeping, Chapter 4 now includes the finite-sample residual variance estimator,
+its deterministic linear-model/quadratic-form rewrites, conditional and unconditional
+homoskedastic unbiasedness, HC0/HC1/HC2/HC3 covariance estimators, and a minimal clustered
+sandwich definition with a linear-model rewrite.
 
 ## Deferred / won't do for now
 For the current pass we are intentionally not pushing Chapter 4 to applied-completeness.
 The following are explicitly deferred unless they become prerequisite later:
-- residual variance estimators
-- HC2 / HC3
-- clustered covariance estimators
+- heteroskedastic formula for `E[σ̂² | X] = n⁻¹ tr(MD)`
+- HC2/HC3 unbiasedness or finite-sample ordering results
+- clustered covariance asymptotics and partition/Finpartition infrastructure
+- HC4 and other leverage-adjustment families
 
-Reason: these are lower-priority bookkeeping compared with moving on to the more theoretically central
-finite-sample normal-model results in Chapter 5.
+Reason: these are lower-priority extensions beyond the finite-sample estimator layer landed here.
 
 ## Immediate target
 Move on to Chapter 5 (Normal Regression): conditional and unconditional distribution theory for OLS,
@@ -101,26 +97,35 @@ Conventions:
 
 | Textbook result | LaTeX | Lean theorem |
 | --- | --- | --- |
-| Equation (4.6) OLS decomposition | $\hat{\beta} = \beta + (X'X)^{-1} X' e$ | [olsBeta_linear_decomposition](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L16)<br><code>olsBeta X (X *ᵥ β + e) = β + (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ e)</code> |
-| Orthogonal-error specialization | $X' e = 0 \Longrightarrow \hat{\beta} = \beta$ | [olsBeta_eq_of_regressors_orthogonal_error](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L29)<br><code>olsBeta X (X *ᵥ β + e) = β</code> |
-| Fitted values in the linear model | $\hat{Y} = X \beta + P e$ | [fitted_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L37)<br><code>fitted X (X *ᵥ β + e) = X *ᵥ β + hatMatrix X *ᵥ e</code> |
-| Residuals in the linear model | $\hat{e} = M e$ | [residual_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L45)<br><code>residual X (X *ᵥ β + e) = annihilatorMatrix X *ᵥ e</code> |
-| Theorem 4.1 conditional unbiasedness | $\mathbb{E}[\hat{\beta} \mid X] = \beta$ | [ols_condExp_eq_beta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L243)<br><code>μ[fun ω => olsBeta X (X *ᵥ β + e ω) &#124; m] =ᵐ[μ] fun _ => β</code> |
-| Theorem 4.1 unconditional unbiasedness | $\mathbb{E}[\hat{\beta}] = \beta$ | [ols_integral_eq_beta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L292)<br><code>∫ ω, olsBeta X (X *ᵥ β + e ω) ∂μ = β</code> |
-| Theorem 4.2 conditional covariance formula | $\operatorname{Var}(\hat{\beta} \mid X) = (X'X)^{-1} X' D X (X'X)^{-1}$ | [olsConditionalVarianceMatrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L55)<br><code>olsConditionalVarianceMatrix X D := ⅟ (Xᵀ * X) * Xᵀ * D * X * ⅟ (Xᵀ * X)</code><br>[ols_condExp_centered_mul_eq_variance_matrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L432)<br><code>μ[fun ω => Matrix.of fun i j => centered β̂ ω i * centered β̂ ω j &#124; m] =ᵐ[μ] fun _ => olsConditionalVarianceMatrix X D</code> |
-| Theorem 4.2 unconditional covariance identity | $\mathbb{E}[(\hat{\beta} - \beta)(\hat{\beta} - \beta)'] = \mathbb{E}[\operatorname{Var}(\hat{\beta} \mid X)]$ | [ols_integral_centered_mul_eq_variance_matrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L504)<br><code>∫ ω, Matrix.of fun i j => centered β̂ ω i * centered β̂ ω j ∂μ = olsConditionalVarianceMatrix X D</code> |
-| Theorem 4.2 homoskedastic simplification | $\operatorname{Var}(\hat{\beta} \mid X) = \sigma^2 (X'X)^{-1}$ | [olsConditionalVarianceMatrix_homoskedastic](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L84)<br><code>olsConditionalVarianceMatrix X (σ2 • 1) = σ2 • ⅟ (Xᵀ * X)</code> |
-| Gauss-Markov lower bound | $\operatorname{Var}(\tilde{\beta} \mid X) - \operatorname{Var}(\hat{\beta} \mid X) \succeq 0$ | [gaussMarkov_variance_gap_posSemidef](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L111)<br><code>(Aᵀ * A - ⅟ (Xᵀ * X)).PosSemidef</code> |
-| GLS coefficient | $\hat{\beta}_{GLS} = (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} Y$ | [glsBeta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L577)<br><code>glsBeta X Ω y := (⅟ (Xᵀ * Ω⁻¹ * X)) *ᵥ (Xᵀ *ᵥ (Ω⁻¹ *ᵥ y))</code> |
-| GLS decomposition | $\hat{\beta}_{GLS} = \beta + (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} e$ | [glsBeta_linear_decomposition](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L583)<br><code>glsBeta X Ω (X *ᵥ β + e) = β + (⅟ (Xᵀ * Ω⁻¹ * X)) *ᵥ (Xᵀ *ᵥ (Ω⁻¹ *ᵥ e))</code> |
-| Generalized Gauss-Markov lower bound | weighted variance gap is positive semidefinite | [generalizedGaussMarkov_variance_gap_posSemidef](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L608)<br><code>(Aᵀ * Ω * A - ⅟ (Xᵀ * Ω⁻¹ * X)).PosSemidef</code> |
-| White HC0 covariance estimator | $\hat{V}_{HC0} = (X'X)^{-1} X' \operatorname{diag}(\hat{e}_i^2) X (X'X)^{-1}$ | [olsHuberWhiteVarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L65)<br><code>olsHuberWhiteVarianceEstimator X y := olsConditionalVarianceMatrix X (Matrix.diagonal fun i => residual X y i ^ 2)</code> |
-| HC1 covariance estimator | $\hat{V}_{HC1} = \frac{n}{n-k} \hat{V}_{HC0}$ | [olsHuberWhiteHC1VarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L70)<br><code>olsHuberWhiteHC1VarianceEstimator X y := ((n : ℝ) / (n - k : ℝ)) • olsHuberWhiteVarianceEstimator X y</code> |
-| Residual variance estimators / HC2 / HC3 / clustered covariance | textbook estimator layer |  |
+| Equation (4.6) OLS decomposition | $\hat{\beta} = \beta + (X'X)^{-1} X' e$ | [olsBeta_linear_decomposition](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L17)<br><code>olsBeta X (X *ᵥ β + e) = β + (⅟ (Xᵀ * X)) *ᵥ (Xᵀ *ᵥ e)</code> |
+| Orthogonal-error specialization | $X' e = 0 \Longrightarrow \hat{\beta} = \beta$ | [olsBeta_eq_of_regressors_orthogonal_error](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L30)<br><code>olsBeta X (X *ᵥ β + e) = β</code> |
+| Fitted values in the linear model | $\hat{Y} = X \beta + P e$ | [fitted_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L38)<br><code>fitted X (X *ᵥ β + e) = X *ᵥ β + hatMatrix X *ᵥ e</code> |
+| Residuals in the linear model | $\hat{e} = M e$ | [residual_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L47)<br><code>residual X (X *ᵥ β + e) = annihilatorMatrix X *ᵥ e</code> |
+| Theorem 4.1 conditional unbiasedness | $\mathbb{E}[\hat{\beta} \mid X] = \beta$ | [ols_condExp_eq_beta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L539)<br><code>μ[fun ω => olsBeta X (X *ᵥ β + e ω) &#124; m] =ᵐ[μ] fun _ => β</code> |
+| Theorem 4.1 unconditional unbiasedness | $\mathbb{E}[\hat{\beta}] = \beta$ | [ols_integral_eq_beta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L584)<br><code>∫ ω, olsBeta X (X *ᵥ β + e ω) ∂μ = β</code> |
+| Theorem 4.2 conditional covariance formula | $\operatorname{Var}(\hat{\beta} \mid X) = (X'X)^{-1} X' D X (X'X)^{-1}$ | [olsConditionalVarianceMatrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L57)<br><code>olsConditionalVarianceMatrix X D := ⅟ (Xᵀ * X) * Xᵀ * D * X * ⅟ (Xᵀ * X)</code><br>[ols_condExp_centered_mul_eq_variance_matrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L843)<br><code>μ[fun ω => Matrix.of fun i j => centered β̂ ω i * centered β̂ ω j &#124; m] =ᵐ[μ] fun _ => olsConditionalVarianceMatrix X D</code> |
+| Theorem 4.2 unconditional covariance identity | $\mathbb{E}[(\hat{\beta} - \beta)(\hat{\beta} - \beta)'] = \mathbb{E}[\operatorname{Var}(\hat{\beta} \mid X)]$ | [ols_integral_centered_mul_eq_variance_matrix](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1016)<br><code>∫ ω, Matrix.of fun i j => centered β̂ ω i * centered β̂ ω j ∂μ = olsConditionalVarianceMatrix X D</code> |
+| Theorem 4.2 homoskedastic simplification | $\operatorname{Var}(\hat{\beta} \mid X) = \sigma^2 (X'X)^{-1}$ | [olsConditionalVarianceMatrix_homoskedastic](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L88)<br><code>olsConditionalVarianceMatrix X (σ2 • 1) = σ2 • ⅟ (Xᵀ * X)</code> |
+| Gauss-Markov lower bound | $\operatorname{Var}(\tilde{\beta} \mid X) - \operatorname{Var}(\hat{\beta} \mid X) \succeq 0$ | [gaussMarkov_variance_gap_posSemidef](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L244)<br><code>(Aᵀ * A - ⅟ (Xᵀ * X)).PosSemidef</code> |
+| GLS coefficient | $\hat{\beta}_{GLS} = (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} Y$ | [glsBeta](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1081)<br><code>glsBeta X Ω y := (⅟ (Xᵀ * Ω⁻¹ * X)) *ᵥ (Xᵀ *ᵥ (Ω⁻¹ *ᵥ y))</code> |
+| GLS decomposition | $\hat{\beta}_{GLS} = \beta + (X' \Omega^{-1} X)^{-1} X' \Omega^{-1} e$ | [glsBeta_linear_decomposition](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1087)<br><code>glsBeta X Ω (X *ᵥ β + e) = β + (⅟ (Xᵀ * Ω⁻¹ * X)) *ᵥ (Xᵀ *ᵥ (Ω⁻¹ *ᵥ e))</code> |
+| Generalized Gauss-Markov lower bound | weighted variance gap is positive semidefinite | [generalizedGaussMarkov_variance_gap_posSemidef](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L1112)<br><code>(Aᵀ * Ω * A - ⅟ (Xᵀ * Ω⁻¹ * X)).PosSemidef</code> |
+| White HC0 covariance estimator | $\hat{V}_{HC0} = (X'X)^{-1} X' \operatorname{diag}(\hat{e}_i^2) X (X'X)^{-1}$ | [olsHuberWhiteVarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L68)<br><code>olsHuberWhiteVarianceEstimator X y := olsConditionalVarianceMatrix X (Matrix.diagonal fun i => residual X y i ^ 2)</code> |
+| HC1 covariance estimator | $\hat{V}_{HC1} = \frac{n}{n-k} \hat{V}_{HC0}$ | [olsHuberWhiteHC1VarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L73)<br><code>olsHuberWhiteHC1VarianceEstimator X y := ((n : ℝ) / (n - k : ℝ)) • olsHuberWhiteVarianceEstimator X y</code> |
+| Residual variance estimator `s²` | $s^2 = (n-k)^{-1}\sum_i \hat e_i^2$ | [olsResidualVarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L175), [olsResidualSumSquares](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L182), [olsResidualVarianceEstimator_linear_model_quadratic_form](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L233) |
+| `s²` conditional and unconditional unbiasedness | $\mathbb{E}[s^2 \mid X] = \sigma^2$ and $\mathbb{E}[s^2] = \sigma^2$ under homoskedastic conditional second moments | [ols_condExp_residualVarianceEstimator_eq_sigmaSq](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L374), [ols_integral_residualVarianceEstimator_eq_sigmaSq](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L424) |
+| HC2 covariance estimator | $\hat V_{HC2} = (X'X)^{-1} X'\operatorname{diag}((1-h_{ii})^{-1}\hat e_i^2)X(X'X)^{-1}$ | [olsHuberWhiteHC2VarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L116), [olsHuberWhiteHC2VarianceEstimator_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L142) |
+| HC3 covariance estimator | $\hat V_{HC3} = (X'X)^{-1} X'\operatorname{diag}((1-h_{ii})^{-2}\hat e_i^2)X(X'X)^{-1}$ | [olsHuberWhiteHC3VarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L124), [olsHuberWhiteHC3VarianceEstimator_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L152) |
+| Clustered covariance estimator | cluster-level score sandwich | [olsClusteredVarianceEstimator](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L131), [olsClusteredVarianceEstimator_linear_model](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L162) |
+
+## Lean-only bridge results
+
+- [olsHetCovHC2Star_eq_smul_olsHuberWhiteHC2VarianceEstimator](../../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1271): Chapter 7 totalized HC2 equals `(Fintype.card n : ℝ) •` the Chapter 4 base HC2 estimator on nonsingular designs.
+- [olsHetCovHC3Star_eq_smul_olsHuberWhiteHC3VarianceEstimator](../../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1284): analogous HC3 bridge.
 
 ## Notes
 
 - Chapter 4 has strong deterministic and conditional-expectation coverage already, so this file is
   mostly a map from Hansen's notation into the matrix-valued Lean API.
-- The covariance-estimator layer is intentionally incomplete: HC2 / HC3 and clustered covariance are
-  still deferred.
+- The remaining covariance-estimator gaps are heteroskedastic `s²` expectation formulae, HC ordering,
+  and clustered/asymptotic refinements.

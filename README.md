@@ -55,10 +55,10 @@ Legend:
 | 01 | Introduction | not started | text extracted and inventoried; mostly exposition |
 | 02 | Conditional Expectation and Projection | partial | conditional expectation, variance, and linear projection algebra completed |
 | 03 | The Algebra of Least Squares | partial | OLS algebra + projection/annihilator (incl. rank) / FWL coefficient and residual core landed |
-| 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, and Gauss-Markov lower bounds landed; HC2/HC3 and clustered SEs deferred |
+| 04 | Least Squares Regression | partial | OLS/GLS algebra, unbiasedness, covariance identities, Gauss-Markov lower bounds, `s²` unbiasedness, HC2/HC3, and clustered base covariance definitions landed |
 | 05 | Normal Regression | partial | multivariate-normal wrappers, normal-model scaffolding, finite-sample Gaussian/chi-square/Student-t/F laws, confidence intervals, and classical test results landed; Kinal moment threshold deferred |
 | 06 | A Review of Large Sample Asymptotics | partial | WLLN, CLT (via Cramér–Wold), CMT in probability, O_p/o_p, Slutsky already backed by Mathlib + AsymptoticUtils.lean; outstanding theorems tracked in #41 |
-| 07 | Asymptotic Theory for Least Squares | partial | Theorem 7.1 totalized/ordinary-on-nonsingular consistency landed; Theorem 7.2 projection-family score CLT plus score-covariance `Ω` wrappers landed; Theorem 7.3 projection-family CLT covers totalized and ordinary-on-nonsingular OLS; Theorems 7.4 and 7.5 totalized variance/covariance consistency landed |
+| 07 | Asymptotic Theory for Least Squares | partial | Theorem 7.1 totalized/ordinary-on-nonsingular consistency landed; Theorem 7.2 projection-family score CLT plus score-covariance `Ω` wrappers landed; Theorem 7.3 projection-family CLT covers totalized and ordinary-on-nonsingular OLS; Theorems 7.4 and 7.5 totalized variance/covariance consistency landed; vector/Cramér-Wold packaging pending |
 | 08 | Restricted Estimation | inventoried | constrained estimation / minimum distance |
 | 09 | Hypothesis Testing | inventoried | Wald / LM / LR style results |
 | 10 | Resampling Methods | inventoried | bootstrap / jackknife |
@@ -149,12 +149,14 @@ See also:
 ## Current Chapter 5 progress
 
 Completed in `HansenEconometrics/Chapter5NormalRegression.lean`:
-- finite-sample residual variance estimator definition
-- deterministic linear-model rewrite of `s²` in terms of the model error
 - Gaussian law for the OLS coefficient vector as an affine image of the error vector
 - Gaussian law for the OLS residual vector as a linear image of the error vector
-- residual sum of squares rewritten as the annihilator quadratic form `e'Me`
-- `s²` rewritten as `e'Me / (n-k)`, which is the deterministic setup for the chi-square step
+- chi-square law for the scaled residual variance statistic and independence from `β̂`
+- exact Student-t, confidence-interval, variance-interval, and classical test layers
+
+Reused from `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
+- finite-sample residual variance estimator definition
+- deterministic linear-model and quadratic-form rewrites of `s²` in terms of the model error
 
 Completed in `HansenEconometrics/MultivariateNormal.lean`:
 - standard-normal finite-moment, mean, and variance wrappers
@@ -169,6 +171,7 @@ Completed in `HansenEconometrics/ChiSquared.lean`:
 
 Planned next within Chapter 5:
 - keep Theorem 5.5 (Kinal 1980) deferred until a later chapter needs the moment-existence threshold
+- extend likelihood / MLE derivations if later chapters need them
 - add closed-form standard-normal moment formulas only if they become useful downstream
 
 ## Current Chapter 4 progress
@@ -182,12 +185,15 @@ Completed in `HansenEconometrics/Chapter4LeastSquaresRegression.lean`:
 - conditional covariance identity and its homoskedastic specialization
 - classical Gauss-Markov lower bound
 - GLS algebra and the generalized Gauss-Markov weighted lower bound
-- HC0 / White and HC1 covariance estimators
+- HC0 / White, HC1, HC2, and HC3 covariance estimators
+- clustered base covariance estimator and linear-model rewrite
+- residual variance estimator `s²`, deterministic rewrites, and homoskedastic conditional/unconditional unbiasedness
 
 Explicitly deferred for now within Chapter 4:
-- residual variance estimators
-- HC2 / HC3
-- clustered covariance estimators
+- heteroskedastic `E[σ̂² | X] = n⁻¹ tr(MD)` formula
+- HC2/HC3 ordering and unbiasedness refinements
+- clustered covariance asymptotics and richer partition infrastructure
+- HC4 and other leverage-adjustment families
 
 Next target after Chapter 4:
 - Chapter 5 normal-model finite-sample distribution theory and classical inference results
