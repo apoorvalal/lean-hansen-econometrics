@@ -3,6 +3,12 @@ decls_json := "site/_generated/declarations.json"
 # Default: render the site (walkthroughs only — auto-stub layer is paused).
 default: site-render
 
+# Local equivalent of the PR Lean CI gate.
+ci:
+    lake build
+    lake build @mathlib/lint-style
+    lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
+
 # Run lake exe export_decls and write declarations.json.
 # Only needed for the full-coverage build (`site-full`).
 site-export:

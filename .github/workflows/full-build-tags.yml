@@ -1,0 +1,27 @@
+name: Full Lean build on selected tags
+
+on:
+  push:
+    tags:
+      - 'full-build-*'
+      - 'release-*'
+  workflow_dispatch:
+
+jobs:
+  full-build:
+    name: Full lake build
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Full lake build
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          build: true
+          lint: false
+          test: false
+          use-mathlib-cache: true

@@ -42,6 +42,40 @@ In practice this means we will often restate Hansen’s results in more Lean-nat
 - `HansenEconometrics.lean` — root imports
 - `lakefile.toml`, `lake-manifest.json`, `lean-toolchain` — Lean project config
 
+## CI and local linting
+
+Every pull request is gated by `.github/workflows/ci.yml`, which runs:
+
+```sh
+lake build
+lake build @mathlib/lint-style
+lake env .lake/packages/mathlib/.lake/build/bin/lint-style --github HansenEconometrics
+```
+
+The first command builds the project. The final two commands build and run
+Mathlib's text-style linter against the root `HansenEconometrics` module, so
+style lints gate the PR alongside the build. The repository already enables
+`weak.linter.mathlibStandardSet = true` in `lakefile.toml`, so Lean's
+elaboration linters run during builds; existing warnings currently keep the CI
+from using `lake build --wfail` as a hard gate.
+
+For a local pre-push check, run the same commands without `--github` for more
+readable output:
+
+```sh
+lake build
+lake build @mathlib/lint-style
+lake env .lake/packages/mathlib/.lake/build/bin/lint-style HansenEconometrics
+```
+
+A separate `.github/workflows/full-build-tags.yml` workflow runs a full
+`lake build` only for selected tag patterns (`full-build-*` and `release-*`) or
+manual dispatch. This is feasible for expensive validation runs because it
+avoids charging every PR/push twice while still allowing release-style tags to
+request a full clean CI build with Lean/Mathlib cache support. Once the current
+Lean warnings are cleaned up, that workflow can be tightened to
+`lake build --wfail`.
+
 ## Chapter progress
 
 Legend:

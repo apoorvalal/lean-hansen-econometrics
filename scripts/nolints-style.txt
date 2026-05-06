@@ -1,0 +1,2 @@
+-- Manual exceptions for Mathlib's text-style linter.
+-- Keep this empty unless a deliberate, reviewed exception is needed.
