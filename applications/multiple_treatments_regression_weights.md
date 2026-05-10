@@ -20,6 +20,21 @@ The algebra below is written in the finite-cell language used in
 `applications/Angrist1998.lean`: cells $x$ have mass $m_x$, treatment
 probabilities are cell-specific, and conditional mean effects can vary by cell.
 
+The Lean file is `applications/MultipleTreatments.lean`. It deliberately keeps
+`applications/Angrist1998.lean` self-contained: the multiple-treatment file
+imports Angrist for the binary primitives, then builds the Goldsmith-Pinkham,
+Hull, and Kolesar simultaneous-regression result and the Lal one-at-a-time
+result on top of those primitives.
+
+The formalization is finite-sample algebra. It does not prove a sampling limit,
+an asymptotic approximation, or a causal identification theorem from primitive
+random variables. Instead, it proves the exact algebra obtained after imposing
+saturated cells, cell masses, cell propensities, conditional mean potential
+outcomes, and an invertible residual treatment covariance matrix. Positivity
+and probability-normalization assumptions are not needed for the matrix
+identities themselves; they are needed only when interpreting the resulting
+weights as convex averages or probability weights.
+
 ## 1. Baseline: One Binary Treatment
 
 Let $D \in \{0,1\}$, let $X$ be a finite cell, and write
@@ -107,7 +122,7 @@ $$
 for mutually exclusive arms. These off-diagonal terms are the source of
 contamination.
 
-For the $k$th coefficient,
+For the $k$-th coefficient,
 
 $$
 \beta_k
@@ -144,7 +159,7 @@ $$
 $$
 
 This is the clean algebraic content of the Goldsmith-Pinkham, Hull, and Kolesar
-decomposition. The $k$th coefficient equals an own-treatment weighted average
+decomposition. The $k$-th coefficient equals an own-treatment weighted average
 plus contamination terms from the other treatment effects:
 
 $$
@@ -223,6 +238,205 @@ The Lean implementation is in `applications/MultipleTreatments.lean`:
 - `simultaneousWeight_sum_cell`, `simultaneousWeight_sum_cell_self`, and
   `simultaneousWeight_sum_cell_ne` prove the one-or-zero normalization.
 
+Here is the Lean shape of the Goldsmith-Pinkham, Hull, and Kolesar block. The
+finite cell type is `c`, the active treatment-arm type is `k`, and the omitted
+control arm is implicit. The type `k` indexes only active treatments
+$1,\ldots,K$.
+
+```lean
+variable {c k : Type*}
+variable [Fintype c] [Fintype k] [DecidableEq k]
+```
+
+The assumptions `[Fintype c]` and `[Fintype k]` tell Lean that all cell and arm
+sums are finite. The assumption `[DecidableEq k]` lets Lean decide whether two
+active arms are equal, which is needed to write diagonal entries like
+`if i = j then ... else ...`.
+
+The within-cell treatment covariance matrix is defined entrywise:
+
+```lean
+noncomputable def cellTreatmentCovariance (p : c → k → ℝ) (x : c) : Matrix k k ℝ :=
+  fun i j => (if i = j then p x i else 0) - p x i * p x j
+```
+
+This is the Lean version of
+
+$$
+\Sigma_x=\operatorname{diag}(p_x)-p_xp_x'.
+$$
+
+The entrywise definition is intentionally simple for Lean. We still expose the
+usual mathematical shape through simp and helper theorems:
+
+```lean
+@[simp] theorem cellTreatmentCovariance_apply
+theorem cellTreatmentCovariance_apply_self
+theorem cellTreatmentCovariance_apply_ne
+```
+
+These say, respectively,
+
+$$
+\Sigma_x(j,\ell)
+=
+1\{j=\ell\}p_{jx}-p_{jx}p_{\ell x},
+$$
+
+$$
+\Sigma_x(j,j)=p_{jx}(1-p_{jx}),
+$$
+
+and, when $j\ne \ell$,
+
+$$
+\Sigma_x(j,\ell)=-p_{jx}p_{\ell x}.
+$$
+
+The aggregate covariance matrix is the cell-mass weighted sum:
+
+```lean
+noncomputable def residualTreatmentCovariance
+    (cellMass : c → ℝ) (p : c → k → ℝ) : Matrix k k ℝ :=
+  ∑ x : c, cellMass x • cellTreatmentCovariance p x
+```
+
+Mathematically this is
+
+$$
+\Gamma=\sum_x m_x\Sigma_x.
+$$
+
+The coefficient vector is defined as
+
+```lean
+noncomputable def simultaneousCoefficient
+    (cellMass : c → ℝ) (p τ : c → k → ℝ)
+    [Invertible (residualTreatmentCovariance cellMass p)] : k → ℝ :=
+  ⅟ (residualTreatmentCovariance cellMass p) *ᵥ
+    ∑ x : c, cellMass x • (cellTreatmentCovariance p x *ᵥ τ x)
+```
+
+Lean's Unicode notation `⅟` means `invOf`, and `*ᵥ` means matrix-vector
+multiplication. The typeclass assumption
+`[Invertible (residualTreatmentCovariance cellMass p)]` is the finite-sample
+full-rank condition. It is the Lean-side version of assuming $\Gamma^{-1}$
+exists.
+
+The coefficient weights are then
+
+```lean
+noncomputable def simultaneousWeight
+    (cellMass : c → ℝ) (p : c → k → ℝ)
+    [Invertible (residualTreatmentCovariance cellMass p)] (j l : k) (x : c) :
+    ℝ :=
+  cellMass x *
+    ((⅟ (residualTreatmentCovariance cellMass p) *
+      cellTreatmentCovariance p x) j l)
+```
+
+This is exactly
+
+$$
+\lambda_{j\ell}(x)=m_x(\Gamma^{-1}\Sigma_x)_{j\ell}.
+$$
+
+### Lean Proof Of The Coefficient Expansion
+
+The theorem
+
+```lean
+theorem simultaneousCoefficient_eq_sum_weights
+```
+
+proves
+
+$$
+\beta_j
+=
+\sum_\ell\sum_x \lambda_{j\ell}(x)\tau_{\ell x}.
+$$
+
+The proof has three conceptual steps.
+
+First, a private helper lemma pushes matrix-vector multiplication through the
+finite cell sum:
+
+```lean
+private theorem mulVec_sum_smul_mulVec
+```
+
+It proves
+
+$$
+A\left(\sum_x m_x B_x v_x\right)
+=
+\sum_x m_x (AB_x)v_x.
+$$
+
+In Lean this is just `Matrix.mulVec_sum`, `Matrix.mulVec_smul`, and
+`Matrix.mulVec_mulVec`.
+
+Second, the theorem unfolds `simultaneousCoefficient` and applies that helper
+with $A=\Gamma^{-1}$, $B_x=\Sigma_x$, and $v_x=\tau_x$.
+
+Third, Lean expands the $j$th coordinate and swaps the finite sums over cells
+and arms using `Finset.sum_comm`. That is the point where the vector equation
+becomes the displayed double sum over $\ell$ and $x$.
+
+The proof is short in the final file, but that concision hides the actual Lean
+work: most of the effort is getting the finite sums, scalar multiplication, and
+matrix-vector coordinates into exactly the same normal form.
+
+### Lean Proof Of Weight Normalization
+
+The theorem
+
+```lean
+theorem simultaneousWeight_sum_cell
+```
+
+proves
+
+$$
+\sum_x \lambda_{j\ell}(x)=1\{j=\ell\}.
+$$
+
+The proof again uses one private helper:
+
+```lean
+private theorem matrix_mul_sum_smul_apply
+```
+
+It proves the entrywise identity
+
+$$
+\left(A\sum_x m_xB_x\right)_{j\ell}
+=
+\sum_x m_x(AB_x)_{j\ell}.
+$$
+
+Applying this with $A=\Gamma^{-1}$ and $B_x=\Sigma_x$ rewrites the sum of
+weights as
+
+$$
+\left(\Gamma^{-1}\sum_x m_x\Sigma_x\right)_{j\ell}
+=
+(\Gamma^{-1}\Gamma)_{j\ell}.
+$$
+
+The remaining Lean step is the full-rank condition:
+
+```lean
+invOf_mul_self (residualTreatmentCovariance cellMass p)
+```
+
+which proves $\Gamma^{-1}\Gamma=I$. Reading off the $(j,\ell)$ entry of the
+identity matrix gives `if j = l then 1 else 0`. The wrappers
+`simultaneousWeight_sum_cell_self` and `simultaneousWeight_sum_cell_ne` state the
+two econometric cases directly: own weights sum to one, and contamination
+weights sum to zero.
+
 ## 3. One-at-a-Time Regression Adjustment
 
 Lal studies the alternative approach of estimating treatment-arm effects one at
@@ -293,6 +507,92 @@ The Lean implementation reuses the Angrist binary primitives:
   coefficient is the Angrist overlap estimand.
 - `Lal.pairwise_overlapWeight_eq_original` rewrites the pairwise overlap mass
   as $m_x p_{0x}p_{kx}/(p_{0x}+p_{kx})$ when the pairwise denominator is nonzero.
+
+The key design choice is that the Lal block does not reprove Angrist. It
+specializes the Angrist finite-cell theorem to the pairwise comparison sample.
+The namespace is nested under `MultipleTreatments`:
+
+```lean
+namespace Lal
+```
+
+The pairwise sample mass is
+
+```lean
+def pairwiseCellMass (cellMass p0 pk : g → ℝ) (x : g) : ℝ :=
+  cellMass x * (p0 x + pk x)
+```
+
+This is $m_x^{(k)}=m_x(p_{0x}+p_{kx})$.
+
+The pairwise treatment probability is
+
+```lean
+noncomputable def pairwisePropensity (p0 pk : g → ℝ) (x : g) : ℝ :=
+  pk x / (p0 x + pk x)
+```
+
+This is
+
+$$
+q_{kx}=\frac{p_{kx}}{p_{0x}+p_{kx}}.
+$$
+
+The one-at-a-time coefficient is then not a new regression object. It is exactly
+the Angrist binary coefficient applied to the pairwise mass and pairwise
+propensity:
+
+```lean
+noncomputable def oneAtATimeCoefficient
+    (cellMass p0 pk y0 yk : g → ℝ) : ℝ :=
+  Angrist1998.cellRegressionCoefficient
+    (pairwiseCellMass cellMass p0 pk) (pairwisePropensity p0 pk) y0 yk
+```
+
+Likewise, the target estimand is exactly the Angrist overlap estimand applied to
+the same pairwise objects:
+
+```lean
+noncomputable def oneAtATimeOverlapEffect
+    (cellMass p0 pk y0 yk : g → ℝ) : ℝ :=
+  Angrist1998.overlapWeightedTreatmentEffect
+    (pairwiseCellMass cellMass p0 pk) (pairwisePropensity p0 pk) y0 yk
+```
+
+The theorem
+
+```lean
+theorem oneAtATimeCoefficient_eq_overlapEffect
+```
+
+then proves the Lal one-at-a-time target with one unfold and one call to the
+Angrist theorem:
+
+```lean
+exact Angrist1998.cellRegressionCoefficient_eq_overlapWeightedTreatmentEffect
+```
+
+This is the formal payoff from keeping Angrist self-contained. The pairwise
+Lal result becomes a reuse theorem, not a parallel proof.
+
+The theorem
+
+```lean
+theorem pairwise_overlapWeight_eq_original
+```
+
+connects the pairwise notation back to the original multi-arm cell
+probabilities:
+
+$$
+m_x^{(k)}q_{kx}(1-q_{kx})
+=
+m_x\frac{p_{0x}p_{kx}}{p_{0x}+p_{kx}}.
+$$
+
+The Lean proof is exactly the algebra one would do on paper: unfold the
+definitions, clear the nonzero denominator with `field_simp`, and finish the
+polynomial identity with `ring`.
 
 But avoiding contamination does not mean recovering the ATE. The target is
 
@@ -376,7 +676,80 @@ The Lean implementation records this bookkeeping as:
 - `Lal.weightedRankingGap_eq_ateGap_add_covarianceGap`, the corresponding
   two-treatment ranking-gap identity.
 
-## 5. Formalization Status
+The ranking theorems are intentionally stated as algebraic identities over
+finite cells. The theorem name uses "covariance" because that is the
+econometric reading, but the Lean statement is slightly more primitive. It
+proves
+
+$$
+\sum_x m_x\gamma_x\tau_x
+=
+\sum_x m_x\tau_x
++
+\sum_x m_x(\gamma_x-1)\tau_x.
+$$
+
+When the cell masses sum to one and the normalized weights satisfy
+$\sum_x m_x\gamma_x=1$, the last term is the usual covariance-style
+weight-effect deviation:
+
+$$
+\sum_x m_x(\gamma_x-1)\tau_x
+=
+\operatorname{Cov}_m(\gamma_x,\tau_x).
+$$
+
+Lean does not need those normalization assumptions for the algebraic identity
+itself. This is a useful theorem shape: later we can add probability-weighted
+corollaries without changing the core finite-sum proof.
+
+The ranking theorem applies this identity twice:
+
+```lean
+rw [weightedAverage_eq_ate_add_covariance cellMass weightJ τJ,
+  weightedAverage_eq_ate_add_covariance cellMass weightK τK]
+ring
+```
+
+After rewriting both WATEs into ATE plus deviation, the final theorem is just
+the ring identity
+
+$$
+(a+c)-(b+d)=(a-b)+(c-d).
+$$
+
+This is the formal version of the Lal ranking-reversal decomposition. The
+substantive content is not that Lean discovers a reversal; it proves that any
+ranking gap in the one-at-a-time regression estimands decomposes exactly into
+an ATE gap plus the difference in the two treatment-specific overlap deviations.
+
+## 5. What Is And Is Not Proved
+
+The formalized results are exact finite-cell identities:
+
+- Goldsmith-Pinkham, Hull, and Kolesar simultaneous regression: the coefficient vector equals
+  $\Gamma^{-1}\sum_x m_x\Sigma_x\tau_x$; each coordinate expands into own and
+  contamination blocks; the own block weights sum to one and the contamination
+  block weights sum to zero.
+- Lal one-at-a-time regression: each pairwise coefficient is the Angrist
+  overlap-weighted estimand for the corresponding binary comparison.
+- Lal ranking accounting: the difference between two one-at-a-time WATEs equals
+  the ATE difference plus the difference in treatment-specific overlap
+  deviations.
+
+The file does not yet prove:
+
+- nonnegativity of the Goldsmith-Pinkham, Hull, and Kolesar own weights under
+  additional restrictions;
+- any asymptotic convergence statement for sample OLS;
+- primitive causal identification from random variables, sigma-algebras, or
+  conditional independence assumptions;
+- the final rank-reversal inequality as a named theorem.
+
+Those would be natural corollaries or later layers. The core algebra is now in
+place, and it is deliberately stated at a level where both papers can reuse it.
+
+## 6. Formalization Status
 
 The natural sequence is now:
 
