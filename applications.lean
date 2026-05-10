@@ -1,1 +1,2 @@
 import applications.Angrist1998
+import applications.MultipleTreatments

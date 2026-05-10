@@ -169,7 +169,7 @@ terms. With multiple mutually exclusive treatments, the residualized treatment
 indicators are mechanically related within cells, and the inverse covariance
 matrix propagates those relationships across all coefficients.
 
-### Formalization Target
+### Formalized Finite-Cell Statement
 
 The finite-cell theorem to formalize is a matrix identity. Assume:
 
@@ -212,6 +212,16 @@ This theorem is mostly linear algebra: expand the $k$th coordinate of the vector
 equation and then use $\Gamma^{-1}\Gamma=I$. The econometric interpretation is
 attached afterwards: the $\ell=k$ block is the own weighted component, while the
 $\ell\ne k$ blocks are contamination components.
+
+The Lean implementation is in `applications/MultipleTreatments.lean`:
+
+- `cellTreatmentCovariance` defines $\Sigma_c$.
+- `residualTreatmentCovariance` defines $\Gamma$.
+- `simultaneousCoefficient` defines $\beta$.
+- `simultaneousWeight` defines the cell-arm weights $\lambda_{k\ell}(c)$.
+- `simultaneousCoefficient_eq_sum_weights` proves the coefficient expansion.
+- `simultaneousWeight_sum_cell`, `simultaneousWeight_sum_cell_self`, and
+  `simultaneousWeight_sum_cell_ne` prove the one-or-zero normalization.
 
 ## 3. One-at-a-Time Regression Adjustment
 
@@ -272,6 +282,17 @@ $$
 These weights are nonnegative and sum to one. This is why one-at-a-time
 regression adjustment avoids the Goldsmith-Pinkham, Hull, and Kolesar
 contamination term: after fixing $k$, the treatment is binary again.
+
+The Lean implementation reuses the Angrist binary primitives:
+
+- `Lal.pairwiseCellMass` defines $m_x^{(k)}$.
+- `Lal.pairwisePropensity` defines $q_{kx}$.
+- `Lal.oneAtATimeCoefficient` is the pairwise binary regression coefficient.
+- `Lal.oneAtATimeOverlapEffect` is the corresponding overlap-weighted estimand.
+- `Lal.oneAtATimeCoefficient_eq_overlapEffect` proves the one-at-a-time
+  coefficient is the Angrist overlap estimand.
+- `Lal.pairwise_overlapWeight_eq_original` rewrites the pairwise overlap mass
+  as $m_x p_{0x}p_{kx}/(p_{0x}+p_{kx})$ when the pairwise denominator is nonzero.
 
 But avoiding contamination does not mean recovering the ATE. The target is
 
@@ -348,14 +369,24 @@ gets its own overlap-weighted estimand. Rankings can still fail because the
 estimands being ranked are not the ATEs and are not averaged with common
 weights.
 
-## 5. Sequence of Results to Prove
+The Lean implementation records this bookkeeping as:
 
-The natural sequence is:
+- `Lal.weightedAverage_eq_ate_add_covariance`, the finite-cell identity
+  $\mathrm{WATE}_k=\mathrm{ATE}_k$ plus the weight-effect deviation term.
+- `Lal.weightedRankingGap_eq_ateGap_add_covarianceGap`, the corresponding
+  two-treatment ranking-gap identity.
+
+## 5. Formalization Status
+
+The natural sequence is now:
 
 1. Finish the existing Angrist finite-cell theorem for one binary treatment.
-   This is already in `applications/Angrist1998.lean`.
+   This is in `applications/Angrist1998.lean` as
+   `cellRegressionCoefficient_eq_overlapWeightedTreatmentEffect`.
 
-2. Prove the Goldsmith-Pinkham, Hull, and Kolesar matrix decomposition:
+2. Prove the Goldsmith-Pinkham, Hull, and Kolesar matrix decomposition. This is
+   in `applications/MultipleTreatments.lean` as
+   `simultaneousCoefficient_eq_sum_weights`:
 
    $$
    \beta_k
@@ -370,9 +401,12 @@ The natural sequence is:
    \sum_c m_c e_k'\Gamma^{-1}\Sigma_c e_\ell = 1\{k=\ell\}.
    $$
 
-   This separates own-treatment weights from contamination weights.
+   The normalization theorem `simultaneousWeight_sum_cell` separates
+   own-treatment weights from contamination weights.
 
-3. Prove the one-at-a-time pairwise overlap result for each arm $k$:
+3. Prove the one-at-a-time pairwise overlap result for each arm $k$. This is in
+   `applications/MultipleTreatments.lean` as
+   `Lal.oneAtATimeCoefficient_eq_overlapEffect`:
 
    $$
    \beta_k^{\mathrm{one}}
@@ -381,11 +415,12 @@ The natural sequence is:
         {\sum_x m_x^{(k)}q_{kx}(1-q_{kx})}.
    $$
 
-   This should be a thin reuse of the Angrist theorem after instantiating the
-   binary treatment as $Q_k=1\{D=k\}$ inside the $k$-versus-control comparison
-   sample.
+   This is a thin reuse of the Angrist theorem after instantiating the binary
+   treatment as $Q_k=1\{D=k\}$ inside the $k$-versus-control comparison sample.
 
-4. Prove the ranking identity:
+4. Prove the ranking identity. This is in
+   `applications/MultipleTreatments.lean` as
+   `Lal.weightedRankingGap_eq_ateGap_add_covarianceGap`:
 
    $$
    \mathrm{WATE}_j-\mathrm{WATE}_k
@@ -397,7 +432,8 @@ The natural sequence is:
    \operatorname{Cov}(\gamma_k,\tau_k).
    $$
 
-   The rank-reversal condition is then a direct inequality rearrangement.
+   The rank-reversal condition is still a direct inequality rearrangement from
+   this identity.
 
 The conceptual progression is therefore:
 
