@@ -1,3 +1,22 @@
+---
+documentclass: amsart
+classoption: 10pt
+geometry: margin=0.35in
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+header-includes:
+  - '\usepackage{amssymb}'
+  - '\usepackage{newunicodechar}'
+  - '\newunicodechar{→}{\ensuremath{\to}}'
+  - '\newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}'
+  - '\newunicodechar{∑}{\ensuremath{\sum}}'
+  - '\newunicodechar{•}{\ensuremath{\bullet}}'
+  - '\newunicodechar{⅟}{\ensuremath{\operatorname{invOf}}}'
+  - '\newunicodechar{ᵥ}{\ensuremath{_{\mathrm{v}}}}'
+  - '\newunicodechar{τ}{\ensuremath{\tau}}'
+---
+
 # Multiple-Treatment Regression Weights
 
 This note extends the Angrist-style regression-weighting calculation from one

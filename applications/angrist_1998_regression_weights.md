@@ -1,3 +1,19 @@
+---
+documentclass: amsart
+classoption: 10pt
+geometry: margin=0.35in
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+header-includes:
+  - '\usepackage{amssymb}'
+  - '\usepackage{newunicodechar}'
+  - '\newunicodechar{→}{\ensuremath{\to}}'
+  - '\newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}'
+  - '\newunicodechar{ᵀ}{\ensuremath{^{\mathsf{T}}}}'
+  - '\newunicodechar{∑}{\ensuremath{\sum}}'
+---
+
 # Angrist 1998: Regression Weights
 
 Source: `refs/angrist1988.pdf`, Joshua D. Angrist, "Estimating the Labor Market Impact of
