@@ -25,9 +25,11 @@ matching.
 
 ## Algebraic Claim
 
-The deterministic algebra behind Section 2.2 is the Frisch-Waugh-Lovell theorem. Let
-`controls` be the control design matrix, let `d` be the treatment vector, let `y` be the
-outcome vector, and define the residual-maker
+The deterministic algebra behind Section 2.2 has two steps. First, by the
+Frisch-Waugh-Lovell theorem, the treatment coefficient from the full regression equals the
+coefficient from regressing residualized outcomes on residualized treatment. Let `controls`
+be the control design matrix, let `d` be the treatment vector, let `y` be the outcome
+vector, and define the residual-maker
 $$
 M_X = I - X(X'X)^{-1}X'.
 $$
@@ -41,12 +43,24 @@ $$
 = (D'M_XD)^{-1}D'M_XY.
 $$
 
-When `controls` are saturated covariate-cell indicators, expanding $M_XD$ gives within-cell
-treatment residuals $D_i - P(D=1 \mid X_i)$. The denominator $D'M_XD$ therefore aggregates
-within-cell treatment variation, which is the source of Angrist's conditional-variance
-regression weights. The causal interpretation still requires the potential-outcomes
-assumptions from Section 2.1; the Lean result proved here is only the finite-sample
-regression algebra.
+Second, when `controls` are saturated covariate-cell indicators, expanding $M_XD$ gives
+within-cell treatment residuals $D_i - p_x$, where $p_x=P(D=1 \mid X=x)$. If cell $x$ has
+mass $m_x$, treated mean outcome $y_{1x}$, and untreated mean outcome $y_{0x}$, then
+the numerator and denominator become
+$$
+\sum_x m_x p_x(1-p_x)(y_{1x}-y_{0x})
+\quad\text{and}\quad
+\sum_x m_x p_x(1-p_x).
+$$
+Therefore the saturated-regression coefficient is the overlap-weighted average
+$$
+\frac{\sum_x m_x p_x(1-p_x)(y_{1x}-y_{0x})}
+{\sum_x m_x p_x(1-p_x)}.
+$$
+
+The causal interpretation still requires the potential-outcomes assumptions from Section
+2.1. The Lean result proved here is the finite-cell regression algebra that produces
+Angrist's overlap weights.
 
 ## Lean Result
 
@@ -63,6 +77,12 @@ Key declarations:
   to Angrist's regression-weight setup.
 - `regressionCoefficient_eq_partitionedFormula`: proves the displayed partitioned formula
   `(D' M_X D)^{-1} D' M_X Y` in the existing Hansen matrix notation.
+- `cellResidualizedTreatmentOutcomeMoment_eq_overlap_sum`: proves the saturated-cell
+  numerator is `sum_x m_x p_x (1-p_x) (y1_x-y0_x)`.
+- `cellResidualizedTreatmentSecondMoment_eq_overlap_sum`: proves the saturated-cell
+  denominator is `sum_x m_x p_x (1-p_x)`.
+- `cellRegressionCoefficient_eq_overlapWeightedTreatmentEffect`: proves the cell-level
+  regression coefficient is the overlap-weighted treatment-effect average.
 
 ## Lean Proof Walkthrough
 
@@ -216,14 +236,152 @@ $$
 (D'M_XD)^{-1}D'M_XY.
 $$
 
-So the formalized result is not yet the fully expanded cell-weight expression
+The FWL result is only the first layer. The second layer adds a finite cell type `g`:
+
+```lean
+variable {g : Type*}
+variable [Fintype g]
+```
+
+Here `g` indexes saturated covariate cells. At this level we no longer need individual row
+identifiers. Each cell carries:
+
+- `cellMass x`: the mass or population share of cell `x`;
+- `propensity x`: the treatment probability $p_x=P(D=1 \mid X=x)$;
+- `y0 x`: the untreated cell mean outcome;
+- `y1 x`: the treated cell mean outcome.
+
+Treatment status is represented by `Bool`. The real-valued treatment indicator is:
+
+```lean
+def binaryTreatmentValue : Bool → ℝ
+  | false => 0
+  | true => 1
+```
+
+The cell joint mass for a cell and treatment state is:
+
+```lean
+def cellJointMass (cellMass propensity : g → ℝ) (x : g) (d : Bool) : ℝ :=
+  cellMass x * if d then propensity x else 1 - propensity x
+```
+
+So treated observations in cell `x` receive mass `m_x p_x`, and untreated observations
+receive mass `m_x(1-p_x)`. The outcome mean and residualized treatment are:
+
+```lean
+def cellOutcomeMean (y0 y1 : g → ℝ) (x : g) (d : Bool) : ℝ :=
+  if d then y1 x else y0 x
+
+def cellTreatmentResidual (propensity : g → ℝ) (x : g) (d : Bool) : ℝ :=
+  binaryTreatmentValue d - propensity x
+```
+
+Thus the treated residual is `1 - p_x`, and the untreated residual is `-p_x`.
+
+The overlap weight and cell treatment contrast are named directly:
+
+```lean
+def overlapWeight (cellMass propensity : g → ℝ) (x : g) : ℝ :=
+  cellMass x * propensity x * (1 - propensity x)
+
+def cellTreatmentEffect (y0 y1 : g → ℝ) (x : g) : ℝ :=
+  y1 x - y0 x
+```
+
+The numerator of the residualized-treatment regression is formalized as the joint
+cell-by-treatment sum
 $$
-\frac{E[E[Y_1-Y_0 \mid X]P(D=1 \mid X)(1-P(D=1 \mid X))]}
-{E[P(D=1 \mid X)(1-P(D=1 \mid X))]}.
+\sum_x\sum_d m_x P(D=d \mid X=x)(d-p_x)E[Y \mid X=x,D=d].
 $$
-What is now proved is the finite-sample regression-algebra engine from which that expression
-is derived once the control design is specialized to saturated covariate cells and the
-treatment vector is binary.
+In Lean:
+
+```lean
+noncomputable def cellResidualizedTreatmentOutcomeMoment
+    (cellMass propensity y0 y1 : g → ℝ) : ℝ :=
+  ∑ x : g, ∑ d : Bool,
+    cellJointMass cellMass propensity x d *
+      cellTreatmentResidual propensity x d *
+        cellOutcomeMean y0 y1 x d
+```
+
+The denominator is the residualized-treatment second moment:
+
+```lean
+noncomputable def cellResidualizedTreatmentSecondMoment
+    (cellMass propensity : g → ℝ) : ℝ :=
+  ∑ x : g, ∑ d : Bool,
+    cellJointMass cellMass propensity x d *
+      (cellTreatmentResidual propensity x d) ^ 2
+```
+
+The first real Angrist-weight theorem expands the numerator:
+
+```lean
+theorem cellResidualizedTreatmentOutcomeMoment_eq_overlap_sum
+    (cellMass propensity y0 y1 : g → ℝ) :
+    cellResidualizedTreatmentOutcomeMoment cellMass propensity y0 y1 =
+      ∑ x : g, overlapWeight cellMass propensity x * cellTreatmentEffect y0 y1 x := by
+  unfold cellResidualizedTreatmentOutcomeMoment overlapWeight cellTreatmentEffect
+  refine Finset.sum_congr rfl ?_
+  intro x _
+  simp [cellJointMass, cellTreatmentResidual, binaryTreatmentValue, cellOutcomeMean]
+  ring
+```
+
+After unfolding, Lean proves the identity cell-by-cell. For a fixed cell, the `Bool` sum
+has two terms:
+$$
+\begin{aligned}
+&m_x p_x(1-p_x)y_{1x}
++m_x(1-p_x)(-p_x)y_{0x} \\
+&= m_x p_x(1-p_x)(y_{1x}-y_{0x}).
+\end{aligned}
+$$
+The `simp` step evaluates the `Bool` cases; `ring` closes the polynomial identity.
+
+The denominator theorem is analogous:
+
+```lean
+theorem cellResidualizedTreatmentSecondMoment_eq_overlap_sum
+    (cellMass propensity : g → ℝ) :
+    cellResidualizedTreatmentSecondMoment cellMass propensity =
+      ∑ x : g, overlapWeight cellMass propensity x := by
+  unfold cellResidualizedTreatmentSecondMoment overlapWeight
+  refine Finset.sum_congr rfl ?_
+  intro x _
+  simp [cellJointMass, cellTreatmentResidual, binaryTreatmentValue]
+  ring
+```
+
+For each cell, it proves
+$$
+m_x p_x(1-p_x)^2 + m_x(1-p_x)p_x^2 = m_xp_x(1-p_x).
+$$
+
+The final theorem defines the ratio of these two residualized moments as
+`cellRegressionCoefficient`, defines the overlap-weighted estimand as
+`overlapWeightedTreatmentEffect`, and rewrites both numerator and denominator:
+
+```lean
+theorem cellRegressionCoefficient_eq_overlapWeightedTreatmentEffect
+    (cellMass propensity y0 y1 : g → ℝ) :
+    cellRegressionCoefficient cellMass propensity y0 y1 =
+      overlapWeightedTreatmentEffect cellMass propensity y0 y1 := by
+  unfold cellRegressionCoefficient overlapWeightedTreatmentEffect
+  rw [cellResidualizedTreatmentOutcomeMoment_eq_overlap_sum,
+    cellResidualizedTreatmentSecondMoment_eq_overlap_sum]
+```
+
+This is the finite-cell version of Angrist's Section 2.2 expression:
+$$
+\frac{\sum_x m_x p_x(1-p_x)(y_{1x}-y_{0x})}
+{\sum_x m_x p_x(1-p_x)}.
+$$
+
+The module also records that overlap weights are nonnegative under $m_x\ge0$ and
+$0\le p_x\le1$, and that cells with $p_x=0$ or $p_x=1$ receive zero weight. That matches
+Angrist's point that regression drops cells with no within-cell treatment variation.
 
 The next natural applications are `refs/regrank.pdf`, which studies regression-induced
 ranking reversals, and `refs/2106.05024v5.pdf`, Goldsmith-Pinkham, Hull, and Kolesar's
