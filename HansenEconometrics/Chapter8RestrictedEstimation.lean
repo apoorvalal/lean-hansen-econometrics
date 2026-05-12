@@ -149,6 +149,30 @@ theorem clsCorrectionMatrix_transpose
     Matrix.transpose_transpose, inv_gram_transpose, inv_clsConstraintGram_transpose]
   simp [Matrix.mul_assoc]
 
+omit [DecidableEq n] in
+private lemma clsCorrectionMatrix_gram_mul_self
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    clsCorrectionMatrix X R * (Xᵀ * X) * clsCorrectionMatrix X R =
+      clsCorrectionMatrix X R := by
+  have hCG :
+      clsCorrectionMatrix X R * (Xᵀ * X) =
+        ⅟ (Xᵀ * X) * R * ⅟ (clsConstraintGram X R) * Rᵀ := by
+    unfold clsCorrectionMatrix clsRestrictionAdjustmentMatrix
+    simp [Matrix.mul_assoc]
+  rw [hCG]
+  unfold clsCorrectionMatrix clsRestrictionAdjustmentMatrix
+  calc
+    ⅟ (Xᵀ * X) * R * ⅟ (clsConstraintGram X R) * Rᵀ *
+        (⅟ (Xᵀ * X) * R * ⅟ (clsConstraintGram X R) * Rᵀ * ⅟ (Xᵀ * X)) =
+        ⅟ (Xᵀ * X) * R *
+          (⅟ (clsConstraintGram X R) * clsConstraintGram X R *
+            ⅟ (clsConstraintGram X R)) * Rᵀ * ⅟ (Xᵀ * X) := by
+      simp [clsConstraintGram, Matrix.mul_assoc]
+    _ = ⅟ (Xᵀ * X) * R * ⅟ (clsConstraintGram X R) * Rᵀ * ⅟ (Xᵀ * X) := by
+      rw [invOf_mul_self]
+      simp [Matrix.mul_assoc]
+
 /-- Hansen Theorem 8.1: symmetry of the CLS residual-maker matrix. -/
 theorem clsProjectionMatrix_transpose
     (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
@@ -158,6 +182,65 @@ theorem clsProjectionMatrix_transpose
   rw [Matrix.transpose_add, Matrix.transpose_mul, Matrix.transpose_mul,
     Matrix.transpose_transpose, annihilatorMatrix_transpose, clsCorrectionMatrix_transpose]
   simp [Matrix.mul_assoc]
+
+/-- Hansen Theorem 8.1: the CLS residual-maker matrix is idempotent. -/
+theorem clsProjectionMatrix_idempotent
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    clsProjectionMatrix X R * clsProjectionMatrix X R = clsProjectionMatrix X R := by
+  let K : Matrix n n ℝ := X * clsCorrectionMatrix X R * Xᵀ
+  have hMX : annihilatorMatrix X * X = 0 := annihilator_mul_X X
+  have hXM : Xᵀ * annihilatorMatrix X = 0 := by
+    have h := congrArg Matrix.transpose (annihilator_mul_X (X := X))
+    simpa [Matrix.transpose_mul, annihilatorMatrix_transpose] using h
+  have hMK : annihilatorMatrix X * K = 0 := by
+    calc
+      annihilatorMatrix X * K =
+          (annihilatorMatrix X * X) * (clsCorrectionMatrix X R * Xᵀ) := by
+        simp [K, Matrix.mul_assoc]
+      _ = 0 := by simp [hMX]
+  have hKM : K * annihilatorMatrix X = 0 := by
+    calc
+      K * annihilatorMatrix X = X * clsCorrectionMatrix X R * (Xᵀ * annihilatorMatrix X) := by
+        simp [K, Matrix.mul_assoc]
+      _ = 0 := by simp [hXM]
+  have hKK : K * K = K := by
+    calc
+      K * K = X * (clsCorrectionMatrix X R * (Xᵀ * X) * clsCorrectionMatrix X R) * Xᵀ := by
+        simp [K, Matrix.mul_assoc]
+      _ = K := by
+        rw [clsCorrectionMatrix_gram_mul_self]
+  change (annihilatorMatrix X + K) * (annihilatorMatrix X + K) = annihilatorMatrix X + K
+  simp [Matrix.add_mul, Matrix.mul_add, annihilatorMatrix_idempotent, hMK, hKM, hKK]
+
+/-- Hansen Theorem 8.1: trace of the CLS residual-maker matrix. -/
+theorem clsProjectionMatrix_trace
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    Matrix.trace (clsProjectionMatrix X R) =
+      (Fintype.card n : ℝ) - Fintype.card k + Fintype.card q := by
+  unfold clsProjectionMatrix
+  rw [Matrix.trace_add, annihilatorMatrix_trace]
+  have hK : Matrix.trace (X * clsCorrectionMatrix X R * Xᵀ) = (Fintype.card q : ℝ) := by
+    calc
+      Matrix.trace (X * clsCorrectionMatrix X R * Xᵀ) =
+          Matrix.trace (Xᵀ * X * clsCorrectionMatrix X R) := by
+        rw [Matrix.trace_mul_cycle]
+      _ = Matrix.trace (R * ⅟ (clsConstraintGram X R) * Rᵀ * ⅟ (Xᵀ * X)) := by
+        unfold clsCorrectionMatrix clsRestrictionAdjustmentMatrix
+        simp [Matrix.mul_assoc]
+      _ = Matrix.trace (R * (⅟ (clsConstraintGram X R) * Rᵀ * ⅟ (Xᵀ * X))) := by
+        simp only [← Matrix.mul_assoc]
+      _ = Matrix.trace ((⅟ (clsConstraintGram X R) * Rᵀ * ⅟ (Xᵀ * X)) * R) := by
+        rw [Matrix.trace_mul_comm]
+      _ = Matrix.trace (⅟ (clsConstraintGram X R) * clsConstraintGram X R) := by
+        unfold clsConstraintGram
+        simp [Matrix.mul_assoc]
+      _ = Matrix.trace (1 : Matrix q q ℝ) := by
+        rw [invOf_mul_self]
+      _ = (Fintype.card q : ℝ) := by
+        rw [Matrix.trace_one]
+  rw [hK]
 
 /-- Hansen Theorem 8.2 conditional-unbiasedness bridge for CLS.
 
@@ -178,6 +261,51 @@ theorem cls_condExp_unbiased
     funext ω
     exact clsBeta_linear_model X β (e ω) R c hrestrict
   simpa [hfun] using hmean
+
+omit [DecidableEq n] in
+/-- Lean-only deterministic bridge for Hansen Theorem 8.3's homoskedastic sandwich core. -/
+theorem cls_sandwichCore_eq
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    (let B : Matrix k n ℝ := ⅟ (Xᵀ * X) * Xᵀ - clsCorrectionMatrix X R * Xᵀ
+     B * Bᵀ) = ⅟ (Xᵀ * X) - clsCorrectionMatrix X R := by
+  classical
+  have hAGA : ⅟ (Xᵀ * X) * Xᵀ * X * ⅟ (Xᵀ * X) = ⅟ (Xᵀ * X) := by
+    calc
+      ⅟ (Xᵀ * X) * Xᵀ * X * ⅟ (Xᵀ * X) =
+          ⅟ (Xᵀ * X) * (Xᵀ * X) * ⅟ (Xᵀ * X) := by
+        simp [Matrix.mul_assoc]
+      _ = ⅟ (Xᵀ * X) := by
+        rw [invOf_mul_self, Matrix.one_mul]
+  have hCGA : clsCorrectionMatrix X R * Xᵀ * X * ⅟ (Xᵀ * X) =
+      clsCorrectionMatrix X R := by
+    calc
+      clsCorrectionMatrix X R * Xᵀ * X * ⅟ (Xᵀ * X) =
+          clsCorrectionMatrix X R * (Xᵀ * X) * ⅟ (Xᵀ * X) := by
+        simp [Matrix.mul_assoc]
+      _ = clsCorrectionMatrix X R := by
+        rw [Matrix.mul_assoc, mul_invOf_self, Matrix.mul_one]
+  have hAGC : ⅟ (Xᵀ * X) * Xᵀ * X * clsCorrectionMatrix X R =
+      clsCorrectionMatrix X R := by
+    calc
+      ⅟ (Xᵀ * X) * Xᵀ * X * clsCorrectionMatrix X R =
+          ⅟ (Xᵀ * X) * (Xᵀ * X) * clsCorrectionMatrix X R := by
+        simp [Matrix.mul_assoc]
+      _ = clsCorrectionMatrix X R := by
+        rw [invOf_mul_self, Matrix.one_mul]
+  have hCGC : clsCorrectionMatrix X R * Xᵀ * X * clsCorrectionMatrix X R =
+      clsCorrectionMatrix X R := by
+    calc
+      clsCorrectionMatrix X R * Xᵀ * X * clsCorrectionMatrix X R =
+          clsCorrectionMatrix X R * (Xᵀ * X) * clsCorrectionMatrix X R := by
+        simp [Matrix.mul_assoc]
+      _ = clsCorrectionMatrix X R := clsCorrectionMatrix_gram_mul_self X R
+  simp only [Matrix.transpose_sub, Matrix.transpose_mul, Matrix.transpose_transpose,
+    inv_gram_transpose, clsCorrectionMatrix_transpose]
+  simp only [Matrix.sub_mul, Matrix.mul_sub]
+  simp only [← Matrix.mul_assoc]
+  rw [hAGA, hCGA, hAGC, hCGC]
+  simp
 
 /-- Hansen Theorem 8.3 homoskedastic covariance bridge from the deterministic sandwich core. -/
 theorem cls_conditionalVariance_homoskedastic
