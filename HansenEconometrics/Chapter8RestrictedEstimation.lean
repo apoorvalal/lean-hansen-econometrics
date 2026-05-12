@@ -1,4 +1,6 @@
 import HansenEconometrics.Chapter4LeastSquaresRegression
+import HansenEconometrics.ChiSquared
+import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.StudentT
 
 open MeasureTheory ProbabilityTheory
@@ -578,6 +580,128 @@ noncomputable def scaledClsResidualVarianceStatistic
   fun ω =>
     (((Fintype.card n : ℝ) - Fintype.card k + Fintype.card q) *
       clsResidualVariance X (X *ᵥ β + e ω) R c) / σ2
+
+set_option maxHeartbeats 800000 in
+-- The deterministic normalization and eigenspace rewrite expand several large `let`-bound terms.
+/-- The scaled CLS residual statistic is the sum of squared standardized Gaussian coordinates on
+ the `1`-eigenspace of the CLS residual-maker. This is the deterministic bridge for Hansen
+Theorem 8.5. -/
+theorem scaledClsResVarStat_eq_sum_sq_eigenvector_coords
+    {Ω : Type*} [MeasurableSpace Ω]
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    (hrestrict : Rᵀ *ᵥ β = c) (hdf : Fintype.card k < Fintype.card n + Fintype.card q)
+    (ε : Ω → EuclideanSpace ℝ n) :
+    let P := clsProjectionMatrix X R
+    let hP : P.IsHermitian := clsProjectionMatrix_isHermitian X R
+    let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hP.eigenvectorBasis
+    scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε) =
+      sumSquaresRV
+        (restrictedStandardizedCoords b
+          (fun i : {j : n // hP.eigenvalues j = 1} => i.1) σ2 ε) := by
+  classical
+  let P : Matrix n n ℝ := clsProjectionMatrix X R
+  let hP : P.IsHermitian := clsProjectionMatrix_isHermitian X R
+  let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hP.eigenvectorBasis
+  funext ω
+  let df : ℝ := (Fintype.card n : ℝ) - Fintype.card k + Fintype.card q
+  let e : n → ℝ := WithLp.ofLp (ε ω)
+  have hneq_df : df ≠ 0 := by
+    dsimp [df]
+    have hne : ((Fintype.card n + Fintype.card q : ℝ) - Fintype.card k) ≠ 0 := by
+      exact sub_ne_zero.mpr (by exact_mod_cast (Nat.ne_of_gt hdf))
+    have hrewrite :
+        ((Fintype.card n : ℝ) - Fintype.card k + Fintype.card q) =
+          (Fintype.card n + Fintype.card q : ℝ) - Fintype.card k := by
+      ring
+    rwa [hrewrite]
+  have hquad :
+      e ⬝ᵥ P *ᵥ e = ∑ i : {j : n // hP.eigenvalues j = 1}, (b.repr (ε ω) i.1)^2 := by
+    simpa [P, hP, b, e] using
+      isHermitian_idempotent_quadratic_form_eq_sum_sq_eigenvector_coords hP
+        (clsProjectionMatrix_idempotent X R) e
+  have hdot : dotProduct (P *ᵥ e) (P *ᵥ e) = e ⬝ᵥ P *ᵥ e := by
+    have hPt : Pᵀ = P := by simp [P, clsProjectionMatrix_transpose]
+    exact (quadratic_form_eq_dotProduct_of_symm_idempotent P hPt
+      (clsProjectionMatrix_idempotent X R) e).symm
+  have hscaled :
+      scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε) ω =
+        (df * (df⁻¹ * dotProduct (P *ᵥ e) (P *ᵥ e))) / σ2 := by
+    simp [scaledClsResidualVarianceStatistic, clsResidualVariance, df, e, P,
+      clsResidual_linear_model X β e R c hrestrict]
+  have hcancel : df * (df⁻¹ * dotProduct (P *ᵥ e) (P *ᵥ e)) =
+      dotProduct (P *ᵥ e) (P *ᵥ e) := by
+    field_simp [hneq_df]
+  calc
+    scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε) ω
+        = (df * (df⁻¹ * dotProduct (P *ᵥ e) (P *ᵥ e))) / σ2 := hscaled
+    _ = dotProduct (P *ᵥ e) (P *ᵥ e) / σ2 := by rw [hcancel]
+    _ = (e ⬝ᵥ P *ᵥ e) / σ2 := by rw [hdot]
+    _ = (∑ i : {j : n // hP.eigenvalues j = 1}, (b.repr (ε ω) i.1)^2) / σ2 := by
+          rw [hquad]
+    _ = ∑ i : {j : n // hP.eigenvalues j = 1},
+          ((b.repr (ε ω) i.1) / Real.sqrt σ2)^2 := by
+          rw [Finset.sum_div]
+          refine Finset.sum_congr rfl ?_
+          intro i hi
+          field_simp [Real.sq_sqrt hσ2.le, hσ2.ne']
+          rw [Real.sq_sqrt hσ2.le]
+    _ = sumSquaresRV
+          (restrictedStandardizedCoords b
+            (fun i : {j : n // hP.eigenvalues j = 1} => i.1) σ2 ε) ω := by
+          simp [sumSquaresRV, restrictedStandardizedCoords, standardizedCoords]
+
+/-- Hansen Theorem 8.5, chi-square component: under homoskedastic Gaussian structural errors,
+the scaled CLS residual variance statistic has a chi-square law with `n - k + q` degrees of
+freedom. -/
+theorem scaledClsResidualVarianceStatistic_hasLaw_chiSquared
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    (hrestrict : Rᵀ *ᵥ β = c) (hdf : Fintype.card k < Fintype.card n + Fintype.card q)
+    (ε : Ω → EuclideanSpace ℝ n)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw (scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε))
+      (chiSquared (Fintype.card n - Fintype.card k + Fintype.card q)) μ := by
+  classical
+  let P : Matrix n n ℝ := clsProjectionMatrix X R
+  let hP : P.IsHermitian := clsProjectionMatrix_isHermitian X R
+  let W : {j : n // hP.eigenvalues j = 1} → Ω → ℝ :=
+    restrictedStandardizedCoords hP.eigenvectorBasis
+      (fun i : {j : n // hP.eigenvalues j = 1} => i.1) σ2 ε
+  have hRankEqCard :
+      P.rank = Fintype.card {j : n // hP.eigenvalues j = 1} := by
+    simpa [P, hP] using rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hP
+      (clsProjectionMatrix_idempotent X R)
+  have hkn : Fintype.card k ≤ Fintype.card n := by
+    have hle := Matrix.rank_le_card_height (hatMatrix X)
+    simpa [rank_hatMatrix X] using hle
+  have hCardPos : 0 < Fintype.card {j : n // hP.eigenvalues j = 1} := by
+    rw [← hRankEqCard]
+    change 0 < (clsProjectionMatrix X R).rank
+    rw [clsProjectionMatrix_rank X R]
+    omega
+  have hcoords := orthonormalBasis_coords_div_sqrt_iIndep_standardGaussian
+    (b := hP.eigenvectorBasis) hσ2 ε hε
+  have hLawW : ∀ i, HasLaw (W i) (gaussianReal 0 1) μ := by
+    intro i
+    simpa [W, restrictedStandardizedCoords, standardizedCoords] using hcoords.1 i.1
+  have hIndepW : ProbabilityTheory.iIndepFun W μ := by
+    simpa [W, restrictedStandardizedCoords, standardizedCoords] using
+      hcoords.2.precomp Subtype.val_injective
+  letI : MeasureSpace Ω := ⟨μ⟩
+  have hLawSumSq : HasLaw (sumSquaresRV W)
+      (chiSquared (Fintype.card {j : n // hP.eigenvalues j = 1})) μ := by
+    simpa [W, sumSquaresRV] using hasLaw_sum_sq_chiSquared_fintype hCardPos hLawW hIndepW
+  have hEq := scaledClsResVarStat_eq_sum_sq_eigenvector_coords X β hσ2 R c hrestrict hdf ε
+  convert hLawSumSq.congr ?_ using 1
+  · rw [← hRankEqCard]
+    change chiSquared (Fintype.card n - Fintype.card k + Fintype.card q) =
+      chiSquared (clsProjectionMatrix X R).rank
+    rw [clsProjectionMatrix_rank X R]
+  · simp [W]
 
 /-- Hansen Theorem 8.5 chi-square law bridge for the scaled CLS residual statistic.
 
