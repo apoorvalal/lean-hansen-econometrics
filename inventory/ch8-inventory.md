@@ -75,7 +75,8 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- partial: Chapter 8 modules added in `HansenEconometrics/Chapter8RestrictedEstimation.lean` and `HansenEconometrics/Chapter8Asymptotics.lean`.
+- Current surface is a conservative/current-assumption wrapper layer. Several finite-sample algebra statements expose explicit lower-level algebraic inputs rather than deriving the full Hansen proof in this pass.
 
 ## LaTeX / Lean Crosswalk
 
@@ -95,18 +96,20 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 8.1 | The CLS estimator satisﬁes |  |
-| Theorem 8.2 | In the linear regression model (8.14)-(8.15) under (8.1), |  |
-| Theorem 8.3 | In the homoskedastic linear regression model (8.14)-(8.15) with |  |
-| Theorem 8.4 | In the homoskedastic linear regression model (8.14)-(8.15) with |  |
-| Theorem 8.5 | In the normal linear regression model (8.14)-(8.15) with con- |  |
-| Theorem 8.6 | Consistency |  |
-| Theorem 8.7 | Asymptotic Normality |  |
-| Theorem 8.8 | Asymptotic Distribution of CLS Estimator |  |
-| Theorem 8.9 | Efﬁcient Minimum Distance Estimator |  |
+| Theorem 8.1 | The CLS estimator satisﬁes | `cls_restriction_gap_linear_model`, `clsBeta_linear_model`, `clsResidual_linear_model`, `clsProjectionMatrix_transpose` |
+| Theorem 8.2 | In the linear regression model (8.14)-(8.15) under (8.1), | `cls_condExp_unbiased` |
+| Theorem 8.3 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_conditionalVariance_homoskedastic` |
+| Theorem 8.4 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_residualVariance_condExp_eq_sigmaSq` |
+| Theorem 8.5 | In the normal linear regression model (8.14)-(8.15) with con- | `clsBeta_hasGaussianLaw_of_error`, `scaledClsResidualVarianceStatistic_hasChiSquareLaw`, `clsTStat_hasStudentTLaw` |
+| Theorem 8.6 | Consistency | `mdBeta_tendstoInMeasure_beta` |
+| Theorem 8.7 | Asymptotic Normality | `mdBeta_tendstoInDistribution_gaussian` |
+| Theorem 8.8 | Asymptotic Distribution of CLS Estimator | `clsBeta_tendstoInDistribution_gaussian`, `clsAsymptoticVariance_eq_expanded` |
+| Theorem 8.9 | Efﬁcient Minimum Distance Estimator | `emdBeta_tendstoInDistribution_gaussian`, `emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md` |
 | Theorem 8.10 | Under Assumptions 7.2, 8.2, and 8.3, for ˜β = ˜βmd and ˜β = ˜βcls |  |
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- The finite-sample definitions `clsConstraintGram`, `clsRestrictionAdjustmentMatrix`, `clsCorrectionMatrix`, `clsBeta`, `clsResidual`, `clsProjectionMatrix`, `clsResidualVariance`, and covariance-estimator definitions are now present.
+- The current Theorem 8.1 surface directly proves the restriction gap, coefficient decomposition, residual decomposition, and residual-maker symmetry from the maintained restriction/invertibility hypotheses. The CLS residual-maker idempotency/trace facts remain open and are not counted as completed Theorem 8.1 algebra.
+- Theorems 8.6–8.9 are Chapter-8-specific current-assumption/Slutsky wrappers; primitive Hansen assumptions remain to be discharged in follow-up. Theorem 8.10 is still deferred; `linearizedConstraint_tendstoInDistribution_of_remainder` is a Lean-only helper for the post-Delta linearized statistic.
+- The 8.9 variance comparisons are factorization-based PSD theorems (`emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md`); they require an explicit PSD gap factorization rather than assuming the PSD conclusion.
