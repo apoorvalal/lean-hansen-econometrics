@@ -96,21 +96,23 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 8.1 | The CLS estimator satisﬁes | `cls_restriction_gap_linear_model`, `clsBeta_linear_model`, `clsResidual_linear_model`, `clsProjectionMatrix_transpose`, `clsProjectionMatrix_idempotent`, `clsProjectionMatrix_trace` |
-| Theorem 8.2 | In the linear regression model (8.14)-(8.15) under (8.1), | `cls_condExp_unbiased` |
-| Theorem 8.3 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_conditionalVariance_homoskedastic`; deterministic core `cls_sandwichCore_eq` |
-| Theorem 8.4 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_residualVariance_condExp_eq_sigmaSq` |
+| Theorem 8.1 | The CLS estimator satisﬁes | `cls_restriction_gap_linear_model`, `clsBeta_linear_model`, `clsResidual_linear_model`, `clsProjectionMatrix_transpose`, `clsProjectionMatrix_isHermitian`, `clsProjectionMatrix_idempotent`, `clsProjectionMatrix_trace`, `clsProjectionMatrix_rank_add`, `clsProjectionMatrix_rank` |
+| Theorem 8.2 | In the linear regression model (8.14)-(8.15) under (8.1), | `cls_condExp_unbiased`, primitive coordinatewise discharge `cls_condExp_unbiased_of_error_zero` |
+| Theorem 8.3 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_conditionalVariance_homoskedastic`; composed wrapper `cls_conditionalVariance_homoskedastic_composed`; deterministic core `cls_sandwichCore_eq` |
+| Theorem 8.4 | In the homoskedastic linear regression model (8.14)-(8.15) with | `cls_residualVariance_condExp_eq_sigmaSq`; primitive homoskedastic discharge `cls_residualVariance_condExp_eq_sigmaSq_of_homoskedastic` |
 | Theorem 8.5 | In the normal linear regression model (8.14)-(8.15) with con- | `clsBeta_hasGaussianLaw_of_error`, `scaledClsResidualVarianceStatistic_hasChiSquareLaw`, `clsTStat_hasStudentTLaw` |
 | Theorem 8.6 | Consistency | `mdBeta_tendstoInMeasure_beta` |
 | Theorem 8.7 | Asymptotic Normality | `mdBeta_tendstoInDistribution_gaussian` |
 | Theorem 8.8 | Asymptotic Distribution of CLS Estimator | `clsBeta_tendstoInDistribution_gaussian`, `clsAsymptoticVariance_eq_expanded` |
-| Theorem 8.9 | Efﬁcient Minimum Distance Estimator | `emdBeta_tendstoInDistribution_gaussian`, `emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md` |
+| Theorem 8.9 | Efﬁcient Minimum Distance Estimator | `emdBeta_tendstoInDistribution_gaussian`, unrestricted-gap PSD theorem `emdAsymptoticVariance_gap_posSemidef`, factorization wrappers `emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md` |
 | Theorem 8.10 | Under Assumptions 7.2, 8.2, and 8.3, for ˜β = ˜βmd and ˜β = ˜βcls |  |
 
 ## Notes
 
 - The finite-sample definitions `clsConstraintGram`, `clsRestrictionAdjustmentMatrix`, `clsCorrectionMatrix`, `clsBeta`, `clsResidual`, `clsProjectionMatrix`, `clsResidualVariance`, and covariance-estimator definitions are now present.
-- The current Theorem 8.1 surface directly proves the restriction gap, coefficient decomposition, residual decomposition, residual-maker symmetry, residual-maker idempotency, and residual-maker trace from the maintained restriction/invertibility hypotheses. The rank form `rank = n - k + q` remains pending and is not counted as completed Theorem 8.1 algebra.
-- Theorem 8.3 now has the deterministic sandwich-core identity `cls_sandwichCore_eq`; the stochastic primitive assumptions behind the homoskedastic covariance statement remain to be discharged in follow-up.
+- The current Theorem 8.1 surface directly proves the restriction gap, coefficient decomposition, residual decomposition, residual-maker symmetry/Hermitian form, residual-maker idempotency, trace, and rank (`clsProjectionMatrix_rank_add` and textbook `clsProjectionMatrix_rank`) from the maintained restriction/invertibility hypotheses.
+- Theorem 8.2 now includes `cls_condExp_unbiased_of_error_zero`, deriving vector-valued conditional unbiasedness from coordinatewise conditional mean-zero structural errors.
+- Theorem 8.3 now has the deterministic sandwich-core identity `cls_sandwichCore_eq` and the composed public wrapper `cls_conditionalVariance_homoskedastic_composed`.
+- Theorem 8.4 now includes `cls_residualVariance_condExp_eq_sigmaSq_of_homoskedastic`, deriving the bridge input from coordinatewise homoskedastic conditional second moments plus an explicit nonzero degrees-of-freedom assumption.
 - Theorems 8.6–8.9 are Chapter-8-specific current-assumption/Slutsky wrappers; primitive Hansen assumptions remain to be discharged in follow-up. Theorem 8.10 is still deferred; `linearizedConstraint_tendstoInDistribution_of_remainder` is a Lean-only helper for the post-Delta linearized statistic.
-- The 8.9 variance comparisons are factorization-based PSD theorems (`emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md`); they require an explicit PSD gap factorization rather than assuming the PSD conclusion.
+- The 8.9 unrestricted variance gap now has a concrete PSD theorem `emdAsymptoticVariance_gap_posSemidef` under symmetry of `V` and PSD of `(Rᵀ V R)⁻¹`. The full MD-efficiency comparison against arbitrary weights remains represented by factorization-based wrappers (`emdAsymptoticVariance_le_unrestricted`, `emdAsymptoticVariance_le_md`) and still requires an explicit PSD factorization for the exact gap.

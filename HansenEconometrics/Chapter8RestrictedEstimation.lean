@@ -183,6 +183,13 @@ theorem clsProjectionMatrix_transpose
     Matrix.transpose_transpose, annihilatorMatrix_transpose, clsCorrectionMatrix_transpose]
   simp [Matrix.mul_assoc]
 
+/-- The CLS residual-maker matrix is Hermitian (equivalently, symmetric for real matrices). -/
+theorem clsProjectionMatrix_isHermitian
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    (clsProjectionMatrix X R).IsHermitian :=
+  (Matrix.conjTranspose_eq_transpose_of_trivial _).trans (clsProjectionMatrix_transpose X R)
+
 /-- Hansen Theorem 8.1: the CLS residual-maker matrix is idempotent. -/
 theorem clsProjectionMatrix_idempotent
     (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
@@ -242,6 +249,32 @@ theorem clsProjectionMatrix_trace
         rw [Matrix.trace_one]
   rw [hK]
 
+/-- The rank of the CLS residual-maker plus the number of coefficients equals
+observations plus the number of restrictions. Equivalent to rank(Pcls) = n − k + q. -/
+theorem clsProjectionMatrix_rank_add
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    (clsProjectionMatrix X R).rank + Fintype.card k = Fintype.card n + Fintype.card q := by
+  have h := rank_eq_natCast_trace_of_isHermitian_idempotent
+    (clsProjectionMatrix_isHermitian X R) (clsProjectionMatrix_idempotent X R)
+  rw [clsProjectionMatrix_trace] at h
+  exact_mod_cast show ((clsProjectionMatrix X R).rank : ℝ) + (Fintype.card k : ℝ) =
+      (Fintype.card n : ℝ) + (Fintype.card q : ℝ) by
+    linarith
+
+/-- Hansen Theorem 8.1: the rank of the CLS residual-maker is `n - k + q`. -/
+theorem clsProjectionMatrix_rank
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) [Invertible (Xᵀ * X)]
+    [Invertible (clsConstraintGram X R)] :
+    (clsProjectionMatrix X R).rank = Fintype.card n - Fintype.card k + Fintype.card q := by
+  have hbase : (clsProjectionMatrix X R).rank =
+      Fintype.card n + Fintype.card q - Fintype.card k :=
+    Nat.eq_sub_of_add_eq (clsProjectionMatrix_rank_add X R)
+  have hkn : Fintype.card k ≤ Fintype.card n := by
+    have hle := Matrix.rank_le_card_height (hatMatrix X)
+    simpa [rank_hatMatrix X] using hle
+  omega
+
 /-- Hansen Theorem 8.2 conditional-unbiasedness bridge for CLS.
 
 The stochastic input is the conditional mean of the linear CLS error term, while the theorem
@@ -261,6 +294,98 @@ theorem cls_condExp_unbiased
     funext ω
     exact clsBeta_linear_model X β (e ω) R c hrestrict
   simpa [hfun] using hmean
+
+/-- Hansen Theorem 8.2 conditional unbiasedness from coordinatewise mean-zero errors. -/
+theorem cls_condExp_unbiased_of_error_zero
+    {Ω : Type*} {m m₀ : MeasurableSpace Ω} {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)] [IsProbabilityMeasure μ]
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (he_int : ∀ i, Integrable (fun ω => e ω i) μ)
+    (hmean : ∀ i, μ[fun ω => e ω i | m] =ᵐ[μ] fun _ => 0) :
+    μ[(fun ω => clsBeta X (X *ᵥ β + e ω) R c) | m] =ᵐ[μ] fun _ => β := by
+  let B : Matrix k n ℝ := ⅟(Xᵀ * X) * Xᵀ - clsCorrectionMatrix X R * Xᵀ
+  let f : Ω → k → ℝ := fun ω => β + B *ᵥ e ω
+  have hf_int : Integrable f μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    have hrepr : (fun ω => f ω j) = fun ω => β j + ∑ i, B j i * e ω i := by
+      funext ω
+      simp [f, B, Matrix.mulVec, dotProduct]
+    rw [hrepr]
+    have hsum_int : Integrable (fun ω => ∑ i, B j i * e ω i) μ := by
+      simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+        (f := fun i ω => B j i * e ω i)
+        (fun i _ => (he_int i).const_mul (B j i))
+    exact (integrable_const (β j)).add hsum_int
+  have hcoord : ∀ j : k, μ[(fun ω => f ω j) | m] =ᵐ[μ] fun _ => β j := by
+    intro j
+    have hrepr : (fun ω => f ω j) = fun ω => β j + ∑ i, B j i * e ω i := by
+      funext ω
+      simp [f, B, Matrix.mulVec, dotProduct]
+    rw [hrepr]
+    have hsum_int : Integrable (fun ω => ∑ i, B j i * e ω i) μ := by
+      simpa using MeasureTheory.integrable_finset_sum (s := Finset.univ)
+        (f := fun i ω => B j i * e ω i)
+        (fun i _ => (he_int i).const_mul (B j i))
+    have hconst : μ[(fun _ : Ω => β j) | m] = fun _ => β j := by
+      simpa using MeasureTheory.condExp_const (μ := μ) (m := m) (m₀ := m₀) hm (β j)
+    have hsum_repr : (fun ω => ∑ i, B j i * e ω i) = ∑ i, fun ω => B j i * e ω i := by
+      funext ω
+      simp
+    have hsum_ce : μ[(fun ω => ∑ i, B j i * e ω i) | m] =ᵐ[μ]
+        ∑ i, μ[(fun ω => B j i * e ω i) | m] := by
+      rw [hsum_repr]
+      simpa using MeasureTheory.condExp_finset_sum (μ := μ) (m := m)
+        (s := Finset.univ) (f := fun i ω => B j i * e ω i)
+        (fun i _ => (he_int i).const_mul (B j i))
+    have hsum_smul : (∑ i, μ[(fun ω => B j i * e ω i) | m]) =ᵐ[μ]
+        ∑ i, (fun ω => B j i * μ[fun ω => e ω i | m] ω) := by
+      classical
+      refine Finset.induction_on (Finset.univ : Finset n) ?_ ?_
+      · simp
+      · intro a s ha ih
+        have ha' : μ[(fun ω => B j a * e ω a) | m] =ᵐ[μ]
+            fun ω => B j a * μ[fun ω => e ω a | m] ω := by
+          simpa [Pi.smul_apply, smul_eq_mul] using
+            (MeasureTheory.condExp_smul (μ := μ) (m := m) (B j a) (fun ω => e ω a))
+        simpa [Finset.sum_insert, ha] using ha'.add ih
+    have hsum_zero : (∑ i, (fun ω => B j i * μ[fun ω => e ω i | m] ω)) =ᵐ[μ] 0 := by
+      classical
+      refine Finset.induction_on (Finset.univ : Finset n) ?_ ?_
+      · simp
+      · intro a s ha ih
+        have hzeroa : (fun ω => B j a * μ[fun ω => e ω a | m] ω) =ᵐ[μ] 0 := by
+          filter_upwards [hmean a] with ω hω
+          simp [hω]
+        simpa [Finset.sum_insert, ha] using hzeroa.add ih
+    have hsum_final : μ[(fun ω => ∑ i, B j i * e ω i) | m] =ᵐ[μ] 0 :=
+      hsum_ce.trans (hsum_smul.trans hsum_zero)
+    calc
+      μ[(fun ω => β j + ∑ i, B j i * e ω i) | m]
+          =ᵐ[μ] μ[(fun _ : Ω => β j) | m] +
+              μ[(fun ω => ∑ i, B j i * e ω i) | m] := by
+            simpa using MeasureTheory.condExp_add (μ := μ) (m := m)
+              (integrable_const (β j)) hsum_int
+      _ =ᵐ[μ] (fun _ => β j) + 0 := by
+            rw [hconst]
+            exact Filter.EventuallyEq.add Filter.EventuallyEq.rfl hsum_final
+      _ =ᵐ[μ] fun _ => β j := by simp
+  have hmean_vec : μ[f | m] =ᵐ[μ] fun _ => β := by
+    rw [Filter.EventuallyEq]
+    change ∀ᵐ ω ∂μ, μ[f | m] ω = β
+    have hcoord' : ∀ j : k, ∀ᵐ ω ∂μ, μ[f | m] ω j = β j := by
+      intro j
+      exact (condExp_apply (m := m) (μ := μ) (f := f) hf_int j).trans (hcoord j)
+    have hall : ∀ᵐ ω ∂μ, ∀ j : k, μ[f | m] ω j = β j := ae_all_iff.2 hcoord'
+    exact hall.mono fun ω hω => by
+      funext j
+      exact hω j
+  have hfun : (fun ω => clsBeta X (X *ᵥ β + e ω) R c) = f := by
+    funext ω
+    exact clsBeta_linear_model X β (e ω) R c hrestrict
+  simpa [hfun, f, B] using hmean_vec
 
 omit [DecidableEq n] in
 /-- Lean-only deterministic bridge for Hansen Theorem 8.3's homoskedastic sandwich core. -/
@@ -324,6 +449,14 @@ theorem cls_conditionalVariance_homoskedastic
     _ = σ2 • (⅟(Xᵀ * X) - clsCorrectionMatrix X R) := by
       rw [hBB]
 
+/-- Hansen Theorem 8.3: composed homoskedastic CLS covariance formula. -/
+theorem cls_conditionalVariance_homoskedastic_composed
+    (X : Matrix n k ℝ) (R : Matrix k q ℝ) (σ2 : ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)] :
+    clsConditionalVarianceMatrix X R (σ2 • (1 : Matrix n n ℝ)) =
+      clsHomoskedasticVarianceMatrix X R σ2 :=
+  cls_conditionalVariance_homoskedastic X R σ2 (cls_sandwichCore_eq X R)
+
 /-- Hansen Theorem 8.4 residual-variance conditional expectation bridge.
 
 The stochastic input is stated for the quadratic form of the structural error after applying the
@@ -342,6 +475,81 @@ theorem cls_residualVariance_condExp_eq_sigmaSq
       (fun ω => clsResidualVariance X (X *ᵥ β + e ω) R c) =
         fun ω => ((Fintype.card n : ℝ) - Fintype.card k + Fintype.card q)⁻¹ *
           dotProduct (clsProjectionMatrix X R *ᵥ e ω) (clsProjectionMatrix X R *ᵥ e ω) := by
+    funext ω
+    unfold clsResidualVariance
+    rw [clsResidual_linear_model X β (e ω) R c hrestrict]
+  simpa [hfun] using hmean
+
+/-- Hansen Theorem 8.4 residual-variance conditional expectation from homoskedastic second
+moments. The explicit degrees-of-freedom nonzero assumption is needed because
+`clsResidualVariance` uses a totalized inverse. -/
+theorem cls_residualVariance_condExp_eq_sigmaSq_of_homoskedastic
+    {Ω : Type*} {m m₀ : MeasurableSpace Ω} {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (σ2 : ℝ) [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    [IsProbabilityMeasure μ]
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
+    (hee_int : ∀ i j, Integrable (fun ω => e ω i * e ω j) μ)
+    (hhomo : ∀ i j,
+      μ[fun ω => e ω i * e ω j | m] =ᵐ[μ]
+        fun _ => σ2 * (1 : Matrix n n ℝ) i j)
+    (hdf : ((Fintype.card n : ℝ) - Fintype.card k + Fintype.card q) ≠ 0) :
+    μ[(fun ω => clsResidualVariance X (X *ᵥ β + e ω) R c) | m] =ᵐ[μ] fun _ => σ2 := by
+  let P : Matrix n n ℝ := clsProjectionMatrix X R
+  let df : ℝ := (Fintype.card n : ℝ) - Fintype.card k + Fintype.card q
+  have hquad_repr :
+      (fun ω => dotProduct (P *ᵥ e ω) (P *ᵥ e ω)) =
+        fun ω => e ω ⬝ᵥ P *ᵥ e ω := by
+    funext ω
+    calc
+      dotProduct (P *ᵥ e ω) (P *ᵥ e ω) = (P *ᵥ e ω) ᵥ* P ⬝ᵥ e ω := by
+        rw [Matrix.dotProduct_mulVec]
+      _ = e ω ᵥ* (Pᵀ * P) ⬝ᵥ e ω := by
+        rw [Matrix.vecMul_mulVec]
+      _ = e ω ᵥ* P ⬝ᵥ e ω := by
+        rw [show Pᵀ = P by simp [P, clsProjectionMatrix_transpose],
+          show P * P = P by simp [P, clsProjectionMatrix_idempotent]]
+      _ = e ω ⬝ᵥ P *ᵥ e ω := by
+        rw [← Matrix.dotProduct_mulVec]
+  have hquad := condExp_quadratic_form_eq_sum (μ := μ) (m := m) (m₀ := m₀)
+    P e (σ2 • (1 : Matrix n n ℝ)) hm hee_int (by
+      intro i j
+      simpa using hhomo i j)
+  have hsum : (∑ i, ∑ j, P i j * (σ2 • (1 : Matrix n n ℝ)) i j) = σ2 * df := by
+    calc
+      (∑ i, ∑ j, P i j * (σ2 • (1 : Matrix n n ℝ)) i j) =
+          ∑ i, ∑ j, P i j * (σ2 * (1 : Matrix n n ℝ) i j) := by
+        simp
+      _ = σ2 * Matrix.trace P := sum_quadratic_homoskedastic_eq_trace P σ2
+      _ = σ2 * df := by
+        simp [P, df, clsProjectionMatrix_trace]
+  have hscaled : μ[(fun ω => df⁻¹ * (e ω ⬝ᵥ P *ᵥ e ω)) | m] =ᵐ[μ] fun _ => σ2 := by
+    calc
+      μ[(fun ω => df⁻¹ * (e ω ⬝ᵥ P *ᵥ e ω)) | m]
+          =ᵐ[μ] df⁻¹ • μ[(fun ω => e ω ⬝ᵥ P *ᵥ e ω) | m] := by
+            simpa [smul_eq_mul] using MeasureTheory.condExp_smul (μ := μ) (m := m)
+              df⁻¹ (fun ω => e ω ⬝ᵥ P *ᵥ e ω)
+      _ =ᵐ[μ] fun _ : Ω => df⁻¹ *
+          (∑ i, ∑ j, P i j * (σ2 • (1 : Matrix n n ℝ)) i j) := by
+            filter_upwards [hquad] with ω hω
+            simp [Pi.smul_apply, smul_eq_mul, hω]
+      _ =ᵐ[μ] fun _ : Ω => df⁻¹ * (σ2 * df) := by
+            rw [hsum]
+      _ =ᵐ[μ] fun _ : Ω => σ2 := by
+            filter_upwards [] with ω
+            field_simp [df, hdf]
+  have hmean : μ[(fun ω => df⁻¹ * dotProduct (P *ᵥ e ω) (P *ᵥ e ω)) | m]
+      =ᵐ[μ] fun _ => σ2 := by
+    have hscaled_input :
+        (fun ω => df⁻¹ * dotProduct (P *ᵥ e ω) (P *ᵥ e ω)) =
+          fun ω => df⁻¹ * (e ω ⬝ᵥ P *ᵥ e ω) := by
+      funext ω
+      rw [congrFun hquad_repr ω]
+    rw [hscaled_input]
+    exact hscaled
+  have hfun : (fun ω => clsResidualVariance X (X *ᵥ β + e ω) R c) =
+      fun ω => df⁻¹ * dotProduct (P *ᵥ e ω) (P *ᵥ e ω) := by
     funext ω
     unfold clsResidualVariance
     rw [clsResidual_linear_model X β (e ω) R c hrestrict]

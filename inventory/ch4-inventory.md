@@ -166,6 +166,8 @@ Conventions:
 
 - [olsHetCovHC2Star_eq_smul_olsHuberWhiteHC2VarianceEstimator](../../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1271): Chapter 7 totalized HC2 equals `(Fintype.card n : ℝ) •` the Chapter 4 base HC2 estimator on nonsingular designs.
 - [olsHetCovHC3Star_eq_smul_olsHuberWhiteHC3VarianceEstimator](../../HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean#L1284): analogous HC3 bridge.
+- [condExp_quadratic_form_eq_sum](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean): reusable finite-dimensional quadratic-form conditional-expectation helper, now public for Chapter 8 reuse.
+- [sum_quadratic_homoskedastic_eq_trace](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean): homoskedastic trace collapse for the quadratic-form double sum, now public for Chapter 8 reuse.
 - [olsConditionalVarianceMatrix_diagonal_apply](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L88): entrywise form of a deterministic diagonal covariance sandwich.
 - [hc_leverage_weight_ordering](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L150): on `0 ≤ h < 1`, the HC2 scalar leverage weight dominates HC0 and the HC3 scalar leverage weight dominates HC2.
 - [olsConditionalVarianceMatrix_diagonal_mono_posSemidef](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean#L164): monotone diagonal covariance weights induce a positive-semidefinite sandwich difference.

@@ -185,6 +185,27 @@ theorem emdBeta_tendstoInDistribution_gaussian
     (X := fun n ω => mdLinearMap V⁻¹ R *ᵥ T n ω)
     (Y := emdScaledError root bhat R c V β) (Z := Z) hlin hrem hmeas
 
+omit [DecidableEq k] in
+/-- Deterministic PSD factorization of the efficient-MD variance gap against the unrestricted
+variance, under symmetry of `V` and PSD of the inverse restriction covariance. -/
+theorem emdAsymptoticVariance_gap_posSemidef
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hVsym : Vᵀ = V) (hG : ((Rᵀ * V * R)⁻¹).PosSemidef) :
+    (V - emdAsymptoticVariance R V).PosSemidef := by
+  have hgap : V - emdAsymptoticVariance R V =
+      (Rᵀ * V)ᵀ * (Rᵀ * V * R)⁻¹ * (Rᵀ * V) := by
+    unfold emdAsymptoticVariance
+    calc
+      V - (V - V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V) =
+          V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V := by
+        abel
+      _ = (Rᵀ * V)ᵀ * (Rᵀ * V * R)⁻¹ * (Rᵀ * V) := by
+        rw [Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
+        simp [Matrix.mul_assoc]
+  rw [hgap]
+  simpa [Matrix.conjTranspose] using
+    Matrix.PosSemidef.conjTranspose_mul_mul_same hG (Rᵀ * V)
+
 /-- Efficient MD cannot increase asymptotic variance relative to the unrestricted estimator,
 from an explicit PSD factorization of the variance gap. -/
 theorem emdAsymptoticVariance_le_unrestricted
