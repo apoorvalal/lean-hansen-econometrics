@@ -1,4 +1,5 @@
 import HansenEconometrics.Chapter7Asymptotics.MiddleConsistency
+import HansenEconometrics.Interfaces.Asymptotics
 
 /-!
 # Chapter 7 Asymptotics: Sandwich Assembly (RobustCovariance, part 3/3)
@@ -1058,23 +1059,6 @@ theorem toRobustFeasibleHCMomentConditions
   joint_pairwise_indep := joint_pairwise_indep h
   joint_identDistrib := h.joint_identDistrib
   rowNorm_fourth_integrable := h.rowNorm_fourth_integrable
-
-/-- **Hansen Theorem 7.17, iid feasible-HC package endpoint.**
-
-The unified iid robust feasible-HC package directly discharges the max-leverage
-rate through its fourth-row-moment field and the row-norm identical-distribution
-bridge above. -/
-theorem maxLeverageStar_tendstoInMeasure_zero_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
-    (h : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω => maxLeverageStar (stackRegressors X n ω))
-      atTop (fun _ => 0) :=
-  maxLeverageStar_tendstoInMeasure_zero_of_identDistrib_memLp_rowNorm_sq
-    (μ := μ) (X := X) (e := e)
-    h.toLeastSquaresConsistencyConditions
-    (IidRobustFeasibleHCMomentConditions.rowNorm_sq_memLp h) h.rowNorm_sq_identDistrib
 
 end IidRobustFeasibleHCMomentConditions
 
@@ -4283,6 +4267,74 @@ theorem olsHetCovHC3Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β hm.toFeasibleHCLeverageConditions
 
+namespace RobustFeasibleHCMomentConditions
+
+/-- Compact robust moments construct the stable HC0 covariance-consistency interface. -/
+theorem toHC0CovarianceEstimatorConsistent
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => olsHetCovStar (stackRegressors X n ω) (stackOutcomes y n ω))
+      (heteroAsymCov μ X e) where
+  covariance_measurable := fun n =>
+    olsHetCovStar_stack_aestronglyMeasurable_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      hm.toSampleMomentAssumption71 β hm.model
+      hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n
+  covariance_tendsto :=
+    olsHetCovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions β hm
+
+/-- Compact robust moments construct the stable HC1 covariance-consistency interface. -/
+theorem toHC1CovarianceEstimatorConsistent
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => olsHetCovHC1Star (stackRegressors X n ω) (stackOutcomes y n ω))
+      (heteroAsymCov μ X e) where
+  covariance_measurable := fun n =>
+    olsHC1CovarianceStar_stack_aestronglyMeasurable_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      hm.toSampleMomentAssumption71 β hm.model
+      hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n
+  covariance_tendsto :=
+    olsHetCovHC1Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions β hm
+
+/-- Compact robust moments construct the stable HC2 covariance-consistency interface. -/
+theorem toHC2CovarianceEstimatorConsistent
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => olsHetCovHC2Star (stackRegressors X n ω) (stackOutcomes y n ω))
+      (heteroAsymCov μ X e) where
+  covariance_measurable := fun n =>
+    olsHC2CovarianceStar_stack_aestronglyMeasurable_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      hm.toSampleMomentAssumption71 β hm.model
+      hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n
+  covariance_tendsto :=
+    olsHetCovHC2Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions β hm
+
+/-- Compact robust moments construct the stable HC3 covariance-consistency interface. -/
+theorem toHC3CovarianceEstimatorConsistent
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => olsHetCovHC3Star (stackRegressors X n ω) (stackOutcomes y n ω))
+      (heteroAsymCov μ X e) where
+  covariance_measurable := fun n =>
+    olsHC3CovarianceStar_stack_aestronglyMeasurable_components
+      (μ := μ) (X := X) (e := e) (y := y)
+      hm.toSampleMomentAssumption71 β hm.model
+      hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n
+  covariance_tendsto :=
+    olsHetCovHC3Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions β hm
+
+end RobustFeasibleHCMomentConditions
+
 /-- HC2 covariance for fixed linear functions from maximal leverage. -/
 theorem linMap_olsHC2CovStar_tendstoInMeasure_of_bddWts_components_maxLev
     {μ : Measure Ω} [IsProbabilityMeasure μ]
@@ -4518,236 +4570,6 @@ theorem olsHC3LinSEStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
   olsHC3LinSEStar_tendstoInMeasure_of_feasibleHCLeverageConditions
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R j hm.toFeasibleHCLeverageConditions
-
-/-- IID joint-observation residual-variance consistency for `σ̂²`. -/
-theorem olsSigmaSqHatStar_tendstoInMeasure_errorVariance_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsSigmaSqHatStar
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => errorVariance μ e) :=
-  olsSigmaSqHatStar_tendstoInMeasure_errorVariance
-    (μ := μ) (X := X) (e := e) (y := y)
-    hm.toErrorVarianceConsistencyConditions β hm.model
-
-/-- IID joint-observation residual-variance consistency for `s²`. -/
-theorem olsS2Star_tendstoInMeasure_errorVariance_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsS2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => errorVariance μ e) :=
-  olsS2Star_tendstoInMeasure_errorVariance
-    (μ := μ) (X := X) (e := e) (y := y)
-    hm.toErrorVarianceConsistencyConditions β hm.model
-
-/-- IID joint-observation homoskedastic covariance consistency. -/
-theorem olsHomoCovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHomoCovStar
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => homoAsymCov μ X e) :=
-  olsHomoCovStar_tendstoInMeasure
-    (μ := μ) (X := X) (e := e) (y := y)
-    hm.toErrorVarianceConsistencyConditions β hm.model
-
-/-- IID joint-observation HC0 sandwich consistency. -/
-theorem olsHetCovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHetCovStar
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroAsymCov μ X e) :=
-  olsHetCovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC0 covariance for fixed linear functions. -/
-theorem linMap_olsHC0CovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Fintype q]
-    (β : k → ℝ) (R : Matrix q k ℝ)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        R * olsHetCovStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
-      atTop (fun _ => R * heteroAsymCov μ X e * Rᵀ) :=
-  linMap_olsHC0CovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC0 standard errors for fixed linear functions. -/
-theorem olsHC0LinSEStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Finite q]
-    (β : k → ℝ) (R : Matrix q k ℝ) (j : q)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        Real.sqrt ((R * olsHetCovStar
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
-      atTop (fun _ =>
-        Real.sqrt ((R * heteroAsymCov μ X e * Rᵀ) j j)) :=
-  olsHC0LinSEStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R j
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC1 sandwich consistency. -/
-theorem olsHetCovHC1Star_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHetCovHC1Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroAsymCov μ X e) :=
-  olsHetCovHC1Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC1 covariance for fixed linear functions. -/
-theorem linMap_olsHC1CovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Fintype q]
-    (β : k → ℝ) (R : Matrix q k ℝ)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        R * olsHetCovHC1Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
-      atTop (fun _ => R * heteroAsymCov μ X e * Rᵀ) :=
-  linMap_olsHC1CovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC1 standard errors for fixed linear functions. -/
-theorem olsHC1LinSEStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Finite q]
-    (β : k → ℝ) (R : Matrix q k ℝ) (j : q)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        Real.sqrt ((R * olsHetCovHC1Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
-      atTop (fun _ =>
-        Real.sqrt ((R * heteroAsymCov μ X e * Rᵀ) j j)) :=
-  olsHC1LinSEStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R j
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC2 sandwich consistency. -/
-theorem olsHetCovHC2Star_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHetCovHC2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroAsymCov μ X e) :=
-  olsHetCovHC2Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC3 sandwich consistency. -/
-theorem olsHetCovHC3Star_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    (β : k → ℝ) (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        olsHetCovHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω))
-      atTop (fun _ => heteroAsymCov μ X e) :=
-  olsHetCovHC3Star_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC2 covariance for fixed linear functions. -/
-theorem linMap_olsHC2CovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Fintype q]
-    (β : k → ℝ) (R : Matrix q k ℝ)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        R * olsHetCovHC2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
-      atTop (fun _ => R * heteroAsymCov μ X e * Rᵀ) :=
-  linMap_olsHC2CovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC3 covariance for fixed linear functions. -/
-theorem linMap_olsHC3CovStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Fintype q]
-    (β : k → ℝ) (R : Matrix q k ℝ)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        R * olsHetCovHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)
-      atTop (fun _ => R * heteroAsymCov μ X e * Rᵀ) :=
-  linMap_olsHC3CovStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC2 standard errors for fixed linear functions. -/
-theorem olsHC2LinSEStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Finite q]
-    (β : k → ℝ) (R : Matrix q k ℝ) (j : q)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        Real.sqrt ((R * olsHetCovHC2Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
-      atTop (fun _ =>
-        Real.sqrt ((R * heteroAsymCov μ X e * Rᵀ) j j)) :=
-  olsHC2LinSEStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R j
-    hm.toRobustFeasibleHCMomentConditions
-
-/-- IID joint-observation HC3 standard errors for fixed linear functions. -/
-theorem olsHC3LinSEStar_tendstoInMeasure_of_iidRobustFeasibleHCMomentConditions
-    {μ : Measure Ω} [IsProbabilityMeasure μ]
-    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
-    {q : Type*} [Finite q]
-    (β : k → ℝ) (R : Matrix q k ℝ) (j : q)
-    (hm : IidRobustFeasibleHCMomentConditions μ X e y β) :
-    TendstoInMeasure μ
-      (fun n ω =>
-        Real.sqrt ((R * olsHetCovHC3Star
-          (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ) j j))
-      atTop (fun _ =>
-        Real.sqrt ((R * heteroAsymCov μ X e * Rᵀ) j j)) :=
-  olsHC3LinSEStar_tendstoInMeasure_of_robustFeasibleHCMomentConditions
-    (μ := μ) (X := X) (e := e) (y := y) β R j
-    hm.toRobustFeasibleHCMomentConditions
 
 end Assumption72
 

@@ -5,6 +5,7 @@ import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.StochasticOrder
 import HansenEconometrics.AsymptoticUtils.DeltaMethod
 import HansenEconometrics.AsymptoticUtils.MaxBounds
+import HansenEconometrics.Interfaces
 
 import HansenEconometrics.Chapter2CondExp
 

@@ -1,4 +1,5 @@
 import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.Interfaces.Asymptotics
 import HansenEconometrics.Chapter7Asymptotics.Basic
 
 /-!
@@ -211,6 +212,23 @@ theorem sampleGram_stackRegressors_aestronglyMeasurable
   refine AEStronglyMeasurable.const_smul ?_ ((n : ℝ)⁻¹)
   refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => ?_)
   exact ((h.ident_outer i).integrable_iff.mpr h.int_outer).aestronglyMeasurable
+
+namespace LeastSquaresConsistencyConditions
+
+/-- The Chapter 7.1 moment proof bundle constructs the stable Gram-consistency interface. -/
+theorem toGramConsistency
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : LeastSquaresConsistencyConditions μ X e) :
+    GramConsistency μ
+      (fun n ω => sampleGram (stackRegressors X n ω))
+      (popGram μ X) where
+  gram_measurable := sampleGram_stackRegressors_aestronglyMeasurable h
+  gram_tendsto := sampleGram_stackRegressors_tendstoInMeasure_popGram h
+  gram_nonsing := by
+    simpa [popGram] using h.Q_nonsing
+
+end LeastSquaresConsistencyConditions
 
 /-- Measurability of the stacked sample cross moment under the Chapter 7.1 moment layer. -/
 theorem sampleCrossMoment_stack_aestronglyMeasurable
