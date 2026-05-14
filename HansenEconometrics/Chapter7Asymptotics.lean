@@ -5,6 +5,7 @@ import HansenEconometrics.Chapter7Asymptotics.MiddleConsistency
 import HansenEconometrics.Chapter7Asymptotics.SandwichAssembly
 import HansenEconometrics.Chapter7Asymptotics.Normality
 import HansenEconometrics.Chapter7Asymptotics.Inference
+import HansenEconometrics.Assumptions.Chapter7Iid
 
 /-!
 # Chapter 7 — Asymptotic Theory
@@ -30,6 +31,8 @@ The implementation is split into seven chapter-local modules:
   Wald statistic bridges, and chi-square law identification.
 * `Inference` — scalar t-statistics, confidence intervals, one-degree Wald
   statistics, and projection-family inference wrappers.
+* `Assumptions.Chapter7Iid` — textbook-facing iid row setup names and
+  conversions into the proof-facing WLLN/CLT/HC condition bundles.
 
 ## Public Surface
 
@@ -41,6 +44,10 @@ structures:
 * `ScoreCLTConditions`
 * `RobustCovarianceConsistencyConditions`
 * `RobustFeasibleHCMomentConditions`
+* `IidOLSAssumption71`
+* `IidOLSAssumption74`
+* `IidOLSAssumption72FourthMoment`
+* `IidOLSAssumption72ResponseMoment`
 * `HomoskedasticErrorVariance`
 
 Chapter 7 uses `olsBetaStar` as the total proof engine. `olsBetaOrZero` is the

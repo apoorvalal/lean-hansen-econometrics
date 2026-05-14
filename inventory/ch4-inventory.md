@@ -31,6 +31,13 @@ coordinates, and as a fully vector-valued statement. Under coordinatewise condit
 assumptions on the error vector, Lean now proves both `E[β̂ | X] = β` and `E[β̂] = β` in the finite-
 dimensional function-space representation used for coefficient vectors.
 
+Setup API note: the random-variable conditioning wrappers for the Chapter 4 OLS
+unbiasedness and covariance bridges now live in
+`HansenEconometrics/Assumptions/Chapter4OLS.lean` as methods on
+`FixedDesignOLSCondMeanZeroSetup` and `FixedDesignOLSCondSecondMomentSetup`.
+`Chapter4LeastSquaresRegression.lean` keeps the sigma-algebra proof engine and
+deterministic finite-sample algebra.
+
 ### Layer 3: conditional variance
 9. define vector covariance and conditional covariance matrices
 10. formalize `D = E[e eᵀ | X]`
@@ -135,6 +142,7 @@ Conventions:
 
 - [Hansen excerpt](../textbook/ch04/ch4_excerpt.txt)
 - [Lean file](../../HansenEconometrics/Chapter4LeastSquaresRegression.lean)
+- [OLS setup API](../../HansenEconometrics/Assumptions/Chapter4OLS.lean)
 
 ## Crosswalk
 

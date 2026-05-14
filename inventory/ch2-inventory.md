@@ -18,6 +18,7 @@ Lean files:
 - [Chapter2Variance.lean](../HansenEconometrics/Chapter2Variance.lean)
 - [Chapter2LinearProjection.lean](../HansenEconometrics/Chapter2LinearProjection.lean)
 - [Chapter2PotentialOutcomes.lean](../HansenEconometrics/Chapter2PotentialOutcomes.lean)
+- [Assumptions/Conditioning.lean](../HansenEconometrics/Assumptions/Conditioning.lean)
 - reusable helpers in [ProbabilityUtils.lean](../HansenEconometrics/ProbabilityUtils.lean)
 
 ## Status
@@ -35,8 +36,19 @@ Current Lean coverage:
 
 Current strategy:
 - prove the strongest sigma-algebra or abstract statement first
-- add variable-facing or textbook-facing wrappers when they improve usability
+- expose repeated variable-facing hypotheses through setup structures in
+  `Assumptions/Conditioning.lean`
 - reuse Mathlib conditional-expectation and `L²` projection infrastructure where possible
+
+Setup API note:
+- `ConditionalL1Setup`, `ConditionalL2Setup`, `XPredictorL1`, `XPredictorL2`,
+  `NestedConditioningL1Setup`, and `NestedConditioningL2Setup` are the public
+  textbook-facing assumption surface for recurring conditioning hypotheses.
+- The old one-off random-variable theorem wrappers for tower, pull-out,
+  CEF-error, best-predictor, and variance facts were removed in favor of setup
+  methods. The sigma-algebra backend theorems remain canonical proof engines.
+- `simple_law_iterated_expectation_rv` remains because it has the deliberately
+  weaker no-integrability signature used by the potential-outcomes ATE bridge.
 
 Next likely Chapter 2 targets:
 - decide whether any remaining Chapter 2 results are worth formalizing before moving on
@@ -127,7 +139,7 @@ Notes:
 
 Links:
 - [Hansen excerpt](../textbook/ch02/ch2_excerpt.txt#L543)
-- [Variable-facing theorem](../HansenEconometrics/Chapter2CondExp.lean)
+- [Setup method](../HansenEconometrics/Assumptions/Conditioning.lean)
 - [Backend sigma-algebra theorem](../HansenEconometrics/Chapter2CondExp.lean#L26)
 - [Older `X₁, X₂` wrapper](../HansenEconometrics/Chapter2CondExp.lean#L37)
 
@@ -136,7 +148,7 @@ Links:
 | $\mathbb{E}[\mathbb{E}[Y \mid \mathcal{G}_2] \mid \mathcal{G}_1] = \mathbb{E}[Y \mid \mathcal{G}_1]$ | <code>condExpOn μ (condExpOn μ Y X₂) X₁ =ᵐ[μ] condExpOn μ Y X₁</code> |
 
 Notes:
-- The public theorem is variable-facing and assumes `conditioningSpace X₁ ≤ conditioningSpace X₂`.
+- The public setup method is variable-facing and assumes `conditioningSpace X₁ ≤ conditioningSpace X₂`.
 - The backend sigma-algebra theorem remains the proof substrate.
 
 ### T2.3 Conditioning Theorem
@@ -218,8 +230,7 @@ Notes:
 
 Links:
 - [Hansen excerpt](../textbook/ch02/ch2_excerpt.txt#L847)
-- [Variable-facing law of total variance](../HansenEconometrics/Chapter2Variance.lean)
-- [Explained-variance bound](../HansenEconometrics/Chapter2Variance.lean)
+- [Setup methods](../HansenEconometrics/Assumptions/Conditioning.lean)
 - [Backend sigma-algebra theorem](../HansenEconometrics/Chapter2Variance.lean#L35)
 
 | LaTeX | Lean conclusion |
@@ -227,9 +238,9 @@ Links:
 | $\operatorname{Var}(Y) = \mathbb{E}[\operatorname{Var}(Y \mid X)] + \operatorname{Var}(\mathbb{E}[Y \mid X])$ | <code>μ[condVarOn μ Y X] + Var[condExpOn μ Y X; μ] = Var[Y; μ]</code> |
 
 Notes:
-- The explained-variance corollary is also available as
-  `variance_condExpOn_le_variance`, while the main RV-facing variance-decomposition theorem is
-  `law_total_variance_rv`.
+- The public variable-facing forms are now methods on `ConditionalL2Setup`
+  rather than standalone `_rv` wrappers. The backend sigma-algebra theorem
+  remains the proof substrate.
 
 ### T2.9 Linear Projection Model
 

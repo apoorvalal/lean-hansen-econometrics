@@ -24,6 +24,8 @@ Chapter 7 is now split into:
 - `HansenEconometrics/Chapter7Asymptotics/SandwichAssembly.lean`
 - `HansenEconometrics/Chapter7Asymptotics/Normality.lean`
 - `HansenEconometrics/Chapter7Asymptotics/Inference.lean`
+- `HansenEconometrics/Assumptions/Chapter7Iid.lean` for the textbook-facing
+  iid assumption facade and conversions into the backend proof bundles
 
 The umbrella import
 `HansenEconometrics/Chapter7Asymptotics.lean` remains the stable public entry
@@ -39,6 +41,8 @@ Code-size pass notes:
   pipeline
 - descriptive condition structures are primary; numbered `Sample...` names are
   compatibility aliases
+- textbook-facing iid row names live in `Assumptions/Chapter7Iid.lean`; the
+  older proof-facing WLLN/CLT/HC bundles remain backend targets
 
 ## Public assumption packages
 
@@ -55,11 +59,23 @@ condition structures:
 - `FeasibleHCMomentWLLNConditions`
 - `RobustFeasibleHCMomentConditions`
 - `IidRobustFeasibleHCMomentConditions`
+- `IidLinearModelRows`
+- `IidLinearModelMomentExog`
+- `IidOLSAssumption71`
+- `IidOLSAssumption74`
+- `IidOLSAssumption72FourthMoment`
+- `IidOLSAssumption72ResponseMoment`
 
 The older `SampleMomentAssumption71`, `SampleVarianceAssumption74`,
 `SampleCLTAssumption72`, and `SampleHC0Assumption76` names are now compatibility
 aliases for those descriptive structures, used only where theorem-engine code
 still benefits from the shorter proof-oriented names.
+
+The new `IidOLS...` names are the preferred textbook-facing facade. They convert
+to `LeastSquaresConsistencyConditions`, `ErrorVarianceConsistencyConditions`,
+and `RobustFeasibleHCMomentConditions`; the transformed-sequence condition
+structures remain the minimal proof engines consumed by the established Chapter
+7 convergence theorems.
 
 ## Estimator API note
 
