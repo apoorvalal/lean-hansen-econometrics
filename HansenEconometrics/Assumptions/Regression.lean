@@ -21,54 +21,39 @@ variable {μ : Measure Ω}
 /-- Textbook affine linear model with L2 regressors and error. -/
 structure AffineLinearModelL2
     (μ : Measure Ω) (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- Each regressor coordinate has a finite second moment. -/
   regressor_memLp : ∀ j, MemLp (fun ω => X ω j) 2 μ
-  /-- The structural error has a finite second moment. -/
   error_memLp : MemLp e 2 μ
-  /-- The affine linear decomposition. -/
   model : Y = fun ω => α + dotProduct (X ω) β + e ω
 
 /-- Zero-intercept linear model with L2 regressors and error. -/
 structure LinearModelL2
     (μ : Measure Ω) (X : Ω → k → ℝ) (Y e : Ω → ℝ) (β : k → ℝ) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- Each regressor coordinate has a finite second moment. -/
   regressor_memLp : ∀ j, MemLp (fun ω => X ω j) 2 μ
-  /-- The structural error has a finite second moment. -/
   error_memLp : MemLp e 2 μ
-  /-- The linear decomposition. -/
   model : Y = fun ω => dotProduct (X ω) β + e ω
 
 /-- Linear model with conditional mean-zero error given regressors. -/
 structure LinearModelCondExog
     (μ : Measure Ω) (X : Ω → k → ℝ) (Y e : Ω → ℝ) (β : k → ℝ)
     extends LinearModelL2 μ X Y e β where
-  /-- The regressor vector is measurable. -/
   measurable_regressor : Measurable X
-  /-- The trimmed measure on `σ(X)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_regressor))
-  /-- Conditional exogeneity: `E[e | X] = 0`. -/
   cond_error_zero : condExpOn μ e X =ᵐ[μ] 0
 
 /-- Linear model with unconditional moment exogeneity. -/
 structure LinearModelMomentExog
     (μ : Measure Ω) (X : Ω → k → ℝ) (Y e : Ω → ℝ) (β : k → ℝ)
     extends LinearModelL2 μ X Y e β where
-  /-- The structural error has mean zero. -/
   error_mean_zero : ∫ ω, e ω ∂μ = 0
-  /-- Population moment exogeneity: `E[e X] = 0`. -/
   moment_exogeneity : μ[fun ω => e ω • X ω] = 0
 
 /-- Affine model with covariance orthogonality between regressors and error. -/
 structure LinearModelCovExog
     (μ : Measure Ω) (X : Ω → k → ℝ) (Y e : Ω → ℝ) (α : ℝ) (β : k → ℝ)
     extends AffineLinearModelL2 μ X Y e α β where
-  /-- The structural error has mean zero. -/
   error_mean_zero : ∫ ω, e ω ∂μ = 0
-  /-- Population covariance orthogonality. -/
   covariance_exogeneity : covVec μ X e = 0
 
 namespace LinearModelL2
@@ -155,40 +140,6 @@ theorem moment_exogeneity
       simp [hω]
     _ = (0 : k → ℝ) j := by simp
 
-/-- Conditional exogeneity implies covariance orthogonality. -/
-theorem covariance_exogeneity
-    {X : Ω → k → ℝ} {Y e : Ω → ℝ} {β : k → ℝ}
-    (h : LinearModelCondExog μ X Y e β) :
-    covVec μ X e = 0 := by
-  haveI : IsProbabilityMeasure μ := h.isProbability
-  have hmean := h.error_integral_zero
-  have hmoment := h.moment_exogeneity
-  ext j
-  have hmoment_j : ∫ ω, e ω * X ω j ∂μ = 0 := by
-    have hcoord := congrFun hmoment j
-    have hvec_int : Integrable (fun ω => e ω • X ω) μ := by
-      refine Integrable.of_eval ?_
-      intro l
-      have hprod : Integrable (fun ω => e ω * X ω l) μ :=
-        h.error_memLp.integrable_mul (h.regressor_memLp l)
-      simpa [Pi.smul_apply, smul_eq_mul] using hprod
-    calc
-      ∫ ω, e ω * X ω j ∂μ
-          = (∫ ω, e ω • X ω ∂μ) j := by
-            rw [integral_apply (μ := μ) (f := fun ω => e ω • X ω) hvec_int j]
-            simp [Pi.smul_apply, smul_eq_mul]
-      _ = 0 := hcoord
-  rw [covVec, ProbabilityTheory.covariance_eq_sub (h.regressor_memLp j) h.error_memLp]
-  rw [hmean]
-  calc
-    μ[(fun ω => X ω j) * e] - μ[fun ω => X ω j] * 0
-        = μ[(fun ω => X ω j) * e] := by ring
-    _ = ∫ ω, e ω * X ω j ∂μ := by
-          apply integral_congr_ae
-          filter_upwards [] with ω
-          simp [Pi.mul_apply, mul_comm]
-    _ = 0 := hmoment_j
-
 /-- Package conditional exogeneity as moment exogeneity. -/
 def toMomentExog
     {X : Ω → k → ℝ} {Y e : Ω → ℝ} {β : k → ℝ}
@@ -250,6 +201,17 @@ def toCovExog
   covariance_exogeneity := h.covariance_exogeneity
 
 end LinearModelMomentExog
+
+namespace LinearModelCondExog
+
+/-- Conditional exogeneity implies covariance orthogonality. -/
+theorem covariance_exogeneity
+    {X : Ω → k → ℝ} {Y e : Ω → ℝ} {β : k → ℝ}
+    (h : LinearModelCondExog μ X Y e β) :
+    covVec μ X e = 0 :=
+  h.toMomentExog.covariance_exogeneity
+
+end LinearModelCondExog
 
 namespace LinearModelCovExog
 

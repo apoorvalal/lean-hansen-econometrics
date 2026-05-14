@@ -20,66 +20,44 @@ variable {μ : Measure Ω}
 
 /-- L1 setup for conditional expectation given a random variable. -/
 structure ConditionalL1Setup (μ : Measure Ω) (Y : Ω → ℝ) (X : Ω → β) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- The conditioning variable is measurable. -/
   measurable_conditioning : Measurable X
-  /-- The trimmed measure on `σ(X)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_conditioning))
-  /-- The response has a finite first moment. -/
   integrable_response : Integrable Y μ
 
 /-- L2 setup for conditional expectation and variance facts given a random variable. -/
 structure ConditionalL2Setup (μ : Measure Ω) (Y : Ω → ℝ) (X : Ω → β) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- The conditioning variable is measurable. -/
   measurable_conditioning : Measurable X
-  /-- The trimmed measure on `σ(X)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_conditioning))
-  /-- The response has a finite second moment. -/
   memLp_response : MemLp Y 2 μ
 
 /-- L1 predictor measurable with respect to a conditioning variable. -/
 structure XPredictorL1 (μ : Measure Ω) (X : Ω → β) (g : Ω → ℝ) where
-  /-- The predictor is `σ(X)`-measurable. -/
   x_measurable : XMeasurable μ X g
-  /-- The predictor has a finite first moment. -/
   integrable_predictor : Integrable g μ
 
 /-- L2 predictor measurable with respect to a conditioning variable. -/
 structure XPredictorL2 (μ : Measure Ω) (X : Ω → β) (g : Ω → ℝ) where
-  /-- The predictor is `σ(X)`-measurable. -/
   x_measurable : XMeasurable μ X g
-  /-- The predictor has a finite second moment. -/
   memLp_predictor : MemLp g 2 μ
 
 /-- L1 setup for nested conditioning variables `σ(X₁) ≤ σ(X₂)`. -/
 structure NestedConditioningL1Setup
     (μ : Measure Ω) (Y : Ω → ℝ) (X₁ : Ω → β) (X₂ : Ω → γ) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- The finer conditioning variable is measurable. -/
   measurable_finer : Measurable X₂
-  /-- The trimmed measure on `σ(X₂)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_finer))
-  /-- The response has a finite first moment. -/
   integrable_response : Integrable Y μ
-  /-- The information in `X₁` is contained in the information in `X₂`. -/
   nested : conditioningSpace X₁ ≤ conditioningSpace X₂
 
 /-- L2 setup for nested conditioning variables `σ(X₁) ≤ σ(X₂)`. -/
 structure NestedConditioningL2Setup
     (μ : Measure Ω) (Y : Ω → ℝ) (X₁ : Ω → β) (X₂ : Ω → γ) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- The finer conditioning variable is measurable. -/
   measurable_finer : Measurable X₂
-  /-- The trimmed measure on `σ(X₂)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_finer))
-  /-- The response has a finite second moment. -/
   memLp_response : MemLp Y 2 μ
-  /-- The information in `X₁` is contained in the information in `X₂`. -/
   nested : conditioningSpace X₁ ≤ conditioningSpace X₂
 
 namespace ConditionalL2Setup

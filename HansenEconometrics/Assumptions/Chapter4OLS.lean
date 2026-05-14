@@ -22,15 +22,10 @@ variable {μ : Measure Ω}
 structure FixedDesignOLSCondMeanZeroSetup
     (μ : Measure Ω) (X : Matrix n k ℝ) (e : Ω → n → ℝ)
     (β : k → ℝ) (Z : Ω → ζ) where
-  /-- The ambient measure is a probability measure. -/
   isProbability : IsProbabilityMeasure μ
-  /-- The conditioning variable is measurable. -/
   measurable_conditioning : Measurable Z
-  /-- The trimmed measure on `σ(Z)` is sigma-finite. -/
   sigmaFinite_trim : SigmaFinite (μ.trim (conditioningSpace_le measurable_conditioning))
-  /-- Each error coordinate is integrable. -/
   error_integrable : ∀ i, Integrable (fun ω => e ω i) μ
-  /-- Conditional mean-zero errors. -/
   cond_error_zero : ∀ i, condExpOn μ (fun ω => e ω i) Z =ᵐ[μ] 0
 
 /-- Fixed-design OLS setup with conditional second moments. -/
@@ -38,9 +33,7 @@ structure FixedDesignOLSCondSecondMomentSetup
     (μ : Measure Ω) (X : Matrix n k ℝ) (e : Ω → n → ℝ)
     (β : k → ℝ) (Z : Ω → ζ) (D : Matrix n n ℝ)
     extends FixedDesignOLSCondMeanZeroSetup μ X e β Z where
-  /-- Each second-moment product is integrable. -/
   second_integrable : ∀ i r, Integrable (fun ω => e ω i * e ω r) μ
-  /-- Conditional second moments are the fixed matrix `D`. -/
   cond_second_moment :
     ∀ i r, condExpOn μ (fun ω => e ω i * e ω r) Z =ᵐ[μ] fun _ => D i r
 
@@ -102,15 +95,6 @@ theorem integral_coordinate_eq_beta
     h.error_integrable
     (fun i => by simpa [condExpOn, conditioningSpace] using h.cond_error_zero i)
 
-/-- Uniform coordinatewise unconditional unbiasedness of OLS. -/
-theorem integral_all_coordinates_eq_beta
-    {X : Matrix n k ℝ} {e : Ω → n → ℝ} {β : k → ℝ} {Z : Ω → ζ}
-    [Invertible (Xᵀ * X)]
-    (h : FixedDesignOLSCondMeanZeroSetup μ X e β Z) :
-    ∀ j, ∫ ω, olsBeta X (X *ᵥ β + e ω) j ∂μ = β j := by
-  intro j
-  exact h.integral_coordinate_eq_beta j
-
 /-- Vector-valued unconditional unbiasedness of OLS. -/
 theorem integral_eq_beta
     {X : Matrix n k ℝ} {e : Ω → n → ℝ} {β : k → ℝ} {Z : Ω → ζ}
@@ -132,30 +116,6 @@ theorem integral_eq_beta
 end FixedDesignOLSCondMeanZeroSetup
 
 namespace FixedDesignOLSCondSecondMomentSetup
-
-/-- Coordinatewise conditional covariance bridge for fixed-design OLS. -/
-theorem condExp_centered_mul_eq_variance_entry
-    {X : Matrix n k ℝ} {e : Ω → n → ℝ} {β : k → ℝ} {Z : Ω → ζ}
-    {D : Matrix n n ℝ}
-    [Invertible (Xᵀ * X)]
-    (h : FixedDesignOLSCondSecondMomentSetup μ X e β Z D) (j l : k) :
-    condExpOn μ
-        (fun ω => (olsBeta X (X *ᵥ β + e ω) j - β j) *
-          (olsBeta X (X *ᵥ β + e ω) l - β l))
-        Z =ᵐ[μ]
-      fun _ => olsConditionalVarianceMatrix X D j l := by
-  haveI : IsProbabilityMeasure μ := h.isProbability
-  haveI : SigmaFinite (μ.trim (conditioningSpace_le h.measurable_conditioning)) :=
-    h.sigmaFinite_trim
-  simpa [condExpOn, conditioningSpace] using
-    ols_condExp_centered_mul_eq_variance_entry
-      (μ := μ)
-      (m := conditioningSpace Z)
-      (m₀ := inferInstance)
-      X β e D j l
-      (conditioningSpace_le h.measurable_conditioning)
-      h.second_integrable
-      (fun i r => by simpa [condExpOn, conditioningSpace] using h.cond_second_moment i r)
 
 /-- Matrix-valued conditional covariance bridge for fixed-design OLS. -/
 theorem condExp_centered_mul_eq_variance_matrix

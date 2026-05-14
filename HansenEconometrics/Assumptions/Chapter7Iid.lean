@@ -53,15 +53,10 @@ private lemma measurable_iidErrorSq :
 structure IidLinearModelRows
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → k → ℝ) (e y : ℕ → Ω → ℝ) (β : k → ℝ) where
-  /-- Linear-model decomposition of the observed outcome. -/
   model : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω
-  /-- Regressor rows are a.e. strongly measurable. -/
   x_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (X i) μ
-  /-- Error rows are a.e. strongly measurable. -/
   e_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (e i) μ
-  /-- Joint observations `(Xᵢ, eᵢ)` are independent. -/
   joint_iIndep : iIndepFun (fun i ω => (X i ω, e i ω)) μ
-  /-- Joint observations are identically distributed against row zero. -/
   joint_identDistrib : ∀ i,
     IdentDistrib (fun ω => (X i ω, e i ω))
       (fun ω => (X 0 ω, e 0 ω)) μ μ
@@ -71,13 +66,9 @@ structure IidLinearModelMomentExog
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → k → ℝ) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
     extends IidLinearModelRows μ X e y β where
-  /-- Integrability of the baseline outer product `X₀X₀ᵀ`. -/
   int_outer : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ
-  /-- Integrability of the baseline score `e₀X₀`. -/
   int_cross : Integrable (fun ω => e 0 ω • X 0 ω) μ
-  /-- Population Gram matrix `Q := E[X₀X₀ᵀ]` is nonsingular. -/
   Q_nonsing : IsUnit (μ[fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)]).det
-  /-- Population orthogonality `E[e₀X₀] = 0`. -/
   orthogonality : μ[fun ω => e 0 ω • X 0 ω] = 0
 
 /-- Hansen Assumption 7.1 in iid row form. -/
@@ -91,7 +82,6 @@ structure IidOLSAssumption74
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (X : ℕ → Ω → k → ℝ) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
     extends IidLinearModelMomentExog μ X e y β where
-  /-- Integrability of the baseline squared error. -/
   int_error_sq : Integrable (fun ω => e 0 ω ^ 2) μ
 
 /-- Hansen Assumption 7.2 with a structural-error fourth moment. -/
