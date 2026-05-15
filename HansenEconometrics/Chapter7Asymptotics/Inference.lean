@@ -741,6 +741,31 @@ theorem linearCovarianceStdError_aemeasurable
     Real.continuous_sqrt.comp hentry_cont
   exact (hsqrt_cont.comp_aestronglyMeasurable hcov).aemeasurable
 
+namespace CovarianceEstimatorConsistent
+
+omit [DecidableEq k] in
+/-- A consistent covariance estimator gives a consistent scalar standard error
+for any fixed one-row linear restriction. -/
+theorem toFeasibleLinearStdError
+    {μ : Measure Ω} [IsFiniteMeasure μ] {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : CovarianceEstimatorConsistent μ Vhat V) (R : Matrix Unit k ℝ)
+    (hpos : 0 < linearRestrictionStdError R V) :
+    FeasibleStandardErrorConsistent μ
+      (fun n ω => Real.sqrt ((R * Vhat n ω * Rᵀ) () ()))
+      (linearRestrictionStdError R V) where
+  se_measurable := fun n =>
+    linearCovarianceStdError_aemeasurable
+      (μ := μ) (R := R) (Vhat := fun ω => Vhat n ω)
+      (h.covariance_measurable n)
+  se_tendsto := by
+    simpa [linearRestrictionStdError] using
+      linMapCovStdError_tendstoInMeasure
+        (μ := μ) (Vhat := Vhat) (V := V) R () h.covariance_measurable
+        h.covariance_tendsto
+  limit_pos := hpos
+
+end CovarianceEstimatorConsistent
+
 /-- Generic studentization bridge for scalar linear inference.
 
 If a numerator has a distributional limit and the standard error converges in
@@ -825,7 +850,7 @@ theorem nonlinearScalarCI_coverage_of_tstat_standardNormal_se_tendsto_pos
 For a one-dimensional fixed linear map `R`, the homoskedastic-studentized
 totalized OLS linear function converges to the Gaussian linear-function limit
 divided by the homoskedastic population standard-error scale. -/
-theorem olsHomoLinTStatStar_tendstoInDistribution
+private theorem olsHomoLinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -895,7 +920,7 @@ If the homoskedastic asymptotic covariance equals the robust sandwich
 covariance, the scalar homoskedastic t-statistic has the standard-normal limit.
 This is the one-dimensional t-statistic face behind the homoskedastic Wald
 statistic. -/
-theorem olsHomoLinTStatStar_tendstoInDistribution_standardNormal
+private theorem olsHomoLinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -950,7 +975,7 @@ theorem olsHomoLinTStatStar_tendstoInDistribution_standardNormal
 
 The homoskedastic-studentized scalar linear t-statistic transfers from the
 totalized estimator to the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
-theorem olsHomoLinTStatOrZero_tendstoInDistribution
+private theorem olsHomoLinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -984,7 +1009,7 @@ theorem olsHomoLinTStatOrZero_tendstoInDistribution
       hclt hvar β R hmodel hX_meas he_meas hZ hse_pos
 
 /-- **Hansen Theorem 7.14 for ordinary OLS, homoskedastic standard-normal face.** -/
-theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
+private theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1011,7 +1036,7 @@ theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
       hclt hvar β R hmodel hX_meas he_meas hVeq hse_pos
 
 /-- Absolute-value CMT for the ordinary homoskedastic scalar t-statistic. -/
-theorem olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
+private theorem olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1045,7 +1070,7 @@ For a one-row linear restriction, the ordinary-wrapper homoskedastic symmetric
 confidence interval has limiting coverage equal to the absolute standard-normal
 mass below the critical value. Sample standard-error positivity is derived from
 convergence in probability to the positive population standard error. -/
-theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal
+private theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1109,7 +1134,7 @@ set_option linter.style.longLine false in
 
 This is the variable-facing version: it assumes constant conditional error
 variance given regressors, then derives the covariance identity internally. -/
-theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal_homo
+private theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1148,7 +1173,7 @@ theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal_homo
 
 Under the explicit covariance bridge `V⁰β = Vβ`, the scalar homoskedastic Wald
 statistic for ordinary OLS converges to `χ²(1)`. -/
-theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+private theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1180,7 +1205,7 @@ set_option linter.style.longLine false in
 
 If the homoskedastic score-covariance identity `Ω = σ²Q` is available, the
 ordinary-wrapper scalar homoskedastic t-statistic has a standard-normal limit. -/
-theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_scoreCov
+private theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_scoreCov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1214,7 +1239,7 @@ set_option linter.style.longLine false in
 
 This variable-facing wrapper derives `Ω = σ²Q` from constant conditional error
 variance given `X₀`, then applies the covariance-identity bridge. -/
-theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
+private theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1248,7 +1273,7 @@ set_option linter.style.longLine false in
 
 If `Ω = σ²Q`, the scalar one-degree-of-freedom homoskedastic Wald statistic for
 ordinary OLS converges to `χ²(1)`. -/
-theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_scoreCov
+private theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_scoreCov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1276,7 +1301,7 @@ theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_scoreCov
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 7.14, scalar homoskedastic Wald statistic from homoskedasticity.** -/
-theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo
+private theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (hclt : ScoreCLTConditions μ X e)
@@ -1303,6 +1328,149 @@ theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo
       (olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
         (μ := μ) (X := X) (e := e) (y := y)
         hclt hvar β R hmodel hX_meas he_meas hX0 hhomo hse_pos)
+
+namespace HomoskedasticInferenceConditions
+
+/-- Packaged homoskedastic scalar t-statistic with standard-normal limit. -/
+theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ)
+    (hVeq : homoAsymCov μ X e = heteroAsymCov μ X e)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) :=
+  HansenEconometrics.olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable hVeq hse_pos
+
+/-- Packaged absolute-value CMT for the homoskedastic scalar t-statistic. -/
+theorem olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ)
+    (hVeq : homoAsymCov μ X e = heteroAsymCov μ X e)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        |olsLinearTStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ))|)
+      atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
+  HansenEconometrics.olsHomoLinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable hVeq hse_pos
+
+/-- Packaged homoskedastic confidence-interval coverage. -/
+theorem olsHomoLinCIOrZero_cov_tendsto_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ) (crit : ℝ)
+    (hVeq : homoAsymCov μ X e = heteroAsymCov μ X e)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    Tendsto
+      (fun n => μ {ω |
+        olsLinearCIEventOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)) crit})
+      atTop
+      (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
+  HansenEconometrics.olsHomoLinCIOrZero_cov_tendsto_standardNormal
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R crit h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable hVeq hse_pos
+
+/-- Packaged one-degree homoskedastic Wald statistic. -/
+theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ)
+    (hVeq : homoAsymCov μ X e = heteroAsymCov μ X e)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        olsLinearWaldStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
+  HansenEconometrics.olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable hVeq hse_pos
+
+end HomoskedasticInferenceConditions
+
+namespace HomoskedasticErrorInferenceConditions
+
+/-- Packaged homoskedastic scalar t-statistic deriving the covariance bridge internally. -/
+theorem olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticErrorInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        olsLinearTStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  haveI : SigmaFinite (μ.trim (conditioningSpace_le h.x0_measurable)) :=
+    h.sigmaFinite_x0
+  exact HansenEconometrics.olsHomoLinTStatOrZero_tendstoInDistribution_standardNormal_homo
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable h.x0_measurable h.homoskedastic hse_pos
+
+/-- Packaged one-degree homoskedastic Wald statistic deriving the covariance bridge internally. -/
+theorem olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (h : HomoskedasticErrorInferenceConditions μ X e y β)
+    (R : Matrix Unit k ℝ)
+    (hse_pos : 0 < linearRestrictionStdError R (homoAsymCov μ X e)) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        olsLinearWaldStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) := by
+  haveI : SigmaFinite (μ.trim (conditioningSpace_le h.x0_measurable)) :=
+    h.sigmaFinite_x0
+  exact HansenEconometrics.olsHomoLinWaldStatOrZero_tendstoInDistribution_chiSquared_one_homo
+    (μ := μ) (X := X) (e := e) (y := y)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable h.x0_measurable h.homoskedastic hse_pos
+
+end HomoskedasticErrorInferenceConditions
 
 /-- **Hansen Theorem 7.11, HC0 t-statistic for a scalar linear function.**
 
@@ -1349,20 +1517,13 @@ theorem olsLinTStatStar_tendstoInDistribution_of_covarianceEstimator
       scoreProj_linMap_olsBetaStar_tendstoInDistribution_gaussian_cov
         (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
         h.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hZ
-  have hse : TendstoInMeasure μ se atTop (fun _ => c) := by
-    simpa [se, c] using
-      linMapCovStdError_tendstoInMeasure
-        (μ := μ) (Vhat := covStat) (V := heteroAsymCov μ X e)
-        R () hcov.covariance_measurable hcov.covariance_tendsto
-  have hse_meas : ∀ n, AEMeasurable (se n) μ := by
-    intro n
-    exact linearCovarianceStdError_aemeasurable
-      (μ := μ) (R := R)
-      (Vhat := fun ω => covStat n ω)
-      (hcov.covariance_measurable n)
+  have hseCons :=
+    hcov.toFeasibleLinearStdError R (by simpa [c] using hse_pos)
   have hratio := studentizedLimit_tendstoInDistribution
     (μ := μ) (ν := ν) (num := num) (se := se) (Z := Z) (c := c)
-    (by simpa [c] using hse_pos) hnum hse hse_meas
+    hseCons.limit_pos hnum
+    (by simpa [se, c] using hseCons.se_tendsto)
+    (by simpa [se] using hseCons.se_measurable)
   simpa [num, se, c, olsLinearTStatStar,
     olsLinearTNumeratorStar, linearRestrictionStdError] using hratio
 
@@ -1370,7 +1531,7 @@ theorem olsLinTStatStar_tendstoInDistribution_of_covarianceEstimator
 
 This constructor wrapper supplies the HC0 covariance-estimator interface from
 the current robust covariance proof bundle. -/
-theorem olsHC0LinTStatStar_tendstoInDistribution
+private theorem olsHC0LinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1425,7 +1586,7 @@ theorem olsHC0LinTStatStar_tendstoInDistribution
 
 This is the textbook-facing form of the HC0 studentized scalar linear-function
 CLT: the target is the identity random variable under `N(0,1)`. -/
-theorem olsHC0LinTStatStar_tendstoInDistribution_standardNormal
+private theorem olsHC0LinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1485,7 +1646,7 @@ theorem olsHC0LinTStatStar_tendstoInDistribution_standardNormal
 The HC0-studentized scalar linear t-statistic transfers from `olsBetaStar` to
 `olsBetaOrZero`, the ordinary-OLS wrapper used on nonsingular sample-Gram
 events. -/
-theorem olsHC0LinTStatOrZero_tendstoInDistribution
+private theorem olsHC0LinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1526,7 +1687,7 @@ theorem olsHC0LinTStatOrZero_tendstoInDistribution
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
 
 /-- **Hansen Theorem 7.11 for ordinary OLS, HC0 standard-normal face.** -/
-theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
+private theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1558,7 +1719,7 @@ theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
 
 /-- Absolute-value CMT for the ordinary HC0 scalar t-statistic. -/
-theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
+private theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1598,7 +1759,7 @@ restriction has limiting coverage given by the absolute standard-normal mass
 below `crit`; the bad event where the sample HC0 standard error is nonpositive
 is negligible because the standard error converges in probability to its
 positive population limit. -/
-theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal
+private theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1663,7 +1824,7 @@ theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal
       hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- Scalar one-degree-of-freedom HC0 Wald statistic for ordinary OLS. -/
-theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+private theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1701,7 +1862,7 @@ This is the HC1 analogue of
 `olsHC0LinTStatStar_tendstoInDistribution`: the studentized totalized
 OLS linear function converges to the same Gaussian limit divided by the
 population standard-error scale. -/
-theorem olsHC1LinTStatStar_tendstoInDistribution
+private theorem olsHC1LinTStatStar_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1776,7 +1937,7 @@ theorem olsHC1LinTStatStar_tendstoInDistribution
 
 This is the HC1 analogue of
 `olsHC0LinTStatStar_tendstoInDistribution_standardNormal`. -/
-theorem olsHC1LinTStatStar_tendstoInDistribution_standardNormal
+private theorem olsHC1LinTStatStar_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1835,7 +1996,7 @@ theorem olsHC1LinTStatStar_tendstoInDistribution_standardNormal
 
 The HC1-studentized scalar linear t-statistic transfers from `olsBetaStar` to
 the ordinary-on-nonsingular wrapper `olsBetaOrZero`. -/
-theorem olsHC1LinTStatOrZero_tendstoInDistribution
+private theorem olsHC1LinTStatOrZero_tendstoInDistribution
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
@@ -1876,7 +2037,7 @@ theorem olsHC1LinTStatOrZero_tendstoInDistribution
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hZ hse_pos
 
 /-- **Hansen Theorem 7.11 for ordinary OLS, HC1 standard-normal face.** -/
-theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
+private theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1908,7 +2069,7 @@ theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos
 
 /-- Absolute-value CMT for the ordinary HC1 scalar t-statistic. -/
-theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
+private theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1941,7 +2102,7 @@ theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs
         h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hse_pos)
 
 /-- Scalar one-degree-of-freedom HC1 Wald statistic for ordinary OLS. -/
-theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
+private theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -1981,7 +2142,7 @@ restriction has limiting coverage given by the absolute standard-normal mass
 below `crit`; the bad event where the sample HC1 standard error is nonpositive
 is negligible because the standard error converges in probability to its
 positive population limit. -/
-theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal
+private theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2046,7 +2207,7 @@ theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal
       hroot (by simpa [c] using hse_pos) hse hGeneric
 
 /-- Packaged ordinary HC0 scalar t-statistic with standard-normal limit. -/
-theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCRemainderConditions
+private theorem hc0_tstat_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2069,7 +2230,7 @@ theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCR
 
 set_option linter.style.longLine false in
 /-- Packaged absolute-value CMT for the ordinary HC0 scalar t-statistic. -/
-theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCRemainderConditions
+private theorem hc0_abs_tstat_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2091,7 +2252,7 @@ theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feas
     hc.crossWeight_bounded hc.quadWeight_bounded hse_pos
 
 /-- Packaged ordinary HC0 confidence-interval coverage. -/
-theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderConditions
+private theorem hc0_ci_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2115,7 +2276,7 @@ theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderCondi
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC0 one-degree Wald statistic. -/
-theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCRemainderConditions
+private theorem hc0_wald_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2137,7 +2298,7 @@ theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasible
     hc.crossWeight_bounded hc.quadWeight_bounded hse_pos
 
 /-- Packaged ordinary HC1 scalar t-statistic with standard-normal limit. -/
-theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCRemainderConditions
+private theorem hc1_tstat_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2160,7 +2321,7 @@ theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCR
 
 set_option linter.style.longLine false in
 /-- Packaged absolute-value CMT for the ordinary HC1 scalar t-statistic. -/
-theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCRemainderConditions
+private theorem hc1_abs_tstat_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2182,7 +2343,7 @@ theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feas
     hc.crossWeight_bounded hc.quadWeight_bounded hse_pos
 
 /-- Packaged ordinary HC1 confidence-interval coverage. -/
-theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderConditions
+private theorem hc1_ci_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2206,7 +2367,7 @@ theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderCondi
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC1 one-degree Wald statistic. -/
-theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCRemainderConditions
+private theorem hc1_wald_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2229,7 +2390,7 @@ theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasible
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC2 scalar t-statistic with standard-normal limit. -/
-theorem olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+private theorem hc2_tstat_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2317,7 +2478,7 @@ theorem olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCL
 
 set_option linter.style.longLine false in
 /-- Packaged absolute-value CMT for the ordinary HC2 scalar t-statistic. -/
-theorem olsHC2LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+private theorem hc2_abs_tstat_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2334,11 +2495,11 @@ theorem olsHC2LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feas
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
   tendstoInDistribution_abs_real
-    (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+    (hc2_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos)
 
 /-- Packaged ordinary HC2 confidence-interval coverage. -/
-theorem olsHC2LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageConditions
+private theorem hc2_ci_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2373,7 +2534,7 @@ theorem olsHC2LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageCondit
       olsHC2LinSEStar_tendstoInMeasure_of_feasibleHCLeverageConditions
         (μ := μ) (X := X) (e := e) (y := y) h β R () hc
   have hAbs :=
-    olsHC2LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+    hc2_abs_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos
   have hGeneric : TendstoInDistribution
       (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
@@ -2393,7 +2554,7 @@ theorem olsHC2LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageCondit
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC2 one-degree Wald statistic. -/
-theorem olsHC2LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCLeverageConditions
+private theorem hc2_wald_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2410,12 +2571,12 @@ theorem olsHC2LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasible
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
   tendstoInDistribution_sq_standardNormal_chiSquared_one
-    (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+    (hc2_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos)
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC3 scalar t-statistic with standard-normal limit. -/
-theorem olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+private theorem hc3_tstat_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2503,7 +2664,7 @@ theorem olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCL
 
 set_option linter.style.longLine false in
 /-- Packaged absolute-value CMT for the ordinary HC3 scalar t-statistic. -/
-theorem olsHC3LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+private theorem hc3_abs_tstat_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2520,11 +2681,11 @@ theorem olsHC3LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feas
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
   tendstoInDistribution_abs_real
-    (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+    (hc3_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos)
 
 /-- Packaged ordinary HC3 confidence-interval coverage. -/
-theorem olsHC3LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageConditions
+private theorem hc3_ci_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2559,7 +2720,7 @@ theorem olsHC3LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageCondit
       olsHC3LinSEStar_tendstoInMeasure_of_feasibleHCLeverageConditions
         (μ := μ) (X := X) (e := e) (y := y) h β R () hc
   have hAbs :=
-    olsHC3LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+    hc3_abs_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos
   have hGeneric : TendstoInDistribution
       (fun n ω => |root n * (θhat n ω - θ) / se n ω|)
@@ -2579,7 +2740,7 @@ theorem olsHC3LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageCondit
 
 set_option linter.style.longLine false in
 /-- Packaged ordinary HC3 one-degree Wald statistic. -/
-theorem olsHC3LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCLeverageConditions
+private theorem hc3_wald_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     (h : RobustCovarianceConsistencyConditions μ X e) (β : k → ℝ)
@@ -2596,7 +2757,7 @@ theorem olsHC3LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasible
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
   tendstoInDistribution_sq_standardNormal_chiSquared_one
-    (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+    (hc3_tstat_feasible_leverage
       (μ := μ) (X := X) (e := e) (y := y) h β R hc hse_pos)
 
 set_option linter.style.longLine false in
@@ -2616,7 +2777,7 @@ theorem olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasi
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCRemainderConditions
+  hc0_tstat_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2638,7 +2799,7 @@ theorem olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_robu
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC0LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCRemainderConditions
+  hc0_abs_tstat_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2661,7 +2822,7 @@ theorem olsHC0LinCIOrZero_cov_tendsto_standardNormal_of_robustFeasibleHCMomentCo
           (Real.sqrt (n : ℝ)) crit})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  olsHC0LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderConditions
+  hc0_ci_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R crit
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2683,7 +2844,7 @@ theorem olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_robustFe
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
-  olsHC0LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCRemainderConditions
+  hc0_wald_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2705,7 +2866,7 @@ theorem olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasi
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCRemainderConditions
+  hc1_tstat_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2727,7 +2888,7 @@ theorem olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_robu
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC1LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCRemainderConditions
+  hc1_abs_tstat_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2750,7 +2911,7 @@ theorem olsHC1LinCIOrZero_cov_tendsto_standardNormal_of_robustFeasibleHCMomentCo
           (Real.sqrt (n : ℝ)) crit})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  olsHC1LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCRemainderConditions
+  hc1_ci_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R crit
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2772,7 +2933,7 @@ theorem olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_robustFe
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
-  olsHC1LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCRemainderConditions
+  hc1_wald_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hse_pos
@@ -2794,7 +2955,7 @@ theorem olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasi
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+  hc2_tstat_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2816,7 +2977,7 @@ theorem olsHC2LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_robu
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC2LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+  hc2_abs_tstat_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2839,7 +3000,7 @@ theorem olsHC2LinCIOrZero_cov_tendsto_standardNormal_of_robustFeasibleHCMomentCo
           (Real.sqrt (n : ℝ)) crit})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  olsHC2LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageConditions
+  hc2_ci_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R crit
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2861,7 +3022,7 @@ theorem olsHC2LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_robustFe
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
-  olsHC2LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCLeverageConditions
+  hc2_wald_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2883,7 +3044,7 @@ theorem olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasi
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_feasibleHCLeverageConditions
+  hc3_tstat_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2905,7 +3066,7 @@ theorem olsHC3LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_robu
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ))|)
       atTop (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal 0 1) :=
-  olsHC3LinTStatOrZero_abs_tendstoInDistribution_standardNormalAbs_of_feasibleHCLeverageConditions
+  hc3_abs_tstat_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2928,7 +3089,7 @@ theorem olsHC3LinCIOrZero_cov_tendsto_standardNormal_of_robustFeasibleHCMomentCo
           (Real.sqrt (n : ℝ)) crit})
       atTop
       (𝓝 (((gaussianReal 0 1).map (fun x : ℝ => |x|)) (Set.Iic crit))) :=
-  olsHC3LinCIOrZero_cov_tendsto_standardNormal_of_feasibleHCLeverageConditions
+  hc3_ci_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R crit
     hm.toFeasibleHCLeverageConditions hse_pos
@@ -2950,7 +3111,7 @@ theorem olsHC3LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_robustFe
           (stackRegressors X n ω) (stackOutcomes y n ω) β
           (Real.sqrt (n : ℝ)))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared 1) :=
-  olsHC3LinWaldStatOrZero_tendstoInDistribution_chiSquared_one_of_feasibleHCLeverageConditions
+  hc3_wald_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hse_pos

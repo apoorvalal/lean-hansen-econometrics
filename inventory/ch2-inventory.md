@@ -19,6 +19,7 @@ Lean files:
 - [Chapter2LinearProjection.lean](../HansenEconometrics/Chapter2LinearProjection.lean)
 - [Chapter2PotentialOutcomes.lean](../HansenEconometrics/Chapter2PotentialOutcomes.lean)
 - [Assumptions/Conditioning.lean](../HansenEconometrics/Assumptions/Conditioning.lean)
+- [Assumptions/PotentialOutcomes.lean](../HansenEconometrics/Assumptions/PotentialOutcomes.lean)
 - reusable helpers in [ProbabilityUtils.lean](../HansenEconometrics/ProbabilityUtils.lean)
 
 ## Status
@@ -49,6 +50,12 @@ Setup API note:
   methods. The sigma-algebra backend theorems remain canonical proof engines.
 - `simple_law_iterated_expectation_rv` remains because it has the deliberately
   weaker no-integrability signature used by the potential-outcomes ATE bridge.
+- `PotentialOutcomeSetup` and `PotentialOutcomeMeanIndependentSetup` package
+  the repeated measurability, sigma-finiteness, integrability, and
+  mean-independence hypotheses for Section 2.30. Their methods have short names
+  such as `cate_eq_surface`, `observed_condExp_branch`, and
+  `ate_eq_integral_cate`, while `Chapter2PotentialOutcomes.lean` retains the
+  longer compatibility theorem names as the proof engine.
 
 Next likely Chapter 2 targets:
 - decide whether any remaining Chapter 2 results are worth formalizing before moving on

@@ -78,6 +78,36 @@ structure FeasibleHCLeverageConditions (μ : Measure Ω) [IsProbabilityMeasure �
       (fun n ω => maxLeverageStar (stackRegressors X n ω))
       atTop (fun _ => 0)
 
+/-- Packaged assumptions for homoskedastic OLS inference.
+
+This is the clean public surface for the homoskedastic scalar and Wald wrappers:
+CLT, variance consistency, linear model identity, and row measurability are
+recorded once instead of threaded through every theorem call. -/
+structure HomoskedasticInferenceConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ) where
+  /-- Score CLT and consistency assumptions for `√n ĝₙ(e)`. -/
+  score : ScoreCLTConditions μ X e
+  /-- Residual-variance consistency assumptions. -/
+  variance : ErrorVarianceConsistencyConditions μ X e
+  /-- Linear-model decomposition of the observed outcome. -/
+  model : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω
+  /-- Component measurability of the regressor sequence. -/
+  x_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (X i) μ
+  /-- Component measurability of the structural-error sequence. -/
+  e_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (e i) μ
+
+/-- Homoskedastic inference package with the conditional variance identity
+needed to derive the robust/homoskedastic covariance equality internally. -/
+structure HomoskedasticErrorInferenceConditions (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    extends HomoskedasticInferenceConditions μ X e y β where
+  /-- The baseline regressor row is measurable as a conditioning variable. -/
+  x0_measurable : Measurable (X 0)
+  /-- The trimmed conditioning measure on `σ(X₀)` is sigma-finite. -/
+  sigmaFinite_x0 : SigmaFinite (μ.trim (conditioningSpace_le x0_measurable))
+  /-- Constant conditional error variance given the baseline regressor row. -/
+  homoskedastic : HomoskedasticErrorVariance μ X e
+
 /-- Primitive scalar-WLLN condition package for the feasible HC0/HC1
 bounded-weight layer.
 

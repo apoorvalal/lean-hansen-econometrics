@@ -1,4 +1,5 @@
 import HansenEconometrics.Assumptions.Conditioning
+import HansenEconometrics.Assumptions.PotentialOutcomes
 import HansenEconometrics.Assumptions.Regression
 import HansenEconometrics.Assumptions.Chapter4OLS
 

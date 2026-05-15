@@ -1897,7 +1897,7 @@ theorem linMap_olsWaldStatStar_tendstoInDistribution_chiSquared_covEst
 
 Under the explicit covariance bridge `V⁰β = Vβ`, the multivariate
 homoskedastic Wald statistic for totalized OLS converges to `χ²(r)`. -/
-theorem linMap_olsHomoWaldStatStar_tendstoInDistribution_chiSquared
+private theorem linMap_olsHomoWaldStatStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1938,7 +1938,7 @@ theorem linMap_olsHomoWaldStatStar_tendstoInDistribution_chiSquared
       hV_posDef'
 
 /-- **Hansen Theorem 7.14 for ordinary OLS, multivariate homoskedastic face.** -/
-theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
+private theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -1969,7 +1969,7 @@ theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
 
 If `Ω = σ²Q`, the multivariate homoskedastic Wald statistic for ordinary OLS
 converges to `χ²(r)`. -/
-theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_scoreCov
+private theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_scoreCov
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2004,7 +2004,7 @@ set_option linter.style.longLine false in
 
 This variable-facing wrapper derives `Ω = σ²Q` from constant conditional error
 variance given `X₀`, then applies the covariance-identity bridge. -/
-theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo
+private theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2034,8 +2034,63 @@ theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hclt hvar β R hmodel hX_meas he_meas hΩ hV_posDef
 
+namespace HomoskedasticInferenceConditions
+
+/-- Packaged multivariate homoskedastic Wald statistic with an explicit covariance bridge. -/
+theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {r : ℕ} [Fact (0 < r)]
+    (h : HomoskedasticInferenceConditions μ X e y β)
+    (R : Matrix (Fin r) k ℝ)
+    (hVeq : homoAsymCov μ X e = heteroAsymCov μ X e)
+    (hV_posDef : (R * homoAsymCov μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  HansenEconometrics.linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
+    (μ := μ) (X := X) (e := e) (y := y) (r := r)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable hVeq hV_posDef
+
+end HomoskedasticInferenceConditions
+
+namespace HomoskedasticErrorInferenceConditions
+
+/-- Packaged multivariate homoskedastic Wald statistic deriving the covariance bridge internally. -/
+theorem linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {r : ℕ} [Fact (0 < r)]
+    (h : HomoskedasticErrorInferenceConditions μ X e y β)
+    (R : Matrix (Fin r) k ℝ)
+    (hV_posDef : (R * homoAsymCov μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (R *ᵥ (Real.sqrt (n : ℝ) •
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+          (((R * olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω) * Rᵀ)⁻¹) *ᵥ
+            (R *ᵥ (Real.sqrt (n : ℝ) •
+              (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  haveI : SigmaFinite (μ.trim (conditioningSpace_le h.x0_measurable)) :=
+    h.sigmaFinite_x0
+  exact HansenEconometrics.linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_homo
+    (μ := μ) (X := X) (e := e) (y := y) (r := r)
+    h.score h.variance β R h.model h.x_aestronglyMeasurable
+    h.e_aestronglyMeasurable h.x0_measurable h.homoskedastic hV_posDef
+
+end HomoskedasticErrorInferenceConditions
+
 /-- Multivariate HC0 Wald statistic for totalized OLS. -/
-theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2078,7 +2133,7 @@ theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared
       hV_posDef
 
 /-- Multivariate HC0 Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2111,7 +2166,7 @@ theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
 
 /-- Multivariate HC1 Wald statistic for totalized OLS. -/
-theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2154,7 +2209,7 @@ theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared
       hV_posDef
 
 /-- Multivariate HC1 Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2187,7 +2242,7 @@ theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared
       h β R hmodel hX_meas he_meas hCrossWeight hQuadWeight hV_posDef
 
 /-- Multivariate HC2 Wald statistic for totalized OLS. -/
-theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2233,7 +2288,7 @@ theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared
       hV_posDef
 
 /-- Multivariate HC2 Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2270,7 +2325,7 @@ theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared
       hMax hV_posDef
 
 /-- Multivariate HC3 Wald statistic for totalized OLS. -/
-theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2316,7 +2371,7 @@ theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared
       hV_posDef
 
 /-- Multivariate HC3 Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared
+private theorem linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2356,7 +2411,7 @@ theorem linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared
 
 This is the 7.13 robust-Wald wrapper with the feasible HC residual-remainder
 conditions bundled in `FeasibleHCRemainderConditions`. -/
-theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+private theorem linMap_hc0_wald_star_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2380,7 +2435,7 @@ theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHC
 
 set_option linter.style.longLine false in
 /-- Packaged HC0 multivariate Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+private theorem linMap_hc0_wald_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2403,7 +2458,7 @@ theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasible
     hc.crossWeight_bounded hc.quadWeight_bounded hV_posDef
 
 /-- Packaged HC1 multivariate Wald statistic for totalized OLS. -/
-theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+private theorem linMap_hc1_wald_star_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2427,7 +2482,7 @@ theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHC
 
 set_option linter.style.longLine false in
 /-- Packaged HC1 multivariate Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+private theorem linMap_hc1_wald_feasible_remainder
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2450,7 +2505,7 @@ theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasible
     hc.crossWeight_bounded hc.quadWeight_bounded hV_posDef
 
 /-- Packaged HC2 multivariate Wald statistic for totalized OLS. -/
-theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+private theorem linMap_hc2_wald_star_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2473,7 +2528,7 @@ theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHC
     hc.crossWeight_bounded hc.quadWeight_bounded hc.maxLeverage_tendsto hV_posDef
 
 /-- Packaged HC2 multivariate Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+private theorem linMap_hc2_wald_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2496,7 +2551,7 @@ theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasible
     hc.crossWeight_bounded hc.quadWeight_bounded hc.maxLeverage_tendsto hV_posDef
 
 /-- Packaged HC3 multivariate Wald statistic for totalized OLS. -/
-theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+private theorem linMap_hc3_wald_star_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2519,7 +2574,7 @@ theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHC
     hc.crossWeight_bounded hc.quadWeight_bounded hc.maxLeverage_tendsto hV_posDef
 
 /-- Packaged HC3 multivariate Wald statistic for ordinary OLS. -/
-theorem linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+private theorem linMap_hc3_wald_feasible_leverage
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
     {r : ℕ} [Fact (0 < r)]
@@ -2559,7 +2614,7 @@ theorem linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared_of_robustFeas
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC0WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+  linMap_hc0_wald_star_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hV_posDef
@@ -2582,7 +2637,7 @@ theorem linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFe
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+  linMap_hc0_wald_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hV_posDef
@@ -2605,7 +2660,7 @@ theorem linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared_of_robustFeas
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC1WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+  linMap_hc1_wald_star_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hV_posDef
@@ -2628,7 +2683,7 @@ theorem linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFe
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC1WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCRemainderConditions
+  linMap_hc1_wald_feasible_remainder
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCRemainderConditions hV_posDef
@@ -2651,7 +2706,7 @@ theorem linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared_of_robustFeas
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC2WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+  linMap_hc2_wald_star_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hV_posDef
@@ -2674,7 +2729,7 @@ theorem linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFe
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC2WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+  linMap_hc2_wald_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hV_posDef
@@ -2697,7 +2752,7 @@ theorem linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared_of_robustFeas
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC3WaldStatStar_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+  linMap_hc3_wald_star_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hV_posDef
@@ -2720,7 +2775,7 @@ theorem linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFe
             (R *ᵥ (Real.sqrt (n : ℝ) •
               (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β)))))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
-  linMap_olsHC3WaldStatOrZero_tendstoInDistribution_chiSquared_of_feasibleHCLeverageConditions
+  linMap_hc3_wald_feasible_leverage
     (μ := μ) (X := X) (e := e) (y := y) (r := r)
     hm.toRobustCovarianceConsistencyConditions β R
     hm.toFeasibleHCLeverageConditions hV_posDef
