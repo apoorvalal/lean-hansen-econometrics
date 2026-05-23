@@ -73,6 +73,28 @@ noncomputable def emdBetaStar
     (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (bhat : k → ℝ) : k → ℝ :=
   mdBetaStar V⁻¹ R c bhat
 
+/-- Scaled error for a generic constrained estimator. -/
+noncomputable def constrainedScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ) :
+    ℕ → Ω → k → ℝ :=
+  fun n ω => root n • (btilde n ω - β)
+
+/-- Stable interface for the linearized asymptotic representation of a constrained estimator.
+
+For nonlinear restrictions, the derivative matrix `Rderiv` replaces the fixed linear-restriction
+matrix. The interface records the econometric capability used by Theorem 8.10: after scaling, the
+constrained estimator equals the MD linear map applied to a score statistic, up to an `o_p(1)`
+remainder. -/
+structure ConstrainedEstimatorLinearization
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (T : ℕ → Ω → k → ℝ) where
+  scaled_measurable : ∀ n, AEMeasurable (constrainedScaledError root btilde β n) μ
+  expansion :
+    TendstoInMeasure μ
+      (constrainedScaledError root btilde β - fun n ω => mdLinearMap W Rderiv *ᵥ T n ω)
+      atTop (fun _ => 0)
+
 /-- The population MD map fixes a parameter satisfying the restriction. -/
 @[simp]
 theorem mdBetaStar_eq_self_of_restrict
@@ -206,6 +228,7 @@ theorem emdAsymptoticVariance_gap_posSemidef
   simpa [Matrix.conjTranspose] using
     Matrix.PosSemidef.conjTranspose_mul_mul_same hG (Rᵀ * V)
 
+omit [DecidableEq k] in
 /-- Efficient MD cannot increase asymptotic variance relative to the unrestricted estimator,
 from an explicit PSD factorization of the variance gap. -/
 theorem emdAsymptoticVariance_le_unrestricted
@@ -224,7 +247,7 @@ theorem emdAsymptoticVariance_le_md
   rw [hfactor]
   simpa [Matrix.conjTranspose] using Matrix.PosSemidef.conjTranspose_mul_mul_same hM F
 
-/-- Lean-only helper: Slutsky transfer after a nonlinear-constraint linearization.
+/-- Slutsky transfer after a nonlinear-constraint linearization.
 
 `Rderiv` is the derivative matrix supplied by a separate Delta-method argument; this helper only
 transfers from the linearized statistic plus an `oₚ(1)` remainder. -/
@@ -242,5 +265,56 @@ theorem linearizedConstraint_tendstoInDistribution_of_remainder
   tendstoInDistribution_of_tendstoInMeasure_sub
     (X := fun n ω => mdLinearMap W Rderiv *ᵥ T n ω) (Y := Y) (Z := Z)
     hlin hrem hmeas
+
+/-- Hansen Theorem 8.10, interface-level nonlinear constrained-estimator limit.
+
+The estimator-specific work is isolated in `ConstrainedEstimatorLinearization`: consistency of the
+constrained optimizer, differentiability of the restriction map, and first-order conditions should
+be used to construct that interface. This theorem performs the stable Slutsky step from the
+linearized representation to the asymptotic distribution. -/
+theorem nonlinearConstrainedEstimator_tendstoInDistribution_gaussian
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (Z : Ω' → k → ℝ)
+    (hlin : TendstoInDistribution (fun n ω => mdLinearMap W Rderiv *ᵥ T n ω)
+      atTop Z (fun _ => μ) ν)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β W Rderiv T) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop Z (fun _ => μ) ν :=
+  linearizedConstraint_tendstoInDistribution_of_remainder
+    (Y := constrainedScaledError root btilde β) (Rderiv := Rderiv) (W := W)
+    (T := T) (Z := Z) hlin hlinear.expansion hlinear.scaled_measurable
+
+/-- Hansen Theorem 8.10 for nonlinear minimum distance at the stable-interface layer. -/
+theorem nonlinearMdBeta_tendstoInDistribution_gaussian
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (Z : Ω' → k → ℝ)
+    (hlin : TendstoInDistribution (fun n ω => mdLinearMap W Rderiv *ᵥ T n ω)
+      atTop Z (fun _ => μ) ν)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β W Rderiv T) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop Z (fun _ => μ) ν :=
+  nonlinearConstrainedEstimator_tendstoInDistribution_gaussian
+    root btilde β W Rderiv T Z hlin hlinear
+
+/-- Hansen Theorem 8.10 for nonlinear constrained least squares at the stable-interface layer.
+
+The CLS specialization uses the population Gram weight in the linearized MD map, matching the linear
+restriction specialization in Theorem 8.8. -/
+theorem nonlinearClsBeta_tendstoInDistribution_gaussian
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (Q : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (Z : Ω' → k → ℝ)
+    (hlin : TendstoInDistribution (fun n ω => mdLinearMap Q Rderiv *ᵥ T n ω)
+      atTop Z (fun _ => μ) ν)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β Q Rderiv T) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop Z (fun _ => μ) ν :=
+  nonlinearConstrainedEstimator_tendstoInDistribution_gaussian
+    root btilde β Q Rderiv T Z hlin hlinear
 
 end HansenEconometrics

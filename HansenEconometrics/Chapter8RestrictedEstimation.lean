@@ -84,6 +84,7 @@ noncomputable def clsHomoskedasticVarianceEstimator
     [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)] : Matrix k k ℝ :=
   clsHomoskedasticVarianceMatrix X R (clsResidualVariance X y R c)
 
+omit [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- Hansen Theorem 8.1 restriction-gap identity in the linear model. -/
 theorem cls_restriction_gap_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
@@ -94,6 +95,7 @@ theorem cls_restriction_gap_linear_model
   ext j
   simp [Matrix.mulVec_add, hrestrict]
 
+omit [DecidableEq n] in
 /-- Hansen Theorem 8.1 coefficient decomposition in the linear model. -/
 theorem clsBeta_linear_model
     (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
@@ -121,6 +123,7 @@ theorem clsResidual_linear_model
     sub_eq_add_neg, add_assoc, add_comm, add_left_comm]
   ring
 
+omit [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- The restriction Gram matrix is symmetric. -/
 @[simp]
 theorem clsConstraintGram_transpose
@@ -131,6 +134,7 @@ theorem clsConstraintGram_transpose
     inv_gram_transpose]
   simp [Matrix.mul_assoc]
 
+omit [DecidableEq n] in
 /-- The inverse of the symmetric restriction Gram matrix is symmetric. -/
 @[simp]
 theorem inv_clsConstraintGram_transpose
@@ -140,6 +144,7 @@ theorem inv_clsConstraintGram_transpose
   simpa [clsConstraintGram_transpose (X := X) (R := R)] using
     (Matrix.transpose_invOf (A := clsConstraintGram X R))
 
+omit [DecidableEq n] in
 /-- The CLS covariance correction matrix is symmetric. -/
 @[simp]
 theorem clsCorrectionMatrix_transpose
@@ -277,6 +282,7 @@ theorem clsProjectionMatrix_rank
     simpa [rank_hatMatrix X] using hle
   omega
 
+omit [DecidableEq n] in
 /-- Hansen Theorem 8.2 conditional-unbiasedness bridge for CLS.
 
 The stochastic input is the conditional mean of the linear CLS error term, while the theorem
@@ -297,6 +303,7 @@ theorem cls_condExp_unbiased
     exact clsBeta_linear_model X β (e ω) R c hrestrict
   simpa [hfun] using hmean
 
+omit [DecidableEq n] in
 /-- Hansen Theorem 8.2 conditional unbiasedness from coordinatewise mean-zero errors. -/
 theorem cls_condExp_unbiased_of_error_zero
     {Ω : Type*} {m m₀ : MeasurableSpace Ω} {μ : Measure Ω}
@@ -557,6 +564,7 @@ theorem cls_residualVariance_condExp_eq_sigmaSq_of_homoskedastic
     rw [clsResidual_linear_model X β (e ω) R c hrestrict]
   simpa [hfun] using hmean
 
+omit [DecidableEq n] in
 /-- CLS coefficient Gaussian-law bridge from the law of its affine linear-model representation. -/
 theorem clsBeta_hasGaussianLaw_of_error
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
