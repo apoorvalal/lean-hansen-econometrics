@@ -281,6 +281,31 @@ structure ConstrainedEstimatorLinearization
       (constrainedScaledError root btilde β - fun n ω => mdLinearMap W Rderiv *ᵥ T n ω)
       atTop (fun _ => 0)
 
+/-- Stable interface for a centered multivariate Gaussian limit of a driving statistic.
+
+This is the generic Chapter 8 analogue of a score CLT: downstream estimator theorems should
+consume this named Gaussian-limit capability rather than separate covariance and distributional
+convergence fields. -/
+structure GaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (T : ℕ → Ω → k → ℝ) (S : Matrix k k ℝ) where
+  covariance_posSemidef : S.PosSemidef
+  limit :
+    TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)
+
+/-- Constructor for the generic Gaussian-limit interface from the explicit covariance and CLT
+fields. -/
+theorem gaussianLimit_of_tendstoInDistribution
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (T : ℕ → Ω → k → ℝ) (S : Matrix k k ℝ)
+    (hS : S.PosSemidef)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)) :
+    GaussianLimit μ T S where
+  covariance_posSemidef := hS
+  limit := hT
+
 /-- Hansen Assumption 8.3 for nonlinear restrictions `r(β) = 0`.
 
 The matrix `Rderiv` is Hansen's `R = ∂r(β)' / ∂β`, so the derivative of `r` is
@@ -1713,6 +1738,18 @@ theorem asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
     (Z := fun z : EuclideanSpace ℝ k => z.ofLp) hA hlinear.expansion
     hlinear.scaled_measurable
 
+/-- Generic Gaussian limit theorem from the stable linearization and Gaussian-limit interfaces. -/
+theorem asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ) (A : Matrix k k ℝ) (S : Matrix k k ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hlinear : AsymptoticallyLinearEstimator μ Y A T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution Y atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 (A * S * Aᵀ)) :=
+  asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    Y A S T hT.covariance_posSemidef hlinear hT.limit
+
 /-- Hansen Theorem 8.7 current-assumption MD asymptotic-normality/Slutsky wrapper. -/
 theorem mdBeta_tendstoInDistribution_gaussian
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
@@ -1794,6 +1831,21 @@ theorem mdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
   have hraw := asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
     (mdScaledError root bhat What R c β) (mdLinearMap W R) S T hS hlinear hT
   simpa [mdAsymptoticVariance] using hraw
+
+/-- Hansen Theorem 8.7 from stable linearization and Gaussian-limit interfaces. -/
+theorem mdBeta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (S : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (mdScaledError root bhat What R c β) (mdLinearMap W R) T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution (mdScaledError root bhat What R c β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance W R S)) :=
+  mdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    root bhat What W R c β S T hT.covariance_posSemidef hlinear hT.limit
 
 /-- Hansen Theorem 8.7 in the fixed-weight MD case: the exact fixed-weight linearization
 discharges the remainder side condition. -/
@@ -1944,6 +1996,21 @@ theorem clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization
   have hraw := asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
     (clsMDScaledError root bhat Qhat R c β) (mdLinearMap Q R) S T hS hlinear hT
   simpa [clsAsymptoticVariance, mdAsymptoticVariance] using hraw
+
+/-- Hansen Theorem 8.8 from stable linearization and Gaussian-limit interfaces. -/
+theorem clsBeta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (Qhat : ℕ → Ω → Matrix k k ℝ)
+    (Q : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (S : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (clsMDScaledError root bhat Qhat R c β) (mdLinearMap Q R) T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution (clsMDScaledError root bhat Qhat R c β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (clsAsymptoticVariance Q R S)) :=
+  clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    root bhat Qhat Q R c β S T hT.covariance_posSemidef hlinear hT.limit
 
 /-- Hansen Theorem 8.8 random-weight CLS-as-MD case. Convergence of the sample Gram weight
 discharges the CLS-as-MD linearization through the random-weight MD theorem. -/
@@ -2348,6 +2415,22 @@ theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
     simpa [mdAsymptoticVariance] using hraw
   simpa [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit] using hcov
 
+/-- Hansen Theorem 8.9 from stable linearization and Gaussian-limit interfaces. -/
+theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hVunit : IsUnit V.det) (hVsym : Vᵀ = V) (hGunit : IsUnit (Rᵀ * V * R).det)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R) T)
+    (hT : GaussianLimit μ T V) :
+    TendstoInDistribution (emdScaledError root bhat R c V β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (emdAsymptoticVariance R V)) :=
+  emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    root bhat R c V β T hT.covariance_posSemidef hVunit hVsym hGunit hlinear hT.limit
+
 /-- Hansen Theorem 8.9 from the stable asymptotically linear estimator interface, with the
 efficient-covariance side conditions discharged from positive definiteness and full-column-rank
 restrictions. -/
@@ -2369,6 +2452,24 @@ theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_posDef
   exact emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
     root bhat R c V β T hV.posSemidef (posDef_det_isUnit V hV) hVsym
     (restrictionCov_det_isUnit_of_cov_posDef V R hV hR) hlinear hT
+
+/-- Hansen Theorem 8.9 from stable linearization and Gaussian-limit interfaces, with the
+efficient-covariance side conditions discharged from positive definiteness and full-column-rank
+restrictions. -/
+theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_posDef_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R) T)
+    (hT : GaussianLimit μ T V) :
+    TendstoInDistribution (emdScaledError root bhat R c V β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (emdAsymptoticVariance R V)) :=
+  emdBeta_tendstoInDistribution_multivariateGaussian_of_posDef
+    root bhat R c V β T hV hR hlinear hT.limit
 
 /-- Hansen Theorem 8.9 efficient-MD distribution with the fixed efficient weight and no separate
 remainder input. -/
@@ -2588,6 +2689,20 @@ theorem nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian
     root btilde β W Rderiv T (fun z : EuclideanSpace ℝ k => z.ofLp)
     (by simpa [mdAsymptoticVariance] using hlin) hlinear
 
+/-- Hansen Theorem 8.10 from stable nonlinear-linearization and Gaussian-limit interfaces. -/
+theorem nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (S : Matrix k k ℝ)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β W Rderiv T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance W Rderiv S)) :=
+  nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian
+    root btilde β W Rderiv T S hT.covariance_posSemidef hT.limit hlinear
+
 /-- Hansen Theorem 8.10 for nonlinear minimum distance at the stable-interface layer. -/
 theorem nonlinearMdBeta_tendstoInDistribution_gaussian
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
@@ -2618,6 +2733,21 @@ theorem nonlinearMdBeta_tendstoInDistribution_multivariateGaussian
       (multivariateGaussian 0 (mdAsymptoticVariance W Rderiv S)) :=
   nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian
     root btilde β W Rderiv T S hS hT hlinear
+
+/-- Hansen Theorem 8.10 for nonlinear minimum distance from stable nonlinear-linearization and
+Gaussian-limit interfaces. -/
+theorem nonlinearMdBeta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (S : Matrix k k ℝ)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β W Rderiv T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance W Rderiv S)) :=
+  nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    root btilde β W Rderiv T S hlinear hT
 
 /-- Hansen Theorem 8.10 for nonlinear constrained least squares at the stable-interface layer.
 
@@ -2653,6 +2783,21 @@ theorem nonlinearClsBeta_tendstoInDistribution_multivariateGaussian
   simpa [clsAsymptoticVariance] using
     nonlinearConstrainedEstimator_tendstoInDistribution_multivariateGaussian
       root btilde β Q Rderiv T S hS hT hlinear
+
+/-- Hansen Theorem 8.10 for nonlinear constrained least squares from stable
+nonlinear-linearization and Gaussian-limit interfaces. -/
+theorem nonlinearClsBeta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (Q : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (T : ℕ → Ω → k → ℝ) (S : Matrix k k ℝ)
+    (hlinear : ConstrainedEstimatorLinearization μ root btilde β Q Rderiv T)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution (constrainedScaledError root btilde β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (clsAsymptoticVariance Q Rderiv S)) :=
+  nonlinearClsBeta_tendstoInDistribution_multivariateGaussian
+    root btilde β Q Rderiv T S hT.covariance_posSemidef hT.limit hlinear
 
 /-- Hansen Theorem 8.10 for nonlinear minimum distance specialized to the Chapter 7
 totalized-OLS CLT. The nonlinear optimizer analysis is isolated in
