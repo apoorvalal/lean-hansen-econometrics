@@ -1706,6 +1706,81 @@ theorem mdScaledError_eq_randomLinearMap
   rw [mdBetaStar_sub_eq_linearMap (What n ω) R c β (bhat n ω) hrestrict]
   rw [Matrix.mulVec_smul]
 
+/-- Hansen Section 8.13, equation (8.38): the pseudo-true MD projection value when the
+population restriction is `Rᵀ β = cStar`, but the imposed restriction is `c`. -/
+noncomputable def mdPseudoTrueValue
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ) :
+    k → ℝ :=
+  β - (W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹) *ᵥ (cStar - c)
+
+/-- The pseudo-true value satisfies the imposed restriction when the restriction Gram is
+nonsingular. -/
+theorem mdPseudoTrueValue_restrict
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ)
+    (hmiss : Rᵀ *ᵥ β = cStar) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
+    Rᵀ *ᵥ mdPseudoTrueValue W R cStar c β = c := by
+  unfold mdPseudoTrueValue
+  have hleft : Rᵀ * (W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹) = (1 : Matrix q q ℝ) := by
+    rw [← Matrix.mul_assoc, ← Matrix.mul_assoc]
+    exact Matrix.mul_nonsing_inv _ hG
+  rw [Matrix.mulVec_sub, Matrix.mulVec_mulVec, hleft, Matrix.one_mulVec, hmiss]
+  abel
+
+/-- Evaluating the misspecified MD map at the true coefficient gives Hansen's pseudo-true
+projection value. -/
+theorem mdBetaStar_eq_pseudoTrueValue
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ)
+    (hmiss : Rᵀ *ᵥ β = cStar) :
+    mdBetaStar W R c β = mdPseudoTrueValue W R cStar c β := by
+  unfold mdBetaStar mdPseudoTrueValue
+  rw [hmiss]
+
+/-- Centering the MD estimator at the misspecification pseudo-true value restores the same
+fixed linear map as in the correctly specified MD expansion. -/
+theorem mdBetaStar_sub_pseudoTrueValue_eq_linearMap
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β bhat : k → ℝ)
+    (hmiss : Rᵀ *ᵥ β = cStar) :
+    mdBetaStar W R c bhat - mdPseudoTrueValue W R cStar c β =
+      mdLinearMap W R *ᵥ (bhat - β) := by
+  let B : Matrix k q ℝ := W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹
+  let A : Matrix k k ℝ := B * Rᵀ
+  unfold mdBetaStar mdPseudoTrueValue mdLinearMap
+  change bhat - B *ᵥ (Rᵀ *ᵥ bhat - c) - (β - B *ᵥ (cStar - c)) =
+    (1 - A) *ᵥ (bhat - β)
+  rw [← hmiss]
+  simp only [Matrix.sub_mulVec, Matrix.one_mulVec, Matrix.mulVec_sub, Matrix.mulVec_mulVec]
+  dsimp [A]
+  abel_nf
+
+/-- Hansen Section 8.13, equation (8.39): the sample pseudo-true value obtained by replacing
+the limiting weight in (8.38) with the sample weight. -/
+noncomputable def mdSamplePseudoTrueValue
+    {Ω : Type*} (What : ℕ → Ω → Matrix k k ℝ) (R : Matrix k q ℝ)
+    (cStar c : q → ℝ) (β : k → ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => mdPseudoTrueValue (What n ω) R cStar c β
+
+/-- MD scaled error centered at the sample pseudo-true value under misspecification. -/
+noncomputable def mdMisspecifiedScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (What : ℕ → Ω → Matrix k k ℝ) (R : Matrix k q ℝ)
+    (cStar c : q → ℝ) (β : k → ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => root n •
+    (mdBetaStar (What n ω) R c (bhat n ω) - mdSamplePseudoTrueValue What R cStar c β n ω)
+
+/-- Under misspecification, the sample-pseudo-true centered MD statistic is exactly the
+random MD linear map applied to the unrestricted scaled error. -/
+theorem mdMisspecifiedScaledError_eq_randomLinearMap
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (What : ℕ → Ω → Matrix k k ℝ) (R : Matrix k q ℝ)
+    (cStar c : q → ℝ) (β : k → ℝ)
+    (hmiss : Rᵀ *ᵥ β = cStar) :
+    mdMisspecifiedScaledError root bhat What R cStar c β =
+      fun n ω => mdLinearMap (What n ω) R *ᵥ (root n • (bhat n ω - β)) := by
+  funext n ω
+  unfold mdMisspecifiedScaledError mdSamplePseudoTrueValue
+  rw [mdBetaStar_sub_pseudoTrueValue_eq_linearMap (What n ω) R cStar c β (bhat n ω) hmiss]
+  rw [Matrix.mulVec_smul]
+
 /-- The fixed-weight MD representation has zero linearization remainder. -/
 theorem mdFixedWeight_remainder_tendstoInMeasure_zero
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
@@ -1995,6 +2070,31 @@ theorem randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
     simpa using tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k) hlin hLaw
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
   simpa [Function.comp_def] using htarget
+
+/-- Hansen Section 8.13, equation (8.40): misspecified MD has the same centered Gaussian
+variance when centered at the sample pseudo-true value. -/
+theorem mdMisspecified_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ)
+    (S : Matrix k k ℝ)
+    (hS : S.PosSemidef)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det)
+    (hmiss : Rᵀ *ᵥ β = cStar)
+    (hT : TendstoInDistribution (fun n ω => root n • (bhat n ω - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution (mdMisspecifiedScaledError root bhat What R cStar c β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance W R S)) := by
+  rw [mdMisspecifiedScaledError_eq_randomLinearMap root bhat What R cStar c β hmiss]
+  exact randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
+    (fun n ω => mdLinearMap (What n ω) R) (mdLinearMap W R) S
+    (fun n ω => root n • (bhat n ω - β)) hS
+    (fun n => mdLinearMap_aestronglyMeasurable (What n) R (hWhat_meas n))
+    (mdLinearMap_tendstoInMeasure_of_nonsingular What W R hWhat_meas hWhat hW hG)
+    hT
 
 /-- Generic Gaussian limit theorem for the stable asymptotically linear estimator interface. -/
 theorem asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
