@@ -226,10 +226,286 @@ theorem clsAsymptoticVariance_eq_hansen_expanded
   simpa [clsAsymptoticVariance] using
     mdAsymptoticVariance_eq_hansen_expanded Q R V hQsym
 
+/-- Stable interface for consistency of a covariance-matrix estimator.
+
+This is the Chapter 8 covariance-estimation analogue of the Gaussian-limit interface: public
+standard-error and Wald-style wrappers should consume consistency of the covariance estimator,
+while constructor theorems prove that a particular plug-in formula has this property. -/
+structure CovarianceEstimatorConsistent
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (Vhat : ℕ → Ω → Matrix k k ℝ) (V : Matrix k k ℝ) where
+  covariance_measurable : ∀ n, AEStronglyMeasurable (Vhat n) μ
+  consistent : TendstoInMeasure μ Vhat atTop (fun _ => V)
+
+omit [DecidableEq k] in
+/-- Constructor for the generic covariance-consistency interface from explicit fields. -/
+theorem covarianceEstimatorConsistent_of_tendstoInMeasure
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Vhat : ℕ → Ω → Matrix k k ℝ) (V : Matrix k k ℝ)
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    CovarianceEstimatorConsistent μ Vhat V where
+  covariance_measurable := hV_meas
+  consistent := hV
+
+/-- Standard-error scale for a fixed linear combination `h'β`, based on an asymptotic covariance
+matrix. The displayed finite-sample standard error is `n^{-1/2}` times this scale. -/
+noncomputable def covarianceStdErrorScale
+    (h : k → ℝ) (V : Matrix k k ℝ) : ℝ :=
+  Real.sqrt (h ⬝ᵥ V *ᵥ h)
+
+omit [DecidableEq k] in
+/-- A fixed-linear-combination standard-error scale is a.e. measurable whenever the covariance
+estimator is. -/
+theorem covarianceStdErrorScale_aemeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (h : k → ℝ) {Vhat : Ω → Matrix k k ℝ}
+    (hVhat : AEStronglyMeasurable Vhat μ) :
+    AEMeasurable (fun ω => covarianceStdErrorScale h (Vhat ω)) μ := by
+  have hcont : Continuous (fun V : Matrix k k ℝ => covarianceStdErrorScale h V) := by
+    unfold covarianceStdErrorScale
+    exact Real.continuous_sqrt.comp
+      ((continuous_const.dotProduct
+        (Continuous.matrix_mulVec continuous_id continuous_const)))
+  exact (hcont.comp_aestronglyMeasurable hVhat).aemeasurable
+
+omit [DecidableEq k] in
+/-- Standard-error scale consistency from the stable covariance-consistency interface. -/
+theorem covarianceStdErrorScale_tendstoInMeasure_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : k → ℝ) (hV : CovarianceEstimatorConsistent μ Vhat V) :
+    TendstoInMeasure μ (fun n ω => covarianceStdErrorScale h (Vhat n ω))
+      atTop (fun _ => covarianceStdErrorScale h V) := by
+  have hcont : Continuous (fun V : Matrix k k ℝ => covarianceStdErrorScale h V) := by
+    unfold covarianceStdErrorScale
+    exact Real.continuous_sqrt.comp
+      ((continuous_const.dotProduct
+        (Continuous.matrix_mulVec continuous_id continuous_const)))
+  exact tendstoInMeasure_continuous_comp hV.covariance_measurable hV.consistent hcont
+
+/-- The MD asymptotic-variance plug-in map is a.e. strongly measurable whenever its weight and
+unrestricted covariance inputs are. -/
+theorem mdAsymptoticVariance_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Wseq Vseq : Ω → Matrix k k ℝ) (R : Matrix k q ℝ)
+    (hW : AEStronglyMeasurable Wseq μ)
+    (hV : AEStronglyMeasurable Vseq μ) :
+    AEStronglyMeasurable
+      (fun ω => mdAsymptoticVariance (Wseq ω) R (Vseq ω)) μ := by
+  have hA : AEStronglyMeasurable (fun ω => mdLinearMap (Wseq ω) R) μ :=
+    mdLinearMap_aestronglyMeasurable Wseq R hW
+  have hLeft : AEStronglyMeasurable
+      (fun ω => mdLinearMap (Wseq ω) R * Vseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hA.prodMk hV)
+  have hAt : AEStronglyMeasurable (fun ω => (mdLinearMap (Wseq ω) R)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hA
+  unfold mdAsymptoticVariance
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+    (hLeft.prodMk hAt)
+
+/-- The MD asymptotic-variance plug-in map is continuous at nonsingular limiting weights whose
+restriction Gram is nonsingular. -/
+theorem mdAsymptoticVariance_continuousAt_of_nonsingular
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
+    ContinuousAt
+      (fun p : Matrix k k ℝ × Matrix k k ℝ => mdAsymptoticVariance p.1 R p.2)
+      (W, V) := by
+  have hA : ContinuousAt
+      (fun p : Matrix k k ℝ × Matrix k k ℝ => mdLinearMap p.1 R) (W, V) := by
+    have hmap : ContinuousAt (fun W' : Matrix k k ℝ => mdLinearMap W' R) W :=
+      mdLinearMap_continuousAt_of_nonsingular W R hW hG
+    have hfst : ContinuousAt (fun p : Matrix k k ℝ × Matrix k k ℝ => p.1) (W, V) :=
+      continuousAt_fst
+    have hcomp : ContinuousAt
+        ((fun W' : Matrix k k ℝ => mdLinearMap W' R) ∘
+          fun p : Matrix k k ℝ × Matrix k k ℝ => p.1) (W, V) :=
+      hmap.comp hfst
+    simpa [Function.comp_def] using hcomp
+  have hLeft : ContinuousAt
+      (fun p : Matrix k k ℝ × Matrix k k ℝ => mdLinearMap p.1 R * p.2) (W, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hA.prodMk continuousAt_snd)
+  have hAt : ContinuousAt
+      (fun p : Matrix k k ℝ × Matrix k k ℝ => (mdLinearMap p.1 R)ᵀ) (W, V) :=
+    continuous_id.matrix_transpose.continuousAt.comp hA
+  unfold mdAsymptoticVariance
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+    (hLeft.prodMk hAt)
+
+set_option maxHeartbeats 800000 in
+-- Product-space CMT for the MD covariance plug-in carries finite-dimensional matrix topology.
+/-- Consistency of the MD asymptotic-variance plug-in estimator from consistent weight and
+unrestricted covariance estimators. This is the CMT core behind Hansen's restricted covariance
+estimators in Sections 8.7 and 8.10. -/
+theorem mdAsymptoticVariance_tendstoInMeasure_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {What Vhat : ℕ → Ω → Matrix k k ℝ} {W V : Matrix k k ℝ}
+    (R : Matrix k q ℝ)
+    (hWhat : CovarianceEstimatorConsistent μ What W)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
+    TendstoInMeasure μ
+      (fun n ω => mdAsymptoticVariance (What n ω) R (Vhat n ω))
+      atTop (fun _ => mdAsymptoticVariance W R V) := by
+  have hpair : TendstoInMeasure μ (fun n ω => (What n ω, Vhat n ω)) atTop
+      (fun _ : Ω => (W, V)) :=
+    tendstoInMeasure_prodMk hWhat.consistent hVhat.consistent
+  exact tendstoInMeasure_continuousAt_const_comp
+    (fun n => (hWhat.covariance_measurable n).prodMk (hVhat.covariance_measurable n))
+    (fun n => mdAsymptoticVariance_aestronglyMeasurable
+      (What n) (Vhat n) R (hWhat.covariance_measurable n)
+      (hVhat.covariance_measurable n))
+    hpair (mdAsymptoticVariance_continuousAt_of_nonsingular W R V hW hG)
+
+/-- Stable-interface constructor for consistency of the MD asymptotic-variance plug-in estimator. -/
+theorem mdCovarianceEstimatorConsistent_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {What Vhat : ℕ → Ω → Matrix k k ℝ} {W V : Matrix k k ℝ}
+    (R : Matrix k q ℝ)
+    (hWhat : CovarianceEstimatorConsistent μ What W)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => mdAsymptoticVariance (What n ω) R (Vhat n ω))
+      (mdAsymptoticVariance W R V) where
+  covariance_measurable := fun n =>
+    mdAsymptoticVariance_aestronglyMeasurable
+      (What n) (Vhat n) R (hWhat.covariance_measurable n)
+      (hVhat.covariance_measurable n)
+  consistent :=
+    mdAsymptoticVariance_tendstoInMeasure_of_consistency
+      R hWhat hVhat hW hG
+
+/-- CLS covariance-estimator consistency is the MD plug-in consistency theorem with the Gram
+matrix as the weight. -/
+theorem clsCovarianceEstimatorConsistent_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Qhat Vhat : ℕ → Ω → Matrix k k ℝ} {Q V : Matrix k k ℝ}
+    (R : Matrix k q ℝ)
+    (hQhat : CovarianceEstimatorConsistent μ Qhat Q)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hQ : IsUnit Q.det) (hG : IsUnit (Rᵀ * Q⁻¹ * R).det) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => clsAsymptoticVariance (Qhat n ω) R (Vhat n ω))
+      (clsAsymptoticVariance Q R V) := by
+  simpa [clsAsymptoticVariance] using
+    mdCovarianceEstimatorConsistent_of_consistency
+      R hQhat hVhat hQ hG
+
 /-- Efficient MD asymptotic variance. -/
 noncomputable def emdAsymptoticVariance
     (R : Matrix k q ℝ) (V : Matrix k k ℝ) : Matrix k k ℝ :=
   V - V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V
+
+set_option maxHeartbeats 1200000 in
+-- Matrix measurability through the EMD covariance plug-in inverse is expensive here.
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable whenever the
+unrestricted covariance estimator is. -/
+theorem emdAsymptoticVariance_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (R : Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
+    (hV : AEStronglyMeasurable Vseq μ) :
+    AEStronglyMeasurable (fun ω => emdAsymptoticVariance R (Vseq ω)) μ := by
+  have hVR : AEStronglyMeasurable (fun ω => Vseq ω * R) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hV.prodMk aestronglyMeasurable_const)
+  have hGramLeft : AEStronglyMeasurable (fun ω => Rᵀ * Vseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (aestronglyMeasurable_const.prodMk hV)
+  have hGram : AEStronglyMeasurable (fun ω => Rᵀ * Vseq ω * R) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hGramLeft.prodMk aestronglyMeasurable_const)
+  have hGramInv : AEStronglyMeasurable (fun ω => (Rᵀ * Vseq ω * R)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hLeft : AEStronglyMeasurable (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hVR.prodMk hGramInv)
+  have hMid : AEStronglyMeasurable
+      (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹ * Rᵀ) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeft.prodMk aestronglyMeasurable_const)
+  have hFull : AEStronglyMeasurable
+      (fun ω => Vseq ω * R * (Rᵀ * Vseq ω * R)⁻¹ * Rᵀ * Vseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hMid.prodMk hV)
+  unfold emdAsymptoticVariance
+  exact hV.sub hFull
+
+set_option maxHeartbeats 1200000 in
+-- Continuity through the EMD covariance plug-in inverse is expensive here.
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is continuous at covariance matrices with
+nonsingular restricted covariance. -/
+theorem emdAsymptoticVariance_continuousAt_of_nonsingular
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    ContinuousAt (fun V' : Matrix k k ℝ => emdAsymptoticVariance R V') V := by
+  let G : Matrix q q ℝ := Rᵀ * V * R
+  have hVR : ContinuousAt (fun V' : Matrix k k ℝ => V' * R) V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (continuousAt_id.prodMk continuousAt_const)
+  have hGramLeft : ContinuousAt (fun V' : Matrix k k ℝ => Rᵀ * V') V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (continuousAt_const.prodMk continuousAt_id)
+  have hGram : ContinuousAt (fun V' : Matrix k k ℝ => Rᵀ * V' * R) V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hGramLeft.prodMk continuousAt_const)
+  have hGramInv : ContinuousAt (fun V' : Matrix k k ℝ => (Rᵀ * V' * R)⁻¹) V := by
+    have hcontInv : ContinuousAt Inv.inv G := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hG.ne_zero
+    simpa [G] using hcontInv.comp hGram
+  have hLeft : ContinuousAt
+      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹) V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hVR.prodMk hGramInv)
+  have hMid : ContinuousAt
+      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹ * Rᵀ) V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hLeft.prodMk continuousAt_const)
+  have hFull : ContinuousAt
+      (fun V' : Matrix k k ℝ => V' * R * (Rᵀ * V' * R)⁻¹ * Rᵀ * V') V := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hMid.prodMk continuousAt_id)
+  unfold emdAsymptoticVariance
+  exact continuousAt_id.sub hFull
+
+omit [DecidableEq k] in
+/-- Consistency of the EMD covariance plug-in estimator (Hansen equation (8.35)) from
+consistency of the unrestricted covariance estimator. -/
+theorem emdAsymptoticVariance_tendstoInMeasure_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (R : Matrix k q ℝ) (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    TendstoInMeasure μ (fun n ω => emdAsymptoticVariance R (Vhat n ω))
+      atTop (fun _ => emdAsymptoticVariance R V) :=
+  tendstoInMeasure_continuousAt_const_comp
+    hVhat.covariance_measurable
+    (fun n => emdAsymptoticVariance_aestronglyMeasurable
+      R (Vhat n) (hVhat.covariance_measurable n))
+    hVhat.consistent
+    (emdAsymptoticVariance_continuousAt_of_nonsingular R V hG)
+
+omit [DecidableEq k] in
+/-- Stable-interface constructor for consistency of the EMD covariance plug-in estimator. -/
+theorem emdCovarianceEstimatorConsistent_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (R : Matrix k q ℝ) (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => emdAsymptoticVariance R (Vhat n ω))
+      (emdAsymptoticVariance R V) where
+  covariance_measurable := fun n =>
+    emdAsymptoticVariance_aestronglyMeasurable R (Vhat n)
+      (hVhat.covariance_measurable n)
+  consistent := emdAsymptoticVariance_tendstoInMeasure_of_consistency R hVhat hG
 
 /-- Efficient MD estimator with the efficient weight. -/
 noncomputable def emdBetaStar
