@@ -1225,6 +1225,30 @@ theorem tendstoInMeasure_mulVec
     Continuous.matrix_mulVec continuous_fst continuous_snd
   exact tendstoInMeasure_continuous_comp hprod_meas (tendstoInMeasure_prodMk hA hv) hcont
 
+set_option maxHeartbeats 600000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on the product
+-- `Matrix m n ℝ × (n → ℝ)` with scoped elementwise norm is expensive.
+/-- **Rectangular matrix-vector multiplication CMT.** If `A n →ₚ Ainf` and
+`v n →ₚ vinf` in measure, then `A n *ᵥ v n →ₚ Ainf *ᵥ vinf`, allowing
+rectangular matrices. -/
+theorem tendstoInMeasure_mulVec_rect
+    [IsFiniteMeasure μ]
+    {m n : Type*} [Fintype m] [Fintype n]
+    {A : ℕ → α → Matrix m n ℝ} {Ainf : α → Matrix m n ℝ}
+    {v : ℕ → α → n → ℝ} {vinf : α → n → ℝ}
+    (hA_meas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hv_meas : ∀ n, AEStronglyMeasurable (v n) μ)
+    (hA : TendstoInMeasure μ A atTop Ainf)
+    (hv : TendstoInMeasure μ v atTop vinf) :
+    TendstoInMeasure μ (fun n ω => A n ω *ᵥ v n ω) atTop
+      (fun ω => Ainf ω *ᵥ vinf ω) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable (fun ω => (A n ω, v n ω)) μ :=
+    fun n => (hA_meas n).prodMk (hv_meas n)
+  have hcont : Continuous (fun p : Matrix m n ℝ × (n → ℝ) => p.1 *ᵥ p.2) :=
+    Continuous.matrix_mulVec continuous_fst continuous_snd
+  exact tendstoInMeasure_continuous_comp hprod_meas
+    (tendstoInMeasure_prodMk hA hv) hcont
+
 set_option maxHeartbeats 1200000 in
 -- Heartbeat bump: PseudoMetrizable synthesis on the product
 -- `Matrix k k ℝ × Matrix k k ℝ` with scoped elementwise norm is expensive.

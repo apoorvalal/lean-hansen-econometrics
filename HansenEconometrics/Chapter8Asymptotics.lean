@@ -627,6 +627,108 @@ theorem nonlinearFirstOrderConstraintCorrection_tendstoInMeasure_of_nonsingular
     (nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
       W Rright0 Rleft0 hW hG)
 
+set_option maxHeartbeats 1200000 in
+-- Finite-coordinate stochastic-order glue over matrix entries is expensive here.
+omit [DecidableEq k] [DecidableEq q] in
+/-- A random matrix converging in measure to a fixed matrix has a negligible product remainder
+against a coordinatewise bounded-in-probability vector sequence. -/
+theorem randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Ahat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (hA : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hT : ∀ j, BoundedInProbability μ (fun n ω => T n ω j)) :
+    TendstoInMeasure μ (fun n ω => (Ahat n ω - A) *ᵥ T n ω) atTop
+      (fun _ => 0) := by
+  classical
+  refine tendstoInMeasure_pi (fun i => ?_)
+  have hterms : ∀ j ∈ (Finset.univ : Finset k),
+      TendstoInMeasure μ
+        (fun n ω => (Ahat n ω i j - A i j) * T n ω j) atTop (fun _ => 0) := by
+    intro j _
+    have hrow : TendstoInMeasure μ (fun n ω => Ahat n ω i) atTop (fun _ => A i) :=
+      TendstoInMeasure.pi_apply hA i
+    have hcoord : TendstoInMeasure μ (fun n ω => Ahat n ω i j) atTop
+        (fun _ => A i j) :=
+      TendstoInMeasure.pi_apply hrow j
+    have hcenter : TendstoInMeasure μ (fun n ω => Ahat n ω i j - A i j) atTop
+        (fun _ => 0) :=
+      TendstoInMeasure.sub_limit_zero_real hcoord
+    exact TendstoInMeasure.mul_boundedInProbability hcenter (hT j)
+  have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+    (s := (Finset.univ : Finset k))
+    (X := fun j n ω => (Ahat n ω i j - A i j) * T n ω j) hterms
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  simp [Matrix.mulVec, dotProduct]
+
+set_option maxHeartbeats 2000000 in
+-- This combines the nonlinear FONC map CMT with finite-coordinate stochastic-order glue.
+/-- Random nonlinear FONC linear maps have a negligible product remainder against any
+coordinatewise bounded-in-probability unrestricted scaled-error sequence. -/
+theorem nonlinearFirstOrderLinearMap_mulVec_sub_md_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (What : ℕ → Ω → Matrix k k ℝ) (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (T : ℕ → Ω → k → ℝ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hRright_meas : ∀ n, AEStronglyMeasurable (Rright n) μ)
+    (hRleft_meas : ∀ n, AEStronglyMeasurable (Rleft n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hRright : TendstoInMeasure μ Rright atTop (fun _ => Rderiv))
+    (hRleft : TendstoInMeasure μ Rleft atTop (fun _ => Rderiv))
+    (hW : IsUnit W.det) (hG : IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det)
+    (hT_bounded : ∀ j, BoundedInProbability μ (fun n ω => T n ω j)) :
+    TendstoInMeasure μ
+      (fun n ω => nonlinearFirstOrderLinearMap (What n ω) (Rright n ω) (Rleft n ω) *ᵥ
+        T n ω - mdLinearMap W Rderiv *ᵥ T n ω)
+      atTop (fun _ => 0) := by
+  let Ahat : ℕ → Ω → Matrix k k ℝ :=
+    fun n ω => nonlinearFirstOrderLinearMap (What n ω) (Rright n ω) (Rleft n ω)
+  let A : Matrix k k ℝ := mdLinearMap W Rderiv
+  have hAconv_raw := nonlinearFirstOrderLinearMap_tendstoInMeasure_of_nonsingular
+    What Rright Rleft W Rderiv Rderiv hWhat_meas hRright_meas hRleft_meas
+    hWhat hRright hRleft hW hG
+  have hAconv : TendstoInMeasure μ Ahat atTop (fun _ => A) := by
+    simpa [A, Ahat, nonlinearFirstOrderLinearMap_self_eq_mdLinearMap] using hAconv_raw
+  have hmain := randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero Ahat A T hAconv
+    hT_bounded
+  refine hmain.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  rw [Matrix.sub_mulVec]
+
+set_option maxHeartbeats 2000000 in
+-- This composes the rectangular matrix-vector CMT with the nonlinear correction-map CMT.
+/-- Random nonlinear FONC constraint-correction maps preserve a negligible scaled constraint
+gap when the random weights and derivative matrices converge. -/
+theorem nonlinearFirstOrderConstraintCorrection_mulVec_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (What : ℕ → Ω → Matrix k k ℝ) (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (Gscaled : ℕ → Ω → q → ℝ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hRright_meas : ∀ n, AEStronglyMeasurable (Rright n) μ)
+    (hRleft_meas : ∀ n, AEStronglyMeasurable (Rleft n) μ)
+    (hGscaled_meas : ∀ n, AEStronglyMeasurable (Gscaled n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hRright : TendstoInMeasure μ Rright atTop (fun _ => Rderiv))
+    (hRleft : TendstoInMeasure μ Rleft atTop (fun _ => Rderiv))
+    (hW : IsUnit W.det) (hG : IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det)
+    (hGscaled : TendstoInMeasure μ Gscaled atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => nonlinearFirstOrderConstraintCorrection (What n ω) (Rright n ω)
+        (Rleft n ω) *ᵥ Gscaled n ω)
+      atTop (fun _ => 0) := by
+  let Chat : ℕ → Ω → Matrix k q ℝ :=
+    fun n ω => nonlinearFirstOrderConstraintCorrection (What n ω) (Rright n ω) (Rleft n ω)
+  have hCconv := nonlinearFirstOrderConstraintCorrection_tendstoInMeasure_of_nonsingular
+    What Rright Rleft W Rderiv Rderiv hWhat_meas hRright_meas hRleft_meas
+    hWhat hRright hRleft hW hG
+  have hCmeas : ∀ n, AEStronglyMeasurable (Chat n) μ := by
+    intro n
+    exact nonlinearFirstOrderConstraintCorrection_aestronglyMeasurable
+      (What n) (Rright n) (Rleft n) (hWhat_meas n) (hRright_meas n) (hRleft_meas n)
+  have hraw := tendstoInMeasure_mulVec_rect
+    (A := Chat) (Ainf := fun _ : Ω => nonlinearFirstOrderConstraintCorrection W Rderiv Rderiv)
+    (v := Gscaled) (vinf := fun _ : Ω => (0 : q → ℝ))
+    hCmeas hGscaled_meas (by simpa [Chat] using hCconv) hGscaled
+  simpa [Chat] using hraw
+
 /-- Finite-sample algebra behind Hansen's nonlinear constrained-estimator proof.
 
 If the solved first-order condition gives
