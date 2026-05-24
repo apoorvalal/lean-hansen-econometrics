@@ -320,6 +320,41 @@ theorem feasibleStandardErrorConsistent_of_covarianceConsistency
     covarianceStdErrorScale_aemeasurable h (hV.covariance_measurable n)
   consistent := covarianceStdErrorScale_tendstoInMeasure_of_consistency h hV
 
+/-- Studentized scalar inference from a stable feasible-standard-error interface. -/
+theorem feasibleStandardErrorConsistent_studentized_tendstoInDistribution
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (num se : ℕ → Ω → ℝ) (Z : Ω' → ℝ) (c : ℝ)
+    (hc : 0 < c)
+    (hse : FeasibleStandardErrorConsistent μ se c)
+    (hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution (fun n ω => num n ω / se n ω) atTop
+      (fun ω => Z ω / c) (fun _ => μ) ν := by
+  have hdiv_meas : ∀ n, AEMeasurable (fun ω => num n ω / se n ω) μ :=
+    fun n => (hnum.forall_aemeasurable n).div (hse.standardError_measurable n)
+  exact tendstoInDistribution_div_of_tendstoInMeasure_const_pos
+    (μ := μ) (ν := ν) (X := num) (Y := se) (Z := Z) (c := c)
+    hc hnum hse.consistent hse.standardError_measurable hdiv_meas
+
+omit [DecidableEq k] in
+/-- Studentized scalar inference for a fixed linear combination using a consistent covariance
+estimator and the standard-error scale `sqrt(h' V h)`. -/
+theorem covarianceStdErrorScale_studentized_tendstoInDistribution
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : k → ℝ) (num : ℕ → Ω → ℝ) (Z : Ω' → ℝ)
+    (hV : CovarianceEstimatorConsistent μ Vhat V)
+    (hpos : 0 < covarianceStdErrorScale h V)
+    (hnum : TendstoInDistribution num atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun n ω => num n ω / covarianceStdErrorScale h (Vhat n ω)) atTop
+      (fun ω => Z ω / covarianceStdErrorScale h V) (fun _ => μ) ν :=
+  feasibleStandardErrorConsistent_studentized_tendstoInDistribution
+    num (fun n ω => covarianceStdErrorScale h (Vhat n ω)) Z
+    (covarianceStdErrorScale h V) hpos
+    (feasibleStandardErrorConsistent_of_covarianceConsistency h hV) hnum
+
 /-- The MD asymptotic-variance plug-in map is a.e. strongly measurable whenever its weight and
 unrestricted covariance inputs are. -/
 theorem mdAsymptoticVariance_aestronglyMeasurable
