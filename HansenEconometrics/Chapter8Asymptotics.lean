@@ -284,6 +284,42 @@ theorem covarianceStdErrorScale_tendstoInMeasure_of_consistency
         (Continuous.matrix_mulVec continuous_id continuous_const)))
   exact tendstoInMeasure_continuous_comp hV.covariance_measurable hV.consistent hcont
 
+/-- Stable interface for consistency of a feasible standard-error scale.
+
+The finite-sample standard error may include an external deterministic normalization such as
+`n^{-1/2}`. This interface packages consistency of the asymptotic scale, leaving the covariance
+plug-in formula as a constructor rather than part of the public theorem statement. -/
+structure FeasibleStandardErrorConsistent
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (sehat : ℕ → Ω → ℝ) (se : ℝ) where
+  standardError_measurable : ∀ n, AEMeasurable (sehat n) μ
+  consistent : TendstoInMeasure μ sehat atTop (fun _ => se)
+
+/-- Constructor for the feasible-standard-error interface from explicit measurability and
+convergence fields. -/
+theorem feasibleStandardErrorConsistent_of_tendstoInMeasure
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (sehat : ℕ → Ω → ℝ) (se : ℝ)
+    (hmeas : ∀ n, AEMeasurable (sehat n) μ)
+    (hse : TendstoInMeasure μ sehat atTop (fun _ => se)) :
+    FeasibleStandardErrorConsistent μ sehat se where
+  standardError_measurable := hmeas
+  consistent := hse
+
+omit [DecidableEq k] in
+/-- A consistent covariance estimator constructs the feasible standard-error interface for any
+fixed linear combination. -/
+theorem feasibleStandardErrorConsistent_of_covarianceConsistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : k → ℝ) (hV : CovarianceEstimatorConsistent μ Vhat V) :
+    FeasibleStandardErrorConsistent μ
+      (fun n ω => covarianceStdErrorScale h (Vhat n ω))
+      (covarianceStdErrorScale h V) where
+  standardError_measurable := fun n =>
+    covarianceStdErrorScale_aemeasurable h (hV.covariance_measurable n)
+  consistent := covarianceStdErrorScale_tendstoInMeasure_of_consistency h hV
+
 /-- The MD asymptotic-variance plug-in map is a.e. strongly measurable whenever its weight and
 unrestricted covariance inputs are. -/
 theorem mdAsymptoticVariance_aestronglyMeasurable
