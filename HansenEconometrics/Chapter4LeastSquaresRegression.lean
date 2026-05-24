@@ -1750,15 +1750,12 @@ theorem condExp_olsClusteredCR3VarianceEstimator_conservative_of_block_middle
     hmiddle_int hmiddle_cond
     (clusterCovarianceMiddle_mono_posSemidef X cluster Sigma Gamma hGamma)
 
-/-- Private proof engine. Conditional expectation of the random quadratic form `e' M e`
-reduces to the deterministic double sum `∑ᵢⱼ Mᵢⱼ Dᵢⱼ` whenever the entrywise second-moment
-matrix `E[eᵢeⱼ | m] = Dᵢⱼ` is a.e. constant on the conditioning σ-algebra.
+/-- Reusable finite-dimensional quadratic-form conditional-expectation helper.
 
-This is the linearity-of-conditional-expectation core used by
-`ols_condExp_residualVarianceEstimator_eq_sigmaSq`. The proof pulls the deterministic matrix
-entries `Mᵢⱼ` out of the conditional expectation and then evaluates each `E[eᵢeⱼ | m]` against
-`Dᵢⱼ` under the hypothesis `hD`. -/
-private theorem condExp_quadratic_form_eq_sum
+Conditional expectation of the random quadratic form `e' M e` reduces to the deterministic double
+sum `∑ᵢⱼ Mᵢⱼ Dᵢⱼ` whenever the entrywise second-moment matrix
+`E[eᵢeⱼ | m] = Dᵢⱼ` is a.e. constant on the conditioning σ-algebra. -/
+theorem condExp_quadratic_form_eq_sum
     (M : Matrix n n ℝ) (e : Ω → n → ℝ) (D : Matrix n n ℝ)
     [IsProbabilityMeasure μ]
     (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
@@ -1825,11 +1822,11 @@ private theorem condExp_quadratic_form_eq_sum
     filter_upwards [] with ω
     simp
 
-/-- Private proof engine. Homoskedastic specialization of the previous double sum: when the
-conditional second-moment matrix is `σ² · I`, the sum `∑ᵢⱼ Mᵢⱼ (σ² · δᵢⱼ)` collapses to
-`σ² · tr(M)`. Used together with `condExp_quadratic_form_eq_sum` to discharge the
-`E[s² | X] = σ²` step against `tr(M) = n - k`. -/
-private theorem sum_quadratic_homoskedastic_eq_trace
+/-- Reusable homoskedastic specialization of the quadratic-form double sum.
+
+When the conditional second-moment matrix is `σ² · I`, the sum
+`∑ᵢⱼ Mᵢⱼ (σ² · δᵢⱼ)` collapses to `σ² · tr(M)`. -/
+theorem sum_quadratic_homoskedastic_eq_trace
     (M : Matrix n n ℝ) [DecidableEq n] (σ2 : ℝ) :
     (∑ i, ∑ j, M i j * (σ2 * (1 : Matrix n n ℝ) i j)) = σ2 * Matrix.trace M := by
   classical

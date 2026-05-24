@@ -24,3 +24,5 @@ import HansenEconometrics.Chapter5NormalRegression
 import HansenEconometrics.Chapter5LikelihoodRatioTest
 import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.Chapter7Asymptotics
+import HansenEconometrics.Chapter8RestrictedEstimation
+import HansenEconometrics.Chapter8Asymptotics
