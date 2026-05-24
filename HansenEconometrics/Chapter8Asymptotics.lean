@@ -570,6 +570,21 @@ structure GaussianLimit
     TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
       (fun _ => μ) (multivariateGaussian 0 S)
 
+/-- Stable interface for a linearized estimator with a fixed local-asymptotic bias.
+
+This is the local-alternative analogue of `AsymptoticallyLinearEstimator`: after scaling, the
+estimator equals a fixed linear image of the driving statistic plus a deterministic bias, up to
+`o_p(1)`. -/
+structure BiasedAsymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (Y : ℕ → Ω → k → ℝ) (A : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (bias : k → ℝ) where
+  scaled_measurable : ∀ n, AEMeasurable (Y n) μ
+  expansion :
+    TendstoInMeasure μ
+      (Y - fun n ω => A *ᵥ T n ω + bias)
+      atTop (fun _ => 0)
+
 /-- Constructor for the generic Gaussian-limit interface from the explicit covariance and CLT
 fields. -/
 theorem gaussianLimit_of_tendstoInDistribution
@@ -1827,6 +1842,31 @@ theorem mdLocalAlternativeScaledError_eq_linearMap_add_bias
   rw [mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
     (root n) W R c (βseq n) (bhat n ω) δ (hlocal.local_restriction n)]
 
+/-- The exact fixed-weight local-alternative algebra constructs the stable biased-linearization
+interface. -/
+theorem mdLocalAlternative_fixedWeight_biasedAsymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) (δ : q → ℝ)
+    (hmeas : ∀ n, AEMeasurable (mdLocalAlternativeScaledError root bhat W R c βseq n) μ)
+    (hlocal : LocalAlternativeRestriction root R c βseq δ) :
+    BiasedAsymptoticallyLinearEstimator μ
+      (mdLocalAlternativeScaledError root bhat W R c βseq) (mdLinearMap W R)
+      (fun n ω => root n • (bhat n ω - βseq n)) (mdLocalAlternativeBias W R δ) where
+  scaled_measurable := hmeas
+  expansion := by
+    have hzero :
+        TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : k → ℝ)) atTop
+          (fun _ => 0) := by
+      exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+        (ae_of_all _ (fun _ => tendsto_const_nhds))
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hzero
+    filter_upwards with ω
+    rw [Pi.sub_apply]
+    rw [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
+    simp
+
 /-- Hansen Section 8.13, equation (8.39): the sample pseudo-true value obtained by replacing
 the limiting weight in (8.38) with the sample weight. -/
 noncomputable def mdSamplePseudoTrueValue
@@ -2139,6 +2179,23 @@ theorem fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
       tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k) hlin hLaw
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
   simpa [Te, biasE, Function.comp_def, matrixContinuousLinearMap_apply, add_comm] using htarget
+
+/-- Generic shifted Gaussian limit theorem from the stable biased-linearization and
+Gaussian-limit interfaces. -/
+theorem biasedAsymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ) (A : Matrix k k ℝ) (S : Matrix k k ℝ)
+    (T : ℕ → Ω → k → ℝ) (bias : k → ℝ)
+    (hlinear : BiasedAsymptoticallyLinearEstimator μ Y A T bias)
+    (hT : GaussianLimit μ T S) :
+    TendstoInDistribution Y atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian (WithLp.toLp 2 bias) (A * S * Aᵀ)) := by
+  have hA := fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
+    (M := A) (S := S) (bias := bias) hT.covariance_posSemidef T hT.limit
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun n ω => A *ᵥ T n ω + bias) (Y := Y)
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp) hA hlinear.expansion
+    hlinear.scaled_measurable
 
 /-- Hansen Section 8.13, equations (8.41)--(8.43), fixed-weight local-alternative MD
 limit. Under the local restriction `root n • (Rᵀ β_n - c) = δ`, the centered estimator has
