@@ -312,6 +312,37 @@ noncomputable def covarianceStdErrorScale
     (h : k → ℝ) (V : Matrix k k ℝ) : ℝ :=
   Real.sqrt (h ⬝ᵥ V *ᵥ h)
 
+/-- Hansen equation (8.36): finite-sample standard error for `h'β̂`, written as the
+asymptotic covariance scale divided by the square-root normalization. -/
+noncomputable def covarianceStdError
+    (root : ℝ) (h : k → ℝ) (V : Matrix k k ℝ) : ℝ :=
+  covarianceStdErrorScale h V / root
+
+/-- Studentized statistic formed with the displayed finite-sample standard error. -/
+noncomputable def covarianceTStatistic
+    (root : ℝ) (θhat θ : ℝ) (h : k → ℝ) (V : Matrix k k ℝ) : ℝ :=
+  (θhat - θ) / covarianceStdError root h V
+
+omit [DecidableEq k] in
+/-- The finite-sample standard error in (8.36) is the same as `root⁻¹` times the
+asymptotic standard-error scale. -/
+theorem covarianceStdError_eq_inv_mul_scale
+    (root : ℝ) (h : k → ℝ) (V : Matrix k k ℝ) :
+    covarianceStdError root h V = root⁻¹ * covarianceStdErrorScale h V := by
+  rw [covarianceStdError]
+  ring
+
+omit [DecidableEq k] in
+/-- Dividing by the displayed finite-sample standard error is equivalent to dividing the
+scaled numerator by the asymptotic standard-error scale. -/
+theorem covarianceTStatistic_eq_scaled_div_scale
+    (root θhat θ : ℝ) (h : k → ℝ) (V : Matrix k k ℝ)
+    (hroot : root ≠ 0) (hscale : covarianceStdErrorScale h V ≠ 0) :
+    covarianceTStatistic root θhat θ h V =
+      (root * (θhat - θ)) / covarianceStdErrorScale h V := by
+  unfold covarianceTStatistic covarianceStdError
+  field_simp [hroot, hscale]
+
 omit [DecidableEq k] in
 /-- A fixed-linear-combination standard-error scale is a.e. measurable whenever the covariance
 estimator is. -/
