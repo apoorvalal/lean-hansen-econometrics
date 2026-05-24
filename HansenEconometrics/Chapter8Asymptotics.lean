@@ -226,6 +226,64 @@ theorem clsAsymptoticVariance_eq_hansen_expanded
   simpa [clsAsymptoticVariance] using
     mdAsymptoticVariance_eq_hansen_expanded Q R V hQsym
 
+/-- Scalar Schur-complement variance `Q₁₁·₂` used in Hansen Section 8.9. -/
+noncomputable def scalarSchurVariance
+    (Q11 Q12 Q21 Q22 : ℝ) : ℝ :=
+  Q11 - Q12 * Q22⁻¹ * Q21
+
+/-- Scalar long-regression asymptotic variance for the coefficient on `X₁` after partialling out
+`X₂`, matching the formula preceding Hansen equation (8.29). -/
+noncomputable def scalarLongRegressionAsymptoticVariance
+    (Q11 Q12 Q21 Q22 Ω11 Ω12 Ω21 Ω22 : ℝ) : ℝ :=
+  let Qpartial := scalarSchurVariance Q11 Q12 Q21 Q22
+  let Ωpartial :=
+    Ω11 - Q12 * Q22⁻¹ * Ω21 - Ω12 * Q22⁻¹ * Q21 +
+      Q12 * Q22⁻¹ * Ω22 * Q22⁻¹ * Q21
+  Qpartial⁻¹ * Ωpartial * Qpartial⁻¹
+
+/-- Scalar short-regression/CLS asymptotic variance from Hansen equation (8.29). -/
+noncomputable def scalarShortRegressionAsymptoticVariance
+    (Q11 Ω11 : ℝ) : ℝ :=
+  Q11⁻¹ * Ω11 * Q11⁻¹
+
+/-- Scalar efficient restricted asymptotic variance from Hansen equation (8.31). -/
+noncomputable def scalarEfficientRestrictedAsymptoticVariance
+    (V11 V12 V21 V22 : ℝ) : ℝ :=
+  V11 - V12 * V22⁻¹ * V21
+
+/-- Hansen Section 8.9 heteroskedastic example: `Q₁₁·₂ = 3/4`. -/
+theorem scalarSchurVariance_heteroskedasticExample :
+    scalarSchurVariance 1 (1 / 2) (1 / 2) 1 = 3 / 4 := by
+  norm_num [scalarSchurVariance]
+
+/-- Hansen equation (8.32) in the Section 8.9 heteroskedastic example. -/
+theorem scalarLongRegressionAsymptoticVariance_heteroskedasticExample :
+    scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1 =
+      2 / 3 := by
+  norm_num [scalarLongRegressionAsymptoticVariance, scalarSchurVariance]
+
+/-- Hansen equation (8.33) in the Section 8.9 heteroskedastic example. -/
+theorem scalarShortRegressionAsymptoticVariance_heteroskedasticExample :
+    scalarShortRegressionAsymptoticVariance 1 1 = 1 := by
+  norm_num [scalarShortRegressionAsymptoticVariance]
+
+/-- Hansen equation (8.34) in the Section 8.9 heteroskedastic example. -/
+theorem scalarEfficientRestrictedAsymptoticVariance_heteroskedasticExample :
+    scalarEfficientRestrictedAsymptoticVariance (2 / 3) (1 / 6) (1 / 6) (2 / 3) =
+      5 / 8 := by
+  norm_num [scalarEfficientRestrictedAsymptoticVariance]
+
+/-- Hansen Section 8.9 heteroskedastic example: efficient MD has the smallest variance, while
+the short-regression CLS variance exceeds the unrestricted long-regression variance. -/
+theorem scalarExclusionRestriction_heteroskedasticExample_variance_order :
+    scalarEfficientRestrictedAsymptoticVariance (2 / 3) (1 / 6) (1 / 6) (2 / 3) <
+        scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1 ∧
+      scalarLongRegressionAsymptoticVariance 1 (1 / 2) (1 / 2) 1 1 (7 / 8) (7 / 8) 1 <
+        scalarShortRegressionAsymptoticVariance 1 1 := by
+  constructor <;> norm_num [scalarEfficientRestrictedAsymptoticVariance,
+    scalarLongRegressionAsymptoticVariance, scalarShortRegressionAsymptoticVariance,
+    scalarSchurVariance]
+
 /-- Stable interface for consistency of a covariance-matrix estimator.
 
 This is the Chapter 8 covariance-estimation analogue of the Gaussian-limit interface: public
