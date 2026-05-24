@@ -4,6 +4,7 @@ import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.StochasticOrder
 import HansenEconometrics.Chapter7Asymptotics.Basic
 import HansenEconometrics.Chapter7Asymptotics.Normality
+import HansenEconometrics.Chapter8RestrictedEstimation
 
 open MeasureTheory ProbabilityTheory Filter
 open scoped Matrix Matrix.Norms.Elementwise ENNReal Topology MeasureTheory ProbabilityTheory
@@ -68,6 +69,73 @@ noncomputable def clsBetaStar
     {n : Type*} [Fintype n] (X : Matrix n k ℝ) (y : n → ℝ) (R : Matrix k q ℝ)
     (c : q → ℝ) : k → ℝ :=
   mdBetaStar (sampleGram X) R c (olsBetaStar X y)
+
+/-- Hansen equation (8.22), the solved minimum-distance Lagrange multiplier. -/
+noncomputable def mdLagrangeMultiplier
+    (sampleSize : ℝ) (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (bhat : k → ℝ) : q → ℝ :=
+  sampleSize • ((Rᵀ * W⁻¹ * R)⁻¹ *ᵥ (Rᵀ *ᵥ bhat - c))
+
+/-- Displayed formula for Hansen equation (8.22). -/
+theorem mdLagrangeMultiplier_eq_hansen_822
+    (sampleSize : ℝ) (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (bhat : k → ℝ) :
+    mdLagrangeMultiplier sampleSize W R c bhat =
+      sampleSize • ((Rᵀ * W⁻¹ * R)⁻¹ *ᵥ (Rᵀ *ᵥ bhat - c)) := rfl
+
+/-- Displayed formula for Hansen equation (8.23). -/
+theorem mdBetaStar_eq_hansen_823
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (bhat : k → ℝ) :
+    mdBetaStar W R c bhat =
+      bhat - (W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹) *ᵥ (Rᵀ *ᵥ bhat - c) := rfl
+
+/-- On nonsingular designs, the inverse of the sample Gram is the sample size times the
+typeclass inverse of the unnormalized Gram. -/
+theorem sampleGram_nonsingInv_eq_card_smul_invOf
+    {n : Type*} [Fintype n] (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
+    (sampleGram X)⁻¹ = (Fintype.card n : ℝ) • ⅟ (Xᵀ * X) := by
+  unfold sampleGram
+  rw [nonsingInv_smul]
+  simp [invOf_eq_nonsing_inv]
+
+/-- Exercise 8.10 bridge: MD with the sample-Gram weight is the Star CLS estimator. -/
+theorem mdBetaStar_sampleGram_olsBetaStar_eq_clsBetaStar
+    {n : Type*} [Fintype n] (X : Matrix n k ℝ) (y : n → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) :
+    mdBetaStar (sampleGram X) R c (olsBetaStar X y) = clsBetaStar X y R c := rfl
+
+/-- Exercise 8.10 bridge: under the usual nonsingularity hypotheses, the sample-Gram
+minimum-distance specialization agrees with the finite-sample CLS estimator. -/
+theorem clsBetaStar_eq_clsBeta
+    {n : Type*} [Fintype n] [Nonempty n] (X : Matrix n k ℝ) (y : n → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)] :
+    clsBetaStar X y R c = clsBeta X y R c := by
+  let N : ℝ := Fintype.card n
+  have hN : N ≠ 0 := by
+    dsimp [N]
+    exact Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hsample :
+      (sampleGram X)⁻¹ = N • ⅟ (Xᵀ * X) := by
+    simpa [N] using sampleGram_nonsingInv_eq_card_smul_invOf X
+  have hgram :
+      Rᵀ * (sampleGram X)⁻¹ * R = N • clsConstraintGram X R := by
+    rw [hsample]
+    unfold clsConstraintGram
+    simp only [Matrix.mul_smul, Matrix.smul_mul, Matrix.mul_assoc]
+  have hrestriction :
+      (Rᵀ * (sampleGram X)⁻¹ * R)⁻¹ =
+        N⁻¹ • ⅟ (clsConstraintGram X R) := by
+    rw [hgram, nonsingInv_smul]
+    rw [← invOf_eq_nonsing_inv (clsConstraintGram X R)]
+  have hadj :
+      (sampleGram X)⁻¹ * R * (Rᵀ * (sampleGram X)⁻¹ * R)⁻¹ =
+        ⅟ (Xᵀ * X) * R * ⅟ (clsConstraintGram X R) := by
+    rw [hrestriction, hsample]
+    simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul, Matrix.mul_assoc]
+    rw [inv_mul_cancel₀ hN, one_smul]
+  unfold clsBetaStar mdBetaStar clsBeta clsRestrictionAdjustmentMatrix
+  rw [olsBetaStar_eq_olsBeta, hadj]
 
 /-- Fixed linear map in the MD asymptotic distribution. -/
 noncomputable def mdLinearMap (W : Matrix k k ℝ) (R : Matrix k q ℝ) : Matrix k k ℝ :=
