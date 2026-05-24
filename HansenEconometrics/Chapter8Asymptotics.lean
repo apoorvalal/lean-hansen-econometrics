@@ -1419,6 +1419,130 @@ theorem emdScaledError_aemeasurable
   exact (AEStronglyMeasurable.const_smul
     (hmd.sub aestronglyMeasurable_const) (root n)).aemeasurable
 
+/-- Constructor for the stable asymptotically linear interface from an explicit MD remainder. -/
+theorem mdAsymptoticallyLinearEstimator_of_remainder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hmeas : ∀ n, AEMeasurable (mdScaledError root bhat What R c β n) μ)
+    (hrem : TendstoInMeasure μ
+      (mdScaledError root bhat What R c β - fun n ω => mdLinearMap W R *ᵥ T n ω)
+      atTop (fun _ => 0)) :
+    AsymptoticallyLinearEstimator μ (mdScaledError root bhat What R c β) (mdLinearMap W R)
+      T where
+  scaled_measurable := hmeas
+  expansion := hrem
+
+/-- Constructor for the stable asymptotically linear interface from an explicit MD remainder,
+with scaled-error measurability discharged from estimator and weight measurability. -/
+theorem mdAsymptoticallyLinearEstimator_of_measurable_remainder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hbhat_meas : ∀ n, AEStronglyMeasurable (bhat n) μ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hrem : TendstoInMeasure μ
+      (mdScaledError root bhat What R c β - fun n ω => mdLinearMap W R *ᵥ T n ω)
+      atTop (fun _ => 0)) :
+    AsymptoticallyLinearEstimator μ (mdScaledError root bhat What R c β) (mdLinearMap W R)
+      T :=
+  mdAsymptoticallyLinearEstimator_of_remainder root bhat What W R c β T
+    (mdScaledError_aemeasurable root bhat What R c β hbhat_meas hWhat_meas) hrem
+
+/-- The fixed-weight MD exact algebra constructs the stable asymptotically linear interface. -/
+theorem mdFixedWeight_asymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (hbhat_meas : ∀ n, AEStronglyMeasurable (bhat n) μ)
+    (hrestrict : Rᵀ *ᵥ β = c) :
+    AsymptoticallyLinearEstimator μ (mdScaledError root bhat (fun _ _ => W) R c β)
+      (mdLinearMap W R) (fun n ω => root n • (bhat n ω - β)) :=
+  mdAsymptoticallyLinearEstimator_of_measurable_remainder root bhat (fun _ _ => W) W R c β
+    (fun n ω => root n • (bhat n ω - β)) hbhat_meas
+    (fun _ => aestronglyMeasurable_const)
+    (mdFixedWeight_remainder_tendstoInMeasure_zero root bhat W R c β hrestrict)
+
+set_option maxHeartbeats 1200000 in
+-- This packages exact MD algebra with the random-matrix Slutsky remainder.
+/-- Random-weight MD constructor for the stable asymptotically linear interface. -/
+theorem mdRandomWeight_asymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (hbhat_meas : ∀ n, AEStronglyMeasurable (bhat n) μ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hW : IsUnit W.det) (hG : IsUnit (Rᵀ * W⁻¹ * R).det)
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (hT_bounded : ∀ j, BoundedInProbability μ
+      (fun n ω => (root n • (bhat n ω - β)) j)) :
+    AsymptoticallyLinearEstimator μ (mdScaledError root bhat What R c β)
+      (mdLinearMap W R) (fun n ω => root n • (bhat n ω - β)) := by
+  let T : ℕ → Ω → k → ℝ := fun n ω => root n • (bhat n ω - β)
+  let Ahat : ℕ → Ω → Matrix k k ℝ := fun n ω => mdLinearMap (What n ω) R
+  let A : Matrix k k ℝ := mdLinearMap W R
+  have hAconv : TendstoInMeasure μ Ahat atTop (fun _ => A) := by
+    simpa [A, Ahat] using
+      mdLinearMap_tendstoInMeasure_of_nonsingular What W R hWhat_meas hWhat hW hG
+  have hrem_raw := randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero Ahat A T hAconv
+    (by simpa [T] using hT_bounded)
+  have hrem : TendstoInMeasure μ
+      (mdScaledError root bhat What R c β - fun n ω => mdLinearMap W R *ᵥ T n ω)
+      atTop (fun _ => 0) := by
+    refine hrem_raw.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+    rw [Pi.sub_apply]
+    rw [mdScaledError_eq_randomLinearMap root bhat What R c β hrestrict]
+    simp [Ahat, A, T, Matrix.sub_mulVec]
+  exact mdAsymptoticallyLinearEstimator_of_measurable_remainder root bhat What W R c β T
+    hbhat_meas hWhat_meas hrem
+
+/-- Constructor for the stable asymptotically linear interface from an explicit CLS-as-MD
+remainder. -/
+theorem clsAsymptoticallyLinearEstimator_of_remainder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (Qhat : ℕ → Ω → Matrix k k ℝ)
+    (Q : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hmeas : ∀ n, AEMeasurable (clsMDScaledError root bhat Qhat R c β n) μ)
+    (hrem : TendstoInMeasure μ
+      (clsMDScaledError root bhat Qhat R c β - fun n ω => mdLinearMap Q R *ᵥ T n ω)
+      atTop (fun _ => 0)) :
+    AsymptoticallyLinearEstimator μ (clsMDScaledError root bhat Qhat R c β) (mdLinearMap Q R)
+      T where
+  scaled_measurable := hmeas
+  expansion := hrem
+
+/-- Constructor for the stable asymptotically linear interface from an explicit EMD remainder. -/
+theorem emdAsymptoticallyLinearEstimator_of_remainder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hmeas : ∀ n, AEMeasurable (emdScaledError root bhat R c V β n) μ)
+    (hrem : TendstoInMeasure μ
+      (emdScaledError root bhat R c V β - fun n ω => mdLinearMap V⁻¹ R *ᵥ T n ω)
+      atTop (fun _ => 0)) :
+    AsymptoticallyLinearEstimator μ (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R)
+      T where
+  scaled_measurable := hmeas
+  expansion := hrem
+
+/-- The fixed efficient-MD exact algebra constructs the stable asymptotically linear interface. -/
+theorem emdFixedWeight_asymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (hbhat_meas : ∀ n, AEStronglyMeasurable (bhat n) μ)
+    (hrestrict : Rᵀ *ᵥ β = c) :
+    AsymptoticallyLinearEstimator μ (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R)
+      (fun n ω => root n • (bhat n ω - β)) := by
+  have hmd := mdFixedWeight_asymptoticallyLinearEstimator
+    root bhat V⁻¹ R c β hbhat_meas hrestrict
+  simpa [emdScaledError, emdBetaStar, mdScaledError] using hmd
+
 /-- Fixed linear maps preserve centered multivariate Gaussian distributional limits, with the
 covariance transformed as `M S Mᵀ`. This is the Gaussian CMT input used by the Chapter 8
 minimum-distance Slutsky wrappers. -/
