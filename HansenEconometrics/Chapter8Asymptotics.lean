@@ -298,6 +298,117 @@ noncomputable def nonlinearConstraintTaylorRemainder
     (k → ℝ) → (q → ℝ) :=
   fun b => r b - r β - Rderivᵀ *ᵥ (b - β)
 
+/-- Linear map from the unrestricted estimator error to the nonlinear constrained-estimator
+error in the finite-sample first-order-condition algebra.
+
+`Rright` is the derivative matrix appearing in the Lagrangian first-order condition, while
+`Rleft` is the derivative matrix appearing in the linearized constraint. In the limit both
+converge to Hansen's `R`. -/
+noncomputable def nonlinearFirstOrderLinearMap
+    (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ) : Matrix k k ℝ :=
+  1 - W⁻¹ * Rright * (Rleftᵀ * W⁻¹ * Rright)⁻¹ * Rleftᵀ
+
+/-- Correction map multiplying the nonlinear constraint linearization gap in the finite-sample
+first-order-condition algebra. -/
+noncomputable def nonlinearFirstOrderConstraintCorrection
+    (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ) : Matrix k q ℝ :=
+  W⁻¹ * Rright * (Rleftᵀ * W⁻¹ * Rright)⁻¹
+
+/-- When the left and right derivative matrices agree, the nonlinear first-order linear map is the
+ordinary minimum-distance linear map. -/
+theorem nonlinearFirstOrderLinearMap_self_eq_mdLinearMap
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) :
+    nonlinearFirstOrderLinearMap W R R = mdLinearMap W R := rfl
+
+/-- Finite-sample algebra behind Hansen's nonlinear constrained-estimator proof.
+
+If the solved first-order condition gives
+`bhat - btilde = W⁻¹ Rright λ` and the linearized constraint gives
+`Rleft' (btilde - β) = gap`, then the scaled constrained error is the nonlinear
+first-order linear map applied to the scaled unrestricted error, plus an explicit correction for
+the constraint gap. The theorem is deterministic; stochastic assumptions later make the matrices
+converge and the gap negligible. -/
+theorem nonlinearFirstOrder_scaledError_eq_linearMap_add_gap
+    (root : ℝ) (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ)
+    (β bhat btilde : k → ℝ) (lam gap : q → ℝ)
+    (hstep : bhat - btilde = (W⁻¹ * Rright) *ᵥ lam)
+    (hgap : Rleftᵀ *ᵥ (btilde - β) = gap)
+    (hG : IsUnit (Rleftᵀ * W⁻¹ * Rright).det) :
+    root • (btilde - β) =
+      nonlinearFirstOrderLinearMap W Rright Rleft *ᵥ (root • (bhat - β)) +
+        nonlinearFirstOrderConstraintCorrection W Rright Rleft *ᵥ (root • gap) := by
+  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
+  let B : Matrix k q ℝ := W⁻¹ * Rright * G⁻¹
+  have hdiff : bhat - btilde = (bhat - β) - (btilde - β) := by
+    ext i
+    simp
+  have hGlam : G *ᵥ lam = Rleftᵀ *ᵥ (bhat - β) - gap := by
+    calc
+      G *ᵥ lam = Rleftᵀ *ᵥ ((W⁻¹ * Rright) *ᵥ lam) := by
+        dsimp [G]
+        rw [Matrix.mulVec_mulVec]
+        simp [Matrix.mul_assoc]
+      _ = Rleftᵀ *ᵥ (bhat - btilde) := by
+        rw [← hstep]
+      _ = Rleftᵀ *ᵥ ((bhat - β) - (btilde - β)) := by
+        rw [hdiff]
+      _ = Rleftᵀ *ᵥ (bhat - β) - Rleftᵀ *ᵥ (btilde - β) := by
+        rw [Matrix.mulVec_sub]
+      _ = Rleftᵀ *ᵥ (bhat - β) - gap := by
+        rw [hgap]
+  have hlam : lam = G⁻¹ *ᵥ (Rleftᵀ *ᵥ (bhat - β) - gap) := by
+    calc
+      lam = (1 : Matrix q q ℝ) *ᵥ lam := by
+        simp
+      _ = (G⁻¹ * G) *ᵥ lam := by
+        rw [Matrix.nonsing_inv_mul G (by simpa [G] using hG)]
+      _ = G⁻¹ *ᵥ (G *ᵥ lam) := by
+        rw [Matrix.mulVec_mulVec]
+      _ = G⁻¹ *ᵥ (Rleftᵀ *ᵥ (bhat - β) - gap) := by
+        rw [hGlam]
+  have hu : btilde - β = (1 - B * Rleftᵀ) *ᵥ (bhat - β) + B *ᵥ gap := by
+    calc
+      btilde - β = (bhat - β) - (bhat - btilde) := by
+        ext i
+        simp
+      _ = (bhat - β) - (W⁻¹ * Rright) *ᵥ lam := by
+        rw [hstep]
+      _ = (bhat - β) -
+            (W⁻¹ * Rright) *ᵥ (G⁻¹ *ᵥ (Rleftᵀ *ᵥ (bhat - β) - gap)) := by
+        rw [hlam]
+      _ = (bhat - β) - B *ᵥ (Rleftᵀ *ᵥ (bhat - β) - gap) := by
+        dsimp [B]
+        rw [Matrix.mulVec_mulVec]
+      _ = (1 - B * Rleftᵀ) *ᵥ (bhat - β) + B *ᵥ gap := by
+        rw [Matrix.mulVec_sub, Matrix.sub_mulVec, Matrix.one_mulVec, Matrix.mulVec_mulVec]
+        abel
+  rw [hu]
+  rw [smul_add, Matrix.mulVec_smul, Matrix.mulVec_smul]
+  rfl
+
+/-- Sequence form of `nonlinearFirstOrder_scaledError_eq_linearMap_add_gap`. This is the
+deterministic constructor shape used before applying stochastic convergence of weights,
+derivative matrices, and the Taylor constraint gap. -/
+theorem nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
+    {Ω : Type*} (root : ℕ → ℝ)
+    (What : ℕ → Ω → Matrix k k ℝ) (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (β : k → ℝ) (bhat btilde : ℕ → Ω → k → ℝ)
+    (lam gap : ℕ → Ω → q → ℝ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rright n ω) *ᵥ lam n ω)
+    (hgap : ∀ n ω, (Rleft n ω)ᵀ *ᵥ (btilde n ω - β) = gap n ω)
+    (hG : ∀ n ω, IsUnit ((Rleft n ω)ᵀ * (What n ω)⁻¹ * Rright n ω).det) :
+    constrainedScaledError root btilde β =
+      fun n ω =>
+        nonlinearFirstOrderLinearMap (What n ω) (Rright n ω) (Rleft n ω) *ᵥ
+            (root n • (bhat n ω - β)) +
+          nonlinearFirstOrderConstraintCorrection (What n ω) (Rright n ω) (Rleft n ω) *ᵥ
+            (root n • gap n ω) := by
+  funext n ω
+  exact nonlinearFirstOrder_scaledError_eq_linearMap_add_gap
+    (root n) (What n ω) (Rright n ω) (Rleft n ω) β (bhat n ω) (btilde n ω)
+    (lam n ω) (gap n ω) (hstep n ω) (hgap n ω) (hG n ω)
+
 namespace NonlinearConstraintAssumption83
 
 omit [DecidableEq k] [DecidableEq q] in
