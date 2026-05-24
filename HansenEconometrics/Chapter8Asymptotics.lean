@@ -1632,6 +1632,33 @@ theorem efficientRestrictionCov_det_isUnit
 
 end NonlinearConstraintAssumption83
 
+/-- Hansen Theorem 8.10 nonlinear efficient-MD plug-in covariance estimator, using the
+estimated derivative matrix `Rhat` from equation (8.48). -/
+noncomputable def nonlinearEfficientCovarianceEstimator
+    (Rhat : Matrix k q ℝ) (Vhat : Matrix k k ℝ) : Matrix k k ℝ :=
+  emdCovarianceEstimator Rhat Vhat
+
+omit [DecidableEq k] in
+/-- Expanded nonlinear efficient covariance estimator formula from Theorem 8.10. -/
+theorem nonlinearEfficientCovarianceEstimator_eq_hansen
+    (Rhat : Matrix k q ℝ) (Vhat : Matrix k k ℝ) :
+    nonlinearEfficientCovarianceEstimator Rhat Vhat =
+      Vhat - Vhat * Rhat * (Rhatᵀ * Vhat * Rhat)⁻¹ * Rhatᵀ * Vhat :=
+  rfl
+
+/-- Theorem 8.10 standard-error formula using the nonlinear efficient covariance estimator. -/
+noncomputable def nonlinearEfficientStdError
+    (root : ℝ) (h : k → ℝ) (Rhat : Matrix k q ℝ) (Vhat : Matrix k k ℝ) : ℝ :=
+  covarianceStdError root h (nonlinearEfficientCovarianceEstimator Rhat Vhat)
+
+omit [DecidableEq k] in
+/-- Expanded nonlinear efficient standard error for a fixed linear combination. -/
+theorem nonlinearEfficientStdError_eq_hansen
+    (root : ℝ) (h : k → ℝ) (Rhat : Matrix k q ℝ) (Vhat : Matrix k k ℝ) :
+    nonlinearEfficientStdError root h Rhat Vhat =
+      Real.sqrt (h ⬝ᵥ (nonlinearEfficientCovarianceEstimator Rhat Vhat) *ᵥ h) / root :=
+  rfl
+
 /-- A positive-definite real matrix has a unit determinant. -/
 theorem posDef_det_isUnit (M : Matrix k k ℝ) (hM : M.PosDef) : IsUnit M.det := by
   exact isUnit_iff_ne_zero.mpr hM.det_pos.ne'
@@ -1981,6 +2008,25 @@ theorem mdBetaStar_sub_pseudoTrueValue_eq_linearMap
 noncomputable def mdLocalAlternativeBias
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (δ : q → ℝ) : k → ℝ :=
   -mdRestrictionCorrectionMap W R *ᵥ δ
+
+/-- Hansen Section 8.13, equation (8.42): unrestricted scaled error under a local
+parameter sequence. -/
+noncomputable def localUnrestrictedScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (βseq : ℕ → k → ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => root n • (bhat n ω - βseq n)
+
+/-- Equation (8.42) written as a public wrapper over the stable Gaussian-limit
+interface for the unrestricted local-asymptotic statistic. -/
+theorem localUnrestricted_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (βseq : ℕ → k → ℝ) (S : Matrix k k ℝ)
+    (hT : GaussianLimit μ (localUnrestrictedScaledError root bhat βseq) S) :
+    TendstoInDistribution (localUnrestrictedScaledError root bhat βseq) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 S) :=
+  hT.limit
 
 /-- Exact fixed-weight local-alternative algebra. If
 `root • (Rᵀ β - c) = δ`, the scaled MD error is the usual MD linear image of the
@@ -2421,6 +2467,22 @@ theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussia
     fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
       (M := mdLinearMap W R) (S := S) (bias := mdLocalAlternativeBias W R δ)
       hS (fun n ω => root n • (bhat n ω - βseq n)) hT
+
+/-- Gaussian-limit-interface version of the fixed-weight local-alternative MD limit. -/
+theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) (δ : q → ℝ) (S : Matrix k k ℝ)
+    (hlocal : LocalAlternativeRestriction root R c βseq δ)
+    (hT : GaussianLimit μ (localUnrestrictedScaledError root bhat βseq) S) :
+    TendstoInDistribution (mdLocalAlternativeScaledError root bhat W R c βseq) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian (WithLp.toLp 2 (mdLocalAlternativeBias W R δ))
+        (mdAsymptoticVariance W R S)) := by
+  exact mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussian
+    root bhat W R c βseq δ S hT.covariance_posSemidef hlocal
+    (by simpa [localUnrestrictedScaledError] using hT.limit)
 
 /-- Stable interface for the interior case of scalar inequality constraints.
 
