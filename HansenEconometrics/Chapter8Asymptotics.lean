@@ -2862,6 +2862,133 @@ theorem emdAsymptoticVariance_gap_posSemidef
     Matrix.PosSemidef.conjTranspose_mul_mul_same hG (Rᵀ * V)
 
 omit [DecidableEq k] in
+/-- Linear map for the Hausman difference between the unrestricted estimator and the efficient
+minimum-distance estimator. -/
+noncomputable def emdDifferenceLinearMap
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ) : Matrix k k ℝ :=
+  V * R * (Rᵀ * V * R)⁻¹ * Rᵀ
+
+omit [DecidableEq k] in
+/-- Asymptotic variance of the Hausman difference `βhat - βemd`. -/
+noncomputable def emdDifferenceAsymptoticVariance
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ) : Matrix k k ℝ :=
+  emdDifferenceLinearMap R V * V * (emdDifferenceLinearMap R V)ᵀ
+
+omit [DecidableEq k] in
+/-- Hansen Section 8.11, equation (8.37): the asymptotic variance of the Hausman difference
+equals the unrestricted asymptotic variance minus the efficient restricted asymptotic variance. -/
+theorem emdDifferenceAsymptoticVariance_eq_gap
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hVsym : Vᵀ = V) (hGunit : IsUnit (Rᵀ * V * R).det) :
+    emdDifferenceAsymptoticVariance R V = V - emdAsymptoticVariance R V := by
+  let G : Matrix q q ℝ := Rᵀ * V * R
+  let A : Matrix q q ℝ := G⁻¹
+  have hGsym : Gᵀ = G := by
+    dsimp [G]
+    rw [Matrix.transpose_mul, Matrix.transpose_mul, hVsym, Matrix.transpose_transpose]
+    simp [Matrix.mul_assoc]
+  have hAsym : Aᵀ = A := by
+    dsimp [A]
+    rw [Matrix.transpose_nonsing_inv, hGsym]
+  have hAGA : A * G * A = A := by
+    calc
+      A * G * A = A * (G * A) := by simp [Matrix.mul_assoc]
+      _ = A := by
+        rw [show G * A = 1 by
+          dsimp [A, G]
+          exact Matrix.mul_nonsing_inv _ hGunit]
+        simp
+  unfold emdDifferenceAsymptoticVariance emdDifferenceLinearMap emdAsymptoticVariance
+  change (V * R * A * Rᵀ) * V * (V * R * A * Rᵀ)ᵀ =
+    V - (V - V * R * A * Rᵀ * V)
+  simp only [Matrix.transpose_mul, Matrix.transpose_transpose, hAsym, hVsym]
+  calc
+    V * R * A * Rᵀ * V * (R * (A * (Rᵀ * V))) =
+        V * R * (A * G * A) * Rᵀ * V := by
+      simp [G, Matrix.mul_assoc]
+    _ = V * R * A * Rᵀ * V := by
+      rw [hAGA]
+    _ = V - (V - V * R * A * Rᵀ * V) := by
+      abel
+
+/-- Efficient-MD pointwise Hausman-difference algebra under the maintained restriction. -/
+theorem emdBetaStar_difference_eq_linearMap
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ)
+    (β bhat : k → ℝ) (hVunit : IsUnit V.det) (hrestrict : Rᵀ *ᵥ β = c) :
+    bhat - emdBetaStar R c V bhat =
+      emdDifferenceLinearMap R V *ᵥ (bhat - β) := by
+  rw [emdBetaStar_eq_hansen R c V bhat hVunit]
+  unfold emdDifferenceLinearMap
+  rw [← hrestrict]
+  rw [← Matrix.mulVec_sub]
+  simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+
+/-- Scaled Hausman difference between the unrestricted estimator and the efficient
+minimum-distance estimator. -/
+noncomputable def emdDifferenceScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => root n • (bhat n ω - emdBetaStar R c V (bhat n ω))
+
+/-- The scaled Hausman difference is exactly the fixed Hausman linear map applied to the
+unrestricted scaled error. -/
+theorem emdDifferenceScaledError_eq_linearMap
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (hVunit : IsUnit V.det) (hrestrict : Rᵀ *ᵥ β = c) :
+    emdDifferenceScaledError root bhat R c V =
+      fun n ω => emdDifferenceLinearMap R V *ᵥ (root n • (bhat n ω - β)) := by
+  funext n ω
+  unfold emdDifferenceScaledError
+  rw [emdBetaStar_difference_eq_linearMap R c V β (bhat n ω) hVunit hrestrict]
+  rw [Matrix.mulVec_smul]
+
+/-- Hansen Section 8.11: Gaussian limit for the Hausman difference between the unrestricted
+estimator and the efficient minimum-distance estimator. -/
+theorem emdDifference_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (hVpsd : V.PosSemidef) (hVunit : IsUnit V.det)
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (hT : TendstoInDistribution (fun n ω => root n • (bhat n ω - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ) (multivariateGaussian 0 V)) :
+    TendstoInDistribution (emdDifferenceScaledError root bhat R c V) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (emdDifferenceAsymptoticVariance R V)) := by
+  have hraw := fixedMatrix_mulVec_tendstoInDistribution_multivariateGaussian
+    (M := emdDifferenceLinearMap R V) (S := V) hVpsd
+    (fun n ω => root n • (bhat n ω - β)) hT
+  refine TendstoInDistribution.congr
+    (X := fun n ω => emdDifferenceLinearMap R V *ᵥ (root n • (bhat n ω - β)))
+    (Y := emdDifferenceScaledError root bhat R c V)
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp)
+    (T := fun z : EuclideanSpace ℝ k => z.ofLp)
+    ?_ (EventuallyEq.rfl) ?_
+  · intro n
+    exact ae_of_all μ (fun ω => by
+      rw [emdDifferenceScaledError_eq_linearMap root bhat R c V β hVunit hrestrict])
+  · simpa [emdDifferenceAsymptoticVariance] using hraw
+
+/-- Hansen Section 8.11: the Hausman-difference Gaussian covariance can be written as
+`V - V*`, the difference between the unrestricted and efficient restricted asymptotic variances. -/
+theorem emdDifference_tendstoInDistribution_multivariateGaussian_gap
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (hVpsd : V.PosSemidef) (hVunit : IsUnit V.det) (hVsym : Vᵀ = V)
+    (hGunit : IsUnit (Rᵀ * V * R).det)
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (hT : TendstoInDistribution (fun n ω => root n • (bhat n ω - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ) (multivariateGaussian 0 V)) :
+    TendstoInDistribution (emdDifferenceScaledError root bhat R c V) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (V - emdAsymptoticVariance R V)) := by
+  simpa [emdDifferenceAsymptoticVariance_eq_gap R V hVsym hGunit] using
+    emdDifference_tendstoInDistribution_multivariateGaussian
+      root bhat R c V β hVpsd hVunit hrestrict hT
+
+omit [DecidableEq k] in
 /-- Under Assumption 8.3 and a positive-definite unrestricted covariance, the efficient
 nonlinear restricted asymptotic variance is weakly below the unrestricted variance. -/
 theorem nonlinearEfficientAsymptoticVariance_gap_posSemidef_of_assumption83
