@@ -1706,12 +1706,17 @@ theorem mdScaledError_eq_randomLinearMap
   rw [mdBetaStar_sub_eq_linearMap (What n ω) R c β (bhat n ω) hrestrict]
   rw [Matrix.mulVec_smul]
 
+/-- The MD restriction-correction map multiplying the restriction residual. -/
+noncomputable def mdRestrictionCorrectionMap
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) : Matrix k q ℝ :=
+  W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹
+
 /-- Hansen Section 8.13, equation (8.38): the pseudo-true MD projection value when the
 population restriction is `Rᵀ β = cStar`, but the imposed restriction is `c`. -/
 noncomputable def mdPseudoTrueValue
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ) :
     k → ℝ :=
-  β - (W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹) *ᵥ (cStar - c)
+  β - mdRestrictionCorrectionMap W R *ᵥ (cStar - c)
 
 /-- The pseudo-true value satisfies the imposed restriction when the restriction Gram is
 nonsingular. -/
@@ -1719,7 +1724,7 @@ theorem mdPseudoTrueValue_restrict
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ)
     (hmiss : Rᵀ *ᵥ β = cStar) (hG : IsUnit (Rᵀ * W⁻¹ * R).det) :
     Rᵀ *ᵥ mdPseudoTrueValue W R cStar c β = c := by
-  unfold mdPseudoTrueValue
+  unfold mdPseudoTrueValue mdRestrictionCorrectionMap
   have hleft : Rᵀ * (W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹) = (1 : Matrix q q ℝ) := by
     rw [← Matrix.mul_assoc, ← Matrix.mul_assoc]
     exact Matrix.mul_nonsing_inv _ hG
@@ -1732,7 +1737,7 @@ theorem mdBetaStar_eq_pseudoTrueValue
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) (cStar c : q → ℝ) (β : k → ℝ)
     (hmiss : Rᵀ *ᵥ β = cStar) :
     mdBetaStar W R c β = mdPseudoTrueValue W R cStar c β := by
-  unfold mdBetaStar mdPseudoTrueValue
+  unfold mdBetaStar mdPseudoTrueValue mdRestrictionCorrectionMap
   rw [hmiss]
 
 /-- Centering the MD estimator at the misspecification pseudo-true value restores the same
@@ -1744,13 +1749,83 @@ theorem mdBetaStar_sub_pseudoTrueValue_eq_linearMap
       mdLinearMap W R *ᵥ (bhat - β) := by
   let B : Matrix k q ℝ := W⁻¹ * R * (Rᵀ * W⁻¹ * R)⁻¹
   let A : Matrix k k ℝ := B * Rᵀ
-  unfold mdBetaStar mdPseudoTrueValue mdLinearMap
+  unfold mdBetaStar mdPseudoTrueValue mdLinearMap mdRestrictionCorrectionMap
   change bhat - B *ᵥ (Rᵀ *ᵥ bhat - c) - (β - B *ᵥ (cStar - c)) =
     (1 - A) *ᵥ (bhat - β)
   rw [← hmiss]
   simp only [Matrix.sub_mulVec, Matrix.one_mulVec, Matrix.mulVec_sub, Matrix.mulVec_mulVec]
   dsimp [A]
   abel_nf
+
+/-- Bias term induced by a local alternative written as
+`root n • (Rᵀ β_n - c) = δ`. With this sign convention the MD correction contributes
+`-Bδ` to the centered scaled limit. -/
+noncomputable def mdLocalAlternativeBias
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (δ : q → ℝ) : k → ℝ :=
+  -mdRestrictionCorrectionMap W R *ᵥ δ
+
+/-- Exact fixed-weight local-alternative algebra. If
+`root • (Rᵀ β - c) = δ`, the scaled MD error is the usual MD linear image of the
+unrestricted scaled error plus the local-alternative bias. -/
+theorem mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
+    (root : ℝ) (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (β bhat : k → ℝ) (δ : q → ℝ)
+    (hlocal : root • (Rᵀ *ᵥ β - c) = δ) :
+    root • (mdBetaStar W R c bhat - β) =
+      mdLinearMap W R *ᵥ (root • (bhat - β)) + mdLocalAlternativeBias W R δ := by
+  let cStar : q → ℝ := Rᵀ *ᵥ β
+  have hlin :
+      mdBetaStar W R c bhat - mdPseudoTrueValue W R cStar c β =
+        mdLinearMap W R *ᵥ (bhat - β) := by
+    exact mdBetaStar_sub_pseudoTrueValue_eq_linearMap W R cStar c β bhat rfl
+  have hbias : root • (mdPseudoTrueValue W R cStar c β - β) =
+      mdLocalAlternativeBias W R δ := by
+    unfold mdPseudoTrueValue mdLocalAlternativeBias mdRestrictionCorrectionMap cStar
+    rw [← hlocal]
+    simp [Matrix.neg_mulVec, Matrix.mulVec_smul, smul_neg]
+  calc
+    root • (mdBetaStar W R c bhat - β) =
+        root • ((mdBetaStar W R c bhat - mdPseudoTrueValue W R cStar c β) +
+          (mdPseudoTrueValue W R cStar c β - β)) := by
+      congr 1
+      abel
+    _ = root • (mdBetaStar W R c bhat - mdPseudoTrueValue W R cStar c β) +
+        root • (mdPseudoTrueValue W R cStar c β - β) := by
+      rw [smul_add]
+    _ = root • (mdLinearMap W R *ᵥ (bhat - β)) + mdLocalAlternativeBias W R δ := by
+      rw [hlin, hbias]
+    _ = mdLinearMap W R *ᵥ (root • (bhat - β)) + mdLocalAlternativeBias W R δ := by
+      rw [Matrix.mulVec_smul]
+
+/-- Stable interface for Hansen Section 8.13 local misspecification, equation (8.41):
+the true parameter sequence violates the imposed restriction at the local scale. -/
+structure LocalAlternativeRestriction
+    (root : ℕ → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) (δ : q → ℝ) : Prop where
+  local_restriction : ∀ n, root n • (Rᵀ *ᵥ βseq n - c) = δ
+
+/-- MD scaled error centered at the local true parameter sequence. -/
+noncomputable def mdLocalAlternativeScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => root n • (mdBetaStar W R c (bhat n ω) - βseq n)
+
+/-- Under local misspecification, the fixed-weight MD statistic centered at the local true
+parameter sequence is exactly the usual fixed MD linear image plus the local bias. -/
+theorem mdLocalAlternativeScaledError_eq_linearMap_add_bias
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) (δ : q → ℝ)
+    (hlocal : LocalAlternativeRestriction root R c βseq δ) :
+    mdLocalAlternativeScaledError root bhat W R c βseq =
+      fun n ω =>
+        mdLinearMap W R *ᵥ (root n • (bhat n ω - βseq n)) +
+          mdLocalAlternativeBias W R δ := by
+  funext n ω
+  unfold mdLocalAlternativeScaledError
+  rw [mdBetaStar_localAlternative_scaledError_eq_linearMap_add_bias
+    (root n) W R c (βseq n) (bhat n ω) δ (hlocal.local_restriction n)]
 
 /-- Hansen Section 8.13, equation (8.39): the sample pseudo-true value obtained by replacing
 the limiting weight in (8.38) with the sample weight. -/
@@ -2021,6 +2096,71 @@ theorem fixedMatrix_mulVec_tendstoInDistribution_multivariateGaussian
       tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k) hlin hLaw
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
   simpa [Te, Function.comp_def, matrixContinuousLinearMap_apply] using htarget
+
+/-- Fixed affine maps preserve centered multivariate Gaussian distributional limits, shifting
+the mean by the fixed bias and transforming covariance as `M S Mᵀ`. -/
+theorem fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (M S : Matrix k k ℝ) (bias : k → ℝ) (hS : S.PosSemidef)
+    (T : ℕ → Ω → k → ℝ)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution (fun n ω => M *ᵥ T n ω + bias) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian (WithLp.toLp 2 bias) (M * S * Mᵀ)) := by
+  let biasE : EuclideanSpace ℝ k := WithLp.toLp 2 bias
+  let Te : ℕ → Ω → EuclideanSpace ℝ k := fun n ω => WithLp.toLp 2 (T n ω)
+  have hTe : TendstoInDistribution Te atTop (fun z : EuclideanSpace ℝ k => z)
+      (fun _ => μ) (multivariateGaussian 0 S) := by
+    have hmap := hT.continuous_comp (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
+    simpa [Te, Function.comp_def] using hmap
+  have hlin : TendstoInDistribution
+      (fun n => (fun z : EuclideanSpace ℝ k => biasE + matrixContinuousLinearMap M z) ∘ Te n)
+      atTop ((fun z : EuclideanSpace ℝ k => biasE + matrixContinuousLinearMap M z) ∘
+        fun z : EuclideanSpace ℝ k => z)
+      (fun _ => μ) (multivariateGaussian 0 S) := by
+    exact hTe.continuous_comp
+      ((continuous_const : Continuous (fun _ : EuclideanSpace ℝ k => biasE)).add
+        (matrixContinuousLinearMap M).continuous)
+  have hLaw : HasLaw
+      (fun z : EuclideanSpace ℝ k => biasE + matrixContinuousLinearMap M z)
+      (multivariateGaussian biasE (M * S * Mᵀ)) (multivariateGaussian 0 S) := by
+    constructor
+    · exact Measurable.aemeasurable (Continuous.measurable
+        ((continuous_const : Continuous (fun _ : EuclideanSpace ℝ k => biasE)).add
+          (matrixContinuousLinearMap M).continuous))
+    · simpa [biasE, matrixContinuousLinearMap, Matrix.conjTranspose_eq_transpose_of_trivial] using
+        map_affine_multivariateGaussian (μ := (0 : EuclideanSpace ℝ k)) hS biasE M
+  have htargetE : TendstoInDistribution
+      (fun n ω => biasE + matrixContinuousLinearMap M (Te n ω))
+      atTop (fun z : EuclideanSpace ℝ k => z)
+      (fun _ => μ) (multivariateGaussian biasE (M * S * Mᵀ)) := by
+    simpa [Function.comp_def] using
+      tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k) hlin hLaw
+  have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
+  simpa [Te, biasE, Function.comp_def, matrixContinuousLinearMap_apply, add_comm] using htarget
+
+/-- Hansen Section 8.13, equations (8.41)--(8.43), fixed-weight local-alternative MD
+limit. Under the local restriction `root n • (Rᵀ β_n - c) = δ`, the centered estimator has
+the usual MD covariance and a fixed local-alternative mean shift. -/
+theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    (βseq : ℕ → k → ℝ) (δ : q → ℝ) (S : Matrix k k ℝ)
+    (hS : S.PosSemidef)
+    (hlocal : LocalAlternativeRestriction root R c βseq δ)
+    (hT : TendstoInDistribution (fun n ω => root n • (bhat n ω - βseq n))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution (mdLocalAlternativeScaledError root bhat W R c βseq) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian (WithLp.toLp 2 (mdLocalAlternativeBias W R δ))
+        (mdAsymptoticVariance W R S)) := by
+  rw [mdLocalAlternativeScaledError_eq_linearMap_add_bias root bhat W R c βseq δ hlocal]
+  simpa [mdAsymptoticVariance] using
+    fixedMatrix_mulVec_add_const_tendstoInDistribution_multivariateGaussian
+      (M := mdLinearMap W R) (S := S) (bias := mdLocalAlternativeBias W R δ)
+      hS (fun n ω => root n • (bhat n ω - βseq n)) hT
 
 /-- Random matrix-vector Slutsky wrapper for centered multivariate Gaussian limits. If
 `Ahatₙ →ₚ A`, then `Ahatₙ Tₙ` has the fixed linear Gaussian image limit. -/
