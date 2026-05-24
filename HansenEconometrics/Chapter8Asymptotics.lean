@@ -333,6 +333,300 @@ theorem nonlinearFirstOrderLinearMap_self_eq_mdLinearMap
     (W : Matrix k k ℝ) (R : Matrix k q ℝ) :
     nonlinearFirstOrderLinearMap W R R = mdLinearMap W R := rfl
 
+set_option maxHeartbeats 1200000 in
+-- Matrix measurability through two derivative matrices and nested total inverses is expensive here.
+/-- The nonlinear first-order linear map is a.e. strongly measurable whenever the random weight
+and derivative matrices are. -/
+theorem nonlinearFirstOrderLinearMap_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Wseq : Ω → Matrix k k ℝ) (Rright Rleft : Ω → Matrix k q ℝ)
+    (hW : AEStronglyMeasurable Wseq μ)
+    (hRright : AEStronglyMeasurable Rright μ)
+    (hRleft : AEStronglyMeasurable Rleft μ) :
+    AEStronglyMeasurable
+      (fun ω => nonlinearFirstOrderLinearMap (Wseq ω) (Rright ω) (Rleft ω)) μ := by
+  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hW
+  have hRlt : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hRleft
+  have hRtWinv : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRlt.prodMk hWinv)
+  have hGram : AEStronglyMeasurable
+      (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRtWinv.prodMk hRright)
+  have hGramInv : AEStronglyMeasurable
+      (fun ω => ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWinv.prodMk hRright)
+  have hB : AEStronglyMeasurable
+      (fun ω =>
+        (Wseq ω)⁻¹ * Rright ω * ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWinvR.prodMk hGramInv)
+  have hA : AEStronglyMeasurable
+      (fun ω =>
+        (Wseq ω)⁻¹ * Rright ω * ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹ *
+          (Rleft ω)ᵀ) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hB.prodMk hRlt)
+  unfold nonlinearFirstOrderLinearMap
+  exact aestronglyMeasurable_const.sub hA
+
+set_option maxHeartbeats 1200000 in
+-- Matrix measurability through two derivative matrices and nested total inverses is expensive here.
+/-- The nonlinear first-order constraint-correction map is a.e. strongly measurable whenever the
+random weight and derivative matrices are. -/
+theorem nonlinearFirstOrderConstraintCorrection_aestronglyMeasurable
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Wseq : Ω → Matrix k k ℝ) (Rright Rleft : Ω → Matrix k q ℝ)
+    (hW : AEStronglyMeasurable Wseq μ)
+    (hRright : AEStronglyMeasurable Rright μ)
+    (hRleft : AEStronglyMeasurable Rleft μ) :
+    AEStronglyMeasurable
+      (fun ω => nonlinearFirstOrderConstraintCorrection (Wseq ω) (Rright ω) (Rleft ω))
+        μ := by
+  have hWinv : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hW
+  have hRlt : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hRleft
+  have hRtWinv : AEStronglyMeasurable (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRlt.prodMk hWinv)
+  have hGram : AEStronglyMeasurable
+      (fun ω => (Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRtWinv.prodMk hRright)
+  have hGramInv : AEStronglyMeasurable
+      (fun ω => ((Rleft ω)ᵀ * (Wseq ω)⁻¹ * Rright ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hWinvR : AEStronglyMeasurable (fun ω => (Wseq ω)⁻¹ * Rright ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWinv.prodMk hRright)
+  unfold nonlinearFirstOrderConstraintCorrection
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+    (hWinvR.prodMk hGramInv)
+
+set_option maxHeartbeats 1200000 in
+-- Continuity through nested total inverses for the random nonlinear FONC map is expensive here.
+/-- The nonlinear first-order linear map is continuous at nonsingular limiting weights and
+nonsingular limiting mixed restriction Gram matrices. -/
+theorem nonlinearFirstOrderLinearMap_continuousAt_of_nonsingular
+    (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ)
+    (hW : IsUnit W.det) (hG : IsUnit (Rleftᵀ * W⁻¹ * Rright).det) :
+    ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        nonlinearFirstOrderLinearMap p.1.1 p.1.2 p.2)
+      ((W, Rright), Rleft) := by
+  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
+  have hWc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_fst.comp continuousAt_fst
+  have hRrc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.2)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_snd.comp continuousAt_fst
+  have hRlc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_snd
+  have hWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹)
+      ((W, Rright), Rleft) := by
+    have hcontInv : ContinuousAt Inv.inv W := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hW.ne_zero
+    exact hcontInv.comp hWc
+  have hRlt : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ)
+      ((W, Rright), Rleft) := by
+    exact continuous_id.matrix_transpose.continuousAt.comp hRlc
+  have hRtWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ * p.1.1⁻¹)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRlt.prodMk hWinv)
+  have hGram : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.2ᵀ * p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRtWinv.prodMk hRrc)
+  have hGramInv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
+      ((W, Rright), Rleft) := by
+    have hcontInv : ContinuousAt Inv.inv G := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hG.ne_zero
+    simpa [G] using hcontInv.comp hGram
+  have hWinvR : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hWinv.prodMk hRrc)
+  have hB : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.1.1⁻¹ * p.1.2 * (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hWinvR.prodMk hGramInv)
+  have hA : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.1.1⁻¹ * p.1.2 * (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹ * p.2ᵀ)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hB.prodMk hRlt)
+  unfold nonlinearFirstOrderLinearMap
+  exact continuousAt_const.sub hA
+
+set_option maxHeartbeats 1200000 in
+-- Continuity through nested total inverses for the random nonlinear FONC map is expensive here.
+/-- The nonlinear first-order constraint-correction map is continuous at nonsingular limiting
+weights and nonsingular limiting mixed restriction Gram matrices. -/
+theorem nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
+    (W : Matrix k k ℝ) (Rright Rleft : Matrix k q ℝ)
+    (hW : IsUnit W.det) (hG : IsUnit (Rleftᵀ * W⁻¹ * Rright).det) :
+    ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        nonlinearFirstOrderConstraintCorrection p.1.1 p.1.2 p.2)
+      ((W, Rright), Rleft) := by
+  let G : Matrix q q ℝ := Rleftᵀ * W⁻¹ * Rright
+  have hWc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_fst.comp continuousAt_fst
+  have hRrc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.2)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_snd.comp continuousAt_fst
+  have hRlc : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2)
+      ((W, Rright), Rleft) := by
+    exact continuousAt_snd
+  have hWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹)
+      ((W, Rright), Rleft) := by
+    have hcontInv : ContinuousAt Inv.inv W := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hW.ne_zero
+    exact hcontInv.comp hWc
+  have hRlt : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ)
+      ((W, Rright), Rleft) := by
+    exact continuous_id.matrix_transpose.continuousAt.comp hRlc
+  have hRtWinv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.2ᵀ * p.1.1⁻¹)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRlt.prodMk hWinv)
+  have hGram : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        p.2ᵀ * p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRtWinv.prodMk hRrc)
+  have hGramInv : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+        (p.2ᵀ * p.1.1⁻¹ * p.1.2)⁻¹)
+      ((W, Rright), Rleft) := by
+    have hcontInv : ContinuousAt Inv.inv G := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hG.ne_zero
+    simpa [G] using hcontInv.comp hGram
+  have hWinvR : ContinuousAt
+      (fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ => p.1.1⁻¹ * p.1.2)
+      ((W, Rright), Rleft) := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hWinv.prodMk hRrc)
+  unfold nonlinearFirstOrderConstraintCorrection
+  exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+    (hWinvR.prodMk hGramInv)
+
+set_option maxHeartbeats 1200000 in
+-- Product-space CMT for the random nonlinear FONC map carries several finite-dimensional
+-- topologies at once.
+/-- If the random weight and left/right derivative matrices converge in measure, then the
+nonlinear first-order linear map converges in measure to its limiting map. -/
+theorem nonlinearFirstOrderLinearMap_tendstoInMeasure_of_nonsingular
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (What : ℕ → Ω → Matrix k k ℝ) (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rright0 Rleft0 : Matrix k q ℝ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hRright_meas : ∀ n, AEStronglyMeasurable (Rright n) μ)
+    (hRleft_meas : ∀ n, AEStronglyMeasurable (Rleft n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hRright : TendstoInMeasure μ Rright atTop (fun _ => Rright0))
+    (hRleft : TendstoInMeasure μ Rleft atTop (fun _ => Rleft0))
+    (hW : IsUnit W.det) (hG : IsUnit (Rleft0ᵀ * W⁻¹ * Rright0).det) :
+    TendstoInMeasure μ
+      (fun n ω => nonlinearFirstOrderLinearMap (What n ω) (Rright n ω) (Rleft n ω))
+      atTop (fun _ => nonlinearFirstOrderLinearMap W Rright0 Rleft0) := by
+  have hpair : TendstoInMeasure μ (fun n ω => (What n ω, Rright n ω)) atTop
+      (fun _ : Ω => (W, Rright0)) :=
+    tendstoInMeasure_prodMk hWhat hRright
+  have htriple : TendstoInMeasure μ
+      (fun n ω => ((What n ω, Rright n ω), Rleft n ω)) atTop
+      (fun _ : Ω => ((W, Rright0), Rleft0)) :=
+    tendstoInMeasure_prodMk hpair hRleft
+  exact tendstoInMeasure_continuousAt_const_comp
+    (f := fun n ω => ((What n ω, Rright n ω), Rleft n ω))
+    (x := ((W, Rright0), Rleft0))
+    (h := fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+      nonlinearFirstOrderLinearMap p.1.1 p.1.2 p.2)
+    (fun n => ((hWhat_meas n).prodMk (hRright_meas n)).prodMk (hRleft_meas n))
+    (fun n => nonlinearFirstOrderLinearMap_aestronglyMeasurable
+      (What n) (Rright n) (Rleft n) (hWhat_meas n) (hRright_meas n) (hRleft_meas n))
+    htriple
+    (nonlinearFirstOrderLinearMap_continuousAt_of_nonsingular W Rright0 Rleft0 hW hG)
+
+set_option maxHeartbeats 1200000 in
+-- Product-space CMT for the random nonlinear FONC correction carries several finite-dimensional
+-- topologies at once.
+/-- If the random weight and left/right derivative matrices converge in measure, then the
+nonlinear first-order constraint-correction map converges in measure to its limiting map. -/
+theorem nonlinearFirstOrderConstraintCorrection_tendstoInMeasure_of_nonsingular
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (What : ℕ → Ω → Matrix k k ℝ) (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rright0 Rleft0 : Matrix k q ℝ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hRright_meas : ∀ n, AEStronglyMeasurable (Rright n) μ)
+    (hRleft_meas : ∀ n, AEStronglyMeasurable (Rleft n) μ)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hRright : TendstoInMeasure μ Rright atTop (fun _ => Rright0))
+    (hRleft : TendstoInMeasure μ Rleft atTop (fun _ => Rleft0))
+    (hW : IsUnit W.det) (hG : IsUnit (Rleft0ᵀ * W⁻¹ * Rright0).det) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        nonlinearFirstOrderConstraintCorrection (What n ω) (Rright n ω) (Rleft n ω))
+      atTop (fun _ => nonlinearFirstOrderConstraintCorrection W Rright0 Rleft0) := by
+  have hpair : TendstoInMeasure μ (fun n ω => (What n ω, Rright n ω)) atTop
+      (fun _ : Ω => (W, Rright0)) :=
+    tendstoInMeasure_prodMk hWhat hRright
+  have htriple : TendstoInMeasure μ
+      (fun n ω => ((What n ω, Rright n ω), Rleft n ω)) atTop
+      (fun _ : Ω => ((W, Rright0), Rleft0)) :=
+    tendstoInMeasure_prodMk hpair hRleft
+  exact tendstoInMeasure_continuousAt_const_comp
+    (f := fun n ω => ((What n ω, Rright n ω), Rleft n ω))
+    (x := ((W, Rright0), Rleft0))
+    (h := fun p : (Matrix k k ℝ × Matrix k q ℝ) × Matrix k q ℝ =>
+      nonlinearFirstOrderConstraintCorrection p.1.1 p.1.2 p.2)
+    (fun n => ((hWhat_meas n).prodMk (hRright_meas n)).prodMk (hRleft_meas n))
+    (fun n => nonlinearFirstOrderConstraintCorrection_aestronglyMeasurable
+      (What n) (Rright n) (Rleft n) (hWhat_meas n) (hRright_meas n) (hRleft_meas n))
+    htriple
+    (nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
+      W Rright0 Rleft0 hW hG)
+
 /-- Finite-sample algebra behind Hansen's nonlinear constrained-estimator proof.
 
 If the solved first-order condition gives
