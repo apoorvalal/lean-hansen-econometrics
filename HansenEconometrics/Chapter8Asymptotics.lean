@@ -287,7 +287,51 @@ structure NonlinearConstraintAssumption83
   /-- Hansen's rank condition `rank(R) = q`, represented as full column rank. -/
   fullRank : Function.Injective Rderiv.mulVec
 
+/-- Deterministic Taylor remainder for the nonlinear restriction map at the true parameter.
+
+For `Rderiv = ∂r(β)' / ∂β`, this is
+`r(b) - r(β) - Rderiv' (b - β)`. Assumption 8.3 proves it is little-o of
+`b - β`; constrained estimators with `r(b) = 0` turn this into the nonlinear
+constraint gap used in the proof of Theorem 8.10. -/
+noncomputable def nonlinearConstraintTaylorRemainder
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (Rderiv : Matrix k q ℝ) :
+    (k → ℝ) → (q → ℝ) :=
+  fun b => r b - r β - Rderivᵀ *ᵥ (b - β)
+
 namespace NonlinearConstraintAssumption83
+
+omit [DecidableEq k] [DecidableEq q] in
+/-- Assumption 8.3 supplies the deterministic Taylor little-o expansion of the nonlinear
+restriction map at the true parameter. -/
+theorem taylorRemainder_isLittleO
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv) :
+    nonlinearConstraintTaylorRemainder r β Rderiv =o[𝓝 β] (fun b => b - β) := by
+  simpa [nonlinearConstraintTaylorRemainder, h83.derivative_apply] using
+    h83.differentiable_at.isLittleO
+
+omit [DecidableEq k] [DecidableEq q] in
+/-- For any parameter satisfying the nonlinear restriction, the linearized restriction gap is
+the negative Taylor remainder. This is the deterministic form of the mean-value/Taylor step in
+Hansen's proof of Theorem 8.10. -/
+theorem linearizedConstraint_eq_neg_taylorRemainder
+    {r : (k → ℝ) → (q → ℝ)} {β b : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv) (hb : r b = 0) :
+    Rderivᵀ *ᵥ (b - β) = -nonlinearConstraintTaylorRemainder r β Rderiv b := by
+  ext j
+  simp [nonlinearConstraintTaylorRemainder, hb, h83.constraint]
+
+omit [DecidableEq k] [DecidableEq q] in
+/-- Sequence form of `linearizedConstraint_eq_neg_taylorRemainder`, useful when the
+constrained optimizer enforces `r(β̃ₙ) = 0` pointwise. -/
+theorem linearizedConstraint_seq_eq_neg_taylorRemainder
+    {Ω : Type*} {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (btilde : ℕ → Ω → k → ℝ) (hconstraint : ∀ n ω, r (btilde n ω) = 0) :
+    (fun n ω => Rderivᵀ *ᵥ (btilde n ω - β)) =
+      fun n ω => -nonlinearConstraintTaylorRemainder r β Rderiv (btilde n ω) := by
+  funext n ω
+  exact h83.linearizedConstraint_eq_neg_taylorRemainder (hconstraint n ω)
 
 omit [DecidableEq q] in
 /-- Assumption 8.3's rank condition and a positive-definite weight imply a positive-definite
