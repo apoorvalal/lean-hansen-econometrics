@@ -861,6 +861,114 @@ theorem nonlinearFirstOrder_expansionResidual_eq_linearRemainder_add_correction
     nonlinearFirstOrderScaledCorrection]
   abel
 
+/-- If the exact random-FONC residual is the sum of the named linear-map and correction
+remainders, and both are `oₚ(1)`, then the nonlinear expansion residual is `oₚ(1)`. -/
+theorem nonlinearFirstOrder_expansionResidual_tendstoInMeasure_zero_of_remainders
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (β : k → ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (gap : ℕ → Ω → q → ℝ)
+    (hlinear_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledLinearRemainder root What Rright Rleft W Rderiv β bhat)
+      atTop (fun _ => 0))
+    (hcorrection_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledCorrection root What Rright Rleft gap) atTop (fun _ => 0))
+    (hexp :
+      constrainedScaledError root btilde β -
+          (fun n ω => mdLinearMap W Rderiv *ᵥ (root n • (bhat n ω - β))) =
+        nonlinearFirstOrderScaledLinearRemainder root What Rright Rleft W Rderiv β bhat +
+          nonlinearFirstOrderScaledCorrection root What Rright Rleft gap) :
+    TendstoInMeasure μ
+      (constrainedScaledError root btilde β -
+        (fun n ω => mdLinearMap W Rderiv *ᵥ (root n • (bhat n ω - β))))
+      atTop (fun _ => 0) := by
+  have hsum := TendstoInMeasure.add_zero_vector hlinear_rem hcorrection_rem
+  simpa [hexp] using hsum
+
+/-- Random first-order-condition constructor from already isolated random-FONC remainders.
+
+This is the stochastic counterpart of the fixed-weight constructor: the exact FONC algebra is
+combined with the two named `oₚ(1)` residual terms to produce the stable nonlinear linearization
+interface. -/
+theorem constrainedEstimatorLinearization_of_random_firstOrder_remainders
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (β : k → ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (lam gap : ℕ → Ω → q → ℝ)
+    (hscaled_meas : ∀ n, AEMeasurable (constrainedScaledError root btilde β n) μ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rright n ω) *ᵥ lam n ω)
+    (hgap : ∀ n ω, (Rleft n ω)ᵀ *ᵥ (btilde n ω - β) = gap n ω)
+    (hGsample : ∀ n ω, IsUnit ((Rleft n ω)ᵀ * (What n ω)⁻¹ * Rright n ω).det)
+    (hlinear_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledLinearRemainder root What Rright Rleft W Rderiv β bhat)
+      atTop (fun _ => 0))
+    (hcorrection_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledCorrection root What Rright Rleft gap) atTop (fun _ => 0)) :
+    ConstrainedEstimatorLinearization μ root btilde β W Rderiv
+      (fun n ω => root n • (bhat n ω - β)) where
+  scaled_measurable := hscaled_meas
+  expansion := by
+    have hexp := nonlinearFirstOrder_expansionResidual_eq_linearRemainder_add_correction
+      (root := root) (What := What) (Rright := Rright) (Rleft := Rleft)
+      (W := W) (Rderiv := Rderiv) (β := β) (bhat := bhat) (btilde := btilde)
+      (lam := lam) (gap := gap) hstep hgap hGsample
+    exact nonlinearFirstOrder_expansionResidual_tendstoInMeasure_zero_of_remainders
+      root What Rright Rleft W Rderiv β bhat btilde gap
+      hlinear_rem hcorrection_rem hexp
+
+set_option maxHeartbeats 1500000 in
+-- This packages the exact nonlinear FONC bridge with the two random-matrix Slutsky remainders.
+/-- Random nonlinear first-order-condition constructor for `ConstrainedEstimatorLinearization`.
+
+The matrix and derivative sequences converge to the fixed limits in the stable interface; the
+unrestricted scaled error is coordinatewise bounded in probability; and the scaled nonlinear
+constraint gap is negligible. These inputs discharge both random-FONC remainders and the exact
+residual bridge. -/
+theorem constrainedEstimatorLinearization_of_random_firstOrder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (β : k → ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (lam gap : ℕ → Ω → q → ℝ)
+    (hscaled_meas : ∀ n, AEMeasurable (constrainedScaledError root btilde β n) μ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hRright_meas : ∀ n, AEStronglyMeasurable (Rright n) μ)
+    (hRleft_meas : ∀ n, AEStronglyMeasurable (Rleft n) μ)
+    (hGscaled_meas : ∀ n, AEStronglyMeasurable (fun ω => root n • gap n ω) μ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rright n ω) *ᵥ lam n ω)
+    (hgap : ∀ n ω, (Rleft n ω)ᵀ *ᵥ (btilde n ω - β) = gap n ω)
+    (hGsample : ∀ n ω, IsUnit ((Rleft n ω)ᵀ * (What n ω)⁻¹ * Rright n ω).det)
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hRright : TendstoInMeasure μ Rright atTop (fun _ => Rderiv))
+    (hRleft : TendstoInMeasure μ Rleft atTop (fun _ => Rderiv))
+    (hW : IsUnit W.det) (hG : IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det)
+    (hT_bounded : ∀ j, BoundedInProbability μ
+      (fun n ω => (root n • (bhat n ω - β)) j))
+    (hGscaled : TendstoInMeasure μ (fun n ω => root n • gap n ω) atTop (fun _ => 0)) :
+    ConstrainedEstimatorLinearization μ root btilde β W Rderiv
+      (fun n ω => root n • (bhat n ω - β)) := by
+  have hlinear_rem_raw := nonlinearFirstOrderLinearMap_mulVec_sub_md_tendstoInMeasure_zero
+    What Rright Rleft W Rderiv (fun n ω => root n • (bhat n ω - β))
+    hWhat_meas hRright_meas hRleft_meas hWhat hRright hRleft hW hG hT_bounded
+  have hlinear_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledLinearRemainder root What Rright Rleft W Rderiv β bhat)
+      atTop (fun _ => 0) := by
+    simpa [nonlinearFirstOrderScaledLinearRemainder] using hlinear_rem_raw
+  have hcorrection_rem_raw := nonlinearFirstOrderConstraintCorrection_mulVec_tendstoInMeasure_zero
+    What Rright Rleft W Rderiv (fun n ω => root n • gap n ω)
+    hWhat_meas hRright_meas hRleft_meas hGscaled_meas
+    hWhat hRright hRleft hW hG hGscaled
+  have hcorrection_rem : TendstoInMeasure μ
+      (nonlinearFirstOrderScaledCorrection root What Rright Rleft gap) atTop (fun _ => 0) := by
+    simpa [nonlinearFirstOrderScaledCorrection] using hcorrection_rem_raw
+  exact constrainedEstimatorLinearization_of_random_firstOrder_remainders
+    root What Rright Rleft W Rderiv β bhat btilde lam gap hscaled_meas
+    hstep hgap hGsample hlinear_rem hcorrection_rem
+
 /-- A fixed-weight, fixed-derivative first-order-condition constructor for the stable nonlinear
 constrained-estimator linearization interface. The deterministic FONC algebra supplies the exact
 scaled-error decomposition; the only stochastic input left is that the scaled nonlinear constraint

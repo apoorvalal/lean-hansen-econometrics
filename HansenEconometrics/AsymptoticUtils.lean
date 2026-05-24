@@ -1335,6 +1335,18 @@ theorem TendstoInMeasure.add_zero_real
     have hlt : dist (X n ω + Y n ω) 0 < ε := by linarith
     exact (not_le.mpr hlt) hω
 
+/-- Sum of two finite-dimensional vector-valued `oₚ(1)` sequences is `oₚ(1)`. -/
+theorem TendstoInMeasure.add_zero_vector
+    {k : Type*} [Fintype k] {X Y : ℕ → α → k → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => 0)) :
+    TendstoInMeasure μ (fun n ω => X n ω + Y n ω) atTop (fun _ => 0) := by
+  refine tendstoInMeasure_pi (fun i => ?_)
+  have hXi := TendstoInMeasure.pi_apply hX i
+  have hYi := TendstoInMeasure.pi_apply hY i
+  have hsum := TendstoInMeasure.add_zero_real hXi hYi
+  simpa [Pi.add_apply] using hsum
+
 /-- Product of two real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This direct version avoids measurability hypotheses, using the containment
