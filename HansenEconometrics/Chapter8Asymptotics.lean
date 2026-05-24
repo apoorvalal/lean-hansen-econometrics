@@ -990,6 +990,33 @@ noncomputable def nonlinearConstraintTaylorRemainder
     (k → ℝ) → (q → ℝ) :=
   fun b => r b - r β - Rderivᵀ *ᵥ (b - β)
 
+omit [Fintype q] [DecidableEq k] [DecidableEq q] in
+/-- Hansen equations (8.52)--(8.53), deterministic stacked form. If the mean-value
+expansion uses derivative matrix `Rstar` and both endpoints satisfy the nonlinear restriction,
+then the linearized restriction at `Rstar` is zero. -/
+theorem nonlinearMeanValueExpansion_linearizedConstraint_eq_zero
+    (r : (k → ℝ) → (q → ℝ)) (β btilde : k → ℝ) (Rstar : Matrix k q ℝ)
+    (hbeta : r β = 0) (hbtilde : r btilde = 0)
+    (hmvt : r btilde = r β + Rstarᵀ *ᵥ (btilde - β)) :
+    Rstarᵀ *ᵥ (btilde - β) = 0 := by
+  have hzero : (0 : q → ℝ) = Rstarᵀ *ᵥ (btilde - β) := by
+    simpa [hbeta, hbtilde] using hmvt
+  exact hzero.symm
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] in
+/-- Sequence form of the stacked mean-value bridge from Hansen equations (8.52)--(8.53). -/
+theorem nonlinearMeanValueExpansion_seq_linearizedConstraint_eq_zero
+    {Ω : Type*} (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ)
+    (btilde : ℕ → Ω → k → ℝ) (Rstar : ℕ → Ω → Matrix k q ℝ)
+    (hbeta : r β = 0) (hconstraint : ∀ n ω, r (btilde n ω) = 0)
+    (hmvt : ∀ n ω,
+      r (btilde n ω) = r β + (Rstar n ω)ᵀ *ᵥ (btilde n ω - β)) :
+    (fun n ω => (Rstar n ω)ᵀ *ᵥ (btilde n ω - β)) =
+      fun _ _ => (0 : q → ℝ) := by
+  funext n ω
+  exact nonlinearMeanValueExpansion_linearizedConstraint_eq_zero
+    r β (btilde n ω) (Rstar n ω) hbeta (hconstraint n ω) (hmvt n ω)
+
 /-- Linear map from the unrestricted estimator error to the nonlinear constrained-estimator
 error in the finite-sample first-order-condition algebra.
 
@@ -1513,6 +1540,62 @@ theorem nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
   exact nonlinearFirstOrder_scaledError_eq_linearMap_add_gap
     (root n) (What n ω) (Rright n ω) (Rleft n ω) β (bhat n ω) (btilde n ω)
     (lam n ω) (gap n ω) (hstep n ω) (hgap n ω) (hG n ω)
+
+/-- Hansen's solved multiplier formula in the proof of Theorem 8.10. This is the line
+between the linearized constraint (8.53) and the substitution producing (8.54). -/
+theorem nonlinearFirstOrder_lagrangeMultiplier_eq_hansen
+    (W : Matrix k k ℝ) (Rhat Rstar : Matrix k q ℝ)
+    (β bhat btilde : k → ℝ) (lam : q → ℝ)
+    (hstep : bhat - btilde = (W⁻¹ * Rhat) *ᵥ lam)
+    (hconstraint : Rstarᵀ *ᵥ (btilde - β) = 0)
+    (hG : IsUnit (Rstarᵀ * W⁻¹ * Rhat).det) :
+    lam = (Rstarᵀ * W⁻¹ * Rhat)⁻¹ *ᵥ (Rstarᵀ *ᵥ (bhat - β)) := by
+  let G : Matrix q q ℝ := Rstarᵀ * W⁻¹ * Rhat
+  have hdiff : bhat - btilde = (bhat - β) - (btilde - β) := by
+    ext i
+    simp
+  have hGlam : G *ᵥ lam = Rstarᵀ *ᵥ (bhat - β) := by
+    calc
+      G *ᵥ lam = Rstarᵀ *ᵥ ((W⁻¹ * Rhat) *ᵥ lam) := by
+        dsimp [G]
+        rw [Matrix.mulVec_mulVec]
+        simp [Matrix.mul_assoc]
+      _ = Rstarᵀ *ᵥ (bhat - btilde) := by
+        rw [← hstep]
+      _ = Rstarᵀ *ᵥ ((bhat - β) - (btilde - β)) := by
+        rw [hdiff]
+      _ = Rstarᵀ *ᵥ (bhat - β) - Rstarᵀ *ᵥ (btilde - β) := by
+        rw [Matrix.mulVec_sub]
+      _ = Rstarᵀ *ᵥ (bhat - β) := by
+        rw [hconstraint]
+        simp
+  calc
+    lam = (1 : Matrix q q ℝ) *ᵥ lam := by
+      simp
+    _ = (G⁻¹ * G) *ᵥ lam := by
+      rw [Matrix.nonsing_inv_mul G (by simpa [G] using hG)]
+    _ = G⁻¹ *ᵥ (G *ᵥ lam) := by
+      rw [Matrix.mulVec_mulVec]
+    _ = G⁻¹ *ᵥ (Rstarᵀ *ᵥ (bhat - β)) := by
+      rw [hGlam]
+
+/-- Sequence form of Hansen's solved multiplier formula in the proof of Theorem 8.10. -/
+theorem nonlinearFirstOrder_lagrangeMultiplier_seq_eq_hansen
+    {Ω : Type*} (What : ℕ → Ω → Matrix k k ℝ)
+    (Rhat Rstar : ℕ → Ω → Matrix k q ℝ)
+    (β : k → ℝ) (bhat btilde : ℕ → Ω → k → ℝ) (lam : ℕ → Ω → q → ℝ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rhat n ω) *ᵥ lam n ω)
+    (hconstraint : ∀ n ω, (Rstar n ω)ᵀ *ᵥ (btilde n ω - β) = 0)
+    (hG : ∀ n ω, IsUnit ((Rstar n ω)ᵀ * (What n ω)⁻¹ * Rhat n ω).det) :
+    lam =
+      fun n ω =>
+        ((Rstar n ω)ᵀ * (What n ω)⁻¹ * Rhat n ω)⁻¹ *ᵥ
+          ((Rstar n ω)ᵀ *ᵥ (bhat n ω - β)) := by
+  funext n ω
+  exact nonlinearFirstOrder_lagrangeMultiplier_eq_hansen
+    (What n ω) (Rhat n ω) (Rstar n ω) β (bhat n ω) (btilde n ω) (lam n ω)
+    (hstep n ω) (hconstraint n ω) (hG n ω)
 
 /-- Hansen equation (8.54), pointwise deterministic form. When the linearized constraint is
 exactly zero, the nonlinear first-order algebra has no constraint-gap correction term. -/
