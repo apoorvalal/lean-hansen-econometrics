@@ -1502,6 +1502,24 @@ theorem randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
   simpa [Function.comp_def] using htarget
 
+/-- Generic Gaussian limit theorem for the stable asymptotically linear estimator interface. -/
+theorem asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ) (A : Matrix k k ℝ) (S : Matrix k k ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hS : S.PosSemidef)
+    (hlinear : AsymptoticallyLinearEstimator μ Y A T)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution Y atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 (A * S * Aᵀ)) := by
+  have hA := fixedMatrix_mulVec_tendstoInDistribution_multivariateGaussian
+    (M := A) (S := S) hS T hT
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun n ω => A *ᵥ T n ω) (Y := Y)
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp) hA hlinear.expansion
+    hlinear.scaled_measurable
+
 /-- Hansen Theorem 8.7 current-assumption MD asymptotic-normality/Slutsky wrapper. -/
 theorem mdBeta_tendstoInDistribution_gaussian
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}
@@ -1540,7 +1558,9 @@ theorem mdBeta_tendstoInDistribution_gaussian_of_measurable
     (mdScaledError_aemeasurable root bhat What R c β hbhat_meas hWhat_meas)
 
 /-- Hansen Theorem 8.7 with the fixed-linear Gaussian limit and scaled-error measurability
-discharged. The remaining statistical input is the MD linearization remainder. -/
+discharged from explicit inputs. The stable-interface version
+`mdBeta_tendstoInDistribution_multivariateGaussian_of_linearization` packages the same
+linearization capability as `AsymptoticallyLinearEstimator`. -/
 theorem mdBeta_tendstoInDistribution_multivariateGaussian
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
@@ -1563,6 +1583,24 @@ theorem mdBeta_tendstoInDistribution_multivariateGaussian
   exact mdBeta_tendstoInDistribution_gaussian_of_measurable
     root bhat What W R c β T (fun z : EuclideanSpace ℝ k => z.ofLp)
     hbhat_meas hWhat_meas (by simpa [mdAsymptoticVariance] using hlin) hrem
+
+/-- Hansen Theorem 8.7 from the stable asymptotically linear estimator interface. -/
+theorem mdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (S : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (hS : S.PosSemidef)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (mdScaledError root bhat What R c β) (mdLinearMap W R) T)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution (mdScaledError root bhat What R c β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance W R S)) := by
+  have hraw := asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    (mdScaledError root bhat What R c β) (mdLinearMap W R) S T hS hlinear hT
+  simpa [mdAsymptoticVariance] using hraw
 
 /-- Hansen Theorem 8.7 in the fixed-weight MD case: the exact fixed-weight linearization
 discharges the remainder side condition. -/
@@ -1669,7 +1707,9 @@ theorem clsBeta_tendstoInDistribution_gaussian_of_measurable
     (clsMDScaledError_aemeasurable root bhat Qhat R c β hbhat_meas hQhat_meas)
 
 /-- Hansen Theorem 8.8 with the fixed-linear Gaussian limit and scaled-error measurability
-discharged. The remaining statistical input is the CLS-as-MD linearization remainder. -/
+discharged from explicit inputs. The stable-interface version
+`clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization` packages the same
+CLS-as-MD linearization capability as `AsymptoticallyLinearEstimator`. -/
 theorem clsBeta_tendstoInDistribution_multivariateGaussian
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (Qhat : ℕ → Ω → Matrix k k ℝ)
@@ -1693,6 +1733,24 @@ theorem clsBeta_tendstoInDistribution_multivariateGaussian
     root bhat Qhat Q R c β T (fun z : EuclideanSpace ℝ k => z.ofLp)
     hbhat_meas hQhat_meas (by simpa [clsAsymptoticVariance, mdAsymptoticVariance] using hlin)
     hrem
+
+/-- Hansen Theorem 8.8 from the stable asymptotically linear estimator interface. -/
+theorem clsBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ) (Qhat : ℕ → Ω → Matrix k k ℝ)
+    (Q : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (S : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ)
+    (hS : S.PosSemidef)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (clsMDScaledError root bhat Qhat R c β) (mdLinearMap Q R) T)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 S)) :
+    TendstoInDistribution (clsMDScaledError root bhat Qhat R c β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (clsAsymptoticVariance Q R S)) := by
+  have hraw := asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    (clsMDScaledError root bhat Qhat R c β) (mdLinearMap Q R) S T hS hlinear hT
+  simpa [clsAsymptoticVariance, mdAsymptoticVariance] using hraw
 
 /-- Hansen Theorem 8.8 random-weight CLS-as-MD case. Convergence of the sample Gram weight
 discharges the CLS-as-MD linearization through the random-weight MD theorem. -/
@@ -2051,7 +2109,9 @@ theorem mdAsymptoticVariance_efficientWeight_eq_emd
       abel
 
 /-- Hansen Theorem 8.9 efficient-MD distribution with the final covariance written as
-`emdAsymptoticVariance`. The remaining statistical input is the EMD linearization remainder. -/
+`emdAsymptoticVariance`, from explicit linearization inputs. The stable-interface version
+`emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization` packages the same
+EMD linearization capability as `AsymptoticallyLinearEstimator`. -/
 theorem emdBeta_tendstoInDistribution_multivariateGaussian
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
@@ -2071,6 +2131,29 @@ theorem emdBeta_tendstoInDistribution_multivariateGaussian
   have hraw := emdBeta_tendstoInDistribution_multivariateGaussian_mdCov
     root bhat R c V β V T hVpsd hbhat_meas hT hrem
   simpa [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit] using hraw
+
+/-- Hansen Theorem 8.9 from the stable asymptotically linear estimator interface. -/
+theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hVpsd : V.PosSemidef) (hVunit : IsUnit V.det) (hVsym : Vᵀ = V)
+    (hGunit : IsUnit (Rᵀ * V * R).det)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R) T)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 V)) :
+    TendstoInDistribution (emdScaledError root bhat R c V β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (emdAsymptoticVariance R V)) := by
+  have hraw := asymptoticallyLinearEstimator_tendstoInDistribution_multivariateGaussian
+    (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R) V T hVpsd hlinear hT
+  have hcov : TendstoInDistribution (emdScaledError root bhat R c V β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (mdAsymptoticVariance V⁻¹ R V)) := by
+    simpa [mdAsymptoticVariance] using hraw
+  simpa [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit] using hcov
 
 /-- Hansen Theorem 8.9 efficient-MD distribution with the fixed efficient weight and no separate
 remainder input. -/

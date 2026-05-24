@@ -38,6 +38,25 @@ namespace HansenEconometrics
 
 variable {α E F : Type*} {m : MeasurableSpace α} {μ : Measure α}
 
+section StableInterfaces
+
+open scoped Matrix
+
+/-- Stable interface for an estimator or statistic with an asymptotic linear representation.
+
+The statistic `Y` is the scaled estimator error, `A` is the fixed linear map, and `T` is the
+driving score/statistic sequence. This records the reusable capability that downstream
+distributional theorems need, while constructors remain responsible for proving the expansion from
+finite-sample algebra, first-order conditions, or model assumptions. -/
+structure AsymptoticallyLinearEstimator
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (A : Matrix k k ℝ) (T : ℕ → Ω → k → ℝ) where
+  scaled_measurable : ∀ n, AEMeasurable (Y n) μ
+  expansion : TendstoInMeasure μ (Y - fun n ω => A *ᵥ T n ω) atTop (fun _ => 0)
+
+end StableInterfaces
+
 section CMT
 
 /-- **Continuous mapping theorem for convergence in probability** along `atTop`.
