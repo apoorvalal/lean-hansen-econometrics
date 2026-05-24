@@ -627,6 +627,23 @@ theorem nonlinearFirstOrderConstraintCorrection_tendstoInMeasure_of_nonsingular
     (nonlinearFirstOrderConstraintCorrection_continuousAt_of_nonsingular
       W Rright0 Rleft0 hW hG)
 
+/-- Linear-map part of the random nonlinear first-order-condition expansion residual. -/
+noncomputable def nonlinearFirstOrderScaledLinearRemainder
+    {Ω : Type*} (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ) (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ)
+    (β : k → ℝ) (bhat : ℕ → Ω → k → ℝ) : ℕ → Ω → k → ℝ :=
+  fun n ω => nonlinearFirstOrderLinearMap (What n ω) (Rright n ω) (Rleft n ω) *ᵥ
+      (root n • (bhat n ω - β)) - mdLinearMap W Rderiv *ᵥ
+        (root n • (bhat n ω - β))
+
+/-- Constraint-correction part of the random nonlinear first-order-condition expansion residual. -/
+noncomputable def nonlinearFirstOrderScaledCorrection
+    {Ω : Type*} (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ) (gap : ℕ → Ω → q → ℝ) :
+    ℕ → Ω → k → ℝ :=
+  fun n ω => nonlinearFirstOrderConstraintCorrection (What n ω) (Rright n ω) (Rleft n ω) *ᵥ
+    (root n • gap n ω)
+
 set_option maxHeartbeats 1200000 in
 -- Finite-coordinate stochastic-order glue over matrix entries is expensive here.
 omit [DecidableEq k] [DecidableEq q] in
@@ -817,6 +834,32 @@ theorem nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
   exact nonlinearFirstOrder_scaledError_eq_linearMap_add_gap
     (root n) (What n ω) (Rright n ω) (Rleft n ω) β (bhat n ω) (btilde n ω)
     (lam n ω) (gap n ω) (hstep n ω) (hgap n ω) (hG n ω)
+
+set_option maxHeartbeats 1200000 in
+-- Exact pointwise FONC expansion through named random remainder terms is algebraically large.
+/-- The exact random-FONC expansion residual is the sum of the random linear-map remainder and
+the scaled constraint-correction term. -/
+theorem nonlinearFirstOrder_expansionResidual_eq_linearRemainder_add_correction
+    {Ω : Type*} (root : ℕ → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (Rright Rleft : ℕ → Ω → Matrix k q ℝ)
+    (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (β : k → ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (lam gap : ℕ → Ω → q → ℝ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rright n ω) *ᵥ lam n ω)
+    (hgap : ∀ n ω, (Rleft n ω)ᵀ *ᵥ (btilde n ω - β) = gap n ω)
+    (hGsample : ∀ n ω, IsUnit ((Rleft n ω)ᵀ * (What n ω)⁻¹ * Rright n ω).det) :
+    constrainedScaledError root btilde β -
+        (fun n ω => mdLinearMap W Rderiv *ᵥ (root n • (bhat n ω - β))) =
+      nonlinearFirstOrderScaledLinearRemainder root What Rright Rleft W Rderiv β bhat +
+        nonlinearFirstOrderScaledCorrection root What Rright Rleft gap := by
+  have hexact := nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
+    (root := root) (What := What) (Rright := Rright) (Rleft := Rleft)
+    (β := β) (bhat := bhat) (btilde := btilde) (lam := lam) (gap := gap)
+    hstep hgap hGsample
+  funext n ω i
+  simp [Pi.sub_apply, Pi.add_apply, hexact, nonlinearFirstOrderScaledLinearRemainder,
+    nonlinearFirstOrderScaledCorrection]
+  abel
 
 /-- A fixed-weight, fixed-derivative first-order-condition constructor for the stable nonlinear
 constrained-estimator linearization interface. The deterministic FONC algebra supplies the exact
