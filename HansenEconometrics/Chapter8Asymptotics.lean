@@ -560,6 +560,33 @@ noncomputable def emdAsymptoticVariance
     (R : Matrix k q ℝ) (V : Matrix k k ℝ) : Matrix k k ℝ :=
   V - V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V
 
+/-- Hansen equation (8.35): efficient-MD plug-in covariance estimator from an unrestricted
+covariance estimator. -/
+noncomputable def emdCovarianceEstimator
+    (R : Matrix k q ℝ) (Vhat : Matrix k k ℝ) : Matrix k k ℝ :=
+  emdAsymptoticVariance R Vhat
+
+omit [DecidableEq k] in
+/-- Hansen equation (8.35) written in expanded matrix form. -/
+theorem emdCovarianceEstimator_eq_hansen
+    (R : Matrix k q ℝ) (Vhat : Matrix k k ℝ) :
+    emdCovarianceEstimator R Vhat =
+      Vhat - Vhat * R * (Rᵀ * Vhat * R)⁻¹ * Rᵀ * Vhat :=
+  rfl
+
+/-- Hansen equation (8.36) specialized to the efficient-MD plug-in covariance estimator. -/
+noncomputable def emdStdError
+    (root : ℝ) (h : k → ℝ) (R : Matrix k q ℝ) (Vhat : Matrix k k ℝ) : ℝ :=
+  covarianceStdError root h (emdCovarianceEstimator R Vhat)
+
+omit [DecidableEq k] in
+/-- Expanded form of the efficient-MD standard error for `h'β`. -/
+theorem emdStdError_eq_hansen
+    (root : ℝ) (h : k → ℝ) (R : Matrix k q ℝ) (Vhat : Matrix k k ℝ) :
+    emdStdError root h R Vhat =
+      Real.sqrt (h ⬝ᵥ (emdCovarianceEstimator R Vhat) *ᵥ h) / root :=
+  rfl
+
 set_option maxHeartbeats 1200000 in
 -- Matrix measurability through the EMD covariance plug-in inverse is expensive here.
 omit [DecidableEq k] in
@@ -666,6 +693,22 @@ theorem emdCovarianceEstimatorConsistent_of_consistency
     emdAsymptoticVariance_aestronglyMeasurable R (Vhat n)
       (hVhat.covariance_measurable n)
   consistent := emdAsymptoticVariance_tendstoInMeasure_of_consistency R hVhat hG
+
+omit [DecidableEq k] in
+/-- A consistent unrestricted covariance estimator constructs the feasible standard-error scale
+interface for efficient MD. -/
+theorem emdFeasibleStandardErrorConsistent_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : k → ℝ) (R : Matrix k q ℝ)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    FeasibleStandardErrorConsistent μ
+      (fun n ω => covarianceStdErrorScale h (emdCovarianceEstimator R (Vhat n ω)))
+      (covarianceStdErrorScale h (emdAsymptoticVariance R V)) := by
+  simpa [emdCovarianceEstimator] using
+    feasibleStandardErrorConsistent_of_covarianceConsistency h
+      (emdCovarianceEstimatorConsistent_of_consistency R hVhat hG)
 
 /-- Efficient MD estimator with the efficient weight. -/
 noncomputable def emdBetaStar
