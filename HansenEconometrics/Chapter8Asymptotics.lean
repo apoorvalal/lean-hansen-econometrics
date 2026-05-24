@@ -2219,10 +2219,103 @@ theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussia
       (M := mdLinearMap W R) (S := S) (bias := mdLocalAlternativeBias W R δ)
       hS (fun n ω => root n • (bhat n ω - βseq n)) hT
 
+/-- Stable interface for the interior case of scalar inequality constraints.
+
+It records that the scaled constrained statistic is asymptotically equivalent to the
+scaled unconstrained statistic, leaving the unconstrained distributional limit as a separate
+input to the public theorem. -/
+structure ScalarAsymptoticallyInactiveConstraint
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (unrestricted constrained : ℕ → Ω → ℝ) where
+  constrained_measurable : ∀ n, AEMeasurable (constrained n) μ
+  inactive_remainder :
+    TendstoInMeasure μ (constrained - unrestricted) atTop (fun _ => 0)
+
+/-- If a scalar inequality constraint is asymptotically inactive, the constrained statistic has
+the same distributional limit as the unrestricted statistic. -/
+theorem scalarAsymptoticallyInactiveConstraint_tendstoInDistribution
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (unrestricted constrained : ℕ → Ω → ℝ) (Z : Ω' → ℝ)
+    (hinactive : ScalarAsymptoticallyInactiveConstraint μ unrestricted constrained)
+    (hT : TendstoInDistribution unrestricted atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution constrained atTop Z (fun _ => μ) ν :=
+  tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := unrestricted) (Y := constrained) (Z := Z) hT hinactive.inactive_remainder
+    hinactive.constrained_measurable
+
+/-- Constructor for the scalar inactive-constraint interface from eventual almost-sure equality
+of the scaled constrained and unrestricted statistics. -/
+theorem scalarAsymptoticallyInactiveConstraint_of_eventuallyEq
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (unrestricted constrained : ℕ → Ω → ℝ)
+    (hmeas : ∀ n, AEMeasurable (constrained n) μ)
+    (heq : ∀ᶠ n in atTop, constrained n =ᵐ[μ] unrestricted n) :
+    ScalarAsymptoticallyInactiveConstraint μ unrestricted constrained where
+  constrained_measurable := hmeas
+  inactive_remainder := by
+    have hzero :
+        TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : ℝ)) atTop
+          (fun _ => 0) := by
+      exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+        (ae_of_all _ (fun _ => tendsto_const_nhds))
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hzero
+    filter_upwards [heq] with n hn
+    filter_upwards [hn] with ω hω
+    change (0 : ℝ) = constrained n ω - unrestricted n ω
+    rw [hω]
+    ring
+
 /-- Scalar estimator constrained by the one-dimensional nonnegativity restriction. -/
 noncomputable def nonnegativeConstrainedScalarEstimator
     {Ω : Type*} (bhat : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
   fun n ω => max (bhat n ω) 0
+
+/-- Scaled unrestricted scalar estimation error around a fixed parameter value. -/
+noncomputable def scalarScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ) : ℕ → Ω → ℝ :=
+  fun n ω => root n * (bhat n ω - β)
+
+/-- Scaled estimation error for the scalar nonnegativity-constrained estimator. -/
+noncomputable def nonnegativeConstrainedScalarScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ) : ℕ → Ω → ℝ :=
+  fun n ω => root n * (nonnegativeConstrainedScalarEstimator bhat n ω - β)
+
+/-- Interior scalar nonnegativity constraints construct the inactive-constraint interface once the
+unconstrained estimator is eventually nonnegative almost surely. -/
+theorem nonnegativeInterior_asymptoticallyInactiveConstraint
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ)
+    (hmeas : ∀ n, AEMeasurable (nonnegativeConstrainedScalarScaledError root bhat β n) μ)
+    (hinterior : ∀ᶠ n in atTop, ∀ᵐ ω ∂μ, 0 ≤ bhat n ω) :
+    ScalarAsymptoticallyInactiveConstraint μ
+      (scalarScaledError root bhat β)
+      (nonnegativeConstrainedScalarScaledError root bhat β) := by
+  refine scalarAsymptoticallyInactiveConstraint_of_eventuallyEq
+    (scalarScaledError root bhat β)
+    (nonnegativeConstrainedScalarScaledError root bhat β) hmeas ?_
+  filter_upwards [hinterior] with n hn
+  filter_upwards [hn] with ω hω
+  simp [scalarScaledError, nonnegativeConstrainedScalarScaledError,
+    nonnegativeConstrainedScalarEstimator, max_eq_left hω]
+
+/-- Hansen Section 8.15 interior case for a scalar nonnegativity restriction: if the
+constraint is asymptotically inactive, the constrained estimator has the same limit as the
+unrestricted estimator. -/
+theorem nonnegativeInterior_tendstoInDistribution
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (β : ℝ) (Z : Ω' → ℝ)
+    (hmeas : ∀ n, AEMeasurable (nonnegativeConstrainedScalarScaledError root bhat β n) μ)
+    (hinterior : ∀ᶠ n in atTop, ∀ᵐ ω ∂μ, 0 ≤ bhat n ω)
+    (hT : TendstoInDistribution (scalarScaledError root bhat β) atTop Z
+      (fun _ => μ) ν) :
+    TendstoInDistribution (nonnegativeConstrainedScalarScaledError root bhat β) atTop Z
+      (fun _ => μ) ν :=
+  scalarAsymptoticallyInactiveConstraint_tendstoInDistribution
+    (scalarScaledError root bhat β)
+    (nonnegativeConstrainedScalarScaledError root bhat β) Z
+    (nonnegativeInterior_asymptoticallyInactiveConstraint root bhat β hmeas hinterior) hT
 
 /-- Boundary scaled statistic for the scalar nonnegativity-constrained estimator. -/
 noncomputable def nonnegativeBoundaryScaledError
