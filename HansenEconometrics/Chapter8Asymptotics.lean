@@ -1057,6 +1057,27 @@ theorem clsBeta_olsBetaStar_sampleGram_tendstoInDistribution_multivariateGaussia
     (restrictionGram_det_isUnit_of_weight_posDef (popGram μ X) R hQ hR)
     hrestrict
 
+/-- Hansen Theorem 8.8 specialized to totalized OLS and the Chapter 7 sample-Gram
+weight process, deriving the positive-definite population Gram condition from the
+Chapter 7 moment layer and assuming only full-column-rank restrictions. -/
+theorem clsBeta_olsBetaStar_sampleGram_tendstoInDistribution_multivariateGaussian_of_fullRank
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (R : Matrix k q ℝ) (c : q → ℝ)
+    (hR : Function.Injective R.mulVec)
+    (hrestrict : Rᵀ *ᵥ β = c) :
+    TendstoInDistribution
+      (clsMDScaledError (fun n => Real.sqrt (n : ℝ))
+        (fun n ω => olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω))
+        (fun n ω => sampleGram (stackRegressors X n ω)) R c β)
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (clsAsymptoticVariance (popGram μ X) R (heteroAsymCov μ X e))) := by
+  exact clsBeta_olsBetaStar_sampleGram_tendstoInDistribution_multivariateGaussian_of_posDef
+    h β hmodel R c (popGram_posDef h.toSampleMomentAssumption71) hR hrestrict
+
 /-- Hansen Theorem 8.9 efficient-MD distribution wrapper. -/
 theorem emdBeta_tendstoInDistribution_gaussian
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω'] {μ : Measure Ω} {ν : Measure Ω'}

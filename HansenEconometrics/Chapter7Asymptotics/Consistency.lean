@@ -174,6 +174,93 @@ theorem popGram_isSymm
           exact (integral_apply_apply
             (μ := μ) (f := fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) hX i j).symm
 
+omit [DecidableEq k] in
+/-- The quadratic form of the population Gram matrix is the expectation of the
+squared projection of `X`. -/
+theorem popGram_quadratic_eq_integral_sq
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ))
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ)
+    (a : k → ℝ) :
+    a ⬝ᵥ (popGram μ X *ᵥ a) = ∫ ω, (X 0 ω ⬝ᵥ a) ^ 2 ∂μ := by
+  calc
+    a ⬝ᵥ (popGram μ X *ᵥ a)
+        = ∑ i, ∑ j, a i * ((popGram μ X) i j * a j) := by
+          simp [dotProduct, Matrix.mulVec, Finset.mul_sum]
+    _ = ∑ i, ∑ j,
+          a i * ((∫ ω, (Matrix.vecMulVec (X 0 ω) (X 0 ω)) i j ∂μ) * a j) := by
+          congr
+          ext i
+          congr
+          ext j
+          have hentry := integral_apply_apply (μ := μ)
+            (f := fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) hX i j
+          simpa [popGram] using congrArg (fun z => a i * (z * a j)) hentry
+    _ = ∑ i, ∑ j,
+          ∫ ω, a i * ((Matrix.vecMulVec (X 0 ω) (X 0 ω)) i j * a j) ∂μ := by
+          congr
+          ext i
+          congr
+          ext j
+          rw [integral_const_mul]
+          rw [integral_mul_const]
+    _ = ∫ ω, ∑ i, ∑ j,
+          a i * ((Matrix.vecMulVec (X 0 ω) (X 0 ω)) i j * a j) ∂μ := by
+          rw [integral_finset_sum]
+          · congr
+            ext i
+            rw [integral_finset_sum]
+            intro j hj
+            simpa [mul_assoc] using
+              ((Integrable.eval (Integrable.eval hX i) j).const_mul (a i)).mul_const (a j)
+          · intro i hi
+            exact integrable_finset_sum _ fun j hj => by
+              simpa [mul_assoc] using
+                ((Integrable.eval (Integrable.eval hX i) j).const_mul (a i)).mul_const (a j)
+    _ = ∫ ω, (X 0 ω ⬝ᵥ a) ^ 2 ∂μ := by
+          apply integral_congr_ae
+          filter_upwards [] with ω
+          have halg :
+              a ⬝ᵥ (Matrix.vecMulVec (X 0 ω) (X 0 ω) *ᵥ a) =
+                (X 0 ω ⬝ᵥ a) ^ 2 := by
+            simp only [dotProduct, mulVec, vecMulVec_apply, Finset.mul_sum, pow_two,
+              Finset.sum_mul]
+            congr
+            ext i
+            congr
+            ext j
+            ring
+          simpa [dotProduct, Matrix.mulVec, Finset.mul_sum] using halg
+
+omit [DecidableEq k] in
+/-- The population Gram matrix is positive semidefinite whenever the outer product is
+integrable. -/
+theorem popGram_posSemidef
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ))
+    (hX : Integrable (fun ω => Matrix.vecMulVec (X 0 ω) (X 0 ω)) μ) :
+    (popGram μ X).PosSemidef := by
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ ?_
+  · simpa [Matrix.IsHermitian] using (popGram_isSymm μ X hX).eq
+  · intro a
+    change 0 ≤ a ⬝ᵥ (popGram μ X *ᵥ a)
+    rw [popGram_quadratic_eq_integral_sq μ X hX a]
+    exact integral_nonneg (fun ω => sq_nonneg (X 0 ω ⬝ᵥ a))
+
+/-- A positive-semidefinite real matrix with unit determinant is positive definite. -/
+theorem posSemidef_det_isUnit_posDef
+    (M : Matrix k k ℝ) (hpsd : M.PosSemidef) (hdet : IsUnit M.det) : M.PosDef := by
+  exact hpsd.posDef_iff_isUnit.mpr ((Matrix.isUnit_iff_isUnit_det M).mpr hdet)
+
+/-- Under Hansen's Chapter 7.1 moment layer, the nonsingular population Gram matrix is
+positive definite. -/
+theorem popGram_posDef
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ X e) :
+    (popGram μ X).PosDef :=
+  posSemidef_det_isUnit_posDef (popGram μ X)
+    (popGram_posSemidef μ X h.int_outer)
+    (by simpa [popGram] using h.Q_nonsing)
+
 /-- The totalized inverse of the population Gram matrix is symmetric. -/
 theorem popGram_inv_isSymm
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ))
