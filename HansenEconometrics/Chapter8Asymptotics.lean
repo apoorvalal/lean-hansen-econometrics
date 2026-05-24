@@ -2162,6 +2162,49 @@ theorem mdLocalAlternative_fixedWeight_tendstoInDistribution_multivariateGaussia
       (M := mdLinearMap W R) (S := S) (bias := mdLocalAlternativeBias W R δ)
       hS (fun n ω => root n • (bhat n ω - βseq n)) hT
 
+/-- Scalar estimator constrained by the one-dimensional nonnegativity restriction. -/
+noncomputable def nonnegativeConstrainedScalarEstimator
+    {Ω : Type*} (bhat : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun n ω => max (bhat n ω) 0
+
+/-- Boundary scaled statistic for the scalar nonnegativity-constrained estimator. -/
+noncomputable def nonnegativeBoundaryScaledError
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun n ω => root n * nonnegativeConstrainedScalarEstimator bhat n ω
+
+/-- With a nonnegative scaling sequence, scaling commutes with the one-dimensional
+nonnegativity projection at the boundary. -/
+theorem nonnegativeBoundaryScaledError_eq_max_scaled
+    {Ω : Type*} (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ)
+    (hroot : ∀ n, 0 ≤ root n) :
+    nonnegativeBoundaryScaledError root bhat =
+      fun n ω => max (root n * bhat n ω) 0 := by
+  funext n ω
+  unfold nonnegativeBoundaryScaledError nonnegativeConstrainedScalarEstimator
+  by_cases hb : 0 ≤ bhat n ω
+  · have hprod : 0 ≤ root n * bhat n ω := mul_nonneg (hroot n) hb
+    simp [max_eq_left hb, max_eq_left hprod]
+  · have hb_nonpos : bhat n ω ≤ 0 := le_of_lt (lt_of_not_ge hb)
+    have hprod : root n * bhat n ω ≤ 0 :=
+      mul_nonpos_of_nonneg_of_nonpos (hroot n) hb_nonpos
+    simp [max_eq_right hb_nonpos, max_eq_right hprod]
+
+/-- Hansen Section 8.15 boundary case for a scalar nonnegativity restriction: if the
+unconstrained boundary statistic converges, the constrained statistic converges to the continuous
+image `max Z 0`. -/
+theorem nonnegativeBoundaryScaledError_tendstoInDistribution
+    {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    {μ : Measure Ω} {ν : Measure Ω'} [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → ℝ) (Z : Ω' → ℝ)
+    (hroot : ∀ n, 0 ≤ root n)
+    (hT : TendstoInDistribution (fun n ω => root n * bhat n ω) atTop Z
+      (fun _ => μ) ν) :
+    TendstoInDistribution (nonnegativeBoundaryScaledError root bhat) atTop
+      (fun ω => max (Z ω) 0) (fun _ => μ) ν := by
+  rw [nonnegativeBoundaryScaledError_eq_max_scaled root bhat hroot]
+  simpa [Function.comp_def] using
+    hT.continuous_comp ((continuous_id : Continuous (fun x : ℝ => x)).max continuous_const)
+
 /-- Random matrix-vector Slutsky wrapper for centered multivariate Gaussian limits. If
 `Ahatₙ →ₚ A`, then `Ahatₙ Tₙ` has the fixed linear Gaussian image limit. -/
 theorem randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
