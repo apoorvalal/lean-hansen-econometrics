@@ -252,6 +252,19 @@ noncomputable def constrainedScaledError
     ℕ → Ω → k → ℝ :=
   fun n ω => root n • (btilde n ω - β)
 
+omit [Fintype k] [DecidableEq k] [DecidableEq q] in
+/-- The generic constrained-estimator scaled error is a.e. measurable whenever the constrained
+estimator sequence is a.e. strongly measurable. -/
+theorem constrainedScaledError_aemeasurable
+    [Finite k]
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (btilde : ℕ → Ω → k → ℝ) (β : k → ℝ)
+    (hbtilde_meas : ∀ n, AEStronglyMeasurable (btilde n) μ) :
+    ∀ n, AEMeasurable (constrainedScaledError root btilde β n) μ := by
+  let _ := Fintype.ofFinite k
+  intro n
+  exact (((hbtilde_meas n).sub aestronglyMeasurable_const).const_smul (root n)).aemeasurable
+
 /-- Stable interface for the linearized asymptotic representation of a constrained estimator.
 
 For nonlinear restrictions, the derivative matrix `Rderiv` replaces the fixed linear-restriction
@@ -409,6 +422,36 @@ theorem nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
     (root n) (What n ω) (Rright n ω) (Rleft n ω) β (bhat n ω) (btilde n ω)
     (lam n ω) (gap n ω) (hstep n ω) (hgap n ω) (hG n ω)
 
+/-- A fixed-weight, fixed-derivative first-order-condition constructor for the stable nonlinear
+constrained-estimator linearization interface. The deterministic FONC algebra supplies the exact
+scaled-error decomposition; the only stochastic input left is that the scaled nonlinear constraint
+correction is negligible. -/
+theorem constrainedEstimatorLinearization_of_fixed_firstOrder_gap
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (root : ℕ → ℝ) (W : Matrix k k ℝ) (Rderiv : Matrix k q ℝ) (β : k → ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (lam gap : ℕ → Ω → q → ℝ)
+    (hstep : ∀ n ω, bhat n ω - btilde n ω = (W⁻¹ * Rderiv) *ᵥ lam n ω)
+    (hgap : ∀ n ω, Rderivᵀ *ᵥ (btilde n ω - β) = gap n ω)
+    (hG : IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det)
+    (hscaled_meas : ∀ n, AEMeasurable (constrainedScaledError root btilde β n) μ)
+    (hgap_rem : TendstoInMeasure μ
+      (fun n ω => nonlinearFirstOrderConstraintCorrection W Rderiv Rderiv *ᵥ
+        (root n • gap n ω)) atTop (fun _ => 0)) :
+    ConstrainedEstimatorLinearization μ root btilde β W Rderiv
+      (fun n ω => root n • (bhat n ω - β)) where
+  scaled_measurable := hscaled_meas
+  expansion := by
+    have hexact := nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
+      (root := root) (What := fun _ _ => W) (Rright := fun _ _ => Rderiv)
+      (Rleft := fun _ _ => Rderiv) (β := β) (bhat := bhat) (btilde := btilde)
+      (lam := lam) (gap := gap) hstep hgap (fun _ _ => hG)
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hgap_rem
+    filter_upwards with ω
+    funext i
+    rw [Pi.sub_apply]
+    rw [hexact]
+    simp [nonlinearFirstOrderLinearMap_self_eq_mdLinearMap]
+
 namespace NonlinearConstraintAssumption83
 
 omit [DecidableEq k] [DecidableEq q] in
@@ -443,6 +486,31 @@ theorem linearizedConstraint_seq_eq_neg_taylorRemainder
       fun n ω => -nonlinearConstraintTaylorRemainder r β Rderiv (btilde n ω) := by
   funext n ω
   exact h83.linearizedConstraint_eq_neg_taylorRemainder (hconstraint n ω)
+
+/-- Assumption 8.3 plus fixed-weight/fixed-derivative first-order conditions construct the stable
+linearization interface when the scaled Taylor constraint correction is negligible. -/
+theorem constrainedEstimatorLinearization_of_fixed_firstOrder
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (root : ℕ → ℝ) (W : Matrix k k ℝ)
+    (bhat btilde : ℕ → Ω → k → ℝ) (lam : ℕ → Ω → q → ℝ)
+    (hbtilde_meas : ∀ n, AEStronglyMeasurable (btilde n) μ)
+    (hconstraint : ∀ n ω, r (btilde n ω) = 0)
+    (hstep : ∀ n ω, bhat n ω - btilde n ω = (W⁻¹ * Rderiv) *ᵥ lam n ω)
+    (hG : IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det)
+    (htaylor_rem : TendstoInMeasure μ
+      (fun n ω => nonlinearFirstOrderConstraintCorrection W Rderiv Rderiv *ᵥ
+        (root n • (-nonlinearConstraintTaylorRemainder r β Rderiv (btilde n ω))))
+      atTop (fun _ => 0)) :
+    ConstrainedEstimatorLinearization μ root btilde β W Rderiv
+      (fun n ω => root n • (bhat n ω - β)) :=
+  constrainedEstimatorLinearization_of_fixed_firstOrder_gap root W Rderiv β bhat btilde lam
+    (fun n ω => -nonlinearConstraintTaylorRemainder r β Rderiv (btilde n ω)) hstep
+    (by
+      intro n ω
+      exact h83.linearizedConstraint_eq_neg_taylorRemainder (hconstraint n ω))
+    hG (constrainedScaledError_aemeasurable root btilde β hbtilde_meas) htaylor_rem
 
 omit [DecidableEq q] in
 /-- Assumption 8.3's rank condition and a positive-definite weight imply a positive-definite
