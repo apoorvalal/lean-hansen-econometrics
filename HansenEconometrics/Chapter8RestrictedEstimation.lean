@@ -581,6 +581,39 @@ theorem clsBeta_hasGaussianLaw_of_error
     exact clsBeta_linear_model X β (e ω) R c hrestrict
   simpa [hfun] using h
 
+omit [DecidableEq n] in
+/-- If the error vector has a Gaussian law, then the CLS coefficient vector is Gaussian as an
+affine image of the error vector. -/
+theorem clsBeta_hasGaussianLaw_of_gaussian_error
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : Ω → n → ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    (hrestrict : Rᵀ *ᵥ β = c)
+    (he : HasGaussianLaw e μ) :
+    HasGaussianLaw (fun ω => clsBeta X (X *ᵥ β + e ω) R c) μ := by
+  classical
+  let B : Matrix k n ℝ := ⅟(Xᵀ * X) * Xᵀ - clsCorrectionMatrix X R * Xᵀ
+  let L : (n → ℝ) →L[ℝ] (k → ℝ) := (Matrix.toLin' B).toContinuousLinearMap
+  have hLin : HasGaussianLaw (fun ω => L (e ω)) μ := he.map_fun L
+  have hAff : HasGaussianLaw (fun ω => β + L (e ω)) μ := by
+    refine ⟨?_⟩
+    have hmap : (μ.map fun ω => L (e ω)).map (fun x => β + x) =
+        μ.map (fun ω => β + L (e ω)) := by
+      simpa using
+        (AEMeasurable.map_map_of_aemeasurable
+          (μ := μ)
+          (f := fun ω => L (e ω))
+          (g := fun x => β + x)
+          (Measurable.aemeasurable <| by fun_prop)
+          hLin.aemeasurable)
+    rw [← hmap]
+    letI : IsGaussian (μ.map fun ω => L (e ω)) := hLin.isGaussian_map
+    infer_instance
+  exact clsBeta_hasGaussianLaw_of_error X β e R c hrestrict (by
+    refine hAff.congr ?_
+    filter_upwards with ω
+    simp [L, B, Matrix.sub_mulVec])
+
 /-- Scaled CLS residual-variance statistic. -/
 noncomputable def scaledClsResidualVarianceStatistic
     {Ω : Type*} (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
@@ -754,5 +787,61 @@ theorem clsTStat_hasStudentTLaw
     HasLaw (fun ω => clsTStatFromComponents (Z ω) (Q ω) ν) (studentT ν) μ := by
   simpa [clsTStatFromComponents] using
     hasLaw_ratio_standardNormal_chiSquared_studentT hν hZ hQ hInd
+
+/-- Hansen Theorem 8.5 exact finite-sample normal-regression laws for CLS.
+
+This is a result package, not an assumption interface: constructors below prove its fields from
+Gaussian-error and independence inputs. -/
+structure ClsNormalRegressionFiniteSampleLaws
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X : Matrix n k ℝ) (β : k → ℝ) (σ2 : ℝ) (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    (ε : Ω → EuclideanSpace ℝ n) (Z : Ω → ℝ) where
+  beta_gaussian :
+    HasGaussianLaw
+      (fun ω => clsBeta X (X *ᵥ β + WithLp.ofLp (ε ω)) R c) μ
+  scaled_residual_variance_chiSquared :
+    HasLaw
+      (scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε))
+      (chiSquared (Fintype.card n - Fintype.card k + Fintype.card q)) μ
+  t_student :
+    HasLaw
+      (fun ω => clsTStatFromComponents (Z ω)
+        (scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε) ω)
+        (Fintype.card n - Fintype.card k + Fintype.card q))
+      (studentT (Fintype.card n - Fintype.card k + Fintype.card q)) μ
+
+/-- Hansen Theorem 8.5: exact finite-sample Gaussian, chi-square, and Student-t laws for CLS. -/
+theorem clsNormalRegressionFiniteSampleLaws
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X : Matrix n k ℝ) (β : k → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (R : Matrix k q ℝ) (c : q → ℝ)
+    [Invertible (Xᵀ * X)] [Invertible (clsConstraintGram X R)]
+    (hrestrict : Rᵀ *ᵥ β = c) (hdf : Fintype.card k < Fintype.card n + Fintype.card q)
+    (ε : Ω → EuclideanSpace ℝ n)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ)
+    (he : HasGaussianLaw (WithLp.ofLp ∘ ε : Ω → n → ℝ) μ)
+    (Z : Ω → ℝ) (hZ : HasLaw Z (gaussianReal 0 1) μ)
+    (hInd : Z ⟂ᵢ[μ] scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε)) :
+    ClsNormalRegressionFiniteSampleLaws μ X β σ2 R c ε Z := by
+  have hBeta :
+      HasGaussianLaw
+        (fun ω => clsBeta X (X *ᵥ β + WithLp.ofLp (ε ω)) R c) μ := by
+    simpa [Function.comp_def] using
+      clsBeta_hasGaussianLaw_of_gaussian_error X β (WithLp.ofLp ∘ ε) R c hrestrict he
+  have hQ :
+      HasLaw
+        (scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε))
+        (chiSquared (Fintype.card n - Fintype.card k + Fintype.card q)) μ :=
+    scaledClsResidualVarianceStatistic_hasLaw_chiSquared X β hσ2 R c hrestrict hdf ε hε
+  have hν : 0 < Fintype.card n - Fintype.card k + Fintype.card q := by
+    omega
+  exact
+    { beta_gaussian := hBeta
+      scaled_residual_variance_chiSquared := hQ
+      t_student :=
+        clsTStat_hasStudentTLaw Z
+          (scaledClsResidualVarianceStatistic X β σ2 R c (WithLp.ofLp ∘ ε))
+          (Fintype.card n - Fintype.card k + Fintype.card q) hν hZ hQ hInd }
 
 end HansenEconometrics
