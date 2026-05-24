@@ -306,6 +306,26 @@ theorem covarianceEstimatorConsistent_of_tendstoInMeasure
   covariance_measurable := hV_meas
   consistent := hV
 
+/-- Stable interface for consistency of a rectangular matrix estimator such as the nonlinear
+restriction derivative estimator `Rhat` in Hansen equation (8.48). -/
+structure MatrixEstimatorConsistent
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (Mhat : ℕ → Ω → Matrix k q ℝ) (M : Matrix k q ℝ) where
+  matrix_measurable : ∀ n, AEStronglyMeasurable (Mhat n) μ
+  consistent : TendstoInMeasure μ Mhat atTop (fun _ => M)
+
+omit [DecidableEq k] [DecidableEq q] in
+/-- Constructor for rectangular matrix-estimator consistency from explicit measurability and
+convergence fields. -/
+theorem matrixEstimatorConsistent_of_tendstoInMeasure
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Mhat : ℕ → Ω → Matrix k q ℝ) (M : Matrix k q ℝ)
+    (hM_meas : ∀ n, AEStronglyMeasurable (Mhat n) μ)
+    (hM : TendstoInMeasure μ Mhat atTop (fun _ => M)) :
+    MatrixEstimatorConsistent μ Mhat M where
+  matrix_measurable := hM_meas
+  consistent := hM
+
 /-- Standard-error scale for a fixed linear combination `h'β`, based on an asymptotic covariance
 matrix. The displayed finite-sample standard error is `n^{-1/2}` times this scale. -/
 noncomputable def covarianceStdErrorScale
@@ -623,6 +643,49 @@ theorem emdAsymptoticVariance_aestronglyMeasurable
   exact hV.sub hFull
 
 set_option maxHeartbeats 1200000 in
+-- Matrix measurability through the nonlinear EMD covariance plug-in inverse is expensive here.
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is a.e. strongly measurable when both the
+restriction derivative and unrestricted covariance inputs are estimated. -/
+theorem emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Rseq : Ω → Matrix k q ℝ) (Vseq : Ω → Matrix k k ℝ)
+    (hR : AEStronglyMeasurable Rseq μ)
+    (hV : AEStronglyMeasurable Vseq μ) :
+    AEStronglyMeasurable
+      (fun ω => emdAsymptoticVariance (Rseq ω) (Vseq ω)) μ := by
+  have hRt : AEStronglyMeasurable (fun ω => (Rseq ω)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hR
+  have hVR : AEStronglyMeasurable (fun ω => Vseq ω * Rseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hV.prodMk hR)
+  have hGramLeft : AEStronglyMeasurable (fun ω => (Rseq ω)ᵀ * Vseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hRt.prodMk hV)
+  have hGram : AEStronglyMeasurable (fun ω => (Rseq ω)ᵀ * Vseq ω * Rseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hGramLeft.prodMk hR)
+  have hGramInv : AEStronglyMeasurable
+      (fun ω => ((Rseq ω)ᵀ * Vseq ω * Rseq ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hLeft : AEStronglyMeasurable
+      (fun ω => Vseq ω * Rseq ω * ((Rseq ω)ᵀ * Vseq ω * Rseq ω)⁻¹) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hVR.prodMk hGramInv)
+  have hMid : AEStronglyMeasurable
+      (fun ω => Vseq ω * Rseq ω * ((Rseq ω)ᵀ * Vseq ω * Rseq ω)⁻¹ *
+        (Rseq ω)ᵀ) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeft.prodMk hRt)
+  have hFull : AEStronglyMeasurable
+      (fun ω => Vseq ω * Rseq ω * ((Rseq ω)ᵀ * Vseq ω * Rseq ω)⁻¹ *
+        (Rseq ω)ᵀ * Vseq ω) μ := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hMid.prodMk hV)
+  unfold emdAsymptoticVariance
+  exact hV.sub hFull
+
+set_option maxHeartbeats 1200000 in
 -- Continuity through the EMD covariance plug-in inverse is expensive here.
 omit [DecidableEq k] in
 /-- The EMD asymptotic-variance plug-in map is continuous at covariance matrices with
@@ -662,6 +725,58 @@ theorem emdAsymptoticVariance_continuousAt_of_nonsingular
   unfold emdAsymptoticVariance
   exact continuousAt_id.sub hFull
 
+set_option maxHeartbeats 1200000 in
+-- Continuity through the nonlinear EMD covariance plug-in inverse is expensive here.
+omit [DecidableEq k] in
+/-- The EMD asymptotic-variance plug-in map is continuous at nonsingular limiting
+restriction-derivative and covariance inputs. -/
+theorem emdAsymptoticVariance_continuousAt_of_estimatedRestriction
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => emdAsymptoticVariance p.1 p.2)
+      (R, V) := by
+  let G : Matrix q q ℝ := Rᵀ * V * R
+  have hRt : ContinuousAt (fun p : Matrix k q ℝ × Matrix k k ℝ => p.1ᵀ) (R, V) :=
+    continuous_id.matrix_transpose.continuousAt.comp continuousAt_fst
+  have hVR : ContinuousAt (fun p : Matrix k q ℝ × Matrix k k ℝ => p.2 * p.1) (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (continuousAt_snd.prodMk continuousAt_fst)
+  have hGramLeft : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => p.1ᵀ * p.2) (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hRt.prodMk continuousAt_snd)
+  have hGram : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => p.1ᵀ * p.2 * p.1) (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hGramLeft.prodMk continuousAt_fst)
+  have hGramInv : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => (p.1ᵀ * p.2 * p.1)⁻¹) (R, V) := by
+    have hcontInv : ContinuousAt Inv.inv G := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hG.ne_zero
+    simpa [G] using hcontInv.comp hGram
+  have hLeft : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ => p.2 * p.1 * (p.1ᵀ * p.2 * p.1)⁻¹)
+      (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hVR.prodMk hGramInv)
+  have hMid : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ =>
+        p.2 * p.1 * (p.1ᵀ * p.2 * p.1)⁻¹ * p.1ᵀ)
+      (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hLeft.prodMk hRt)
+  have hFull : ContinuousAt
+      (fun p : Matrix k q ℝ × Matrix k k ℝ =>
+        p.2 * p.1 * (p.1ᵀ * p.2 * p.1)⁻¹ * p.1ᵀ * p.2)
+      (R, V) :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hMid.prodMk continuousAt_snd)
+  unfold emdAsymptoticVariance
+  exact continuousAt_snd.sub hFull
+
 omit [DecidableEq k] in
 /-- Consistency of the EMD covariance plug-in estimator (Hansen equation (8.35)) from
 consistency of the unrestricted covariance estimator. -/
@@ -693,6 +808,51 @@ theorem emdCovarianceEstimatorConsistent_of_consistency
     emdAsymptoticVariance_aestronglyMeasurable R (Vhat n)
       (hVhat.covariance_measurable n)
   consistent := emdAsymptoticVariance_tendstoInMeasure_of_consistency R hVhat hG
+
+set_option maxHeartbeats 1200000 in
+-- Product-space CMT for the nonlinear EMD covariance plug-in carries finite-dimensional matrix
+-- topology and inverse continuity through the estimated derivative.
+omit [DecidableEq k] in
+/-- Consistency of the EMD covariance plug-in estimator when the restriction derivative is
+estimated consistently, as in Hansen equation (8.48). -/
+theorem emdAsymptoticVariance_tendstoInMeasure_of_estimatedRestriction
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Rhat : ℕ → Ω → Matrix k q ℝ} {R : Matrix k q ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (hRhat : MatrixEstimatorConsistent μ Rhat R)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    TendstoInMeasure μ (fun n ω => emdAsymptoticVariance (Rhat n ω) (Vhat n ω))
+      atTop (fun _ => emdAsymptoticVariance R V) := by
+  have hpair : TendstoInMeasure μ (fun n ω => (Rhat n ω, Vhat n ω)) atTop
+      (fun _ : Ω => (R, V)) :=
+    tendstoInMeasure_prodMk hRhat.consistent hVhat.consistent
+  exact tendstoInMeasure_continuousAt_const_comp
+    (fun n => (hRhat.matrix_measurable n).prodMk (hVhat.covariance_measurable n))
+    (fun n => emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
+      (Rhat n) (Vhat n) (hRhat.matrix_measurable n)
+      (hVhat.covariance_measurable n))
+    hpair (emdAsymptoticVariance_continuousAt_of_estimatedRestriction R V hG)
+
+omit [DecidableEq k] in
+/-- Stable-interface constructor for EMD covariance consistency with an estimated restriction
+derivative. -/
+theorem emdCovarianceEstimatorConsistent_of_estimatedRestriction
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Rhat : ℕ → Ω → Matrix k q ℝ} {R : Matrix k q ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (hRhat : MatrixEstimatorConsistent μ Rhat R)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => emdAsymptoticVariance (Rhat n ω) (Vhat n ω))
+      (emdAsymptoticVariance R V) where
+  covariance_measurable := fun n =>
+    emdAsymptoticVariance_aestronglyMeasurable_of_estimatedRestriction
+      (Rhat n) (Vhat n) (hRhat.matrix_measurable n)
+      (hVhat.covariance_measurable n)
+  consistent :=
+    emdAsymptoticVariance_tendstoInMeasure_of_estimatedRestriction hRhat hVhat hG
 
 omit [DecidableEq k] in
 /-- A consistent unrestricted covariance estimator constructs the feasible standard-error scale
@@ -1658,6 +1818,40 @@ theorem nonlinearEfficientStdError_eq_hansen
     nonlinearEfficientStdError root h Rhat Vhat =
       Real.sqrt (h ⬝ᵥ (nonlinearEfficientCovarianceEstimator Rhat Vhat) *ᵥ h) / root :=
   rfl
+
+omit [DecidableEq k] in
+/-- Consistency of the nonlinear efficient covariance estimator when both the derivative
+matrix estimator from (8.48) and the unrestricted covariance estimator are consistent. -/
+theorem nonlinearEfficientCovarianceEstimatorConsistent_of_estimatedDerivative
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Rhat : ℕ → Ω → Matrix k q ℝ} {R : Matrix k q ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (hRhat : MatrixEstimatorConsistent μ Rhat R)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    CovarianceEstimatorConsistent μ
+      (fun n ω => nonlinearEfficientCovarianceEstimator (Rhat n ω) (Vhat n ω))
+      (nonlinearEfficientCovarianceEstimator R V) := by
+  simpa [nonlinearEfficientCovarianceEstimator, emdCovarianceEstimator] using
+    emdCovarianceEstimatorConsistent_of_estimatedRestriction hRhat hVhat hG
+
+omit [DecidableEq k] in
+/-- Consistent nonlinear derivative and covariance estimators construct the feasible
+standard-error scale interface for Theorem 8.10's efficient nonlinear covariance formula. -/
+theorem nonlinearEfficientFeasibleStandardErrorConsistent_of_estimatedDerivative
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Rhat : ℕ → Ω → Matrix k q ℝ} {R : Matrix k q ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (h : k → ℝ)
+    (hRhat : MatrixEstimatorConsistent μ Rhat R)
+    (hVhat : CovarianceEstimatorConsistent μ Vhat V)
+    (hG : IsUnit (Rᵀ * V * R).det) :
+    FeasibleStandardErrorConsistent μ
+      (fun n ω =>
+        covarianceStdErrorScale h (nonlinearEfficientCovarianceEstimator (Rhat n ω) (Vhat n ω)))
+      (covarianceStdErrorScale h (nonlinearEfficientCovarianceEstimator R V)) := by
+  exact feasibleStandardErrorConsistent_of_covarianceConsistency h
+    (nonlinearEfficientCovarianceEstimatorConsistent_of_estimatedDerivative hRhat hVhat hG)
 
 /-- A positive-definite real matrix has a unit determinant. -/
 theorem posDef_det_isUnit (M : Matrix k k ℝ) (hM : M.PosDef) : IsUnit M.det := by
