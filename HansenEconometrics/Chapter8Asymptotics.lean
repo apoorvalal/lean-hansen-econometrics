@@ -1136,6 +1136,25 @@ theorem restrictionGram_det_isUnit_of_weight_posDef
     IsUnit (Rᵀ * W⁻¹ * R).det :=
   posDef_det_isUnit (Rᵀ * W⁻¹ * R) (restrictionGram_posDef_of_weight_posDef W R hW hR)
 
+omit [DecidableEq k] [DecidableEq q] in
+/-- If a covariance matrix is positive definite and the restriction matrix has full column rank,
+then the restriction covariance `Rᵀ V R` is positive definite. -/
+theorem restrictionCov_posDef_of_cov_posDef
+    (V : Matrix k k ℝ) (R : Matrix k q ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec) :
+    (Rᵀ * V * R).PosDef := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hV.conjTranspose_mul_mul_same hR
+
+omit [DecidableEq k] in
+/-- Positive-definite covariance matrices and full-column-rank restrictions discharge the
+nonsingularity side condition for `Rᵀ V R`. -/
+theorem restrictionCov_det_isUnit_of_cov_posDef
+    (V : Matrix k k ℝ) (R : Matrix k q ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec) :
+    IsUnit (Rᵀ * V * R).det :=
+  posDef_det_isUnit (Rᵀ * V * R) (restrictionCov_posDef_of_cov_posDef V R hV hR)
+
 /-- Stable interface for Hansen Theorem 8.6 minimum-distance consistency.
 
 The interface records the reusable econometric content: the unrestricted estimator is consistent,
@@ -2328,6 +2347,28 @@ theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
       (multivariateGaussian 0 (mdAsymptoticVariance V⁻¹ R V)) := by
     simpa [mdAsymptoticVariance] using hraw
   simpa [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit] using hcov
+
+/-- Hansen Theorem 8.9 from the stable asymptotically linear estimator interface, with the
+efficient-covariance side conditions discharged from positive definiteness and full-column-rank
+restrictions. -/
+theorem emdBeta_tendstoInDistribution_multivariateGaussian_of_posDef
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (root : ℕ → ℝ) (bhat : ℕ → Ω → k → ℝ)
+    (R : Matrix k q ℝ) (c : q → ℝ) (V : Matrix k k ℝ) (β : k → ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hV : V.PosDef) (hR : Function.Injective R.mulVec)
+    (hlinear : AsymptoticallyLinearEstimator μ
+      (emdScaledError root bhat R c V β) (mdLinearMap V⁻¹ R) T)
+    (hT : TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 V)) :
+    TendstoInDistribution (emdScaledError root bhat R c V β) atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (emdAsymptoticVariance R V)) := by
+  have hVsym : Vᵀ = V := by
+    exact (Matrix.conjTranspose_eq_transpose_of_trivial V).symm.trans hV.isHermitian
+  exact emdBeta_tendstoInDistribution_multivariateGaussian_of_linearization
+    root bhat R c V β T hV.posSemidef (posDef_det_isUnit V hV) hVsym
+    (restrictionCov_det_isUnit_of_cov_posDef V R hV hR) hlinear hT
 
 /-- Hansen Theorem 8.9 efficient-MD distribution with the fixed efficient weight and no separate
 remainder input. -/
