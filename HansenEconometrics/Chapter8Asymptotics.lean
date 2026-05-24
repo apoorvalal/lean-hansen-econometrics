@@ -1136,6 +1136,44 @@ theorem restrictionGram_det_isUnit_of_weight_posDef
     IsUnit (Rᵀ * W⁻¹ * R).det :=
   posDef_det_isUnit (Rᵀ * W⁻¹ * R) (restrictionGram_posDef_of_weight_posDef W R hW hR)
 
+/-- Stable interface for Hansen Theorem 8.6 minimum-distance consistency.
+
+The interface records the reusable econometric content: the unrestricted estimator is consistent,
+the weight process is consistent, the limiting weight and restriction Gram are nonsingular, and the
+true parameter satisfies the restriction. -/
+structure MinimumDistanceConsistencyConditions
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ) where
+  bhat_measurable : ∀ n, AEStronglyMeasurable (bhat n) μ
+  weight_measurable : ∀ n, AEStronglyMeasurable (What n) μ
+  unrestricted_consistent : TendstoInMeasure μ bhat atTop (fun _ => β)
+  weight_consistent : TendstoInMeasure μ What atTop (fun _ => W)
+  weight_nonsingular : IsUnit W.det
+  restriction_gram_nonsingular : IsUnit (Rᵀ * W⁻¹ * R).det
+  restriction : Rᵀ *ᵥ β = c
+
+/-- Positive-definite limiting weights and full-column-rank restrictions construct the stable
+minimum-distance consistency interface. -/
+theorem minimumDistanceConsistencyConditions_of_weight_posDef
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (hbhat_meas : ∀ n, AEStronglyMeasurable (bhat n) μ)
+    (hWhat_meas : ∀ n, AEStronglyMeasurable (What n) μ)
+    (hbhat : TendstoInMeasure μ bhat atTop (fun _ => β))
+    (hWhat : TendstoInMeasure μ What atTop (fun _ => W))
+    (hW : W.PosDef) (hR : Function.Injective R.mulVec)
+    (hrestrict : Rᵀ *ᵥ β = c) :
+    MinimumDistanceConsistencyConditions μ bhat What W R c β where
+  bhat_measurable := hbhat_meas
+  weight_measurable := hWhat_meas
+  unrestricted_consistent := hbhat
+  weight_consistent := hWhat
+  weight_nonsingular := posDef_det_isUnit W hW
+  restriction_gram_nonsingular := restrictionGram_det_isUnit_of_weight_posDef W R hW hR
+  restriction := hrestrict
+
 /-- The population MD map fixes a parameter satisfying the restriction. -/
 @[simp]
 theorem mdBetaStar_eq_self_of_restrict
@@ -1234,7 +1272,7 @@ theorem mdBetaStar_continuousAt_of_nonsingular
 
 set_option maxHeartbeats 800000 in
 -- Product-space typeclass synthesis for matrix-valued convergence is expensive here.
-/-- Hansen Theorem 8.6 current-assumption MD consistency wrapper.
+/-- Hansen Theorem 8.6 MD consistency from explicit continuity and convergence inputs.
 
 The assumptions are convergence of the unrestricted estimator and the weight matrix plus continuity
 of the MD map at the limiting values. -/
@@ -1285,6 +1323,18 @@ theorem mdBeta_tendstoInMeasure_beta_of_nonsingular
     hbhat hWhat
     (mdBetaStar_continuousAt_of_nonsingular W R c β hWunit hGunit)
     hrestrict
+
+/-- Hansen Theorem 8.6 from the stable minimum-distance consistency interface. -/
+theorem mdBeta_tendstoInMeasure_beta_of_consistency
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (bhat : ℕ → Ω → k → ℝ) (What : ℕ → Ω → Matrix k k ℝ)
+    (W : Matrix k k ℝ) (R : Matrix k q ℝ) (c : q → ℝ) (β : k → ℝ)
+    (h : MinimumDistanceConsistencyConditions μ bhat What W R c β) :
+    TendstoInMeasure μ (fun n ω => mdBetaStar (What n ω) R c (bhat n ω)) atTop
+      (fun _ => β) :=
+  mdBeta_tendstoInMeasure_beta_of_nonsingular bhat What W R c β
+    h.bhat_measurable h.weight_measurable h.unrestricted_consistent h.weight_consistent
+    h.weight_nonsingular h.restriction_gram_nonsingular h.restriction
 
 /-- MD scaled-error statistic. -/
 noncomputable def mdScaledError
