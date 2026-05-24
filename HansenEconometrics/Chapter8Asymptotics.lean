@@ -1,4 +1,5 @@
 import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
+import Mathlib.Analysis.Calculus.FDeriv.Basic
 import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.StochasticOrder
 import HansenEconometrics.Chapter7Asymptotics.Basic
@@ -266,6 +267,81 @@ structure ConstrainedEstimatorLinearization
     TendstoInMeasure μ
       (constrainedScaledError root btilde β - fun n ω => mdLinearMap W Rderiv *ᵥ T n ω)
       atTop (fun _ => 0)
+
+/-- Hansen Assumption 8.3 for nonlinear restrictions `r(β) = 0`.
+
+The matrix `Rderiv` is Hansen's `R = ∂r(β)' / ∂β`, so the derivative of `r` is
+represented by `Rderivᵀ`. This structure deliberately records only the deterministic
+restriction, differentiability, and rank content of Assumption 8.3; consistency and optimizer
+first-order-condition arguments belong in constructors for `ConstrainedEstimatorLinearization`. -/
+structure NonlinearConstraintAssumption83
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (Rderiv : Matrix k q ℝ) where
+  /-- The true parameter satisfies the nonlinear restriction. -/
+  constraint : r β = 0
+  /-- Fréchet derivative of `r` at `β`. -/
+  derivative : (k → ℝ) →L[ℝ] (q → ℝ)
+  /-- The restriction map is differentiable at the true parameter. -/
+  differentiable_at : HasFDerivAt r derivative β
+  /-- The derivative is represented by Hansen's transposed derivative matrix. -/
+  derivative_apply : ∀ v : k → ℝ, derivative v = Rderivᵀ *ᵥ v
+  /-- Hansen's rank condition `rank(R) = q`, represented as full column rank. -/
+  fullRank : Function.Injective Rderiv.mulVec
+
+namespace NonlinearConstraintAssumption83
+
+omit [DecidableEq q] in
+/-- Assumption 8.3's rank condition and a positive-definite weight imply a positive-definite
+nonlinear restriction Gram matrix. -/
+theorem restrictionGram_posDef_of_weight_posDef
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (W : Matrix k k ℝ) (hW : W.PosDef) :
+    (Rderivᵀ * W⁻¹ * Rderiv).PosDef := by
+  have hWinv : W⁻¹.PosDef := hW.inv
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hWinv.conjTranspose_mul_mul_same h83.fullRank
+
+/-- Assumption 8.3's rank condition and a positive-definite weight discharge the determinant
+side condition for the nonlinear restriction Gram matrix. -/
+theorem restrictionGram_det_isUnit_of_weight_posDef
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (W : Matrix k k ℝ) (hW : W.PosDef) :
+    IsUnit (Rderivᵀ * W⁻¹ * Rderiv).det :=
+  isUnit_iff_ne_zero.mpr (h83.restrictionGram_posDef_of_weight_posDef W hW).det_pos.ne'
+
+omit [DecidableEq k] [DecidableEq q] in
+/-- Assumption 8.3's rank condition and a positive-definite unrestricted covariance imply
+positive definiteness of the efficient nonlinear restriction covariance `R' V R`. -/
+theorem efficientRestrictionCov_posDef
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (V : Matrix k k ℝ) (hV : V.PosDef) :
+    (Rderivᵀ * V * Rderiv).PosDef := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    hV.conjTranspose_mul_mul_same h83.fullRank
+
+omit [DecidableEq k] in
+/-- The inverse efficient nonlinear restriction covariance is positive semidefinite under
+Assumption 8.3 and positive-definite unrestricted covariance. -/
+theorem efficientRestrictionCov_inv_posSemidef
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (V : Matrix k k ℝ) (hV : V.PosDef) :
+    ((Rderivᵀ * V * Rderiv)⁻¹).PosSemidef :=
+  (h83.efficientRestrictionCov_posDef V hV).inv.posSemidef
+
+omit [DecidableEq k] in
+/-- The efficient nonlinear restriction covariance has a unit determinant under Assumption 8.3
+and positive-definite unrestricted covariance. -/
+theorem efficientRestrictionCov_det_isUnit
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (V : Matrix k k ℝ) (hV : V.PosDef) :
+    IsUnit (Rderivᵀ * V * Rderiv).det :=
+  isUnit_iff_ne_zero.mpr (h83.efficientRestrictionCov_posDef V hV).det_pos.ne'
+
+end NonlinearConstraintAssumption83
 
 /-- A positive-definite real matrix has a unit determinant. -/
 theorem posDef_det_isUnit (M : Matrix k k ℝ) (hM : M.PosDef) : IsUnit M.det := by
@@ -1339,6 +1415,29 @@ theorem emdAsymptoticVariance_gap_posSemidef
   rw [hgap]
   simpa [Matrix.conjTranspose] using
     Matrix.PosSemidef.conjTranspose_mul_mul_same hG (Rᵀ * V)
+
+omit [DecidableEq k] in
+/-- Under Assumption 8.3 and a positive-definite unrestricted covariance, the efficient
+nonlinear restricted asymptotic variance is weakly below the unrestricted variance. -/
+theorem nonlinearEfficientAsymptoticVariance_gap_posSemidef_of_assumption83
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (V : Matrix k k ℝ) (hV : V.PosDef) (hVsym : Vᵀ = V) :
+    (V - emdAsymptoticVariance Rderiv V).PosSemidef :=
+  emdAsymptoticVariance_gap_posSemidef Rderiv V hVsym
+    (h83.efficientRestrictionCov_inv_posSemidef V hV)
+
+/-- Under Assumption 8.3, efficient nonlinear minimum distance weakly lowers asymptotic variance
+relative to a symmetric arbitrary-weight nonlinear minimum-distance estimator. -/
+theorem nonlinearEfficientAsymptoticVariance_le_md_concrete_of_assumption83
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {Rderiv : Matrix k q ℝ}
+    (h83 : NonlinearConstraintAssumption83 r β Rderiv)
+    (W V : Matrix k k ℝ)
+    (hWsym : Wᵀ = W) (hV : V.PosDef) (hVsym : Vᵀ = V) :
+    (mdAsymptoticVariance W Rderiv V - emdAsymptoticVariance Rderiv V).PosSemidef :=
+  emdAsymptoticVariance_le_md_concrete W Rderiv V hWsym hVsym
+    (h83.efficientRestrictionCov_det_isUnit V hV)
+    (h83.efficientRestrictionCov_posDef V hV).posSemidef
 
 omit [DecidableEq k] in
 /-- Efficient MD cannot increase asymptotic variance relative to the unrestricted estimator,
