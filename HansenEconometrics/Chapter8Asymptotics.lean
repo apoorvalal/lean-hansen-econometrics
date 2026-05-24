@@ -1514,6 +1514,44 @@ theorem nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
     (root n) (What n ω) (Rright n ω) (Rleft n ω) β (bhat n ω) (btilde n ω)
     (lam n ω) (gap n ω) (hstep n ω) (hgap n ω) (hG n ω)
 
+/-- Hansen equation (8.54), pointwise deterministic form. When the linearized constraint is
+exactly zero, the nonlinear first-order algebra has no constraint-gap correction term. -/
+theorem nonlinearFirstOrder_eq_hansen_854
+    (W : Matrix k k ℝ) (Rhat Rstar : Matrix k q ℝ)
+    (β bhat btilde : k → ℝ) (lam : q → ℝ)
+    (hstep : bhat - btilde = (W⁻¹ * Rhat) *ᵥ lam)
+    (hconstraint : Rstarᵀ *ᵥ (btilde - β) = 0)
+    (hG : IsUnit (Rstarᵀ * W⁻¹ * Rhat).det) :
+    btilde - β =
+      nonlinearFirstOrderLinearMap W Rhat Rstar *ᵥ (bhat - β) := by
+  have hscaled := nonlinearFirstOrder_scaledError_eq_linearMap_add_gap
+    (root := (1 : ℝ)) (W := W) (Rright := Rhat) (Rleft := Rstar)
+    (β := β) (bhat := bhat) (btilde := btilde) (lam := lam) (gap := 0)
+    hstep hconstraint hG
+  simpa using hscaled
+
+/-- Hansen equation (8.54), sequence form used before applying stochastic convergence to the
+random weight and derivative matrices. -/
+theorem nonlinearFirstOrder_scaledError_seq_eq_hansen_854
+    {Ω : Type*} (root : ℕ → ℝ)
+    (What : ℕ → Ω → Matrix k k ℝ) (Rhat Rstar : ℕ → Ω → Matrix k q ℝ)
+    (β : k → ℝ) (bhat btilde : ℕ → Ω → k → ℝ) (lam : ℕ → Ω → q → ℝ)
+    (hstep : ∀ n ω,
+      bhat n ω - btilde n ω = ((What n ω)⁻¹ * Rhat n ω) *ᵥ lam n ω)
+    (hconstraint : ∀ n ω, (Rstar n ω)ᵀ *ᵥ (btilde n ω - β) = 0)
+    (hG : ∀ n ω, IsUnit ((Rstar n ω)ᵀ * (What n ω)⁻¹ * Rhat n ω).det) :
+    constrainedScaledError root btilde β =
+      fun n ω =>
+        nonlinearFirstOrderLinearMap (What n ω) (Rhat n ω) (Rstar n ω) *ᵥ
+          (root n • (bhat n ω - β)) := by
+  have hexact := nonlinearFirstOrder_scaledError_seq_eq_linearMap_add_gap
+    (root := root) (What := What) (Rright := Rhat) (Rleft := Rstar)
+    (β := β) (bhat := bhat) (btilde := btilde) (lam := lam)
+    (gap := fun _ _ => 0) hstep hconstraint hG
+  funext n ω
+  rw [hexact]
+  simp
+
 set_option maxHeartbeats 1200000 in
 -- Exact pointwise FONC expansion through named random remainder terms is algebraically large.
 /-- The exact random-FONC expansion residual is the sum of the random linear-map remainder and
