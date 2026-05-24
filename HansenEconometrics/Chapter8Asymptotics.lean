@@ -3856,6 +3856,23 @@ theorem emdAsymptoticVariance_le_md_efficientWeight
   rw [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit]
   simpa using (Matrix.PosSemidef.zero : (0 : Matrix k k ℝ).PosSemidef)
 
+omit [DecidableEq k] in
+/-- Hansen equation (8.26), the displayed efficient-MD asymptotic variance formula. -/
+theorem emdAsymptoticVariance_eq_hansen_826
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ) :
+    emdAsymptoticVariance R V =
+      V - V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V := rfl
+
+/-- Exercise 8.14: Hansen equation (8.26) is the generic MD variance at efficient
+weight `W = V⁻¹`. -/
+theorem mdAsymptoticVariance_efficientWeight_eq_hansen_826
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hVunit : IsUnit V.det) (hVsym : Vᵀ = V) (hGunit : IsUnit (Rᵀ * V * R).det) :
+    mdAsymptoticVariance V⁻¹ R V =
+      V - V * R * (Rᵀ * V * R)⁻¹ * Rᵀ * V := by
+  rw [mdAsymptoticVariance_efficientWeight_eq_emd R V hVunit hVsym hGunit]
+  rfl
+
 /-- Hansen Theorem 8.9, equation (8.28): concrete factorization of the arbitrary-weight
 minimum-distance variance gap relative to the efficient-MD variance. -/
 theorem mdAsymptoticVariance_sub_emd_factor
@@ -3941,6 +3958,15 @@ theorem emdAsymptoticVariance_gap_posSemidef
   rw [hgap]
   simpa [Matrix.conjTranspose] using
     Matrix.PosSemidef.conjTranspose_mul_mul_same hG (Rᵀ * V)
+
+omit [DecidableEq k] in
+/-- Exercise 8.15, Hansen equation (8.27): efficient MD weakly lowers asymptotic
+variance relative to the unrestricted estimator. -/
+theorem emdAsymptoticVariance_le_unrestricted_hansen_827
+    (R : Matrix k q ℝ) (V : Matrix k k ℝ)
+    (hVsym : Vᵀ = V) (hG : ((Rᵀ * V * R)⁻¹).PosSemidef) :
+    (V - emdAsymptoticVariance R V).PosSemidef :=
+  emdAsymptoticVariance_gap_posSemidef R V hVsym hG
 
 omit [DecidableEq k] in
 /-- Linear map for the Hausman difference between the unrestricted estimator and the efficient
