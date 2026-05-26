@@ -93,8 +93,14 @@
 ## Status
 - Theorem 9.1's asymptotic-size half — the t-test rejection-probability limit — landed in
   `HansenEconometrics/Chapter9HypothesisTesting.lean`. The convergence half is reused from
-  Chapter 7 (Theorem 7.11); the size-α corollary is not separately stated.
-- Theorems 9.2–9.11 are still pending.
+  Chapter 7 (Theorem 7.11); the calibrated size-α corollary is now stated as
+  `olsHC0LinTTest_rejectionProb_tendsto_alpha`.
+- Theorem 9.2's robust multivariate Wald rejection-probability/size-α conclusion is formalized
+  for linear hypotheses with the Chapter 7 robust feasible HC moment package.
+- Theorem 9.3's homoskedastic multivariate Wald rejection-probability/size-α conclusion is
+  formalized for linear hypotheses with the Chapter 7 iid robust feasible HC package plus
+  homoskedasticity.
+- Theorems 9.4–9.11 are still pending.
 
 ## LaTeX / Lean Crosswalk
 
@@ -115,9 +121,9 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 9.1 | Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c)) | [olsHC0LinTTest_rejectionProb_tendsto](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L97) — claim (b) only: the OLS HC0 t-test rejection-probability limit, via the generic bridge [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L64).<br>Hypotheses are the Chapter 7 robust-inference package, stronger than bare Assumptions 7.2/7.3; the null holds by construction.<br>Claim (a) `T(θ₀) →d N(0,1)` is reused from Chapter 7 (`olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal`); claim (c) "asymptotic size α" is not separately stated. |
-| Theorem 9.2 | Under Assumptions 7.2, 7.3, 7.4, andH0 |  |
-| Theorem 9.3 | Under Assumptions 7.2 and 7.3, E |  |
+| Theorem 9.1 | Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c)) | [olsHC0LinTTest_rejectionProb_tendsto](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L133) gives the OLS HC0 t-test rejection-probability limit, via [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L86).<br>[olsHC0LinTTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L171) is the calibrated size-α wrapper.<br>Claim (a) `T(θ₀) →d N(0,1)` is reused from Chapter 7 (`olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal`). Hypotheses are the Chapter 7 robust-inference package, stronger than bare Assumptions 7.2/7.3; the null holds by construction. |
+| Theorem 9.2 | Under Assumptions 7.2, 7.3, 7.4, and H₀ : θ = θ₀ ∈ ℝq, W →d χ²q; calibrated critical values give asymptotic size α | [linMap_olsHC0WaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L259) formalizes the rejection-probability/size-α conclusion for linear hypotheses, using the Chapter 7 robust HC0 multivariate Wald limit.<br>The convergence claim itself is reused from Chapter 7 (`linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFeasibleHCMomentConditions`). Hypotheses are stronger than Hansen's bare assumptions because they use `RobustFeasibleHCMomentConditions`. |
+| Theorem 9.3 | Under Assumptions 7.2, 7.3, homoskedasticity, and H₀ : θ = θ₀ ∈ ℝq, W⁰ →d χ²q; calibrated critical values give asymptotic size α | [linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L292) formalizes the rejection-probability/size-α conclusion for linear hypotheses, using the Chapter 7 homoskedastic multivariate Wald limit.<br>The convergence claim itself is reused from Chapter 7 (`linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_of_iidRobustFeasibleHC`). Hypotheses include the Chapter 7 iid robust feasible HC package plus `HomoskedasticErrorVariance`. |
 | Theorem 9.4 | Under Assumptions 7.2, 7.3, 7.4, and H0 |  |
 | Theorem 9.5 | Under Assumptions 7.2 and 7.3, E |  |
 | Theorem 9.6 | For tests of linear hypotheses H0 |  |
@@ -131,19 +137,25 @@ Conventions:
 
 | Lean theorem | Role |
 | --- | --- |
-| [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L64) | Generic Chapter 9 asymptotic-size bridge: from an absolute-t-statistic distributional limit it derives the two-sided test's rejection-probability limit `P[|T| > c] → P[|Z| > c]`. The reusable engine behind the concrete OLS HC0 t-test endpoint, intended to back Theorems 9.2–9.11; the rejection-region counterpart of Chapter 7's `symmetricCI_coverage_of_abs_tstat`. |
+| [linMapOlsWaldStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L58) | Chapter 9 textbook-facing multivariate linear-hypothesis Wald statistic, written with `olsBetaOrZero` and an arbitrary covariance estimator. |
+| [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L86) | Generic Chapter 9 asymptotic-size bridge: from an absolute-t-statistic distributional limit it derives the two-sided test's rejection-probability limit `P[|T| > c] → P[|Z| > c]`. |
+| [tTest_rejectionProb_tendsto_alpha_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L102) | Calibrated size-α version of the generic t-test rejection bridge. |
+| [chiSquaredTest_rejectionProb_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L217) | Generic chi-square rejection bridge: from `Wₙ →d χ²(q)` it derives `P[Wₙ > c] → χ²(q)((c,∞))`. This backs Wald, minimum-distance, score, and Hausman testing wrappers. |
+| [chiSquaredTest_rejectionProb_tendsto_alpha_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L238) | Calibrated size-α version of the generic chi-square rejection bridge. |
 
 ## Notes
 
 - This is currently a theorem-surface map for the chapter; Lean cells stay blank until each
   result lands.
-- The Theorem 9.1 row formalizes only claim (b), the rejection-probability limit. Claim (a)
-  (`T(θ₀) →d N(0,1)`) is Hansen Theorem 7.11, reused from Chapter 7 rather than reproved;
-  claim (c) ("asymptotic size α") follows immediately but is not a separate declaration.
+- The Theorem 9.1 row formalizes the rejection-probability limit and the calibrated
+  size-α wrapper. Claim (a) (`T(θ₀) →d N(0,1)`) is Hansen Theorem 7.11, reused from
+  Chapter 7 rather than reproved.
 - The hypotheses are the Chapter 7 robust-inference package
   (`RobustCovarianceConsistencyConditions` plus score-weight conditions), documented there as
   stronger than Hansen's bare Assumptions 7.2/7.3. The null is encoded by construction (the
   t-statistic is centred at the true coefficient), so the statement is the conclusion under `H₀`.
-- `tTest_rejectionProb_tendsto_of_abs_tstat` is the generic rejection-probability bridge intended
-  to back the remaining Chapter 9 t-test endpoints, mirroring Chapter 7's
-  `symmetricCI_coverage_of_abs_tstat`.
+- The Theorem 9.2 and 9.3 wrappers are currently linear-hypothesis Wald-test statements.
+  Nonlinear Wald statistic wrappers remain pending.
+- The Chapter 9 generic rejection bridges use `ℝ≥0∞` measure-valued size parameters, matching
+  Lean's `Measure` codomain. A later real-valued reporting wrapper can be added if chapter prose
+  needs literal real-valued α notation.
