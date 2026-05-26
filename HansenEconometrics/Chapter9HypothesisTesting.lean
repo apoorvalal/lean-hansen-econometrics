@@ -30,6 +30,10 @@ Chapter 9. The current public surface covers:
   minimum-distance testing slice of Theorems 9.4 and 9.5, using Hansen's
   deterministic identity between the EMD/CLS criterion statistics and the
   corresponding Wald statistics.
+* `linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees` and
+  `linMap_olsHomoFTest_rejectionProb_tendsto_alpha` — Theorem 9.6's
+  linear-hypothesis F-test slice: `F = W⁰ / q`, hence the asymptotic
+  `χ²(q) / q` null law.
 * `olsHC0LinTTest_rejectionProb_tendsto` — Theorem 9.1's asymptotic-size half
   for the ordinary-OLS HC0 t-test: the rejection probability of the two-sided
   test converges to `P[|Z| > c]`. The hypotheses are the standard Chapter 7
@@ -55,6 +59,20 @@ open Matrix
 variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
 variable {k : Type*} [Fintype k] [DecidableEq k]
 
+/-- The scaled chi-square law `χ²(q) / q` used for asymptotic F-test limits. -/
+noncomputable def chiSquaredDivDegrees (q : ℕ) : Measure ℝ :=
+  (chiSquared q).map fun x : ℝ => x / (q : ℝ)
+
+lemma isProbabilityMeasure_chiSquaredDivDegrees {q : ℕ} (hq : 0 < q) :
+    IsProbabilityMeasure (chiSquaredDivDegrees q) := by
+  haveI : IsProbabilityMeasure (chiSquared q) := isProbabilityMeasure_chiSquared hq
+  change IsProbabilityMeasure ((chiSquared q).map fun x : ℝ => x / (q : ℝ))
+  exact Measure.isProbabilityMeasure_map (by fun_prop)
+
+instance instIsProbabilityMeasureChiSquaredDivDegrees {q : ℕ} [Fact (0 < q)] :
+    IsProbabilityMeasure (chiSquaredDivDegrees q) :=
+  isProbabilityMeasure_chiSquaredDivDegrees (q := q) Fact.out
+
 /-- Multivariate linear-hypothesis Wald statistic for totalized ordinary OLS.
 
 This is the Chapter 9 textbook-facing statistic for a linear map `R`, written
@@ -66,6 +84,26 @@ noncomputable def linMapOlsWaldStatOrZero
     (β : k → ℝ) (root : ℝ) : ℝ :=
   let d : Fin r → ℝ := R *ᵥ (root • (olsBetaOrZero X y - β))
   d ⬝ᵥ (((R * Vhat * Rᵀ)⁻¹) *ᵥ d)
+
+/-- Linear-hypothesis F statistic, written as the homoskedastic Wald statistic divided by `q`.
+
+The covariance estimator argument is kept explicit so the definition can share
+the same notation as `linMapOlsWaldStatOrZero`; Theorem 9.6 uses the
+homoskedastic covariance estimator. -/
+noncomputable def linMapOlsFStatOrZero
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) : ℝ :=
+  linMapOlsWaldStatOrZero R Vhat X y β root / (r : ℝ)
+
+/-- Hansen's linear-hypothesis identity `F = W⁰ / q` in statistic form. -/
+theorem linMapOlsFStatOrZero_eq_wald_div
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) :
+    linMapOlsFStatOrZero R Vhat X y β root =
+      linMapOlsWaldStatOrZero R Vhat X y β root / (r : ℝ) :=
+  rfl
 
 /-- Efficient minimum-distance criterion statistic for linear hypotheses.
 
@@ -292,6 +330,63 @@ theorem chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
   rw [hcrit] at hlim
   exact hlim
 
+/-- The scaled chi-square law `χ²(q) / q` has no atom at the frontier of `(c, ∞)`. -/
+private theorem chiSquaredDivDegrees_frontier_Ioi_null
+    (q : ℕ) [Fact (0 < q)] (crit : ℝ) :
+    (chiSquaredDivDegrees q) (frontier (Set.Ioi crit)) = 0 := by
+  rw [chiSquaredDivDegrees, frontier_Ioi]
+  rw [Measure.map_apply (by fun_prop : Measurable fun x : ℝ => x / (q : ℝ))
+    (measurableSet_singleton crit)]
+  have hqpos : (0 : ℝ) < (q : ℝ) := by exact_mod_cast (Fact.out : 0 < q)
+  have hqne : (q : ℝ) ≠ 0 := hqpos.ne'
+  have hpre_subset :
+      (fun x : ℝ => x / (q : ℝ)) ⁻¹' ({crit} : Set ℝ) ⊆
+        ({crit * (q : ℝ)} : Set ℝ) := by
+    intro x hx
+    simp only [Set.mem_preimage, Set.mem_singleton_iff] at hx
+    simp only [Set.mem_singleton_iff]
+    calc
+      x = x / (q : ℝ) * (q : ℝ) := (div_mul_cancel₀ x hqne).symm
+      _ = crit * (q : ℝ) := by rw [hx]
+  haveI : NoAtoms (chiSquared q) := instNoAtomsChiSquared q
+  exact measure_mono_null hpre_subset (measure_singleton (crit * (q : ℝ)))
+
+/-- Generic Chapter 9 rejection-probability bridge for F-test limits.
+
+If an F statistic converges in distribution to `χ²(q) / q`, then the rejection
+probability of the rule `{Fₙ > c}` converges to the corresponding scaled
+chi-square upper-tail mass. -/
+theorem fTest_rejectionProb_tendsto_of_stat
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Fstat : ℕ → Ω → ℝ} {q : ℕ} [Fact (0 < q)] {crit : ℝ}
+    (hF : TendstoInDistribution Fstat atTop (fun x : ℝ => x)
+      (fun _ => μ) (chiSquaredDivDegrees q)) :
+    Tendsto (fun n => μ {ω | crit < Fstat n ω}) atTop
+      (𝓝 ((chiSquaredDivDegrees q) (Set.Ioi crit))) := by
+  have hfrontier :
+      ((chiSquaredDivDegrees q).map (fun x : ℝ => x)) (frontier (Set.Ioi crit)) = 0 := by
+    simpa using chiSquaredDivDegrees_frontier_Ioi_null q crit
+  have h := TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+    hF (E := Set.Ioi crit) measurableSet_Ioi hfrontier
+  have hmap : (chiSquaredDivDegrees q).map (fun x : ℝ => x) =
+      chiSquaredDivDegrees q := by
+    simp
+  simpa only [Set.mem_Ioi, hmap] using h
+
+/-- Size-`α` wrapper for `fTest_rejectionProb_tendsto_of_stat`. -/
+theorem fTest_rejectionProb_tendsto_alpha_of_stat
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Fstat : ℕ → Ω → ℝ} {q : ℕ} [Fact (0 < q)] {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquaredDivDegrees q) (Set.Ioi crit) = alpha)
+    (hF : TendstoInDistribution Fstat atTop (fun x : ℝ => x)
+      (fun _ => μ) (chiSquaredDivDegrees q)) :
+    Tendsto (fun n => μ {ω | crit < Fstat n ω}) atTop (𝓝 alpha) := by
+  have hlim :=
+    fTest_rejectionProb_tendsto_of_stat
+      (μ := μ) (Fstat := Fstat) (q := q) (crit := crit) hF
+  rw [hcrit] at hlim
+  exact hlim
+
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 9.2, robust multivariate Wald test, asymptotic-size `α` form.**
 
@@ -423,5 +518,90 @@ theorem clsLinearJTest_rejectionProb_tendsto_alpha
     linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha
       (μ := μ) (X := X) (e := e) (y := y) (r := r)
       β R hm hX0 hhomo hV_posDef hcrit
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 9.6, linear F statistic, asymptotic `χ²(q) / q` law.**
+
+For a linear hypothesis encoded by `R`, the homoskedastic F statistic is the
+homoskedastic Wald statistic divided by the number of restrictions. Therefore
+the Chapter 7 homoskedastic Wald limit implies the scaled chi-square limit
+`χ²(r) / r`. The hypotheses reuse Chapter 7's iid robust feasible HC package
+plus homoskedasticity, which is stronger than Hansen's bare asymptotic
+assumption stack. -/
+theorem linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (β : k → ℝ) (R : Matrix (Fin r) k ℝ)
+    (hm : IidRobustFeasibleHCMomentConditions μ X e y β)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hV_posDef : (R * homoAsymCov μ X e * Rᵀ).PosDef) :
+    TendstoInDistribution
+      (fun n ω =>
+        linMapOlsFStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquaredDivDegrees r) := by
+  have hW :=
+    linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_of_iidRobustFeasibleHC
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      β R hm hX0 hhomo hV_posDef
+  have hFraw :
+      TendstoInDistribution
+        (fun n ω =>
+          linMapOlsFStatOrZero R
+            (olsHomoCovStar
+              (stackRegressors X n ω) (stackOutcomes y n ω))
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+        atTop (fun x : ℝ => x / (r : ℝ)) (fun _ => μ) (chiSquared r) := by
+    simpa [Function.comp_def, linMapOlsFStatOrZero, linMapOlsWaldStatOrZero] using
+      hW.continuous_comp (by fun_prop : Continuous fun x : ℝ => x / (r : ℝ))
+  have hLaw :
+      HasLaw (fun x : ℝ => x / (r : ℝ)) (chiSquaredDivDegrees r) (chiSquared r) := by
+    exact ⟨by fun_prop, rfl⟩
+  exact tendstoInDistribution_id_of_hasLaw_limit_real hFraw hLaw
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 9.6, linear F test, asymptotic-size `α` form.**
+
+If the F critical value is calibrated against the `χ²(r) / r` upper-tail law,
+then the homoskedastic OLS F-test rejection probability tends to `α`. -/
+theorem linMap_olsHomoFTest_rejectionProb_tendsto_alpha
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (β : k → ℝ) (R : Matrix (Fin r) k ℝ)
+    (hm : IidRobustFeasibleHCMomentConditions μ X e y β)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hV_posDef : (R * homoAsymCov μ X e * Rᵀ).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquaredDivDegrees r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun n => μ {ω | crit <
+        linMapOlsFStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ))})
+      atTop (𝓝 alpha) := by
+  have hF :=
+    linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      β R hm hX0 hhomo hV_posDef
+  exact fTest_rejectionProb_tendsto_alpha_of_stat
+    (μ := μ) (Fstat := fun n ω =>
+      linMapOlsFStatOrZero R
+        (olsHomoCovStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+        (stackRegressors X n ω) (stackOutcomes y n ω) β
+        (Real.sqrt (n : ℝ)))
+    (q := r) (crit := crit) (alpha := alpha) hcrit hF
 
 end HansenEconometrics
