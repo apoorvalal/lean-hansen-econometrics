@@ -36,6 +36,10 @@ Chapter 9. The current public surface covers:
   `χ²(q) / q` null law.
 * `linMap_olsHC0HausmanTest_rejectionProb_tendsto_alpha` — the
   linear-hypothesis Hausman/Wald equivalence slice of Theorem 9.7.
+* `tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop` and
+  `waldTest_consistent_of_stat_tendstoInProbabilityAtTop` — the fixed-alternative
+  consistency bridges for Theorems 9.8 and 9.9 once the relevant statistic is
+  known to diverge to `+∞` in probability.
 * `olsHC0LinTTest_rejectionProb_tendsto` — Theorem 9.1's asymptotic-size half
   for the ordinary-OLS HC0 t-test: the rejection probability of the two-sided
   test converges to `P[|Z| > c]`. The hypotheses are the standard Chapter 7
@@ -413,6 +417,67 @@ theorem fTest_rejectionProb_tendsto_alpha_of_stat
       (μ := μ) (Fstat := Fstat) (q := q) (crit := crit) hF
   rw [hcrit] at hlim
   exact hlim
+
+/-- Hansen Definition 9.4: a real statistic diverges to `+∞` in probability.
+
+The codomain is `ℝ≥0∞`, matching Lean's measure-valued probabilities. -/
+def TendstoInProbabilityAtTop (μ : Measure Ω) (T : ℕ → Ω → ℝ) : Prop :=
+  ∀ M : ℝ, Tendsto (fun n => μ {ω | T n ω ≤ M}) atTop (𝓝 (0 : ℝ≥0∞))
+
+/-- Generic consistency bridge for upper-tail tests.
+
+If `Tₙ →p +∞`, then for any fixed finite critical value `c`, the rejection
+probability of the rule `{Tₙ > c}` tends to one. -/
+theorem rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {crit : ℝ}
+    (hmeas : ∀ n, NullMeasurableSet {ω | T n ω ≤ crit} μ)
+    (hT : TendstoInProbabilityAtTop μ T) :
+    Tendsto (fun n => μ {ω | crit < T n ω}) atTop (𝓝 (1 : ℝ≥0∞)) := by
+  have hbad := hT crit
+  have hEq :
+      (fun n => μ {ω | crit < T n ω}) =
+        fun n => 1 - μ {ω | T n ω ≤ crit} := by
+    funext n
+    have hcompl : {ω | crit < T n ω} = ({ω | T n ω ≤ crit} : Set Ω)ᶜ := by
+      ext ω
+      simp [not_le]
+    rw [hcompl, prob_compl_eq_one_sub₀ (μ := μ)
+      (s := {ω | T n ω ≤ crit}) (hmeas n)]
+  rw [hEq]
+  simpa using
+    ENNReal.Tendsto.sub tendsto_const_nhds hbad
+      (Or.inl (by simp : (1 : ℝ≥0∞) ≠ ∞))
+
+/-- **Hansen Theorem 9.8, consistency bridge for two-sided t tests.**
+
+Once the absolute t statistic diverges to `+∞` in probability under a fixed
+alternative, every fixed two-sided rejection threshold is crossed with
+probability tending to one. The model-specific proof of `|Tₙ| →p +∞` remains a
+separate premise. -/
+theorem tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {crit : ℝ}
+    (hmeas : ∀ n, NullMeasurableSet {ω | |T n ω| ≤ crit} μ)
+    (hT : TendstoInProbabilityAtTop μ (fun n ω => |T n ω|)) :
+    Tendsto (fun n => μ {ω | crit < |T n ω|}) atTop (𝓝 (1 : ℝ≥0∞)) :=
+  rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop
+    (μ := μ) (T := fun n ω => |T n ω|) (crit := crit) hmeas hT
+
+/-- **Hansen Theorem 9.9, consistency bridge for Wald tests.**
+
+Once a Wald statistic diverges to `+∞` in probability under a fixed
+alternative, every fixed upper-tail rejection threshold is crossed with
+probability tending to one. The model-specific proof of `Wₙ →p +∞` remains a
+separate premise. -/
+theorem waldTest_consistent_of_stat_tendstoInProbabilityAtTop
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {W : ℕ → Ω → ℝ} {crit : ℝ}
+    (hmeas : ∀ n, NullMeasurableSet {ω | W n ω ≤ crit} μ)
+    (hW : TendstoInProbabilityAtTop μ W) :
+    Tendsto (fun n => μ {ω | crit < W n ω}) atTop (𝓝 (1 : ℝ≥0∞)) :=
+  rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop
+    (μ := μ) (T := W) (crit := crit) hmeas hW
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 9.2, robust multivariate Wald test, asymptotic-size `α` form.**
