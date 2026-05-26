@@ -40,6 +40,11 @@ Chapter 9. The current public surface covers:
   `waldTest_consistent_of_stat_tendstoInProbabilityAtTop` — the fixed-alternative
   consistency bridges for Theorems 9.8 and 9.9 once the relevant statistic is
   known to diverge to `+∞` in probability.
+* `tTest_localPower_tendsto_of_tstat_shiftedNormal` and
+  `waldTest_localPower_tendsto_of_stat` — the local-power bridges for Theorems
+  9.10 and 9.11. The scalar t-test bridge uses a shifted normal law; the Wald
+  bridge accepts the local-alternative limit law abstractly, so it can later be
+  instantiated by a concrete noncentral chi-square distribution.
 * `olsHC0LinTTest_rejectionProb_tendsto` — Theorem 9.1's asymptotic-size half
   for the ordinary-OLS HC0 t-test: the rejection probability of the two-sided
   test converges to `P[|Z| > c]`. The hypotheses are the standard Chapter 7
@@ -186,6 +191,40 @@ private theorem standardNormalAbs_frontier_Ioi_null (crit : ℝ) :
   rw [hfr]
   exact standardNormalAbs_frontier_Iic_null crit
 
+/-- The absolute value of a shifted `N(mean, 1)` law has no atom at the
+frontier of `(-∞, c]`. -/
+private theorem normalAbs_frontier_Iic_null (mean crit : ℝ) :
+    ((gaussianReal mean 1).map (fun x : ℝ => |x|)) (frontier (Set.Iic crit)) = 0 := by
+  rw [frontier_Iic]
+  rw [Measure.map_apply continuous_abs.measurable (measurableSet_singleton crit)]
+  have hpre_subset :
+      (fun x : ℝ => |x|) ⁻¹' ({crit} : Set ℝ) ⊆
+        ({crit} ∪ {-crit} : Set ℝ) := by
+    intro x hx
+    simp only [Set.mem_preimage, Set.mem_singleton_iff] at hx
+    simp only [Set.mem_union, Set.mem_singleton_iff]
+    by_cases hx_nonneg : 0 ≤ x
+    · left
+      simpa [abs_of_nonneg hx_nonneg] using hx
+    · right
+      have hx_neg : x < 0 := lt_of_not_ge hx_nonneg
+      have hneg : -x = crit := by
+        simpa [abs_of_neg hx_neg] using hx
+      linarith
+  haveI : NoAtoms (gaussianReal mean 1) :=
+    noAtoms_gaussianReal (μ := mean) (v := 1) (by norm_num)
+  exact measure_mono_null hpre_subset
+    (measure_union_null (measure_singleton crit) (measure_singleton (-crit)))
+
+/-- The absolute value of a shifted `N(mean, 1)` law has no atom at the
+frontier of `(c, ∞)`. -/
+private theorem normalAbs_frontier_Ioi_null (mean crit : ℝ) :
+    ((gaussianReal mean 1).map (fun x : ℝ => |x|)) (frontier (Set.Ioi crit)) = 0 := by
+  have hfr : frontier (Set.Ioi crit) = frontier (Set.Iic crit) := by
+    rw [frontier_Ioi, frontier_Iic]
+  rw [hfr]
+  exact normalAbs_frontier_Iic_null mean crit
+
 /-- **Hansen Theorem 9.1, asymptotic size bridge for two-sided t tests.**
 
 If the absolute value of a sequence of test statistics `T` converges in
@@ -221,6 +260,42 @@ theorem tTest_rejectionProb_tendsto_alpha_of_abs_tstat
     Tendsto (fun n => μ {ω | crit < |T n ω|}) atTop (𝓝 alpha) := by
   simpa [hcrit] using
     tTest_rejectionProb_tendsto_of_abs_tstat (μ := μ) (T := T) (crit := crit) hT
+
+/-- **Hansen Theorem 9.10, shifted-normal local-power bridge for two-sided t tests.**
+
+If the absolute t statistic converges in distribution to `|N(δ, 1)|` under a
+local alternative, then the rejection probability of the rule `{|Tₙ| > c}`
+converges to the shifted-normal two-sided tail probability. -/
+theorem tTest_localPower_tendsto_of_abs_tstat_shiftedNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {crit delta : ℝ}
+    (hT : TendstoInDistribution (fun n ω => |T n ω|) atTop
+      (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal delta 1)) :
+    Tendsto (fun n => μ {ω | crit < |T n ω|}) atTop
+      (𝓝 (((gaussianReal delta 1).map (fun x : ℝ => |x|)) (Set.Ioi crit))) := by
+  have h := TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+    hT (E := Set.Ioi crit) measurableSet_Ioi
+    (normalAbs_frontier_Ioi_null delta crit)
+  simpa only [Set.mem_Ioi] using h
+
+/-- **Hansen Theorem 9.10, local-power bridge from a shifted-normal t limit.**
+
+If the t statistic converges to `N(δ, 1)` under a local alternative, then the
+two-sided rejection probability converges to `P(|N(δ,1)| > c)`. In Hansen's
+notation, the shift `δ` is the local-alternative drift determined by `h` and
+the asymptotic variance. -/
+theorem tTest_localPower_tendsto_of_tstat_shiftedNormal
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {crit delta : ℝ}
+    (hT : TendstoInDistribution T atTop (fun x : ℝ => x)
+      (fun _ => μ) (gaussianReal delta 1)) :
+    Tendsto (fun n => μ {ω | crit < |T n ω|}) atTop
+      (𝓝 (((gaussianReal delta 1).map (fun x : ℝ => |x|)) (Set.Ioi crit))) := by
+  have hAbs : TendstoInDistribution (fun n ω => |T n ω|) atTop
+      (fun x : ℝ => |x|) (fun _ => μ) (gaussianReal delta 1) := by
+    simpa [Function.comp_def] using hT.continuous_comp continuous_abs
+  exact tTest_localPower_tendsto_of_abs_tstat_shiftedNormal
+    (μ := μ) (T := T) (crit := crit) (delta := delta) hAbs
 
 /-- **Hansen Theorem 9.1, asymptotic-size half, for the ordinary-OLS HC0 t-test.**
 
@@ -478,6 +553,29 @@ theorem waldTest_consistent_of_stat_tendstoInProbabilityAtTop
     Tendsto (fun n => μ {ω | crit < W n ω}) atTop (𝓝 (1 : ℝ≥0∞)) :=
   rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop
     (μ := μ) (T := W) (crit := crit) hmeas hW
+
+/-- **Hansen Theorem 9.11, abstract local-power bridge for Wald tests.**
+
+If a Wald statistic converges under a local alternative to a real limit law `ν`
+whose upper-tail frontier has zero mass, then the rejection probability of
+`{Wₙ > c}` converges to the upper-tail mass of `ν`. This is stated with an
+abstract `ν` because the repo does not yet define a concrete noncentral
+chi-square law. -/
+theorem waldTest_localPower_tendsto_of_stat
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure ℝ} [IsProbabilityMeasure ν]
+    {W : ℕ → Ω → ℝ} {crit : ℝ}
+    (hfrontier : ν (frontier (Set.Ioi crit)) = 0)
+    (hW : TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => μ) ν) :
+    Tendsto (fun n => μ {ω | crit < W n ω}) atTop (𝓝 (ν (Set.Ioi crit))) := by
+  have hfrontier' :
+      (ν.map (fun x : ℝ => x)) (frontier (Set.Ioi crit)) = 0 := by
+    simpa using hfrontier
+  have h := TendstoInDistribution.tendsto_measure_preimage_of_null_frontier_real
+    hW (E := Set.Ioi crit) measurableSet_Ioi hfrontier'
+  have hmap : (ν.map (fun x : ℝ => x)) (Set.Ioi crit) = ν (Set.Ioi crit) := by
+    simp
+  simpa only [Set.mem_Ioi, hmap] using h
 
 set_option linter.style.longLine false in
 /-- **Hansen Theorem 9.2, robust multivariate Wald test, asymptotic-size `α` form.**
