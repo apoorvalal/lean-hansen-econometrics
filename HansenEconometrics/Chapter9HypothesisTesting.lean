@@ -25,6 +25,11 @@ Chapter 9. The current public surface covers:
   `linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha` — Theorems 9.2 and 9.3's
   rejection-probability/size-`α` conclusions for the Chapter 7 robust and
   homoskedastic multivariate Wald statistics.
+* `emdLinearJTest_rejectionProb_tendsto_alpha` and
+  `clsLinearJTest_rejectionProb_tendsto_alpha` — the linear-hypothesis
+  minimum-distance testing slice of Theorems 9.4 and 9.5, using Hansen's
+  deterministic identity between the EMD/CLS criterion statistics and the
+  corresponding Wald statistics.
 * `olsHC0LinTTest_rejectionProb_tendsto` — Theorem 9.1's asymptotic-size half
   for the ordinary-OLS HC0 t-test: the rejection probability of the two-sided
   test converges to `P[|Z| > c]`. The hypotheses are the standard Chapter 7
@@ -61,6 +66,45 @@ noncomputable def linMapOlsWaldStatOrZero
     (β : k → ℝ) (root : ℝ) : ℝ :=
   let d : Fin r → ℝ := R *ᵥ (root • (olsBetaOrZero X y - β))
   d ⬝ᵥ (((R * Vhat * Rᵀ)⁻¹) *ᵥ d)
+
+/-- Efficient minimum-distance criterion statistic for linear hypotheses.
+
+For linear restrictions Hansen shows `J* = W`; this definition exposes the
+minimum-distance name while keeping `linMapOlsWaldStatOrZero` as the canonical
+linear-hypothesis quadratic-form implementation. -/
+noncomputable def emdLinearJStatOrZero
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) : ℝ :=
+  linMapOlsWaldStatOrZero R Vhat X y β root
+
+/-- Homoskedastic constrained-least-squares minimum-distance statistic for linear hypotheses.
+
+For linear restrictions Hansen shows the homoskedastic minimum-distance
+criterion statistic equals the homoskedastic Wald statistic. -/
+noncomputable def clsLinearJStatOrZero
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) : ℝ :=
+  linMapOlsWaldStatOrZero R Vhat X y β root
+
+/-- Hansen's linear-hypothesis identity `J* = W` for efficient minimum-distance tests. -/
+theorem emdLinearJStatOrZero_eq_wald
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) :
+    emdLinearJStatOrZero R Vhat X y β root =
+      linMapOlsWaldStatOrZero R Vhat X y β root :=
+  rfl
+
+/-- Hansen's linear-hypothesis identity between homoskedastic MD and homoskedastic Wald tests. -/
+theorem clsLinearJStatOrZero_eq_wald
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) :
+    clsLinearJStatOrZero R Vhat X y β root =
+      linMapOlsWaldStatOrZero R Vhat X y β root :=
+  rfl
 
 /-- The absolute standard-normal law has no atom at the frontier of `(c, ∞)`.
 
@@ -317,5 +361,67 @@ theorem linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha
     chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
       (μ := μ) (q := r) (crit := crit) (alpha := alpha) hcrit hW
   simpa [linMapOlsWaldStatOrZero] using hlim
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 9.4, linear efficient minimum-distance test, asymptotic-size `α` form.**
+
+This is the linear-hypothesis slice of the efficient minimum-distance test:
+Hansen's deterministic identity `J* = W` reduces the rejection-probability
+claim to the robust Wald wrapper. Nonlinear efficient-MD criterion tests remain
+pending. -/
+theorem emdLinearJTest_rejectionProb_tendsto_alpha
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (β : k → ℝ) (R : Matrix (Fin r) k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hV_posDef : (R * heteroAsymCov μ X e * Rᵀ).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun n => μ {ω | crit <
+        emdLinearJStatOrZero R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ))})
+      atTop (𝓝 alpha) := by
+  simpa [emdLinearJStatOrZero] using
+    linMap_olsHC0WaldTest_rejectionProb_tendsto_alpha
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      β R hm hV_posDef hcrit
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 9.5, linear homoskedastic minimum-distance test,
+asymptotic-size `α` form.**
+
+This is the linear-hypothesis slice of the homoskedastic minimum-distance test:
+Hansen's deterministic identity with the homoskedastic Wald statistic reduces
+the rejection-probability claim to the homoskedastic Wald wrapper. Nonlinear
+homoskedastic MD criterion tests remain pending. -/
+theorem clsLinearJTest_rejectionProb_tendsto_alpha
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (β : k → ℝ) (R : Matrix (Fin r) k ℝ)
+    (hm : IidRobustFeasibleHCMomentConditions μ X e y β)
+    (hX0 : Measurable (X 0))
+    [SigmaFinite (μ.trim (conditioningSpace_le hX0))]
+    (hhomo : HomoskedasticErrorVariance μ X e)
+    (hV_posDef : (R * homoAsymCov μ X e * Rᵀ).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun n => μ {ω | crit <
+        clsLinearJStatOrZero R
+          (olsHomoCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ))})
+      atTop (𝓝 alpha) := by
+  simpa [clsLinearJStatOrZero] using
+    linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      β R hm hX0 hhomo hV_posDef hcrit
 
 end HansenEconometrics
