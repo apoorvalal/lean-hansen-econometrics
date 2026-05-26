@@ -91,7 +91,10 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Theorem 9.1's asymptotic-size half — the t-test rejection-probability limit — landed in
+  `HansenEconometrics/Chapter9HypothesisTesting.lean`. The convergence half is reused from
+  Chapter 7 (Theorem 7.11); the size-α corollary is not separately stated.
+- Theorems 9.2–9.11 are still pending.
 
 ## LaTeX / Lean Crosswalk
 
@@ -106,12 +109,13 @@ Conventions:
 ## Links
 
 - [Hansen excerpt](../textbook/ch09/ch9_excerpt.txt)
+- [Hypothesis-testing file](../../HansenEconometrics/Chapter9HypothesisTesting.lean)
 
 ## Crosswalk
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 9.1 | Under Assumptions 7.2, 7.3, and H0 |  |
+| Theorem 9.1 | Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c)) | [olsHC0LinTTest_rejectionProb_tendsto](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L97) — claim (b) only: the OLS HC0 t-test rejection-probability limit, via the generic bridge [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L64).<br>Hypotheses are the Chapter 7 robust-inference package, stronger than bare Assumptions 7.2/7.3; the null holds by construction.<br>Claim (a) `T(θ₀) →d N(0,1)` is reused from Chapter 7 (`olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal`); claim (c) "asymptotic size α" is not separately stated. |
 | Theorem 9.2 | Under Assumptions 7.2, 7.3, 7.4, andH0 |  |
 | Theorem 9.3 | Under Assumptions 7.2 and 7.3, E |  |
 | Theorem 9.4 | Under Assumptions 7.2, 7.3, 7.4, and H0 |  |
@@ -123,7 +127,23 @@ Conventions:
 | Theorem 9.10 | Under Assumptions 7.2, 7.3, 7.4, and θn = r (βn) = r0 + n−1/2h, |  |
 | Theorem 9.11 | Under Assumptions 7.2, 7.3, 7.4, and θn = r (βn) = θ0 + n−1/2h, |  |
 
+## Lean-only bridge results
+
+| Lean theorem | Role |
+| --- | --- |
+| [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L64) | Generic Chapter 9 asymptotic-size bridge: from an absolute-t-statistic distributional limit it derives the two-sided test's rejection-probability limit `P[|T| > c] → P[|Z| > c]`. The reusable engine behind the concrete OLS HC0 t-test endpoint, intended to back Theorems 9.2–9.11; the rejection-region counterpart of Chapter 7's `symmetricCI_coverage_of_abs_tstat`. |
+
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- This is currently a theorem-surface map for the chapter; Lean cells stay blank until each
+  result lands.
+- The Theorem 9.1 row formalizes only claim (b), the rejection-probability limit. Claim (a)
+  (`T(θ₀) →d N(0,1)`) is Hansen Theorem 7.11, reused from Chapter 7 rather than reproved;
+  claim (c) ("asymptotic size α") follows immediately but is not a separate declaration.
+- The hypotheses are the Chapter 7 robust-inference package
+  (`RobustCovarianceConsistencyConditions` plus score-weight conditions), documented there as
+  stronger than Hansen's bare Assumptions 7.2/7.3. The null is encoded by construction (the
+  t-statistic is centred at the true coefficient), so the statement is the conclusion under `H₀`.
+- `tTest_rejectionProb_tendsto_of_abs_tstat` is the generic rejection-probability bridge intended
+  to back the remaining Chapter 9 t-test endpoints, mirroring Chapter 7's
+  `symmetricCI_coverage_of_abs_tstat`.
