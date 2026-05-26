@@ -34,6 +34,8 @@ Chapter 9. The current public surface covers:
   `linMap_olsHomoFTest_rejectionProb_tendsto_alpha` — Theorem 9.6's
   linear-hypothesis F-test slice: `F = W⁰ / q`, hence the asymptotic
   `χ²(q) / q` null law.
+* `linMap_olsHC0HausmanTest_rejectionProb_tendsto_alpha` — the
+  linear-hypothesis Hausman/Wald equivalence slice of Theorem 9.7.
 * `olsHC0LinTTest_rejectionProb_tendsto` — Theorem 9.1's asymptotic-size half
   for the ordinary-OLS HC0 t-test: the rejection probability of the two-sided
   test converges to `P[|Z| > c]`. The hypotheses are the standard Chapter 7
@@ -104,6 +106,31 @@ theorem linMapOlsFStatOrZero_eq_wald_div
     linMapOlsFStatOrZero R Vhat X y β root =
       linMapOlsWaldStatOrZero R Vhat X y β root / (r : ℝ) :=
   rfl
+
+/-- Linear-hypothesis Hausman statistic in its quadratic-difference form.
+
+For linear restrictions, the restricted estimator drops out after applying
+`R`; under the null this statistic is algebraically the Wald statistic. -/
+noncomputable def linMapOlsHausmanStatOrZero
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) : ℝ :=
+  let d : k → ℝ := root • (olsBetaOrZero X y - β)
+  d ⬝ᵥ ((Rᵀ * (R * Vhat * Rᵀ)⁻¹ * R) *ᵥ d)
+
+/-- Hansen's linear-hypothesis Hausman/Wald identity. -/
+theorem linMapOlsHausmanStatOrZero_eq_wald
+    {r : ℕ} {n : Type*} [Fintype n] (R : Matrix (Fin r) k ℝ)
+    (Vhat : Matrix k k ℝ) (X : Matrix n k ℝ) (y : n → ℝ)
+    (β : k → ℝ) (root : ℝ) :
+    linMapOlsHausmanStatOrZero R Vhat X y β root =
+      linMapOlsWaldStatOrZero R Vhat X y β root := by
+  let d : k → ℝ := root • (olsBetaOrZero X y - β)
+  let A : Matrix (Fin r) (Fin r) ℝ := (R * Vhat * Rᵀ)⁻¹
+  change d ⬝ᵥ ((Rᵀ * A * R) *ᵥ d) =
+    (R *ᵥ d) ⬝ᵥ (A *ᵥ (R *ᵥ d))
+  rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+  exact (mulVec_dotProduct_right R d (A *ᵥ (R *ᵥ d))).symm
 
 /-- Efficient minimum-distance criterion statistic for linear hypotheses.
 
@@ -603,5 +630,36 @@ theorem linMap_olsHomoFTest_rejectionProb_tendsto_alpha
         (stackRegressors X n ω) (stackOutcomes y n ω) β
         (Real.sqrt (n : ℝ)))
     (q := r) (crit := crit) (alpha := alpha) hcrit hF
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 9.7, linear Hausman/Wald equivalence slice,
+asymptotic-size `α` form.**
+
+For linear hypotheses the Hausman statistic reduces to the robust Wald
+statistic. This theorem records the corresponding rejection-probability
+conclusion. The general nonlinear Hausman statistic remains pending; Chapter 8
+already contains the efficient-MD Hausman-difference Gaussian limit that such a
+wrapper should consume. -/
+theorem linMap_olsHC0HausmanTest_rejectionProb_tendsto_alpha
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ}
+    {r : ℕ} [Fact (0 < r)]
+    (β : k → ℝ) (R : Matrix (Fin r) k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hV_posDef : (R * heteroAsymCov μ X e * Rᵀ).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun n => μ {ω | crit <
+        linMapOlsHausmanStatOrZero R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ))})
+      atTop (𝓝 alpha) := by
+  simpa [linMapOlsHausmanStatOrZero_eq_wald] using
+    linMap_olsHC0WaldTest_rejectionProb_tendsto_alpha
+      (μ := μ) (X := X) (e := e) (y := y) (r := r)
+      β R hm hV_posDef hcrit
 
 end HansenEconometrics
