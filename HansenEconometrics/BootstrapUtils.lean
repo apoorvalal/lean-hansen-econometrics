@@ -20,8 +20,9 @@ The public surface starts with:
   probability to a constant.
 * `TendstoInBootstrapProbability.lipschitz_comp` — a reusable bootstrap
   probability mapping bridge for globally Lipschitz transformations.
-* `TendstoInBootstrapProbability.add`, `.neg`, and `.sub` — elementary
-  bootstrap-probability algebra used by Slutsky and delta-method wrappers.
+* `TendstoInBootstrapProbability.prodMk`, `.add`, `.neg`, and `.sub` —
+  elementary bootstrap-probability algebra used by Slutsky, delta-method, and
+  plug-in covariance wrappers.
 
 The bootstrap-distribution interface is kept out of this first layer so that
 the Chapter 10 module can introduce it with the exact theorem-facing
@@ -319,6 +320,67 @@ theorem lipschitz_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
           _ = η := by
             field_simp [ne_of_gt hC]
       exact (not_lt_of_ge hωs) hmap_lt
+
+/-- Bootstrap convergence in probability is closed under forming product
+statistics. -/
+theorem prodMk [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Xstar : ℕ → Ω → Ωs → E} {X : Ω → E}
+    {Ystar : ℕ → Ω → Ωs → F} {Y : Ω → F}
+    (hX : TendstoInBootstrapProbability μ Pstar Xstar X)
+    (hY : TendstoInBootstrapProbability μ Pstar Ystar Y) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+      (fun ω => (X ω, Y ω)) := by
+  intro η hη
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProb Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (fun ω => (X ω, Y ω)) η n ω)
+    (g := fun n ω =>
+      bootstrapTailProb Pstar Xstar X η n ω +
+        bootstrapTailProb Pstar Ystar Y η n ω)
+    ?_ ?_
+    (tendstoInMeasure_add_nonneg_zero
+      (μ := μ)
+      (f := fun n ω => bootstrapTailProb Pstar Xstar X η n ω)
+      (g := fun n ω => bootstrapTailProb Pstar Ystar Y η n ω)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (hX η hη) (hY η hη))
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    let C : Set Ωs :=
+      {ωs | η ≤ dist (Xstar n ω ωs, Ystar n ω ωs) (X ω, Y ω)}
+    let A : Set Ωs := {ωs | η ≤ dist (Xstar n ω ωs) (X ω)}
+    let B : Set Ωs := {ωs | η ≤ dist (Ystar n ω ωs) (Y ω)}
+    have hsubset : C ⊆ A ∪ B := by
+      intro ωs hωs
+      rcases le_max_iff.mp (by simpa [C, A, B, Prod.dist_eq] using hωs) with h | h
+      · exact Or.inl h
+      · exact Or.inr h
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    calc
+      bootstrapTailProb Pstar
+          (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+          (fun ω => (X ω, Y ω)) η n ω
+          = ((Pstar n ω) C).toReal := rfl
+      _ ≤ ((Pstar n ω) (A ∪ B)).toReal :=
+          ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (A ∪ B))
+            (measure_mono hsubset)
+      _ ≤ ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+          ENNReal.toReal_mono
+            (ENNReal.add_ne_top.2
+              ⟨measure_ne_top (Pstar n ω) A, measure_ne_top (Pstar n ω) B⟩)
+            (measure_union_le A B)
+      _ ≤ ((Pstar n ω) A).toReal + ((Pstar n ω) B).toReal :=
+          ENNReal.toReal_add_le
+      _ = bootstrapTailProb Pstar Xstar X η n ω +
+          bootstrapTailProb Pstar Ystar Y η n ω := rfl
 
 set_option maxHeartbeats 400000 in
 -- The proof expands the bootstrap union-bound event and a finite-measure `toReal`

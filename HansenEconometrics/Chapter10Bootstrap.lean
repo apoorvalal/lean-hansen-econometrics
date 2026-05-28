@@ -42,6 +42,9 @@ used throughout the chapter:
   10.20 in its real-exponent `r > 1` form.
 * `chapter10_bootstrap_smooth_variance_consistency` is the plug-in covariance
   continuous-mapping bridge behind Hansen Theorem 10.8.
+* `chapter10_bootstrap_smooth_variance_consistency_of_components` derives the
+  Theorem 10.8 bridge from separate bootstrap convergence of the plug-in
+  Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
@@ -826,6 +829,29 @@ theorem chapter10_bootstrap_smooth_variance_consistency
     (c := (G, V))
     (g := fun p => smoothFunctionVarianceFunctional p.1 p.2)
     hPstar hGV smoothFunctionVarianceFunctional_continuous.continuousAt
+
+/-- Hansen Theorem 10.8, componentwise plug-in covariance bridge.
+
+This wrapper packages the usual proof shape: establish separate bootstrap
+convergence of the plug-in Jacobian and covariance inputs, combine them into a
+joint convergence statement, then apply the smooth covariance CMT. -/
+theorem chapter10_bootstrap_smooth_variance_consistency_of_components
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gstar : ℕ → Ω → Ωs → Matrix d r ℝ}
+    {Vstar : ℕ → Ω → Ωs → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hG :
+      TendstoInBootstrapProbability μ Pstar Gstar (fun _ => G))
+    (hV :
+      TendstoInBootstrapProbability μ Pstar Vstar (fun _ => V)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gstar n ω ωs) (Vstar n ω ωs))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_bootstrap_smooth_variance_consistency hPstar
+    (TendstoInBootstrapProbability.prodMk hPstar hG hV)
 
 end SmoothFunctionBootstrapVariance
 

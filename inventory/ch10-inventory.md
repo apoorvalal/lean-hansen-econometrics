@@ -109,8 +109,8 @@
 - Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
   the conditional bootstrap first and second moments implies convergence of the conditional
   bootstrap variance functional.
-- Theorem 10.8's smooth-function plug-in covariance bridge is formalized: joint bootstrap
-  convergence of the Jacobian/covariance pair implies bootstrap convergence of `G'VG`.
+- Theorem 10.8's smooth-function plug-in covariance bridge is formalized: separate or joint
+  bootstrap convergence of the Jacobian/covariance inputs implies bootstrap convergence of `G'VG`.
 - Theorem 10.13's percentile-interval coverage bridge is formalized: joint convergence of the
   scaled estimator error and bootstrap percentile endpoints implies convergence of the percentile
   coverage probability to the corresponding limit event probability.
@@ -159,7 +159,7 @@ Conventions:
 | Theorem 10.5 | Bootstrap Continuous Mapping Theorem |  |
 | Theorem 10.6 | Bootstrap Delta Method |  |
 | Theorem 10.7 | Under the assumptions of Theorem 6.10, that is, if Yi is i.i.d., |  |
-| Theorem 10.8 | Under the assumptions of Theorem 10.7, the bootstrap smooth-function plug-in covariance `V*_θ = G*' V* G*` satisfies `V*_θ →p* V_θ` | [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) proves the continuous-mapping bridge from joint bootstrap convergence of `(G*, V*)` to bootstrap convergence of `G*' V* G*`.<br>The concrete constructor deriving the joint premise from Theorem 10.7's bootstrap WLLN/CMT remains to be connected. |
+| Theorem 10.8 | Under the assumptions of Theorem 10.7, the bootstrap smooth-function plug-in covariance `V*_θ = G*' V* G*` satisfies `V*_θ →p* V_θ` | [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) proves the continuous-mapping bridge from joint bootstrap convergence of `(G*, V*)` to bootstrap convergence of `G*' V* G*`.<br>[chapter10_bootstrap_smooth_variance_consistency_of_components](../HansenEconometrics/Chapter10Bootstrap.lean) derives that bridge from separate bootstrap convergence of `G*` and `V*`.<br>The concrete constructor deriving those component premises from Theorem 10.7's bootstrap WLLN/CMT remains to be connected. |
 | Theorem 10.9 | If the normalized statistic and its bootstrap analogue have the same limit law and the bootstrap statistic is uniformly square integrable, then finite-replication bootstrap variance converges to the conditional bootstrap variance and the conditional bootstrap variance converges to the asymptotic variance | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) is the moment bridge for the second conclusion: conditional first/second moment convergence implies conditional bootstrap variance convergence.<br>The finite-`B` replication WLLN and the UI/distribution-to-moment constructors remain to be connected. |
 | Theorem 10.10 | In the smooth function model of Theorem 10.7, if for some |  |
 | Theorem 10.11 | As B → ∞, ˆV |  |
@@ -180,6 +180,7 @@ Conventions:
 | [bootstrapTailProb](../HansenEconometrics/BootstrapUtils.lean) | Conditional bootstrap tail probability used by Definition 10.1. |
 | [tendstoInBootstrapProbability_of_tail_bound](../HansenEconometrics/BootstrapUtils.lean) | Generic conditional tail-bound bridge; this is the reusable Markov/Chebyshev step for the centered bootstrap WLLN and later bootstrap consistency proofs. |
 | [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
+| [TendstoInBootstrapProbability.prodMk](../HansenEconometrics/BootstrapUtils.lean) | Product-statistic bridge for packaging componentwise bootstrap convergence into joint convergence. |
 | [TendstoInBootstrapProbability.neg](../HansenEconometrics/BootstrapUtils.lean), [TendstoInBootstrapProbability.sub](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability algebra for later Slutsky and delta-method wrappers. |
 | [TendstoInBootstrapProbability.lipschitz_comp](../HansenEconometrics/BootstrapUtils.lean) | Globally Lipschitz mapping bridge for bootstrap convergence in probability; exposed chapter-facing as [chapter10_bootstrap_lipschitz_mapping_probability](../HansenEconometrics/Chapter10Bootstrap.lean). |
 | [TendstoInDistribution.tendsto_measure_preimage_of_null_frontier](../HansenEconometrics/AsymptoticUtils.lean) | Generic Portmanteau event-probability bridge used by Chapter 10 coverage and critical-region wrappers. |
@@ -197,7 +198,7 @@ Conventions:
 | [bootstrapWLLNSecondMomentBound](../HansenEconometrics/Chapter10Bootstrap.lean) | Textbook `η^{-2} n^{-2} ∑ |u_i|^2` bound in the proof of Theorem 10.2. |
 | [bootstrapWLLNSecondMomentBound_tendsto_zero](../HansenEconometrics/Chapter10Bootstrap.lean) | Marcinkiewicz convergence of the second-moment bound used in Theorem 10.2. |
 | [smoothFunctionVarianceFunctional](../HansenEconometrics/Chapter10Bootstrap.lean), [smoothFunctionVarianceFunctional_continuous](../HansenEconometrics/Chapter10Bootstrap.lean) | Smooth-function covariance map `G'VG` and its continuity lemma for Hansen Theorem 10.8. |
-| [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.8 bridge: joint bootstrap convergence of the plug-in Jacobian/covariance inputs implies bootstrap convergence of the smooth-function covariance estimator. |
+| [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_smooth_variance_consistency_of_components](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.8 bridges: joint or componentwise bootstrap convergence of the plug-in Jacobian/covariance inputs implies bootstrap convergence of the smooth-function covariance estimator. |
 | [bootstrapMeanReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapSecondMomentReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapVarianceReal](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional bootstrap moment and variance functionals for real statistics. |
 | [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact conditional variance identity `Var* Z = E* Z² - (E* Z)²`. |
 | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.9 moment bridge: conditional moment convergence implies conditional bootstrap variance convergence. |
