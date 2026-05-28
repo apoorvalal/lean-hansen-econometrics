@@ -109,6 +109,8 @@
 - Theorem 10.5's bounded-continuous-test-function backend is started: the global-continuity
   bootstrap distributional CMT is formalized, with the textbook discontinuity-set-null
   generalization still to be connected.
+- Theorem 10.6's linear-image and Gaussian covariance Delta-method bridges are formalized; the
+  nonlinear differentiability remainder constructor remains to be connected.
 - Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
   the conditional bootstrap first and second moments implies convergence of the conditional
   bootstrap variance functional.
@@ -161,7 +163,7 @@ Conventions:
 | Definition 10.2 | Bootstrap convergence in distribution: conditional CDFs converge in probability at continuity points | [TendstoInBootstrapDistribution](../HansenEconometrics/Chapter10Bootstrap.lean) |
 | Theorem 10.4 | Bootstrap CLT. If Yi are i.i.d., E ∥Y ∥2 < ∞, and Σ = var[Y ] > 0, |  |
 | Theorem 10.5 | Bootstrap Continuous Mapping Theorem | [chapter10_bootstrap_continuous_mapping_distribution](../HansenEconometrics/Chapter10Bootstrap.lean) proves the globally continuous bounded-test-function face.<br>The full Hansen discontinuity-set-null form remains to be connected to the Portmanteau/ae-continuity bridge. |
-| Theorem 10.6 | Bootstrap Delta Method |  |
+| Theorem 10.6 | Bootstrap Delta Method | [chapter10_bootstrap_delta_method_linear](../HansenEconometrics/Chapter10Bootstrap.lean) gives the continuous-linear image bridge for the derivative map.<br>[chapter10_bootstrap_delta_method_matrix_linear](../HansenEconometrics/Chapter10Bootstrap.lean) is the finite-dimensional matrix-linear form.<br>[chapter10_bootstrap_delta_method_gaussian](../HansenEconometrics/Chapter10Bootstrap.lean) gives the Gaussian covariance specialization `N(0,V) ↦ N(0,G V G')`.<br>The full nonlinear constructor from differentiability plus an `o_p*` remainder remains to be connected. |
 | Theorem 10.7 | Under the assumptions of Theorem 6.10, that is, if Yi is i.i.d., |  |
 | Theorem 10.8 | Under the assumptions of Theorem 10.7, the bootstrap smooth-function plug-in covariance `V*_θ = G*' V* G*` satisfies `V*_θ →p* V_θ` | [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) proves the continuous-mapping bridge from joint bootstrap convergence of `(G*, V*)` to bootstrap convergence of `G*' V* G*`.<br>[chapter10_bootstrap_smooth_variance_consistency_of_components](../HansenEconometrics/Chapter10Bootstrap.lean) derives that bridge from separate bootstrap convergence of `G*` and `V*`.<br>The concrete constructor deriving those component premises from Theorem 10.7's bootstrap WLLN/CMT remains to be connected. |
 | Theorem 10.9 | If the normalized statistic and its bootstrap analogue have the same limit law and the bootstrap statistic is uniformly square integrable, then finite-replication bootstrap variance converges to the conditional bootstrap variance and the conditional bootstrap variance converges to the asymptotic variance | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) is the moment bridge for the second conclusion: conditional first/second moment convergence implies conditional bootstrap variance convergence.<br>The finite-`B` replication WLLN and the UI/distribution-to-moment constructors remain to be connected. |
@@ -194,6 +196,7 @@ Conventions:
 | [TendstoInBootstrapDistribution.congr](../HansenEconometrics/Chapter10Bootstrap.lean) | Pointwise congruence bridge for bootstrap convergence in distribution. |
 | [TendstoInBootstrapWeakDistribution](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapBoundedContinuousIntegral](../HansenEconometrics/Chapter10Bootstrap.lean) | Bounded-continuous-test-function backend for bootstrap distributional convergence. |
 | [chapter10_bootstrap_continuous_mapping_distribution](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.5 global-continuity bridge for bootstrap weak convergence. |
+| [chapter10_bootstrap_delta_method_linear](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_delta_method_matrix_linear](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_delta_method_gaussian](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.6 linearized Delta-method bridges and Gaussian covariance specialization. |
 | [uniformOn_univ_eq_inv_card_smul_count](../HansenEconometrics/Chapter10Bootstrap.lean) | Uniform empirical law as normalized counting measure. |
 | [integral_uniformOn_univ_eq_card_inv_smul_sum](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact empirical mean identity for one bootstrap draw, the measure-theoretic form of (10.10)/(10.12). |
 | [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact scalar empirical variance identity for one bootstrap draw, the scalar form of (10.11). |

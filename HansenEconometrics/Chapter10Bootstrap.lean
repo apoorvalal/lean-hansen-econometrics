@@ -35,6 +35,9 @@ used throughout the chapter:
   continuous-mapping theorem.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
+* `chapter10_bootstrap_delta_method_linear` and
+  `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
+  Gaussian covariance faces of Hansen Theorem 10.6.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
@@ -849,6 +852,81 @@ theorem chapter10_bootstrap_continuous_mapping_distribution
     hZ (f.compContinuous gc)
 
 end BootstrapWeakDistribution
+
+section BootstrapDeltaMethod
+
+/-- Hansen Theorem 10.6, linearized bootstrap Delta-method bridge.
+
+Once the nonlinear estimator has been reduced to its derivative-linearized
+statistic, bootstrap weak convergence is preserved by the continuous linear
+derivative map.  The deterministic differentiability remainder supplies the
+separate `oₚ*` step in the full Delta-method proof. -/
+theorem chapter10_bootstrap_delta_method_linear
+    [SeminormedAddCommGroup E] [NormedSpace ℝ E]
+    [SeminormedAddCommGroup F] [NormedSpace ℝ F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → E}
+    {ξ : Ωlim → E} (G : E →L[ℝ] F)
+    (hT : TendstoInBootstrapWeakDistribution μ Pstar Tstar ν ξ) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => G (Tstar n ω ωs)) ν (fun ω => G (ξ ω)) :=
+  chapter10_bootstrap_continuous_mapping_distribution hT G.continuous
+
+/-- Matrix-linear form of the bootstrap Delta-method bridge. -/
+theorem chapter10_bootstrap_delta_method_matrix_linear
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {ξ : Ωlim → EuclideanSpace ℝ d} (G : Matrix r d ℝ)
+    (hT : TendstoInBootstrapWeakDistribution μ Pstar Tstar ν ξ) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+      ν (fun ω => matrixContinuousLinearMap G (ξ ω)) :=
+  chapter10_bootstrap_delta_method_linear (matrixContinuousLinearMap G) hT
+
+/-- Hansen Theorem 10.6, Gaussian covariance specialization.
+
+If the bootstrap linearized statistic converges weakly to `N(0, V)`, then its
+matrix-derivative image converges weakly to `N(0, G V G')`, matching the
+textbook covariance formula. -/
+theorem chapter10_bootstrap_delta_method_gaussian
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => z) := by
+  intro f
+  have hlinear :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => matrixContinuousLinearMap G z) :=
+    chapter10_bootstrap_delta_method_matrix_linear (G := G) hT
+  have hmap :
+      (multivariateGaussian (0 : EuclideanSpace ℝ d) V).map
+          (matrixContinuousLinearMap G) =
+        multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (map_matrix_multivariateGaussian
+        (μ := (0 : EuclideanSpace ℝ d)) hV G)
+  have htarget :
+      ∫ z, f z ∂(multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) =
+        ∫ z, f (matrixContinuousLinearMap G z)
+          ∂(multivariateGaussian (0 : EuclideanSpace ℝ d) V) := by
+    rw [← hmap]
+    exact integral_map (matrixContinuousLinearMap G).continuous.aemeasurable
+      f.continuous.aestronglyMeasurable
+  simpa [htarget] using hlinear.tendsto_integral f
+
+end BootstrapDeltaMethod
 
 section SmoothFunctionBootstrapVariance
 
