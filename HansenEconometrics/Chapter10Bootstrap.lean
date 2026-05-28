@@ -30,6 +30,11 @@ used throughout the chapter:
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
   the reusable CDF bridge needed by later bootstrap CLT and delta-method
   wrappers.
+* `TendstoInBootstrapWeakDistribution` is a bounded-continuous-test-function
+  backend for bootstrap distributional convergence, used by the distributional
+  continuous-mapping theorem.
+* `chapter10_bootstrap_continuous_mapping_distribution` is the globally
+  continuous face of Hansen Theorem 10.5.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
@@ -776,6 +781,72 @@ theorem TendstoInBootstrapDistribution.congr
   (hZ.congr_bootstrap hstar).congr_limit hlim
 
 end BootstrapDistribution
+
+section BootstrapWeakDistribution
+
+/-- Conditional bootstrap expectation of a bounded continuous test function.
+
+This is the bounded-continuous-test-function analogue of the conditional CDF
+used in `TendstoInBootstrapDistribution`.  It is a convenient weak-convergence
+backend for mapping theorems, while the finite-dimensional CDF API remains the
+chapter-facing form of Hansen Definition 10.2. -/
+noncomputable def bootstrapBoundedContinuousIntegral
+    [TopologicalSpace E]
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → E)
+    (f : BoundedContinuousFunction E ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ∫ ωs, f (Zstar n ω ωs) ∂Pstar n ω
+
+/-- Bootstrap convergence in distribution in bounded-continuous-test-function
+form.
+
+For every bounded continuous real test function, the conditional bootstrap
+expectation converges in ordinary probability to the corresponding expectation
+under the limiting law. -/
+def TendstoInBootstrapWeakDistribution
+    [TopologicalSpace E]
+    (μ : Measure Ω) (Pstar : ℕ → Ω → Measure Ωs)
+    (Zstar : ℕ → Ω → Ωs → E)
+    (ν : Measure Ωlim) (Z : Ωlim → E) : Prop :=
+  ∀ f : BoundedContinuousFunction E ℝ,
+    TendstoInMeasure μ
+      (fun n ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+      atTop (fun _ => ∫ ωlim, f (Z ωlim) ∂ν)
+
+/-- Projection from the bounded-continuous-test-function bootstrap convergence
+definition. -/
+theorem TendstoInBootstrapWeakDistribution.tendsto_integral
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (f : BoundedContinuousFunction E ℝ) :
+    TendstoInMeasure μ
+      (fun n ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+      atTop (fun _ => ∫ ωlim, f (Z ωlim) ∂ν) :=
+  hZ f
+
+/-- Hansen Theorem 10.5, globally continuous weak-convergence face.
+
+If `Zₙ* ->d* Z` in bounded-continuous-test-function form and `g` is continuous,
+then `g(Zₙ*) ->d* g(Z)`.  The more general textbook discontinuity-set-null
+form is obtained by replacing the global-continuity premise with the
+Portmanteau/ae-continuity bridge. -/
+theorem chapter10_bootstrap_continuous_mapping_distribution
+    [TopologicalSpace E] [TopologicalSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {g : E → F}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hg : Continuous g) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ω => g (Z ω)) := by
+  intro f
+  let gc : C(E, F) := ⟨g, hg⟩
+  simpa [bootstrapBoundedContinuousIntegral, Function.comp_def] using
+    hZ (f.compContinuous gc)
+
+end BootstrapWeakDistribution
 
 section SmoothFunctionBootstrapVariance
 
