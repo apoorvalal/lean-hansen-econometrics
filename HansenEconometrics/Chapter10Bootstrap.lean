@@ -54,6 +54,8 @@ used throughout the chapter:
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
+* `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
+  coverage wrapper.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
@@ -1127,6 +1129,34 @@ theorem chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit
     ext ω
     exact percentileCoverageVector_mem_set_iff (Ω := Ω) (ha n)
   simpa [hseq_eq] using hcoverage
+
+/-- Calibrated percentile-interval coverage bridge. -/
+theorem chapter10_percentileCI_coverage_tendsto
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileCoverageSet) = 0)
+    (hcoverage :
+      (ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileCoverageSet = coverage) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  simpa [hcoverage] using
+    chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit
+      (μ := μ) (ν := ν) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hjoint hfrontier
 
 end PercentileIntervals
 
