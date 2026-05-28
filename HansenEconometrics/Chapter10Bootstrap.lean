@@ -25,6 +25,9 @@ used throughout the chapter:
   bound into the centered conclusion of Theorem 10.2.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
+* `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
+  the reusable CDF bridge needed by later bootstrap CLT and delta-method
+  wrappers.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
@@ -664,6 +667,20 @@ def TendstoInBootstrapDistribution
       TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar x n ω)
         atTop (fun _ => vectorCDF ν Z x)
 
+/-- Constructor for Hansen Definition 10.2 from pointwise conditional-CDF
+convergence. -/
+theorem TendstoInBootstrapDistribution.of_tendsto_cdf
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hZ :
+      ∀ x : k → ℝ,
+        ContinuousAt (fun y => vectorCDF ν Z y) x →
+          TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar x n ω)
+            atTop (fun _ => vectorCDF ν Z x)) :
+    TendstoInBootstrapDistribution μ Pstar Zstar ν Z :=
+  hZ
+
 /-- The CDF-convergence projection built into Hansen Definition 10.2. -/
 theorem TendstoInBootstrapDistribution.tendsto_cdf
     {Pstar : ℕ → Ω → Measure Ωs}
@@ -674,6 +691,57 @@ theorem TendstoInBootstrapDistribution.tendsto_cdf
     TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar x n ω)
       atTop (fun _ => vectorCDF ν Z x) :=
   hZ x hx
+
+/-- Bootstrap-distribution convergence is invariant under pointwise equality of
+the bootstrap statistic. -/
+theorem TendstoInBootstrapDistribution.congr_bootstrap
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hstar : ∀ n ω ωs, Zstar n ω ωs = Zstar' n ω ωs)
+    (hZ : TendstoInBootstrapDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapDistribution μ Pstar Zstar' ν Z := by
+  intro x hx
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl (hZ.tendsto_cdf hx)
+  refine ae_of_all μ fun ω => ?_
+  have hset :
+      {ωs : Ωs | coordinateLE (Zstar' n ω ωs) x} =
+        {ωs : Ωs | coordinateLE (Zstar n ω ωs) x} := by
+    ext ωs
+    simp [coordinateLE, hstar n ω ωs]
+  simp [bootstrapVectorCDF, hset]
+
+/-- Bootstrap-distribution convergence is invariant under pointwise equality of
+the limiting statistic. -/
+theorem TendstoInBootstrapDistribution.congr_limit
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z Z' : Ωlim → k → ℝ}
+    (hlim : ∀ ω, Z ω = Z' ω)
+    (hZ : TendstoInBootstrapDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapDistribution μ Pstar Zstar ν Z' := by
+  intro x hx
+  have hcdf_fun :
+      (fun y => vectorCDF ν Z y) = fun y => vectorCDF ν Z' y := by
+    funext y
+    simp [vectorCDF, hlim]
+  have hx_old : ContinuousAt (fun y => vectorCDF ν Z y) x := by
+    simpa [hcdf_fun] using hx
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_
+    (hZ.tendsto_cdf hx_old)
+  refine ae_of_all μ fun _ => ?_
+  simp [hcdf_fun]
+
+/-- Pointwise congruence for bootstrap convergence in distribution. -/
+theorem TendstoInBootstrapDistribution.congr
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {Z Z' : Ωlim → k → ℝ}
+    (hstar : ∀ n ω ωs, Zstar n ω ωs = Zstar' n ω ωs)
+    (hlim : ∀ ω, Z ω = Z' ω)
+    (hZ : TendstoInBootstrapDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapDistribution μ Pstar Zstar' ν Z' :=
+  (hZ.congr_bootstrap hstar).congr_limit hlim
 
 end BootstrapDistribution
 

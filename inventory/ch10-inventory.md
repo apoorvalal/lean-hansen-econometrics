@@ -166,6 +166,8 @@ Conventions:
 | [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
 | [bootstrapVectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional finite-dimensional bootstrap CDF `G*_n(x)`. |
 | [vectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Limit finite-dimensional CDF `G(x)`. |
+| [TendstoInBootstrapDistribution.of_tendsto_cdf](../HansenEconometrics/Chapter10Bootstrap.lean) | Constructor for Definition 10.2 from pointwise conditional-CDF convergence. |
+| [TendstoInBootstrapDistribution.congr](../HansenEconometrics/Chapter10Bootstrap.lean) | Pointwise congruence bridge for bootstrap convergence in distribution. |
 | [uniformOn_univ_eq_inv_card_smul_count](../HansenEconometrics/Chapter10Bootstrap.lean) | Uniform empirical law as normalized counting measure. |
 | [integral_uniformOn_univ_eq_card_inv_smul_sum](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact empirical mean identity for one bootstrap draw, the measure-theoretic form of (10.10)/(10.12). |
 | [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact scalar empirical variance identity for one bootstrap draw, the scalar form of (10.11). |
