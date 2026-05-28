@@ -20,6 +20,9 @@ used throughout the chapter:
 * `chapter10_bootstrap_wlln_level_from_centered` is the Slutsky/addition step
   in Hansen Theorem 10.2: centered bootstrap WLLN plus the ordinary WLLN gives
   bootstrap convergence of the sample mean to the population mean.
+* `chapter10_bootstrap_wlln_centered_of_second_moment_bound` is the
+  Chebyshev/Marcinkiewicz bridge that turns Hansen's empirical second-moment
+  bound into the centered conclusion of Theorem 10.2.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
@@ -383,6 +386,86 @@ theorem chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
     (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
 
 end MarcinkiewiczWLLN
+
+section BootstrapWLLNSecondMoment
+
+/-- Hansen Theorem 10.2 second-moment bound.
+
+The textbook proof bounds the centered bootstrap sample-mean tail probability
+by `η^{-2} n^{-2} ∑ |u_i|^2`; in vector applications `u_i` is the norm of the
+original observation. -/
+noncomputable def bootstrapWLLNSecondMomentBound
+    (u : ℕ → Ω → ℝ) (η : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  η⁻¹ ^ 2 * marcinkiewiczWLLNStatisticNat u 2 n ω
+
+/-- The second-moment bound in Hansen's bootstrap WLLN proof is `oₚ(1)`.
+
+This is exactly the Marcinkiewicz WLLN step in the proof of Theorem 10.2, with
+natural power `p = 2`. -/
+theorem bootstrapWLLNSecondMomentBound_tendsto_zero
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ) {η : ℝ} (_hη : 0 < η) :
+    TendstoInMeasure μ (fun n ω => bootstrapWLLNSecondMomentBound u η n ω)
+      atTop (fun _ => 0) := by
+  have hmarc :
+      TendstoInMeasure μ (marcinkiewiczWLLNStatisticNat u 2) atTop (fun _ => 0) :=
+    chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
+      (μ := μ) (u := u) (p := 2) (by norm_num) hu
+  change TendstoInMeasure μ
+    (fun n ω => η⁻¹ ^ 2 * marcinkiewiczWLLNStatisticNat u 2 n ω)
+    atTop (fun _ => 0)
+  exact TendstoInMeasure.const_mul_zero_real (μ := μ) (η⁻¹ ^ 2) hmarc
+
+/-- Hansen Theorem 10.2, centered WLLN from the textbook second-moment bound.
+
+Once Chebyshev/Markov and the empirical variance calculation give the
+conditional tail bound `hle`, the Marcinkiewicz WLLN proves that bound is
+`oₚ(1)`, hence the centered bootstrap sample mean converges in bootstrap
+probability to zero. -/
+theorem chapter10_bootstrap_wlln_centered_of_second_moment_bound
+    [SeminormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProb Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0)
+          η n ω ≤ bootstrapWLLNSecondMomentBound u η n ω) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) :=
+  chapter10_bootstrap_wlln_centered_of_tail_bound
+    (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω)
+    (fun η hη => bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη)
+    hle
+
+/-- Hansen Theorem 10.2, level WLLN from the textbook second-moment bound.
+
+This packages the centered second-moment/Marcinkiewicz proof with the
+ordinary-sample WLLN for `Ybar`, giving the textbook conclusion
+`Ybar* ->p* μY`. -/
+theorem chapter10_bootstrap_wlln_level_of_second_moment_bound
+    [SeminormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProb Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0)
+          η n ω ≤ bootstrapWLLNSecondMomentBound u η n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbability μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_bootstrap_wlln_centered_of_second_moment_bound
+      (μ := μ) (u := u) hu hle)
+    hYbar
+
+end BootstrapWLLNSecondMoment
 
 section BootstrapDistribution
 
