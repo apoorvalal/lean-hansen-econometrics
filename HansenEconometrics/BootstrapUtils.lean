@@ -18,6 +18,8 @@ The public surface starts with:
 * `TendstoInBootstrapProbability.continuousAt_const_comp` — Hansen Theorem
   10.3, the continuous-mapping theorem for bootstrap convergence in
   probability to a constant.
+* `TendstoInBootstrapProbability.add`, `.neg`, and `.sub` — elementary
+  bootstrap-probability algebra used by Slutsky and delta-method wrappers.
 
 The bootstrap-distribution interface is kept out of this first layer so that
 the Chapter 10 module can introduce it with the exact theorem-facing
@@ -351,6 +353,33 @@ theorem add [SeminormedAddCommGroup E]
           ENNReal.toReal_add_le
       _ = bootstrapTailProb Pstar Xstar X (η / 2) n ω +
           bootstrapTailProb Pstar Ystar Y (η / 2) n ω := rfl
+
+/-- Bootstrap convergence in probability is closed under negation. -/
+theorem neg [SeminormedAddCommGroup E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbability μ Pstar Zstar Z) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => -Zstar n ω ωs) (fun ω => -Z ω) := by
+  intro η hη
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl (hZ η hη)
+  refine ae_of_all μ fun ω => ?_
+  simp [bootstrapTailProb]
+
+/-- Bootstrap convergence in probability is closed under subtraction. -/
+theorem sub [SeminormedAddCommGroup E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Xstar Ystar : ℕ → Ω → Ωs → E} {X Y : Ω → E}
+    (hX : TendstoInBootstrapProbability μ Pstar Xstar X)
+    (hY : TendstoInBootstrapProbability μ Pstar Ystar Y) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => Xstar n ω ωs - Ystar n ω ωs)
+      (fun ω => X ω - Y ω) := by
+  have hsum := hX.add hPstar hY.neg
+  exact hsum.congr
+    (fun n ω ωs => by simp [sub_eq_add_neg])
+    (fun ω => by simp [sub_eq_add_neg])
 
 end TendstoInBootstrapProbability
 

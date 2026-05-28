@@ -164,6 +164,7 @@ Conventions:
 | [bootstrapTailProb](../HansenEconometrics/BootstrapUtils.lean) | Conditional bootstrap tail probability used by Definition 10.1. |
 | [tendstoInBootstrapProbability_of_tail_bound](../HansenEconometrics/BootstrapUtils.lean) | Generic conditional tail-bound bridge; this is the reusable Markov/Chebyshev step for the centered bootstrap WLLN and later bootstrap consistency proofs. |
 | [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
+| [TendstoInBootstrapProbability.neg](../HansenEconometrics/BootstrapUtils.lean), [TendstoInBootstrapProbability.sub](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability algebra for later Slutsky and delta-method wrappers. |
 | [bootstrapVectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional finite-dimensional bootstrap CDF `G*_n(x)`. |
 | [vectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Limit finite-dimensional CDF `G(x)`. |
 | [TendstoInBootstrapDistribution.of_tendsto_cdf](../HansenEconometrics/Chapter10Bootstrap.lean) | Constructor for Definition 10.2 from pointwise conditional-CDF convergence. |
