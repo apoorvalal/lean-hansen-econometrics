@@ -1,5 +1,7 @@
 import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
 import Mathlib.Probability.UniformOn
+import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
 import HansenEconometrics.ProbabilityUtils
 
@@ -26,6 +28,8 @@ used throughout the chapter:
   finite empirical variance identity behind equation (10.11).
 * `covMat_uniformOn_univ_eq_card_inv_smul_sum_centered` is the
   finite-dimensional empirical covariance matrix identity behind (10.11).
+* `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
+  natural-power face of Hansen Theorem 10.20.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -193,6 +197,192 @@ theorem chapter10_bootstrap_wlln_level_from_centered
   exact hsum.congr
     (fun n ω ωs => by simp)
     (fun ω => by simp)
+
+section MarcinkiewiczWLLN
+
+/-- Sample average of absolute values, `n⁻¹ ∑_{i<n} |uᵢ|`.
+
+This is the `Oₚ(1)` factor in Hansen's proof of Theorem 10.20. -/
+noncomputable def sampleAbsMean (u : ℕ → Ω → ℝ) (n : ℕ) : Ω → ℝ :=
+  (∑ i ∈ Finset.range n, fun ω => |u i ω|) / (n : Ω → ℝ)
+
+/-- Natural-power version of Hansen's Marcinkiewicz WLLN statistic,
+`n^{-p} ∑_{i<n} |uᵢ|^p`.
+
+The textbook states the result for every real `r > 1`; this natural-power face
+is the one used by the Chapter 10 variance and Lindeberg applications
+(`p = 2` and `p = 4`). -/
+noncomputable def marcinkiewiczWLLNStatisticNat
+    (u : ℕ → Ω → ℝ) (p n : ℕ) (ω : Ω) : ℝ :=
+  ((n : ℝ)⁻¹) ^ p * ∑ i ∈ Finset.range n, |u i ω| ^ p
+
+private theorem abs_le_maxNNNorm
+    {u : ℕ → Ω → ℝ} {n i : ℕ} {ω : Ω}
+    (hi : i ∈ Finset.range n) :
+    |u i ω| ≤ (maxNNNorm u n ω : ℝ) := by
+  have hle_nn : ‖u i ω‖₊ ≤ maxNNNorm u n ω := by
+    dsimp [maxNNNorm]
+    exact Finset.le_sup (s := Finset.range n) (f := fun j => ‖u j ω‖₊) hi
+  rw [← NNReal.coe_le_coe] at hle_nn
+  simpa [Real.norm_eq_abs] using hle_nn
+
+private theorem sampleAbsMean_nonneg
+    (u : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    0 ≤ sampleAbsMean u n ω := by
+  have hsum : 0 ≤ ∑ i ∈ Finset.range n, |u i ω| :=
+    Finset.sum_nonneg fun i _ => abs_nonneg _
+  simpa [sampleAbsMean, div_eq_inv_mul, mul_comm] using
+    mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg n)) hsum
+
+private theorem marcinkiewiczWLLNStatisticNat_nonneg
+    (u : ℕ → Ω → ℝ) (p n : ℕ) (ω : Ω) :
+    0 ≤ marcinkiewiczWLLNStatisticNat u p n ω := by
+  have hscale : 0 ≤ ((n : ℝ)⁻¹) ^ p :=
+    pow_nonneg (inv_nonneg.mpr (Nat.cast_nonneg n)) p
+  have hsum : 0 ≤ ∑ i ∈ Finset.range n, |u i ω| ^ p :=
+    Finset.sum_nonneg fun i _ => pow_nonneg (abs_nonneg _) p
+  exact mul_nonneg hscale hsum
+
+/-- Deterministic inequality in Hansen's proof of Theorem 10.20.
+
+For natural powers `p ≥ 2`,
+`n^{-p} ∑ |uᵢ|^p` is bounded by
+`(n^{-1} max |uᵢ|)^{p-1} (n^{-1} ∑ |uᵢ|)`. -/
+theorem marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean
+    {u : ℕ → Ω → ℝ} {p n : ℕ} {ω : Ω}
+    (hp : 2 ≤ p) :
+    marcinkiewiczWLLNStatisticNat u p n ω ≤
+      (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω := by
+  let a : ℝ := (n : ℝ)⁻¹
+  let M : ℝ := (maxNNNorm u n ω : ℝ)
+  let S : ℝ := ∑ i ∈ Finset.range n, |u i ω|
+  let Sp : ℝ := ∑ i ∈ Finset.range n, |u i ω| ^ p
+  have hp1 : 1 ≤ p := (by norm_num : 1 ≤ 2).trans hp
+  have ha_nonneg : 0 ≤ a := by
+    dsimp [a]
+    exact inv_nonneg.mpr (Nat.cast_nonneg n)
+  have hsum_le : Sp ≤ M ^ (p - 1) * S := by
+    calc
+      Sp = ∑ i ∈ Finset.range n, |u i ω| ^ p := rfl
+      _ ≤ ∑ i ∈ Finset.range n, M ^ (p - 1) * |u i ω| := by
+        refine Finset.sum_le_sum ?_
+        intro i hi
+        have habs_le : |u i ω| ≤ M := by
+          simpa [M] using abs_le_maxNNNorm (u := u) (ω := ω) hi
+        have hpow_le : |u i ω| ^ (p - 1) ≤ M ^ (p - 1) :=
+          pow_le_pow_left₀ (abs_nonneg _) habs_le (p - 1)
+        have hpow_eq : |u i ω| ^ p = |u i ω| ^ (p - 1) * |u i ω| := by
+          rw [← pow_succ, Nat.sub_add_cancel hp1]
+        rw [hpow_eq]
+        exact mul_le_mul_of_nonneg_right hpow_le (abs_nonneg _)
+      _ = M ^ (p - 1) * S := by
+        simp [S, Finset.mul_sum]
+  have hscale_le :
+      a ^ p * Sp ≤ a ^ p * (M ^ (p - 1) * S) :=
+    mul_le_mul_of_nonneg_left hsum_le (pow_nonneg ha_nonneg p)
+  have hsample : sampleAbsMean u n ω = a * S := by
+    simp [sampleAbsMean, a, S, div_eq_inv_mul]
+  have hscaled : scaledMaxNNNorm u n ω = a * M := by
+    simp [scaledMaxNNNorm, a, M]
+  have hpow_a : a ^ p = a ^ (p - 1) * a := by
+    rw [← pow_succ, Nat.sub_add_cancel hp1]
+  have hrhs :
+      a ^ p * (M ^ (p - 1) * S) =
+        (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω := by
+    calc
+      a ^ p * (M ^ (p - 1) * S)
+          = (a ^ (p - 1) * M ^ (p - 1)) * (a * S) := by
+            rw [hpow_a]
+            ring
+      _ = (a * M) ^ (p - 1) * (a * S) := by
+            rw [mul_pow]
+      _ = (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω := by
+            rw [hscaled, hsample]
+  change a ^ p * Sp ≤
+    (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω
+  exact hscale_le.trans_eq hrhs
+
+private theorem tendstoInMeasure_pow_nat_zero_real
+    {X : ℕ → Ω → ℝ}
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    {q : ℕ} (hq : 0 < q) :
+    TendstoInMeasure μ (fun n ω => (X n ω) ^ q) atTop (fun _ => 0) := by
+  induction q with
+  | zero =>
+      exact (Nat.lt_irrefl 0 hq).elim
+  | succ q ih =>
+      by_cases hq0 : q = 0
+      · subst q
+        simpa using hX
+      · have hq_pos : 0 < q := Nat.pos_of_ne_zero hq0
+        have hpow := ih hq_pos
+        have hmul := TendstoInMeasure.mul_zero_real hpow hX
+        simpa [pow_succ, mul_comm, mul_left_comm, mul_assoc] using hmul
+
+/-- Uniform integrability makes `n⁻¹ ∑ |uᵢ|` bounded in probability.
+
+This is the `Oₚ(1)` sample-mean factor used in Hansen's proof of Theorem
+10.20. -/
+theorem sampleAbsMean_boundedInProbability_of_uniformIntegrable
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ) :
+    BoundedInProbability μ (sampleAbsMean u) := by
+  have hAbsUI : UniformIntegrable (fun i ω => |u i ω|) 1 μ :=
+    uniformIntegrable_abs hu
+  have hAvgUI : UniformIntegrable (sampleAbsMean u) 1 μ := by
+    simpa [sampleAbsMean] using
+      (uniformIntegrable_average_real (μ := μ) (p := (1 : ℝ≥0∞))
+        (f := fun i ω => |u i ω|) le_rfl hAbsUI)
+  exact BoundedInProbability.of_uniformIntegrable_one hAvgUI
+
+/-- Hansen Theorem 10.20, natural-power convergence engine.
+
+If the scaled maximum `n⁻¹ max |uᵢ|` is `oₚ(1)` and the absolute sample mean is
+`Oₚ(1)`, then `n^{-p} ∑ |uᵢ|^p = oₚ(1)` for every natural `p ≥ 2`. -/
+theorem chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean
+    {u : ℕ → Ω → ℝ} {p : ℕ}
+    (hp : 2 ≤ p)
+    (hmax : TendstoInMeasure μ (scaledMaxNNNorm u) atTop (fun _ => 0))
+    (hmean : BoundedInProbability μ (sampleAbsMean u)) :
+    TendstoInMeasure μ (marcinkiewiczWLLNStatisticNat u p) atTop (fun _ => 0) := by
+  have hp_gt_one : 1 < p := (by norm_num : 1 < 2).trans_le hp
+  have hp_sub_pos : 0 < p - 1 := Nat.sub_pos_of_lt hp_gt_one
+  have hpow :
+      TendstoInMeasure μ
+        (fun n ω => (scaledMaxNNNorm u n ω) ^ (p - 1)) atTop (fun _ => 0) :=
+    tendstoInMeasure_pow_nat_zero_real hmax hp_sub_pos
+  have hprod :
+      TendstoInMeasure μ
+        (fun n ω => (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.mul_boundedInProbability hpow hmean
+  exact tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := marcinkiewiczWLLNStatisticNat u p)
+    (g := fun n ω => (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω)
+    (marcinkiewiczWLLNStatisticNat_nonneg u p)
+    (fun n ω =>
+      marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean
+        (u := u) (p := p) (n := n) (ω := ω) hp)
+    hprod
+
+/-- Hansen Theorem 10.20, natural-power uniformly-integrable wrapper.
+
+For natural `p ≥ 2`, uniform integrability of the real sequence `uᵢ` implies
+`n^{-p} ∑ |uᵢ|^p ->p 0`.  The textbook states the same argument for every real
+`r > 1`; this wrapper records the integer-power surface needed by the Chapter
+10 bootstrap variance and Lindeberg proofs. -/
+theorem chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ} {p : ℕ}
+    (hp : 2 ≤ p)
+    (hu : UniformIntegrable u 1 μ) :
+    TendstoInMeasure μ (marcinkiewiczWLLNStatisticNat u p) atTop (fun _ => 0) :=
+  chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean
+    (μ := μ) (u := u) hp
+    (max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r (μ := μ) (Z := u) hu)
+    (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
+
+end MarcinkiewiczWLLN
 
 section BootstrapDistribution
 

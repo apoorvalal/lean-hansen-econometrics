@@ -60,7 +60,12 @@ def TendstoInBootstrapProbability [PseudoMetricSpace E]
     TendstoInMeasure μ (fun n ω => bootstrapTailProb Pstar Zstar Z η n ω)
       atTop (fun _ => 0)
 
-private theorem tendstoInMeasure_zero_of_nonneg_le
+/-- A nonnegative real-valued sequence dominated pointwise by an `oₚ(1)`
+sequence is itself `oₚ(1)`.
+
+This is the elementary event-containment bridge used by bootstrap tail bounds
+and by Chapter 10's Marcinkiewicz WLLN wrappers. -/
+theorem tendstoInMeasure_zero_of_nonneg_le
     {f g : ℕ → Ω → ℝ}
     (hf_nonneg : ∀ n ω, 0 ≤ f n ω)
     (hfg : ∀ n ω, f n ω ≤ g n ω)

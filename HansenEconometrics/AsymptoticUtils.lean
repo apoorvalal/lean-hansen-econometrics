@@ -1631,6 +1631,28 @@ def BoundedInProbability (μ : Measure α) (X : ℕ → α → ℝ) : Prop :=
   ∀ δ : ℝ≥0∞, 0 < δ → ∃ M : ℝ, 0 < M ∧
     ∀ᶠ n in atTop, μ {ω | M ≤ ‖X n ω‖} ≤ δ
 
+/-- Uniform integrability of real random variables passes to absolute values.
+
+Mathlib's probability-theory `UniformIntegrable` is norm-based, so this is a
+thin real-valued bridge used when textbook arguments write averages of
+`|Xᵢ|`. -/
+theorem uniformIntegrable_abs
+    {p : ℝ≥0∞} {X : ℕ → α → ℝ}
+    (hX : UniformIntegrable X p μ) :
+    UniformIntegrable (fun n ω => |X n ω|) p μ := by
+  refine ⟨fun n => continuous_abs.comp_aestronglyMeasurable (hX.aestronglyMeasurable n), ?_, ?_⟩
+  · intro ε hε
+    obtain ⟨δ, hδ, hsmall⟩ := hX.unifIntegrable hε
+    refine ⟨δ, hδ, fun n s hs hμs => ?_⟩
+    refine (eLpNorm_mono_ae (p := p) (μ := μ) ?_).trans (hsmall n s hs hμs)
+    refine ae_of_all μ fun ω => ?_
+    by_cases hω : ω ∈ s <;> simp [hω, Real.norm_eq_abs]
+  · obtain ⟨C, hC⟩ := hX.2.2
+    refine ⟨C, fun n => ?_⟩
+    refine (eLpNorm_mono_ae (p := p) (μ := μ) ?_).trans (hC n)
+    refine ae_of_all μ fun ω => ?_
+    simp [Real.norm_eq_abs]
+
 /-- Real convergence in distribution implies boundedness in probability.
 
 This is the tightness bridge behind the scalar CLT step in Chapter 7: if the
@@ -1756,6 +1778,32 @@ theorem BoundedInProbability.of_eventually_integral_norm_bound
     rw [ENNReal.ofReal_le_iff_le_toReal hδtop]
     exact hratio
   exact htail_ofReal.trans htail_delta
+
+/-- A uniformly integrable real sequence is bounded in probability.
+
+For `p = 1`, Mathlib's `UniformIntegrable` includes a uniform `L¹` bound; the
+claim is the Markov-inequality `Oₚ(1)` consequence of that bound. -/
+theorem BoundedInProbability.of_uniformIntegrable_one
+    [IsFiniteMeasure μ] {X : ℕ → α → ℝ}
+    (hX : UniformIntegrable X 1 μ) :
+    BoundedInProbability μ X := by
+  obtain ⟨C, hC⟩ := hX.2.2
+  refine BoundedInProbability.of_eventually_integral_norm_bound
+    (C := (C : ℝ)) (NNReal.coe_nonneg C) ?_ ?_
+  · intro n
+    exact (memLp_one_iff_integrable.mp (hX.memLp n)).norm
+  · refine Eventually.of_forall fun n => ?_
+    have hIntX : Integrable (X n) μ :=
+      memLp_one_iff_integrable.mp (hX.memLp n)
+    have hEq :
+        ENNReal.ofReal (∫ ω, ‖X n ω‖ ∂μ) = eLpNorm (X n) 1 μ := by
+      rw [eLpNorm_one_eq_lintegral_enorm]
+      exact ofReal_integral_norm_eq_lintegral_enorm hIntX
+    have hInt_nonneg : 0 ≤ ∫ ω, ‖X n ω‖ ∂μ :=
+      integral_nonneg_of_ae (ae_of_all μ fun ω => norm_nonneg (X n ω))
+    have hleReal := ENNReal.toReal_mono ENNReal.coe_ne_top (hC n)
+    rw [← hEq, ENNReal.toReal_ofReal hInt_nonneg] at hleReal
+    simpa using hleReal
 
 /-- An eventual higher natural-moment bound implies scalar `Oₚ(1)`.
 
