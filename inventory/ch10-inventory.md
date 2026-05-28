@@ -104,6 +104,11 @@
   the centered bootstrap WLLN proof, the Slutsky/addition step giving the second conclusion of
   Theorem 10.2, and finite empirical mean/covariance identities behind equations
   (10.10)–(10.12).
+- The bootstrap probability layer now includes algebra and globally Lipschitz mapping bridges used
+  by later Slutsky and Delta-method wrappers.
+- Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
+  the conditional bootstrap first and second moments implies convergence of the conditional
+  bootstrap variance functional.
 - The Marcinkiewicz WLLN in Theorem 10.20 is formalized in its real-exponent `r > 1`
   form, including the deterministic max-times-mean inequality used in Hansen's proof and the
   uniformly-integrable wrapper. The natural-power face remains as a convenience wrapper for
@@ -144,7 +149,7 @@ Conventions:
 | Theorem 10.6 | Bootstrap Delta Method |  |
 | Theorem 10.7 | Under the assumptions of Theorem 6.10, that is, if Yi is i.i.d., |  |
 | Theorem 10.8 | Under the assumptions of Theorem 10.7, ˆV |  |
-| Theorem 10.9 | If (10.15) and (10.16) hold for some sequence an and |  |
+| Theorem 10.9 | If the normalized statistic and its bootstrap analogue have the same limit law and the bootstrap statistic is uniformly square integrable, then finite-replication bootstrap variance converges to the conditional bootstrap variance and the conditional bootstrap variance converges to the asymptotic variance | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) is the moment bridge for the second conclusion: conditional first/second moment convergence implies conditional bootstrap variance convergence.<br>The finite-`B` replication WLLN and the UI/distribution-to-moment constructors remain to be connected. |
 | Theorem 10.10 | In the smooth function model of Theorem 10.7, if for some |  |
 | Theorem 10.11 | As B → ∞, ˆV |  |
 | Theorem 10.12 | Under the assumptions of Theorem 10.7, ˆV |  |
@@ -165,6 +170,7 @@ Conventions:
 | [tendstoInBootstrapProbability_of_tail_bound](../HansenEconometrics/BootstrapUtils.lean) | Generic conditional tail-bound bridge; this is the reusable Markov/Chebyshev step for the centered bootstrap WLLN and later bootstrap consistency proofs. |
 | [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
 | [TendstoInBootstrapProbability.neg](../HansenEconometrics/BootstrapUtils.lean), [TendstoInBootstrapProbability.sub](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability algebra for later Slutsky and delta-method wrappers. |
+| [TendstoInBootstrapProbability.lipschitz_comp](../HansenEconometrics/BootstrapUtils.lean) | Globally Lipschitz mapping bridge for bootstrap convergence in probability; exposed chapter-facing as [chapter10_bootstrap_lipschitz_mapping_probability](../HansenEconometrics/Chapter10Bootstrap.lean). |
 | [bootstrapVectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional finite-dimensional bootstrap CDF `G*_n(x)`. |
 | [vectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Limit finite-dimensional CDF `G(x)`. |
 | [TendstoInBootstrapDistribution.of_tendsto_cdf](../HansenEconometrics/Chapter10Bootstrap.lean) | Constructor for Definition 10.2 from pointwise conditional-CDF convergence. |
@@ -178,6 +184,9 @@ Conventions:
 | [chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean](../HansenEconometrics/Chapter10Bootstrap.lean) | Reusable convergence engine for the natural-power face of Theorem 10.20. |
 | [bootstrapWLLNSecondMomentBound](../HansenEconometrics/Chapter10Bootstrap.lean) | Textbook `η^{-2} n^{-2} ∑ |u_i|^2` bound in the proof of Theorem 10.2. |
 | [bootstrapWLLNSecondMomentBound_tendsto_zero](../HansenEconometrics/Chapter10Bootstrap.lean) | Marcinkiewicz convergence of the second-moment bound used in Theorem 10.2. |
+| [bootstrapMeanReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapSecondMomentReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapVarianceReal](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional bootstrap moment and variance functionals for real statistics. |
+| [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact conditional variance identity `Var* Z = E* Z² - (E* Z)²`. |
+| [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.9 moment bridge: conditional moment convergence implies conditional bootstrap variance convergence. |
 
 ## Notes
 

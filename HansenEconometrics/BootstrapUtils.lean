@@ -18,6 +18,8 @@ The public surface starts with:
 * `TendstoInBootstrapProbability.continuousAt_const_comp` — Hansen Theorem
   10.3, the continuous-mapping theorem for bootstrap convergence in
   probability to a constant.
+* `TendstoInBootstrapProbability.lipschitz_comp` — a reusable bootstrap
+  probability mapping bridge for globally Lipschitz transformations.
 * `TendstoInBootstrapProbability.add`, `.neg`, and `.sub` — elementary
   bootstrap-probability algebra used by Slutsky and delta-method wrappers.
 
@@ -275,6 +277,48 @@ theorem continuousAt_const_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
       by_contra hnot
       have hlt : dist (Zstar n ω ωs) c < δ := lt_of_not_ge hnot
       exact (not_lt_of_ge hωs) (hδ_eventually hlt)
+
+/-- Bootstrap convergence in probability is preserved by globally Lipschitz
+maps.
+
+This is the reusable mapping bridge for linear and other globally controlled
+transformations used by Chapter 10's Slutsky and Delta-method wrappers. -/
+theorem lipschitz_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ℕ → Ω → Ωs → E} {Z : Ω → E} {g : E → F} {C : ℝ}
+    (hC : 0 < C)
+    (hg : ∀ x y, dist (g x) (g y) ≤ C * dist x y)
+    (hZ : TendstoInBootstrapProbability μ Pstar Zstar Z) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) := by
+  intro η hη
+  have hδ : 0 < η / C := div_pos hη hC
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProb Pstar (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω))
+        η n ω)
+    (g := fun n ω => bootstrapTailProb Pstar Zstar Z (η / C) n ω)
+    ?_ ?_ (hZ (η / C) hδ)
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω)
+        {ωs | η / C ≤ dist (Zstar n ω ωs) (Z ω)}
+    · intro ωs hωs
+      by_contra hnot
+      have hlt : dist (Zstar n ω ωs) (Z ω) < η / C := lt_of_not_ge hnot
+      have hmap_lt : dist (g (Zstar n ω ωs)) (g (Z ω)) < η := by
+        calc
+          dist (g (Zstar n ω ωs)) (g (Z ω))
+              ≤ C * dist (Zstar n ω ωs) (Z ω) := hg _ _
+          _ < C * (η / C) := mul_lt_mul_of_pos_left hlt hC
+          _ = η := by
+            field_simp [ne_of_gt hC]
+      exact (not_lt_of_ge hωs) hmap_lt
 
 set_option maxHeartbeats 400000 in
 -- The proof expands the bootstrap union-bound event and a finite-measure `toReal`

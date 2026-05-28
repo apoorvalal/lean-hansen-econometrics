@@ -15,6 +15,8 @@ used throughout the chapter:
 * `chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability`
   is Hansen Theorem 10.1.
 * `chapter10_bootstrap_continuous_mapping_probability` is Hansen Theorem 10.3.
+* `chapter10_bootstrap_lipschitz_mapping_probability` is the reusable
+  Lipschitz mapping bridge used by Slutsky and Delta-method theorem wrappers.
 * `chapter10_bootstrap_wlln_centered_of_tail_bound` is the reusable
   conditional-Markov bridge for the centered conclusion of Hansen Theorem 10.2.
 * `chapter10_bootstrap_wlln_level_from_centered` is the Slutsky/addition step
@@ -38,6 +40,8 @@ used throughout the chapter:
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
   10.20 in its real-exponent `r > 1` form.
+* `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
+  moment-convergence bridge behind Hansen Theorem 10.9.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -156,6 +160,23 @@ theorem chapter10_bootstrap_continuous_mapping_probability
     TendstoInBootstrapProbability μ Pstar
       (fun n ω ωs => g (Zstar n ω ωs)) (fun _ => g c) :=
   hZ.continuousAt_const_comp hPstar hg
+
+/-- Chapter 10 bootstrap-probability mapping bridge for globally Lipschitz
+transformations.
+
+This is the reusable form needed by theorem wrappers whose statistic is a
+linear or otherwise globally controlled transformation of a bootstrap statistic. -/
+theorem chapter10_bootstrap_lipschitz_mapping_probability
+    [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ℕ → Ω → Ωs → E} {Z : Ω → E} {g : E → F} {C : ℝ}
+    (hC : 0 < C)
+    (hg : ∀ x y, dist (g x) (g y) ≤ C * dist x y)
+    (hZ : TendstoInBootstrapProbability μ Pstar Zstar Z) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) :=
+  hZ.lipschitz_comp hPstar hC hg
 
 /-- Hansen Theorem 10.2, centered WLLN from the conditional tail bound.
 
@@ -744,5 +765,107 @@ theorem TendstoInBootstrapDistribution.congr
   (hZ.congr_bootstrap hstar).congr_limit hlim
 
 end BootstrapDistribution
+
+section BootstrapVariance
+
+/-- Conditional bootstrap mean of a real statistic. -/
+noncomputable def bootstrapMeanReal
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
+    (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[Zstar n ω]
+
+/-- Conditional bootstrap second moment of a real statistic. -/
+noncomputable def bootstrapSecondMomentReal
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
+    (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[(Zstar n ω) ^ 2]
+
+/-- Conditional bootstrap variance of a real statistic. -/
+noncomputable def bootstrapVarianceReal
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
+    (n : ℕ) (ω : Ω) : ℝ :=
+  Var[Zstar n ω; Pstar n ω]
+
+/-- Conditional variance equals second moment minus squared conditional mean. -/
+theorem bootstrapVarianceReal_eq_secondMoment_sub_mean_sq
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (n : ℕ) (ω : Ω) :
+    bootstrapVarianceReal Pstar Zstar n ω =
+      bootstrapSecondMomentReal Pstar Zstar n ω -
+        (bootstrapMeanReal Pstar Zstar n ω) ^ 2 := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapVarianceReal, bootstrapSecondMomentReal, bootstrapMeanReal]
+    using (ProbabilityTheory.variance_eq_sub (μ := Pstar n ω) (X := Zstar n ω)
+      (hZ n ω))
+
+/-- Hansen Theorem 10.9, variance-consistency moment bridge.
+
+If the conditional bootstrap first and second moments of a real statistic
+converge in ordinary probability to the corresponding limit moments, then the
+conditional bootstrap variance converges in probability to the variance
+functional `m₂ - m²`.  The remaining Theorem 10.9 constructors show how
+bootstrap distribution plus uniform square integrability imply these moment
+premises, and how finite bootstrap replications estimate this conditional
+variance. -/
+theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => m₂ - m ^ 2) := by
+  have hmean_sq :
+      TendstoInMeasure μ
+        (fun n ω => bootstrapMeanReal Pstar Zstar n ω *
+          bootstrapMeanReal Pstar Zstar n ω)
+        atTop (fun _ => m * m) :=
+    TendstoInMeasure.mul_limits_real hmean hmean
+  have hsecond0 := TendstoInMeasure.sub_limit_zero_real hsecond
+  have hmean_sq0 := TendstoInMeasure.sub_limit_zero_real hmean_sq
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (bootstrapSecondMomentReal Pstar Zstar n ω -
+            bootstrapMeanReal Pstar Zstar n ω *
+              bootstrapMeanReal Pstar Zstar n ω) -
+            (m₂ - m * m))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hsecond0 hmean_sq0
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsub
+    refine ae_of_all μ fun ω => ?_
+    ring
+  have hdiff :
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapSecondMomentReal Pstar Zstar n ω -
+            bootstrapMeanReal Pstar Zstar n ω *
+              bootstrapMeanReal Pstar Zstar n ω)
+        atTop (fun _ => m₂ - m * m) :=
+    TendstoInMeasure.of_sub_limit_zero_real hdiff0
+  have hvar :
+      TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+        (fun _ => m₂ - m * m) := by
+    refine TendstoInMeasure.congr
+      (f := fun n ω =>
+        bootstrapSecondMomentReal Pstar Zstar n ω -
+          bootstrapMeanReal Pstar Zstar n ω *
+            bootstrapMeanReal Pstar Zstar n ω)
+      (f' := bootstrapVarianceReal Pstar Zstar)
+      (g := fun _ : Ω => m₂ - m * m)
+      (g' := fun _ : Ω => m₂ - m * m)
+      (fun n => ?_) EventuallyEq.rfl hdiff
+    refine ae_of_all μ fun ω => ?_
+    rw [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq hPstar hZ]
+    ring
+  simpa [pow_two] using hvar
+
+end BootstrapVariance
 
 end HansenEconometrics
