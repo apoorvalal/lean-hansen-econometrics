@@ -44,6 +44,8 @@ used throughout the chapter:
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
+* `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
+  percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 
@@ -973,6 +975,164 @@ theorem chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit
   simpa [hseq_eq] using hcoverage
 
 end PercentileIntervals
+
+section PercentileTIntervals
+
+/-- Percentile-`t` statistic `T = (θhat - θ) / se`. -/
+noncomputable def percentileTStatistic (θ θhat se : ℝ) : ℝ :=
+  (θhat - θ) / se
+
+/-- Hansen percentile-`t` confidence interval event:
+`θhat - se * qUpper <= θ <= θhat - se * qLower`. -/
+def percentileTCIEvent (θ θhat se qLower qUpper : ℝ) : Prop :=
+  θhat - se * qUpper ≤ θ ∧ θ ≤ θhat - se * qLower
+
+/-- Three-coordinate statistic used in the percentile-`t` coverage proof:
+
+* coordinate `0`: sample t-ratio `Tₙ`;
+* coordinate `1`: lower bootstrap t-ratio quantile `q*_{α/2,n}`;
+* coordinate `2`: upper bootstrap t-ratio quantile `q*_{1-α/2,n}`. -/
+noncomputable def percentileTCoverageVector
+    (θ : ℝ) (θhat se qLower qUpper : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) : Fin 3 → ℝ :=
+  fun i =>
+    if i = 0 then percentileTStatistic θ (θhat n ω) (se n ω)
+    else if i = 1 then qLower n ω
+    else qUpper n ω
+
+/-- Limit vector for the percentile-`t` coverage proof. -/
+noncomputable def percentileTCoverageLimitVector
+    (ξ : Ωlim → ℝ) (qLower qUpper : ℝ) (ω : Ωlim) : Fin 3 → ℝ :=
+  fun i =>
+    if i = 0 then ξ ω
+    else if i = 1 then qLower
+    else qUpper
+
+/-- Limit event corresponding to percentile-`t` coverage:
+`qLower <= ξ <= qUpper`. -/
+def percentileTCoverageSet : Set (Fin 3 → ℝ) :=
+  {z | z 1 ≤ z 0 ∧ z 0 ≤ z 2}
+
+theorem isClosed_percentileTCoverageSet : IsClosed percentileTCoverageSet := by
+  have hleft : IsClosed {z : Fin 3 → ℝ | z 1 ≤ z 0} :=
+    isClosed_le (continuous_apply 1) (continuous_apply 0)
+  have hright : IsClosed {z : Fin 3 → ℝ | z 0 ≤ z 2} :=
+    isClosed_le (continuous_apply 0) (continuous_apply 2)
+  simpa [percentileTCoverageSet] using hleft.inter hright
+
+/-- Positive standard errors turn Hansen's percentile-`t` interval event into
+the t-ratio event `qLower <= T <= qUpper`. -/
+theorem percentileTCIEvent_iff_tstat_between
+    {θ θhat se qLower qUpper : ℝ} (hse : 0 < se) :
+    percentileTCIEvent θ θhat se qLower qUpper ↔
+      qLower ≤ percentileTStatistic θ θhat se ∧
+        percentileTStatistic θ θhat se ≤ qUpper := by
+  constructor
+  · intro h
+    constructor
+    · have hmul : qLower * se ≤ θhat - θ := by nlinarith [h.2]
+      exact (le_div_iff₀ hse).2 (by simpa [mul_comm] using hmul)
+    · have hmul : θhat - θ ≤ qUpper * se := by nlinarith [h.1]
+      exact (div_le_iff₀ hse).2 (by simpa [mul_comm] using hmul)
+  · intro h
+    constructor
+    · have hmul : θhat - θ ≤ qUpper * se := by
+        simpa [percentileTStatistic, mul_comm] using (div_le_iff₀ hse).1 h.2
+      nlinarith
+    · have hmul : qLower * se ≤ θhat - θ := by
+        simpa [percentileTStatistic, mul_comm] using (le_div_iff₀ hse).1 h.1
+      nlinarith
+
+theorem percentileTCoverageVector_mem_set_iff
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {n : ℕ} {ω : Ω} (hse : 0 < se n ω) :
+    percentileTCoverageVector θ θhat se qLower qUpper n ω ∈
+        percentileTCoverageSet ↔
+      percentileTCIEvent θ (θhat n ω) (se n ω) (qLower n ω) (qUpper n ω) := by
+  change
+    (qLower n ω ≤ percentileTStatistic θ (θhat n ω) (se n ω) ∧
+        percentileTStatistic θ (θhat n ω) (se n ω) ≤ qUpper n ω) ↔
+      percentileTCIEvent θ (θhat n ω) (se n ω) (qLower n ω) (qUpper n ω)
+  exact (percentileTCIEvent_iff_tstat_between hse).symm
+
+/-- Hansen Theorem 10.14, percentile-`t` interval coverage bridge.
+
+If the sample t-ratio and bootstrap percentile-`t` critical values jointly
+converge to `(ξ, qL, qU)`, and the limiting coverage boundary has zero
+probability, then percentile-`t` interval coverage converges to
+`P[qL <= ξ <= qU]`. Hansen's first-order validity conclusion `1 - α` is
+obtained by instantiating this bridge with the bootstrap quantile limits from
+(10.31). -/
+theorem chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileTCoverageSet) = 0) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop
+      (𝓝 ((ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileTCoverageSet)) := by
+  have hset_meas : MeasurableSet percentileTCoverageSet :=
+    isClosed_percentileTCoverageSet.measurableSet
+  have hcoverage :=
+    TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+      (h := hjoint) hset_meas hfrontier
+  have hseq_eq :
+      (fun n =>
+        μ {ω | percentileTCoverageVector θ θhat se qLower qUpper n ω ∈
+          percentileTCoverageSet}) =
+        fun n =>
+          μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+            (qLower n ω) (qUpper n ω)} := by
+    funext n
+    congr 1
+    ext ω
+    exact percentileTCoverageVector_mem_set_iff (Ω := Ω) (hse n ω)
+  simpa [hseq_eq] using hcoverage
+
+/-- Calibrated percentile-`t` coverage bridge. -/
+theorem chapter10_percentileTCI_coverage_tendsto
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileTCoverageSet) = 0)
+    (hcoverage :
+      (ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileTCoverageSet = coverage) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  simpa [hcoverage] using
+    chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit
+      (μ := μ) (ν := ν) (θ := θ) (θhat := θhat) (se := se)
+      (qLower := qLower) (qUpper := qUpper) (ξ := ξ)
+      (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hse hjoint hfrontier
+
+end PercentileTIntervals
 
 section BootstrapTests
 

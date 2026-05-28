@@ -112,6 +112,9 @@
 - Theorem 10.13's percentile-interval coverage bridge is formalized: joint convergence of the
   scaled estimator error and bootstrap percentile endpoints implies convergence of the percentile
   coverage probability to the corresponding limit event probability.
+- Theorem 10.14's percentile-`t` coverage bridge is formalized: positive standard errors turn
+  Hansen's interval into the event `q*_{α/2} <= T <= q*_{1-α/2}`, and joint convergence gives
+  the limiting coverage probability.
 - Theorem 10.16's two-sided bootstrap-test bridge is formalized: joint convergence of the test
   statistic and bootstrap critical value implies convergence of rejection probabilities, with a
   calibrated size-`α` wrapper.
@@ -160,7 +163,7 @@ Conventions:
 | Theorem 10.11 | As B → ∞, ˆV |  |
 | Theorem 10.12 | Under the assumptions of Theorem 10.7, ˆV |  |
 | Theorem 10.13 | If `a_n(θhat−θ) →d ξ` and `a_n(θhat*−θhat) →d* ξ`, with continuous symmetric limit law, then the percentile interval has asymptotic coverage `1−α` | [chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit](../HansenEconometrics/Chapter10Bootstrap.lean) is the coverage bridge from joint convergence of the scaled estimator error and scaled bootstrap percentile endpoints to the limiting event probability `P[qL <= -ξ <= qU]`.<br>The bootstrap quantile-convergence constructor and the final symmetry-to-`1−α` specialization remain to be connected. |
-| Theorem 10.14 | If (10.30) and (10.31) hold whereξ is continuously distributed, |  |
+| Theorem 10.14 | If the sample and bootstrap t-ratios share the same continuous limiting distribution, then the percentile-`t` interval has asymptotic coverage `1−α` | [chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit](../HansenEconometrics/Chapter10Bootstrap.lean) gives the coverage limit from joint convergence of the sample t-ratio and bootstrap t-ratio quantiles.<br>[chapter10_percentileTCI_coverage_tendsto](../HansenEconometrics/Chapter10Bootstrap.lean) is the calibrated coverage wrapper. The quantile-convergence constructor from (10.31) and the final `1−α` limit-law mass identity remain to be connected. |
 | Theorem 10.15 | Under the assumptions of Theorem 9.11 of Introduction to |  |
 | Theorem 10.16 | If the bootstrap percentile-`t` critical value converges to the corresponding limit quantile of `|ξ|`, then the two-sided bootstrap test has asymptotic size `α` | [chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit](../HansenEconometrics/Chapter10Bootstrap.lean) gives the rejection-probability limit from joint convergence of the statistic and bootstrap critical value.<br>[chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter10Bootstrap.lean) is the calibrated size-`α` wrapper. The quantile-convergence constructor from (10.30)/(10.31) remains to be connected. |
 | Theorem 10.17 | Under the assumptions of Theorem 9.11 of Introduction to |  |
@@ -196,6 +199,8 @@ Conventions:
 | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.9 moment bridge: conditional moment convergence implies conditional bootstrap variance convergence. |
 | [percentileCIEvent](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileCoverageVector](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileCoverageSet](../HansenEconometrics/Chapter10Bootstrap.lean) | Percentile-interval event and the three-coordinate statistic used in Hansen's coverage proof. |
 | [chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.13 coverage bridge from joint estimator/quantile convergence to the limiting percentile coverage probability. |
+| [percentileTCIEvent](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileTStatistic](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileTCoverageVector](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileTCoverageSet](../HansenEconometrics/Chapter10Bootstrap.lean) | Percentile-`t` interval event, sample t-ratio, and joint statistic/critical-value vector. |
+| [chapter10_percentileTCI_coverage_tendsto](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.14 calibrated percentile-`t` coverage bridge. |
 | [bootstrapAbsTestReject](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapAbsTestVector](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapAbsRejectionSet](../HansenEconometrics/Chapter10Bootstrap.lean) | Two-sided bootstrap-test event and joint statistic/critical-value vector. |
 | [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.16 calibrated bootstrap-test size wrapper. |
 
