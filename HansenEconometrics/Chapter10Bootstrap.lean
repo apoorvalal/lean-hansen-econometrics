@@ -40,6 +40,8 @@ used throughout the chapter:
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
   10.20 in its real-exponent `r > 1` form.
+* `chapter10_bootstrap_smooth_variance_consistency` is the plug-in covariance
+  continuous-mapping bridge behind Hansen Theorem 10.8.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
@@ -55,7 +57,7 @@ Detailed theorem-by-theorem status lives in `inventory/ch10-inventory.md`.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
-open scoped ENNReal Topology MeasureTheory ProbabilityTheory
+open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix Matrix.Norms.Elementwise
 
 namespace HansenEconometrics
 
@@ -771,6 +773,61 @@ theorem TendstoInBootstrapDistribution.congr
   (hZ.congr_bootstrap hstar).congr_limit hlim
 
 end BootstrapDistribution
+
+section SmoothFunctionBootstrapVariance
+
+/-- Smooth-function plug-in covariance functional `Gᵀ V G`.
+
+This is the covariance map in Hansen's smooth-function bootstrap delta-method
+results, with `G` the Jacobian and `V` the covariance matrix of the underlying
+moment/statistic. -/
+noncomputable def smoothFunctionVarianceFunctional
+    {d r : Type*} [Fintype d] [Fintype r]
+    (G : Matrix d r ℝ) (V : Matrix d d ℝ) : Matrix r r ℝ :=
+  Gᵀ * V * G
+
+/-- The smooth-function plug-in covariance map is continuous in its Jacobian
+and covariance inputs. -/
+theorem smoothFunctionVarianceFunctional_continuous
+    {d r : Type*} [Fintype d] [Fintype r] :
+    Continuous (fun p : Matrix d r ℝ × Matrix d d ℝ =>
+      smoothFunctionVarianceFunctional p.1 p.2) := by
+  unfold smoothFunctionVarianceFunctional
+  exact ((continuous_fst.matrix_transpose).matrix_mul continuous_snd).matrix_mul
+    continuous_fst
+
+/-- Hansen Theorem 10.8, plug-in covariance continuous-mapping bridge.
+
+If the bootstrap Jacobian/covariance pair converges in bootstrap probability to
+the population pair, then the smooth-function covariance plug-in
+`Gstarᵀ Vstar Gstar` converges in bootstrap probability to `Gᵀ V G`.  The
+concrete Theorem 10.8 constructors provide the joint bootstrap-probability
+premise from the smooth-function model and the bootstrap WLLN/CLT layer. -/
+theorem chapter10_bootstrap_smooth_variance_consistency
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gstar : ℕ → Ω → Ωs → Matrix d r ℝ}
+    {Vstar : ℕ → Ω → Ωs → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hGV :
+      TendstoInBootstrapProbability μ Pstar
+        (fun n ω ωs => (Gstar n ω ωs, Vstar n ω ωs))
+        (fun _ => (G, V))) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gstar n ω ωs) (Vstar n ω ωs))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  TendstoInBootstrapProbability.continuousAt_const_comp
+    (E := Matrix d r ℝ × Matrix d d ℝ)
+    (F := Matrix r r ℝ)
+    (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (Gstar n ω ωs, Vstar n ω ωs))
+    (c := (G, V))
+    (g := fun p => smoothFunctionVarianceFunctional p.1 p.2)
+    hPstar hGV smoothFunctionVarianceFunctional_continuous.continuousAt
+
+end SmoothFunctionBootstrapVariance
 
 section BootstrapVariance
 

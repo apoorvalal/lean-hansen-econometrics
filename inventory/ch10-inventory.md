@@ -109,6 +109,8 @@
 - Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
   the conditional bootstrap first and second moments implies convergence of the conditional
   bootstrap variance functional.
+- Theorem 10.8's smooth-function plug-in covariance bridge is formalized: joint bootstrap
+  convergence of the Jacobian/covariance pair implies bootstrap convergence of `G'VG`.
 - Theorem 10.13's percentile-interval coverage bridge is formalized: joint convergence of the
   scaled estimator error and bootstrap percentile endpoints implies convergence of the percentile
   coverage probability to the corresponding limit event probability.
@@ -157,7 +159,7 @@ Conventions:
 | Theorem 10.5 | Bootstrap Continuous Mapping Theorem |  |
 | Theorem 10.6 | Bootstrap Delta Method |  |
 | Theorem 10.7 | Under the assumptions of Theorem 6.10, that is, if Yi is i.i.d., |  |
-| Theorem 10.8 | Under the assumptions of Theorem 10.7, ˆV |  |
+| Theorem 10.8 | Under the assumptions of Theorem 10.7, the bootstrap smooth-function plug-in covariance `V*_θ = G*' V* G*` satisfies `V*_θ →p* V_θ` | [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) proves the continuous-mapping bridge from joint bootstrap convergence of `(G*, V*)` to bootstrap convergence of `G*' V* G*`.<br>The concrete constructor deriving the joint premise from Theorem 10.7's bootstrap WLLN/CMT remains to be connected. |
 | Theorem 10.9 | If the normalized statistic and its bootstrap analogue have the same limit law and the bootstrap statistic is uniformly square integrable, then finite-replication bootstrap variance converges to the conditional bootstrap variance and the conditional bootstrap variance converges to the asymptotic variance | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) is the moment bridge for the second conclusion: conditional first/second moment convergence implies conditional bootstrap variance convergence.<br>The finite-`B` replication WLLN and the UI/distribution-to-moment constructors remain to be connected. |
 | Theorem 10.10 | In the smooth function model of Theorem 10.7, if for some |  |
 | Theorem 10.11 | As B → ∞, ˆV |  |
@@ -194,6 +196,8 @@ Conventions:
 | [chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean](../HansenEconometrics/Chapter10Bootstrap.lean) | Reusable convergence engine for the natural-power face of Theorem 10.20. |
 | [bootstrapWLLNSecondMomentBound](../HansenEconometrics/Chapter10Bootstrap.lean) | Textbook `η^{-2} n^{-2} ∑ |u_i|^2` bound in the proof of Theorem 10.2. |
 | [bootstrapWLLNSecondMomentBound_tendsto_zero](../HansenEconometrics/Chapter10Bootstrap.lean) | Marcinkiewicz convergence of the second-moment bound used in Theorem 10.2. |
+| [smoothFunctionVarianceFunctional](../HansenEconometrics/Chapter10Bootstrap.lean), [smoothFunctionVarianceFunctional_continuous](../HansenEconometrics/Chapter10Bootstrap.lean) | Smooth-function covariance map `G'VG` and its continuity lemma for Hansen Theorem 10.8. |
+| [chapter10_bootstrap_smooth_variance_consistency](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.8 bridge: joint bootstrap convergence of the plug-in Jacobian/covariance inputs implies bootstrap convergence of the smooth-function covariance estimator. |
 | [bootstrapMeanReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapSecondMomentReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapVarianceReal](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional bootstrap moment and variance functionals for real statistics. |
 | [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact conditional variance identity `Var* Z = E* Z² - (E* Z)²`. |
 | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.9 moment bridge: conditional moment convergence implies conditional bootstrap variance convergence. |
@@ -206,5 +210,5 @@ Conventions:
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- This is a theorem-surface map for the chapter; blank Lean cells mark results that still need
+  actual formalization rather than placeholders.
