@@ -97,7 +97,16 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Chapter 10 now has a reusable bootstrap-convergence layer:
+  `HansenEconometrics/BootstrapUtils.lean`.
+- `HansenEconometrics/Chapter10Bootstrap.lean` exposes the chapter-facing API for
+  Definitions 10.1/10.2, Theorems 10.1/10.3, the generic conditional tail-bound bridge used in
+  the centered bootstrap WLLN proof, the Slutsky/addition step giving the second conclusion of
+  Theorem 10.2, and finite empirical mean/covariance identities behind equations
+  (10.10)–(10.12).
+- The concrete nonparametric-bootstrap constructors still need to be added for the full
+  independent/UI bootstrap WLLN, bootstrap CLT, variance, percentile, percentile-t, refinement,
+  test, and regression results.
 
 ## LaTeX / Lean Crosswalk
 
@@ -112,14 +121,20 @@ Conventions:
 ## Links
 
 - [Hansen excerpt](../textbook/ch10/ch10_excerpt.txt)
+- [Bootstrap utilities](../HansenEconometrics/BootstrapUtils.lean)
+- [Chapter 10 bootstrap file](../HansenEconometrics/Chapter10Bootstrap.lean)
 
 ## Crosswalk
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 10.1 | If Zn − →p Z as n → ∞ then Zn − → |  |
-| Theorem 10.2 | Bootstrap WLLN. If Yi are independent and uniformly inte- |  |
-| Theorem 10.3 | Bootstrap Continuous Mapping Theorem . If Z ∗ |  |
+| Definition 10.1 | Bootstrap convergence in probability: `P*[‖Z*_n − Z‖ > ε] →p 0` for all ε > 0 | [TendstoInBootstrapProbability](../HansenEconometrics/BootstrapUtils.lean) |
+| Equations 10.10/10.12 | The mean of one bootstrap observation drawn uniformly from the empirical support equals the finite-sample mean | [integral_uniformOn_univ_eq_card_inv_smul_sum](../HansenEconometrics/Chapter10Bootstrap.lean) |
+| Equation 10.11 | The covariance of one bootstrap observation drawn uniformly from the empirical support equals the empirical covariance matrix | [covMat_uniformOn_univ_eq_card_inv_smul_sum_centered](../HansenEconometrics/Chapter10Bootstrap.lean); scalar specialization [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered](../HansenEconometrics/Chapter10Bootstrap.lean) |
+| Theorem 10.1 | If `Z_n →p Z`, then the non-bootstrap statistic also satisfies `Z_n →p* Z` | [chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability](../HansenEconometrics/Chapter10Bootstrap.lean) |
+| Theorem 10.2 | Bootstrap WLLN. If `Y_i` are independent and uniformly integrable, then `Ybar* − Ybar →p* 0` and `Ybar* →p* μ` | [chapter10_bootstrap_wlln_centered_of_tail_bound](../HansenEconometrics/Chapter10Bootstrap.lean) is the conditional-Markov/tail-bound bridge for the centered conclusion.<br>[chapter10_bootstrap_wlln_level_from_centered](../HansenEconometrics/Chapter10Bootstrap.lean) proves the second conclusion from the centered bootstrap WLLN plus the ordinary WLLN.<br>The concrete independent/UI constructor remains to be proved from the empirical bootstrap variance formula and Marcinkiewicz WLLN. |
+| Theorem 10.3 | Bootstrap Continuous Mapping Theorem: if `Z*_n →p* c` and `g` is continuous at `c`, then `g(Z*_n) →p* g(c)` | [chapter10_bootstrap_continuous_mapping_probability](../HansenEconometrics/Chapter10Bootstrap.lean) |
+| Definition 10.2 | Bootstrap convergence in distribution: conditional CDFs converge in probability at continuity points | [TendstoInBootstrapDistribution](../HansenEconometrics/Chapter10Bootstrap.lean) |
 | Theorem 10.4 | Bootstrap CLT. If Yi are i.i.d., E ∥Y ∥2 < ∞, and Σ = var[Y ] > 0, |  |
 | Theorem 10.5 | Bootstrap Continuous Mapping Theorem |  |
 | Theorem 10.6 | Bootstrap Delta Method |  |
@@ -137,6 +152,20 @@ Conventions:
 | Theorem 10.18 | Under Assumption 7.2, as n → ∞ |  |
 | Theorem 10.19 | Under Assumption 7.2 and 7.3, as n → ∞, ˆV |  |
 | Theorem 10.20 | Marcinkiewicz WLLN If ui are independent and uniformly integrable, then for any r > |  |
+
+## Lean-only bridge results
+
+| Lean theorem or definition | Role |
+| --- | --- |
+| [bootstrapTailProb](../HansenEconometrics/BootstrapUtils.lean) | Conditional bootstrap tail probability used by Definition 10.1. |
+| [tendstoInBootstrapProbability_of_tail_bound](../HansenEconometrics/BootstrapUtils.lean) | Generic conditional tail-bound bridge; this is the reusable Markov/Chebyshev step for the centered bootstrap WLLN and later bootstrap consistency proofs. |
+| [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
+| [bootstrapVectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional finite-dimensional bootstrap CDF `G*_n(x)`. |
+| [vectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Limit finite-dimensional CDF `G(x)`. |
+| [uniformOn_univ_eq_inv_card_smul_count](../HansenEconometrics/Chapter10Bootstrap.lean) | Uniform empirical law as normalized counting measure. |
+| [integral_uniformOn_univ_eq_card_inv_smul_sum](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact empirical mean identity for one bootstrap draw, the measure-theoretic form of (10.10)/(10.12). |
+| [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact scalar empirical variance identity for one bootstrap draw, the scalar form of (10.11). |
+| [covMat_uniformOn_univ_eq_card_inv_smul_sum_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact finite-dimensional empirical covariance identity for one bootstrap draw, the matrix form of (10.11). |
 
 ## Notes
 

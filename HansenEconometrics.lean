@@ -27,3 +27,5 @@ import HansenEconometrics.Chapter7Asymptotics
 import HansenEconometrics.Chapter8RestrictedEstimation
 import HansenEconometrics.Chapter8Asymptotics
 import HansenEconometrics.Chapter9HypothesisTesting
+import HansenEconometrics.BootstrapUtils
+import HansenEconometrics.Chapter10Bootstrap
