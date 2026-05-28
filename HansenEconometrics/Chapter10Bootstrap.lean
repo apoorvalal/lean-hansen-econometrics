@@ -42,6 +42,10 @@ used throughout the chapter:
   10.20 in its real-exponent `r > 1` form.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
+* `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
+  coverage bridge behind Hansen Theorem 10.13.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
+  is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -867,5 +871,202 @@ theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
   simpa [pow_two] using hvar
 
 end BootstrapVariance
+
+section PercentileIntervals
+
+/-- Hansen percentile confidence interval event, `qLower <= θ <= qUpper`. -/
+def percentileCIEvent (θ qLower qUpper : ℝ) : Prop :=
+  qLower ≤ θ ∧ θ ≤ qUpper
+
+/-- Three-coordinate statistic used in the percentile-interval coverage proof:
+
+* coordinate `0`: `aₙ(θhatₙ - θ)`;
+* coordinate `1`: `aₙ(q*_{α/2,n} - θhatₙ)`;
+* coordinate `2`: `aₙ(q*_{1-α/2,n} - θhatₙ)`.
+
+The confidence event is the lower/upper half-space intersection encoded by
+`percentileCoverageSet`. -/
+noncomputable def percentileCoverageVector
+    (a : ℕ → ℝ) (θ : ℝ) (θhat qLower qUpper : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) : Fin 3 → ℝ :=
+  fun i =>
+    if i = 0 then a n * (θhat n ω - θ)
+    else if i = 1 then a n * (qLower n ω - θhat n ω)
+    else a n * (qUpper n ω - θhat n ω)
+
+/-- Limit vector for the percentile-interval coverage proof. -/
+noncomputable def percentileCoverageLimitVector
+    (ξ : Ωlim → ℝ) (qLower qUpper : ℝ) (ω : Ωlim) : Fin 3 → ℝ :=
+  fun i =>
+    if i = 0 then ξ ω
+    else if i = 1 then qLower
+    else qUpper
+
+/-- Limit event corresponding to percentile-interval coverage:
+`qLower <= -ξ <= qUpper`. -/
+def percentileCoverageSet : Set (Fin 3 → ℝ) :=
+  {z | z 1 ≤ -z 0 ∧ -z 0 ≤ z 2}
+
+theorem isClosed_percentileCoverageSet : IsClosed percentileCoverageSet := by
+  have hleft : IsClosed {z : Fin 3 → ℝ | z 1 ≤ -z 0} :=
+    isClosed_le (continuous_apply 1) ((continuous_apply 0).neg)
+  have hright : IsClosed {z : Fin 3 → ℝ | -z 0 ≤ z 2} :=
+    isClosed_le ((continuous_apply 0).neg) (continuous_apply 2)
+  simpa [percentileCoverageSet] using hleft.inter hright
+
+theorem percentileCoverageVector_mem_set_iff
+    {a : ℕ → ℝ} {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {n : ℕ} {ω : Ω} (ha : 0 < a n) :
+    percentileCoverageVector a θ θhat qLower qUpper n ω ∈ percentileCoverageSet ↔
+      percentileCIEvent θ (qLower n ω) (qUpper n ω) := by
+  change
+    (a n * (qLower n ω - θhat n ω) ≤ -(a n * (θhat n ω - θ)) ∧
+        -(a n * (θhat n ω - θ)) ≤ a n * (qUpper n ω - θhat n ω)) ↔
+      qLower n ω ≤ θ ∧ θ ≤ qUpper n ω
+  constructor
+  · intro h
+    constructor <;> nlinarith [ha, h.1, h.2]
+  · intro h
+    constructor <;> nlinarith [ha, h.1, h.2]
+
+/-- Hansen Theorem 10.13, percentile-interval coverage bridge.
+
+If the scaled estimator error and the scaled bootstrap percentile endpoints
+jointly converge to `(ξ, qL, qU)`, and the limiting coverage boundary has zero
+probability, then the percentile interval coverage converges to
+`P[qL <= -ξ <= qU]`.  Hansen's symmetric continuous-limit conclusion
+`1 - α` is obtained by instantiating this bridge with the appropriate
+bootstrap quantile limits and symmetry identity for the limit law. -/
+theorem chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileCoverageSet) = 0) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop
+      (𝓝 ((ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileCoverageSet)) := by
+  have hset_meas : MeasurableSet percentileCoverageSet :=
+    isClosed_percentileCoverageSet.measurableSet
+  have hcoverage :=
+    TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+      (h := hjoint) hset_meas hfrontier
+  have hseq_eq :
+      (fun n =>
+        μ {ω | percentileCoverageVector a θ θhat qLower qUpper n ω ∈
+          percentileCoverageSet}) =
+        fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)} := by
+    funext n
+    congr 1
+    ext ω
+    exact percentileCoverageVector_mem_set_iff (Ω := Ω) (ha n)
+  simpa [hseq_eq] using hcoverage
+
+end PercentileIntervals
+
+section BootstrapTests
+
+/-- Two-sided bootstrap-test rejection event: reject when `crit < |T|`. -/
+def bootstrapAbsTestReject (T crit : ℝ) : Prop :=
+  crit < |T|
+
+/-- Two-coordinate statistic for a two-sided bootstrap critical-value test:
+coordinate `0` is the test statistic and coordinate `1` is the bootstrap
+critical value. -/
+noncomputable def bootstrapAbsTestVector
+    (T crit : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) : Fin 2 → ℝ :=
+  fun i => if i = 0 then T n ω else crit n ω
+
+/-- Limit vector for the two-sided bootstrap critical-value test. -/
+noncomputable def bootstrapAbsTestLimitVector
+    (ξ : Ωlim → ℝ) (crit : ℝ) (ω : Ωlim) : Fin 2 → ℝ :=
+  fun i => if i = 0 then ξ ω else crit
+
+/-- Rejection region for the two-sided bootstrap critical-value test. -/
+def bootstrapAbsRejectionSet : Set (Fin 2 → ℝ) :=
+  {z | z 1 < |z 0|}
+
+theorem isOpen_bootstrapAbsRejectionSet : IsOpen bootstrapAbsRejectionSet := by
+  simpa [bootstrapAbsRejectionSet] using
+    isOpen_lt (continuous_apply 1) ((continuous_apply 0).abs)
+
+theorem bootstrapAbsTestVector_mem_rejectionSet_iff
+    {T crit : ℕ → Ω → ℝ} {n : ℕ} {ω : Ω} :
+    bootstrapAbsTestVector T crit n ω ∈ bootstrapAbsRejectionSet ↔
+      bootstrapAbsTestReject (T n ω) (crit n ω) := by
+  change crit n ω < |T n ω| ↔ crit n ω < |T n ω|
+  rfl
+
+/-- Hansen Theorem 10.16, bootstrap critical-value rejection-probability bridge.
+
+If the test statistic and bootstrap critical value jointly converge to
+`(ξ, q)`, and the rejection boundary has zero limit mass, then the rejection
+probability converges to `P[q < |ξ|]`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+        (frontier bootstrapAbsRejectionSet) = 0) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop
+      (𝓝 ((ν.map (bootstrapAbsTestLimitVector ξ critLim)) bootstrapAbsRejectionSet)) := by
+  have hset_meas : MeasurableSet bootstrapAbsRejectionSet :=
+    isOpen_bootstrapAbsRejectionSet.measurableSet
+  have hrejection :=
+    TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+      (h := hjoint) hset_meas hfrontier
+  have hseq_eq :
+      (fun n =>
+        μ {ω | bootstrapAbsTestVector T crit n ω ∈ bootstrapAbsRejectionSet}) =
+        fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)} := by
+    funext n
+    rfl
+  simpa [hseq_eq] using hrejection
+
+/-- Calibrated form of the bootstrap critical-value bridge.
+
+When the limiting rejection probability equals `α`, the bootstrap critical
+value test has asymptotic size `α`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ} {α : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+        (frontier bootstrapAbsRejectionSet) = 0)
+    (halpha :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim)) bootstrapAbsRejectionSet = α) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 α) := by
+  simpa [halpha] using
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit
+      (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
+      hjoint hfrontier
+
+end BootstrapTests
 
 end HansenEconometrics

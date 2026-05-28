@@ -26,6 +26,9 @@ Mathlib does not currently provide as named lemmas:
   continuous-map case, wrapping Mathlib's distributional CMT.
 * `tendstoInDistribution_ae_continuous_comp` — Hansen Theorem 6.7 in its
   textbook a.s.-continuity form, proved from a Portmanteau closed-set argument.
+* `TendstoInDistribution.tendsto_measure_preimage_of_null_frontier` — a
+  reusable Portmanteau event-probability bridge for coverage and critical-region
+  arguments.
 
 Both are stated for general Banach-space codomains, so they specialize
 directly to scalar, vector, and matrix random variables.
@@ -2230,6 +2233,42 @@ theorem BoundedInProbability.mul
     _ ≤ μ {ω | MX ≤ ‖X n ω‖} + μ {ω | MY ≤ ‖Y n ω‖} := measure_union_le _ _
     _ ≤ δ / 2 + δ / 2 := add_le_add hnX hnY
     _ = δ := ENNReal.add_halves δ
+
+/-- **Portmanteau event-probability bridge for distributional limits.**
+
+If `Xₙ ⇒ Z` and `E` is a Borel set whose frontier has zero mass under the
+limit law, then the probabilities of the events `{Xₙ ∈ E}` converge to the
+limit-law probability of `E`. This is the reusable coverage/critical-region
+bridge for events in arbitrary spaces where Mathlib's portmanteau theorem
+applies. -/
+theorem TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+    {Ω Ω' E₀ : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+    {mE₀ : MeasurableSpace E₀} [TopologicalSpace E₀] [OpensMeasurableSpace E₀]
+    [HasOuterApproxClosed E₀]
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → E₀} {Z : Ω' → E₀} {E : Set E₀}
+    (h : TendstoInDistribution X atTop Z P ν)
+    (hE : MeasurableSet E)
+    (hfrontier : (ν.map Z) (frontier E) = 0) :
+    Tendsto (fun n => P n {ω | X n ω ∈ E})
+      atTop (𝓝 ((ν.map Z) E)) := by
+  let law : ℕ → ProbabilityMeasure E₀ := fun n =>
+    ⟨(P n).map (X n), Measure.isProbabilityMeasure_map (h.forall_aemeasurable n)⟩
+  let lawZ : ProbabilityMeasure E₀ :=
+    ⟨ν.map Z, Measure.isProbabilityMeasure_map h.aemeasurable_limit⟩
+  have hlaw : Tendsto law atTop (𝓝 lawZ) := by
+    simpa [law, lawZ] using h.tendsto
+  have hport := ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto'
+    (μ := lawZ) (μs := law) hlaw (by simpa [lawZ] using hfrontier)
+  have hseq_eq :
+      (fun n => ((law n : ProbabilityMeasure E₀) : Measure E₀) E) =
+        fun n => P n {ω | X n ω ∈ E} := by
+    funext n
+    change (Measure.map (X n) (P n)) E = P n {ω | X n ω ∈ E}
+    rw [Measure.map_apply_of_aemeasurable (h.forall_aemeasurable n) hE]
+    rfl
+  simpa [hseq_eq, lawZ] using hport
 
 /-- **Portmanteau event-probability bridge for real distributional limits.**
 

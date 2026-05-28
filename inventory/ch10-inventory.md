@@ -109,6 +109,12 @@
 - Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
   the conditional bootstrap first and second moments implies convergence of the conditional
   bootstrap variance functional.
+- Theorem 10.13's percentile-interval coverage bridge is formalized: joint convergence of the
+  scaled estimator error and bootstrap percentile endpoints implies convergence of the percentile
+  coverage probability to the corresponding limit event probability.
+- Theorem 10.16's two-sided bootstrap-test bridge is formalized: joint convergence of the test
+  statistic and bootstrap critical value implies convergence of rejection probabilities, with a
+  calibrated size-`α` wrapper.
 - The Marcinkiewicz WLLN in Theorem 10.20 is formalized in its real-exponent `r > 1`
   form, including the deterministic max-times-mean inequality used in Hansen's proof and the
   uniformly-integrable wrapper. The natural-power face remains as a convenience wrapper for
@@ -153,10 +159,10 @@ Conventions:
 | Theorem 10.10 | In the smooth function model of Theorem 10.7, if for some |  |
 | Theorem 10.11 | As B → ∞, ˆV |  |
 | Theorem 10.12 | Under the assumptions of Theorem 10.7, ˆV |  |
-| Theorem 10.13 | Assume that for some sequence an |  |
+| Theorem 10.13 | If `a_n(θhat−θ) →d ξ` and `a_n(θhat*−θhat) →d* ξ`, with continuous symmetric limit law, then the percentile interval has asymptotic coverage `1−α` | [chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit](../HansenEconometrics/Chapter10Bootstrap.lean) is the coverage bridge from joint convergence of the scaled estimator error and scaled bootstrap percentile endpoints to the limiting event probability `P[qL <= -ξ <= qU]`.<br>The bootstrap quantile-convergence constructor and the final symmetry-to-`1−α` specialization remain to be connected. |
 | Theorem 10.14 | If (10.30) and (10.31) hold whereξ is continuously distributed, |  |
 | Theorem 10.15 | Under the assumptions of Theorem 9.11 of Introduction to |  |
-| Theorem 10.16 | If (10.30) and (10.31) hold whereξ is continuously distributed, |  |
+| Theorem 10.16 | If the bootstrap percentile-`t` critical value converges to the corresponding limit quantile of `|ξ|`, then the two-sided bootstrap test has asymptotic size `α` | [chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit](../HansenEconometrics/Chapter10Bootstrap.lean) gives the rejection-probability limit from joint convergence of the statistic and bootstrap critical value.<br>[chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter10Bootstrap.lean) is the calibrated size-`α` wrapper. The quantile-convergence constructor from (10.30)/(10.31) remains to be connected. |
 | Theorem 10.17 | Under the assumptions of Theorem 9.11 of Introduction to |  |
 | Theorem 10.18 | Under Assumption 7.2, as n → ∞ |  |
 | Theorem 10.19 | Under Assumption 7.2 and 7.3, as n → ∞, ˆV |  |
@@ -171,6 +177,7 @@ Conventions:
 | [TendstoInBootstrapProbability.add](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability addition/Slutsky bridge. |
 | [TendstoInBootstrapProbability.neg](../HansenEconometrics/BootstrapUtils.lean), [TendstoInBootstrapProbability.sub](../HansenEconometrics/BootstrapUtils.lean) | Bootstrap-probability algebra for later Slutsky and delta-method wrappers. |
 | [TendstoInBootstrapProbability.lipschitz_comp](../HansenEconometrics/BootstrapUtils.lean) | Globally Lipschitz mapping bridge for bootstrap convergence in probability; exposed chapter-facing as [chapter10_bootstrap_lipschitz_mapping_probability](../HansenEconometrics/Chapter10Bootstrap.lean). |
+| [TendstoInDistribution.tendsto_measure_preimage_of_null_frontier](../HansenEconometrics/AsymptoticUtils.lean) | Generic Portmanteau event-probability bridge used by Chapter 10 coverage and critical-region wrappers. |
 | [bootstrapVectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional finite-dimensional bootstrap CDF `G*_n(x)`. |
 | [vectorCDF](../HansenEconometrics/Chapter10Bootstrap.lean) | Limit finite-dimensional CDF `G(x)`. |
 | [TendstoInBootstrapDistribution.of_tendsto_cdf](../HansenEconometrics/Chapter10Bootstrap.lean) | Constructor for Definition 10.2 from pointwise conditional-CDF convergence. |
@@ -187,6 +194,10 @@ Conventions:
 | [bootstrapMeanReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapSecondMomentReal](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapVarianceReal](../HansenEconometrics/Chapter10Bootstrap.lean) | Conditional bootstrap moment and variance functionals for real statistics. |
 | [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact conditional variance identity `Var* Z = E* Z² - (E* Z)²`. |
 | [chapter10_bootstrap_variance_consistency_of_moment_convergence](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.9 moment bridge: conditional moment convergence implies conditional bootstrap variance convergence. |
+| [percentileCIEvent](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileCoverageVector](../HansenEconometrics/Chapter10Bootstrap.lean), [percentileCoverageSet](../HansenEconometrics/Chapter10Bootstrap.lean) | Percentile-interval event and the three-coordinate statistic used in Hansen's coverage proof. |
+| [chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.13 coverage bridge from joint estimator/quantile convergence to the limiting percentile coverage probability. |
+| [bootstrapAbsTestReject](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapAbsTestVector](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapAbsRejectionSet](../HansenEconometrics/Chapter10Bootstrap.lean) | Two-sided bootstrap-test event and joint statistic/critical-value vector. |
+| [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.16 calibrated bootstrap-test size wrapper. |
 
 ## Notes
 
