@@ -704,6 +704,28 @@ lemma hasLaw_coords_of_stdGaussian
   funext i
   exact ((hLaw i).map_eq).symm
 
+/-- Finite-index version of `hasLaw_coords_of_stdGaussian`.
+
+The core proof is the `Fin n` theorem above; this wrapper reindexes an arbitrary finite
+orthonormal basis through `Fintype.equivFin`, which is the natural shape of matrix eigenbases in
+the chapter files. -/
+lemma hasLaw_coords_of_stdGaussian_fintype
+    {ι : Type*} [Fintype ι]
+    (b : OrthonormalBasis ι ℝ E)
+    {Z : Ω → E} (hZ : HasLaw Z (stdGaussian E)) :
+    (∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1)) ∧
+      iIndepFun (fun i ω => b.repr (Z ω) i) := by
+  let e : ι ≃ Fin (Fintype.card ι) := Fintype.equivFin ι
+  let bFin : OrthonormalBasis (Fin (Fintype.card ι)) ℝ E := b.reindex e
+  obtain ⟨hLawFin, hIndepFin⟩ := hasLaw_coords_of_stdGaussian bFin hZ
+  have hLaw : ∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1) := by
+    intro i
+    simpa [bFin, OrthonormalBasis.repr_reindex] using hLawFin (e i)
+  have hIndep : iIndepFun (fun i ω => b.repr (Z ω) i) := by
+    have hpre := hIndepFin.precomp e.injective
+    simpa [bFin, OrthonormalBasis.repr_reindex] using hpre
+  exact ⟨hLaw, hIndep⟩
+
 end GaussianCoordinates
 
 end HansenEconometrics

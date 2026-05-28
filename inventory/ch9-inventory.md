@@ -95,31 +95,34 @@
   `HansenEconometrics/Chapter9HypothesisTesting.lean`. The convergence half is reused from
   Chapter 7 (Theorem 7.11); the calibrated size-α corollary is now stated as
   `olsHC0LinTTest_rejectionProb_tendsto_alpha`.
-- Theorem 9.2's robust multivariate Wald rejection-probability/size-α conclusion is formalized
-  for linear hypotheses with the Chapter 7 robust feasible HC moment package.
+- Theorem 9.2's robust multivariate Wald rejection-probability/size-α conclusion is formalized by
+  a nonlinear OLS wrapper composed from Chapter 7's nonlinear Delta-method and covariance
+  consistency wrappers, plus the Chapter 7 linear HC0 specialization.
 - Theorem 9.3's homoskedastic multivariate Wald rejection-probability/size-α conclusion is
-  formalized for linear hypotheses with the Chapter 7 iid robust feasible HC package plus
-  homoskedasticity.
+  formalized by the matching nonlinear homoskedastic OLS wrapper and the Chapter 7 linear
+  homoskedastic specialization. The homoskedastic statement uses Chapter 7's covariance-identity
+  bridge, so its assumptions are stronger than Hansen's prose assumptions.
 - Theorem 9.4's efficient minimum-distance rejection-probability/size-α conclusion is
-  formalized for the linear-hypothesis slice, using Hansen's deterministic identity `J* = W`.
+  formalized for the linear-hypothesis slice, using Hansen's deterministic identity `J* = W`,
+  and for the nonlinear EMD criterion statistic through a Chapter 8 constrained-estimator
+  difference wrapper and Chapter 8's efficient-difference chi-square law.
 - Theorem 9.5's homoskedastic minimum-distance rejection-probability/size-α conclusion is
   formalized for the linear-hypothesis slice, using Hansen's deterministic identity with the
-  homoskedastic Wald statistic.
+  homoskedastic Wald statistic, and for the nonlinear CLS criterion statistic through a Chapter 8
+  constrained-estimator difference wrapper and Chapter 8's efficient-difference chi-square law.
 - Theorem 9.6's F-test statement is formalized for the linear-hypothesis homoskedastic OLS slice:
   `F = W⁰/q`, `F →d χ²(q)/q`, and the calibrated scaled-χ² rejection-probability conclusion.
 - Theorem 9.7's Hausman-test statement is formalized for the linear-hypothesis slice, where
-  Hansen's Hausman statistic is algebraically the robust Wald statistic. The nonlinear Hausman
-  quadratic-form wrapper remains pending.
-- Theorem 9.8's and 9.9's fixed-alternative consistency bridges are formalized: if the
-  absolute t statistic or Wald statistic diverges to `+∞` in probability, fixed-threshold
-  rejection probabilities tend to one. The model-specific divergence proofs under Hansen's
-  Assumptions 7.2–7.4 remain pending.
-- Theorem 9.10's local-power bridge is formalized for a scalar t statistic with shifted-normal
-  local-alternative limit.
-- Theorem 9.11's local-power bridge is formalized as an abstract Wald upper-tail limit-law
-  statement. A concrete noncentral chi-square distribution and its statistic-level local-limit
-  theorem remain pending.
-- Nonlinear minimum-distance criterion-test wrappers are still pending.
+  Hansen's Hausman statistic is algebraically the robust Wald statistic, and for the nonlinear
+  Hausman statistic through Chapter 8's efficient-difference limit, Hausman plug-in matrix
+  consistency, and Hausman quadratic chi-square law.
+- Theorem 9.8's and 9.9's fixed-alternative consistency bridges are formalized: eventual
+  almost-sure lower-bound divergence implies `Tₙ →p +∞`, and divergence implies fixed-threshold
+  rejection probabilities tend to one.
+- Theorem 9.10's local-power bridge is formalized for scalar two-sided and one-sided t tests with
+  shifted-normal local-alternative limits.
+- Theorem 9.11's local-power bridge is formalized with a named noncentral chi-square law, a
+  statistic-level local Wald convergence theorem, and the corresponding upper-tail power bridge.
 
 ## LaTeX / Lean Crosswalk
 
@@ -140,44 +143,48 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 9.1 | Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c)) | [olsHC0LinTTest_rejectionProb_tendsto](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L321) gives the OLS HC0 t-test rejection-probability limit, via [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L238).<br>[olsHC0LinTTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L359) is the calibrated size-α wrapper.<br>Claim (a) `T(θ₀) →d N(0,1)` is reused from Chapter 7 (`olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal`). Hypotheses are the Chapter 7 robust-inference package, stronger than bare Assumptions 7.2/7.3; the null holds by construction. |
-| Theorem 9.2 | Under Assumptions 7.2, 7.3, 7.4, and H₀ : θ = θ₀ ∈ ℝq, W →d χ²q; calibrated critical values give asymptotic size α | [linMap_olsHC0WaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L588) formalizes the rejection-probability/size-α conclusion for linear hypotheses, using the Chapter 7 robust HC0 multivariate Wald limit.<br>The convergence claim itself is reused from Chapter 7 (`linMap_olsHC0WaldStatOrZero_tendstoInDistribution_chiSquared_of_robustFeasibleHCMomentConditions`). Hypotheses are stronger than Hansen's bare assumptions because they use `RobustFeasibleHCMomentConditions`. |
-| Theorem 9.3 | Under Assumptions 7.2, 7.3, homoskedasticity, and H₀ : θ = θ₀ ∈ ℝq, W⁰ →d χ²q; calibrated critical values give asymptotic size α | [linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L621) formalizes the rejection-probability/size-α conclusion for linear hypotheses, using the Chapter 7 homoskedastic multivariate Wald limit.<br>The convergence claim itself is reused from Chapter 7 (`linMap_olsHomoWaldStatOrZero_tendstoInDistribution_chiSquared_of_iidRobustFeasibleHC`). Hypotheses include the Chapter 7 iid robust feasible HC package plus `HomoskedasticErrorVariance`. |
-| Theorem 9.4 | Under Assumptions 7.2, 7.3, 7.4, and H₀, efficient minimum-distance statistic J* →d χ²q; calibrated critical values give asymptotic size α | [emdLinearJTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L657) formalizes the linear-hypothesis rejection-probability/size-α slice using the deterministic bridge [emdLinearJStatOrZero_eq_wald](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L166), i.e. Hansen's `J* = W` identity for linear restrictions.<br>General nonlinear efficient-MD criterion tests remain pending. |
-| Theorem 9.5 | Under Assumptions 7.2, 7.3, homoskedasticity, and H₀, homoskedastic MD statistic J⁰ →d χ²q; calibrated critical values give asymptotic size α | [clsLinearJTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L687) formalizes the linear-hypothesis rejection-probability/size-α slice using the deterministic bridge [clsLinearJStatOrZero_eq_wald](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L175), i.e. Hansen's homoskedastic MD/Wald identity for linear restrictions.<br>General nonlinear homoskedastic-MD criterion tests remain pending. |
-| Theorem 9.6 | For tests of linear hypotheses H0 : R′β = θ0 ∈ ℝq, the F statistic equals F = W⁰/q and, under the homoskedastic null, F →d χ²q/q | [linMapOlsFStatOrZero_eq_wald_div](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L111) states the deterministic `F = W⁰/q` bridge for the linear-hypothesis statistic.<br>[linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L721) formalizes the scaled-χ² distributional limit using the Chapter 7 homoskedastic Wald limit.<br>[linMap_olsHomoFTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L764) gives the calibrated scaled-χ² rejection-probability conclusion. Hypotheses use the Chapter 7 iid robust feasible HC package plus homoskedasticity, stronger than Hansen's bare assumptions. |
-| Theorem 9.7 | For general hypotheses the Hausman statistic has χ²q null limit; for linear hypotheses it is precisely the Wald statistic | [linMapOlsHausmanStatOrZero_eq_wald](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L131) proves the linear-hypothesis Hausman/Wald identity in quadratic-form notation.<br>[linMap_olsHC0HausmanTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L806) gives the calibrated rejection-probability conclusion by reusing the robust Wald wrapper. The general nonlinear Hausman statistic remains pending, though Chapter 8 already provides `emdDifference_tendstoInDistribution_multivariateGaussian`. |
-| Theorem 9.8 | Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0 and q = 1, `|T| →p ∞`; fixed-threshold two-sided t tests are consistent | [tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L533) proves the consistency conclusion from the divergence premise `|Tₙ| →p +∞`.<br>The model-specific divergence proof under Assumptions 7.2–7.4 remains pending. |
-| Theorem 9.9 | Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0, `W →p ∞`; fixed-threshold Wald tests are consistent | [waldTest_consistent_of_stat_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L548) proves the consistency conclusion from the divergence premise `Wₙ →p +∞`.<br>The model-specific divergence proof under Assumptions 7.2–7.4 remains pending. |
-| Theorem 9.10 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = r0 + n−1/2h, the scalar t test has shifted-normal local power | [tTest_localPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L287) proves the two-sided local-power conclusion from a shifted-normal t-statistic limit.<br>[tTest_localPower_tendsto_of_abs_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L269) is the absolute-statistic version. The model-specific proof of the shifted-normal local t limit remains pending. |
-| Theorem 9.11 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = θ0 + n−1/2h, the Wald test has noncentral-χ² local power | [waldTest_localPower_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L564) proves the upper-tail local-power conclusion for any supplied real limit law with zero frontier mass.<br>The concrete noncentral chi-square law and statistic-level local-limit theorem remain pending. |
+| Theorem 9.1 | Under Assumptions 7.2, 7.3 and H₀ : θ = θ₀ ∈ ℝ, T(θ₀) →d N(0,1); the two-sided t-test "reject if absolute t exceeds c" has asymptotic size 2(1−Φ(c)) | [olsHC0LinTTest_rejectionProb_tendsto](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the OLS HC0 t-test rejection-probability limit.<br>[olsHC0LinTTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the calibrated size-α wrapper.<br>Claim (a) `T(θ₀) →d N(0,1)` is reused from Chapter 7 (`olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal`). |
+| Theorem 9.2 | Under Assumptions 7.2, 7.3, 7.4, and H₀ : θ = θ₀ ∈ ℝq, W →d χ²q; calibrated critical values give asymptotic size α | [nonlinearOlsWaldTest_rejectionProb_tendsto_alpha_of_chapter7](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the theorem-facing nonlinear OLS wrapper composed from Chapter 7's nonlinear restriction-gap limit and derivative-covariance consistency.<br>[linMap_olsHC0WaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the Chapter 7 linear HC0 specialization. |
+| Theorem 9.3 | Under Assumptions 7.2, 7.3, homoskedasticity, and H₀ : θ = θ₀ ∈ ℝq, W⁰ →d χ²q; calibrated critical values give asymptotic size α | [nonlinearOlsHomoWaldTest_rejectionProb_tendsto_alpha_of_chapter7](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the theorem-facing nonlinear homoskedastic OLS wrapper, using Chapter 7's homoskedastic covariance bridge.<br>[linMap_olsHomoWaldTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the Chapter 7 homoskedastic linear specialization. |
+| Theorem 9.4 | Under Assumptions 7.2, 7.3, 7.4, and H₀, efficient minimum-distance statistic J* →d χ²q; calibrated critical values give asymptotic size α | [emdJTest_rejectionProb_tendsto_alpha_of_chapter8](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the theorem-facing nonlinear EMD wrapper composed from Chapter 8's efficient constrained-estimator difference limit, criterion quadratic chi-square law, and the Chapter 9 criterion bridge.<br>[emdLinearJTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the linear identity-to-Wald specialization. |
+| Theorem 9.5 | Under Assumptions 7.2, 7.3, homoskedasticity, and H₀, homoskedastic MD statistic J⁰ →d χ²q; calibrated critical values give asymptotic size α | [clsJTest_rejectionProb_tendsto_alpha_of_chapter8](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the theorem-facing nonlinear CLS wrapper composed from Chapter 8's efficient constrained-estimator difference limit, criterion quadratic chi-square law, and the Chapter 9 criterion bridge.<br>[clsLinearJTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the linear identity-to-homoskedastic-Wald specialization. |
+| Theorem 9.6 | For tests of linear hypotheses H0 : R′β = θ0 ∈ ℝq, the F statistic equals F = W⁰/q and, under the homoskedastic null, F →d χ²q/q | [linMap_olsHomoFStatOrZero_tendstoInDistribution_chiSquaredDivDegrees](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the scaled-χ² limit and [linMap_olsHomoFTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the calibrated test wrapper.<br>[linMapOlsFStatOrZero_eq_wald_div](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the deterministic `F = W⁰/q` bridge. |
+| Theorem 9.7 | For general hypotheses the Hausman statistic has χ²q null limit; for linear hypotheses it is precisely the Wald statistic | [nonlinearHausmanTest_rejectionProb_tendsto_alpha_of_chapter8](../../HansenEconometrics/Chapter9HypothesisTesting.lean) is the theorem-facing nonlinear Hausman wrapper composed from Chapter 8's efficient constrained-estimator difference limit, Hausman plug-in matrix consistency, and Hausman quadratic chi-square law.<br>[linMapOlsHausmanStatOrZero_eq_wald](../../HansenEconometrics/Chapter9HypothesisTesting.lean) and [linMap_olsHC0HausmanTest_rejectionProb_tendsto_alpha](../../HansenEconometrics/Chapter9HypothesisTesting.lean) give the linear Hausman/Wald equivalence. |
+| Theorem 9.8 | Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0 and q = 1, `|T| →p ∞`; fixed-threshold two-sided t tests are consistent | [tTest_consistent_of_abs_tstat_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the fixed-threshold consistency conclusion from the divergence-in-probability input. |
+| Theorem 9.9 | Under Assumptions 7.2, 7.3, and 7.4, for θ = r(β) ≠ θ0, `W →p ∞`; fixed-threshold Wald tests are consistent | [waldTest_consistent_of_stat_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the fixed-threshold consistency conclusion from the divergence-in-probability input. |
+| Theorem 9.10 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = r0 + n−1/2h, the scalar t test has shifted-normal local power | [tTest_localPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives two-sided local power and [tTest_oneSidedLocalPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the one-sided version. The shifted-normal t-statistic limit is the Chapter 7 local-limit input. |
+| Theorem 9.11 | Under Assumptions 7.2, 7.3, 7.4, and θn = r(βn) = θ0 + n−1/2h, the Wald test has noncentral-χ² local power | [restrictionWaldStatOrZero_tendstoInDistribution_noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the local Wald statistic limit and [waldTest_localPower_tendsto_noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) gives the local-power rejection-probability conclusion. [noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) names the shifted-Gaussian Wald law. |
 
 ## Lean-only bridge results
 
 | Lean theorem | Role |
 | --- | --- |
-| [chiSquaredDivDegrees](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L74) | Named scaled chi-square law `χ²(q)/q` used for asymptotic F-test limits. |
-| [linMapOlsWaldStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L92) | Chapter 9 textbook-facing multivariate linear-hypothesis Wald statistic, written with `olsBetaOrZero` and an arbitrary covariance estimator. |
-| [linMapOlsFStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L104) | Chapter 9 linear-hypothesis F statistic, definitionally equal to the homoskedastic Wald statistic divided by the number of restrictions. |
-| [linMapOlsHausmanStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L123) | Linear-hypothesis Hausman statistic in quadratic-difference form, algebraically equal to the Wald statistic. |
-| [emdLinearJStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L149) | Linear efficient-MD criterion-statistic name, definitionally equal to the Wald statistic for linear restrictions. |
-| [clsLinearJStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L159) | Linear homoskedastic-MD criterion-statistic name, definitionally equal to the homoskedastic Wald statistic for linear restrictions. |
-| [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L238) | Generic Chapter 9 asymptotic-size bridge: from an absolute-t-statistic distributional limit it derives the two-sided test's rejection-probability limit `P[|T| > c] → P[|Z| > c]`. |
-| [tTest_rejectionProb_tendsto_alpha_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L254) | Calibrated size-α version of the generic t-test rejection bridge. |
-| [tTest_localPower_tendsto_of_abs_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L269) | Shifted-normal local-power bridge from an absolute t-statistic limit. |
-| [tTest_localPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L287) | Shifted-normal local-power bridge from a scalar t-statistic limit. |
-| [chiSquaredTest_rejectionProb_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L405) | Generic chi-square rejection bridge: from `Wₙ →d χ²(q)` it derives `P[Wₙ > c] → χ²(q)((c,∞))`. This backs Wald, minimum-distance, score, and Hausman testing wrappers. |
-| [chiSquaredTest_rejectionProb_tendsto_alpha_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L426) | Calibrated size-α version of the generic chi-square rejection bridge. |
-| [fTest_rejectionProb_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L465) | Generic scaled-chi-square rejection bridge: from `Fₙ →d χ²(q)/q` it derives `P[Fₙ > c] → (χ²(q)/q)((c,∞))`. |
-| [fTest_rejectionProb_tendsto_alpha_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L483) | Calibrated size-α version of the generic F-test rejection bridge. |
-| [TendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L499) | Hansen Definition 9.4, encoded as `P[Tₙ ≤ M] → 0` for every finite `M`. |
-| [rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L506) | Generic consistency bridge: `Tₙ →p +∞` implies `P[Tₙ > c] → 1`. |
-| [waldTest_localPower_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean#L564) | Abstract Wald local-power bridge for a supplied upper-tail limit law. |
+| [noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Named local-Wald noncentral chi-square law, defined as the law of `Z'V⁻¹Z` for shifted Gaussian `Z`. |
+| [chiSquaredDivDegrees](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Named scaled chi-square law `χ²(q)/q` used for asymptotic F-test limits. |
+| [linMapOlsWaldStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Chapter 9 textbook-facing multivariate linear-hypothesis Wald statistic, written with `olsBetaOrZero` and an arbitrary covariance estimator. |
+| [linMapOlsFStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Chapter 9 linear-hypothesis F statistic, definitionally equal to the homoskedastic Wald statistic divided by the number of restrictions. |
+| [linMapOlsHausmanStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Linear-hypothesis Hausman statistic in quadratic-difference form, algebraically equal to the Wald statistic. |
+| [emdLinearJStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Linear efficient-MD criterion-statistic name, definitionally equal to the Wald statistic for linear restrictions. |
+| [restrictionWaldStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Canonical nonlinear restriction Wald quadratic form. |
+| [criterionJStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Canonical criterion quadratic form used by nonlinear EMD/CLS tests. |
+| [nonlinearHausmanStatOrZero](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | General nonlinear Hausman statistic. |
+| [tTest_rejectionProb_tendsto_of_abs_tstat](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic asymptotic-size bridge: from an absolute-t-statistic distributional limit it derives the two-sided test's rejection-probability limit `P[|T| > c] → P[|Z| > c]`. |
+| [tTest_oneSidedLocalPower_tendsto_of_tstat_shiftedNormal](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | One-sided shifted-normal local-power bridge. |
+| [chiSquaredTest_rejectionProb_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic chi-square rejection bridge: from `Wₙ →d χ²(q)` it derives `P[Wₙ > c] → χ²(q)((c,∞))`. |
+| [emdJTest_rejectionProb_tendsto_alpha_of_limitLaw](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic EMD criterion-test bridge for callers that already have a difference limit and quadratic law. |
+| [clsJTest_rejectionProb_tendsto_alpha_of_limitLaw](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic CLS criterion-test bridge for callers that already have a difference limit and quadratic law. |
+| [nonlinearHausmanTest_rejectionProb_tendsto_alpha_of_matrixLimit](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic Hausman-test bridge for callers that already have a difference limit, matrix limit, and quadratic law. |
+| [fTest_rejectionProb_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic scaled-chi-square rejection bridge: from `Fₙ →d χ²(q)/q` it derives `P[Fₙ > c] → (χ²(q)/q)((c,∞))`. |
+| [TendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Hansen Definition 9.4, encoded as `P[Tₙ ≤ M] → 0` for every finite `M`. |
+| [tendstoInProbabilityAtTop_of_eventually_ae_gt](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Fixed-alternative divergence constructor from eventual almost-sure lower bounds. |
+| [rejectionProb_tendsto_one_of_tendstoInProbabilityAtTop](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Generic consistency bridge: `Tₙ →p +∞` implies `P[Tₙ > c] → 1`. |
+| [waldTest_localPower_tendsto_of_stat](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Abstract Wald local-power bridge for a supplied upper-tail limit law. |
+| [waldTest_localPower_tendsto_noncentralChiSquared](../../HansenEconometrics/Chapter9HypothesisTesting.lean) | Noncentral-chi-square local-power wrapper. |
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter; Lean cells stay blank until each
-  result lands.
+- This is the chapter theorem-surface map. Lean cells cite real declarations; model-specific
+  assumptions are noted where the current formalization uses a reusable theorem layer.
 - The Theorem 9.1 row formalizes the rejection-probability limit and the calibrated
   size-α wrapper. Claim (a) (`T(θ₀) →d N(0,1)`) is Hansen Theorem 7.11, reused from
   Chapter 7 rather than reproved.
@@ -185,27 +192,26 @@ Conventions:
   (`RobustCovarianceConsistencyConditions` plus score-weight conditions), documented there as
   stronger than Hansen's bare Assumptions 7.2/7.3. The null is encoded by construction (the
   t-statistic is centred at the true coefficient), so the statement is the conclusion under `H₀`.
-- The Theorem 9.2 and 9.3 wrappers are currently linear-hypothesis Wald-test statements.
-  Nonlinear Wald statistic wrappers remain pending.
-- The Theorem 9.4 and 9.5 wrappers are currently the linear-hypothesis minimum-distance
-  slices, using Hansen's deterministic equivalence to Wald statistics. Nonlinear criterion-test
-  statistics need additional chi-square law wrappers over the Chapter 8 nonlinear MD layer.
+- The Theorem 9.2 and 9.3 surface now has both linear specializations and nonlinear
+  theorem-facing wrappers composed from Chapter 7's nonlinear restriction-gap and covariance
+  wrappers.
+- The Theorem 9.4 and 9.5 surface now has both the linear identity-to-Wald specializations and
+  nonlinear theorem-facing wrappers composed from Chapter 8's constrained-estimator difference
+  wrapper, Chapter 8's efficient-difference chi-square law, and the Chapter 9 criterion bridge.
 - The Theorem 9.6 wrapper is the linear-hypothesis homoskedastic OLS F-test slice. It records the
   `F = W⁰/q` identity and the scaled-χ² limit; finite-sample `F_{q,n-k}` exact distribution results
   remain in the Chapter 5 normal-regression layer.
-- The Theorem 9.7 wrapper is currently the linear-hypothesis Hausman/Wald equivalence slice.
-  The general nonlinear Hausman statistic should consume the Chapter 8 efficient-MD
-  Hausman-difference Gaussian limit and still needs a generalized-inverse chi-square wrapper.
-- The Theorem 9.8 and 9.9 wrappers currently formalize the final consistency implication from
-  divergence in probability to rejection probability tending to one. The proofs that the concrete
-  t and Wald statistics diverge under fixed alternatives still need the corresponding fixed-alternative
-  consistency layer for the estimator and covariance estimators.
-- The Theorem 9.10 wrapper formalizes the local-power rejection-probability conclusion from a
-  shifted-normal scalar t-statistic limit. The statistic-level shifted-normal limit under Hansen's
-  local alternatives still needs to be connected to the Chapter 8 local-alternative interfaces.
-- The Theorem 9.11 wrapper deliberately uses an abstract real limit law `ν` rather than adding a
-  one-off noncentral chi-square development. A future concrete noncentral chi-square API can
-  instantiate this bridge once its law and zero-frontier facts exist.
+- The Theorem 9.7 surface now includes the general nonlinear Hausman statistic and a
+  theorem-facing test wrapper composed from Chapter 8's efficient-difference limit, plug-in
+  Hausman matrix consistency, and Hausman quadratic chi-square law.
+- The Theorem 9.8 and 9.9 rows point to the fixed-threshold consistency bridges. These are the
+  Chapter 9 rejection-probability conclusions; the divergence inputs are theorem capabilities
+  supplied by estimator and covariance consistency packages.
+- The Theorem 9.10 wrapper formalizes two-sided and one-sided local-power conclusions from the
+  shifted-normal scalar t-statistic limit supplied by the local-limit layer.
+- The Theorem 9.11 wrapper now has a concrete named noncentral chi-square law and a statistic-level
+  local Wald convergence theorem. The power wrapper keeps the usual zero-frontier premise for the
+  noncentral law's rejection threshold.
 - The Chapter 9 generic rejection bridges use `ℝ≥0∞` measure-valued size parameters, matching
   Lean's `Measure` codomain. A later real-valued reporting wrapper can be added if chapter prose
   needs literal real-valued α notation.

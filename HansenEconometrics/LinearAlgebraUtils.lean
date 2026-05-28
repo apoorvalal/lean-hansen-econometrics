@@ -270,6 +270,48 @@ theorem isHermitian_idempotent_quadratic_form_eq_sum_sq_eigenvector_coords
     quadratic_form_eq_dotProduct_of_symm_idempotent P hPt hI e
   simpa [b, z] using hquad.trans (hnorm.trans hsum)
 
+/-- Pull a quadratic form through a fixed matrix map. -/
+lemma quadraticForm_mulVec_eq_pullback
+    {ι : Type*} [Fintype ι]
+    (B A : Matrix ι ι ℝ) (x : ι → ℝ) :
+    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x)) =
+      x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
+  calc
+    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x))
+        = ((B *ᵥ x) ᵥ* A) ⬝ᵥ (B *ᵥ x) := by
+      rw [Matrix.dotProduct_mulVec]
+    _ = (((x ᵥ* Bᵀ) ᵥ* A) ⬝ᵥ (B *ᵥ x)) := by
+      rw [Matrix.vecMul_transpose]
+    _ = ((x ᵥ* (Bᵀ * A)) ⬝ᵥ (B *ᵥ x)) := by
+      rw [Matrix.vecMul_vecMul]
+    _ = (((x ᵥ* (Bᵀ * A)) ᵥ* B) ⬝ᵥ x) := by
+      rw [Matrix.dotProduct_mulVec]
+    _ = ((x ᵥ* ((Bᵀ * A) * B)) ⬝ᵥ x) := by
+      rw [Matrix.vecMul_vecMul]
+    _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
+      rw [← Matrix.dotProduct_mulVec]
+
+/-- Pull a quadratic form through a fixed rectangular matrix map. -/
+lemma quadraticForm_mulVec_eq_pullback_rect
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (B : Matrix κ ι ℝ) (A : Matrix κ κ ℝ) (x : ι → ℝ) :
+    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x)) =
+      x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
+  calc
+    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x))
+        = ((B *ᵥ x) ᵥ* A) ⬝ᵥ (B *ᵥ x) := by
+      rw [Matrix.dotProduct_mulVec]
+    _ = (((x ᵥ* Bᵀ) ᵥ* A) ⬝ᵥ (B *ᵥ x)) := by
+      rw [Matrix.vecMul_transpose]
+    _ = ((x ᵥ* (Bᵀ * A)) ⬝ᵥ (B *ᵥ x)) := by
+      rw [Matrix.vecMul_vecMul]
+    _ = (((x ᵥ* (Bᵀ * A)) ᵥ* B) ⬝ᵥ x) := by
+      rw [Matrix.dotProduct_mulVec]
+    _ = ((x ᵥ* ((Bᵀ * A) * B)) ⬝ᵥ x) := by
+      rw [Matrix.vecMul_vecMul]
+    _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
+      rw [← Matrix.dotProduct_mulVec]
+
 /-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
 Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
 lemma quadForm_eq_sum_eigenvalues
@@ -321,6 +363,52 @@ lemma quadForm_eq_sum_eigenvalues
   simp
   ring
 
+/-- Finite-index version of `quadForm_eq_sum_eigenvalues`. -/
+lemma quadForm_eq_sum_eigenvalues_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ ι) :
+    (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ))
+      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
+  set b := hH.eigenvectorBasis with hb_def
+  have hz_coord : (z : ι → ℝ) = ∑ i, b.repr z i • ((b i : ι → ℝ)) := by
+    have hsum : z = ∑ i, b.repr z i • b i := (b.sum_repr z).symm
+    have : ((z : EuclideanSpace ℝ ι) : ι → ℝ)
+        = (((∑ i, b.repr z i • b i) : EuclideanSpace ℝ ι) : ι → ℝ) :=
+      congrArg _ hsum
+    rw [this, WithLp.ofLp_sum]
+    rfl
+  have hMz_coord : M *ᵥ (z : ι → ℝ)
+      = ∑ i, (b.repr z i * hH.eigenvalues i) • ((b i : ι → ℝ)) := by
+    rw [hz_coord, Matrix.mulVec_sum]
+    refine Finset.sum_congr rfl (fun i _ => ?_)
+    rw [Matrix.mulVec_smul, hH.mulVec_eigenvectorBasis, smul_smul]
+  have hinner_eq_dot : ∀ x y : EuclideanSpace ℝ ι,
+      @inner ℝ (EuclideanSpace ℝ ι) _ x y = ((y : ι → ℝ)) ⬝ᵥ ((x : ι → ℝ)) :=
+    fun _ _ => rfl
+  have horth : ∀ i j : ι,
+      ((b i : ι → ℝ)) ⬝ᵥ ((b j : ι → ℝ)) = if i = j then (1 : ℝ) else 0 := by
+    intro i j
+    rw [dotProduct_comm, ← hinner_eq_dot]
+    have := (orthonormal_iff_ite.mp b.orthonormal) i j
+    simpa using this
+  rw [hMz_coord, hz_coord, sum_dotProduct]
+  refine Finset.sum_congr rfl (fun i _ => ?_)
+  rw [smul_dotProduct, dotProduct_sum, smul_eq_mul]
+  have step : ∀ j, (b i : ι → ℝ) ⬝ᵥ ((b.repr z j * hH.eigenvalues j) • (b j : ι → ℝ))
+      = (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0) := by
+    intro j; rw [dotProduct_smul, horth, smul_eq_mul]
+  simp_rw [step]
+  rw [Finset.sum_congr rfl (fun j _ => show
+    (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0)
+      = if i = j then b.repr z i * hH.eigenvalues i else 0 by
+    split_ifs with hij
+    · rw [hij]; ring
+    · ring)]
+  rw [Finset.sum_ite_eq Finset.univ i]
+  simp
+  ring
+
 /-- For a Hermitian idempotent real matrix, the number of indices whose eigenvalue is `1`
 equals the rank of the matrix. -/
 lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
@@ -334,6 +422,24 @@ lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
   -- So the "= 1" predicate coincides with the "≠ 0" predicate.
   have hfilter_eq : Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)
       = Finset.univ.filter (fun i : Fin n => hH.eigenvalues i ≠ 0) := by
+    ext i
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    constructor
+    · intro h; rw [h]; norm_num
+    · exact (heig i).resolve_left
+  rw [hfilter_eq, hH.rank_eq_card_non_zero_eigs, Fintype.card_subtype]
+
+/-- Finite-index version of `card_eigenvalue_one_eq_rank_of_isHermitian_idempotent`. -/
+lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ}
+    (hH : M.IsHermitian) (hI : IsIdempotentElem M) :
+    (Finset.univ.filter (fun i : ι => hH.eigenvalues i = 1)).card = M.rank := by
+  have heig : ∀ i : ι, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
+    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+    simpa using hmem
+  have hfilter_eq : Finset.univ.filter (fun i : ι => hH.eigenvalues i = 1)
+      = Finset.univ.filter (fun i : ι => hH.eigenvalues i ≠ 0) := by
     ext i
     simp only [Finset.mem_filter, Finset.mem_univ, true_and]
     constructor

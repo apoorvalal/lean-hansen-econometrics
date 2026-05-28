@@ -2541,6 +2541,43 @@ theorem nonlinearDerivativeCovariance_olsBetaOrZero_tendstoInMeasure
     (R := Rfun β) (Vhat := Vhat) (V := V)
     hR_meas hV_meas hR hV
 
+/-- **Hansen Theorem 7.10, transposed nonlinear derivative covariance.**
+
+Chapter 9 writes Hansen's derivative as `Rhat : k × q` and uses
+`Rhatᵀ Vhat Rhat`. This is the transposed-derivative counterpart of
+`nonlinearDerivativeCovariance_olsBetaOrZero_tendstoInMeasure`, proved by
+applying that theorem to the transpose-valued derivative map. -/
+theorem nonlinearDerivativeCovarianceTranspose_olsBetaOrZero_tendstoInMeasure
+    {μ : Measure Ω} [IsFiniteMeasure μ]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ} {y : ℕ → Ω → ℝ} (β : k → ℝ)
+    (h : LeastSquaresConsistencyConditions μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    {q : Type*} [Fintype q]
+    (Rfun : (k → ℝ) → Matrix k q ℝ) (hRfun : ContinuousAt Rfun β)
+    (hR_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => Rfun
+        (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω))) μ)
+    {Vhat : ℕ → Ω → Matrix k k ℝ} {V : Matrix k k ℝ}
+    (hV_meas : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (Rfun (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))ᵀ *
+          Vhat n ω *
+          Rfun (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))
+      atTop (fun _ => (Rfun β)ᵀ * V * Rfun β) := by
+  have hRfunT : ContinuousAt (fun b => (Rfun b)ᵀ) β :=
+    (continuous_id.matrix_transpose).continuousAt.comp hRfun
+  have hR_measT : ∀ n, AEStronglyMeasurable
+      (fun ω =>
+        (Rfun (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)))ᵀ) μ := by
+    intro n
+    exact (continuous_id.matrix_transpose).comp_aestronglyMeasurable (hR_meas n)
+  simpa [Matrix.transpose_transpose] using
+    nonlinearDerivativeCovariance_olsBetaOrZero_tendstoInMeasure
+      (μ := μ) (X := X) (e := e) (y := y) β h hmodel
+      (Rfun := fun b => (Rfun b)ᵀ) hRfunT hR_measT hV_meas hV
+
 omit [DecidableEq k] in
 /-- AEMeasurability of a fixed linear covariance transform `R V Rᵀ`. -/
 theorem linMapCov_aestronglyMeasurable
