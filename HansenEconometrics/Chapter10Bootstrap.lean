@@ -33,6 +33,8 @@ used throughout the chapter:
   finite-dimensional empirical covariance matrix identity behind (10.11).
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
+* `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
+  10.20 in its real-exponent `r > 1` form.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -219,6 +221,12 @@ noncomputable def marcinkiewiczWLLNStatisticNat
     (u : ℕ → Ω → ℝ) (p n : ℕ) (ω : Ω) : ℝ :=
   ((n : ℝ)⁻¹) ^ p * ∑ i ∈ Finset.range n, |u i ω| ^ p
 
+/-- Real-power version of Hansen's Marcinkiewicz WLLN statistic,
+`n^{-r} ∑_{i<n} |uᵢ|^r`. -/
+noncomputable def marcinkiewiczWLLNStatisticRpow
+    (u : ℕ → Ω → ℝ) (r : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ((n : ℝ)⁻¹) ^ r * ∑ i ∈ Finset.range n, |u i ω| ^ r
+
 private theorem abs_le_maxNNNorm
     {u : ℕ → Ω → ℝ} {n i : ℕ} {ω : Ω}
     (hi : i ∈ Finset.range n) :
@@ -244,6 +252,15 @@ private theorem marcinkiewiczWLLNStatisticNat_nonneg
     pow_nonneg (inv_nonneg.mpr (Nat.cast_nonneg n)) p
   have hsum : 0 ≤ ∑ i ∈ Finset.range n, |u i ω| ^ p :=
     Finset.sum_nonneg fun i _ => pow_nonneg (abs_nonneg _) p
+  exact mul_nonneg hscale hsum
+
+private theorem marcinkiewiczWLLNStatisticRpow_nonneg
+    (u : ℕ → Ω → ℝ) (r : ℝ) (n : ℕ) (ω : Ω) :
+    0 ≤ marcinkiewiczWLLNStatisticRpow u r n ω := by
+  have hscale : 0 ≤ ((n : ℝ)⁻¹) ^ r :=
+    Real.rpow_nonneg (inv_nonneg.mpr (Nat.cast_nonneg n)) r
+  have hsum : 0 ≤ ∑ i ∈ Finset.range n, |u i ω| ^ r :=
+    Finset.sum_nonneg fun i _ => Real.rpow_nonneg (abs_nonneg _) r
   exact mul_nonneg hscale hsum
 
 /-- Deterministic inequality in Hansen's proof of Theorem 10.20.
@@ -305,6 +322,75 @@ theorem marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean
     (scaledMaxNNNorm u n ω) ^ (p - 1) * sampleAbsMean u n ω
   exact hscale_le.trans_eq hrhs
 
+/-- Deterministic inequality in Hansen's proof of Theorem 10.20 for real
+exponents `r > 1`.
+
+This is the textbook display
+`n^{-r} ∑ |uᵢ|^r ≤ (n^{-1} max |uᵢ|)^{r-1} (n^{-1} ∑ |uᵢ|)`. -/
+theorem marcinkiewiczWLLNStatisticRpow_le_max_mul_sampleAbsMean
+    {u : ℕ → Ω → ℝ} {r : ℝ} {n : ℕ} {ω : Ω}
+    (hr : 1 < r) :
+    marcinkiewiczWLLNStatisticRpow u r n ω ≤
+      (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω := by
+  let a : ℝ := (n : ℝ)⁻¹
+  let M : ℝ := (maxNNNorm u n ω : ℝ)
+  let S : ℝ := ∑ i ∈ Finset.range n, |u i ω|
+  let Sr : ℝ := ∑ i ∈ Finset.range n, |u i ω| ^ r
+  let q : ℝ := r - 1
+  have hq_nonneg : 0 ≤ q := by
+    dsimp [q]
+    exact sub_nonneg.mpr hr.le
+  have hr_eq : r = q + 1 := by
+    dsimp [q]
+    ring
+  have ha_nonneg : 0 ≤ a := by
+    dsimp [a]
+    exact inv_nonneg.mpr (Nat.cast_nonneg n)
+  have hM_nonneg : 0 ≤ M := by
+    dsimp [M]
+    exact NNReal.coe_nonneg _
+  have hsum_le : Sr ≤ M ^ q * S := by
+    calc
+      Sr = ∑ i ∈ Finset.range n, |u i ω| ^ r := rfl
+      _ ≤ ∑ i ∈ Finset.range n, M ^ q * |u i ω| := by
+        refine Finset.sum_le_sum ?_
+        intro i hi
+        have habs_le : |u i ω| ≤ M := by
+          simpa [M] using abs_le_maxNNNorm (u := u) (ω := ω) hi
+        have hpow_le : |u i ω| ^ q ≤ M ^ q :=
+          Real.rpow_le_rpow (abs_nonneg _) habs_le hq_nonneg
+        have hpow_eq : |u i ω| ^ r = |u i ω| ^ q * |u i ω| := by
+          rw [hr_eq, Real.rpow_add_of_nonneg (abs_nonneg _) hq_nonneg zero_le_one,
+            Real.rpow_one]
+        rw [hpow_eq]
+        exact mul_le_mul_of_nonneg_right hpow_le (abs_nonneg _)
+      _ = M ^ q * S := by
+        simp [S, Finset.mul_sum]
+  have hscale_le :
+      a ^ r * Sr ≤ a ^ r * (M ^ q * S) :=
+    mul_le_mul_of_nonneg_left hsum_le (Real.rpow_nonneg ha_nonneg r)
+  have hsample : sampleAbsMean u n ω = a * S := by
+    simp [sampleAbsMean, a, S, div_eq_inv_mul]
+  have hscaled : scaledMaxNNNorm u n ω = a * M := by
+    simp [scaledMaxNNNorm, a, M]
+  have hpow_a : a ^ r = a ^ q * a := by
+    rw [hr_eq, Real.rpow_add_of_nonneg ha_nonneg hq_nonneg zero_le_one, Real.rpow_one]
+  have hrhs :
+      a ^ r * (M ^ q * S) =
+        (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω := by
+    calc
+      a ^ r * (M ^ q * S)
+          = (a ^ q * M ^ q) * (a * S) := by
+            rw [hpow_a]
+            ring
+      _ = (a * M) ^ q * (a * S) := by
+            rw [Real.mul_rpow ha_nonneg hM_nonneg]
+      _ = (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω := by
+            rw [hscaled, hsample]
+  change a ^ r * Sr ≤
+    (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω
+  exact hscale_le.trans_eq hrhs
+
 private theorem tendstoInMeasure_pow_nat_zero_real
     {X : ℕ → Ω → ℝ}
     (hX : TendstoInMeasure μ X atTop (fun _ => 0))
@@ -321,6 +407,34 @@ private theorem tendstoInMeasure_pow_nat_zero_real
         have hpow := ih hq_pos
         have hmul := TendstoInMeasure.mul_zero_real hpow hX
         simpa [pow_succ, mul_comm, mul_left_comm, mul_assoc] using hmul
+
+private theorem tendstoInMeasure_rpow_pos_zero_real
+    {X : ℕ → Ω → ℝ}
+    (hX_nonneg : ∀ n ω, 0 ≤ X n ω)
+    (hX : TendstoInMeasure μ X atTop (fun _ => 0))
+    {q : ℝ} (hq : 0 < q) :
+    TendstoInMeasure μ (fun n ω => (X n ω) ^ q) atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hX ⊢
+  intro ε hε
+  let δ : ℝ := ε ^ q⁻¹
+  have hδ_pos : 0 < δ := Real.rpow_pos_of_pos hε q⁻¹
+  have hδ_nonneg : 0 ≤ δ := hδ_pos.le
+  have hδ_pow : δ ^ q = ε := by
+    dsimp [δ]
+    simpa using Real.rpow_inv_rpow hε.le hq.ne'
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    (hX δ hδ_pos) (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  have hXpow_nonneg : 0 ≤ (X n ω) ^ q :=
+    Real.rpow_nonneg (hX_nonneg n ω) q
+  have htail_power : ε ≤ (X n ω) ^ q := by
+    simpa [Real.dist_eq, abs_of_nonneg hXpow_nonneg] using hω
+  have hδ_le_X : δ ≤ X n ω := by
+    rw [← Real.rpow_le_rpow_iff hδ_nonneg (hX_nonneg n ω) hq]
+    simpa [hδ_pow] using htail_power
+  simpa [Real.dist_eq, abs_of_nonneg (hX_nonneg n ω)] using hδ_le_X
 
 /-- Uniform integrability makes `n⁻¹ ∑ |uᵢ|` bounded in probability.
 
@@ -382,6 +496,57 @@ theorem chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
     TendstoInMeasure μ (marcinkiewiczWLLNStatisticNat u p) atTop (fun _ => 0) :=
   chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean
     (μ := μ) (u := u) hp
+    (max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r (μ := μ) (Z := u) hu)
+    (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
+
+/-- Hansen Theorem 10.20, real-exponent convergence engine.
+
+If the scaled maximum `n⁻¹ max |uᵢ|` is `oₚ(1)` and the absolute sample mean is
+`Oₚ(1)`, then `n^{-r} ∑ |uᵢ|^r = oₚ(1)` for every real `r > 1`. -/
+theorem chapter10_marcinkiewicz_wlln_rpow_of_max_and_absMean
+    {u : ℕ → Ω → ℝ} {r : ℝ}
+    (hr : 1 < r)
+    (hmax : TendstoInMeasure μ (scaledMaxNNNorm u) atTop (fun _ => 0))
+    (hmean : BoundedInProbability μ (sampleAbsMean u)) :
+    TendstoInMeasure μ (marcinkiewiczWLLNStatisticRpow u r) atTop (fun _ => 0) := by
+  have hq_pos : 0 < r - 1 := sub_pos.mpr hr
+  have hscaled_nonneg : ∀ n ω, 0 ≤ scaledMaxNNNorm u n ω := by
+    intro n ω
+    exact mul_nonneg (inv_nonneg.mpr (Nat.cast_nonneg n)) (NNReal.coe_nonneg _)
+  have hpow :
+      TendstoInMeasure μ
+        (fun n ω => (scaledMaxNNNorm u n ω) ^ (r - 1)) atTop (fun _ => 0) :=
+    tendstoInMeasure_rpow_pos_zero_real hscaled_nonneg hmax hq_pos
+  have hprod :
+      TendstoInMeasure μ
+        (fun n ω => (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.mul_boundedInProbability hpow hmean
+  exact tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := marcinkiewiczWLLNStatisticRpow u r)
+    (g := fun n ω => (scaledMaxNNNorm u n ω) ^ (r - 1) * sampleAbsMean u n ω)
+    (marcinkiewiczWLLNStatisticRpow_nonneg u r)
+    (fun n ω =>
+      marcinkiewiczWLLNStatisticRpow_le_max_mul_sampleAbsMean
+        (u := u) (r := r) (n := n) (ω := ω) hr)
+    hprod
+
+/-- **Hansen Theorem 10.20, Marcinkiewicz WLLN.**
+
+If `uᵢ` is uniformly integrable, then for every real `r > 1`,
+`n^{-r} ∑ |uᵢ|^r ->p 0`.  Hansen states the theorem with independence as a
+sufficient condition for the ordinary WLLN step; this formulation is slightly
+stronger because Mathlib's probability-theory uniform integrability already
+provides the `Oₚ(1)` absolute-mean factor, and Chapter 6's maximum theorem
+provides the `oₚ(1)` scaled-maximum factor. -/
+theorem chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ} {r : ℝ}
+    (hr : 1 < r)
+    (hu : UniformIntegrable u 1 μ) :
+    TendstoInMeasure μ (marcinkiewiczWLLNStatisticRpow u r) atTop (fun _ => 0) :=
+  chapter10_marcinkiewicz_wlln_rpow_of_max_and_absMean
+    (μ := μ) (u := u) hr
     (max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r (μ := μ) (Z := u) hu)
     (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
 

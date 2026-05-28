@@ -104,10 +104,10 @@
   the centered bootstrap WLLN proof, the Slutsky/addition step giving the second conclusion of
   Theorem 10.2, and finite empirical mean/covariance identities behind equations
   (10.10)–(10.12).
-- The natural-power face of the Marcinkiewicz WLLN in Theorem 10.20 is now formalized for
-  integer powers `p ≥ 2`, including the deterministic max-times-mean inequality used in Hansen's
-  proof and the uniformly-integrable wrapper. The full real-exponent `r > 1` statement remains to
-  be added.
+- The Marcinkiewicz WLLN in Theorem 10.20 is formalized in its real-exponent `r > 1`
+  form, including the deterministic max-times-mean inequality used in Hansen's proof and the
+  uniformly-integrable wrapper. The natural-power face remains as a convenience wrapper for
+  integer-moment applications.
 - The concrete nonparametric-bootstrap constructors still need to be added for the full
   independent/UI bootstrap WLLN, bootstrap CLT, variance, percentile, percentile-t, refinement,
   test, and regression results.
@@ -155,7 +155,7 @@ Conventions:
 | Theorem 10.17 | Under the assumptions of Theorem 9.11 of Introduction to |  |
 | Theorem 10.18 | Under Assumption 7.2, as n → ∞ |  |
 | Theorem 10.19 | Under Assumption 7.2 and 7.3, as n → ∞, ˆV |  |
-| Theorem 10.20 | Marcinkiewicz WLLN If `u_i` are independent and uniformly integrable, then for any `r > 1`, `n^{-r} ∑ |u_i|^r →p 0` | Natural-power face: [chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap.lean). The deterministic proof inequality is [marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean](../HansenEconometrics/Chapter10Bootstrap.lean). Real `r > 1` remains pending. |
+| Theorem 10.20 | Marcinkiewicz WLLN If `u_i` are independent and uniformly integrable, then for any `r > 1`, `n^{-r} ∑ |u_i|^r →p 0` | [chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap.lean). Natural-power convenience face: [chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap.lean). The deterministic proof inequalities are [marcinkiewiczWLLNStatisticRpow_le_max_mul_sampleAbsMean](../HansenEconometrics/Chapter10Bootstrap.lean) and [marcinkiewiczWLLNStatisticNat_le_max_mul_sampleAbsMean](../HansenEconometrics/Chapter10Bootstrap.lean). |
 
 ## Lean-only bridge results
 
@@ -171,6 +171,7 @@ Conventions:
 | [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact scalar empirical variance identity for one bootstrap draw, the scalar form of (10.11). |
 | [covMat_uniformOn_univ_eq_card_inv_smul_sum_centered](../HansenEconometrics/Chapter10Bootstrap.lean) | Exact finite-dimensional empirical covariance identity for one bootstrap draw, the matrix form of (10.11). |
 | [sampleAbsMean_boundedInProbability_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap.lean) | `Oₚ(1)` absolute-mean factor in Hansen's proof of Theorem 10.20. |
+| [chapter10_marcinkiewicz_wlln_rpow_of_max_and_absMean](../HansenEconometrics/Chapter10Bootstrap.lean) | Reusable convergence engine for the real-exponent form of Theorem 10.20. |
 | [chapter10_marcinkiewicz_wlln_natPower_of_max_and_absMean](../HansenEconometrics/Chapter10Bootstrap.lean) | Reusable convergence engine for the natural-power face of Theorem 10.20. |
 | [bootstrapWLLNSecondMomentBound](../HansenEconometrics/Chapter10Bootstrap.lean) | Textbook `η^{-2} n^{-2} ∑ |u_i|^2` bound in the proof of Theorem 10.2. |
 | [bootstrapWLLNSecondMomentBound_tendsto_zero](../HansenEconometrics/Chapter10Bootstrap.lean) | Marcinkiewicz convergence of the second-moment bound used in Theorem 10.2. |
