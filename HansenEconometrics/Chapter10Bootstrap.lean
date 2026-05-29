@@ -101,6 +101,11 @@ used throughout the chapter:
   `chapter10_bootstrap_smooth_function_gaussian_of_integral_linearization`
   transfer a bootstrap weak limit across a nonlinear linearization when every
   bounded-continuous test-function integral differs by `oₚ(1)`.
+* `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_integral_diff`,
+  `TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_integral_diff`,
+  and `TendstoInBootstrapDistribution.of_weakDistribution_integral_diff`
+  push that same linearization transfer through null-frontier event probabilities
+  and Hansen's coordinate-CDF API.
 * `finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv` and its
   moment/covariance wrappers turn bounded-trimmed finite-replication WLLN
   `L²` error bounds into the moment premises used in Hansen Theorem 10.11.
@@ -2550,6 +2555,35 @@ theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_fro
   · simpa [hupper_map] using hupper_law
   · simpa [hlower_map, hupper_map] using hgap_law
 
+/-- Bootstrap weak convergence plus a bounded-continuous integral
+linearization gives event-probability convergence for null-frontier events.
+
+This is the event-probability face of the nonlinear Delta-method transfer:
+one first proves a weak limit for the linearized statistic, then checks that
+the nonlinear statistic has the same conditional bounded-continuous integrals
+up to `oₚ(1)`. -/
+theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_integral_diff
+    [PseudoEMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E} {A : Set E}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction E ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map Z) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar' A)
+      atTop (fun _ => (ν.map Z).real A) := by
+  exact (hweak.of_integral_difference_zero hdiff).event_probability_tendsto_of_null_frontier
+    hPstar hZstar' hZ hA hfrontier
+
 /-- Coordinate lower orthants are closed in product space. -/
 theorem isClosed_coordinateLE (x : k → ℝ) :
     IsClosed {z : k → ℝ | coordinateLE z x} := by
@@ -2591,6 +2625,31 @@ theorem TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_null_fr
   simpa [bootstrapVectorCDF, bootstrapEventProbability, vectorCDF, A, Measure.real_def,
     Measure.map_apply_of_aemeasurable hZ hA] using hevent
 
+/-- Bootstrap weak convergence plus a bounded-continuous integral
+linearization gives Hansen coordinate-CDF convergence at lower-orthant
+null-frontier points. -/
+theorem TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_integral_diff
+    [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction (k → ℝ) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν) {x : k → ℝ}
+    (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar' x n ω)
+      atTop (fun _ => vectorCDF ν Z x) := by
+  exact (hweak.of_integral_difference_zero hdiff).bootstrapVectorCDF_tendsto_of_null_frontier
+    hPstar hZstar' hZ hfrontier
+
 /-- Weak bootstrap convergence implies Hansen's coordinate-CDF bootstrap
 distribution convergence when every relevant lower orthant has null frontier
 under the limiting law.
@@ -2613,6 +2672,34 @@ theorem TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
   intro x hx
   exact hweak.bootstrapVectorCDF_tendsto_of_null_frontier
     hPstar hZstar hZ (hfrontier x hx)
+
+/-- Weak bootstrap convergence plus bounded-continuous integral
+linearization implies Hansen's coordinate-CDF bootstrap distribution
+convergence when the limiting lower orthants have null frontiers. -/
+theorem TendstoInBootstrapDistribution.of_weakDistribution_integral_diff
+    [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction (k → ℝ) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y => vectorCDF ν Z y) x →
+        (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar Zstar' ν Z := by
+  letI : Fintype k := Fintype.ofFinite k
+  intro x hx
+  exact hweak.bootstrapVectorCDF_tendsto_of_integral_diff
+    hdiff hPstar hZstar' hZ (hfrontier x hx)
 
 /-- Clipped first moments converge under bootstrap weak convergence.
 
