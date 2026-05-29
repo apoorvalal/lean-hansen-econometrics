@@ -1,3 +1,4 @@
+import Mathlib.MeasureTheory.Function.LpSeminorm.ChebyshevMarkov
 import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
 import Mathlib.Probability.UniformOn
 import HansenEconometrics.AsymptoticUtils
@@ -28,6 +29,8 @@ used throughout the chapter:
   bound into the centered conclusion of Theorem 10.2.
 * `chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound` is the
   scalar conditional-Chebyshev constructor for the same Theorem 10.2 step.
+* `chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound` is the vector-valued
+  conditional Markov constructor from a bootstrap `L²` seminorm bound.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -656,6 +659,61 @@ theorem bootstrapWLLNSecondMomentBound_tendsto_zero
     atTop (fun _ => 0)
   exact TendstoInMeasure.const_mul_zero_real (μ := μ) (η⁻¹ ^ 2) hmarc
 
+/-- Vector-valued `L²` Markov bound for bootstrap tails.
+
+This is the conditional-probability form of
+`P*(‖Z*‖ ≥ η) ≤ η⁻² ‖Z*‖²_{L²(P*)}`.  The right side is written with
+Mathlib's `eLpNorm` because this is the reusable layer that applies before a
+particular empirical covariance calculation has identified the `L²` seminorm. -/
+noncomputable def bootstrapL2ENNTailBound
+    [NormedAddCommGroup E]
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → E)
+    (η : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  (((ENNReal.ofReal η)⁻¹ ^ (2 : ℝ)) *
+    eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ)).toReal
+
+/-- Conditional Markov inequality for vector-valued bootstrap statistics. -/
+theorem bootstrapTailProb_zero_le_l2_eLpNorm_bound
+    [NormedAddCommGroup E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → E}
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProb Pstar Zstar (fun _ => 0) η n ω ≤
+      bootstrapL2ENNTailBound Pstar Zstar η n ω := by
+  have htail :
+      (Pstar n ω)
+          {ωs : Ωs | ENNReal.ofReal η ≤ ‖Zstar n ω ωs‖ₑ} ≤
+        (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) := by
+    simpa using
+      (MeasureTheory.meas_ge_le_mul_pow_eLpNorm_enorm
+        (μ := Pstar n ω) (p := (2 : ℝ≥0∞)) (f := Zstar n ω)
+        (by norm_num) (by simp) (hZ n ω).1
+        (ε := ENNReal.ofReal η) (by simp [hη])
+        (by intro htop; exact (ENNReal.ofReal_ne_top htop).elim))
+  have hset :
+      {ωs : Ωs | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : E)) ω)} =
+        {ωs : Ωs | ENNReal.ofReal η ≤ ‖Zstar n ω ωs‖ₑ} := by
+    ext ωs
+    simp only [Set.mem_setOf_eq]
+    rw [dist_eq_norm, sub_zero, ← ofReal_norm_eq_enorm]
+    exact (ENNReal.ofReal_le_ofReal_iff (norm_nonneg _)).symm
+  have hmeasure :
+      (Pstar n ω)
+          {ωs : Ωs | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : E)) ω)} ≤
+        (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) := by
+    rw [hset]
+    exact htail
+  have hrhs_ne_top :
+      (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) ≠ ∞ := by
+    have hnorm_ne_top : eLpNorm (Zstar n ω) 2 (Pstar n ω) ≠ ∞ :=
+      (hZ n ω).eLpNorm_ne_top
+    finiteness
+  have hreal := ENNReal.toReal_mono hrhs_ne_top hmeasure
+  simpa [bootstrapTailProb, bootstrapL2ENNTailBound] using hreal
+
 /-- Conditional Chebyshev inequality for centered scalar bootstrap statistics.
 
 If a scalar bootstrap statistic has conditional mean zero, then its conditional
@@ -753,6 +811,35 @@ theorem chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound
     _ = bootstrapWLLNSecondMomentBound u η n ω := by
           rw [bootstrapWLLNSecondMomentBound]
           field_simp [hη.ne']
+
+/-- Hansen Theorem 10.2, vector centered WLLN from a bootstrap `L²` seminorm
+bound.
+
+This is the vector-valued conditional Markov constructor.  The remaining
+empirical-bootstrap specialization identifies the displayed `L²` seminorm
+through the finite empirical covariance/norm calculation. -/
+theorem chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapL2ENNTailBound Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) η n ω ≤
+            bootstrapWLLNSecondMomentBound u η n ω) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine chapter10_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  exact (bootstrapTailProb_zero_le_l2_eLpNorm_bound
+    (Pstar := Pstar)
+    (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+    hZ hη n ω).trans (hbound η hη n ω)
 
 /-- Hansen Theorem 10.2, level WLLN from the textbook second-moment bound.
 
