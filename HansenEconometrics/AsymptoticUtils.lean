@@ -1406,6 +1406,8 @@ end MulVec
 
 section StochasticOrder
 
+open scoped Matrix.Norms.Elementwise
+
 /-- Sum of two real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This direct scalar version avoids extra measurability hypotheses, using only the
@@ -1619,6 +1621,39 @@ theorem TendstoInMeasure.of_sub_tendsto_zero_real
     refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsum
     exact ae_of_all μ fun ω => by ring
   exact TendstoInMeasure.of_sub_limit_zero_real hX0
+
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p c`, then `Xₙ ->p c` for
+finite-dimensional real vectors. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_vector
+    {k : Type*} [Fintype k]
+    {X Y : ℕ → α → k → ℝ} {c : k → ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => c)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  have hXYa :
+      TendstoInMeasure μ (fun n ω => X n ω a - Y n ω a)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.pi_apply hXY a
+  exact TendstoInMeasure.of_sub_tendsto_zero_real hXYa
+    (TendstoInMeasure.pi_apply hY a)
+
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p C`, then `Xₙ ->p C` for
+finite-dimensional real matrices. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_matrix
+    {r c : Type*} [Fintype r] [Fintype c]
+    {X Y : ℕ → α → Matrix r c ℝ} {C : Matrix r c ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => C)) :
+    TendstoInMeasure μ X atTop (fun _ => C) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  have hXYab :
+      TendstoInMeasure μ (fun n ω => X n ω a b - Y n ω a b)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hXY a) b
+  exact TendstoInMeasure.of_sub_tendsto_zero_real hXYab
+    (TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hY a) b)
 
 /-- Product of two real-valued sequences converging in measure to scalar limits
 converges in measure to the product of the limits. -/
