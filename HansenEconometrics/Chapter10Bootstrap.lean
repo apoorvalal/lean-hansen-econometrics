@@ -61,6 +61,9 @@ used throughout the chapter:
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
+* `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
+  textbook-centered finite-replication covariance-matrix bridge for Theorem
+  10.11.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
@@ -1191,6 +1194,14 @@ noncomputable def finiteReplicationCovarianceMomentReal
     (finiteReplicationCrossMomentReal X Y B ω -
       finiteReplicationMeanReal X B ω * finiteReplicationMeanReal Y B ω)
 
+/-- Centered finite-replication covariance estimator for two real statistics. -/
+noncomputable def finiteReplicationCovarianceCenteredReal
+    (X Y : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  (((B : ℝ) - 1)⁻¹) *
+    ∑ b ∈ Finset.range B,
+      (X B b ω - finiteReplicationMeanReal X B ω) *
+        (Y B b ω - finiteReplicationMeanReal Y B ω)
+
 /-- Mean vector across `B` finite bootstrap replications. -/
 noncomputable def finiteReplicationMeanVec
     (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : k → ℝ :=
@@ -1208,6 +1219,15 @@ noncomputable def finiteReplicationCovarianceMomentMat
     finiteReplicationVarianceCorrection B *
       (finiteReplicationCrossMomentMat Z B ω a c -
         finiteReplicationMeanVec Z B ω a * finiteReplicationMeanVec Z B ω c)
+
+/-- Centered finite-replication covariance matrix estimator. -/
+noncomputable def finiteReplicationCovarianceCenteredMat
+    (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c =>
+    (((B : ℝ) - 1)⁻¹) *
+      ∑ b ∈ Finset.range B,
+        (Z B b ω a - finiteReplicationMeanVec Z B ω a) *
+          (Z B b ω c - finiteReplicationMeanVec Z B ω c)
 
 /-- The finite-replication degrees-of-freedom correction `B / (B - 1)`
 tends to `1`. -/
@@ -1238,6 +1258,85 @@ theorem finiteReplicationVarianceCorrection_tendsto_one :
   have hadd := hrSub.add_const 1
   simpa [r, finiteReplicationVarianceCorrection, sub_eq_add_neg, add_assoc,
     add_comm, add_left_comm] using hadd
+
+/-- The centered finite-replication covariance formula equals its moment form
+whenever the number of replications is greater than one. -/
+theorem finiteReplicationCovarianceCenteredReal_eq_momentReal
+    {X Y : ℕ → ℕ → Ω → ℝ} {B : ℕ} (hB : 1 < B) (ω : Ω) :
+    finiteReplicationCovarianceCenteredReal X Y B ω =
+      finiteReplicationCovarianceMomentReal X Y B ω := by
+  have hB0_nat : B ≠ 0 := Nat.ne_of_gt (lt_trans zero_lt_one hB)
+  have hB0 : (B : ℝ) ≠ 0 := by exact_mod_cast hB0_nat
+  have hden_ne : (B : ℝ) - 1 ≠ 0 := by
+    have hgt : (1 : ℝ) < (B : ℝ) := by exact_mod_cast hB
+    linarith
+  have hsumX :
+      ∑ b ∈ Finset.range B, X B b ω =
+        (B : ℝ) * finiteReplicationMeanReal X B ω := by
+    unfold finiteReplicationMeanReal
+    field_simp [hB0]
+  have hsumY :
+      ∑ b ∈ Finset.range B, Y B b ω =
+        (B : ℝ) * finiteReplicationMeanReal Y B ω := by
+    unfold finiteReplicationMeanReal
+    field_simp [hB0]
+  have hcenter_sum :
+      ∑ b ∈ Finset.range B,
+          (X B b ω - finiteReplicationMeanReal X B ω) *
+            (Y B b ω - finiteReplicationMeanReal Y B ω) =
+        ∑ b ∈ Finset.range B, X B b ω * Y B b ω -
+          (B : ℝ) * finiteReplicationMeanReal X B ω *
+            finiteReplicationMeanReal Y B ω := by
+    calc
+      ∑ b ∈ Finset.range B,
+          (X B b ω - finiteReplicationMeanReal X B ω) *
+            (Y B b ω - finiteReplicationMeanReal Y B ω)
+          =
+        ∑ b ∈ Finset.range B,
+          (X B b ω * Y B b ω -
+            X B b ω * finiteReplicationMeanReal Y B ω -
+            finiteReplicationMeanReal X B ω * Y B b ω +
+            finiteReplicationMeanReal X B ω *
+              finiteReplicationMeanReal Y B ω) := by
+          refine Finset.sum_congr rfl ?_
+          intro b hb
+          ring
+      _ =
+        ∑ b ∈ Finset.range B, X B b ω * Y B b ω -
+          (∑ b ∈ Finset.range B, X B b ω) *
+            finiteReplicationMeanReal Y B ω -
+          finiteReplicationMeanReal X B ω *
+            (∑ b ∈ Finset.range B, Y B b ω) +
+          (B : ℝ) * finiteReplicationMeanReal X B ω *
+            finiteReplicationMeanReal Y B ω := by
+          simp [Finset.sum_add_distrib, Finset.sum_sub_distrib,
+            Finset.sum_mul, Finset.mul_sum, mul_assoc]
+      _ =
+        ∑ b ∈ Finset.range B, X B b ω * Y B b ω -
+          (B : ℝ) * finiteReplicationMeanReal X B ω *
+            finiteReplicationMeanReal Y B ω := by
+          rw [hsumX, hsumY]
+          ring
+  unfold finiteReplicationCovarianceCenteredReal
+  unfold finiteReplicationCovarianceMomentReal
+  unfold finiteReplicationCrossMomentReal
+  unfold finiteReplicationVarianceCorrection
+  rw [hcenter_sum]
+  field_simp [hB0, hden_ne]
+
+/-- Matrix form of `finiteReplicationCovarianceCenteredReal_eq_momentReal`. -/
+theorem finiteReplicationCovarianceCenteredMat_eq_momentMat
+    {k : Type*} {Z : ℕ → ℕ → Ω → k → ℝ} {B : ℕ}
+    (hB : 1 < B) (ω : Ω) :
+    finiteReplicationCovarianceCenteredMat Z B ω =
+      finiteReplicationCovarianceMomentMat Z B ω := by
+  ext a c
+  simpa [finiteReplicationCovarianceCenteredMat, finiteReplicationCovarianceMomentMat,
+    finiteReplicationMeanVec, finiteReplicationCrossMomentMat,
+    finiteReplicationMeanReal, finiteReplicationCrossMomentReal] using
+    finiteReplicationCovarianceCenteredReal_eq_momentReal
+      (X := fun B b ω => Z B b ω a)
+      (Y := fun B b ω => Z B b ω c) hB ω
 
 /-- Hansen Theorem 10.11, finite-replication variance moment bridge.
 
@@ -1407,6 +1506,67 @@ theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_moments
   simpa [finiteReplicationCovarianceMomentMat, finiteReplicationMeanVec,
     finiteReplicationCrossMomentMat, finiteReplicationCovarianceMomentReal,
     finiteReplicationMeanReal, finiteReplicationCrossMomentReal] using hentry
+
+/-- Textbook-centered finite-replication covariance bridge for two real
+statistics.
+
+This is the same convergence result as
+`chapter10_finiteReplicationCovarianceReal_tendsto_of_moments`, but stated for
+the centered `1 / (B - 1) ∑ (X_b - Xbar)(Y_b - Ybar)` estimator. -/
+theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_moments
+    {X Y : ℕ → ℕ → Ω → ℝ} {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (finiteReplicationMeanReal X) atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (finiteReplicationMeanReal Y) atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ (finiteReplicationCrossMomentReal X Y) atTop
+        (fun _ => mXY)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal X Y) atTop
+      (fun _ => mXY - mX * mY) := by
+  have hmoment :=
+    chapter10_finiteReplicationCovarianceReal_tendsto_of_moments
+      (μ := μ) hmeanX hmeanY hcross
+  refine TendstoInMeasure.congr'
+    (f := finiteReplicationCovarianceMomentReal X Y)
+    (f' := finiteReplicationCovarianceCenteredReal X Y)
+    (g := fun _ : Ω => mXY - mX * mY)
+    (g' := fun _ : Ω => mXY - mX * mY)
+    ?_ EventuallyEq.rfl hmoment
+  filter_upwards [eventually_gt_atTop 1] with B hB
+  exact ae_of_all μ fun ω =>
+    (finiteReplicationCovarianceCenteredReal_eq_momentReal
+      (X := X) (Y := Y) hB ω).symm
+
+/-- Hansen Theorem 10.11, textbook-centered finite-dimensional covariance
+bridge.
+
+This wrapper states the finite-replication covariance convergence for Hansen's
+centered estimator `1 / (B - 1) ∑ (Z_b - Zbar)(Z_b - Zbar)'`, using the exact
+centered/moment-form identity and the finite-dimensional moment bridge. -/
+theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Z : ℕ → ℕ → Ω → k → ℝ} {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (finiteReplicationMeanVec Z) atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (finiteReplicationCrossMomentMat Z) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Z) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  have hmoment :=
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_moments
+      (μ := μ) hmean hcross
+  refine TendstoInMeasure.congr'
+    (f := finiteReplicationCovarianceMomentMat Z)
+    (f' := finiteReplicationCovarianceCenteredMat Z)
+    (g := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    (g' := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    ?_ EventuallyEq.rfl hmoment
+  filter_upwards [eventually_gt_atTop 1] with B hB
+  exact ae_of_all μ fun ω =>
+    (finiteReplicationCovarianceCenteredMat_eq_momentMat
+      (Z := Z) hB ω).symm
 
 end FiniteReplicationVariance
 
