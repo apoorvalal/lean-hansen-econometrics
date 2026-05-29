@@ -86,6 +86,10 @@ used throughout the chapter:
   the concrete Theorem 10.2 second-moment route.
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
   finite empirical variance identity behind equation (10.11).
+* `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
+  `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
+  provide the scalar bootstrap sample-mean variance and second-moment bound
+  behind equation (10.13) and the Theorem 10.2 proof.
 * `covMat_uniformOn_univ_eq_card_inv_smul_sum_centered` is the
   finite-dimensional empirical covariance matrix identity behind (10.11).
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
@@ -446,6 +450,144 @@ theorem variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered
   rw [ProbabilityTheory.variance_eq_integral (measurable_of_finite Y).aemeasurable, hmean]
   exact integral_uniformOn_univ_eq_card_inv_smul_sum
     (fun i => (Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j) ^ 2)
+
+omit [Fintype ι] in
+/-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
+
+This is the scalar form of Hansen equation (10.13): the conditional variance
+of the bootstrap sample mean is the empirical one-draw variance divided by the
+number of bootstrap draws. -/
+theorem variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Finite ι] [Nonempty ι]
+    (Y : ι → ℝ) :
+    Var[fun ωs : κ → ι => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))] =
+      (Fintype.card κ : ℝ)⁻¹ *
+        Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+  classical
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let c : ℝ := (Fintype.card κ : ℝ)⁻¹
+  have hPκ : Pκ = Measure.pi (fun _ : κ => Pι) := by
+    simpa [Pκ, Pι] using
+      (ProbabilityTheory.uniformOn_pi (Ω := ι) (ι := κ)
+        (f := fun _ : κ => (Set.univ : Set ι)))
+  have hmem : ∀ t : κ, MemLp Y 2 Pι := fun _ =>
+    memLp_two_uniformOn_univ (Y := Y)
+  have hvarsum :
+      Var[(∑ t, fun ωs : κ → ι => Y (ωs t)); Measure.pi (fun _ : κ => Pι)] =
+        ∑ _t : κ, Var[Y; Pι] := by
+    simpa using
+      (ProbabilityTheory.variance_sum_pi
+        (Ω := fun _ : κ => ι) (μ := fun _ : κ => Pι)
+        (X := fun _ : κ => Y) hmem)
+  have hsumvar :
+      (∑ _t : κ, Var[Y; Pι]) = (Fintype.card κ : ℝ) * Var[Y; Pι] := by
+    simp
+  have hsample :
+      (fun ωs : κ → ι =>
+          empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs) =
+        fun ωs : κ → ι => c * (∑ t, fun ωs : κ → ι => Y (ωs t)) ωs := by
+    ext ωs
+    simp [empiricalBootstrapResampleMean, c]
+  calc
+    Var[fun ωs : κ → ι => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs; Pκ]
+        = Var[fun ωs : κ → ι => c * (∑ t, fun ωs : κ → ι => Y (ωs t)) ωs; Pκ] := by
+          rw [hsample]
+    _ = Var[fun ωs : κ → ι => c * (∑ t, fun ωs : κ → ι => Y (ωs t)) ωs;
+          Measure.pi (fun _ : κ => Pι)] := by
+          rw [hPκ]
+    _ = c ^ 2 * Var[(∑ t, fun ωs : κ → ι => Y (ωs t));
+          Measure.pi (fun _ : κ => Pι)] := by
+          rw [ProbabilityTheory.variance_const_mul]
+    _ = c ^ 2 * ((Fintype.card κ : ℝ) * Var[Y; Pι]) := by
+          rw [hvarsum, hsumvar]
+    _ = (Fintype.card κ : ℝ)⁻¹ * Var[Y; Pι] := by
+          have hcard : (Fintype.card κ : ℝ) ≠ 0 :=
+            Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+          dsimp [c]
+          field_simp [hcard]
+
+/-- Centered second moment of the ordinary finite nonparametric bootstrap
+sample mean.
+
+This is Hansen equation (10.13) in the exact second-moment form used by the
+bootstrap WLLN proof. -/
+theorem integral_sq_resampleMean_sub_empiricalMean_eq_inv_card_mul_variance
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      (Fintype.card κ : ℝ)⁻¹ *
+        Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : (κ → ι) → ℝ :=
+    fun ωs => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs
+  have hmean : ∫ ωs, X ωs ∂Pκ = empiricalMean Y := by
+    simpa [X, Pκ] using
+      integral_empiricalBootstrapResampleMean_uniformOn_fun_eq_empiricalMean
+        (κ := κ) (Y := Y)
+  have hX_meas : AEMeasurable X Pκ :=
+    (measurable_of_finite X).aemeasurable
+  calc
+    ∫ ωs : κ → ι, (X ωs - empiricalMean Y) ^ 2 ∂Pκ =
+        ∫ ωs : κ → ι, (X ωs - ∫ ωs, X ωs ∂Pκ) ^ 2 ∂Pκ := by
+          rw [hmean]
+    _ = Var[X; Pκ] := (ProbabilityTheory.variance_eq_integral hX_meas).symm
+    _ = (Fintype.card κ : ℝ)⁻¹ *
+        Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+          simpa [X, Pκ] using
+            (variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul
+              (κ := κ) (Y := Y))
+
+/-- Scalar second-moment bound for the ordinary finite nonparametric bootstrap
+sample mean.
+
+The centered bootstrap sample mean has conditional second moment bounded by
+`1 / #κ` times the empirical raw second moment of one draw.  When the resample
+size and empirical support have the same cardinality, this is the scalar
+`n^{-2} ∑ Y_i^2` bound used in Hansen's proof of Theorem 10.2. -/
+theorem integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) ≤
+      (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i ^ 2) := by
+  classical
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have hvar_le :
+      Var[Y; Pι] ≤ ∫ i, Y i ^ 2 ∂Pι :=
+    ProbabilityTheory.variance_le_expectation_sq
+      (μ := Pι) (X := Y) (AEStronglyMeasurable.of_discrete)
+  have hsecond :
+      ∫ i, Y i ^ 2 ∂Pι =
+        ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i ^ 2 := by
+    simpa [Pι] using
+      (integral_uniformOn_univ_eq_card_inv_smul_sum (E := ℝ)
+        (fun i => Y i ^ 2))
+  have hc_nonneg : 0 ≤ (Fintype.card κ : ℝ)⁻¹ :=
+    inv_nonneg.mpr (Nat.cast_nonneg _)
+  calc
+    ∫ ωs : κ → ι,
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+        = (Fintype.card κ : ℝ)⁻¹ * Var[Y; Pι] := by
+          simpa [Pι] using
+            (integral_sq_resampleMean_sub_empiricalMean_eq_inv_card_mul_variance
+              (κ := κ) (Y := Y))
+    _ ≤ (Fintype.card κ : ℝ)⁻¹ * ∫ i, Y i ^ 2 ∂Pι :=
+          mul_le_mul_of_nonneg_left hvar_le hc_nonneg
+    _ = (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i ^ 2) := by
+          rw [hsecond]
 
 /-- Finite-dimensional empirical covariance identity for one bootstrap draw.
 
