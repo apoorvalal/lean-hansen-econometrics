@@ -59,6 +59,8 @@ used throughout the chapter:
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
+* `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
+  finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
@@ -1166,6 +1168,11 @@ noncomputable def finiteReplicationSecondMomentReal
     (Z : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
   (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, (Z B b ω) ^ 2
 
+/-- Cross moment across `B` finite bootstrap replications of two real statistics. -/
+noncomputable def finiteReplicationCrossMomentReal
+    (X Y : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, X B b ω * Y B b ω
+
 /-- Finite-sample degrees-of-freedom correction `B / (B - 1)`. -/
 noncomputable def finiteReplicationVarianceCorrection (B : ℕ) : ℝ :=
   (B : ℝ) / ((B : ℝ) - 1)
@@ -1176,6 +1183,31 @@ noncomputable def finiteReplicationVarianceMomentReal
   finiteReplicationVarianceCorrection B *
     (finiteReplicationSecondMomentReal Z B ω -
       (finiteReplicationMeanReal Z B ω) ^ 2)
+
+/-- Moment-form finite-replication covariance estimator for two real statistics. -/
+noncomputable def finiteReplicationCovarianceMomentReal
+    (X Y : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  finiteReplicationVarianceCorrection B *
+    (finiteReplicationCrossMomentReal X Y B ω -
+      finiteReplicationMeanReal X B ω * finiteReplicationMeanReal Y B ω)
+
+/-- Mean vector across `B` finite bootstrap replications. -/
+noncomputable def finiteReplicationMeanVec
+    (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : k → ℝ :=
+  fun a => (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, Z B b ω a
+
+/-- Cross-moment matrix across `B` finite bootstrap replications. -/
+noncomputable def finiteReplicationCrossMomentMat
+    (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c => (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, Z B b ω a * Z B b ω c
+
+/-- Moment-form finite-replication covariance matrix estimator. -/
+noncomputable def finiteReplicationCovarianceMomentMat
+    (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c =>
+    finiteReplicationVarianceCorrection B *
+      (finiteReplicationCrossMomentMat Z B ω a c -
+        finiteReplicationMeanVec Z B ω a * finiteReplicationMeanVec Z B ω c)
 
 /-- The finite-replication degrees-of-freedom correction `B / (B - 1)`
 tends to `1`. -/
@@ -1276,6 +1308,105 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_moments
   · exact ae_of_all μ fun ω => by
       simp [finiteReplicationVarianceMomentReal]
   · exact ae_of_all μ fun _ => by ring
+
+/-- Finite-replication covariance moment bridge for two real statistics.
+
+If the finite-`B` replication means of `X` and `Y` and their cross moment
+converge in probability, then the moment-form finite-replication covariance
+converges in probability to `mXY - mX * mY`. -/
+theorem chapter10_finiteReplicationCovarianceReal_tendsto_of_moments
+    {X Y : ℕ → ℕ → Ω → ℝ} {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (finiteReplicationMeanReal X) atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (finiteReplicationMeanReal Y) atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ (finiteReplicationCrossMomentReal X Y) atTop
+        (fun _ => mXY)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentReal X Y) atTop
+      (fun _ => mXY - mX * mY) := by
+  have hmean_prod :
+      TendstoInMeasure μ
+        (fun B ω => finiteReplicationMeanReal X B ω *
+          finiteReplicationMeanReal Y B ω)
+        atTop (fun _ => mX * mY) :=
+    TendstoInMeasure.mul_limits_real hmeanX hmeanY
+  have hcross0 := TendstoInMeasure.sub_limit_zero_real hcross
+  have hmean_prod0 := TendstoInMeasure.sub_limit_zero_real hmean_prod
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun B ω =>
+          (finiteReplicationCrossMomentReal X Y B ω -
+            finiteReplicationMeanReal X B ω *
+              finiteReplicationMeanReal Y B ω) -
+            (mXY - mX * mY))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hcross0 hmean_prod0
+    refine TendstoInMeasure.congr (fun B => ?_) EventuallyEq.rfl hsub
+    exact ae_of_all μ fun ω => by ring
+  have hdiff :
+      TendstoInMeasure μ
+        (fun B ω =>
+          finiteReplicationCrossMomentReal X Y B ω -
+            finiteReplicationMeanReal X B ω *
+              finiteReplicationMeanReal Y B ω)
+        atTop (fun _ => mXY - mX * mY) :=
+    TendstoInMeasure.of_sub_limit_zero_real hdiff0
+  have hfactor :
+      TendstoInMeasure μ
+        (fun B (_ : Ω) => finiteReplicationVarianceCorrection B)
+        atTop (fun _ => 1) :=
+    tendstoInMeasure_const_real (μ := μ)
+      finiteReplicationVarianceCorrection_tendsto_one
+  have hprod :
+      TendstoInMeasure μ
+        (fun B ω =>
+          finiteReplicationVarianceCorrection B *
+            (finiteReplicationCrossMomentReal X Y B ω -
+              finiteReplicationMeanReal X B ω *
+                finiteReplicationMeanReal Y B ω))
+        atTop (fun _ => 1 * (mXY - mX * mY)) :=
+    TendstoInMeasure.mul_limits_real hfactor hdiff
+  simpa [finiteReplicationCovarianceMomentReal] using hprod
+
+/-- Hansen Theorem 10.11, finite-dimensional covariance-matrix moment bridge.
+
+If the finite-`B` replication mean vector and cross-moment matrix converge in
+probability, then the moment-form finite-replication covariance matrix
+converges in probability to the corresponding covariance matrix `M₂ - mm'`.
+The bounded-trimmed bootstrap WLLN supplies these moment premises in the
+textbook application. -/
+theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Z : ℕ → ℕ → Ω → k → ℝ} {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (finiteReplicationMeanVec Z) atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (finiteReplicationCrossMomentMat Z) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Z) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  have hentry :=
+    chapter10_finiteReplicationCovarianceReal_tendsto_of_moments
+      (μ := μ)
+      (X := fun B b ω => Z B b ω a)
+      (Y := fun B b ω => Z B b ω c)
+      (mX := m a) (mY := m c) (mXY := M₂ a c)
+      (by
+        simpa [finiteReplicationMeanVec, finiteReplicationMeanReal] using
+          TendstoInMeasure.pi_apply hmean a)
+      (by
+        simpa [finiteReplicationMeanVec, finiteReplicationMeanReal] using
+          TendstoInMeasure.pi_apply hmean c)
+      (by
+        simpa [finiteReplicationCrossMomentMat,
+          finiteReplicationCrossMomentReal] using
+          TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hcross a) c)
+  simpa [finiteReplicationCovarianceMomentMat, finiteReplicationMeanVec,
+    finiteReplicationCrossMomentMat, finiteReplicationCovarianceMomentReal,
+    finiteReplicationMeanReal, finiteReplicationCrossMomentReal] using hentry
 
 end FiniteReplicationVariance
 
