@@ -31,6 +31,10 @@ used throughout the chapter:
   scalar conditional-Chebyshev constructor for the same Theorem 10.2 step.
 * `chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound` is the vector-valued
   conditional Markov constructor from a bootstrap `L²` seminorm bound.
+* `chapter10_bootstrap_wlln_level_real_of_conditional_variance_bound` and
+  `chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound` package those centered
+  constructors with the ordinary WLLN to give the level conclusion of Theorem
+  10.2.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -812,6 +816,34 @@ theorem chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound
           rw [bootstrapWLLNSecondMomentBound]
           field_simp [hη.ne']
 
+/-- Hansen Theorem 10.2, scalar level WLLN from a conditional variance bound.
+
+This packages the scalar conditional-Chebyshev centered result with the
+ordinary-sample WLLN for `Ybar`, giving the textbook level conclusion
+`Ybar* ->p* μY`. -/
+theorem chapter10_bootstrap_wlln_level_real_of_conditional_variance_bound
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → ℝ} {Ybar : ℕ → Ω → ℝ} {μY : ℝ}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hmean :
+      ∀ n ω, (Pstar n ω)[fun ωs => YbarStar n ω ωs - Ybar n ω] = 0)
+    (hvar :
+      ∀ n ω,
+        Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbability μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hPstar hu hZ hmean hvar)
+    hYbar
+
 /-- Hansen Theorem 10.2, vector centered WLLN from a bootstrap `L²` seminorm
 bound.
 
@@ -840,6 +872,34 @@ theorem chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound
     (Pstar := Pstar)
     (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
     hZ hη n ω).trans (hbound η hη n ω)
+
+/-- Hansen Theorem 10.2, vector level WLLN from a bootstrap `L²` seminorm
+bound.
+
+This packages the vector conditional-Markov centered result with the
+ordinary-sample WLLN for `Ybar`, giving the textbook level conclusion
+`Ybar* ->p* μY`. -/
+theorem chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapL2ENNTailBound Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) η n ω ≤
+            bootstrapWLLNSecondMomentBound u η n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbability μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hu hZ hbound)
+    hYbar
 
 /-- Hansen Theorem 10.2, level WLLN from the textbook second-moment bound.
 
