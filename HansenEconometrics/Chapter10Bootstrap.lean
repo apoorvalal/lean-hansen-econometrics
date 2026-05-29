@@ -51,6 +51,9 @@ used throughout the chapter:
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
   Hansen Theorem 10.9.
+* `TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails` and
+  `TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails`
+  add the UI/tail unclipping step for the first two moments.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_delta_method_linear` and
@@ -76,6 +79,9 @@ used throughout the chapter:
   Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
+* `chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails`
+  derives that bridge's moment premises from bootstrap weak convergence plus
+  first/second clipping-tail controls.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
@@ -1192,6 +1198,125 @@ theorem TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto
   simpa [bootstrapBoundedContinuousIntegral, realClipBoundedContinuousFunction_apply]
     using hZ ((realClipBoundedContinuousFunction R hR) ^ (2 : ℕ))
 
+private theorem tendstoInMeasure_of_approx_limits_real
+    {X : ℕ → Ω → ℝ} {c : ℝ}
+    (happrox :
+      ∀ ε : ℝ, 0 < ε →
+        ∃ cε : ℝ, dist cε c ≤ ε ∧
+          TendstoInMeasure μ X atTop (fun _ => cε)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  obtain ⟨cε, hcε, hX⟩ := happrox (ε / 2) (by positivity)
+  rw [tendstoInMeasure_iff_dist] at hX
+  have htail := hX (ε / 2) (by positivity)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds htail
+    (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  have hωdist : ε ≤ dist (X n ω) c := hω
+  have hdist : dist (X n ω) c ≤ dist (X n ω) cε + dist cε c :=
+    dist_triangle (X n ω) cε c
+  have : ε / 2 ≤ dist (X n ω) cε := by
+    linarith
+  exact this
+
+/-- Bootstrap weak convergence plus clipping-tail control gives full first
+moment convergence.
+
+This is the UI/tail assembly step for Hansen Theorem 10.9's conditional first
+moment premise. -/
+theorem TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[Zstar n ω] -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[Zstar n ω])
+      atTop (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipMean : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]
+  let clipLimit : ℝ := ∫ ωlim, realClip R (Z ωlim) ∂ν
+  have hclip :
+      TendstoInMeasure μ clipMean atTop (fun _ => clipLimit) := by
+    simpa [clipMean, clipLimit] using
+      hZ.integral_realClip_tendsto hR
+  have hclip0 :
+      TendstoInMeasure μ (fun n ω => clipMean n ω - clipLimit)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_limit_zero_real hclip
+  have hsum := TendstoInMeasure.add_zero_real htail hclip0
+  have hmean0 :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[Zstar n ω] - clipLimit)
+        atTop (fun _ => 0) := by
+    refine hsum.congr_left (fun n => ae_of_all μ fun ω => ?_)
+    dsimp [clipMean]
+    ring
+  have hmean :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Zstar n ω])
+        atTop (fun _ => clipLimit) :=
+    TendstoInMeasure.of_sub_limit_zero_real hmean0
+  exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hmean⟩
+
+/-- Bootstrap weak convergence plus clipping-tail control gives full second
+moment convergence.
+
+This is the UI/tail assembly step for Hansen Theorem 10.9's conditional second
+moment premise. -/
+theorem TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[(Zstar n ω) ^ 2] -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2])
+      atTop (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipSecond : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]
+  let clipLimit : ℝ := ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν
+  have hclip :
+      TendstoInMeasure μ clipSecond atTop (fun _ => clipLimit) := by
+    simpa [clipSecond, clipLimit] using
+      hZ.integral_realClip_sq_tendsto hR
+  have hclip0 :
+      TendstoInMeasure μ (fun n ω => clipSecond n ω - clipLimit)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_limit_zero_real hclip
+  have hsum := TendstoInMeasure.add_zero_real htail hclip0
+  have hsecond0 :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2] - clipLimit)
+        atTop (fun _ => 0) := by
+    refine hsum.congr_left (fun n => ae_of_all μ fun ω => ?_)
+    dsimp [clipSecond]
+    ring
+  have hsecond :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2])
+        atTop (fun _ => clipLimit) :=
+    TendstoInMeasure.of_sub_limit_zero_real hsecond0
+  exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hsecond⟩
+
 /-- Hansen Theorem 10.5, globally continuous weak-convergence face.
 
 If `Zₙ* ->d* Z` in bounded-continuous-test-function form and `g` is continuous,
@@ -1518,6 +1643,47 @@ theorem chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence
       (fun _ => m₂ - m ^ 2) :=
   chapter10_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZ hmean hsecond
+
+/-- Hansen Theorem 10.9, weak-distribution plus UI/tail variance bridge.
+
+Bootstrap weak convergence gives clipped first and second moment convergence.
+If the supplied clipping-tail controls remove the clipping, the conditional
+bootstrap variance converges to the variance functional of the limit law. -/
+theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailMean : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapMeanReal Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+        atTop (fun _ => 0))
+    (hTailSecond : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapSecondMomentReal Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+    simpa [bootstrapMeanReal] using
+      hweak.integral_tendsto_of_realClip_tails hTailMean
+  have hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+    simpa [bootstrapSecondMomentReal] using
+      hweak.integral_sq_tendsto_of_realClip_tails hTailSecond
+  exact chapter10_bootstrap_variance_consistency_of_moment_convergence
+    hPstar hZmem hmean hsecond
 
 end BootstrapVariance
 
