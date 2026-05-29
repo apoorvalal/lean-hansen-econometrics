@@ -168,11 +168,20 @@ used throughout the chapter:
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
-  coverage wrapper.
+  coverage wrapper, with scalar-event support from
+  `percentileCoverageLimit_measure_set_eq` and
+  `chapter10_percentileCI_coverage_tendsto_of_scalar_limit_coverage`.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
+* `percentileTCoverageLimit_measure_set_eq` and
+  `chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage` rewrite
+  the percentile-`t` limit vector event as the scalar event `qL <= ξ <= qU`.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
+* `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
+  `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection`
+  rewrite the bootstrap-test limit vector event as the scalar rejection event
+  `q < |ξ|`.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -4779,6 +4788,47 @@ theorem percentileCoverageVector_mem_set_iff
   · intro h
     constructor <;> nlinarith [ha, h.1, h.2]
 
+/-- The percentile-coverage limit vector belongs to the coverage set exactly
+when the scalar limit error lies between the limiting percentile endpoints. -/
+theorem percentileCoverageLimitVector_mem_set_iff
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ} {ω : Ωlim} :
+    percentileCoverageLimitVector ξ qLower qUpper ω ∈ percentileCoverageSet ↔
+      qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper := by
+  change
+    (qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper) ↔
+      qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper
+  rfl
+
+/-- A scalar a.e.-measurable limit statistic yields an a.e.-measurable
+percentile-coverage limit vector. -/
+theorem aemeasurable_percentileCoverageLimitVector
+    {ξ : Ωlim → ℝ} (hξ : AEMeasurable ξ ν) (qLower qUpper : ℝ) :
+    AEMeasurable (percentileCoverageLimitVector ξ qLower qUpper) ν := by
+  refine aemeasurable_pi_lambda _ ?_
+  intro i
+  by_cases hi0 : i = 0
+  · subst i
+    simpa [percentileCoverageLimitVector] using hξ
+  by_cases hi1 : i = 1
+  · subst i
+    simp [percentileCoverageLimitVector]
+  · simp [percentileCoverageLimitVector, hi0, hi1]
+
+/-- The vector-law probability of the percentile-coverage limit set is the
+scalar event probability `P[qL <= -ξ <= qU]`. -/
+theorem percentileCoverageLimit_measure_set_eq
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ}
+    (hξ : AEMeasurable ξ ν) :
+    (ν.map (percentileCoverageLimitVector ξ qLower qUpper))
+        percentileCoverageSet =
+      ν {ω | qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper} := by
+  rw [Measure.map_apply_of_aemeasurable
+    (aemeasurable_percentileCoverageLimitVector (ν := ν) hξ qLower qUpper)
+    isClosed_percentileCoverageSet.measurableSet]
+  apply congrArg ν
+  ext ω
+  exact percentileCoverageLimitVector_mem_set_iff
+
 /-- Hansen Theorem 10.13, percentile-interval coverage bridge.
 
 If the scaled estimator error and the scaled bootstrap percentile endpoints
@@ -4849,6 +4899,46 @@ theorem chapter10_percentileCI_coverage_tendsto
       (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
       (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
       hjoint hfrontier
+
+/-- Calibrated percentile-interval coverage bridge with the limit coverage
+stated as the scalar event probability `P[qL <= -ξ <= qU]`. -/
+theorem chapter10_percentileCI_coverage_tendsto_of_scalar_limit_coverage
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileCoverageSet) = 0)
+    (hcoverage :
+      ν {ω | qLowerLim ≤ -ξ ω ∧ -ξ ω ≤ qUpperLim} = coverage) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  have hcoverage_map :
+      (ν.map (percentileCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileCoverageSet = coverage := by
+    rw [Measure.map_apply_of_aemeasurable hjoint.aemeasurable_limit
+      isClosed_percentileCoverageSet.measurableSet]
+    have hpre :
+        {ω | percentileCoverageLimitVector ξ qLowerLim qUpperLim ω ∈
+            percentileCoverageSet} =
+          {ω | qLowerLim ≤ -ξ ω ∧ -ξ ω ≤ qUpperLim} := by
+      ext ω
+      exact percentileCoverageLimitVector_mem_set_iff
+    simpa [hpre] using hcoverage
+  exact
+    chapter10_percentileCI_coverage_tendsto
+      (μ := μ) (ν := ν) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hjoint hfrontier hcoverage_map
 
 end PercentileIntervals
 
@@ -4931,6 +5021,48 @@ theorem percentileTCoverageVector_mem_set_iff
       percentileTCIEvent θ (θhat n ω) (se n ω) (qLower n ω) (qUpper n ω)
   exact (percentileTCIEvent_iff_tstat_between hse).symm
 
+/-- The percentile-`t` coverage limit vector belongs to the coverage set
+exactly when the scalar t-ratio limit lies between the limiting endpoints. -/
+theorem percentileTCoverageLimitVector_mem_set_iff
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ} {ω : Ωlim} :
+    percentileTCoverageLimitVector ξ qLower qUpper ω ∈
+        percentileTCoverageSet ↔
+      qLower ≤ ξ ω ∧ ξ ω ≤ qUpper := by
+  change
+    (qLower ≤ ξ ω ∧ ξ ω ≤ qUpper) ↔
+      qLower ≤ ξ ω ∧ ξ ω ≤ qUpper
+  rfl
+
+/-- A scalar a.e.-measurable limit t-ratio yields an a.e.-measurable
+percentile-`t` coverage limit vector. -/
+theorem aemeasurable_percentileTCoverageLimitVector
+    {ξ : Ωlim → ℝ} (hξ : AEMeasurable ξ ν) (qLower qUpper : ℝ) :
+    AEMeasurable (percentileTCoverageLimitVector ξ qLower qUpper) ν := by
+  refine aemeasurable_pi_lambda _ ?_
+  intro i
+  by_cases hi0 : i = 0
+  · subst i
+    simpa [percentileTCoverageLimitVector] using hξ
+  by_cases hi1 : i = 1
+  · subst i
+    simp [percentileTCoverageLimitVector]
+  · simp [percentileTCoverageLimitVector, hi0, hi1]
+
+/-- The vector-law probability of the percentile-`t` limit set is the scalar
+event probability `P[qL <= ξ <= qU]`. -/
+theorem percentileTCoverageLimit_measure_set_eq
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ}
+    (hξ : AEMeasurable ξ ν) :
+    (ν.map (percentileTCoverageLimitVector ξ qLower qUpper))
+        percentileTCoverageSet =
+      ν {ω | qLower ≤ ξ ω ∧ ξ ω ≤ qUpper} := by
+  rw [Measure.map_apply_of_aemeasurable
+    (aemeasurable_percentileTCoverageLimitVector (ν := ν) hξ qLower qUpper)
+    isClosed_percentileTCoverageSet.measurableSet]
+  apply congrArg ν
+  ext ω
+  exact percentileTCoverageLimitVector_mem_set_iff
+
 /-- Hansen Theorem 10.14, percentile-`t` interval coverage bridge.
 
 If the sample t-ratio and bootstrap percentile-`t` critical values jointly
@@ -5008,6 +5140,48 @@ theorem chapter10_percentileTCI_coverage_tendsto
       (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
       hse hjoint hfrontier
 
+/-- Calibrated percentile-`t` coverage bridge with the limit coverage stated
+as the scalar event probability `P[qL <= ξ <= qU]`. -/
+theorem chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        (frontier percentileTCoverageSet) = 0)
+    (hcoverage :
+      ν {ω | qLowerLim ≤ ξ ω ∧ ξ ω ≤ qUpperLim} = coverage) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  have hcoverage_map :
+      (ν.map (percentileTCoverageLimitVector ξ qLowerLim qUpperLim))
+        percentileTCoverageSet = coverage := by
+    rw [Measure.map_apply_of_aemeasurable hjoint.aemeasurable_limit
+      isClosed_percentileTCoverageSet.measurableSet]
+    have hpre :
+        {ω | percentileTCoverageLimitVector ξ qLowerLim qUpperLim ω ∈
+            percentileTCoverageSet} =
+          {ω | qLowerLim ≤ ξ ω ∧ ξ ω ≤ qUpperLim} := by
+      ext ω
+      exact percentileTCoverageLimitVector_mem_set_iff
+    simpa [hpre] using hcoverage
+  exact
+    chapter10_percentileTCI_coverage_tendsto
+      (μ := μ) (ν := ν) (θ := θ) (θhat := θhat) (se := se)
+      (qLower := qLower) (qUpper := qUpper) (ξ := ξ)
+      (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hse hjoint hfrontier hcoverage_map
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -5042,6 +5216,42 @@ theorem bootstrapAbsTestVector_mem_rejectionSet_iff
       bootstrapAbsTestReject (T n ω) (crit n ω) := by
   change crit n ω < |T n ω| ↔ crit n ω < |T n ω|
   rfl
+
+/-- The bootstrap-test limit vector belongs to the rejection set exactly when
+the scalar limit statistic rejects against the limiting critical value. -/
+theorem bootstrapAbsTestLimitVector_mem_rejectionSet_iff
+    {ξ : Ωlim → ℝ} {critLim : ℝ} {ω : Ωlim} :
+    bootstrapAbsTestLimitVector ξ critLim ω ∈ bootstrapAbsRejectionSet ↔
+      bootstrapAbsTestReject (ξ ω) critLim := by
+  change critLim < |ξ ω| ↔ critLim < |ξ ω|
+  rfl
+
+/-- A scalar a.e.-measurable limit statistic yields an a.e.-measurable
+bootstrap-test limit vector. -/
+theorem aemeasurable_bootstrapAbsTestLimitVector
+    {ξ : Ωlim → ℝ} (hξ : AEMeasurable ξ ν) (critLim : ℝ) :
+    AEMeasurable (bootstrapAbsTestLimitVector ξ critLim) ν := by
+  refine aemeasurable_pi_lambda _ ?_
+  intro i
+  by_cases hi0 : i = 0
+  · subst i
+    simpa [bootstrapAbsTestLimitVector] using hξ
+  · simp [bootstrapAbsTestLimitVector, hi0]
+
+/-- The vector-law probability of the bootstrap-test rejection set is the
+scalar event probability `P[q < |ξ|]`. -/
+theorem bootstrapAbsTestLimit_measure_rejectionSet_eq
+    {ξ : Ωlim → ℝ} {critLim : ℝ}
+    (hξ : AEMeasurable ξ ν) :
+    (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+        bootstrapAbsRejectionSet =
+      ν {ω | bootstrapAbsTestReject (ξ ω) critLim} := by
+  rw [Measure.map_apply_of_aemeasurable
+    (aemeasurable_bootstrapAbsTestLimitVector (ν := ν) hξ critLim)
+    isOpen_bootstrapAbsRejectionSet.measurableSet]
+  apply congrArg ν
+  ext ω
+  exact bootstrapAbsTestLimitVector_mem_rejectionSet_iff
 
 /-- Hansen Theorem 10.16, bootstrap critical-value rejection-probability bridge.
 
@@ -5102,6 +5312,42 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha
     chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit
       (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
       hjoint hfrontier
+
+/-- Calibrated bootstrap critical-value bridge with the limiting rejection
+probability stated as the scalar event probability `P[q < |ξ|]`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ} {α : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hfrontier :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+        (frontier bootstrapAbsRejectionSet) = 0)
+    (halpha :
+      ν {ω | bootstrapAbsTestReject (ξ ω) critLim} = α) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 α) := by
+  have halpha_map :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim)) bootstrapAbsRejectionSet =
+        α := by
+    rw [Measure.map_apply_of_aemeasurable hjoint.aemeasurable_limit
+      isOpen_bootstrapAbsRejectionSet.measurableSet]
+    have hpre :
+        {ω | bootstrapAbsTestLimitVector ξ critLim ω ∈
+            bootstrapAbsRejectionSet} =
+          {ω | bootstrapAbsTestReject (ξ ω) critLim} := by
+      ext ω
+      exact bootstrapAbsTestLimitVector_mem_rejectionSet_iff
+    simpa [hpre] using halpha
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha
+      (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
+      hjoint hfrontier halpha_map
 
 end BootstrapTests
 
