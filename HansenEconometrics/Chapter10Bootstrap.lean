@@ -177,6 +177,8 @@ used throughout the chapter:
 * `percentileCoverage_scalar_event_eq_law` and
   `chapter10_percentileCI_coverage_tendsto_of_limit_law` state the percentile
   calibration through the non-atomic law of the scalar limit statistic.
+* `chapter10_percentileCI_coverage_tendsto_of_limit_law_cdf` is the CDF-mass
+  specialization of that law-level percentile calibration.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageLimit_measure_set_eq` and
@@ -190,6 +192,8 @@ used throughout the chapter:
   `chapter10_percentileTCI_coverage_tendsto_of_limit_law` state the
   percentile-`t` calibration through the non-atomic law of the scalar limit
   t-ratio.
+* `chapter10_percentileTCI_coverage_tendsto_of_limit_law_cdf` is the CDF-mass
+  specialization of the percentile-`t` law-level calibration.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
@@ -204,6 +208,8 @@ used throughout the chapter:
   `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law` state
   bootstrap-test calibration through the non-atomic law of the scalar limit
   statistic.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf`
+  states the same two-sided test calibration in CDF-increment form.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -5138,6 +5144,40 @@ theorem chapter10_percentileCI_coverage_tendsto_of_limit_law
   · rw [percentileCoverage_scalar_event_eq_law hξ qLowerLim qUpperLim]
     exact hcoverage
 
+/-- CDF-calibrated percentile-interval coverage bridge.
+
+For a non-atomic scalar limit law, the limiting percentile coverage
+`η[-qU,-qL]` can be supplied as the CDF increment
+`F(-qL) - F(-qU)`. -/
+theorem chapter10_percentileCI_coverage_tendsto_of_limit_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim coverage : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hcoverage : cdf η (-qLowerLim) - cdf η (-qUpperLim) = coverage) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal coverage)) := by
+  refine
+    chapter10_percentileCI_coverage_tendsto_of_limit_law
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      (coverage := ENNReal.ofReal coverage) hjoint hξ ?_
+  rw [measure_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    (ν := η) (a := -qUpperLim) (b := -qLowerLim)]
+  · rw [hcoverage]
+  · linarith
+
 end PercentileIntervals
 
 section PercentileTIntervals
@@ -5544,6 +5584,40 @@ theorem chapter10_percentileTCI_coverage_tendsto_of_limit_law
   · rw [percentileTCoverage_scalar_event_eq_law hξ qLowerLim qUpperLim]
     exact hcoverage
 
+/-- CDF-calibrated percentile-`t` coverage bridge.
+
+For a non-atomic scalar t-ratio limit law, the limiting coverage
+`η[qL,qU]` can be supplied as the CDF increment `F(qU) - F(qL)`. -/
+theorem chapter10_percentileTCI_coverage_tendsto_of_limit_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim coverage : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hcoverage : cdf η qUpperLim - cdf η qLowerLim = coverage) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal coverage)) := by
+  refine
+    chapter10_percentileTCI_coverage_tendsto_of_limit_law
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      (coverage := ENNReal.ofReal coverage) hse hjoint hξ ?_
+  rw [measure_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    (ν := η) (a := qLowerLim) (b := qUpperLim) hquantiles]
+  rw [hcoverage]
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -5661,6 +5735,30 @@ theorem bootstrapAbsTest_scalar_rejection_eq_law
   rw [hpre]
   exact HasLaw.preimage_eq hξ
     ((isOpen_lt continuous_const continuous_abs).measurableSet)
+
+/-- For a non-atomic real probability law, the two-sided rejection event
+`q < |x|` has mass `1 - (F(q) - F(-q))`. -/
+theorem bootstrapAbsTest_rejection_law_eq_ofReal_one_sub_cdf
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {critLim : ℝ} (hcrit : 0 ≤ critLim) :
+    η {x | bootstrapAbsTestReject x critLim} =
+      ENNReal.ofReal (1 - (cdf η critLim - cdf η (-critLim))) := by
+  have hset :
+      {x : ℝ | bootstrapAbsTestReject x critLim} =
+        (Set.Icc (-critLim) critLim)ᶜ := by
+    ext x
+    constructor
+    · intro hx hxI
+      exact not_le_of_gt hx ((abs_le).2 hxI)
+    · intro hx
+      exact lt_of_not_ge fun hle => hx ((abs_le).1 hle)
+  have hinc_nonneg : 0 ≤ cdf η critLim - cdf η (-critLim) := by
+    exact sub_nonneg.2 ((ProbabilityTheory.monotone_cdf η) (by linarith))
+  rw [hset, measure_compl measurableSet_Icc (measure_ne_top η (Set.Icc (-critLim) critLim)),
+    measure_univ,
+    measure_Icc_eq_ofReal_cdf_sub_of_noAtoms
+      (ν := η) (a := -critLim) (b := critLim) (by linarith),
+    ← ENNReal.ofReal_one, ← ENNReal.ofReal_sub (1 : ℝ) hinc_nonneg]
 
 /-- If the scalar limit law has no atoms, then the two-sided rejection
 frontier has zero mass under the limit vector law. -/
@@ -5840,6 +5938,35 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law
     chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection
       (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
       hjoint hfrontier halphaν
+
+/-- CDF-calibrated two-sided bootstrap-test bridge.
+
+For a non-atomic scalar limit law and nonnegative critical value, the limiting
+rejection probability can be supplied as
+`1 - (F(q) - F(-q))`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim alpha : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hcrit : 0 ≤ critLim)
+    (halpha : 1 - (cdf η critLim - cdf η (-critLim)) = alpha) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 (ENNReal.ofReal alpha)) := by
+  refine
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law
+      (μ := μ) (ν := ν) (η := η) (T := T) (crit := crit)
+      (ξ := ξ) (critLim := critLim) (α := ENNReal.ofReal alpha)
+      hjoint hξ ?_
+  rw [bootstrapAbsTest_rejection_law_eq_ofReal_one_sub_cdf
+    (η := η) (critLim := critLim) hcrit, halpha]
 
 end BootstrapTests
 

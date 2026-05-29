@@ -155,6 +155,13 @@ theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
     exact le_antisymm hleft_le hcdf_le
   rw [measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) hab, hleft]
 
+/-- ENNReal-valued form of `measureReal_Icc_eq_cdf_sub_of_noAtoms`. -/
+theorem measure_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν] {a b : ℝ} (hab : a ≤ b) :
+    ν (Set.Icc a b) = ENNReal.ofReal (cdf ν b - cdf ν a) := by
+  rw [← ENNReal.ofReal_toReal (measure_ne_top ν (Set.Icc a b)), ← Measure.real_def,
+    measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
 /-- If `X` has an atomless real probability law `ν`, then closed-interval events for `X` can be
 read off directly from the cdf increment of `ν`. -/
 theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
@@ -162,6 +169,14 @@ theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
     (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
     μ.real (X ⁻¹' Set.Icc a b) = cdf ν b - cdf ν a := by
   rw [HasLaw.real_preimage_Icc_eq hX, measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
+/-- ENNReal-valued form of `HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms`. -/
+theorem HasLaw.preimage_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν]
+    (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
+    μ (X ⁻¹' Set.Icc a b) = ENNReal.ofReal (cdf ν b - cdf ν a) := by
+  rw [HasLaw.preimage_eq hX measurableSet_Icc,
+    measure_Icc_eq_ofReal_cdf_sub_of_noAtoms (ν := ν) hab]
 
 end RealDistributionHelpers
 
