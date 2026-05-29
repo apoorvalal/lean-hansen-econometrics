@@ -73,6 +73,9 @@ used throughout the chapter:
   control at thresholds at least one to supply first-tail control.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
+* `chapter10_bootstrap_continuous_mapping_event_probability` is the globally
+  continuous event-probability face of Hansen Theorem 10.5 built from the
+  bounded-continuous sandwich bridge.
 * `chapter10_bootstrap_delta_method_linear` and
   `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
   Gaussian covariance faces of Hansen Theorem 10.6.
@@ -2383,6 +2386,45 @@ theorem chapter10_bootstrap_continuous_mapping_distribution
   let gc : C(E, F) := ⟨g, hg⟩
   simpa [bootstrapBoundedContinuousIntegral, Function.comp_def] using
     hZ (f.compContinuous gc)
+
+/-- Hansen Theorem 10.5, globally continuous event-probability face.
+
+After a continuous transformation `g`, bounded-continuous lower/upper
+sandwiches for an event `A` imply convergence in probability of the conditional
+bootstrap event probabilities.  The remaining textbook discontinuity-set-null
+case supplies these sandwiches from the null-boundary hypothesis. -/
+theorem chapter10_bootstrap_continuous_mapping_event_probability
+    [TopologicalSpace E] [TopologicalSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {g : E → F} {A : Set F} {c : ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (happrox : ∀ ε : ℝ, 0 < ε →
+      ∃ lower upper : BoundedContinuousFunction F ℝ,
+        (∫ ωlim, lower (g (Z ωlim)) ∂ν) ≤ c ∧
+          c ≤ (∫ ωlim, upper (g (Z ωlim)) ∂ν) ∧
+          (∫ ωlim, upper (g (Z ωlim)) ∂ν) -
+              (∫ ωlim, lower (g (Z ωlim)) ∂ν) ≤ ε ∧
+          (∀ n ω,
+            bootstrapBoundedContinuousIntegral Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) lower n ω ≤
+              bootstrapEventProbability Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) A n ω) ∧
+          (∀ n ω,
+            bootstrapEventProbability Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) A n ω ≤
+              bootstrapBoundedContinuousIntegral Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) upper n ω)) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => c) := by
+  exact
+    (chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hZ hg).event_probability_tendsto_of_boundedContinuous_sandwich
+        happrox
 
 end BootstrapWeakDistribution
 
