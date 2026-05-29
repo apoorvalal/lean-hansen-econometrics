@@ -271,6 +271,9 @@ used throughout the chapter:
   is the endpoint-CDF form with limiting size `α`.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints`
   combines componentwise Slutsky convergence with the endpoint-CDF calibration.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuantile`
+  identifies the bootstrap critical value as a lower generalized inverse of a
+  conditional bootstrap CDF.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -7616,8 +7619,70 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_l
       (bootstrapAbsTestVector_tendstoInDistribution_of_components
         (μ := μ) (ν := ν) (T := T) (crit := crit)
         (ξ := ξ) (critLim := critLim)
-        hT hcrit hcrit_meas)
+      hT hcrit hcrit_meas)
       hξ hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Two-sided bootstrap-test calibration from a bootstrap lower critical
+quantile.
+
+This is the theorem-facing quantile-identification route for Hansen Theorem
+10.16.  A lower generalized inverse of a conditional bootstrap CDF at level
+`1 - α` converges to the limiting critical value, and the existing
+componentwise rejection bridge turns that into asymptotic size `α`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuantile
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {Gabs : ℝ → ℝ}
+    {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Astar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow
+        {x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Astar x n ω < 1 - α →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Astar (x + δ) n ω <
+          1 - α)
+    (hstrict : StrictMono Gabs)
+    (hcritLevel : Gabs critLim = 1 - α)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Astar x n ω)
+          atTop (fun _ => Gabs x))
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  have hcrit :
+      TendstoInMeasure μ
+        (bootstrapScalarLowerQuantile Pstar Astar (1 - α))
+        atTop (fun _ => critLim) :=
+    bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
+      (μ := μ) (Pstar := Pstar) (Zstar := Astar)
+      (G := Gabs) (p := 1 - α) (q := critLim)
+      hmono hne hbdd hlocal hstrict hcritLevel hG
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints
+      (μ := μ) (ν := ν) (η := η)
+      (T := T) (crit := bootstrapScalarLowerQuantile Pstar Astar (1 - α))
+      (ξ := ξ) (critLim := critLim) (α := α)
+      hT hcrit hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
 
 end BootstrapTests
 
