@@ -59,6 +59,14 @@ used throughout the chapter:
 * `boundedContinuous_event_sandwich_of_null_frontier` constructs those
   bounded-continuous event sandwiches from a null-frontier hypothesis on the
   limit law.
+* `boundedContinuous_event_integral_sandwich` and
+  `bootstrapEventProbability_sandwich_of_boundedContinuous_event_sandwich`
+  turn pointwise event-indicator sandwiches into conditional bootstrap integral
+  sandwiches.
+* `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_frontier`
+  and `chapter10_bootstrap_continuous_mapping_event_probability_of_null_frontier`
+  combine the weak-distribution bridge with the null-frontier sandwich
+  constructor.
 * `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
@@ -2283,6 +2291,153 @@ theorem boundedContinuous_event_sandwich_of_null_frontier
       linarith
     exact le_of_lt hgap_lt
 
+private theorem integrable_boundedContinuous_comp_measurable
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {P : Measure Ωs} [IsFiniteMeasure P] {Z : Ωs → E}
+    (hZ : Measurable Z) (f : BoundedContinuousFunction E ℝ) :
+    Integrable (fun ωs => f (Z ωs)) P := by
+  refine Integrable.of_bound
+    ((f.continuous.measurable.comp hZ).aestronglyMeasurable) ‖f‖ ?_
+  exact ae_of_all P fun ωs => f.norm_coe_le_norm (Z ωs)
+
+/-- Pointwise bounded-continuous event sandwiches integrate to probability
+sandwiches after composing with a measurable statistic.
+
+This is the measure-theoretic bridge from an event-indicator approximation
+`lower <= 1_A <= upper` to the integral inequalities used by the bootstrap
+Portmanteau wrapper. -/
+theorem boundedContinuous_event_integral_sandwich
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {P : Measure Ωs} [IsFiniteMeasure P] {Z : Ωs → E} {A : Set E}
+    (hZ : Measurable Z) (hA : MeasurableSet A)
+    {lower upper : BoundedContinuousFunction E ℝ}
+    (hl_mem : ∀ x, x ∈ A → lower x ≤ 1)
+    (hl_notMem : ∀ x, x ∉ A → lower x ≤ 0)
+    (hu_mem : ∀ x, x ∈ A → 1 ≤ upper x)
+    (hu_nonneg : ∀ x, 0 ≤ upper x) :
+    (∫ ωs, lower (Z ωs) ∂P) ≤ P.real {ωs | Z ωs ∈ A} ∧
+      P.real {ωs | Z ωs ∈ A} ≤ (∫ ωs, upper (Z ωs) ∂P) := by
+  classical
+  let S : Set Ωs := {ωs | Z ωs ∈ A}
+  have hS : MeasurableSet S := hA.preimage hZ
+  have hlower_int : Integrable (fun ωs => lower (Z ωs)) P :=
+    integrable_boundedContinuous_comp_measurable (P := P) hZ lower
+  have hupper_int : Integrable (fun ωs => upper (Z ωs)) P :=
+    integrable_boundedContinuous_comp_measurable (P := P) hZ upper
+  have hindicator_int : Integrable (fun ωs => if ωs ∈ S then (1 : ℝ) else 0) P := by
+    simpa [S] using
+      ((integrable_indicator_iff hS).mpr
+        (integrable_const (1 : ℝ)).integrableOn)
+  constructor
+  · have hlower_le_indicator :
+        (fun ωs => lower (Z ωs)) ≤
+          fun ωs => if ωs ∈ S then (1 : ℝ) else 0 := by
+      intro ωs
+      by_cases hωs : Z ωs ∈ A
+      · simpa [S, hωs] using hl_mem (Z ωs) hωs
+      · simpa [S, hωs] using hl_notMem (Z ωs) hωs
+    calc
+      ∫ ωs, lower (Z ωs) ∂P
+          ≤ ∫ ωs, (if ωs ∈ S then (1 : ℝ) else 0) ∂P :=
+            integral_mono hlower_int hindicator_int hlower_le_indicator
+      _ = P.real S := by
+            rw [← integral_indicator_one hS]
+            rfl
+      _ = P.real {ωs | Z ωs ∈ A} := rfl
+  · have hindicator_le_upper :
+        (fun ωs => if ωs ∈ S then (1 : ℝ) else 0) ≤
+          fun ωs => upper (Z ωs) := by
+      intro ωs
+      by_cases hωs : Z ωs ∈ A
+      · simpa [S, hωs] using hu_mem (Z ωs) hωs
+      · simpa [S, hωs] using hu_nonneg (Z ωs)
+    calc
+      P.real {ωs | Z ωs ∈ A} = P.real S := rfl
+      _ = ∫ ωs, (if ωs ∈ S then (1 : ℝ) else 0) ∂P := by
+            rw [← integral_indicator_one hS]
+            rfl
+      _ ≤ ∫ ωs, upper (Z ωs) ∂P :=
+            integral_mono hindicator_int hupper_int hindicator_le_upper
+
+/-- Conditional-bootstrap event probability sandwich from pointwise
+bounded-continuous lower and upper functions.
+
+This packages `boundedContinuous_event_integral_sandwich` in the `n, ω`
+conditional-bootstrap notation required by
+`TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_boundedContinuous_sandwich`. -/
+theorem bootstrapEventProbability_sandwich_of_boundedContinuous_event_sandwich
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → E} {A : Set E}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hA : MeasurableSet A)
+    {lower upper : BoundedContinuousFunction E ℝ}
+    (hl_mem : ∀ x, x ∈ A → lower x ≤ 1)
+    (hl_notMem : ∀ x, x ∉ A → lower x ≤ 0)
+    (hu_mem : ∀ x, x ∈ A → 1 ≤ upper x)
+    (hu_nonneg : ∀ x, 0 ≤ upper x) :
+    (∀ n ω,
+      bootstrapBoundedContinuousIntegral Pstar Zstar lower n ω ≤
+        bootstrapEventProbability Pstar Zstar A n ω) ∧
+      (∀ n ω,
+        bootstrapEventProbability Pstar Zstar A n ω ≤
+          bootstrapBoundedContinuousIntegral Pstar Zstar upper n ω) := by
+  constructor
+  · intro n ω
+    letI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    simpa [bootstrapBoundedContinuousIntegral, bootstrapEventProbability,
+      Measure.real_def] using
+      (boundedContinuous_event_integral_sandwich
+        (P := Pstar n ω) (Z := Zstar n ω) (A := A)
+        (hZstar n ω) hA hl_mem hl_notMem hu_mem hu_nonneg).1
+  · intro n ω
+    letI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    simpa [bootstrapBoundedContinuousIntegral, bootstrapEventProbability,
+      Measure.real_def] using
+      (boundedContinuous_event_integral_sandwich
+        (P := Pstar n ω) (Z := Zstar n ω) (A := A)
+        (hZstar n ω) hA hl_mem hl_notMem hu_mem hu_nonneg).2
+
+/-- Bootstrap weak convergence gives event-probability convergence for events
+whose limit-law frontier has zero mass.
+
+This combines the bounded-continuous-test-function bootstrap convergence
+definition, the null-frontier event-sandwich constructor, and the conditional
+bootstrap integral sandwich. -/
+theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_frontier
+    [PseudoEMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E} {A : Set E}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZ : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map Z) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar A)
+      atTop (fun _ => (ν.map Z).real A) := by
+  letI : IsProbabilityMeasure (ν.map Z) := Measure.isProbabilityMeasure_map hZ
+  refine hweak.event_probability_tendsto_of_boundedContinuous_sandwich ?_
+  intro ε hε
+  obtain ⟨lower, upper, hl_mem, hl_notMem, hu_mem, hu_nonneg,
+      hlower_law, hupper_law, hgap_law⟩ :=
+    boundedContinuous_event_sandwich_of_null_frontier
+      (law := ν.map Z) (A := A) hε hfrontier
+  have hlower_map :
+      ∫ x, lower x ∂(ν.map Z) = ∫ ωlim, lower (Z ωlim) ∂ν :=
+    integral_map hZ lower.continuous.measurable.aestronglyMeasurable
+  have hupper_map :
+      ∫ x, upper x ∂(ν.map Z) = ∫ ωlim, upper (Z ωlim) ∂ν :=
+    integral_map hZ upper.continuous.measurable.aestronglyMeasurable
+  obtain ⟨hlower_boot, hupper_boot⟩ :=
+    bootstrapEventProbability_sandwich_of_boundedContinuous_event_sandwich
+      (Pstar := Pstar) (Zstar := Zstar) (A := A)
+      hPstar hZstar hA hl_mem hl_notMem hu_mem hu_nonneg
+  refine ⟨lower, upper, ?_, ?_, ?_, hlower_boot, hupper_boot⟩
+  · simpa [hlower_map] using hlower_law
+  · simpa [hupper_map] using hupper_law
+  · simpa [hlower_map, hupper_map] using hgap_law
+
 /-- Clipped first moments converge under bootstrap weak convergence.
 
 This is the bounded-continuous core of the Theorem 10.9
@@ -2609,6 +2764,46 @@ theorem chapter10_bootstrap_continuous_mapping_event_probability
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       (g := g) hZ hg).event_probability_tendsto_of_boundedContinuous_sandwich
         happrox
+
+/-- Hansen Theorem 10.5, globally continuous event-probability face with a
+null-frontier event.
+
+If `Zₙ* ->d* Z`, `g` is continuous, the conditional bootstrap laws are finite,
+and the transformed limit law gives zero mass to the frontier of `A`, then
+the conditional probabilities `P*[g(Zₙ*) ∈ A]` converge in probability to
+`P[g(Z) ∈ A]`. -/
+theorem chapter10_bootstrap_continuous_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  refine
+    TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_frontier
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+      (ν := ν) (Z := fun ωlim => g (Z ωlim)) (A := A)
+      ?_ hPstar ?_ ?_ hA hfrontier
+  · exact
+      chapter10_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        (g := g) hZ hg
+  · intro n ω
+    exact hg.measurable.comp (hZstar n ω)
+  · have hg_ae : AEMeasurable g (ν.map Z) := hg.measurable.aemeasurable
+    simpa [Function.comp_def] using hg_ae.comp_aemeasurable hZlim
 
 end BootstrapWeakDistribution
 
