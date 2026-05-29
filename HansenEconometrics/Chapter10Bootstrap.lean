@@ -95,6 +95,11 @@ used throughout the chapter:
 * `chapter10_bootstrap_continuous_mapping_event_probability` is the globally
   continuous event-probability face of Hansen Theorem 10.5 built from the
   bounded-continuous sandwich bridge.
+* `BootstrapAEMappingPremise` records the textbook measurability and
+  a.e.-continuity condition for Hansen Theorem 10.5; the corresponding
+  `chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier`
+  wrapper applies the null-frontier event-probability bridge once transformed
+  weak convergence has been supplied.
 * `chapter10_bootstrap_delta_method_linear` and
   `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
   Gaussian covariance faces of Hansen Theorem 10.6.
@@ -3343,6 +3348,51 @@ theorem chapter10_bootstrap_continuous_mapping_event_probability_of_null_frontie
     exact hg.measurable.comp (hZstar n ω)
   · have hg_ae : AEMeasurable g (ν.map Z) := hg.measurable.aemeasurable
     simpa [Function.comp_def] using hg_ae.comp_aemeasurable hZlim
+
+/-- The textbook a.e.-continuity premise in Hansen Theorem 10.5.
+
+This condition package is intentionally limit-law-facing: it records that the
+transformed limit statistic is measurable and that the transformation is
+continuous at `Z` outside a `ν`-null set.  The Portmanteau step deriving
+transformed weak convergence from this premise is kept separate from the
+event-probability wrappers below. -/
+structure BootstrapAEMappingPremise
+    [TopologicalSpace E] [TopologicalSpace F] [MeasurableSpace F]
+    (ν : Measure Ωlim) (Z : Ωlim → E) (g : E → F) : Prop where
+  aemeasurable : AEMeasurable (fun ωlim => g (Z ωlim)) ν
+  ae_continuous : ∀ᵐ ωlim ∂ν, ContinuousAt g (Z ωlim)
+
+/-- Hansen Theorem 10.5, a.e.-continuous transformed-event face.
+
+The a.e.-continuity package records the textbook mapping premise, while the
+transformed weak-convergence hypothesis is explicit.  This gives the
+null-frontier event-probability conclusion without assuming that `g` is
+globally continuous. -/
+theorem chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hmap : BootstrapAEMappingPremise ν Z g)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  exact
+    TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_frontier
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+      (ν := ν) (Z := fun ωlim => g (Z ωlim)) (A := A)
+      hweakMapped hPstar hZstar hmap.aemeasurable hA hfrontier
 
 end BootstrapWeakDistribution
 
