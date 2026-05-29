@@ -76,6 +76,9 @@ used throughout the chapter:
   bootstrap statistic has been reduced to its derivative-linearized form.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
+* `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
+  `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
+  the concrete Theorem 10.2 second-moment route.
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
   finite empirical variance identity behind equation (10.11).
 * `covMat_uniformOn_univ_eq_card_inv_smul_sum_centered` is the
@@ -177,6 +180,74 @@ theorem integral_uniformOn_univ_eq_card_inv_smul_sum
     ∫ i, Y i ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
       ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i := by
   rw [uniformOn_univ_eq_inv_card_smul_count, integral_smul_measure, integral_count]
+
+/-- Finite empirical second-moment identity for one bootstrap draw.
+
+Under uniform resampling from a finite empirical support, the conditional
+expectation of the squared norm is the finite-sample average of squared norms.
+This is the norm-valued companion to Hansen's equations (10.10) and (10.12). -/
+theorem integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum
+    [NormedAddCommGroup E] (Y : ι → E) :
+    ∫ i, ‖Y i‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ‖Y i‖ ^ 2 :=
+  integral_uniformOn_univ_eq_card_inv_smul_sum (E := ℝ)
+    (fun i => ‖Y i‖ ^ 2)
+
+/-- Finite empirical second-moment bound from a pointwise norm envelope. -/
+theorem integral_norm_sq_uniformOn_univ_le_card_inv_smul_sum_sq_of_norm_le
+    [NormedAddCommGroup E] (Y : ι → E) (u : ι → ℝ)
+    (hY : ∀ i, ‖Y i‖ ≤ |u i|) :
+    ∫ i, ‖Y i‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) ≤
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, u i ^ 2 := by
+  rw [integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum]
+  have hsum : ∑ i, ‖Y i‖ ^ 2 ≤ ∑ i, u i ^ 2 := by
+    refine Finset.sum_le_sum ?_
+    intro i _hi
+    have hsq := pow_le_pow_left₀ (norm_nonneg (Y i)) (hY i) 2
+    simpa [sq_abs] using hsq
+  rw [smul_eq_mul, smul_eq_mul]
+  exact mul_le_mul_of_nonneg_left hsum ENNReal.toReal_nonneg
+
+/-- Centered finite empirical squared-norm identity.
+
+This specializes the squared-norm identity to deviations from the empirical
+mean, the one-draw calculation that feeds the vector Theorem 10.2
+second-moment bound. -/
+theorem integral_norm_sq_centered_uniformOn_univ_eq_card_inv_smul_sum
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] (Y : ι → E) :
+    ∫ i, ‖Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
+        ∑ i, ‖Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j‖ ^ 2 :=
+  integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum
+    (fun i => Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j)
+
+/-- Centered finite empirical second-moment bound from a pointwise envelope. -/
+theorem integral_norm_sq_centered_uniformOn_univ_le_card_inv_smul_sum_sq_of_norm_le
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) (u : ι → ℝ)
+    (hY :
+      ∀ i,
+        ‖Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j‖ ≤ |u i|) :
+    ∫ i, ‖Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) ≤
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, u i ^ 2 :=
+  integral_norm_sq_uniformOn_univ_le_card_inv_smul_sum_sq_of_norm_le
+    (fun i => Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j)
+    u hY
+
+omit [Fintype ι] in
+/-- Every finite empirical statistic is square-integrable under uniform
+resampling from a nonempty support. -/
+theorem memLp_two_uniformOn_univ [Finite ι] [Nonempty ι]
+    [NormedAddCommGroup E] (Y : ι → E) :
+    MemLp Y 2 (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) := by
+  exact ⟨AEStronglyMeasurable.of_discrete,
+    eLpNorm_lt_top_of_finite
+      (f := Y) (p := (2 : ℝ≥0∞))
+      (μ := (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι))⟩
 
 /-- Scalar empirical variance identity for one bootstrap draw.
 
