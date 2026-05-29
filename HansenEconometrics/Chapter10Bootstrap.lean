@@ -167,6 +167,9 @@ used throughout the chapter:
   10.11.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
+* `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
+  joint convergence premise for that bridge from scalar estimator-error
+  convergence and endpoint convergence in probability.
 * `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
   coverage wrapper, with scalar-event support from
   `percentileCoverageLimit_measure_set_eq` and
@@ -183,6 +186,9 @@ used throughout the chapter:
   is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
+* `percentileTCoverageVector_tendstoInDistribution_of_components` assembles
+  the joint convergence premise from sample t-ratio convergence and endpoint
+  convergence in probability.
 * `percentileTCoverageLimit_measure_set_eq` and
   `chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage` rewrite
   the percentile-`t` limit vector event as the scalar event `qL <= ξ <= qU`.
@@ -200,6 +206,9 @@ used throughout the chapter:
   is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
+* `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
+  joint convergence premise from statistic convergence and critical-value
+  convergence in probability.
 * `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
   `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection`
   rewrite the bootstrap-test limit vector event as the scalar rejection event
@@ -4802,6 +4811,81 @@ noncomputable def percentileCoverageLimitVector
     else if i = 1 then qLower
     else qUpper
 
+/-- Componentwise Slutsky constructor for the percentile-coverage joint vector.
+
+This assembles the joint convergence premise in
+`chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` from the
+scaled estimator-error limit and the two bootstrap endpoint limits. -/
+theorem percentileCoverageVector_tendstoInDistribution_of_components
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {a : ℕ → ℝ} {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hlower :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qLower n ω - θhat n ω))
+        atTop (fun _ => qLowerLim))
+    (hupper :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qUpper n ω - θhat n ω))
+        atTop (fun _ => qUpperLim))
+    (hlower_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qLower n ω - θhat n ω)) μ)
+    (hupper_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qUpper n ω - θhat n ω)) μ) :
+    TendstoInDistribution
+      (percentileCoverageVector a θ θhat qLower qUpper)
+      atTop
+      (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+      (fun _ => μ) ν := by
+  classical
+  let statSeq : ℕ → Ω → ℝ := fun n ω => a n * (θhat n ω - θ)
+  let lowerSeq : ℕ → Ω → ℝ := fun n ω => a n * (qLower n ω - θhat n ω)
+  let upperSeq : ℕ → Ω → ℝ := fun n ω => a n * (qUpper n ω - θhat n ω)
+  let pack : (ℝ × ℝ) × ℝ → Fin 3 → ℝ :=
+    fun p i => if i = 0 then p.1.1 else if i = 1 then p.1.2 else p.2
+  have hpack_cont : Continuous pack := by
+    refine continuous_pi ?_
+    intro i
+    by_cases hi0 : i = 0
+    · simpa [pack, hi0] using
+        ((continuous_fst : Continuous (fun p : (ℝ × ℝ) × ℝ => p.1)).fst)
+    · by_cases hi1 : i = 1
+      · simpa [pack, hi0, hi1] using
+          ((continuous_fst : Continuous (fun p : (ℝ × ℝ) × ℝ => p.1)).snd)
+      · simpa [pack, hi0, hi1] using
+          (continuous_snd : Continuous (fun p : (ℝ × ℝ) × ℝ => p.2))
+  have hpair :
+      TendstoInDistribution
+        (fun n ω => (statSeq n ω, lowerSeq n ω))
+        atTop (fun ω => (ξ ω, qLowerLim)) (fun _ => μ) ν :=
+    hstat.prodMk_of_tendstoInMeasure_const statSeq lowerSeq ξ
+      (by simpa [lowerSeq] using hlower)
+      (by simpa [lowerSeq] using hlower_meas)
+  have hpacked :
+      TendstoInDistribution
+        (fun n ω => pack ((statSeq n ω, lowerSeq n ω), upperSeq n ω))
+        atTop (fun ω => pack ((ξ ω, qLowerLim), qUpperLim))
+        (fun _ => μ) ν := by
+    have hraw := hpair.continuous_comp_prodMk_of_tendstoInMeasure_const
+      (g := pack) hpack_cont
+      (by simpa [upperSeq] using hupper)
+      (by simpa [upperSeq] using hupper_meas)
+    simpa [Function.comp_def] using hraw
+  refine TendstoInDistribution.congr ?_ ?_ hpacked
+  · intro n
+    exact ae_of_all μ fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> by_cases hi1 : i = 1 <;>
+        simp [percentileCoverageVector, statSeq, lowerSeq, upperSeq, pack, hi0, hi1]
+  · exact ae_of_all ν fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> by_cases hi1 : i = 1 <;>
+        simp [percentileCoverageLimitVector, pack, hi0, hi1]
+
 /-- Limit event corresponding to percentile-interval coverage:
 `qLower <= -ξ <= qUpper`. -/
 def percentileCoverageSet : Set (Fin 3 → ℝ) :=
@@ -5248,6 +5332,70 @@ noncomputable def percentileTCoverageLimitVector
     if i = 0 then ξ ω
     else if i = 1 then qLower
     else qUpper
+
+/-- Componentwise Slutsky constructor for the percentile-`t` coverage joint
+vector.
+
+This assembles the joint convergence premise in
+`chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` from the
+sample t-ratio limit and the two bootstrap percentile-`t` endpoint limits. -/
+theorem percentileTCoverageVector_tendstoInDistribution_of_components
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ}
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hlower : TendstoInMeasure μ qLower atTop (fun _ => qLowerLim))
+    (hupper : TendstoInMeasure μ qUpper atTop (fun _ => qUpperLim))
+    (hlower_meas : ∀ n, AEMeasurable (qLower n) μ)
+    (hupper_meas : ∀ n, AEMeasurable (qUpper n) μ) :
+    TendstoInDistribution
+      (percentileTCoverageVector θ θhat se qLower qUpper)
+      atTop
+      (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+      (fun _ => μ) ν := by
+  classical
+  let tstatSeq : ℕ → Ω → ℝ :=
+    fun n ω => percentileTStatistic θ (θhat n ω) (se n ω)
+  let pack : (ℝ × ℝ) × ℝ → Fin 3 → ℝ :=
+    fun p i => if i = 0 then p.1.1 else if i = 1 then p.1.2 else p.2
+  have hpack_cont : Continuous pack := by
+    refine continuous_pi ?_
+    intro i
+    by_cases hi0 : i = 0
+    · simpa [pack, hi0] using
+        ((continuous_fst : Continuous (fun p : (ℝ × ℝ) × ℝ => p.1)).fst)
+    · by_cases hi1 : i = 1
+      · simpa [pack, hi0, hi1] using
+          ((continuous_fst : Continuous (fun p : (ℝ × ℝ) × ℝ => p.1)).snd)
+      · simpa [pack, hi0, hi1] using
+          (continuous_snd : Continuous (fun p : (ℝ × ℝ) × ℝ => p.2))
+  have hpair :
+      TendstoInDistribution
+        (fun n ω => (tstatSeq n ω, qLower n ω))
+        atTop (fun ω => (ξ ω, qLowerLim)) (fun _ => μ) ν :=
+    htstat.prodMk_of_tendstoInMeasure_const tstatSeq qLower ξ
+      hlower hlower_meas
+  have hpacked :
+      TendstoInDistribution
+        (fun n ω => pack ((tstatSeq n ω, qLower n ω), qUpper n ω))
+        atTop (fun ω => pack ((ξ ω, qLowerLim), qUpperLim))
+        (fun _ => μ) ν := by
+    have hraw := hpair.continuous_comp_prodMk_of_tendstoInMeasure_const
+      (g := pack) hpack_cont hupper hupper_meas
+    simpa [Function.comp_def] using hraw
+  refine TendstoInDistribution.congr ?_ ?_ hpacked
+  · intro n
+    exact ae_of_all μ fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> by_cases hi1 : i = 1 <;>
+        simp [percentileTCoverageVector, tstatSeq, pack, hi0, hi1]
+  · exact ae_of_all ν fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> by_cases hi1 : i = 1 <;>
+        simp [percentileTCoverageLimitVector, pack, hi0, hi1]
 
 /-- Limit event corresponding to percentile-`t` coverage:
 `qLower <= ξ <= qUpper`. -/
@@ -5707,6 +5855,50 @@ noncomputable def bootstrapAbsTestVector
 noncomputable def bootstrapAbsTestLimitVector
     (ξ : Ωlim → ℝ) (crit : ℝ) (ω : Ωlim) : Fin 2 → ℝ :=
   fun i => if i = 0 then ξ ω else crit
+
+/-- Componentwise Slutsky constructor for the two-sided bootstrap-test joint
+vector.
+
+This assembles the joint convergence premise in
+`chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
+from statistic convergence and critical-value convergence in probability. -/
+theorem bootstrapAbsTestVector_tendstoInDistribution_of_components
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hcrit : TendstoInMeasure μ crit atTop (fun _ => critLim))
+    (hcrit_meas : ∀ n, AEMeasurable (crit n) μ) :
+    TendstoInDistribution
+      (bootstrapAbsTestVector T crit)
+      atTop
+      (bootstrapAbsTestLimitVector ξ critLim)
+      (fun _ => μ) ν := by
+  classical
+  let pack : ℝ × ℝ → Fin 2 → ℝ :=
+    fun p i => if i = 0 then p.1 else p.2
+  have hpack_cont : Continuous pack := by
+    refine continuous_pi ?_
+    intro i
+    by_cases hi0 : i = 0
+    · simpa [pack, hi0] using
+        (continuous_fst : Continuous (fun p : ℝ × ℝ => p.1))
+    · simpa [pack, hi0] using
+        (continuous_snd : Continuous (fun p : ℝ × ℝ => p.2))
+  have hpacked :
+      TendstoInDistribution
+        (fun n ω => pack (T n ω, crit n ω))
+        atTop (fun ω => pack (ξ ω, critLim)) (fun _ => μ) ν := by
+    have hraw := hT.continuous_comp_prodMk_of_tendstoInMeasure_const
+      (g := pack) hpack_cont hcrit hcrit_meas
+    simpa [Function.comp_def] using hraw
+  refine TendstoInDistribution.congr ?_ ?_ hpacked
+  · intro n
+    exact ae_of_all μ fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> simp [bootstrapAbsTestVector, pack, hi0]
+  · exact ae_of_all ν fun ω => by
+      ext i
+      by_cases hi0 : i = 0 <;> simp [bootstrapAbsTestLimitVector, pack, hi0]
 
 /-- Rejection region for the two-sided bootstrap critical-value test. -/
 def bootstrapAbsRejectionSet : Set (Fin 2 → ℝ) :=
