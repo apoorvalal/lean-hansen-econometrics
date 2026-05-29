@@ -26,6 +26,8 @@ used throughout the chapter:
 * `chapter10_bootstrap_wlln_centered_of_second_moment_bound` is the
   Chebyshev/Marcinkiewicz bridge that turns Hansen's empirical second-moment
   bound into the centered conclusion of Theorem 10.2.
+* `chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound` is the
+  scalar conditional-Chebyshev constructor for the same Theorem 10.2 step.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -654,6 +656,40 @@ theorem bootstrapWLLNSecondMomentBound_tendsto_zero
     atTop (fun _ => 0)
   exact TendstoInMeasure.const_mul_zero_real (μ := μ) (η⁻¹ ^ 2) hmarc
 
+/-- Conditional Chebyshev inequality for centered scalar bootstrap statistics.
+
+If a scalar bootstrap statistic has conditional mean zero, then its conditional
+tail probability is bounded by its conditional variance divided by `η²`. -/
+theorem bootstrapTailProb_centered_real_le_variance_div_sq
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean : ∀ n ω, (Pstar n ω)[Zstar n ω] = 0)
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProb Pstar Zstar (fun _ => 0) η n ω ≤
+      Var[Zstar n ω; Pstar n ω] / η ^ 2 := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  have hcheb :=
+    ProbabilityTheory.meas_ge_le_variance_div_sq
+      (μ := Pstar n ω) (X := Zstar n ω) (hZ n ω) hη
+  have hset :
+      {ωs : Ωs | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : ℝ)) ω)} =
+        {ωs : Ωs | η ≤ |Zstar n ω ωs - (Pstar n ω)[Zstar n ω]|} := by
+    ext ωs
+    simp [hmean n ω]
+  have hmeasure :
+      (Pstar n ω)
+          {ωs : Ωs | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : ℝ)) ω)} ≤
+        ENNReal.ofReal (Var[Zstar n ω; Pstar n ω] / η ^ 2) := by
+    rw [hset]
+    exact hcheb
+  have hnonneg :
+      0 ≤ Var[Zstar n ω; Pstar n ω] / η ^ 2 :=
+    div_nonneg (ProbabilityTheory.variance_nonneg (Zstar n ω) (Pstar n ω))
+      (sq_nonneg η)
+  have hreal := ENNReal.toReal_mono ENNReal.ofReal_ne_top hmeasure
+  simpa [bootstrapTailProb, ENNReal.toReal_ofReal hnonneg] using hreal
+
 /-- Hansen Theorem 10.2, centered WLLN from the textbook second-moment bound.
 
 Once Chebyshev/Markov and the empirical variance calculation give the
@@ -677,6 +713,46 @@ theorem chapter10_bootstrap_wlln_centered_of_second_moment_bound
     (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω)
     (fun η hη => bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη)
     hle
+
+/-- Hansen Theorem 10.2, scalar centered WLLN from a conditional variance
+bound.
+
+This is the Chebyshev/Marcinkiewicz constructor for the scalar case: if the
+conditional variance of the centered bootstrap sample mean is bounded by the
+textbook `n^{-2} ∑ |u_i|²` term, then the centered bootstrap WLLN follows. -/
+theorem chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → ℝ} {Ybar : ℕ → Ω → ℝ}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hmean :
+      ∀ n ω, (Pstar n ω)[fun ωs => YbarStar n ω ωs - Ybar n ω] = 0)
+    (hvar :
+      ∀ n ω,
+        Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine chapter10_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  calc
+    bootstrapTailProb Pstar
+        (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+        ≤ Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] / η ^ 2 :=
+          bootstrapTailProb_centered_real_le_variance_div_sq
+            (Pstar := Pstar)
+            (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+            hPstar hZ hmean hη n ω
+    _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+          div_le_div_of_nonneg_right (hvar n ω) (sq_nonneg η)
+    _ = bootstrapWLLNSecondMomentBound u η n ω := by
+          rw [bootstrapWLLNSecondMomentBound]
+          field_simp [hη.ne']
 
 /-- Hansen Theorem 10.2, level WLLN from the textbook second-moment bound.
 
