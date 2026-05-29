@@ -139,6 +139,9 @@ used throughout the chapter:
   endpoint and critical-value convergence for Theorems 10.13, 10.14, and 10.16.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
+  `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
+  `bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf` add the concrete
+  lower-generalized-inverse route for right-continuous CDFs.
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
@@ -4973,6 +4976,98 @@ structure CDFQuantileBracket
   lower : ∀ n ω x, Gseq n ω x < p → x < qseq n ω
   upper : ∀ n ω x, p < Gseq n ω x → qseq n ω ≤ x
 
+/-- Lower generalized inverse of a real CDF-like function. -/
+noncomputable def lowerCDFQuantile (G : ℝ → ℝ) (p : ℝ) : ℝ :=
+  sInf {x : ℝ | p ≤ G x}
+
+/-- A point where the CDF-like function has reached level `p` lies weakly above
+the lower generalized inverse. -/
+theorem lowerCDFQuantile_le
+    {G : ℝ → ℝ} {p x : ℝ}
+    (hbdd : BddBelow {y : ℝ | p ≤ G y})
+    (hx : p ≤ G x) :
+    lowerCDFQuantile G p ≤ x := by
+  simpa [lowerCDFQuantile] using
+    (csInf_le (s := {y : ℝ | p ≤ G y}) hbdd hx)
+
+/-- If a monotone CDF-like function remains below `p` just to the right of
+`x`, then `x` lies strictly below the lower generalized inverse. -/
+theorem lt_lowerCDFQuantile_of_exists_right_lt
+    {G : ℝ → ℝ} {p x : ℝ}
+    (hmono : Monotone G)
+    (hne : ({y : ℝ | p ≤ G y} : Set ℝ).Nonempty)
+    (hlocal : ∃ δ : ℝ, 0 < δ ∧ G (x + δ) < p) :
+    x < lowerCDFQuantile G p := by
+  obtain ⟨δ, hδ_pos, hxδ⟩ := hlocal
+  have hbound : ∀ y ∈ ({y : ℝ | p ≤ G y} : Set ℝ), x + δ ≤ y := by
+    intro y hy
+    by_contra hnot
+    have hylt : y < x + δ := lt_of_not_ge hnot
+    have hGy_le : G y ≤ G (x + δ) := hmono hylt.le
+    have hy_le : p ≤ G y := hy
+    linarith
+  have hle : x + δ ≤ lowerCDFQuantile G p := by
+    simpa [lowerCDFQuantile] using
+      (le_csInf (s := {y : ℝ | p ≤ G y}) hne hbound)
+  linarith
+
+/-- Lower generalized inverses bracket their CDF levels when the random CDFs
+are monotone and locally stay below `p` immediately to the right of any point
+where they are below `p`. -/
+theorem lowerCDFQuantile_bracket_of_local_right_lt
+    {Gseq : ℕ → Ω → ℝ → ℝ} {p : ℝ}
+    (hmono : ∀ n ω, Monotone (Gseq n ω))
+    (hne : ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x})
+    (hlocal :
+      ∀ n ω x, Gseq n ω x < p →
+        ∃ δ : ℝ, 0 < δ ∧ Gseq n ω (x + δ) < p) :
+    CDFQuantileBracket Gseq p
+      (fun n ω => lowerCDFQuantile (Gseq n ω) p) := by
+  constructor
+  · intro n ω x hx
+    exact lt_lowerCDFQuantile_of_exists_right_lt
+      (hmono n ω) (hne n ω) (hlocal n ω x hx)
+  · intro n ω x hx
+    exact lowerCDFQuantile_le (hbdd n ω) (le_of_lt hx)
+
+private theorem stieltjesFunction_exists_right_lt_of_lt
+    (G : StieltjesFunction ℝ) {p x : ℝ} (hx : G x < p) :
+    ∃ δ : ℝ, 0 < δ ∧ G (x + δ) < p := by
+  have hcont := Metric.continuousWithinAt_iff.mp (G.right_continuous x)
+  obtain ⟨δ, hδ_pos, hδ⟩ := hcont (p - G x) (sub_pos.mpr hx)
+  refine ⟨δ / 2, by positivity, ?_⟩
+  have hx_mem : x + δ / 2 ∈ Set.Ici x := by
+    dsimp
+    exact le_add_of_nonneg_right (by positivity : 0 ≤ δ / 2)
+  have hdist : dist (x + δ / 2) x < δ := by
+    rw [Real.dist_eq]
+    have habs : |x + δ / 2 - x| = δ / 2 := by
+      have hnonneg : 0 ≤ x + δ / 2 - x := by
+        rwa [sub_nonneg]
+      rw [abs_of_nonneg hnonneg]
+      ring
+    rw [habs]
+    linarith
+  have hdistG := hδ hx_mem hdist
+  rw [Real.dist_eq] at hdistG
+  have hlt := (abs_lt.mp hdistG).2
+  linarith
+
+/-- Stieltjes-function CDFs supply the right-local persistence premise for the
+lower generalized inverse through right-continuity. -/
+theorem lowerCDFQuantile_bracket_of_stieltjesFunction
+    {Gseq : ℕ → Ω → StieltjesFunction ℝ} {p : ℝ}
+    (hne :
+      ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x}) :
+    CDFQuantileBracket (fun n ω x => Gseq n ω x) p
+      (fun n ω => lowerCDFQuantile (fun x => Gseq n ω x) p) :=
+  lowerCDFQuantile_bracket_of_local_right_lt
+    (hmono := fun n ω => (Gseq n ω).mono)
+    hne hbdd
+    (fun n ω x hx => stieltjesFunction_exists_right_lt_of_lt (Gseq n ω) (x := x) hx)
+
 /-- Quantile convergence from pointwise CDF convergence at strict bracketing
 points.
 
@@ -5085,6 +5180,90 @@ theorem tendstoInMeasure_quantile_of_strictMono_cdf
   exact tendstoInMeasure_quantile_of_cdf_brackets
     (μ := μ) hbracket hleft hright hG
 
+/-- Quantile convergence for lower generalized inverses under explicit
+monotonicity and right-local CDF bracketing assumptions. -/
+theorem lowerCDFQuantile_tendstoInMeasure_of_cdf_brackets
+    {Gseq : ℕ → Ω → ℝ → ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    (hmono : ∀ n ω, Monotone (Gseq n ω))
+    (hne : ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x})
+    (hlocal :
+      ∀ n ω x, Gseq n ω x < p →
+        ∃ δ : ℝ, 0 < δ ∧ Gseq n ω (x + δ) < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (fun n ω => lowerCDFQuantile (Gseq n ω) p) atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_cdf_brackets
+    (μ := μ)
+    (hbracket := lowerCDFQuantile_bracket_of_local_right_lt
+      hmono hne hbdd hlocal)
+    hleft hright hG
+
+/-- Strict-limit-CDF specialization of lower generalized-inverse convergence. -/
+theorem lowerCDFQuantile_tendstoInMeasure_of_strictMono_cdf
+    {Gseq : ℕ → Ω → ℝ → ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    (hmono : ∀ n ω, Monotone (Gseq n ω))
+    (hne : ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x})
+    (hlocal :
+      ∀ n ω x, Gseq n ω x < p →
+        ∃ δ : ℝ, 0 < δ ∧ Gseq n ω (x + δ) < p)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (fun n ω => lowerCDFQuantile (Gseq n ω) p) atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_strictMono_cdf
+    (μ := μ)
+    (hbracket := lowerCDFQuantile_bracket_of_local_right_lt
+      hmono hne hbdd hlocal)
+    hstrict hq hG
+
+/-- Lower generalized-inverse convergence for random Stieltjes-function CDFs. -/
+theorem lowerCDFQuantile_tendstoInMeasure_of_stieltjesFunction
+    {Gseq : ℕ → Ω → StieltjesFunction ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    (hne :
+      ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x})
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (fun n ω => lowerCDFQuantile (fun x => Gseq n ω x) p)
+      atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_cdf_brackets
+    (μ := μ)
+    (hbracket := lowerCDFQuantile_bracket_of_stieltjesFunction hne hbdd)
+    hleft hright hG
+
+/-- Strict-limit-CDF specialization for random Stieltjes-function lower
+generalized inverses. -/
+theorem lowerCDFQuantile_tendstoInMeasure_of_stieltjesFunction_strictMono
+    {Gseq : ℕ → Ω → StieltjesFunction ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    (hne :
+      ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
+    (hbdd : ∀ n ω, BddBelow {x : ℝ | p ≤ Gseq n ω x})
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (fun n ω => lowerCDFQuantile (fun x => Gseq n ω x) p)
+      atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_strictMono_cdf
+    (μ := μ)
+    (hbracket := lowerCDFQuantile_bracket_of_stieltjesFunction hne hbdd)
+    hstrict hq hG
+
 /-- Scalar conditional bootstrap CDF `P*[Zₙ* ≤ x]`. -/
 noncomputable def bootstrapScalarCDF
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
@@ -5134,6 +5313,68 @@ theorem bootstrapScalarQuantile_tendsto_of_strictMono_cdf
   tendstoInMeasure_quantile_of_strictMono_cdf
     (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
     hbracket hstrict hq hG
+
+/-- Lower generalized inverse of the scalar conditional bootstrap CDF. -/
+noncomputable def bootstrapScalarLowerQuantile
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
+    (p : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  lowerCDFQuantile (fun x => bootstrapScalarCDF Pstar Zstar x n ω) p
+
+/-- Bootstrap scalar lower-quantile convergence from pointwise CDF convergence
+and concrete generalized-inverse bracketing assumptions. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_cdf_brackets
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) :=
+  lowerCDFQuantile_tendstoInMeasure_of_cdf_brackets
+    (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
+    hmono hne hbdd hlocal hleft hright hG
+
+/-- Bootstrap scalar lower-quantile convergence with a strictly increasing
+limiting CDF. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) :=
+  lowerCDFQuantile_tendstoInMeasure_of_strictMono_cdf
+    (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
+    hmono hne hbdd hlocal hstrict hq hG
 
 end QuantileConvergence
 
