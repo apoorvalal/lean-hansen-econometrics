@@ -327,6 +327,50 @@ theorem variance_dotProduct_eq_dotProduct_covMat_mulVec
     _ = b ⬝ᵥ (covMat μ X *ᵥ b) := by
           simp [dotProduct, mul_comm]
 
+/-- On a finite probability space, the expected squared Euclidean deviation
+from the mean is the trace of the coordinate covariance matrix. -/
+theorem integral_norm_sq_sub_mean_eq_trace_covMat_euclidean_of_finite
+    [Finite Ω] [MeasurableSingletonClass Ω] [IsProbabilityMeasure μ]
+    (X : Ω → EuclideanSpace ℝ k) :
+    ∫ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 ∂μ =
+      Matrix.trace (covMat μ (fun ω i => X ω i)) := by
+  classical
+  have hX_int : Integrable X μ := Integrable.of_finite
+  have hmean_apply :
+      ∀ i, (∫ ω, X ω ∂μ) i = ∫ ω, X ω i ∂μ := by
+    intro i
+    have h := (EuclideanSpace.proj i).integral_comp_comm hX_int
+    simpa using h.symm
+  have hnorm :
+      ∀ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 =
+        ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 := by
+    intro ω
+    calc
+      ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 =
+          ∑ i, ((X ω - ∫ ω, X ω ∂μ) i) ^ 2 :=
+            EuclideanSpace.real_norm_sq_eq (X ω - ∫ ω, X ω ∂μ)
+      _ = ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 := by
+            simp [hmean_apply]
+  calc
+    ∫ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 ∂μ =
+        ∫ ω, ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 ∂μ := by
+          exact integral_congr_ae (ae_of_all _ hnorm)
+    _ = ∑ i, ∫ ω, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 ∂μ := by
+          rw [integral_finset_sum]
+          intro i _hi
+          exact Integrable.of_finite
+    _ = ∑ i, Var[fun ω => X ω i; μ] := by
+          refine Finset.sum_congr rfl ?_
+          intro i _hi
+          exact (ProbabilityTheory.variance_eq_integral
+            (measurable_of_finite (fun ω => X ω i)).aemeasurable).symm
+    _ = Matrix.trace (covMat μ (fun ω i => X ω i)) := by
+          rw [Matrix.trace]
+          refine Finset.sum_congr rfl ?_
+          intro i _hi
+          exact (ProbabilityTheory.covariance_self
+            (measurable_of_finite (fun ω => X ω i)).aemeasurable).symm
+
 /-- Covariances in an affine linear model decompose into the fitted part and the residual part. -/
 theorem covVec_affineModel
     [IsProbabilityMeasure μ]

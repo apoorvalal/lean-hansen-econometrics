@@ -96,7 +96,9 @@ used throughout the chapter:
 * `covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul`,
   `trace_covMat_resampleMean_eq_inv_card_mul`, and
   `trace_covMat_resampleMean_le_inv_card_mul_secondMoment` provide the
-  finite-dimensional covariance and trace forms of equation (10.13).
+  finite-dimensional covariance and trace forms of equation (10.13), while
+  `integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment` gives the
+  Euclidean norm second-moment bound used in the vector Theorem 10.2 proof.
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
@@ -821,6 +823,82 @@ theorem trace_covMat_resampleMean_le_inv_card_mul_secondMoment
     _ ≤ (Fintype.card κ : ℝ)⁻¹ *
         (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2) :=
           mul_le_mul_of_nonneg_left htrace_le hc_nonneg
+
+omit [MeasurableSingletonClass ι] in
+/-- Expected squared Euclidean norm of the centered nonparametric-bootstrap
+sample mean as a covariance trace. -/
+theorem integral_norm_sq_resampleMean_sub_empiricalMean_eq_trace_covMat
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → EuclideanSpace ℝ k) :
+    ∫ ωs : κ → ι,
+        ‖empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      Matrix.trace
+        (covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : (κ → ι) → EuclideanSpace ℝ k :=
+    fun ωs => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs
+  have hmean : ∫ ωs, X ωs ∂Pκ = empiricalMean Y := by
+    simpa [X, Pκ] using
+      integral_empiricalBootstrapResampleMean_uniformOn_fun_eq_empiricalMean
+        (κ := κ) (Y := Y)
+  calc
+    ∫ ωs : κ → ι, ‖X ωs - empiricalMean Y‖ ^ 2 ∂Pκ =
+        ∫ ωs : κ → ι, ‖X ωs - ∫ ωs, X ωs ∂Pκ‖ ^ 2 ∂Pκ := by
+          rw [hmean]
+    _ = Matrix.trace (covMat Pκ (fun ωs a => X ωs a)) := by
+          exact integral_norm_sq_sub_mean_eq_trace_covMat_euclidean_of_finite
+            (μ := Pκ) X
+
+/-- Finite-dimensional vector second-moment bound for the ordinary
+nonparametric-bootstrap sample mean.
+
+When the resample size and empirical support have the same cardinality, this
+is Hansen's vector `n^{-2} ∑ Yᵢ'Yᵢ` bound in the proof of Theorem 10.2. -/
+theorem integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → EuclideanSpace ℝ k) :
+    ∫ ωs : κ → ι,
+        ‖empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) ≤
+      (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2) := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Ycoord : ι → k → ℝ := fun i a => Y i a
+  have htrace :
+      ∫ ωs : κ → ι,
+          ‖empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y‖ ^ 2
+          ∂Pκ =
+        Matrix.trace (covMat Pκ
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) := by
+    simpa [Pκ] using
+      integral_norm_sq_resampleMean_sub_empiricalMean_eq_trace_covMat
+        (κ := κ) (Y := Y)
+  have htrace_bound :
+      Matrix.trace (covMat Pκ
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) ≤
+        (Fintype.card κ : ℝ)⁻¹ *
+          (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Ycoord i a ^ 2) := by
+    simpa [Pκ, Ycoord, empiricalBootstrapResampleMean] using
+      trace_covMat_resampleMean_le_inv_card_mul_secondMoment
+        (κ := κ) (Y := Ycoord)
+  calc
+    ∫ ωs : κ → ι,
+        ‖empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y‖ ^ 2
+        ∂Pκ
+        = Matrix.trace (covMat Pκ
+            (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) := htrace
+    _ ≤ (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2) := by
+          simpa [Ycoord] using htrace_bound
 
 end EmpiricalDistribution
 
