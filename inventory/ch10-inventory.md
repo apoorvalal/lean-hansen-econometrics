@@ -195,6 +195,7 @@ Conventions:
 | [TendstoInBootstrapDistribution.of_tendsto_cdf](../HansenEconometrics/Chapter10Bootstrap.lean) | Constructor for Definition 10.2 from pointwise conditional-CDF convergence. |
 | [TendstoInBootstrapDistribution.congr](../HansenEconometrics/Chapter10Bootstrap.lean) | Pointwise congruence bridge for bootstrap convergence in distribution. |
 | [TendstoInBootstrapWeakDistribution](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapBoundedContinuousIntegral](../HansenEconometrics/Chapter10Bootstrap.lean) | Bounded-continuous-test-function backend for bootstrap distributional convergence. |
+| [TendstoInBootstrapWeakDistribution.congr](../HansenEconometrics/Chapter10Bootstrap.lean) | Pointwise congruence bridge for the bounded-continuous-test-function backend. |
 | [chapter10_bootstrap_continuous_mapping_distribution](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.5 global-continuity bridge for bootstrap weak convergence. |
 | [chapter10_bootstrap_delta_method_linear](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_delta_method_matrix_linear](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_delta_method_gaussian](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.6 linearized Delta-method bridges and Gaussian covariance specialization. |
 | [uniformOn_univ_eq_inv_card_smul_count](../HansenEconometrics/Chapter10Bootstrap.lean) | Uniform empirical law as normalized counting measure. |

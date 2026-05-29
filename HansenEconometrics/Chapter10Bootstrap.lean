@@ -33,6 +33,8 @@ used throughout the chapter:
 * `TendstoInBootstrapWeakDistribution` is a bounded-continuous-test-function
   backend for bootstrap distributional convergence, used by the distributional
   continuous-mapping theorem.
+* `TendstoInBootstrapWeakDistribution.congr` gives pointwise congruence for
+  that weak backend.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_delta_method_linear` and
@@ -830,6 +832,48 @@ theorem TendstoInBootstrapWeakDistribution.tendsto_integral
       (fun n ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
       atTop (fun _ => ∫ ωlim, f (Z ωlim) ∂ν) :=
   hZ f
+
+/-- Bootstrap weak convergence is invariant under pointwise equality of the
+bootstrap statistic. -/
+theorem TendstoInBootstrapWeakDistribution.congr_bootstrap
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E}
+    (hstar : ∀ n ω ωs, Zstar n ω ωs = Zstar' n ω ωs)
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z := by
+  intro f
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl (hZ.tendsto_integral f)
+  refine ae_of_all μ fun ω => ?_
+  simp [bootstrapBoundedContinuousIntegral, hstar]
+
+/-- Bootstrap weak convergence is invariant under pointwise equality of the
+limiting statistic. -/
+theorem TendstoInBootstrapWeakDistribution.congr_limit
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z Z' : Ωlim → E}
+    (hlim : ∀ ω, Z ω = Z' ω)
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z' := by
+  intro f
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ (hZ.tendsto_integral f)
+  refine ae_of_all μ fun _ => ?_
+  simp [hlim]
+
+/-- Pointwise congruence for bootstrap weak convergence. -/
+theorem TendstoInBootstrapWeakDistribution.congr
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {Z Z' : Ωlim → E}
+    (hstar : ∀ n ω ωs, Zstar n ω ωs = Zstar' n ω ωs)
+    (hlim : ∀ ω, Z ω = Z' ω)
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z' :=
+  (hZ.congr_bootstrap hstar).congr_limit hlim
 
 /-- Hansen Theorem 10.5, globally continuous weak-convergence face.
 
