@@ -100,6 +100,9 @@ used throughout the chapter:
   states the Theorem 10.9 conclusion from the textbook-style uniform
   square-tail condition: for every tolerance, a squared tail is small in
   probability at a large threshold.
+* `BootstrapUniformSquareTail` and
+  `chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail`
+  expose that long tail condition as a reusable theorem-facing assumption.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
@@ -2163,6 +2166,28 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_square_tai
   exact chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals
     (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailMean hTailSecond
 
+/-- Textbook-style uniform square-tail condition for Hansen Theorem 10.9.
+
+For every tolerance, a threshold can be chosen so that the limit squared tail is
+small and the corresponding conditional bootstrap squared tail is small in
+probability.  This is the conditional two-probability-space form of uniform
+square integrability used by the theorem-facing Chapter 10 variance wrapper. -/
+def BootstrapUniformSquareTail
+    (μ : Measure Ω) (Pstar : ℕ → Ω → Measure Ωs)
+    (Zstar : ℕ → Ω → Ωs → ℝ) (ν : Measure Ωlim) (Z : Ωlim → ℝ) : Prop :=
+  ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+    (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+      (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+    Tendsto
+      (fun n =>
+        μ {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0})
+      atTop (𝓝 0)
+
 /-- Hansen Theorem 10.9, weak-distribution plus uniform-square-tail variance
 bridge.
 
@@ -2324,6 +2349,24 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_sq
       hweak.integral_sq_tendsto_of_realClip_tailProb hTailSecondProb
   exact chapter10_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZmem hmean hsecond
+
+/-- Hansen Theorem 10.9 from a named uniform-square-tail condition.
+
+This is the public theorem-facing wrapper: bootstrap weak convergence plus
+`BootstrapUniformSquareTail` gives conditional bootstrap variance consistency. -/
+theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTail μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
 
 end BootstrapVariance
 
