@@ -56,6 +56,9 @@ used throughout the chapter:
   `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_boundedContinuous_sandwich`
   provide the Portmanteau-style event-probability bridge from bounded-continuous
   lower/upper sandwiches.
+* `boundedContinuous_event_sandwich_of_null_frontier` constructs those
+  bounded-continuous event sandwiches from a null-frontier hypothesis on the
+  limit law.
 * `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
@@ -2098,6 +2101,187 @@ theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_boundedC
     ∫ ωlim, upper (Z ωlim) ∂ν, hlc, hcu, hgap, hlower, hupper, ?_, ?_⟩
   · exact hZ.tendsto_integral lower
   · exact hZ.tendsto_integral upper
+
+private noncomputable def nnrealBoundedContinuousFunctionToReal
+    [TopologicalSpace E] (f : BoundedContinuousFunction E NNReal) :
+    BoundedContinuousFunction E ℝ :=
+  BoundedContinuousFunction.comp ((↑) : NNReal → ℝ)
+    NNReal.isometry_coe.lipschitz f
+
+private theorem nnrealBoundedContinuousFunctionToReal_apply
+    [TopologicalSpace E] (f : BoundedContinuousFunction E NNReal) (x : E) :
+    nnrealBoundedContinuousFunctionToReal f x = (f x : ℝ) :=
+  rfl
+
+/-- Bounded-continuous lower/upper sandwiches for events with null frontier.
+
+For a probability law on a pseudo-emetric space, if the event boundary carries
+zero mass, then for every tolerance there are bounded continuous functions
+below and above the event indicator whose integrals differ by at most that
+tolerance.  This is the topological approximation input needed by the
+bootstrap event-probability Portmanteau bridge. -/
+theorem boundedContinuous_event_sandwich_of_null_frontier
+    [PseudoEMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {law : Measure E} [IsProbabilityMeasure law] {A : Set E}
+    {ε : ℝ} (hε : 0 < ε) (hfrontier : law (frontier A) = 0) :
+    ∃ lower upper : BoundedContinuousFunction E ℝ,
+      (∀ x, x ∈ A → lower x ≤ 1) ∧
+        (∀ x, x ∉ A → lower x ≤ 0) ∧
+        (∀ x, x ∈ A → 1 ≤ upper x) ∧
+        (∀ x, 0 ≤ upper x) ∧
+        (∫ x, lower x ∂law) ≤ law.real A ∧
+        law.real A ≤ (∫ x, upper x ∂law) ∧
+        (∫ x, upper x ∂law) - (∫ x, lower x ∂law) ≤ ε := by
+  classical
+  let δs : ℕ → ℝ := fun n => (1 : ℝ) / (n + 1)
+  have hδs_pos : ∀ n, 0 < δs n := fun n => by positivity
+  have hδs_lim : Tendsto δs atTop (𝓝 0) :=
+    tendsto_one_div_add_atTop_nhds_zero_nat
+  let upperSeq : ℕ → BoundedContinuousFunction E ℝ := fun n =>
+    nnrealBoundedContinuousFunctionToReal (thickenedIndicator (hδs_pos n) (closure A))
+  let complSeq : ℕ → BoundedContinuousFunction E ℝ := fun n =>
+    nnrealBoundedContinuousFunctionToReal (thickenedIndicator (hδs_pos n) (interior A)ᶜ)
+  have hupper_tendsto :
+      Tendsto (fun n => ∫ x, upperSeq n x ∂law)
+        atTop (𝓝 (law.real (closure A))) := by
+    change Tendsto
+      (fun n => ∫ x, (thickenedIndicator (hδs_pos n) (closure A) x : ℝ) ∂law)
+        atTop (𝓝 (law.real (closure A)))
+    exact tendsto_integral_thickenedIndicator_of_isClosed law isClosed_closure
+      (δs_pos := hδs_pos) hδs_lim
+  have hcompl_tendsto :
+      Tendsto (fun n => ∫ x, complSeq n x ∂law)
+        atTop (𝓝 (law.real ((interior A)ᶜ))) := by
+    change Tendsto
+      (fun n => ∫ x, (thickenedIndicator (hδs_pos n) (interior A)ᶜ x : ℝ) ∂law)
+        atTop (𝓝 (law.real ((interior A)ᶜ)))
+    exact tendsto_integral_thickenedIndicator_of_isClosed law
+      isOpen_interior.isClosed_compl
+      (δs_pos := hδs_pos) hδs_lim
+  have hε4 : 0 < ε / 4 := by positivity
+  have hupper_room : law.real (closure A) < law.real (closure A) + ε / 4 := by
+    linarith
+  have hcompl_room : law.real ((interior A)ᶜ) < law.real ((interior A)ᶜ) + ε / 4 := by
+    linarith
+  obtain ⟨Nu, hNu⟩ :=
+    eventually_atTop.mp (hupper_tendsto.eventually_lt_const hupper_room)
+  obtain ⟨Nl, hNl⟩ :=
+    eventually_atTop.mp (hcompl_tendsto.eventually_lt_const hcompl_room)
+  let upper : BoundedContinuousFunction E ℝ := upperSeq Nu
+  let lower : BoundedContinuousFunction E ℝ :=
+    BoundedContinuousFunction.const E (1 : ℝ) - complSeq Nl
+  have hupper_lt :
+      ∫ x, upper x ∂law < law.real (closure A) + ε / 4 := by
+    exact hNu Nu le_rfl
+  have hcompl_lt :
+      ∫ x, complSeq Nl x ∂law < law.real ((interior A)ᶜ) + ε / 4 := by
+    exact hNl Nl le_rfl
+  have hclosure_real : law.real (closure A) = law.real A := by
+    simp [Measure.real_def, measure_closure_of_null_frontier hfrontier]
+  have hinterior_real : law.real (interior A) = law.real A := by
+    simp [Measure.real_def, measure_interior_of_null_frontier hfrontier]
+  have hclosure_interior : law.real (closure A) = law.real (interior A) := by
+    rw [hclosure_real, hinterior_real]
+  have hcompl_real : law.real ((interior A)ᶜ) = 1 - law.real (interior A) := by
+    rw [measureReal_compl isOpen_interior.measurableSet]
+    simp
+  have hlower_eq :
+      ∫ x, lower x ∂law = 1 - ∫ x, complSeq Nl x ∂law := by
+    calc
+      ∫ x, lower x ∂law =
+          law.real Set.univ • (1 : ℝ) - ∫ x, complSeq Nl x ∂law := by
+            simpa [lower] using
+              (BoundedContinuousFunction.integral_const_sub
+                (μ := law) (complSeq Nl) (1 : ℝ))
+      _ = 1 - ∫ x, complSeq Nl x ∂law := by simp
+  have hlower_gt :
+      law.real (interior A) - ε / 4 < ∫ x, lower x ∂law := by
+    rw [hlower_eq]
+    rw [hcompl_real] at hcompl_lt
+    linarith
+  refine ⟨lower, upper, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro x hx
+    have hnonneg : 0 ≤ complSeq Nl x := by
+      simp [complSeq, nnrealBoundedContinuousFunctionToReal_apply]
+    change 1 - complSeq Nl x ≤ (1 : ℝ)
+    linarith
+  · intro x hx
+    have hxcomp : x ∈ (interior A)ᶜ := by
+      exact fun hxi => hx (interior_subset hxi)
+    have hone :
+        thickenedIndicator (hδs_pos Nl) (interior A)ᶜ x = (1 : NNReal) :=
+      thickenedIndicator_one_of_mem_closure (hδs_pos Nl) (interior A)ᶜ
+        (subset_closure hxcomp)
+    have hcompl_one : complSeq Nl x = (1 : ℝ) := by
+      simp [complSeq, nnrealBoundedContinuousFunctionToReal_apply, hone]
+    change 1 - complSeq Nl x ≤ (0 : ℝ)
+    linarith
+  · intro x hx
+    have hxcl : x ∈ closure A := subset_closure hx
+    have hone :
+        thickenedIndicator (hδs_pos Nu) (closure A) x = (1 : NNReal) :=
+      thickenedIndicator_one_of_mem_closure (hδs_pos Nu) (closure A)
+        (by simpa [closure_closure] using hxcl)
+    have hupper_one : upper x = (1 : ℝ) := by
+      simp [upper, upperSeq, nnrealBoundedContinuousFunctionToReal_apply, hone]
+    linarith
+  · intro x
+    simp [upper, upperSeq, nnrealBoundedContinuousFunctionToReal_apply]
+  · have hlower_le_interior_indicator :
+        (fun x => lower x) ≤ fun x => if x ∈ interior A then (1 : ℝ) else 0 := by
+      intro x
+      by_cases hx : x ∈ interior A
+      · have hnonneg : 0 ≤ complSeq Nl x := by
+          simp [complSeq, nnrealBoundedContinuousFunctionToReal_apply]
+        simp [lower, hx, hnonneg]
+      · have hxcomp : x ∈ (interior A)ᶜ := by
+          exact hx
+        have hone :
+            thickenedIndicator (hδs_pos Nl) (interior A)ᶜ x = (1 : NNReal) :=
+          thickenedIndicator_one_of_mem_closure (hδs_pos Nl) (interior A)ᶜ
+            (subset_closure hxcomp)
+        simp [lower, complSeq, nnrealBoundedContinuousFunctionToReal_apply, hx, hone]
+    calc
+      ∫ x, lower x ∂law
+          ≤ ∫ x, (if x ∈ interior A then (1 : ℝ) else 0) ∂law := by
+            refine integral_mono (lower.integrable law)
+              ((integrable_indicator_iff isOpen_interior.measurableSet).mpr
+                (integrable_const (1 : ℝ)).integrableOn) ?_
+            exact hlower_le_interior_indicator
+      _ = law.real (interior A) := by
+            rw [← integral_indicator_one isOpen_interior.measurableSet]
+            rfl
+      _ = law.real A := hinterior_real
+  · have hclosure_indicator_le_upper :
+        (fun x => if x ∈ closure A then (1 : ℝ) else 0) ≤ fun x => upper x := by
+      intro x
+      by_cases hx : x ∈ closure A
+      · have hone :
+            thickenedIndicator (hδs_pos Nu) (closure A) x = (1 : NNReal) :=
+          thickenedIndicator_one_of_mem_closure (hδs_pos Nu) (closure A)
+            (by simpa [closure_closure] using hx)
+        simp [upper, upperSeq, nnrealBoundedContinuousFunctionToReal_apply, hx, hone]
+      · have hnonneg : 0 ≤ upper x := by
+          simp [upper, upperSeq, nnrealBoundedContinuousFunctionToReal_apply]
+        simp [hx, hnonneg]
+    calc
+      law.real A = law.real (closure A) := hclosure_real.symm
+      _ = ∫ x, (if x ∈ closure A then (1 : ℝ) else 0) ∂law := by
+            rw [← integral_indicator_one isClosed_closure.measurableSet]
+            rfl
+      _ ≤ ∫ x, upper x ∂law := by
+            refine integral_mono
+              ((integrable_indicator_iff isClosed_closure.measurableSet).mpr
+                (integrable_const (1 : ℝ)).integrableOn)
+              (upper.integrable law) ?_
+            exact hclosure_indicator_le_upper
+  · have hgap_lt :
+        (∫ x, upper x ∂law) - (∫ x, lower x ∂law) < ε := by
+      have hupper_lt' : ∫ x, upper x ∂law <
+          law.real (interior A) + ε / 4 := by
+        simpa [hclosure_interior] using hupper_lt
+      linarith
+    exact le_of_lt hgap_lt
 
 /-- Clipped first moments converge under bootstrap weak convergence.
 
