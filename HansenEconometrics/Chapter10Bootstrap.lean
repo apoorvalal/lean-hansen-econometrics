@@ -47,6 +47,10 @@ used throughout the chapter:
   continuous-mapping theorem.
 * `TendstoInBootstrapWeakDistribution.congr` gives pointwise congruence for
   that weak backend.
+* `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
+  `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
+  bootstrap convergence into clipped first- and second-moment convergence for
+  Hansen Theorem 10.9.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_delta_method_linear` and
@@ -1153,6 +1157,40 @@ theorem TendstoInBootstrapWeakDistribution.congr
     (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z) :
     TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z' :=
   (hZ.congr_bootstrap hstar).congr_limit hlim
+
+/-- Clipped first moments converge under bootstrap weak convergence.
+
+This is the bounded-continuous core of the Theorem 10.9
+distribution-to-moment argument; the remaining UI/tail step removes the
+clipping. -/
+theorem TendstoInBootstrapWeakDistribution.integral_realClip_tendsto
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    {R : ℝ} (hR : 0 ≤ R) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+      atTop
+      (fun _ => ∫ ωlim, realClip R (Z ωlim) ∂ν) := by
+  simpa [bootstrapBoundedContinuousIntegral, realClipBoundedContinuousFunction_apply]
+    using hZ (realClipBoundedContinuousFunction R hR)
+
+/-- Clipped second moments converge under bootstrap weak convergence.
+
+This is the bounded-continuous core used before the UI/tail argument upgrades
+clipped second moments to the full conditional second moments in Hansen
+Theorem 10.9. -/
+theorem TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    {R : ℝ} (hR : 0 ≤ R) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+      atTop
+      (fun _ => ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν) := by
+  simpa [bootstrapBoundedContinuousIntegral, realClipBoundedContinuousFunction_apply]
+    using hZ ((realClipBoundedContinuousFunction R hR) ^ (2 : ℕ))
 
 /-- Hansen Theorem 10.5, globally continuous weak-convergence face.
 
