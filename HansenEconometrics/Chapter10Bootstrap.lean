@@ -215,7 +215,9 @@ used throughout the chapter:
 * `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
   is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf`
-  combines componentwise Slutsky convergence with the endpoint-CDF calibration.
+  combines componentwise Slutsky convergence with the endpoint-CDF calibration;
+  `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf`
+  is the symmetric `[-q, q]` endpoint specialization.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageVector_tendstoInDistribution_of_components` assembles
@@ -237,7 +239,9 @@ used throughout the chapter:
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
   is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf`
-  combines componentwise Slutsky convergence with the endpoint-CDF calibration.
+  combines componentwise Slutsky convergence with the endpoint-CDF calibration;
+  `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf`
+  is the symmetric `[-q, q]` endpoint specialization.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
@@ -6259,6 +6263,48 @@ theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_law_
         hstat hlower hupper hlower_meas hupper_meas)
       hξ hquantiles hcdfLower hcdfUpper
 
+/-- Symmetric endpoint-CDF percentile-interval calibration.
+
+This is the Hansen Theorem 10.13 specialization where the limiting bootstrap
+percentile endpoints are `-q` and `q`, and the scalar limit law has endpoint
+CDF masses `α / 2` and `1 - α / 2`. -/
+theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hlower :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qLower n ω - θhat n ω))
+        atTop (fun _ => -q))
+    (hupper :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qUpper n ω - θhat n ω))
+        atTop (fun _ => q))
+    (hlower_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qLower n ω - θhat n ω)) μ)
+    (hupper_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qUpper n ω - θhat n ω)) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := -q) (qUpperLim := q) (α := α)
+      hstat hlower hupper hlower_meas hupper_meas hξ
+      (by linarith) hcdfLower (by simpa using hcdfUpper)
+
 end PercentileIntervals
 
 section PercentileTIntervals
@@ -6836,6 +6882,42 @@ theorem chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_law
         (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
         htstat hlower hupper hlower_meas hupper_meas)
       hξ hquantiles hcdfLower hcdfUpper
+
+/-- Symmetric endpoint-CDF percentile-`t` calibration.
+
+This is the Hansen Theorem 10.14 specialization where the limiting bootstrap
+percentile-`t` endpoints are `-q` and `q`, and the scalar t-ratio limit law has
+endpoint CDF masses `α / 2` and `1 - α / 2`. -/
+theorem chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hlower : TendstoInMeasure μ qLower atTop (fun _ => -q))
+    (hupper : TendstoInMeasure μ qUpper atTop (fun _ => q))
+    (hlower_meas : ∀ n, AEMeasurable (qLower n) μ)
+    (hupper_meas : ∀ n, AEMeasurable (qUpper n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := -q) (qUpperLim := q) (α := α)
+      hse htstat hlower hupper hlower_meas hupper_meas hξ
+      (by linarith) hcdfLower hcdfUpper
 
 end PercentileTIntervals
 
