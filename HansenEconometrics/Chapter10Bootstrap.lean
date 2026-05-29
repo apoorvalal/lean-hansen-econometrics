@@ -193,8 +193,10 @@ used throughout the chapter:
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `chapter10_bootstrap_regression_theta_gaussian` and
-  `chapter10_bootstrap_regression_trimmedVariance_tendsto` are regression-facing
-  wrappers for Hansen Theorems 10.18 and 10.19.
+  `chapter10_bootstrap_regression_theta_gaussian_distribution` are
+  regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18.
+  `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
+  variance wrapper for Hansen Theorem 10.19.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
@@ -4708,6 +4710,83 @@ theorem chapter10_bootstrap_regression_theta_gaussian
   simpa [Matrix.transpose_transpose] using
     chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
       (Tstar := TbetaStar) (V := Vβ) (G := Rᵀ) hVβ hβ
+
+/-- Hansen Theorem 10.18, regression Gaussian CDF wrapper.
+
+This is the Hansen Definition 10.2 face of
+`chapter10_bootstrap_regression_theta_gaussian`: after the coefficient-level
+bootstrap CLT and the delta-method linear map, coordinate CDF convergence
+follows at transformed Gaussian continuity points whose lower-orthant
+frontiers are null. -/
+theorem chapter10_bootstrap_regression_theta_gaussian_distribution
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) := by
+  let coord : EuclideanSpace ℝ q → q → ℝ := fun z => (z : q → ℝ)
+  have hcoord : Continuous coord :=
+    PiLp.continuous_ofLp 2 (fun _ : q => ℝ)
+  have hthetaWeak :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+        (fun z : EuclideanSpace ℝ q => z) :=
+    chapter10_bootstrap_regression_theta_gaussian
+      (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+      (Vβ := Vβ) R hVβ hβ
+  have hcoordWeak :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => coord (matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs)))
+        (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+        (fun z : EuclideanSpace ℝ q => coord z) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (Z := fun z : EuclideanSpace ℝ q => z)
+      (g := coord) hthetaWeak hcoord
+  have hZstar :
+      ∀ n ω,
+        Measurable
+          (fun ωs =>
+            coord (matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))) := by
+    intro n ω
+    exact hcoord.measurable.comp
+      ((matrixContinuousLinearMap Rᵀ).continuous.measurable.comp (hTbetaStar n ω))
+  have hZlim :
+      AEMeasurable (fun z : EuclideanSpace ℝ q => coord z)
+        (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R)) :=
+    hcoord.aemeasurable
+  exact
+    TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs =>
+        coord (matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs)))
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (Z := fun z : EuclideanSpace ℝ q => coord z)
+      hcoordWeak hPstar hZstar hZlim hfrontier
 
 /-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
 
