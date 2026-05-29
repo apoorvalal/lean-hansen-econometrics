@@ -218,6 +218,9 @@ used throughout the chapter:
   combines componentwise Slutsky convergence with the endpoint-CDF calibration;
   `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf`
   is the symmetric `[-q, q]` endpoint specialization.
+* `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles`
+  identifies those symmetric percentile endpoints as original-scale shifts of
+  lower generalized inverses of conditional bootstrap CDFs.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageVector_tendstoInDistribution_of_components` assembles
@@ -6307,6 +6310,159 @@ theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_symm
       (ξ := ξ) (qLowerLim := -q) (qUpperLim := q) (α := α)
       hstat hlower hupper hlower_meas hupper_meas hξ
       (by linarith) hcdfLower (by simpa using hcdfUpper)
+
+private theorem mul_add_div_sub_eq {a θ q : ℝ} (ha : a ≠ 0) :
+    a * ((θ + q / a) - θ) = q := by
+  field_simp [ha]
+  ring
+
+/-- Symmetric percentile-interval coverage from bootstrap lower quantiles.
+
+The bootstrap lower quantiles identify the scaled endpoint deviations
+`aₙ(q* - θhatₙ)`.  Dividing by `aₙ` and adding `θhatₙ` puts the endpoints on
+the original parameter scale, after which the symmetric percentile-coverage
+wrapper applies. -/
+theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {Pstar : ℕ → Ω → Measure Ωs} {Tstar : ℕ → Ω → Ωs → ℝ}
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Tstar x n ω))
+    (hneLower :
+      ∀ n ω,
+        ({x : ℝ | α / 2 ≤ bootstrapScalarCDF Pstar Tstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbddLower :
+      ∀ n ω, BddBelow
+        {x : ℝ | α / 2 ≤ bootstrapScalarCDF Pstar Tstar x n ω})
+    (hlocalLower :
+      ∀ n ω x, bootstrapScalarCDF Pstar Tstar x n ω < α / 2 →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Tstar (x + δ) n ω < α / 2)
+    (hneUpper :
+      ∀ n ω,
+        ({x : ℝ | 1 - α / 2 ≤ bootstrapScalarCDF Pstar Tstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbddUpper :
+      ∀ n ω, BddBelow
+        {x : ℝ | 1 - α / 2 ≤ bootstrapScalarCDF Pstar Tstar x n ω})
+    (hlocalUpper :
+      ∀ n ω x, bootstrapScalarCDF Pstar Tstar x n ω < 1 - α / 2 →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Tstar (x + δ) n ω <
+          1 - α / 2)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hcdf :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Tstar x n ω)
+          atTop (fun _ => cdf η x))
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent θ
+          (θhat n ω +
+            bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n ω / a n)
+          (θhat n ω +
+            bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n ω / a n)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Qlower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (α / 2)
+  let Qupper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2)
+  let qLowerEndpoint : ℕ → Ω → ℝ :=
+    fun n ω => θhat n ω + Qlower n ω / a n
+  let qUpperEndpoint : ℕ → Ω → ℝ :=
+    fun n ω => θhat n ω + Qupper n ω / a n
+  have hQlower :
+      TendstoInMeasure μ Qlower atTop (fun _ => -q) :=
+    bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
+      (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+      (G := fun x => cdf η x) (p := α / 2) (q := -q)
+      hmono hneLower hbddLower hlocalLower hstrict hcdfLower hcdf
+  have hQupper :
+      TendstoInMeasure μ Qupper atTop (fun _ => q) :=
+    bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
+      (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+      (G := fun x => cdf η x) (p := 1 - α / 2) (q := q)
+      hmono hneUpper hbddUpper hlocalUpper hstrict hcdfUpper hcdf
+  have hlower :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qLowerEndpoint n ω - θhat n ω))
+        atTop (fun _ => -q) := by
+    refine TendstoInMeasure.congr
+      (f := Qlower)
+      (f' := fun n ω => a n * (qLowerEndpoint n ω - θhat n ω))
+      (g := fun _ : Ω => -q)
+      (g' := fun _ : Ω => -q)
+      (fun n => ?_) EventuallyEq.rfl hQlower
+    refine ae_of_all μ fun ω => ?_
+    exact (mul_add_div_sub_eq
+      (a := a n) (θ := θhat n ω) (q := Qlower n ω)
+      (ne_of_gt (ha n))).symm
+  have hupper :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qUpperEndpoint n ω - θhat n ω))
+        atTop (fun _ => q) := by
+    refine TendstoInMeasure.congr
+      (f := Qupper)
+      (f' := fun n ω => a n * (qUpperEndpoint n ω - θhat n ω))
+      (g := fun _ : Ω => q)
+      (g' := fun _ : Ω => q)
+      (fun n => ?_) EventuallyEq.rfl hQupper
+    refine ae_of_all μ fun ω => ?_
+    exact (mul_add_div_sub_eq
+      (a := a n) (θ := θhat n ω) (q := Qupper n ω)
+      (ne_of_gt (ha n))).symm
+  have hlower_scaled_meas :
+      ∀ n,
+        AEMeasurable
+          (fun ω => a n * (qLowerEndpoint n ω - θhat n ω)) μ := by
+    intro n
+    have hQlower_meas : AEMeasurable (Qlower n) μ := by
+      simpa [Qlower] using hlower_meas n
+    exact hQlower_meas.congr
+      (ae_of_all μ fun ω =>
+        (mul_add_div_sub_eq
+          (a := a n) (θ := θhat n ω) (q := Qlower n ω)
+          (ne_of_gt (ha n))).symm)
+  have hupper_scaled_meas :
+      ∀ n,
+        AEMeasurable
+          (fun ω => a n * (qUpperEndpoint n ω - θhat n ω)) μ := by
+    intro n
+    have hQupper_meas : AEMeasurable (Qupper n) μ := by
+      simpa [Qupper] using hupper_meas n
+    exact hQupper_meas.congr
+      (ae_of_all μ fun ω =>
+        (mul_add_div_sub_eq
+          (a := a n) (θ := θhat n ω) (q := Qupper n ω)
+          (ne_of_gt (ha n))).symm)
+  have hcoverage :=
+    chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat)
+      (qLower := qLowerEndpoint) (qUpper := qUpperEndpoint)
+      (ξ := ξ) (q := q) (α := α)
+      hstat hlower hupper hlower_scaled_meas hupper_scaled_meas hξ
+      hq_nonneg hcdfLower hcdfUpper
+  simpa [qLowerEndpoint, qUpperEndpoint, Qlower, Qupper] using hcoverage
 
 end PercentileIntervals
 
