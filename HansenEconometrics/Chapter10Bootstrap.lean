@@ -31,10 +31,14 @@ used throughout the chapter:
   scalar conditional-Chebyshev constructor for the same Theorem 10.2 step.
 * `chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound` is the vector-valued
   conditional Markov constructor from a bootstrap `L²` seminorm bound.
+* `bootstrapTailProb_zero_le_integral_norm_sq_div` and
+  `chapter10_bootstrap_wlln_centered_of_integral_norm_sq_bound` are the
+  textbook-facing vector second-moment bridges for Theorem 10.2.
 * `chapter10_bootstrap_wlln_level_real_of_conditional_variance_bound` and
-  `chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound` package those centered
+  `chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound` package centered
   constructors with the ordinary WLLN to give the level conclusion of Theorem
-  10.2.
+  10.2; `chapter10_bootstrap_wlln_level_of_integral_norm_sq_bound` is the
+  corresponding vector second-moment level wrapper.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -749,6 +753,55 @@ theorem bootstrapTailProb_zero_le_l2_eLpNorm_bound
   have hreal := ENNReal.toReal_mono hrhs_ne_top hmeasure
   simpa [bootstrapTailProb, bootstrapL2ENNTailBound] using hreal
 
+/-- Conditional Markov inequality for vector bootstrap statistics, written as
+a concrete second moment.
+
+This is the textbook-facing form of the `L²` tail bridge:
+`P*(‖Z*‖ ≥ η) ≤ E*[‖Z*‖²] / η²`.  It is designed for empirical-bootstrap
+specializations where the conditional second moment is then identified by a
+finite covariance or norm calculation. -/
+theorem bootstrapTailProb_zero_le_integral_norm_sq_div
+    [NormedAddCommGroup E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → E}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProb Pstar Zstar (fun _ => 0) η n ω ≤
+      (∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω) / η ^ 2 := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  let A : Set Ωs :=
+    {ωs | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : E)) ω)}
+  let B : Set Ωs := {ωs | η ^ 2 ≤ ‖Zstar n ω ωs‖ ^ 2}
+  have hAB : A ⊆ B := by
+    intro ωs hωs
+    have hnorm : η ≤ ‖Zstar n ω ωs‖ := by
+      simpa [A, dist_eq_norm, sub_zero] using hωs
+    exact pow_le_pow_left₀ hη.le hnorm 2
+  have hA_le_B : (Pstar n ω).real A ≤ (Pstar n ω).real B :=
+    measureReal_mono hAB
+  have hInt :
+      Integrable (fun ωs => ‖Zstar n ω ωs‖ ^ 2) (Pstar n ω) :=
+    (memLp_two_iff_integrable_sq_norm (hZ n ω).1).1 (hZ n ω)
+  have hmarkov :
+      η ^ 2 * (Pstar n ω).real B ≤
+        ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω := by
+    simpa [B] using
+      (mul_meas_ge_le_integral_of_nonneg
+        (μ := Pstar n ω) (f := fun ωs => ‖Zstar n ω ωs‖ ^ 2)
+        (ae_of_all _ fun ωs => pow_nonneg (norm_nonneg (Zstar n ω ωs)) 2)
+        hInt (η ^ 2))
+  have hB_le :
+      (Pstar n ω).real B ≤
+        (∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
+    (le_div_iff₀ (sq_pos_of_pos hη)).2 (by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using hmarkov)
+  calc
+    bootstrapTailProb Pstar Zstar (fun _ => 0) η n ω
+        = (Pstar n ω).real A := by
+          simp [bootstrapTailProb, A, measureReal_def]
+    _ ≤ (Pstar n ω).real B := hA_le_B
+    _ ≤ (∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω) / η ^ 2 := hB_le
+
 /-- Conditional Chebyshev inequality for centered scalar bootstrap statistics.
 
 If a scalar bootstrap statistic has conditional mean zero, then its conditional
@@ -904,6 +957,45 @@ theorem chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound
     (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
     hZ hη n ω).trans (hbound η hη n ω)
 
+/-- Hansen Theorem 10.2, vector centered WLLN from a conditional second-moment
+bound.
+
+This is the finite-empirical target form of the vector proof: once the
+conditional second moment of the centered bootstrap mean is bounded by
+`n^{-2} ∑ ‖uᵢ‖²`, the Marcinkiewicz WLLN gives the centered bootstrap
+conclusion. -/
+theorem chapter10_bootstrap_wlln_centered_of_integral_norm_sq_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ n ω,
+        (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine chapter10_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  calc
+    bootstrapTailProb Pstar
+        (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+        ≤ (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
+          bootstrapTailProb_zero_le_integral_norm_sq_div
+            (Pstar := Pstar)
+            (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+            hPstar hZ hη n ω
+    _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+          div_le_div_of_nonneg_right (hbound n ω) (sq_nonneg η)
+    _ = bootstrapWLLNSecondMomentBound u η n ω := by
+          rw [bootstrapWLLNSecondMomentBound]
+          field_simp [hη.ne']
+
 /-- Hansen Theorem 10.2, vector level WLLN from a bootstrap `L²` seminorm
 bound.
 
@@ -930,6 +1022,33 @@ theorem chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound
     (chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound
       (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
       (u := u) hu hZ hbound)
+    hYbar
+
+/-- Hansen Theorem 10.2, vector level WLLN from a conditional second-moment
+bound.
+
+This packages the conditional-second-moment centered constructor with the
+ordinary-sample WLLN for `Ybar`, giving the textbook level conclusion
+`Ybar* ->p* μY`. -/
+theorem chapter10_bootstrap_wlln_level_of_integral_norm_sq_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ℕ → Ω → Ωs → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ n ω,
+        (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbability μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_bootstrap_wlln_centered_of_integral_norm_sq_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hPstar hu hZ hbound)
     hYbar
 
 /-- Hansen Theorem 10.2, level WLLN from the textbook second-moment bound.
