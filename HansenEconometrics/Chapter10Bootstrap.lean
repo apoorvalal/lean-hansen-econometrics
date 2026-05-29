@@ -31,6 +31,8 @@ used throughout the chapter:
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
   the reusable CDF bridge needed by later bootstrap CLT and delta-method
   wrappers.
+* `chapter10_bootstrap_clt_gaussian_of_tendsto_cdf` is the Gaussian CDF wrapper
+  for Hansen Theorem 10.4.
 * `TendstoInBootstrapWeakDistribution` is a bounded-continuous-test-function
   backend for bootstrap distributional convergence, used by the distributional
   continuous-mapping theorem.
@@ -805,6 +807,36 @@ theorem TendstoInBootstrapDistribution.congr
     (hZ : TendstoInBootstrapDistribution μ Pstar Zstar ν Z) :
     TendstoInBootstrapDistribution μ Pstar Zstar' ν Z' :=
   (hZ.congr_bootstrap hstar).congr_limit hlim
+
+/-- Hansen Theorem 10.4, Gaussian bootstrap CLT CDF wrapper.
+
+If the conditional CDFs of a normalized bootstrap statistic converge in
+probability to the CDF of `N(0, Σ)` at every continuity point, then the
+statistic converges in bootstrap distribution to that Gaussian law. The
+remaining empirical-bootstrap CLT work is to derive this CDF premise from
+Hansen's iid and second-moment assumptions. -/
+theorem chapter10_bootstrap_clt_gaussian_of_tendsto_cdf
+    [Fintype k] [DecidableEq k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hcdf :
+      ∀ x : k → ℝ,
+        ContinuousAt
+            (fun y =>
+              vectorCDF
+                (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+                (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+          TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar x n ω)
+            atTop
+            (fun _ =>
+              vectorCDF
+                (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+                (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) x)) :
+    TendstoInBootstrapDistribution μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  TendstoInBootstrapDistribution.of_tendsto_cdf hcdf
 
 end BootstrapDistribution
 
