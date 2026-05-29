@@ -76,6 +76,9 @@ used throughout the chapter:
   bootstrap statistic has been reduced to its derivative-linearized form.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
+* `empiricalMean`, `empiricalBootstrapResampleMean`, and
+  `integral_empiricalBootstrapResampleMean_eq_of_coord_integrals` provide the
+  finite-resampling sample-mean API used by the concrete Theorem 10.2 path.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -169,6 +172,22 @@ theorem uniformOn_univ_eq_inv_card_smul_count :
 
 variable [MeasurableSingletonClass ι]
 
+/-- Finite-sample empirical mean. -/
+noncomputable def empiricalMean
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) : E :=
+  ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i
+
+/-- Mean of a bootstrap resample indexed by `κ`.
+
+The map `I ωs t` is the original observation selected by bootstrap draw `t` at
+resampling point `ωs`.  For the ordinary nonparametric bootstrap, `Ωs` is a
+finite function space and `I ωs t = ωs t`. -/
+noncomputable def empiricalBootstrapResampleMean
+    {κ : Type*} [Fintype κ]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (Y : ι → E) (I : Ωs → κ → ι) (ωs : Ωs) : E :=
+  ((Fintype.card κ : ℝ)⁻¹) • ∑ t, Y (I ωs t)
+
 /-- Empirical mean identity for one bootstrap draw.
 
 For any finite empirical support, integrating a statistic under the uniform
@@ -180,6 +199,67 @@ theorem integral_uniformOn_univ_eq_card_inv_smul_sum
     ∫ i, Y i ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
       ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, Y i := by
   rw [uniformOn_univ_eq_inv_card_smul_count, integral_smul_measure, integral_count]
+
+/-- Empirical mean identity using the canonical `empiricalMean` API. -/
+theorem integral_uniformOn_univ_eq_empiricalMean
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) :
+    ∫ i, Y i ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      empiricalMean Y :=
+  integral_uniformOn_univ_eq_card_inv_smul_sum Y
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- If every bootstrap draw coordinate has the same conditional mean, then the
+bootstrap resample mean has that conditional mean.
+
+This is the finite-resampling linearity bridge used before specializing the
+coordinate marginal law to uniform resampling from the empirical support. -/
+theorem integral_empiricalBootstrapResampleMean_eq_of_coord_integrals
+    {κ : Type*} [Fintype κ] [Nonempty κ]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {P : Measure Ωs} {Y : ι → E} {I : Ωs → κ → ι} {m : E}
+    (hInt : ∀ t, Integrable (fun ωs => Y (I ωs t)) P)
+    (hcoord : ∀ t, ∫ ωs, Y (I ωs t) ∂P = m) :
+    ∫ ωs, empiricalBootstrapResampleMean Y I ωs ∂P = m := by
+  change ∫ ωs, ((Fintype.card κ : ℝ)⁻¹) • ∑ t, Y (I ωs t) ∂P = m
+  rw [integral_smul]
+  rw [integral_finset_sum]
+  · simp_rw [hcoord]
+    rw [Finset.sum_const, Finset.card_univ,
+      ← Nat.cast_smul_eq_nsmul ℝ (Fintype.card κ) m, smul_smul]
+    have hcard_ne : (Fintype.card κ : ℝ) ≠ 0 :=
+      Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+    rw [inv_mul_cancel₀ hcard_ne, one_smul]
+  · intro t _ht
+    exact hInt t
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Centered version of
+`integral_empiricalBootstrapResampleMean_eq_of_coord_integrals`.
+
+If every bootstrap draw coordinate has conditional mean `m`, then the resample
+mean centered at `m` has conditional mean zero. -/
+theorem integral_empiricalBootstrapResampleMean_sub_eq_zero_of_coord_integrals
+    {κ : Type*} [Fintype κ] [Nonempty κ]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {P : Measure Ωs} [IsProbabilityMeasure P]
+    {Y : ι → E} {I : Ωs → κ → ι} {m : E}
+    (hInt : ∀ t, Integrable (fun ωs => Y (I ωs t)) P)
+    (hcoord : ∀ t, ∫ ωs, Y (I ωs t) ∂P = m) :
+    ∫ ωs, empiricalBootstrapResampleMean Y I ωs - m ∂P = 0 := by
+  have hmean :
+      ∫ ωs, empiricalBootstrapResampleMean Y I ωs ∂P = m :=
+    integral_empiricalBootstrapResampleMean_eq_of_coord_integrals
+      (P := P) (Y := Y) (I := I) (m := m) hInt hcoord
+  have hresampleInt :
+      Integrable (fun ωs => empiricalBootstrapResampleMean Y I ωs) P := by
+    change Integrable
+      (fun ωs => ((Fintype.card κ : ℝ)⁻¹) • ∑ t, Y (I ωs t)) P
+    exact Integrable.smul ((Fintype.card κ : ℝ)⁻¹)
+      (integrable_finset_sum (s := Finset.univ)
+        (f := fun t ωs => Y (I ωs t)) (fun t _ht => hInt t))
+  rw [integral_sub hresampleInt (integrable_const m), hmean]
+  simp
 
 /-- Finite empirical second-moment identity for one bootstrap draw.
 
