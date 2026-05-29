@@ -57,6 +57,8 @@ used throughout the chapter:
   Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
+* `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
+  conditional covariance bridge behind Hansen Theorem 10.12.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
@@ -1158,6 +1160,228 @@ theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
   simpa [pow_two] using hvar
 
 end BootstrapVariance
+
+section BootstrapCovariance
+
+/-- Conditional bootstrap mean vector of a finite-dimensional statistic. -/
+noncomputable def bootstrapMeanVec
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
+    (n : ℕ) (ω : Ω) : k → ℝ :=
+  fun a => (Pstar n ω)[fun ωs => Zstar n ω ωs a]
+
+/-- Conditional bootstrap cross-moment matrix of a finite-dimensional statistic. -/
+noncomputable def bootstrapCrossMomentMat
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c => (Pstar n ω)[fun ωs => Zstar n ω ωs a * Zstar n ω ωs c]
+
+/-- Moment-form conditional bootstrap covariance matrix. -/
+noncomputable def bootstrapCovarianceMomentMat
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c =>
+    bootstrapCrossMomentMat Pstar Zstar n ω a c -
+      bootstrapMeanVec Pstar Zstar n ω a * bootstrapMeanVec Pstar Zstar n ω c
+
+/-- Conditional bootstrap covariance matrix, stated directly with `cov`. -/
+noncomputable def bootstrapCovarianceMat
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c => cov[fun ωs => Zstar n ω ωs a,
+    fun ωs => Zstar n ω ωs c; Pstar n ω]
+
+/-- Conditional covariance equals the moment-form covariance matrix. -/
+theorem bootstrapCovarianceMat_eq_momentMat
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (n : ℕ) (ω : Ω) :
+    bootstrapCovarianceMat Pstar Zstar n ω =
+      bootstrapCovarianceMomentMat Pstar Zstar n ω := by
+  ext a c
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapCovarianceMat, bootstrapCovarianceMomentMat, bootstrapCrossMomentMat,
+    bootstrapMeanVec, Pi.mul_apply] using
+    (ProbabilityTheory.covariance_eq_sub (hZ n ω a) (hZ n ω c))
+
+/-- Conditional bootstrap covariance moment bridge for two real coordinates. -/
+theorem chapter10_bootstrap_covarianceReal_tendsto_of_moments
+    {Pstar : ℕ → Ω → Measure Ωs} {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Xstar n ω])
+        atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs])
+        atTop (fun _ => mXY)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+          (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+      atTop (fun _ => mXY - mX * mY) := by
+  have hmean_prod :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mX * mY) :=
+    TendstoInMeasure.mul_limits_real hmeanX hmeanY
+  have hcross0 := TendstoInMeasure.sub_limit_zero_real hcross
+  have hmean_prod0 := TendstoInMeasure.sub_limit_zero_real hmean_prod
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+            (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]) -
+            (mXY - mX * mY))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hcross0 hmean_prod0
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsub
+    exact ae_of_all μ fun ω => by ring
+  exact TendstoInMeasure.of_sub_limit_zero_real hdiff0
+
+/-- Conditional bootstrap covariance-matrix bridge from mean-vector and
+cross-moment convergence. -/
+theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar) atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMat Pstar Zstar) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (bootstrapCovarianceMomentMat Pstar Zstar) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  have hentry :=
+    chapter10_bootstrap_covarianceReal_tendsto_of_moments
+      (μ := μ)
+      (Pstar := Pstar)
+      (Xstar := fun n ω ωs => Zstar n ω ωs a)
+      (Ystar := fun n ω ωs => Zstar n ω ωs c)
+      (mX := m a) (mY := m c) (mXY := M₂ a c)
+      (by
+        simpa [bootstrapMeanVec] using
+          TendstoInMeasure.pi_apply hmean a)
+      (by
+        simpa [bootstrapMeanVec] using
+          TendstoInMeasure.pi_apply hmean c)
+      (by
+        simpa [bootstrapCrossMomentMat] using
+          TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hcross a) c)
+  simpa [bootstrapCovarianceMomentMat, bootstrapMeanVec, bootstrapCrossMomentMat]
+    using hentry
+
+/-- Conditional bootstrap covariance matrix bridge, stated for `cov`. -/
+theorem chapter10_bootstrap_covarianceMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar) atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMat Pstar Zstar) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  have hmoment :=
+    chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
+      (μ := μ) hmean hcross
+  refine TendstoInMeasure.congr
+    (f := bootstrapCovarianceMomentMat Pstar Zstar)
+    (f' := bootstrapCovarianceMat Pstar Zstar)
+    (g := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    (g' := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    (fun n => ?_) EventuallyEq.rfl hmoment
+  exact ae_of_all μ fun ω =>
+    (bootstrapCovarianceMat_eq_momentMat
+      (Pstar := Pstar) (Zstar := Zstar) hPstar hZ n ω).symm
+
+/-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
+noncomputable def trimmedBootstrapStatistic
+    {k : Type*} [Fintype k]
+    (Zstar : ℕ → Ω → Ωs → k → ℝ) (τ : ℕ → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Ωs) : k → ℝ :=
+  if ‖Zstar n ω ωs‖ ≤ τ n then Zstar n ω ωs else 0
+
+/-- Conditional covariance matrix of Hansen's trimmed bootstrap statistic. -/
+noncomputable def trimmedBootstrapCovarianceMat
+    {k : Type*} [Fintype k]
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
+    (τ : ℕ → ℝ) (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  bootstrapCovarianceMat Pstar (trimmedBootstrapStatistic Zstar τ) n ω
+
+/-- Hansen Theorem 10.12, trimmed conditional covariance moment bridge.
+
+For the trimmed statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`, convergence of its conditional
+mean vector and cross-moment matrix implies convergence of its conditional
+covariance matrix.  The smooth-model proof of Theorem 10.12 supplies these
+moment premises by showing the trimming is asymptotically negligible and the
+trimmed sequence is uniformly square integrable. -/
+theorem chapter10_trimmedBootstrapVariance_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVec Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMat Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => M₂)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  simpa [trimmedBootstrapCovarianceMat] using
+    chapter10_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatistic Zstar τ)
+      hPstar hZ hmean hcross
+
+/-- Theorem 10.12 zero-mean covariance specialization.
+
+In the asymptotically centered case, if the trimmed conditional mean converges
+to zero and the trimmed conditional cross moment converges to `V`, then the
+trimmed conditional covariance converges to `V`. -/
+theorem chapter10_trimmedBootstrapVariance_tendsto
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVec Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMat Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => V) := by
+  have h :=
+    chapter10_trimmedBootstrapVariance_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZ hmean hcross
+  simpa using h
+
+end BootstrapCovariance
 
 section FiniteReplicationVariance
 
