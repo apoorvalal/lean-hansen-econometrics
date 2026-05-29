@@ -137,6 +137,8 @@ used throughout the chapter:
   `bootstrapScalarCDF`, and `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
   provide the pointwise-CDF bracketing route from bootstrap CDF convergence to
   endpoint and critical-value convergence for Theorems 10.13, 10.14, and 10.16.
+  `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
+  package the common `G(q) = p` plus strict-monotonicity calibration.
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
@@ -5049,6 +5051,40 @@ theorem tendstoInMeasure_quantile_of_cdf_brackets
       exact abs_sub_lt_iff.mpr ⟨by linarith, by linarith⟩
     exact (not_le_of_gt hdist_lt) hω
 
+/-- A strictly increasing limit CDF brackets its quantile level on both sides. -/
+theorem strictMono_cdf_brackets
+    {G : ℝ → ℝ} {p q : ℝ}
+    (hstrict : StrictMono G) (hq : G q = p) :
+    (∀ ε : ℝ, 0 < ε → G (q - ε) < p) ∧
+      (∀ ε : ℝ, 0 < ε → p < G (q + ε)) := by
+  constructor
+  · intro ε hε
+    rw [← hq]
+    exact hstrict (by linarith)
+  · intro ε hε
+    rw [← hq]
+    exact hstrict (by linarith)
+
+/-- Quantile convergence from pointwise CDF convergence and a strictly
+increasing limiting CDF.
+
+This is the common calibrated-quantile specialization of
+`tendstoInMeasure_quantile_of_cdf_brackets`: the strict bracketing premises are
+derived from `G(q) = p` and strict monotonicity of the limiting CDF. -/
+theorem tendstoInMeasure_quantile_of_strictMono_cdf
+    {Gseq : ℕ → Ω → ℝ → ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket : CDFQuantileBracket Gseq p qseq)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact tendstoInMeasure_quantile_of_cdf_brackets
+    (μ := μ) hbracket hleft hright hG
+
 /-- Scalar conditional bootstrap CDF `P*[Zₙ* ≤ x]`. -/
 noncomputable def bootstrapScalarCDF
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
@@ -5078,6 +5114,26 @@ theorem bootstrapScalarQuantile_tendsto_of_cdf_brackets
   tendstoInMeasure_quantile_of_cdf_brackets
     (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
     hbracket hleft hright hG
+
+/-- Bootstrap scalar quantile convergence with a strictly increasing limiting
+CDF. -/
+theorem bootstrapScalarQuantile_tendsto_of_strictMono_cdf
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ} {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω) p qseq)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_strictMono_cdf
+    (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
+    hbracket hstrict hq hG
 
 end QuantileConvergence
 
