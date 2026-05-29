@@ -179,6 +179,8 @@ used throughout the chapter:
   calibration through the non-atomic law of the scalar limit statistic.
 * `chapter10_percentileCI_coverage_tendsto_of_limit_law_cdf` is the CDF-mass
   specialization of that law-level percentile calibration.
+* `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
+  is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageLimit_measure_set_eq` and
@@ -194,6 +196,8 @@ used throughout the chapter:
   t-ratio.
 * `chapter10_percentileTCI_coverage_tendsto_of_limit_law_cdf` is the CDF-mass
   specialization of the percentile-`t` law-level calibration.
+* `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
+  is the endpoint-CDF form with limiting coverage `1 - α`.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
@@ -210,6 +214,8 @@ used throughout the chapter:
   statistic.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf`
   states the same two-sided test calibration in CDF-increment form.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf_endpoints`
+  is the endpoint-CDF form with limiting size `α`.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -5178,6 +5184,37 @@ theorem chapter10_percentileCI_coverage_tendsto_of_limit_law_cdf
   · rw [hcoverage]
   · linarith
 
+/-- Endpoint-CDF percentile-interval calibration with limiting coverage
+`1 - α`.  The endpoint premises encode the limiting lower and upper
+percentile masses. -/
+theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim α : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hlower : cdf η (-qUpperLim) = α / 2)
+    (hupper : cdf η (-qLowerLim) = 1 - α / 2) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  refine
+    chapter10_percentileCI_coverage_tendsto_of_limit_law_cdf
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      (coverage := 1 - α) hjoint hξ hquantiles ?_
+  rw [hlower, hupper]
+  ring
+
 end PercentileIntervals
 
 section PercentileTIntervals
@@ -5618,6 +5655,39 @@ theorem chapter10_percentileTCI_coverage_tendsto_of_limit_law_cdf
     (ν := η) (a := qLowerLim) (b := qUpperLim) hquantiles]
   rw [hcoverage]
 
+/-- Endpoint-CDF percentile-`t` calibration with limiting coverage
+`1 - α`.  The endpoint premises encode the limiting lower and upper
+percentile-`t` masses. -/
+theorem chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hlower : cdf η qLowerLim = α / 2)
+    (hupper : cdf η qUpperLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  refine
+    chapter10_percentileTCI_coverage_tendsto_of_limit_law_cdf
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      (coverage := 1 - α) hse hjoint hξ hquantiles ?_
+  rw [hlower, hupper]
+  ring
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -5967,6 +6037,33 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cd
       hjoint hξ ?_
   rw [bootstrapAbsTest_rejection_law_eq_ofReal_one_sub_cdf
     (η := η) (critLim := critLim) hcrit, halpha]
+
+/-- Endpoint-CDF two-sided bootstrap-test calibration with limiting size
+`α`.  The endpoint premises encode the central interval mass
+`F(q) - F(-q) = 1 - α`. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf_endpoints
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hcrit : 0 ≤ critLim)
+    (hlower : cdf η (-critLim) = α / 2)
+    (hupper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  refine
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf
+      (μ := μ) (ν := ν) (η := η) (T := T) (crit := crit)
+      (ξ := ξ) (critLim := critLim) (alpha := α) hjoint hξ hcrit ?_
+  rw [hlower, hupper]
+  ring
 
 end BootstrapTests
 
