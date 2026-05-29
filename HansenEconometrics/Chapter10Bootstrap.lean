@@ -57,6 +57,8 @@ used throughout the chapter:
 * `bootstrapMeanReal_realClip_tails_of_tail_integrals` and
   `bootstrapSecondMomentReal_realClip_tails_of_tail_integrals` turn concrete
   first- and second-tail integral controls into those unclipping premises.
+* `bootstrapTailAbsIntegral_tendsto_zero_of_tailSqIntegral` uses squared-tail
+  control at thresholds at least one to supply first-tail control.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_delta_method_linear` and
@@ -88,6 +90,9 @@ used throughout the chapter:
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals`
   packages the same Theorem 10.9 conclusion from concrete first/second
   tail-integral controls.
+* `chapter10_bootstrap_variance_consistency_of_weak_distribution_square_tail_integrals`
+  reduces that conclusion to a single squared-tail-integral condition, the
+  measure-theoretic core of Hansen's uniform-square-integrability step.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
@@ -1748,6 +1753,35 @@ theorem bootstrapSecondMomentReal_realClip_tails_of_tail_integrals
   · exact bootstrapSecondMomentReal_sub_realClip_sq_tendsto_zero_of_tail_integral
       (μ := μ) hPstar hZstar hR hsourceTail
 
+/-- Conditional absolute-tail integrals vanish in probability when dominated
+by squared-tail integrals at a threshold at least one. -/
+theorem bootstrapTailAbsIntegral_tendsto_zero_of_tailSqIntegral
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {R : ℝ} (hR : 1 ≤ R)
+    (hTailSq :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω)
+      atTop (fun _ => 0) := by
+  refine tendstoInMeasure_zero_of_nonneg_le (μ := μ) ?_ ?_ hTailSq
+  · intro n ω
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => abs_nonneg (Zstar n ω ωs)) ωs
+  · intro n ω
+    haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    exact integral_tail_abs_le_integral_tail_sq_of_one_le
+      (μ := Pstar n ω) (Y := Zstar n ω) (hZ n ω) hR
+
 /-- Conditional variance equals second moment minus squared conditional mean. -/
 theorem bootstrapVarianceReal_eq_secondMoment_sub_mean_sq
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
@@ -1943,6 +1977,69 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integ
       (μ := μ) (ν := ν) hPstarFinite hZlimInt hZstarInt hTailMean)
     (bootstrapSecondMomentReal_realClip_tails_of_tail_integrals
       (μ := μ) (ν := ν) hPstarFinite hZlim hZmem hTailSecond)
+
+/-- Hansen Theorem 10.9, weak-distribution plus squared-tail-integral
+variance bridge.
+
+For thresholds at least one, squared tails dominate absolute tails.  Thus a
+single uniform-square-tail control supplies both the first- and second-tail
+integral premises needed for conditional bootstrap variance consistency. -/
+theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_square_tail_integrals
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hTailMean : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => |Z ωlim|) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω)
+        atTop (fun _ => 0) := by
+    intro ε hε
+    obtain ⟨R, hR_one, hlimSq, hsourceSq⟩ := hTailSq ε hε
+    have hR_nonneg : 0 ≤ R := zero_le_one.trans hR_one
+    refine ⟨R, hR_nonneg, ?_, ?_⟩
+    · have hlimAbsLe :=
+        integral_tail_abs_le_integral_tail_sq_of_one_le
+          (μ := ν) (Y := Z) hZlim hR_one
+      exact hlimAbsLe.trans hlimSq
+    · exact bootstrapTailAbsIntegral_tendsto_zero_of_tailSqIntegral
+        (μ := μ) hPstarFinite hZmem hR_one hsourceSq
+  have hTailSecond : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0) := by
+    intro ε hε
+    obtain ⟨R, hR_one, hlimSq, hsourceSq⟩ := hTailSq ε hε
+    exact ⟨R, zero_le_one.trans hR_one, hlimSq, hsourceSq⟩
+  exact chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailMean hTailSecond
 
 end BootstrapVariance
 

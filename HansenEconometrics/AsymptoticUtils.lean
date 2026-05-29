@@ -705,6 +705,34 @@ theorem abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
     _ = 2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
       rw [integral_const_mul]
 
+/-- For thresholds at least one, the absolute tail integral is bounded by the
+squared tail integral. -/
+theorem integral_tail_abs_le_integral_tail_sq_of_one_le
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) {R : ℝ} (hR : 1 ≤ R) :
+    ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|) ω ∂μ ≤
+      ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+  have hY_int : Integrable Y μ :=
+    memLp_one_iff_integrable.mp (hY.mono_exponent one_le_two)
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ := hY.integrable_sq
+  have htail_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable)
+  have htail_abs_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|)) μ := by
+    simpa [Real.norm_eq_abs] using hY_int.norm.indicator₀ htail_null
+  have htail_sq_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ htail_null
+  refine integral_mono htail_abs_int htail_sq_int ?_
+  intro ω
+  by_cases htail : R ≤ |Y ω|
+  · have hone : 1 ≤ |Y ω| := hR.trans htail
+    have hle : |Y ω| ≤ (Y ω) ^ 2 := by
+      have hmul := mul_le_mul_of_nonneg_right hone (abs_nonneg (Y ω))
+      simpa [sq_abs, pow_two] using hmul
+    simp [htail, hle]
+  · simp [htail]
+
 /-- Raising the tail threshold can only reduce the real absolute-tail integral. -/
 theorem integral_tail_abs_mono_threshold
     [IsFiniteMeasure μ] {Y : α → ℝ} (hY : Integrable Y μ) {C R : ℝ} (hCR : C ≤ R) :
