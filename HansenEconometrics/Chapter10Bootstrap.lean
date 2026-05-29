@@ -133,6 +133,10 @@ used throughout the chapter:
   finite-dimensional covariance and trace forms of equation (10.13), while
   `integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment` gives the
   Euclidean norm second-moment bound used in the vector Theorem 10.2 proof.
+* `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
+  `bootstrapScalarCDF`, and `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
+  provide the pointwise-CDF bracketing route from bootstrap CDF convergence to
+  endpoint and critical-value convergence for Theorems 10.13, 10.14, and 10.16.
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
@@ -4953,6 +4957,129 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_error_bou
       hcrossInt hcrossBound)
 
 end FiniteReplicationVariance
+
+section QuantileConvergence
+
+/-- Bracketing property for a lower quantile selected from a random CDF.
+
+For each sample point, values whose CDF is still below `p` must lie below the
+selected quantile, and values whose CDF is already above `p` must lie above it.
+This is the theorem-facing condition supplied by concrete bootstrap quantile
+definitions such as the generalized inverse of a conditional bootstrap CDF. -/
+structure CDFQuantileBracket
+    (Gseq : ℕ → Ω → ℝ → ℝ) (p : ℝ) (qseq : ℕ → Ω → ℝ) : Prop where
+  lower : ∀ n ω x, Gseq n ω x < p → x < qseq n ω
+  upper : ∀ n ω x, p < Gseq n ω x → qseq n ω ≤ x
+
+/-- Quantile convergence from pointwise CDF convergence at strict bracketing
+points.
+
+If the random CDFs `Gseq n` converge in probability to `G` at every fixed
+point, the target `q` is strictly bracketed by the limiting CDF around level
+`p`, and `qseq` is a lower-quantile selection for each random CDF, then
+`qseq ->p q`.  This is the reusable quantile-convergence constructor behind
+the percentile, percentile-`t`, and bootstrap critical-value endpoints in
+Hansen Theorems 10.13, 10.14, and 10.16. -/
+theorem tendstoInMeasure_quantile_of_cdf_brackets
+    {Gseq : ℕ → Ω → ℝ → ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket : CDFQuantileBracket Gseq p qseq)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ (fun n ω => Gseq n ω x) atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) := by
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  let δ : ℝ := ε / 2
+  have hδ_pos : 0 < δ := by positivity
+  have hδ_lt : δ < ε := by
+    dsimp [δ]
+    linarith
+  let xL : ℝ := q - δ
+  let xU : ℝ := q + δ
+  let gapL : ℝ := p - G xL
+  let gapU : ℝ := G xU - p
+  have hgapL_pos : 0 < gapL := by
+    dsimp [gapL, xL]
+    exact sub_pos.mpr (hleft δ hδ_pos)
+  have hgapU_pos : 0 < gapU := by
+    dsimp [gapU, xU]
+    exact sub_pos.mpr (hright δ hδ_pos)
+  have hleft_tendsto := (tendstoInMeasure_iff_dist.mp (hG xL)) gapL hgapL_pos
+  have hright_tendsto := (tendstoInMeasure_iff_dist.mp (hG xU)) gapU hgapU_pos
+  have hsum :
+      Tendsto
+        (fun n =>
+          μ {ω | gapL ≤ dist (Gseq n ω xL) (G xL)} +
+            μ {ω | gapU ≤ dist (Gseq n ω xU) (G xU)})
+        atTop (𝓝 0) := by
+    simpa using hleft_tendsto.add hright_tendsto
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
+    (fun _ => zero_le _) ?_
+  intro n
+  refine (measure_mono ?_).trans (measure_union_le _ _)
+  intro ω hω
+  simp only [Set.mem_union, Set.mem_setOf_eq] at hω ⊢
+  by_cases hleft_bad : gapL ≤ dist (Gseq n ω xL) (G xL)
+  · exact Or.inl hleft_bad
+  · right
+    by_contra hright_not_bad
+    have hleft_close : dist (Gseq n ω xL) (G xL) < gapL := not_le.mp hleft_bad
+    have hright_close : dist (Gseq n ω xU) (G xU) < gapU := not_le.mp hright_not_bad
+    have hleft_abs : |Gseq n ω xL - G xL| < gapL := by
+      simpa [Real.dist_eq] using hleft_close
+    have hright_abs : |Gseq n ω xU - G xU| < gapU := by
+      simpa [Real.dist_eq] using hright_close
+    have hG_left_lt : Gseq n ω xL < p := by
+      have hlt := (abs_lt.mp hleft_abs).2
+      dsimp [gapL] at hlt
+      linarith
+    have hG_right_gt : p < Gseq n ω xU := by
+      have hlt := (abs_lt.mp hright_abs).1
+      dsimp [gapU] at hlt
+      linarith
+    have hq_lower : q - δ < qseq n ω := by
+      simpa [xL] using hbracket.lower n ω xL hG_left_lt
+    have hq_upper : qseq n ω ≤ q + δ := by
+      simpa [xU] using hbracket.upper n ω xU hG_right_gt
+    have hdist_lt : dist (qseq n ω) q < ε := by
+      rw [Real.dist_eq]
+      exact abs_sub_lt_iff.mpr ⟨by linarith, by linarith⟩
+    exact (not_le_of_gt hdist_lt) hω
+
+/-- Scalar conditional bootstrap CDF `P*[Zₙ* ≤ x]`. -/
+noncomputable def bootstrapScalarCDF
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
+    (x : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ((Pstar n ω) {ωs | Zstar n ω ωs ≤ x}).toReal
+
+/-- Bootstrap scalar quantile convergence from pointwise conditional-CDF
+convergence.
+
+This is the bootstrap-specialized face of
+`tendstoInMeasure_quantile_of_cdf_brackets`, stated with the scalar
+conditional CDF `bootstrapScalarCDF`. -/
+theorem bootstrapScalarQuantile_tendsto_of_cdf_brackets
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ} {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω) p qseq)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_cdf_brackets
+    (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
+    hbracket hleft hright hG
+
+end QuantileConvergence
 
 section PercentileIntervals
 
