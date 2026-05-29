@@ -76,9 +76,11 @@ used throughout the chapter:
   bootstrap statistic has been reduced to its derivative-linearized form.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
-* `empiricalMean`, `empiricalBootstrapResampleMean`, and
-  `integral_empiricalBootstrapResampleMean_eq_of_coord_integrals` provide the
-  finite-resampling sample-mean API used by the concrete Theorem 10.2 path.
+* `empiricalMean`, `empiricalBootstrapResampleMean`,
+  `integral_uniformOn_fun_eval_eq_empiricalMean`,
+  `integral_empiricalBootstrapResampleMean_eq_of_coord_integrals`, and
+  `integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero` provide
+  the finite-resampling sample-mean API used by the concrete Theorem 10.2 path.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -208,6 +210,60 @@ theorem integral_uniformOn_univ_eq_empiricalMean
       empiricalMean Y :=
   integral_uniformOn_univ_eq_card_inv_smul_sum Y
 
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Coordinate marginal identity for finite uniform resampling.
+
+If a bootstrap resampling point is a function `κ → ι`, drawn uniformly from
+all such functions, then each coordinate has the empirical uniform law on
+`ι`.  This is the finite-support marginal calculation behind Hansen's
+nonparametric bootstrap equations (10.10) and (10.12). -/
+theorem integral_uniformOn_fun_eval_eq_empiricalMean
+    {κ : Type*} [MeasurableSpace (κ → ι)] [Finite κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) (t : κ) :
+    ∫ ωs : κ → ι, Y (ωs t)
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      empiricalMean Y := by
+  classical
+  letI : Fintype κ := Fintype.ofFinite κ
+  rw [integral_uniformOn_univ_eq_card_inv_smul_sum, empiricalMean]
+  have hsum :
+      (∑ ωs : κ → ι, Y (ωs t)) =
+        (Fintype.card ι ^ (Fintype.card κ - 1)) • ∑ i, Y i := by
+    simpa [Fintype.piFinset_univ] using
+      (Fintype.sum_piFinset_apply (f := Y) (s := (Finset.univ : Finset ι)) (i := t))
+  rw [hsum]
+  rw [← Nat.cast_smul_eq_nsmul ℝ (Fintype.card ι ^ (Fintype.card κ - 1))
+      (∑ i, Y i), smul_smul]
+  have hι_ne : (Fintype.card ι : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hκ_card : (Fintype.card κ - 1) + 1 = Fintype.card κ :=
+    Nat.sub_add_cancel (Nat.succ_le_of_lt Fintype.card_pos)
+  have hfun_card :
+      (Fintype.card (κ → ι) : ℝ) =
+        (Fintype.card ι : ℝ) ^ Fintype.card κ := by
+    exact_mod_cast (Fintype.card_fun (α := κ) (β := ι))
+  have hpow_succ :
+      (Fintype.card ι : ℝ) ^ Fintype.card κ =
+        (Fintype.card ι : ℝ) ^ (Fintype.card κ - 1) *
+          (Fintype.card ι : ℝ) := by
+    calc
+      (Fintype.card ι : ℝ) ^ Fintype.card κ =
+          (Fintype.card ι : ℝ) ^ ((Fintype.card κ - 1) + 1) := by
+            rw [hκ_card]
+      _ = (Fintype.card ι : ℝ) ^ (Fintype.card κ - 1) *
+          (Fintype.card ι : ℝ) := by
+            rw [pow_succ]
+  have hcoeff :
+      ((Fintype.card (κ → ι) : ℝ≥0∞)⁻¹).toReal *
+          ((Fintype.card ι ^ (Fintype.card κ - 1) : ℕ) : ℝ) =
+        ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal := by
+    simp only [ENNReal.toReal_inv, ENNReal.toReal_natCast, Nat.cast_pow]
+    rw [hfun_card, hpow_succ]
+    field_simp [hι_ne, pow_ne_zero _ hι_ne]
+  rw [hcoeff]
+
 omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
 /-- If every bootstrap draw coordinate has the same conditional mean, then the
 bootstrap resample mean has that conditional mean.
@@ -260,6 +316,49 @@ theorem integral_empiricalBootstrapResampleMean_sub_eq_zero_of_coord_integrals
         (f := fun t ωs => Y (I ωs t)) (fun t _ht => hInt t))
   rw [integral_sub hresampleInt (integrable_const m), hmean]
   simp
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Mean of the ordinary finite nonparametric bootstrap sample mean.
+
+When the bootstrap resampling point is a function `κ → ι` drawn uniformly from
+all resamples, the conditional mean of the resample mean is exactly the
+finite-sample empirical mean.  This specializes the coordinate marginal law to
+the textbook resample-mean object in Hansen's equations (10.10) and (10.12). -/
+theorem integral_empiricalBootstrapResampleMean_uniformOn_fun_eq_empiricalMean
+    {κ : Type*} [MeasurableSpace (κ → ι)] [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) :
+    ∫ ωs : κ → ι, empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      empiricalMean Y := by
+  classical
+  exact integral_empiricalBootstrapResampleMean_eq_of_coord_integrals
+    (P := (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)))
+    (Y := Y) (I := fun ωs t => ωs t) (m := empiricalMean Y)
+    (fun _t => Integrable.of_finite)
+    (fun t => integral_uniformOn_fun_eval_eq_empiricalMean (Y := Y) t)
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Centered mean of the ordinary finite nonparametric bootstrap sample mean.
+
+The resample mean, centered at the empirical mean, has conditional mean zero
+under the finite uniform law over all resamples. -/
+theorem integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+    {κ : Type*} [MeasurableSpace (κ → ι)] [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) :
+    ∫ ωs : κ → ι,
+        empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      0 := by
+  classical
+  exact integral_empiricalBootstrapResampleMean_sub_eq_zero_of_coord_integrals
+    (P := (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)))
+    (Y := Y) (I := fun ωs t => ωs t) (m := empiricalMean Y)
+    (fun _t => Integrable.of_finite)
+    (fun t => integral_uniformOn_fun_eval_eq_empiricalMean (Y := Y) t)
 
 /-- Finite empirical second-moment identity for one bootstrap draw.
 
