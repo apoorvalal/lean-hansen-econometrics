@@ -63,6 +63,8 @@ used throughout the chapter:
   Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
+* `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
+  the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `chapter10_bootstrap_regression_theta_gaussian` and
@@ -1232,6 +1234,29 @@ theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
     rw [bootstrapVarianceReal_eq_secondMoment_sub_mean_sq hPstar hZ]
     ring
   simpa [pow_two] using hvar
+
+/-- Hansen Theorem 10.10, smooth-function variance-consistency wrapper.
+
+In the smooth-function model, Hansen's bounded-derivative argument is used to
+prove uniform square integrability and hence the conditional first/second
+moment convergence premises. Once those moment premises are available, the
+untrimmed bootstrap variance consistency conclusion is exactly the Theorem
+10.9 moment bridge. -/
+theorem chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence
+    {Pstar : ℕ → Ω → Measure Ωs} {ZthetaStar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (ZthetaStar n ω) 2 (Pstar n ω))
+    {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar ZthetaStar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar ZthetaStar) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar ZthetaStar) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_bootstrap_variance_consistency_of_moment_convergence
+    hPstar hZ hmean hsecond
 
 end BootstrapVariance
 
