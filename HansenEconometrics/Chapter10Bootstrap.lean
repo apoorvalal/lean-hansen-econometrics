@@ -171,17 +171,28 @@ used throughout the chapter:
   coverage wrapper, with scalar-event support from
   `percentileCoverageLimit_measure_set_eq` and
   `chapter10_percentileCI_coverage_tendsto_of_scalar_limit_coverage`.
+* `percentileCoverage_frontier_null_of_boundary_null` and
+  `chapter10_percentileCI_coverage_tendsto_of_scalar_limit` replace the
+  percentile vector-frontier premise with scalar endpoint-boundary null mass.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageLimit_measure_set_eq` and
   `chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage` rewrite
   the percentile-`t` limit vector event as the scalar event `qL <= ξ <= qU`.
+* `percentileTCoverage_frontier_null_of_boundary_null` and
+  `chapter10_percentileTCI_coverage_tendsto_of_scalar_limit` replace the
+  percentile-`t` vector-frontier premise with scalar endpoint-boundary null
+  mass.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
   `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection`
   rewrite the bootstrap-test limit vector event as the scalar rejection event
   `q < |ξ|`.
+* `bootstrapAbsTest_frontier_null_of_boundary_null` and
+  `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit`
+  replace the bootstrap-test vector-frontier premise with scalar critical-value
+  boundary null mass.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -4829,6 +4840,57 @@ theorem percentileCoverageLimit_measure_set_eq
   ext ω
   exact percentileCoverageLimitVector_mem_set_iff
 
+/-- The frontier of the percentile-coverage set is contained in the union of
+the two binding endpoint hyperplanes. -/
+theorem frontier_percentileCoverageSet_subset :
+    frontier percentileCoverageSet ⊆
+      {z : Fin 3 → ℝ | z 1 = -z 0} ∪
+        {z : Fin 3 → ℝ | -z 0 = z 2} := by
+  let lowerSet : Set (Fin 3 → ℝ) := {z | z 1 ≤ -z 0}
+  let upperSet : Set (Fin 3 → ℝ) := {z | -z 0 ≤ z 2}
+  have hfront :
+      frontier percentileCoverageSet ⊆
+        frontier lowerSet ∩ closure upperSet ∪
+          closure lowerSet ∩ frontier upperSet := by
+    simpa [percentileCoverageSet, lowerSet, upperSet] using
+      frontier_inter_subset lowerSet upperSet
+  intro z hz
+  rcases hfront hz with ⟨hzlower, _⟩ | ⟨_, hzupper⟩
+  · exact Or.inl
+      (frontier_le_subset_eq (continuous_apply 1) ((continuous_apply 0).neg) hzlower)
+  · exact Or.inr
+      (frontier_le_subset_eq ((continuous_apply 0).neg) (continuous_apply 2) hzupper)
+
+/-- Scalar endpoint-boundary null mass implies the vector-law null-frontier
+premise for the percentile-coverage set. -/
+theorem percentileCoverage_frontier_null_of_boundary_null
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ}
+    (hξ : AEMeasurable ξ ν)
+    (hleft : ν {ω | qLower = -ξ ω} = 0)
+    (hright : ν {ω | -ξ ω = qUpper} = 0) :
+    (ν.map (percentileCoverageLimitVector ξ qLower qUpper))
+      (frontier percentileCoverageSet) = 0 := by
+  let boundary : Set (Fin 3 → ℝ) :=
+    {z | z 1 = -z 0} ∪ {z | -z 0 = z 2}
+  have hboundary_meas : MeasurableSet boundary := by
+    exact
+      ((isClosed_eq (continuous_apply 1) ((continuous_apply 0).neg)).measurableSet).union
+        ((isClosed_eq ((continuous_apply 0).neg) (continuous_apply 2)).measurableSet)
+  have hboundary_zero :
+      (ν.map (percentileCoverageLimitVector ξ qLower qUpper)) boundary = 0 := by
+    rw [Measure.map_apply_of_aemeasurable
+      (aemeasurable_percentileCoverageLimitVector (ν := ν) hξ qLower qUpper)
+      hboundary_meas]
+    have hpre :
+        (percentileCoverageLimitVector ξ qLower qUpper) ⁻¹' boundary =
+          {ω | qLower = -ξ ω} ∪ {ω | -ξ ω = qUpper} := by
+      ext ω
+      simp [boundary, percentileCoverageLimitVector]
+    rw [hpre]
+    exact measure_union_null hleft hright
+  exact measure_mono_null (μ := ν.map (percentileCoverageLimitVector ξ qLower qUpper))
+    frontier_percentileCoverageSet_subset hboundary_zero
+
 /-- Hansen Theorem 10.13, percentile-interval coverage bridge.
 
 If the scaled estimator error and the scaled bootstrap percentile endpoints
@@ -4939,6 +5001,38 @@ theorem chapter10_percentileCI_coverage_tendsto_of_scalar_limit_coverage
       (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
       (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
       hjoint hfrontier hcoverage_map
+
+/-- Calibrated percentile-interval coverage bridge with scalar endpoint
+boundary-null and scalar coverage assumptions. -/
+theorem chapter10_percentileCI_coverage_tendsto_of_scalar_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : AEMeasurable ξ ν)
+    (hleft : ν {ω | qLowerLim = -ξ ω} = 0)
+    (hright : ν {ω | -ξ ω = qUpperLim} = 0)
+    (hcoverage :
+      ν {ω | qLowerLim ≤ -ξ ω ∧ -ξ ω ≤ qUpperLim} = coverage) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  exact
+    chapter10_percentileCI_coverage_tendsto_of_scalar_limit_coverage
+      (μ := μ) (ν := ν) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hjoint
+      (percentileCoverage_frontier_null_of_boundary_null
+        (ν := ν) (qLower := qLowerLim) (qUpper := qUpperLim)
+        hξ hleft hright)
+      hcoverage
 
 end PercentileIntervals
 
@@ -5063,6 +5157,57 @@ theorem percentileTCoverageLimit_measure_set_eq
   ext ω
   exact percentileTCoverageLimitVector_mem_set_iff
 
+/-- The frontier of the percentile-`t` coverage set is contained in the union
+of the two binding endpoint hyperplanes. -/
+theorem frontier_percentileTCoverageSet_subset :
+    frontier percentileTCoverageSet ⊆
+      {z : Fin 3 → ℝ | z 1 = z 0} ∪
+        {z : Fin 3 → ℝ | z 0 = z 2} := by
+  let lowerSet : Set (Fin 3 → ℝ) := {z | z 1 ≤ z 0}
+  let upperSet : Set (Fin 3 → ℝ) := {z | z 0 ≤ z 2}
+  have hfront :
+      frontier percentileTCoverageSet ⊆
+        frontier lowerSet ∩ closure upperSet ∪
+          closure lowerSet ∩ frontier upperSet := by
+    simpa [percentileTCoverageSet, lowerSet, upperSet] using
+      frontier_inter_subset lowerSet upperSet
+  intro z hz
+  rcases hfront hz with ⟨hzlower, _⟩ | ⟨_, hzupper⟩
+  · exact Or.inl
+      (frontier_le_subset_eq (continuous_apply 1) (continuous_apply 0) hzlower)
+  · exact Or.inr
+      (frontier_le_subset_eq (continuous_apply 0) (continuous_apply 2) hzupper)
+
+/-- Scalar endpoint-boundary null mass implies the vector-law null-frontier
+premise for the percentile-`t` coverage set. -/
+theorem percentileTCoverage_frontier_null_of_boundary_null
+    {ξ : Ωlim → ℝ} {qLower qUpper : ℝ}
+    (hξ : AEMeasurable ξ ν)
+    (hleft : ν {ω | qLower = ξ ω} = 0)
+    (hright : ν {ω | ξ ω = qUpper} = 0) :
+    (ν.map (percentileTCoverageLimitVector ξ qLower qUpper))
+      (frontier percentileTCoverageSet) = 0 := by
+  let boundary : Set (Fin 3 → ℝ) :=
+    {z | z 1 = z 0} ∪ {z | z 0 = z 2}
+  have hboundary_meas : MeasurableSet boundary := by
+    exact
+      ((isClosed_eq (continuous_apply 1) (continuous_apply 0)).measurableSet).union
+        ((isClosed_eq (continuous_apply 0) (continuous_apply 2)).measurableSet)
+  have hboundary_zero :
+      (ν.map (percentileTCoverageLimitVector ξ qLower qUpper)) boundary = 0 := by
+    rw [Measure.map_apply_of_aemeasurable
+      (aemeasurable_percentileTCoverageLimitVector (ν := ν) hξ qLower qUpper)
+      hboundary_meas]
+    have hpre :
+        (percentileTCoverageLimitVector ξ qLower qUpper) ⁻¹' boundary =
+          {ω | qLower = ξ ω} ∪ {ω | ξ ω = qUpper} := by
+      ext ω
+      simp [boundary, percentileTCoverageLimitVector]
+    rw [hpre]
+    exact measure_union_null hleft hright
+  exact measure_mono_null (μ := ν.map (percentileTCoverageLimitVector ξ qLower qUpper))
+    frontier_percentileTCoverageSet_subset hboundary_zero
+
 /-- Hansen Theorem 10.14, percentile-`t` interval coverage bridge.
 
 If the sample t-ratio and bootstrap percentile-`t` critical values jointly
@@ -5182,6 +5327,40 @@ theorem chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage
       (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
       hse hjoint hfrontier hcoverage_map
 
+/-- Calibrated percentile-`t` coverage bridge with scalar endpoint
+boundary-null and scalar coverage assumptions. -/
+theorem chapter10_percentileTCI_coverage_tendsto_of_scalar_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : AEMeasurable ξ ν)
+    (hleft : ν {ω | qLowerLim = ξ ω} = 0)
+    (hright : ν {ω | ξ ω = qUpperLim} = 0)
+    (hcoverage :
+      ν {ω | qLowerLim ≤ ξ ω ∧ ξ ω ≤ qUpperLim} = coverage) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  exact
+    chapter10_percentileTCI_coverage_tendsto_of_scalar_limit_coverage
+      (μ := μ) (ν := ν) (θ := θ) (θhat := θhat) (se := se)
+      (qLower := qLower) (qUpper := qUpper) (ξ := ξ)
+      (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hse hjoint
+      (percentileTCoverage_frontier_null_of_boundary_null
+        (ν := ν) (qLower := qLowerLim) (qUpper := qUpperLim)
+        hξ hleft hright)
+      hcoverage
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -5252,6 +5431,38 @@ theorem bootstrapAbsTestLimit_measure_rejectionSet_eq
   apply congrArg ν
   ext ω
   exact bootstrapAbsTestLimitVector_mem_rejectionSet_iff
+
+/-- The frontier of the two-sided rejection set is contained in the binding
+critical-value hyperplane. -/
+theorem frontier_bootstrapAbsRejectionSet_subset :
+    frontier bootstrapAbsRejectionSet ⊆
+      {z : Fin 2 → ℝ | z 1 = |z 0|} :=
+  frontier_lt_subset_eq (continuous_apply 1) ((continuous_apply 0).abs)
+
+/-- Scalar critical-value boundary null mass implies the vector-law
+null-frontier premise for the two-sided bootstrap rejection set. -/
+theorem bootstrapAbsTest_frontier_null_of_boundary_null
+    {ξ : Ωlim → ℝ} {critLim : ℝ}
+    (hξ : AEMeasurable ξ ν)
+    (hboundary : ν {ω | critLim = |ξ ω|} = 0) :
+    (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+      (frontier bootstrapAbsRejectionSet) = 0 := by
+  let boundary : Set (Fin 2 → ℝ) := {z | z 1 = |z 0|}
+  have hboundary_meas : MeasurableSet boundary :=
+    (isClosed_eq (continuous_apply 1) ((continuous_apply 0).abs)).measurableSet
+  have hboundary_zero :
+      (ν.map (bootstrapAbsTestLimitVector ξ critLim)) boundary = 0 := by
+    rw [Measure.map_apply_of_aemeasurable
+      (aemeasurable_bootstrapAbsTestLimitVector (ν := ν) hξ critLim)
+      hboundary_meas]
+    have hpre :
+        (bootstrapAbsTestLimitVector ξ critLim) ⁻¹' boundary =
+          {ω | critLim = |ξ ω|} := by
+      ext ω
+      simp [boundary, bootstrapAbsTestLimitVector]
+    simpa [hpre] using hboundary
+  exact measure_mono_null (μ := ν.map (bootstrapAbsTestLimitVector ξ critLim))
+    frontier_bootstrapAbsRejectionSet_subset hboundary_zero
 
 /-- Hansen Theorem 10.16, bootstrap critical-value rejection-probability bridge.
 
@@ -5348,6 +5559,31 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit
     chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha
       (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
       hjoint hfrontier halpha_map
+
+/-- Calibrated bootstrap critical-value bridge with scalar boundary-null and
+scalar limiting rejection-probability assumptions. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ} {α : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hξ : AEMeasurable ξ ν)
+    (hboundary : ν {ω | critLim = |ξ ω|} = 0)
+    (halpha : ν {ω | bootstrapAbsTestReject (ξ ω) critLim} = α) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 α) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection
+      (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
+      hjoint
+      (bootstrapAbsTest_frontier_null_of_boundary_null
+        (ν := ν) (critLim := critLim) hξ hboundary)
+      halpha
 
 end BootstrapTests
 
