@@ -52,6 +52,10 @@ used throughout the chapter:
   continuous-mapping theorem.
 * `TendstoInBootstrapWeakDistribution.congr` gives pointwise congruence for
   that weak backend.
+* `bootstrapEventProbability` and
+  `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_boundedContinuous_sandwich`
+  provide the Portmanteau-style event-probability bridge from bounded-continuous
+  lower/upper sandwiches.
 * `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
@@ -1908,6 +1912,17 @@ noncomputable def bootstrapBoundedContinuousIntegral
     (f : BoundedContinuousFunction E ℝ) (n : ℕ) (ω : Ω) : ℝ :=
   ∫ ωs, f (Zstar n ω ωs) ∂Pstar n ω
 
+/-- Conditional bootstrap probability of an event under the transformed
+bootstrap statistic.
+
+This real-valued wrapper is the event-probability face used after
+bounded-continuous weak convergence has supplied a Portmanteau-style
+lower/upper sandwich. -/
+noncomputable def bootstrapEventProbability
+    (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → E)
+    (A : Set E) (n : ℕ) (ω : Ω) : ℝ :=
+  ((Pstar n ω) {ωs | Zstar n ω ωs ∈ A}).toReal
+
 /-- Bootstrap convergence in distribution in bounded-continuous-test-function
 form.
 
@@ -1979,6 +1994,107 @@ theorem TendstoInBootstrapWeakDistribution.congr
     (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z) :
     TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z' :=
   (hZ.congr_bootstrap hstar).congr_limit hlim
+
+private theorem tendstoInMeasure_of_squeeze_approx_real
+    {X : ℕ → Ω → ℝ} {c : ℝ}
+    (happrox :
+      ∀ ε : ℝ, 0 < ε →
+        ∃ L U : ℕ → Ω → ℝ, ∃ l u : ℝ,
+          l ≤ c ∧ c ≤ u ∧ u - l ≤ ε ∧
+            (∀ n ω, L n ω ≤ X n ω) ∧
+            (∀ n ω, X n ω ≤ U n ω) ∧
+            TendstoInMeasure μ L atTop (fun _ => l) ∧
+            TendstoInMeasure μ U atTop (fun _ => u)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  have hε3 : 0 < ε / 3 := by positivity
+  obtain ⟨L, U, l, u, hlc, hcu, hgap, hLX, hXU, hL, hU⟩ :=
+    happrox (ε / 3) hε3
+  rw [tendstoInMeasure_iff_dist] at hL hU
+  have hLtail := hL (ε / 3) hε3
+  have hUtail := hU (ε / 3) hε3
+  have hsum :
+      Tendsto
+        (fun n =>
+          μ {ω | ε / 3 ≤ dist (L n ω) l} +
+            μ {ω | ε / 3 ≤ dist (U n ω) u})
+        atTop (𝓝 0) := by
+    simpa using hLtail.add hUtail
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
+    (fun _ => zero_le _) ?_
+  intro n
+  calc
+    μ {ω | ε ≤ dist (X n ω) c}
+        ≤ μ ({ω | ε / 3 ≤ dist (L n ω) l} ∪
+            {ω | ε / 3 ≤ dist (U n ω) u}) := by
+          refine measure_mono ?_
+          intro ω hω
+          simp only [Set.mem_union, Set.mem_setOf_eq]
+          by_cases hLbig : ε / 3 ≤ dist (L n ω) l
+          · exact Or.inl hLbig
+          · right
+            by_contra hUnot
+            have hLsmall : dist (L n ω) l < ε / 3 := not_le.mp hLbig
+            have hUsmall : dist (U n ω) u < ε / 3 := not_le.mp hUnot
+            have hLabs : |L n ω - l| < ε / 3 := by
+              simpa [Real.dist_eq] using hLsmall
+            have hUabs : |U n ω - u| < ε / 3 := by
+              simpa [Real.dist_eq] using hUsmall
+            have hLgt : l - ε / 3 < L n ω := by
+              linarith [(abs_lt.mp hLabs).1]
+            have hUlt : U n ω < u + ε / 3 := by
+              linarith [(abs_lt.mp hUabs).2]
+            have hx_lower : c - ε < X n ω := by
+              have hcl : c - l ≤ ε / 3 := by linarith
+              linarith [hLgt, hLX n ω]
+            have hx_upper : X n ω < c + ε := by
+              have huc : u - c ≤ ε / 3 := by linarith
+              linarith [hUlt, hXU n ω]
+            have hdist_lt : dist (X n ω) c < ε := by
+              rw [Real.dist_eq]
+              exact abs_sub_lt_iff.mpr ⟨by linarith, by linarith⟩
+            exact (not_le_of_gt hdist_lt) hω
+    _ ≤ μ {ω | ε / 3 ≤ dist (L n ω) l} +
+        μ {ω | ε / 3 ≤ dist (U n ω) u} :=
+          measure_union_le _ _
+
+/-- Bootstrap weak convergence gives event-probability convergence whenever
+the event indicator can be squeezed by bounded continuous test functions.
+
+This is the reusable Portmanteau-style bridge for Hansen Theorem 10.5's
+event-probability face.  The topological/null-frontier argument that constructs
+the lower and upper bounded continuous functions is kept as an explicit premise,
+so the theorem works for any event class where that approximation is available. -/
+theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_boundedContinuous_sandwich
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {A : Set E} {c : ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (happrox : ∀ ε : ℝ, 0 < ε →
+      ∃ lower upper : BoundedContinuousFunction E ℝ,
+        (∫ ωlim, lower (Z ωlim) ∂ν) ≤ c ∧
+          c ≤ (∫ ωlim, upper (Z ωlim) ∂ν) ∧
+          (∫ ωlim, upper (Z ωlim) ∂ν) -
+              (∫ ωlim, lower (Z ωlim) ∂ν) ≤ ε ∧
+          (∀ n ω,
+            bootstrapBoundedContinuousIntegral Pstar Zstar lower n ω ≤
+              bootstrapEventProbability Pstar Zstar A n ω) ∧
+          (∀ n ω,
+            bootstrapEventProbability Pstar Zstar A n ω ≤
+              bootstrapBoundedContinuousIntegral Pstar Zstar upper n ω)) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar A)
+      atTop (fun _ => c) := by
+  refine tendstoInMeasure_of_squeeze_approx_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨lower, upper, hlc, hcu, hgap, hlower, hupper⟩ := happrox ε hε
+  refine ⟨bootstrapBoundedContinuousIntegral Pstar Zstar lower,
+    bootstrapBoundedContinuousIntegral Pstar Zstar upper,
+    ∫ ωlim, lower (Z ωlim) ∂ν,
+    ∫ ωlim, upper (Z ωlim) ∂ν, hlc, hcu, hgap, hlower, hupper, ?_, ?_⟩
+  · exact hZ.tendsto_integral lower
+  · exact hZ.tendsto_integral upper
 
 /-- Clipped first moments converge under bootstrap weak convergence.
 
