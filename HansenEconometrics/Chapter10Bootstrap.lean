@@ -57,6 +57,8 @@ used throughout the chapter:
   Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9.
+* `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
+  finite-replication variance moment bridge behind Hansen Theorem 10.11.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `chapter10_percentileCI_coverage_tendsto` is the calibrated percentile
@@ -1151,6 +1153,131 @@ theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
   simpa [pow_two] using hvar
 
 end BootstrapVariance
+
+section FiniteReplicationVariance
+
+/-- Mean across `B` finite bootstrap replications of a real statistic. -/
+noncomputable def finiteReplicationMeanReal
+    (Z : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, Z B b ω
+
+/-- Second moment across `B` finite bootstrap replications of a real statistic. -/
+noncomputable def finiteReplicationSecondMomentReal
+    (Z : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  (B : ℝ)⁻¹ * ∑ b ∈ Finset.range B, (Z B b ω) ^ 2
+
+/-- Finite-sample degrees-of-freedom correction `B / (B - 1)`. -/
+noncomputable def finiteReplicationVarianceCorrection (B : ℕ) : ℝ :=
+  (B : ℝ) / ((B : ℝ) - 1)
+
+/-- Moment-form finite-replication variance estimator for a real statistic. -/
+noncomputable def finiteReplicationVarianceMomentReal
+    (Z : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  finiteReplicationVarianceCorrection B *
+    (finiteReplicationSecondMomentReal Z B ω -
+      (finiteReplicationMeanReal Z B ω) ^ 2)
+
+/-- The finite-replication degrees-of-freedom correction `B / (B - 1)`
+tends to `1`. -/
+theorem finiteReplicationVarianceCorrection_tendsto_one :
+    Tendsto finiteReplicationVarianceCorrection atTop (𝓝 1) := by
+  let r : ℕ → ℝ := finiteReplicationVarianceCorrection
+  have hB : Tendsto (fun B : ℕ => (B : ℝ)) atTop atTop :=
+    tendsto_natCast_atTop_atTop
+  have hden : Tendsto (fun B : ℕ => (B : ℝ) - 1) atTop atTop := by
+    simpa [sub_eq_add_neg] using
+      tendsto_atTop_add_const_right atTop (-(1 : ℝ)) hB
+  have hrSub : Tendsto (fun B => r B - 1) atTop (𝓝 0) := by
+    have hsmall : Tendsto (fun B : ℕ => (1 : ℝ) / ((B : ℝ) - 1))
+        atTop (𝓝 0) :=
+      hden.const_div_atTop (1 : ℝ)
+    have heq : (fun B => r B - 1) =ᶠ[atTop]
+        (fun B : ℕ => (1 : ℝ) / ((B : ℝ) - 1)) := by
+      filter_upwards [eventually_gt_atTop 1] with B hB_gt
+      have hden_ne : (B : ℝ) - 1 ≠ 0 := by
+        have hgt : (1 : ℝ) < (B : ℝ) := by
+          exact_mod_cast hB_gt
+        linarith
+      dsimp [r, finiteReplicationVarianceCorrection]
+      field_simp [hden_ne]
+      ring
+    rw [tendsto_congr' heq]
+    exact hsmall
+  have hadd := hrSub.add_const 1
+  simpa [r, finiteReplicationVarianceCorrection, sub_eq_add_neg, add_assoc,
+    add_comm, add_left_comm] using hadd
+
+/-- Hansen Theorem 10.11, finite-replication variance moment bridge.
+
+If the finite-`B` replication mean and second moment converge in probability to
+their conditional limits, then the moment-form finite-replication variance
+converges in probability to `m₂ - m²`.  In applications, the moment premises are
+the bootstrap WLLN for bounded trimmed replications. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_moments
+    {Z : ℕ → ℕ → Ω → ℝ} {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (finiteReplicationMeanReal Z) atTop (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (finiteReplicationSecondMomentReal Z) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Z) atTop
+      (fun _ => m₂ - m ^ 2) := by
+  have hmean_sq :
+      TendstoInMeasure μ
+        (fun B ω => finiteReplicationMeanReal Z B ω *
+          finiteReplicationMeanReal Z B ω)
+        atTop (fun _ => m * m) :=
+    TendstoInMeasure.mul_limits_real hmean hmean
+  have hsecond0 := TendstoInMeasure.sub_limit_zero_real hsecond
+  have hmean_sq0 := TendstoInMeasure.sub_limit_zero_real hmean_sq
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun B ω =>
+          (finiteReplicationSecondMomentReal Z B ω -
+            finiteReplicationMeanReal Z B ω *
+              finiteReplicationMeanReal Z B ω) -
+            (m₂ - m * m))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hsecond0 hmean_sq0
+    refine TendstoInMeasure.congr (fun B => ?_) EventuallyEq.rfl hsub
+    refine ae_of_all μ fun ω => ?_
+    ring
+  have hdiff :
+      TendstoInMeasure μ
+        (fun B ω =>
+          finiteReplicationSecondMomentReal Z B ω -
+            finiteReplicationMeanReal Z B ω *
+              finiteReplicationMeanReal Z B ω)
+        atTop (fun _ => m₂ - m * m) :=
+    TendstoInMeasure.of_sub_limit_zero_real hdiff0
+  have hfactor :
+      TendstoInMeasure μ
+        (fun B (_ : Ω) => finiteReplicationVarianceCorrection B)
+        atTop (fun _ => 1) :=
+    tendstoInMeasure_const_real (μ := μ)
+      finiteReplicationVarianceCorrection_tendsto_one
+  have hprod :
+      TendstoInMeasure μ
+        (fun B ω =>
+          finiteReplicationVarianceCorrection B *
+            (finiteReplicationSecondMomentReal Z B ω -
+              (finiteReplicationMeanReal Z B ω) ^ 2))
+        atTop (fun _ => 1 * (m₂ - m * m)) := by
+    simpa [pow_two] using TendstoInMeasure.mul_limits_real hfactor hdiff
+  refine TendstoInMeasure.congr
+    (f := fun B ω =>
+      finiteReplicationVarianceCorrection B *
+        (finiteReplicationSecondMomentReal Z B ω -
+          (finiteReplicationMeanReal Z B ω) ^ 2))
+    (f' := finiteReplicationVarianceMomentReal Z)
+    (g := fun _ : Ω => 1 * (m₂ - m * m))
+    (g' := fun _ : Ω => m₂ - m ^ 2)
+    (fun B => ?_) ?_ hprod
+  · exact ae_of_all μ fun ω => by
+      simp [finiteReplicationVarianceMomentReal]
+  · exact ae_of_all μ fun _ => by ring
+
+end FiniteReplicationVariance
 
 section PercentileIntervals
 
