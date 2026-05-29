@@ -40,6 +40,10 @@ used throughout the chapter:
   constructors with the ordinary WLLN to give the level conclusion of Theorem
   10.2; `chapter10_bootstrap_wlln_level_of_integral_norm_sq_bound` is the
   corresponding vector second-moment level wrapper.
+* `TendstoInBootstrapProbabilityIndexed` and
+  `chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean` provide the
+  sample-size-indexed ordinary nonparametric-bootstrap version with resampling
+  spaces `Fin (n+1) -> Fin (n+1)`.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -133,6 +137,9 @@ used throughout the chapter:
   finite-dimensional covariance and trace forms of equation (10.13), while
   `integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment` gives the
   Euclidean norm second-moment bound used in the vector Theorem 10.2 proof.
+  `integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz`
+  packages that finite result in the `Fin (n+1)` Marcinkiewicz scale used by
+  the indexed centered WLLN.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `bootstrapScalarCDF`, and `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
   provide the pointwise-CDF bracketing route from bootstrap CDF convergence to
@@ -1861,6 +1868,266 @@ theorem chapter10_bootstrap_wlln_level_of_second_moment_bound
     hYbar
 
 end BootstrapWLLNSecondMoment
+
+section IndexedBootstrapWLLN
+
+variable {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+
+/-- Conditional bootstrap tail probability when the bootstrap sample space may
+depend on the sample size. -/
+noncomputable def bootstrapTailProbIndexed [PseudoMetricSpace E]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → E) (Z : Ω → E)
+    (η : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ((Pstar n ω) {ωs | η ≤ dist (Zstar n ω ωs) (Z ω)}).toReal
+
+/-- Indexed-space version of Hansen Definition 10.1.
+
+This is useful for the ordinary finite nonparametric bootstrap, where the
+resampling space at sample size `n` is naturally `Fin n -> Fin n`. -/
+def TendstoInBootstrapProbabilityIndexed [PseudoMetricSpace E]
+    (μ : Measure Ω) (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → E) (Z : Ω → E) : Prop :=
+  ∀ η : ℝ, 0 < η →
+    TendstoInMeasure μ
+      (fun n ω => bootstrapTailProbIndexed Pstar Zstar Z η n ω)
+      atTop (fun _ => 0)
+
+/-- Indexed-space bootstrap convergence from a conditional tail-probability
+bound. -/
+theorem tendstoInBootstrapProbabilityIndexed_of_tail_bound
+    [PseudoMetricSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E}
+    {bound : ℝ → ℕ → Ω → ℝ}
+    (hbound :
+      ∀ η : ℝ, 0 < η →
+        TendstoInMeasure μ (fun n ω => bound η n ω) atTop (fun _ => 0))
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProbIndexed Pstar Zstar Z η n ω ≤ bound η n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z := by
+  intro η hη
+  exact tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω => bootstrapTailProbIndexed Pstar Zstar Z η n ω)
+    (g := fun n ω => bound η n ω)
+    (fun _ _ => ENNReal.toReal_nonneg)
+    (hle η hη)
+    (hbound η hη)
+
+/-- Indexed-space conditional Markov inequality, stated with a concrete
+second moment. -/
+theorem bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+    [NormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProbIndexed Pstar Zstar (fun _ => 0) η n ω ≤
+      (∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω) / η ^ 2 := by
+  let Pconst : ℕ → Ω → Measure (Ωboot n) := fun _ _ => Pstar n ω
+  let Zconst : ℕ → Ω → Ωboot n → E := fun _ _ ωs => Zstar n ω ωs
+  have hPconst : ∀ m ω', IsProbabilityMeasure (Pconst m ω') := fun _ _ => hPstar n ω
+  have hZconst : ∀ m ω', MemLp (Zconst m ω') 2 (Pconst m ω') := fun _ _ => hZ n ω
+  have htail :=
+    bootstrapTailProb_zero_le_integral_norm_sq_div
+      (Pstar := Pconst) (Zstar := Zconst) hPconst hZconst hη n ω
+  simpa [bootstrapTailProbIndexed, bootstrapTailProb, Pconst, Zconst] using htail
+
+/-- Shifted version of Hansen's Theorem 10.2 second-moment bound.
+
+The ordinary `Fin (n+1)` empirical bootstrap avoids the empty sample-size-zero
+case while preserving the same `atTop` asymptotics. -/
+theorem bootstrapWLLNSecondMomentBound_succ_tendsto_zero
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ) {η : ℝ} (hη : 0 < η) :
+    TendstoInMeasure μ
+      (fun n ω => bootstrapWLLNSecondMomentBound u η (n + 1) ω)
+      atTop (fun _ => 0) := by
+  have h :=
+    bootstrapWLLNSecondMomentBound_tendsto_zero
+      (μ := μ) (u := u) (η := η) hu hη
+  rw [tendstoInMeasure_iff_dist] at h ⊢
+  intro ε hε
+  simpa using (h ε hε).comp (tendsto_add_atTop_nat 1)
+
+/-- Sample-size-indexed finite-resample norm bound in Hansen's Theorem 10.2
+scale.
+
+For sample size `n+1`, the expected squared norm of the centered ordinary
+nonparametric-bootstrap mean is bounded by
+`(n+1)^{-2} sum_{i<n+1} ||Y_i||^2`, the Marcinkiewicz statistic used in the
+asymptotic Theorem 10.2 proof. -/
+theorem integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k) (n : ℕ) (ω : Ω) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        ‖empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω)‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) ≤
+      marcinkiewiczWLLNStatisticNat (fun i ω => ‖Y i ω‖) 2 (n + 1) ω := by
+  classical
+  have hfinite :=
+    integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω)
+  have hsum :
+      (∑ i : Fin (n + 1), ∑ a, Y i.val ω a * Y i.val ω a) =
+        ∑ i ∈ Finset.range (n + 1), ‖Y i ω‖ * ‖Y i ω‖ := by
+    rw [Finset.sum_range]
+    refine Finset.sum_congr rfl ?_
+    intro i _
+    simpa [pow_two] using (EuclideanSpace.real_norm_sq_eq (Y i.val ω)).symm
+  have hscale :
+      (Fintype.card (Fin (n + 1)) : ℝ)⁻¹ *
+          (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+            ∑ i : Fin (n + 1), ∑ a, Y i.val ω a ^ 2) =
+        marcinkiewiczWLLNStatisticNat (fun i ω => ‖Y i ω‖) 2 (n + 1) ω := by
+    have hcard_real : (Fintype.card (Fin (n + 1)) : ℝ) = (n + 1 : ℝ) := by
+      simp [Fintype.card_fin]
+    have hcard_enn_inv :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) = (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    rw [show (∑ i : Fin (n + 1), ∑ a, Y i.val ω a ^ 2) =
+        ∑ i : Fin (n + 1), ∑ a, Y i.val ω a * Y i.val ω a by
+          simp [pow_two], hsum]
+    rw [hcard_real, hcard_enn_inv]
+    simp [marcinkiewiczWLLNStatisticNat, pow_two, mul_assoc]
+  exact hfinite.trans_eq hscale
+
+/-- Indexed-space Hansen Theorem 10.2 centered WLLN from a concrete conditional
+second-moment bound. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ n ω,
+        (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine tendstoInBootstrapProbabilityIndexed_of_tail_bound
+    (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω) ?_ ?_
+  · intro η hη
+    exact bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη
+  · intro η hη n ω
+    calc
+      bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+          ≤ (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
+            bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+              (Pstar := Pstar)
+              (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+              hPstar hZ hη n ω
+      _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+            div_le_div_of_nonneg_right (hbound n ω) (sq_nonneg η)
+      _ = bootstrapWLLNSecondMomentBound u η n ω := by
+            rw [bootstrapWLLNSecondMomentBound]
+            field_simp [hη.ne']
+
+/-- Ordinary finite nonparametric-bootstrap centered WLLN for `Fin (n+1)`
+samples, obtained by feeding the finite squared-norm calculation into Hansen's
+Theorem 10.2 Marcinkiewicz bound. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k)
+    (hu : UniformIntegrable (fun i ω => ‖Y i ω‖) 1 μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      (fun _ => 0) := by
+  refine tendstoInBootstrapProbabilityIndexed_of_tail_bound
+    (bound := fun η n ω =>
+      bootstrapWLLNSecondMomentBound (fun i ω => ‖Y i ω‖) η (n + 1) ω) ?_ ?_
+  · intro η hη
+    exact bootstrapWLLNSecondMomentBound_succ_tendsto_zero
+      (μ := μ) (u := fun i ω => ‖Y i ω‖) (η := η) hu hη
+  · intro η hη n ω
+    have hPstar :
+        ∀ m (ω : Ω),
+          IsProbabilityMeasure
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (m + 1) → Fin (m + 1)))) := by
+      intro m ω
+      infer_instance
+    have hZ :
+        ∀ m (ω : Ω),
+          MemLp
+            (fun ωs : Fin (m + 1) → Fin (m + 1) =>
+              empiricalBootstrapResampleMean
+                  (fun i : Fin (m + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs -
+                empiricalMean (fun i : Fin (m + 1) => Y i.val ω))
+            2
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (m + 1) → Fin (m + 1)))) := by
+      intro m ω
+      exact memLp_two_uniformOn_univ
+        (Y := fun ωs : Fin (m + 1) → Fin (m + 1) =>
+          empiricalBootstrapResampleMean
+              (fun i : Fin (m + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (m + 1) => Y i.val ω))
+    calc
+      bootstrapTailProbIndexed
+          (fun n _ =>
+            ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+          (fun n ω ωs =>
+            empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+          (fun _ => 0) η n ω
+          ≤ (∫ ωs : Fin (n + 1) → Fin (n + 1),
+              ‖empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)‖ ^ 2
+              ∂(ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1)))) / η ^ 2 :=
+            bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+              (Pstar := fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (Zstar := fun n ω ωs =>
+                empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+              hPstar hZ hη n ω
+      _ ≤ marcinkiewiczWLLNStatisticNat (fun i ω => ‖Y i ω‖) 2 (n + 1) ω /
+            η ^ 2 :=
+            div_le_div_of_nonneg_right
+              (integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
+                (Y := Y) n ω)
+              (sq_nonneg η)
+      _ = bootstrapWLLNSecondMomentBound (fun i ω => ‖Y i ω‖) η (n + 1) ω := by
+            rw [bootstrapWLLNSecondMomentBound]
+            field_simp [hη.ne']
+
+end IndexedBootstrapWLLN
 
 section BootstrapDistribution
 
