@@ -174,6 +174,9 @@ used throughout the chapter:
 * `percentileCoverage_frontier_null_of_boundary_null` and
   `chapter10_percentileCI_coverage_tendsto_of_scalar_limit` replace the
   percentile vector-frontier premise with scalar endpoint-boundary null mass.
+* `percentileCoverage_scalar_event_eq_law` and
+  `chapter10_percentileCI_coverage_tendsto_of_limit_law` state the percentile
+  calibration through the non-atomic law of the scalar limit statistic.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageLimit_measure_set_eq` and
@@ -183,6 +186,10 @@ used throughout the chapter:
   `chapter10_percentileTCI_coverage_tendsto_of_scalar_limit` replace the
   percentile-`t` vector-frontier premise with scalar endpoint-boundary null
   mass.
+* `percentileTCoverage_scalar_event_eq_law` and
+  `chapter10_percentileTCI_coverage_tendsto_of_limit_law` state the
+  percentile-`t` calibration through the non-atomic law of the scalar limit
+  t-ratio.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestLimit_measure_rejectionSet_eq` and
@@ -193,6 +200,10 @@ used throughout the chapter:
   `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit`
   replace the bootstrap-test vector-frontier premise with scalar critical-value
   boundary null mass.
+* `bootstrapAbsTest_scalar_rejection_eq_law` and
+  `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law` state
+  bootstrap-test calibration through the non-atomic law of the scalar limit
+  statistic.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -4891,6 +4902,50 @@ theorem percentileCoverage_frontier_null_of_boundary_null
   exact measure_mono_null (μ := ν.map (percentileCoverageLimitVector ξ qLower qUpper))
     frontier_percentileCoverageSet_subset hboundary_zero
 
+/-- The scalar percentile-coverage event can be read from the law of the
+limit statistic as the interval `[-qU, -qL]`. -/
+theorem percentileCoverage_scalar_event_eq_law
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} (hξ : HasLaw ξ η ν)
+    (qLower qUpper : ℝ) :
+    ν {ω | qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper} =
+      η (Set.Icc (-qUpper) (-qLower)) := by
+  have hpre :
+      {ω | qLower ≤ -ξ ω ∧ -ξ ω ≤ qUpper} =
+        ξ ⁻¹' Set.Icc (-qUpper) (-qLower) := by
+    ext ω
+    constructor
+    · intro h
+      exact ⟨by linarith [h.2], by linarith [h.1]⟩
+    · intro h
+      exact ⟨by linarith [h.2], by linarith [h.1]⟩
+  rw [hpre]
+  exact HasLaw.preimage_eq hξ measurableSet_Icc
+
+/-- If the scalar limit law has no atoms, then the percentile-coverage
+frontier has zero mass under the limit vector law. -/
+theorem percentileCoverage_frontier_null_of_hasLaw_noAtoms
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} [NoAtoms η] (hξ : HasLaw ξ η ν)
+    (qLower qUpper : ℝ) :
+    (ν.map (percentileCoverageLimitVector ξ qLower qUpper))
+      (frontier percentileCoverageSet) = 0 := by
+  refine percentileCoverage_frontier_null_of_boundary_null
+    (ν := ν) (qLower := qLower) (qUpper := qUpper)
+    hξ.aemeasurable ?_ ?_
+  · have hpre :
+        {ω | qLower = -ξ ω} = ξ ⁻¹' ({-qLower} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      constructor <;> intro h <;> linarith
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton (-qLower))]
+    exact measure_singleton (-qLower)
+  · have hpre :
+        {ω | -ξ ω = qUpper} = ξ ⁻¹' ({-qUpper} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      constructor <;> intro h <;> linarith
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton (-qUpper))]
+    exact measure_singleton (-qUpper)
+
 /-- Hansen Theorem 10.13, percentile-interval coverage bridge.
 
 If the scaled estimator error and the scaled bootstrap percentile endpoints
@@ -5033,6 +5088,48 @@ theorem chapter10_percentileCI_coverage_tendsto_of_scalar_limit
         (ν := ν) (qLower := qLowerLim) (qUpper := qUpperLim)
         hξ hleft hright)
       hcoverage
+
+/-- Calibrated percentile-interval coverage bridge with calibration stated
+under the scalar law of the limit statistic.  A non-atomic limit law supplies
+the required null-frontier premise. -/
+theorem chapter10_percentileCI_coverage_tendsto_of_limit_law
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [NoAtoms η]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (percentileCoverageVector a θ θhat qLower qUpper)
+        atTop
+        (percentileCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hcoverage : η (Set.Icc (-qUpperLim) (-qLowerLim)) = coverage) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  refine chapter10_percentileCI_coverage_tendsto_of_scalar_limit
+    (μ := μ) (ν := ν) (a := a) ha
+    (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+    (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+    hjoint hξ.aemeasurable ?_ ?_ ?_
+  · have hpre :
+        {ω | qLowerLim = -ξ ω} = ξ ⁻¹' ({-qLowerLim} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      constructor <;> intro h <;> linarith
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton (-qLowerLim))]
+    exact measure_singleton (-qLowerLim)
+  · have hpre :
+        {ω | -ξ ω = qUpperLim} = ξ ⁻¹' ({-qUpperLim} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      constructor <;> intro h <;> linarith
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton (-qUpperLim))]
+    exact measure_singleton (-qUpperLim)
+  · rw [percentileCoverage_scalar_event_eq_law hξ qLowerLim qUpperLim]
+    exact hcoverage
 
 end PercentileIntervals
 
@@ -5208,6 +5305,43 @@ theorem percentileTCoverage_frontier_null_of_boundary_null
   exact measure_mono_null (μ := ν.map (percentileTCoverageLimitVector ξ qLower qUpper))
     frontier_percentileTCoverageSet_subset hboundary_zero
 
+/-- The scalar percentile-`t` coverage event can be read from the law of the
+limit t-ratio as the interval `[qL, qU]`. -/
+theorem percentileTCoverage_scalar_event_eq_law
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} (hξ : HasLaw ξ η ν)
+    (qLower qUpper : ℝ) :
+    ν {ω | qLower ≤ ξ ω ∧ ξ ω ≤ qUpper} =
+      η (Set.Icc qLower qUpper) := by
+  have hpre :
+      {ω | qLower ≤ ξ ω ∧ ξ ω ≤ qUpper} =
+        ξ ⁻¹' Set.Icc qLower qUpper := by
+    rfl
+  rw [hpre]
+  exact HasLaw.preimage_eq hξ measurableSet_Icc
+
+/-- If the scalar limit law has no atoms, then the percentile-`t` coverage
+frontier has zero mass under the limit vector law. -/
+theorem percentileTCoverage_frontier_null_of_hasLaw_noAtoms
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} [NoAtoms η] (hξ : HasLaw ξ η ν)
+    (qLower qUpper : ℝ) :
+    (ν.map (percentileTCoverageLimitVector ξ qLower qUpper))
+      (frontier percentileTCoverageSet) = 0 := by
+  refine percentileTCoverage_frontier_null_of_boundary_null
+    (ν := ν) (qLower := qLower) (qUpper := qUpper)
+    hξ.aemeasurable ?_ ?_
+  · have hpre :
+        {ω | qLower = ξ ω} = ξ ⁻¹' ({qLower} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      exact eq_comm
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton qLower)]
+    exact measure_singleton qLower
+  · have hpre :
+        {ω | ξ ω = qUpper} = ξ ⁻¹' ({qUpper} : Set ℝ) := by
+      rfl
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton qUpper)]
+    exact measure_singleton qUpper
+
 /-- Hansen Theorem 10.14, percentile-`t` interval coverage bridge.
 
 If the sample t-ratio and bootstrap percentile-`t` critical values jointly
@@ -5361,6 +5495,48 @@ theorem chapter10_percentileTCI_coverage_tendsto_of_scalar_limit
         hξ hleft hright)
       hcoverage
 
+/-- Calibrated percentile-`t` coverage bridge with calibration stated under
+the scalar law of the limit t-ratio.  A non-atomic limit law supplies the
+required null-frontier premise. -/
+theorem chapter10_percentileTCI_coverage_tendsto_of_limit_law
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [NoAtoms η]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim : ℝ} {coverage : ℝ≥0∞}
+    (hse : ∀ n ω, 0 < se n ω)
+    (hjoint :
+      TendstoInDistribution
+        (percentileTCoverageVector θ θhat se qLower qUpper)
+        atTop
+        (percentileTCoverageLimitVector ξ qLowerLim qUpperLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (hcoverage : η (Set.Icc qLowerLim qUpperLim) = coverage) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 coverage) := by
+  refine chapter10_percentileTCI_coverage_tendsto_of_scalar_limit
+    (μ := μ) (ν := ν) (θ := θ) (θhat := θhat) (se := se)
+    (qLower := qLower) (qUpper := qUpper) (ξ := ξ)
+    (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+    hse hjoint hξ.aemeasurable ?_ ?_ ?_
+  · have hpre :
+        {ω | qLowerLim = ξ ω} = ξ ⁻¹' ({qLowerLim} : Set ℝ) := by
+      ext ω
+      simp only [Set.mem_setOf_eq, Set.mem_preimage, Set.mem_singleton_iff]
+      exact eq_comm
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton qLowerLim)]
+    exact measure_singleton qLowerLim
+  · have hpre :
+        {ω | ξ ω = qUpperLim} = ξ ⁻¹' ({qUpperLim} : Set ℝ) := by
+      rfl
+    rw [hpre, HasLaw.preimage_eq hξ (measurableSet_singleton qUpperLim)]
+    exact measure_singleton qUpperLim
+  · rw [percentileTCoverage_scalar_event_eq_law hξ qLowerLim qUpperLim]
+    exact hcoverage
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -5463,6 +5639,49 @@ theorem bootstrapAbsTest_frontier_null_of_boundary_null
     simpa [hpre] using hboundary
   exact measure_mono_null (μ := ν.map (bootstrapAbsTestLimitVector ξ critLim))
     frontier_bootstrapAbsRejectionSet_subset hboundary_zero
+
+/-- The scalar two-sided rejection event can be read from the law of the
+limit statistic. -/
+theorem bootstrapAbsTest_scalar_rejection_eq_law
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} (hξ : HasLaw ξ η ν)
+    (critLim : ℝ) :
+    ν {ω | bootstrapAbsTestReject (ξ ω) critLim} =
+      η {x | bootstrapAbsTestReject x critLim} := by
+  have hpre :
+      {ω | bootstrapAbsTestReject (ξ ω) critLim} =
+        ξ ⁻¹' {x | bootstrapAbsTestReject x critLim} := by
+    rfl
+  rw [hpre]
+  exact HasLaw.preimage_eq hξ
+    ((isOpen_lt continuous_const continuous_abs).measurableSet)
+
+/-- If the scalar limit law has no atoms, then the two-sided rejection
+frontier has zero mass under the limit vector law. -/
+theorem bootstrapAbsTest_frontier_null_of_hasLaw_noAtoms
+    {ξ : Ωlim → ℝ} {η : Measure ℝ} [NoAtoms η] (hξ : HasLaw ξ η ν)
+    (critLim : ℝ) :
+    (ν.map (bootstrapAbsTestLimitVector ξ critLim))
+      (frontier bootstrapAbsRejectionSet) = 0 := by
+  refine bootstrapAbsTest_frontier_null_of_boundary_null
+    (ν := ν) (critLim := critLim) hξ.aemeasurable ?_
+  have hpre_subset :
+      {ω | critLim = |ξ ω|} ⊆
+        ξ ⁻¹' ({critLim} ∪ {-critLim} : Set ℝ) := by
+    intro ω hω
+    simp only [Set.mem_preimage, Set.mem_union, Set.mem_singleton_iff]
+    by_cases hnonneg : 0 ≤ ξ ω
+    · left
+      simpa [abs_of_nonneg hnonneg, eq_comm] using hω
+    · right
+      have hneg : ξ ω < 0 := lt_of_not_ge hnonneg
+      have hcrit : critLim = -(ξ ω) := by
+        simpa [abs_of_neg hneg] using hω
+      linarith
+  refine measure_mono_null hpre_subset ?_
+  rw [HasLaw.preimage_eq hξ
+    ((measurableSet_singleton critLim).union
+      (measurableSet_singleton (-critLim)))]
+  exact measure_union_null (measure_singleton critLim) (measure_singleton (-critLim))
 
 /-- Hansen Theorem 10.16, bootstrap critical-value rejection-probability bridge.
 
@@ -5584,6 +5803,36 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit
       (bootstrapAbsTest_frontier_null_of_boundary_null
         (ν := ν) (critLim := critLim) hξ hboundary)
       halpha
+
+/-- Calibrated bootstrap critical-value bridge with calibration stated under
+the scalar law of the limit statistic.  A non-atomic limit law supplies the
+required null-frontier premise. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [NoAtoms η]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim : ℝ} {α : ℝ≥0∞}
+    (hjoint :
+      TendstoInDistribution
+        (bootstrapAbsTestVector T crit)
+        atTop
+        (bootstrapAbsTestLimitVector ξ critLim)
+        (fun _ => μ) ν)
+    (hξ : HasLaw ξ η ν)
+    (halpha : η {x | bootstrapAbsTestReject x critLim} = α) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 α) := by
+  have hfrontier :=
+    bootstrapAbsTest_frontier_null_of_hasLaw_noAtoms
+      (ν := ν) (η := η) hξ critLim
+  have halphaν :
+      ν {ω | bootstrapAbsTestReject (ξ ω) critLim} = α := by
+    rw [bootstrapAbsTest_scalar_rejection_eq_law hξ critLim]
+    exact halpha
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_scalar_limit_rejection
+      (μ := μ) (ν := ν) (T := T) (crit := crit) (ξ := ξ) (critLim := critLim)
+      hjoint hfrontier halphaν
 
 end BootstrapTests
 
