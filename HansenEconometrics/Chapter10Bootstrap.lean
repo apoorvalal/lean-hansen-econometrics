@@ -59,6 +59,9 @@ used throughout the chapter:
   moment-convergence bridge behind Hansen Theorem 10.9.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
+* `chapter10_bootstrap_regression_theta_gaussian` and
+  `chapter10_bootstrap_regression_trimmedVariance_tendsto` are regression-facing
+  wrappers for Hansen Theorems 10.18 and 10.19.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
@@ -1382,6 +1385,66 @@ theorem chapter10_trimmedBootstrapVariance_tendsto
   simpa using h
 
 end BootstrapCovariance
+
+section BootstrapRegression
+
+/-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
+
+If the bootstrap regression coefficient statistic converges weakly to
+`N(0,Vβ)`, then the derivative-linearized statistic for a smooth transformation
+with Jacobian `R` converges weakly to `N(0,R' Vβ R)`.  This is the regression
+surface of the bootstrap Delta method; the concrete OLS bootstrap constructor
+supplies the coefficient-level bootstrap CLT premise. -/
+theorem chapter10_bootstrap_regression_theta_gaussian
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => z) := by
+  simpa [Matrix.transpose_transpose] using
+    chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
+      (Tstar := TbetaStar) (V := Vβ) (G := Rᵀ) hVβ hβ
+
+/-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
+
+For the transformed regression statistic, if the trimmed conditional mean
+converges to zero and the trimmed conditional cross moment converges to the
+delta-method covariance `R' Vβ R`, then the trimmed bootstrap covariance
+estimator converges to `R' Vβ R`.  The concrete regression proof supplies these
+moment premises from Theorems 10.11 and 10.12. -/
+theorem chapter10_bootstrap_regression_trimmedVariance_tendsto
+    {k q : Type*} [Fintype k] [Fintype q]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {ZthetaStar : ℕ → Ω → Ωs → q → ℝ}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic ZthetaStar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVec Pstar (trimmedBootstrapStatistic ZthetaStar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMat Pstar (trimmedBootstrapStatistic ZthetaStar τ))
+        atTop (fun _ => smoothFunctionVarianceFunctional R Vβ)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar ZthetaStar τ) atTop
+      (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_trimmedBootstrapVariance_tendsto
+    (μ := μ) (Pstar := Pstar) (Zstar := ZthetaStar) (τ := τ)
+    hPstar hZ hmean hcross
+
+end BootstrapRegression
 
 section FiniteReplicationVariance
 
