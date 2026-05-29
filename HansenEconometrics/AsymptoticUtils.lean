@@ -1606,6 +1606,20 @@ theorem TendstoInMeasure.of_sub_limit_zero_real
   intro ε hε
   simpa [Real.dist_eq] using hX ε hε
 
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p c`, then `Xₙ ->p c`. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_real
+    {X Y : ℕ → α → ℝ} {c : ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => c)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  have hY0 := TendstoInMeasure.sub_limit_zero_real hY
+  have hsum := TendstoInMeasure.add_zero_real hXY hY0
+  have hX0 :
+      TendstoInMeasure μ (fun n ω => X n ω - c) atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsum
+    exact ae_of_all μ fun ω => by ring
+  exact TendstoInMeasure.of_sub_limit_zero_real hX0
+
 /-- Product of two real-valued sequences converging in measure to scalar limits
 converges in measure to the product of the limits. -/
 theorem TendstoInMeasure.mul_limits_real

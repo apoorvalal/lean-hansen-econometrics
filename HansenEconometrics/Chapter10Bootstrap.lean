@@ -203,6 +203,10 @@ used throughout the chapter:
   variance wrapper for Hansen Theorem 10.19.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11.
+* `chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance` and
+  `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
+  combine finite-replication simulation error with the conditional-bootstrap
+  variance consistency layer from Hansen Theorem 10.9.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -5405,6 +5409,59 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_l2_error_bounds
     (finiteReplicationSecondMomentReal_tendsto_of_integral_sq_error_le_inv
       (μ := μ) (Z := Z) (m₂ := m₂) (C := Csecond)
       hsecondInt hsecondBound)
+
+/-- Hansen Theorem 10.9/10.11 bridge from finite-replication simulation error.
+
+If the finite-replication variance estimator differs from the conditional
+bootstrap variance by `oₚ(1)`, and the conditional bootstrap variance converges
+to the asymptotic variance, then the finite-replication variance estimator has
+the same asymptotic target. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
+convergence and a uniform-square-tail condition.
+
+This packages the two variance layers used in the theorem: a finite-replication
+simulation-error premise estimates the conditional bootstrap variance, while
+bootstrap weak convergence plus the named uniform-square-tail condition sends
+that conditional variance to the limiting variance functional. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTail μ Pstar Zstar ν Z)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
 
 /-- Finite-replication covariance moment bridge for two real statistics.
 
