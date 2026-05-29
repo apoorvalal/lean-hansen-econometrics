@@ -43,6 +43,9 @@ used throughout the chapter:
 * `chapter10_bootstrap_delta_method_linear` and
   `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
   Gaussian covariance faces of Hansen Theorem 10.6.
+* `chapter10_bootstrap_smooth_function_gaussian_of_linearization` is the
+  smooth-function Gaussian wrapper for Hansen Theorem 10.7 once the
+  bootstrap statistic has been reduced to its derivative-linearized form.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
@@ -1020,6 +1023,35 @@ theorem chapter10_bootstrap_delta_method_gaussian
     exact integral_map (matrixContinuousLinearMap G).continuous.aemeasurable
       f.continuous.aestronglyMeasurable
   simpa [htarget] using hlinear.tendsto_integral f
+
+/-- Hansen Theorem 10.7, smooth-function Gaussian bootstrap wrapper.
+
+If the bootstrap moment/statistic has Gaussian bootstrap limit `N(0,V)` and
+the centered bootstrap smooth-function estimator has already been reduced to
+the derivative-linearized statistic `G T*`, then it has bootstrap limit
+`N(0, G V G')`. The remaining theorem-specific work is the nonlinear
+differentiability/`oₚ*` constructor that supplies this linearization for
+Hansen's smooth-function estimator. -/
+theorem chapter10_bootstrap_smooth_function_gaussian_of_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs)) :
+    TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => z) :=
+  (chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
+    (Tstar := Tstar) (V := V) G hV hT).congr_bootstrap
+      (fun n ω ωs => (hlinearization n ω ωs).symm)
 
 end BootstrapDeltaMethod
 
