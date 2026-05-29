@@ -54,6 +54,9 @@ used throughout the chapter:
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails` and
   `TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails`
   add the UI/tail unclipping step for the first two moments.
+* `bootstrapMeanReal_realClip_tails_of_tail_integrals` and
+  `bootstrapSecondMomentReal_realClip_tails_of_tail_integrals` turn concrete
+  first- and second-tail integral controls into those unclipping premises.
 * `chapter10_bootstrap_continuous_mapping_distribution` is the globally
   continuous face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_delta_method_linear` and
@@ -82,6 +85,9 @@ used throughout the chapter:
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails`
   derives that bridge's moment premises from bootstrap weak convergence plus
   first/second clipping-tail controls.
+* `chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals`
+  packages the same Theorem 10.9 conclusion from concrete first/second
+  tail-integral controls.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
@@ -1541,6 +1547,207 @@ noncomputable def bootstrapVarianceReal
     (n : ℕ) (ω : Ω) : ℝ :=
   Var[Zstar n ω; Pstar n ω]
 
+/-- Pointwise bootstrap mean clipping error bound by an absolute-tail integral. -/
+theorem bootstrapMeanReal_abs_sub_realClip_le_two_mul_integral_tail_abs
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZ : ∀ n ω, Integrable (Zstar n ω) (Pstar n ω))
+    {R : ℝ} (hR : 0 ≤ R) (n : ℕ) (ω : Ω) :
+    |bootstrapMeanReal Pstar Zstar n ω -
+      (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]| ≤
+      2 * ∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω := by
+  haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapMeanReal] using
+    abs_integral_sub_realClip_le_two_mul_integral_tail_abs
+      (μ := Pstar n ω) (Y := Zstar n ω) (hZ n ω) hR
+
+/-- Bootstrap mean clipping errors vanish in probability when their
+absolute-tail integrals vanish in probability. -/
+theorem bootstrapMeanReal_sub_realClip_tendsto_zero_of_tail_integral
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZ : ∀ n ω, Integrable (Zstar n ω) (Pstar n ω))
+    {R : ℝ} (hR : 0 ≤ R)
+    (hTail :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        bootstrapMeanReal Pstar Zstar n ω -
+          (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+      atTop (fun _ => 0) := by
+  have hTail2 := TendstoInMeasure.const_mul_zero_real (μ := μ) 2 hTail
+  refine TendstoInMeasure.of_abs_le_zero_real hTail2 ?_
+  intro n ω
+  have hbound :=
+    bootstrapMeanReal_abs_sub_realClip_le_two_mul_integral_tail_abs
+      hPstar hZ hR n ω
+  have htail_nonneg :
+      0 ≤ ∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω := by
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => abs_nonneg (Zstar n ω ωs)) ωs
+  calc
+    |bootstrapMeanReal Pstar Zstar n ω -
+      (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]| ≤
+        2 * ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω := hbound
+    _ = |2 * ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω| := by
+      rw [abs_of_nonneg (mul_nonneg (by norm_num) htail_nonneg)]
+
+/-- Pointwise bootstrap second-moment clipping error bound by a squared-tail
+integral. -/
+theorem bootstrapSecondMomentReal_abs_sub_realClip_sq_le_two_mul_integral_tail_sq
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {R : ℝ} (hR : 0 ≤ R) (n : ℕ) (ω : Ω) :
+    |bootstrapSecondMomentReal Pstar Zstar n ω -
+      (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]| ≤
+      2 * ∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω := by
+  haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapSecondMomentReal] using
+    abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+      (μ := Pstar n ω) (Y := Zstar n ω) (hZ n ω) hR
+
+/-- Bootstrap second-moment clipping errors vanish in probability when their
+squared-tail integrals vanish in probability. -/
+theorem bootstrapSecondMomentReal_sub_realClip_sq_tendsto_zero_of_tail_integral
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {R : ℝ} (hR : 0 ≤ R)
+    (hTail :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        bootstrapSecondMomentReal Pstar Zstar n ω -
+          (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+      atTop (fun _ => 0) := by
+  have hTail2 := TendstoInMeasure.const_mul_zero_real (μ := μ) 2 hTail
+  refine TendstoInMeasure.of_abs_le_zero_real hTail2 ?_
+  intro n ω
+  have hbound :=
+    bootstrapSecondMomentReal_abs_sub_realClip_sq_le_two_mul_integral_tail_sq
+      hPstar hZ hR n ω
+  have htail_nonneg :
+      0 ≤ ∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω := by
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+  calc
+    |bootstrapSecondMomentReal Pstar Zstar n ω -
+      (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]| ≤
+        2 * ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω := hbound
+    _ = |2 * ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω| := by
+      rw [abs_of_nonneg (mul_nonneg (by norm_num) htail_nonneg)]
+
+/-- Tail-integral constructor for the first-moment clipping premise used in
+Hansen Theorem 10.9. -/
+theorem bootstrapMeanReal_realClip_tails_of_tail_integrals
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZlim : Integrable Z ν)
+    (hZstar : ∀ n ω, Integrable (Zstar n ω) (Pstar n ω))
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => |Z ωlim|) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapMeanReal Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+        atTop (fun _ => 0) := by
+  intro ε hε
+  obtain ⟨R, hR, hlimTail, hsourceTail⟩ := hTail (ε / 2) (by positivity)
+  refine ⟨R, hR, ?_, ?_⟩
+  · have hclip :=
+      abs_integral_sub_realClip_le_two_mul_integral_tail_abs
+        (μ := ν) (Y := Z) hZlim hR
+    calc
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤
+          2 * ∫ ωlim,
+            Set.indicator {ωlim | R ≤ |Z ωlim|}
+              (fun ωlim => |Z ωlim|) ωlim ∂ν := hclip
+      _ ≤ 2 * (ε / 2) := by nlinarith
+      _ = ε := by ring
+  · exact bootstrapMeanReal_sub_realClip_tendsto_zero_of_tail_integral
+      (μ := μ) hPstar hZstar hR hsourceTail
+
+/-- Tail-integral constructor for the second-moment clipping premise used in
+Hansen Theorem 10.9. -/
+theorem bootstrapSecondMomentReal_realClip_tails_of_tail_integrals
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hZstar : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapSecondMomentReal Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+        atTop (fun _ => 0) := by
+  intro ε hε
+  obtain ⟨R, hR, hlimTail, hsourceTail⟩ := hTail (ε / 2) (by positivity)
+  refine ⟨R, hR, ?_, ?_⟩
+  · have hclip :=
+      abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+        (μ := ν) (Y := Z) hZlim hR
+    calc
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤
+          2 * ∫ ωlim,
+            Set.indicator {ωlim | R ≤ |Z ωlim|}
+              (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν := hclip
+      _ ≤ 2 * (ε / 2) := by nlinarith
+      _ = ε := by ring
+  · exact bootstrapSecondMomentReal_sub_realClip_sq_tendsto_zero_of_tail_integral
+      (μ := μ) hPstar hZstar hR hsourceTail
+
 /-- Conditional variance equals second moment minus squared conditional mean. -/
 theorem bootstrapVarianceReal_eq_secondMoment_sub_mean_sq
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
@@ -1684,6 +1891,58 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_t
       hweak.integral_sq_tendsto_of_realClip_tails hTailSecond
   exact chapter10_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZmem hmean hsecond
+
+/-- Hansen Theorem 10.9, weak-distribution plus concrete tail-integral
+variance bridge.
+
+This packages the clipping-tail premises of
+`chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails`
+from conditional first- and second-tail integral controls.  Uniform square
+integrability supplies those tail-integral controls in the textbook proof. -/
+theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailMean : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => |Z ωlim|) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω)
+        atTop (fun _ => 0))
+    (hTailSecond : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hZstarInt : ∀ n ω, Integrable (Zstar n ω) (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    exact memLp_one_iff_integrable.mp ((hZmem n ω).mono_exponent one_le_two)
+  have hZlimInt : Integrable Z ν :=
+    memLp_one_iff_integrable.mp (hZlim.mono_exponent one_le_two)
+  exact chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails
+    (μ := μ) (ν := ν) hPstar hZmem hweak
+    (bootstrapMeanReal_realClip_tails_of_tail_integrals
+      (μ := μ) (ν := ν) hPstarFinite hZlimInt hZstarInt hTailMean)
+    (bootstrapSecondMomentReal_realClip_tails_of_tail_integrals
+      (μ := μ) (ν := ν) hPstarFinite hZlim hZmem hTailSecond)
 
 end BootstrapVariance
 

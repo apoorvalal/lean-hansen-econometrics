@@ -648,6 +648,63 @@ theorem abs_integral_sub_realClip_le_two_mul_integral_tail_abs
     _ = 2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|) ω ∂μ := by
       rw [integral_const_mul]
 
+/-- The squared clipping error is supported on the large-tail event, up to a factor two. -/
+theorem abs_sq_sub_realClip_sq_le_two_mul_tail_sq (R x : ℝ) (hR : 0 ≤ R) :
+    |x ^ 2 - (realClip R x) ^ 2| ≤
+      2 * Set.indicator {y : ℝ | R ≤ |y|} (fun y => y ^ 2) x := by
+  by_cases htail : x ∈ {y : ℝ | R ≤ |y|}
+  · rw [Set.indicator_of_mem htail]
+    have htri :
+        |x ^ 2 - (realClip R x) ^ 2| ≤ |x ^ 2| + |(realClip R x) ^ 2| := by
+      simpa only [sub_eq_add_neg, abs_neg] using
+        abs_add_le (x ^ 2) (-((realClip R x) ^ 2))
+    have hclip_abs : |realClip R x| ≤ |x| := abs_realClip_le_abs R x hR
+    have hclip_sq : (realClip R x) ^ 2 ≤ x ^ 2 := by
+      have hpow := pow_le_pow_left₀ (abs_nonneg _) hclip_abs 2
+      simpa [sq_abs] using hpow
+    calc
+      |x ^ 2 - (realClip R x) ^ 2| ≤ |x ^ 2| + |(realClip R x) ^ 2| := htri
+      _ = x ^ 2 + (realClip R x) ^ 2 := by
+        rw [abs_of_nonneg (sq_nonneg x), abs_of_nonneg (sq_nonneg (realClip R x))]
+      _ ≤ x ^ 2 + x ^ 2 := by nlinarith
+      _ = 2 * x ^ 2 := by ring
+  · rw [Set.indicator_of_notMem htail]
+    have hx : |x| ≤ R := le_of_not_ge htail
+    rw [realClip_eq_self_of_abs_le hx, sub_self, abs_zero, mul_zero]
+
+/-- Integral tail bound for replacing a square-integrable real variable's
+second moment by its clipped second moment. -/
+theorem abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) {R : ℝ} (hR : 0 ≤ R) :
+    |(∫ ω, (Y ω) ^ 2 ∂μ) - ∫ ω, (realClip R (Y ω)) ^ 2 ∂μ| ≤
+      2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+  let clipSq := (realClipBoundedContinuousFunction R hR) ^ (2 : ℕ)
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ := hY.integrable_sq
+  have hclip_int : Integrable (fun ω => (realClip R (Y ω)) ^ 2) μ := by
+    have hmap : Integrable clipSq (μ.map Y) := clipSq.integrable (μ := μ.map Y)
+    simpa [clipSq, Function.comp_def, realClipBoundedContinuousFunction_apply] using
+      hmap.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable
+  have htail_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable)
+  have htail_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ htail_null
+  have hmono :
+      ∫ ω, |(Y ω) ^ 2 - (realClip R (Y ω)) ^ 2| ∂μ ≤
+        ∫ ω, 2 * Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+    refine integral_mono (hYsq_int.sub hclip_int).norm (htail_int.const_mul 2) ?_
+    intro ω
+    exact abs_sq_sub_realClip_sq_le_two_mul_tail_sq R (Y ω) hR
+  calc
+    |(∫ ω, (Y ω) ^ 2 ∂μ) - ∫ ω, (realClip R (Y ω)) ^ 2 ∂μ| =
+        |∫ ω, (Y ω) ^ 2 - (realClip R (Y ω)) ^ 2 ∂μ| := by
+      rw [integral_sub hYsq_int hclip_int]
+    _ ≤ ∫ ω, |(Y ω) ^ 2 - (realClip R (Y ω)) ^ 2| ∂μ := abs_integral_le_integral_abs
+    _ ≤ ∫ ω, 2 * Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := hmono
+    _ = 2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+      rw [integral_const_mul]
+
 /-- Raising the tail threshold can only reduce the real absolute-tail integral. -/
 theorem integral_tail_abs_mono_threshold
     [IsFiniteMeasure μ] {Y : α → ℝ} (hY : Integrable Y μ) {C R : ℝ} (hCR : C ≤ R) :
