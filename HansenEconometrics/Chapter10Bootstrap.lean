@@ -4,6 +4,7 @@ import Mathlib.Probability.UniformOn
 import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
+import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.Chapter7Asymptotics.Inference
 import HansenEconometrics.ProbabilityUtils
 
@@ -92,6 +93,10 @@ used throughout the chapter:
   behind equation (10.13) and the Theorem 10.2 proof.
 * `covMat_uniformOn_univ_eq_card_inv_smul_sum_centered` is the
   finite-dimensional empirical covariance matrix identity behind (10.11).
+* `covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul`,
+  `trace_covMat_resampleMean_eq_inv_card_mul`, and
+  `trace_covMat_resampleMean_le_inv_card_mul_secondMoment` provide the
+  finite-dimensional covariance and trace forms of equation (10.13).
 * `chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable` is the
   natural-power face of Hansen Theorem 10.20.
 * `chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable` is Hansen Theorem
@@ -615,6 +620,207 @@ theorem covMat_uniformOn_univ_eq_card_inv_smul_sum_centered
     integral_uniformOn_univ_eq_card_inv_smul_sum (fun i => Y i b)
   simp [covMat, ProbabilityTheory.covariance, hmean_a, hmean_b,
     integral_uniformOn_univ_eq_card_inv_smul_sum]
+
+omit [Fintype ι] in
+/-- Covariance matrix of the ordinary finite nonparametric bootstrap sample mean.
+
+This is the finite-dimensional form of Hansen equation (10.13): the
+conditional covariance matrix of the bootstrap sample mean is the empirical
+one-draw covariance matrix divided by the number of bootstrap draws. -/
+theorem covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) :
+    covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+        (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a) =
+      (Fintype.card κ : ℝ)⁻¹ •
+        covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) Y := by
+  classical
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let Pprod : Measure (κ → ι) := Measure.pi (fun _ : κ => Pι)
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Z : κ → (κ → ι) → k → ℝ := fun t ωs a => Y (ωs t) a
+  let c : ℝ := (Fintype.card κ : ℝ)⁻¹
+  let j : κ := Classical.choice ‹Nonempty κ›
+  have hPκ : Pκ = Pprod := by
+    simpa [Pκ, Pprod, Pι] using
+      (ProbabilityTheory.uniformOn_pi (Ω := ι) (ι := κ)
+        (f := fun _ : κ => (Set.univ : Set ι)))
+  have hsample :
+      (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a) =
+        fun ωs a => c * ∑ t, Z t ωs a := by
+    ext ωs a
+    simp [empiricalBootstrapResampleMean, Z, c]
+  have hZ : ∀ t a, MemLp (fun ωs => Z t ωs a) 2 Pprod := by
+    intro t a
+    exact ⟨AEStronglyMeasurable.of_discrete, eLpNorm_lt_top_of_finite⟩
+  have hiind :
+      iIndepFun (fun t (ωs : κ → ι) => ωs t) Pprod := by
+    simpa [Pprod] using
+      (ProbabilityTheory.iIndepFun_pi
+        (μ := fun _ : κ => Pι) (X := fun _ : κ => id)
+        (fun _ => aemeasurable_id))
+  have hindep :
+      ∀ a b, Pairwise (fun t u =>
+        (fun ωs => Z t ωs a) ⟂ᵢ[Pprod] (fun ωs => Z u ωs b)) := by
+    intro a b t u htu
+    exact IndepFun.comp (hiind.indepFun htu)
+      (measurable_of_finite (fun i => Y i a))
+      (measurable_of_finite (fun i => Y i b))
+  have hcov_eval :
+      ∀ t, covMat Pprod (Z t) = covMat Pι Y := by
+    intro t
+    ext a b
+    have hmap : Pprod.map (Function.eval t) = Pι :=
+      (measurePreserving_eval (μ := fun _ : κ => Pι) t).map_eq
+    have hcov :=
+      ProbabilityTheory.covariance_map_fun
+        (μ := Pprod) (Z := Function.eval t)
+        (X := fun i => Y i a) (Y := fun i => Y i b)
+        (AEStronglyMeasurable.of_discrete)
+        (AEStronglyMeasurable.of_discrete)
+        (measurable_pi_apply t).aemeasurable
+    calc
+      cov[fun ωs => Z t ωs a, fun ωs => Z t ωs b; Pprod]
+          = cov[fun i => Y i a, fun i => Y i b; Pprod.map (Function.eval t)] := by
+            simpa [Z, Function.comp_def] using hcov.symm
+      _ = cov[fun i => Y i a, fun i => Y i b; Pι] := by
+            rw [hmap]
+  have hcov :
+      ∀ t a b,
+        cov[fun ωs => Z t ωs a, fun ωs => Z t ωs b; Pprod] =
+          cov[fun ωs => Z j ωs a, fun ωs => Z j ωs b; Pprod] := by
+    intro t a b
+    have ht := congrFun (congrFun (hcov_eval t) a) b
+    have hj := congrFun (congrFun (hcov_eval j) a) b
+    simpa [covMat] using ht.trans hj.symm
+  have hsample_cov :
+      covMat Pprod (fun ωs a => c * ∑ t, Z t ωs a) =
+        c • covMat Pprod (Z j) := by
+    simpa [c] using
+      (iidSampleMean_covMat_eq_inv_card_smul
+        (μ := Pprod) (Z := Z) j hZ hindep hcov)
+  calc
+    covMat Pκ
+        (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)
+        = covMat Pprod
+            (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a) := by
+          rw [hPκ]
+    _ = covMat Pprod (fun ωs a => c * ∑ t, Z t ωs a) := by
+          rw [hsample]
+    _ = c • covMat Pprod (Z j) := hsample_cov
+    _ = c • covMat Pι Y := by
+          rw [hcov_eval j]
+
+omit [Fintype ι] in
+/-- Trace of the finite-dimensional nonparametric-bootstrap sample-mean
+covariance matrix.
+
+This is the trace form of Hansen equation (10.13). -/
+theorem trace_covMat_resampleMean_eq_inv_card_mul
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) :
+    Matrix.trace
+        (covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) =
+      (Fintype.card κ : ℝ)⁻¹ *
+        Matrix.trace
+          (covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) Y) := by
+  rw [covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul
+    (κ := κ) (Y := Y)]
+  simp [Matrix.trace_smul]
+
+/-- The empirical one-draw covariance trace is bounded by the empirical raw
+second moment.
+
+This is the finite-dimensional trace inequality used after (10.13) in Hansen's
+proof of Theorem 10.2. -/
+theorem trace_covMat_uniformOn_univ_le_card_inv_smul_sum_sq
+    {k : Type*} [Fintype k] [Nonempty ι] (Y : ι → k → ℝ) :
+    Matrix.trace
+        (covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) Y) ≤
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
+        ∑ i, ∑ a, Y i a ^ 2 := by
+  classical
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have htrace :
+      Matrix.trace (covMat Pι Y) = ∑ a, Var[fun i => Y i a; Pι] := by
+    rw [Matrix.trace]
+    refine Finset.sum_congr rfl ?_
+    intro a _ha
+    exact ProbabilityTheory.covariance_self
+      (AEStronglyMeasurable.of_discrete : AEStronglyMeasurable (fun i => Y i a) Pι).aemeasurable
+  have hvar_le :
+      ∀ a, Var[fun i => Y i a; Pι] ≤ ∫ i, Y i a ^ 2 ∂Pι := by
+    intro a
+    exact ProbabilityTheory.variance_le_expectation_sq
+      (μ := Pι) (X := fun i => Y i a) AEStronglyMeasurable.of_discrete
+  have hintegral_sum :
+      (∑ a, ∫ i, Y i a ^ 2 ∂Pι) =
+        ∫ i, ∑ a, Y i a ^ 2 ∂Pι := by
+    rw [integral_finset_sum]
+    intro a _ha
+    exact Integrable.of_finite
+  have hsecond :
+      ∫ i, ∑ a, Y i a ^ 2 ∂Pι =
+        ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
+          ∑ i, ∑ a, Y i a ^ 2 := by
+    simpa [Pι] using
+      (integral_uniformOn_univ_eq_card_inv_smul_sum (E := ℝ)
+        (fun i => ∑ a, Y i a ^ 2))
+  calc
+    Matrix.trace (covMat Pι Y)
+        = ∑ a, Var[fun i => Y i a; Pι] := htrace
+    _ ≤ ∑ a, ∫ i, Y i a ^ 2 ∂Pι :=
+          Finset.sum_le_sum fun a _ha => hvar_le a
+    _ = ∫ i, ∑ a, Y i a ^ 2 ∂Pι := hintegral_sum
+    _ = ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
+          ∑ i, ∑ a, Y i a ^ 2 := hsecond
+
+/-- Trace second-moment bound for the finite-dimensional nonparametric-bootstrap
+sample mean.
+
+When the resample size and empirical support have the same cardinality, this is
+the vector trace version of Hansen's `n^{-2} ∑ Yᵢ'Yᵢ` bound in the proof of
+Theorem 10.2. -/
+theorem trace_covMat_resampleMean_le_inv_card_mul_secondMoment
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) :
+    Matrix.trace
+        (covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) ≤
+      (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2) := by
+  classical
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have htrace_eq :
+      Matrix.trace
+          (covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+            (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a)) =
+        (Fintype.card κ : ℝ)⁻¹ * Matrix.trace (covMat Pι Y) := by
+    simpa [Pι] using trace_covMat_resampleMean_eq_inv_card_mul (κ := κ) (Y := Y)
+  have htrace_le :
+      Matrix.trace (covMat Pι Y) ≤
+        ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2 := by
+    simpa [Pι] using trace_covMat_uniformOn_univ_le_card_inv_smul_sum_sq (Y := Y)
+  have hc_nonneg : 0 ≤ (Fintype.card κ : ℝ)⁻¹ :=
+    inv_nonneg.mpr (Nat.cast_nonneg _)
+  calc
+    Matrix.trace
+        (covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+          (fun ωs a => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a))
+        = (Fintype.card κ : ℝ)⁻¹ * Matrix.trace (covMat Pι Y) := htrace_eq
+    _ ≤ (Fintype.card κ : ℝ)⁻¹ *
+        (((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ∑ a, Y i a ^ 2) :=
+          mul_le_mul_of_nonneg_left htrace_le hc_nonneg
 
 end EmpiricalDistribution
 
