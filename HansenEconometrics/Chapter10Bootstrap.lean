@@ -97,6 +97,10 @@ used throughout the chapter:
 * `chapter10_bootstrap_smooth_function_gaussian_of_linearization` is the
   smooth-function Gaussian wrapper for Hansen Theorem 10.7 once the
   bootstrap statistic has been reduced to its derivative-linearized form.
+* `TendstoInBootstrapWeakDistribution.of_integral_difference_zero` and
+  `chapter10_bootstrap_smooth_function_gaussian_of_integral_linearization`
+  transfer a bootstrap weak limit across a nonlinear linearization when every
+  bounded-continuous test-function integral differs by `oₚ(1)`.
 * `finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv` and its
   moment/covariance wrappers turn bounded-trimmed finite-replication WLLN
   `L²` error bounds into the moment premises used in Hansen Theorem 10.11.
@@ -2081,6 +2085,42 @@ theorem TendstoInBootstrapWeakDistribution.congr
     TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z' :=
   (hZ.congr_bootstrap hstar).congr_limit hlim
 
+/-- Transfer bootstrap weak convergence across an `oₚ(1)` difference in every
+bounded-continuous test-function integral.
+
+This is the reusable linearization bridge behind nonlinear bootstrap Delta
+method wrappers: once the linearized statistic has a bootstrap weak limit, it
+is enough to show that applying any bounded continuous test function and
+taking the conditional bootstrap expectation differs from the nonlinear
+statistic by `oₚ(1)`. -/
+theorem TendstoInBootstrapWeakDistribution.of_integral_difference_zero
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction E ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegral Pstar Zstar f n ω)
+          atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z := by
+  intro f
+  have hlin := hZ.tendsto_integral f
+  have hlin0 := TendstoInMeasure.sub_limit_zero_real hlin
+  have hsum := TendstoInMeasure.add_zero_real (hdiff f) hlin0
+  have htarget0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+            ∫ ωlim, f (Z ωlim) ∂ν)
+        atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsum
+    exact ae_of_all μ fun ω => by ring
+  exact TendstoInMeasure.of_sub_limit_zero_real htarget0
+
 private theorem tendstoInMeasure_of_squeeze_approx_real
     {X : ℕ → Ω → ℝ} {c : ℝ}
     (happrox :
@@ -3044,6 +3084,46 @@ theorem chapter10_bootstrap_smooth_function_gaussian_of_linearization
   (chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
     (Tstar := Tstar) (V := V) G hV hT).congr_bootstrap
       (fun n ω ωs => (hlinearization n ω ωs).symm)
+
+/-- Hansen Theorem 10.7 smooth-function Gaussian wrapper from
+bounded-continuous test-function linearization.
+
+This is the weak-distribution transfer form used when differentiability gives
+an `oₚ*` nonlinear remainder strong enough to make every bounded-continuous
+test-function conditional expectation agree asymptotically with the
+derivative-linearized statistic. -/
+theorem chapter10_bootstrap_smooth_function_gaussian_of_integral_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hlinearization :
+      ∀ f : BoundedContinuousFunction (EuclideanSpace ℝ r) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar thetaStar f n ω -
+              bootstrapBoundedContinuousIntegral Pstar
+                (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+                f n ω)
+          atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => z) :=
+  TendstoInBootstrapWeakDistribution.of_integral_difference_zero
+    (μ := μ) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+    (Zstar' := thetaStar)
+    (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+    (Z := fun z : EuclideanSpace ℝ r => z)
+    (chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
+      (Tstar := Tstar) (V := V) G hV hT)
+    hlinearization
 
 end BootstrapDeltaMethod
 
