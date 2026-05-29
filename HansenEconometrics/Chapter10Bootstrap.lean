@@ -93,6 +93,9 @@ used throughout the chapter:
 * `chapter10_bootstrap_smooth_function_gaussian_of_linearization` is the
   smooth-function Gaussian wrapper for Hansen Theorem 10.7 once the
   bootstrap statistic has been reduced to its derivative-linearized form.
+* `finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv` and its
+  moment/covariance wrappers turn bounded-trimmed finite-replication WLLN
+  `L²` error bounds into the moment premises used in Hansen Theorem 10.11.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `empiricalMean`, `empiricalBootstrapResampleMean`,
@@ -4054,6 +4057,151 @@ noncomputable def finiteReplicationCovarianceCenteredMat
         (Z B b ω a - finiteReplicationMeanVec Z B ω a) *
           (Z B b ω c - finiteReplicationMeanVec Z B ω c)
 
+private theorem tendstoInMeasure_of_integral_norm_sq_le_inv
+    [IsFiniteMeasure μ] {X : ℕ → Ω → ℝ} {x C : ℝ}
+    (hInt : ∀ n, Integrable (fun ω => ‖X n ω - x‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ᶠ n in atTop,
+        (∫ ω, ‖X n ω - x‖ ^ (2 : ℝ) ∂μ) ≤ C / (n : ℝ)) :
+    TendstoInMeasure μ X atTop (fun _ => x) := by
+  have hupper : Tendsto (fun n : ℕ => C / (n : ℝ)) atTop (𝓝 0) :=
+    tendsto_natCast_atTop_atTop.const_div_atTop C
+  have hnonneg :
+      ∀ᶠ n in atTop,
+        (0 : ℝ) ≤ ∫ ω, ‖X n ω - x‖ ^ (2 : ℝ) ∂μ :=
+    Eventually.of_forall fun n =>
+      integral_nonneg fun ω =>
+        Real.rpow_nonneg (norm_nonneg (X n ω - x)) _
+  have hscaled :
+      Tendsto (fun n => ∫ ω, ‖X n ω - x‖ ^ (2 : ℝ) ∂μ)
+        atTop (𝓝 0) :=
+    tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hupper hnonneg hbound
+  have hscaled' :
+      Tendsto
+        (fun n => (∫ ω, ‖X n ω - x‖ ^ (2 : ℝ) ∂μ) /
+          (fun _ : ℕ => (1 : ℝ)) n ^ (2 : ℝ))
+        atTop (𝓝 0) := by
+    simpa using hscaled
+  have hsub_scaled :
+      TendstoInMeasure μ
+        (fun n ω => ((fun _ : ℕ => (1 : ℝ)) n)⁻¹ * (X n ω - x))
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.of_integral_norm_rpow_scaled_tendsto_zero
+      (μ := μ) (X := fun n ω => X n ω - x)
+      (a := fun _ : ℕ => (1 : ℝ)) (p := (2 : ℝ))
+      (by norm_num)
+      (Eventually.of_forall fun _ => by norm_num)
+      hInt hscaled'
+  have hsub :
+      TendstoInMeasure μ (fun n ω => X n ω - x) atTop (fun _ => 0) := by
+    simpa using hsub_scaled
+  exact TendstoInMeasure.of_sub_limit_zero_real hsub
+
+/-- Finite-replication WLLN for real means from an `L²` error bound.
+
+This is the bounded-trimmed WLLN constructor used by Hansen Theorem 10.11:
+an `O(B⁻¹)` mean-square error for the finite simulation average implies
+convergence in probability of the finite-replication mean. -/
+theorem finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ]
+    {Z : ℕ → ℕ → Ω → ℝ} {m C : ℝ}
+    (hInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ) ∂μ) ≤
+          C / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationMeanReal Z) atTop (fun _ => m) :=
+  tendstoInMeasure_of_integral_norm_sq_le_inv (μ := μ)
+    (X := finiteReplicationMeanReal Z) hInt hbound
+
+/-- Finite-replication WLLN for real second moments from an `L²` error bound. -/
+theorem finiteReplicationSecondMomentReal_tendsto_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ]
+    {Z : ℕ → ℕ → Ω → ℝ} {m₂ C : ℝ}
+    (hInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ) ∂μ) ≤
+          C / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationSecondMomentReal Z) atTop
+      (fun _ => m₂) :=
+  tendstoInMeasure_of_integral_norm_sq_le_inv (μ := μ)
+    (X := finiteReplicationSecondMomentReal Z) hInt hbound
+
+/-- Finite-replication WLLN for real cross moments from an `L²` error bound. -/
+theorem finiteReplicationCrossMomentReal_tendsto_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ]
+    {X Y : ℕ → ℕ → Ω → ℝ} {mXY C : ℝ}
+    (hInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationCrossMomentReal X Y B ω - mXY‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationCrossMomentReal X Y B ω - mXY‖ ^ (2 : ℝ) ∂μ) ≤
+          C / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCrossMomentReal X Y) atTop
+      (fun _ => mXY) :=
+  tendstoInMeasure_of_integral_norm_sq_le_inv (μ := μ)
+    (X := finiteReplicationCrossMomentReal X Y) hInt hbound
+
+/-- Coordinatewise finite-replication WLLN for mean vectors from `L²` error
+bounds. -/
+theorem finiteReplicationMeanVec_tendsto_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Z : ℕ → ℕ → Ω → k → ℝ} {m : k → ℝ} {C : k → ℝ}
+    (hInt :
+      ∀ a B, Integrable
+        (fun ω => ‖finiteReplicationMeanVec Z B ω a - m a‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ a,
+        ∀ᶠ B in atTop,
+          (∫ ω, ‖finiteReplicationMeanVec Z B ω a - m a‖ ^ (2 : ℝ) ∂μ) ≤
+            C a / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationMeanVec Z) atTop (fun _ => m) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  simpa [finiteReplicationMeanVec, finiteReplicationMeanReal] using
+    finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := fun B b ω => Z B b ω a) (m := m a) (C := C a)
+      (by simpa [finiteReplicationMeanVec, finiteReplicationMeanReal] using hInt a)
+      (by simpa [finiteReplicationMeanVec, finiteReplicationMeanReal] using hbound a)
+
+/-- Coordinatewise finite-replication WLLN for cross-moment matrices from
+`L²` error bounds. -/
+theorem finiteReplicationCrossMomentMat_tendsto_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Z : ℕ → ℕ → Ω → k → ℝ} {M₂ : Matrix k k ℝ} {C : k → k → ℝ}
+    (hInt :
+      ∀ a c B, Integrable
+        (fun ω => ‖finiteReplicationCrossMomentMat Z B ω a c - M₂ a c‖ ^
+          (2 : ℝ)) μ)
+    (hbound :
+      ∀ a c,
+        ∀ᶠ B in atTop,
+          (∫ ω, ‖finiteReplicationCrossMomentMat Z B ω a c - M₂ a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            C a c / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCrossMomentMat Z) atTop
+      (fun _ => M₂) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  simpa [finiteReplicationCrossMomentMat, finiteReplicationCrossMomentReal] using
+    finiteReplicationCrossMomentReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ)
+      (X := fun B b ω => Z B b ω a)
+      (Y := fun B b ω => Z B b ω c)
+      (mXY := M₂ a c) (C := C a c)
+      (by
+        simpa [finiteReplicationCrossMomentMat, finiteReplicationCrossMomentReal]
+          using hInt a c)
+      (by
+        simpa [finiteReplicationCrossMomentMat, finiteReplicationCrossMomentReal]
+          using hbound a c)
+
 /-- The finite-replication degrees-of-freedom correction `B / (B - 1)`
 tends to `1`. -/
 theorem finiteReplicationVarianceCorrection_tendsto_one :
@@ -4233,6 +4381,40 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_moments
       simp [finiteReplicationVarianceMomentReal]
   · exact ae_of_all μ fun _ => by ring
 
+/-- Hansen Theorem 10.11, finite-replication variance from bounded-trimmed
+`L²` WLLN bounds.
+
+The displayed `C / B` mean-square bounds are the probability-theory premises
+supplied by the bounded trimmed bootstrap WLLN.  This wrapper turns those
+bounds into the mean and second-moment convergence premises needed by
+`chapter10_finiteReplicationVariance_tendsto_of_moments`. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_l2_error_bounds
+    [IsFiniteMeasure μ]
+    {Z : ℕ → ℕ → Ω → ℝ} {m m₂ Cmean Csecond : ℝ}
+    (hmeanInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ)) μ)
+    (hmeanBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ) ∂μ) ≤
+          Cmean / (B : ℝ))
+    (hsecondInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ)) μ)
+    (hsecondBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ) ∂μ) ≤
+          Csecond / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Z) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_moments
+    (μ := μ)
+    (finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (m := m) (C := Cmean) hmeanInt hmeanBound)
+    (finiteReplicationSecondMomentReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (m₂ := m₂) (C := Csecond)
+      hsecondInt hsecondBound)
+
 /-- Finite-replication covariance moment bridge for two real statistics.
 
 If the finite-`B` replication means of `X` and `Y` and their cross moment
@@ -4363,6 +4545,44 @@ theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_moments
     (finiteReplicationCovarianceCenteredReal_eq_momentReal
       (X := X) (Y := Y) hB ω).symm
 
+/-- Hansen Theorem 10.11, centered real finite-replication covariance from
+bounded-trimmed `L²` WLLN bounds. -/
+theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_l2_error_bounds
+    [IsFiniteMeasure μ]
+    {X Y : ℕ → ℕ → Ω → ℝ} {mX mY mXY CX CY CXY : ℝ}
+    (hmeanXInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationMeanReal X B ω - mX‖ ^ (2 : ℝ)) μ)
+    (hmeanXBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationMeanReal X B ω - mX‖ ^ (2 : ℝ) ∂μ) ≤
+          CX / (B : ℝ))
+    (hmeanYInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationMeanReal Y B ω - mY‖ ^ (2 : ℝ)) μ)
+    (hmeanYBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationMeanReal Y B ω - mY‖ ^ (2 : ℝ) ∂μ) ≤
+          CY / (B : ℝ))
+    (hcrossInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationCrossMomentReal X Y B ω - mXY‖ ^ (2 : ℝ)) μ)
+    (hcrossBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationCrossMomentReal X Y B ω - mXY‖ ^ (2 : ℝ) ∂μ) ≤
+          CXY / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal X Y) atTop
+      (fun _ => mXY - mX * mY) :=
+  chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_moments
+    (μ := μ)
+    (finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := X) (m := mX) (C := CX) hmeanXInt hmeanXBound)
+    (finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Y) (m := mY) (C := CY) hmeanYInt hmeanYBound)
+    (finiteReplicationCrossMomentReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (X := X) (Y := Y) (mXY := mXY) (C := CXY)
+      hcrossInt hcrossBound)
+
 /-- Hansen Theorem 10.11, textbook-centered finite-dimensional covariance
 bridge.
 
@@ -4392,6 +4612,45 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments
   exact ae_of_all μ fun ω =>
     (finiteReplicationCovarianceCenteredMat_eq_momentMat
       (Z := Z) hB ω).symm
+
+/-- Hansen Theorem 10.11, centered finite-dimensional covariance from
+bounded-trimmed coordinatewise `L²` WLLN bounds.
+
+This is the theorem-facing constructor for the finite-replication trimmed
+bootstrap covariance estimator: once bounded trimmed replications supply
+`O(B⁻¹)` mean-square errors for coordinate means and cross moments, the
+centered finite-replication covariance matrix converges to `M₂ - m m'`. -/
+theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_error_bounds
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Z : ℕ → ℕ → Ω → k → ℝ} {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    {Cmean : k → ℝ} {Ccross : k → k → ℝ}
+    (hmeanInt :
+      ∀ a B, Integrable
+        (fun ω => ‖finiteReplicationMeanVec Z B ω a - m a‖ ^ (2 : ℝ)) μ)
+    (hmeanBound :
+      ∀ a,
+        ∀ᶠ B in atTop,
+          (∫ ω, ‖finiteReplicationMeanVec Z B ω a - m a‖ ^ (2 : ℝ) ∂μ) ≤
+            Cmean a / (B : ℝ))
+    (hcrossInt :
+      ∀ a c B, Integrable
+        (fun ω => ‖finiteReplicationCrossMomentMat Z B ω a c - M₂ a c‖ ^
+          (2 : ℝ)) μ)
+    (hcrossBound :
+      ∀ a c,
+        ∀ᶠ B in atTop,
+          (∫ ω, ‖finiteReplicationCrossMomentMat Z B ω a c - M₂ a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Ccross a c / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Z) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments
+    (μ := μ)
+    (finiteReplicationMeanVec_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (m := m) (C := Cmean) hmeanInt hmeanBound)
+    (finiteReplicationCrossMomentMat_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (M₂ := M₂) (C := Ccross)
+      hcrossInt hcrossBound)
 
 end FiniteReplicationVariance
 
