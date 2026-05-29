@@ -51,6 +51,9 @@ used throughout the chapter:
   wrappers.
 * `chapter10_bootstrap_clt_gaussian_of_tendsto_cdf` is the Gaussian CDF wrapper
   for Hansen Theorem 10.4.
+* `chapter10_bootstrap_clt_gaussian_of_weakDistribution` is the corresponding
+  weak-distribution Gaussian wrapper, using null frontiers of coordinate lower
+  orthants to recover Hansen Definition 10.2.
 * `TendstoInBootstrapWeakDistribution` is a bounded-continuous-test-function
   backend for bootstrap distributional convergence, used by the distributional
   continuous-mapping theorem.
@@ -2966,6 +2969,47 @@ theorem TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
   intro x hx
   exact hweak.bootstrapVectorCDF_tendsto_of_null_frontier
     hPstar hZstar hZ (hfrontier x hx)
+
+/-- Hansen Theorem 10.4, Gaussian bootstrap CLT from weak bootstrap
+convergence.
+
+If a normalized bootstrap statistic converges weakly, in the
+bounded-continuous-test-function bootstrap sense, to `N(0, S)`, then the
+coordinate-CDF version of Hansen Definition 10.2 follows at all continuity
+points whose lower-orthant frontiers are null under that Gaussian law. -/
+theorem chapter10_bootstrap_clt_gaussian_of_weakDistribution
+    [Fintype k] [DecidableEq k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar Zstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hZlim :
+      AEMeasurable (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S) :=
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)).aemeasurable
+  exact
+    TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+      hweak hPstar hZstar hZlim hfrontier
 
 /-- Weak bootstrap convergence plus bounded-continuous integral
 linearization implies Hansen's coordinate-CDF bootstrap distribution
