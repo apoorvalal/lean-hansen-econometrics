@@ -67,6 +67,10 @@ used throughout the chapter:
   and `chapter10_bootstrap_continuous_mapping_event_probability_of_null_frontier`
   combine the weak-distribution bridge with the null-frontier sandwich
   constructor.
+* `TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_null_frontier`
+  and `TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers` connect
+  the bounded-continuous weak-convergence layer back to Hansen's coordinate-CDF
+  Definition 10.2.
 * `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
@@ -2440,6 +2444,70 @@ theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_null_fro
   · simpa [hlower_map] using hlower_law
   · simpa [hupper_map] using hupper_law
   · simpa [hlower_map, hupper_map] using hgap_law
+
+/-- Coordinate lower orthants are closed in product space. -/
+theorem isClosed_coordinateLE (x : k → ℝ) :
+    IsClosed {z : k → ℝ | coordinateLE z x} := by
+  rw [show {z : k → ℝ | coordinateLE z x} =
+      ⋂ i : k, {z : k → ℝ | z i ≤ x i} by
+    ext z
+    simp [coordinateLE]]
+  exact isClosed_iInter fun i => isClosed_le (continuous_apply i) continuous_const
+
+/-- Coordinate lower orthants are measurable. -/
+theorem measurableSet_coordinateLE
+    [MeasurableSpace (k → ℝ)] [OpensMeasurableSpace (k → ℝ)] (x : k → ℝ) :
+    MeasurableSet {z : k → ℝ | coordinateLE z x} :=
+  (isClosed_coordinateLE x).measurableSet
+
+/-- Weak bootstrap convergence gives conditional-CDF convergence at a
+lower-orthant null-frontier point.
+
+This is the bridge from the bounded-continuous-test-function API back to
+Hansen Definition 10.2's coordinate-CDF surface. -/
+theorem TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_null_frontier
+    [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZ : AEMeasurable Z ν) {x : k → ℝ}
+    (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar x n ω)
+      atTop (fun _ => vectorCDF ν Z x) := by
+  letI : Fintype k := Fintype.ofFinite k
+  let A : Set (k → ℝ) := {z | coordinateLE z x}
+  have hA : MeasurableSet A := measurableSet_coordinateLE x
+  have hevent :
+      TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar A)
+        atTop (fun _ => (ν.map Z).real A) :=
+    hweak.event_probability_tendsto_of_null_frontier hPstar hZstar hZ hA hfrontier
+  simpa [bootstrapVectorCDF, bootstrapEventProbability, vectorCDF, A, Measure.real_def,
+    Measure.map_apply_of_aemeasurable hZ hA] using hevent
+
+/-- Weak bootstrap convergence implies Hansen's coordinate-CDF bootstrap
+distribution convergence when every relevant lower orthant has null frontier
+under the limiting law.
+
+The null-frontier premise is stated only at continuity points of the limiting
+CDF, matching Hansen Definition 10.2. -/
+theorem TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
+    [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZ : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y => vectorCDF ν Z y) x →
+        (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar Zstar ν Z := by
+  letI : Fintype k := Fintype.ofFinite k
+  intro x hx
+  exact hweak.bootstrapVectorCDF_tendsto_of_null_frontier
+    hPstar hZstar hZ (hfrontier x hx)
 
 /-- Clipped first moments converge under bootstrap weak convergence.
 
