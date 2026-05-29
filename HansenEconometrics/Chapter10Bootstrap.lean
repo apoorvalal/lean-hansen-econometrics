@@ -3,6 +3,7 @@ import Mathlib.Probability.UniformOn
 import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
+import HansenEconometrics.Chapter7Asymptotics.Inference
 import HansenEconometrics.ProbabilityUtils
 
 /-!
@@ -77,6 +78,12 @@ used throughout the chapter:
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
+* `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
+  Edgeworth interface to expose the symmetric percentile-`t` refinement behind
+  Hansen Theorem 10.15.
+* `chapter10_abs_test_secondOrder_rejection_expansion` gives the fixed-critical
+  two-sided rejection-probability Edgeworth expansion used in Hansen Theorem
+  10.17.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -2239,5 +2246,130 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha
       hjoint hfrontier
 
 end BootstrapTests
+
+section HigherOrderRefinements
+
+/-- Hansen Theorem 10.15, Edgeworth component of the percentile-`t` refinement.
+
+A second-order Edgeworth expansion for a scalar t-ratio gives the symmetric
+interval probability expansion used by the percentile-`t` bootstrap interval.
+The even `p₁` and odd `p₂` hypotheses encode the cancellation of the
+`n^{-1/2}` Edgeworth term in two-sided intervals. -/
+theorem chapter10_percentileT_secondOrder_interval_expansion
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {c coverage : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = coverage) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          ((statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)) -
+            coverage -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) := by
+  simpa [hcoverage] using
+    h.symmetric_interval_scaled_remainder_tendsto_zero c hp1 hp2 hdensity
+
+/-- Polynomial-shape specialization of
+`chapter10_percentileT_secondOrder_interval_expansion`.
+
+This is the theorem-facing Chapter 10 wrapper for Hansen's even-quadratic
+`p₁` and odd degree-five `p₂` Edgeworth polynomial shapes. -/
+theorem chapter10_percentileT_secondOrder_interval_expansion_polynomial
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {a0 a2 b1 b3 b5 c coverage : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = coverage) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          ((statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)) -
+            coverage -
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) := by
+  simpa [hcoverage] using
+    h.symmetric_interval_scaled_remainder_tendsto_zero_polynomial (c := c) hdensity
+
+/-- Hansen Theorem 10.17, fixed-critical Edgeworth component.
+
+For a two-sided test using a fixed critical value `c`, the rejection probability
+`1 - (Fₙ(c) - Fₙ(-c))` inherits the symmetric second-order Edgeworth expansion.
+The bootstrap-quantile step of Theorem 10.17 supplies the additional
+critical-value transfer premise needed to turn this fixed-critical expansion
+into the `o(n^{-1})` bootstrap-test refinement. -/
+theorem chapter10_abs_test_secondOrder_rejection_expansion
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (halpha : 1 - (baseCDF c - baseCDF (-c)) = alpha) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((1 : ℝ) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))) -
+            alpha +
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) := by
+  have hinterval :=
+    h.symmetric_interval_scaled_remainder_tendsto_zero c hp1 hp2 hdensity
+  have hneg := hinterval.neg
+  have heq :
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((1 : ℝ) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))) -
+            alpha +
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c)))) =ᶠ[atTop]
+      (fun n : ℕ =>
+        -((n : ℝ) *
+          ((statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)) -
+            (baseCDF c - baseCDF (-c)) -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))) := by
+    filter_upwards with n
+    rw [← halpha]
+    ring
+  rw [tendsto_congr' heq]
+  simpa using hneg
+
+/-- Polynomial-shape specialization of
+`chapter10_abs_test_secondOrder_rejection_expansion`. -/
+theorem chapter10_abs_test_secondOrder_rejection_expansion_polynomial
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {a0 a2 b1 b3 b5 c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (halpha : 1 - (baseCDF c - baseCDF (-c)) = alpha) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((1 : ℝ) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))) -
+            alpha +
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) := by
+  exact
+    chapter10_abs_test_secondOrder_rejection_expansion
+      (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+      (p1 := edgeworthP1Polynomial a0 a2)
+      (p2 := edgeworthP2Polynomial b1 b3 b5)
+      (c := c) (alpha := alpha) h
+      (edgeworthP1Polynomial_neg a0 a2 c)
+      (edgeworthP2Polynomial_neg b1 b3 b5 c)
+      hdensity halpha
+
+end HigherOrderRefinements
 
 end HansenEconometrics
