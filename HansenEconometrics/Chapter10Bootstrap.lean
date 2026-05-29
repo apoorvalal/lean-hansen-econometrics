@@ -184,6 +184,8 @@ used throughout the chapter:
   specialization of that law-level percentile calibration.
 * `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
   is the endpoint-CDF form with limiting coverage `1 - α`.
+* `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf`
+  combines componentwise Slutsky convergence with the endpoint-CDF calibration.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageVector_tendstoInDistribution_of_components` assembles
@@ -204,6 +206,8 @@ used throughout the chapter:
   specialization of the percentile-`t` law-level calibration.
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf`
   is the endpoint-CDF form with limiting coverage `1 - α`.
+* `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf`
+  combines componentwise Slutsky convergence with the endpoint-CDF calibration.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
@@ -225,6 +229,8 @@ used throughout the chapter:
   states the same two-sided test calibration in CDF-increment form.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf_endpoints`
   is the endpoint-CDF form with limiting size `α`.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints`
+  combines componentwise Slutsky convergence with the endpoint-CDF calibration.
 * `chapter10_percentileT_secondOrder_interval_expansion` reuses the Chapter 7
   Edgeworth interface to expose the symmetric percentile-`t` refinement behind
   Hansen Theorem 10.15.
@@ -5299,6 +5305,52 @@ theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
   rw [hlower, hupper]
   ring
 
+/-- Componentwise endpoint-CDF percentile-interval calibration with limiting
+coverage `1 - α`.
+
+This is the Theorem 10.13 coverage bridge stated directly from scalar
+estimator-error convergence and bootstrap endpoint convergence in probability. -/
+theorem chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hlower :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qLower n ω - θhat n ω))
+        atTop (fun _ => qLowerLim))
+    (hupper :
+      TendstoInMeasure μ
+        (fun n ω => a n * (qUpper n ω - θhat n ω))
+        atTop (fun _ => qUpperLim))
+    (hlower_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qLower n ω - θhat n ω)) μ)
+    (hupper_meas :
+      ∀ n, AEMeasurable (fun ω => a n * (qUpper n ω - θhat n ω)) μ)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hcdfLower : cdf η (-qUpperLim) = α / 2)
+    (hcdfUpper : cdf η (-qLowerLim) = 1 - α / 2) :
+    Tendsto
+      (fun n => μ {ω | percentileCIEvent θ (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      (percentileCoverageVector_tendstoInDistribution_of_components
+        (μ := μ) (ν := ν) (a := a) (θ := θ)
+        (θhat := θhat) (qLower := qLower) (qUpper := qUpper)
+        (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+        hstat hlower hupper hlower_meas hupper_meas)
+      hξ hquantiles hcdfLower hcdfUpper
+
 end PercentileIntervals
 
 section PercentileTIntervals
@@ -5836,6 +5888,47 @@ theorem chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
   rw [hlower, hupper]
   ring
 
+/-- Componentwise endpoint-CDF percentile-`t` calibration with limiting
+coverage `1 - α`.
+
+This is the Theorem 10.14 coverage bridge stated directly from sample t-ratio
+convergence and bootstrap percentile-`t` endpoint convergence in probability. -/
+theorem chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_law_cdf
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {qLowerLim qUpperLim α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hlower : TendstoInMeasure μ qLower atTop (fun _ => qLowerLim))
+    (hupper : TendstoInMeasure μ qUpper atTop (fun _ => qUpperLim))
+    (hlower_meas : ∀ n, AEMeasurable (qLower n) μ)
+    (hupper_meas : ∀ n, AEMeasurable (qUpper n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hquantiles : qLowerLim ≤ qUpperLim)
+    (hcdfLower : cdf η qLowerLim = α / 2)
+    (hcdfUpper : cdf η qUpperLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (qLower n ω) (qUpper n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_limit_law_cdf
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := qLower) (qUpper := qUpper)
+      (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+      hse
+      (percentileTCoverageVector_tendstoInDistribution_of_components
+        (μ := μ) (ν := ν) (θ := θ) (θhat := θhat) (se := se)
+        (qLower := qLower) (qUpper := qUpper)
+        (ξ := ξ) (qLowerLim := qLowerLim) (qUpperLim := qUpperLim)
+        htstat hlower hupper hlower_meas hupper_meas)
+      hξ hquantiles hcdfLower hcdfUpper
+
 end PercentileTIntervals
 
 section BootstrapTests
@@ -6256,6 +6349,35 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cd
       (ξ := ξ) (critLim := critLim) (alpha := α) hjoint hξ hcrit ?_
   rw [hlower, hupper]
   ring
+
+/-- Componentwise endpoint-CDF two-sided bootstrap-test calibration with
+limiting size `α`.
+
+This is the Theorem 10.16 rejection bridge stated directly from statistic
+convergence and bootstrap critical-value convergence in probability. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {T crit : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hcrit : TendstoInMeasure μ crit atTop (fun _ => critLim))
+    (hcrit_meas : ∀ n, AEMeasurable (crit n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n => μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_limit_law_cdf_endpoints
+      (μ := μ) (ν := ν) (η := η) (T := T) (crit := crit)
+      (ξ := ξ) (critLim := critLim) (α := α)
+      (bootstrapAbsTestVector_tendstoInDistribution_of_components
+        (μ := μ) (ν := ν) (T := T) (crit := crit)
+        (ξ := ξ) (critLim := critLim)
+        hT hcrit hcrit_meas)
+      hξ hcrit_nonneg hcdfLower hcdfUpper
 
 end BootstrapTests
 
