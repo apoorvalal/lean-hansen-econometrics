@@ -324,10 +324,12 @@ used throughout the chapter:
   `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
   combine finite-replication simulation error with the conditional-bootstrap
   variance consistency layer from Hansen Theorem 10.9, with indexed
-  counterparts for sample-size-dependent bootstrap spaces; the moment-premise
-  and centered-scalar wrappers expose the same transfer directly from
-  conditional bootstrap mean/second-moment convergence and Hansen's displayed
-  `1 / (B - 1)` estimator.
+  counterparts for sample-size-dependent bootstrap spaces. The fourth-moment
+  variants feed the same transfer from conditional fourth-moment convergence
+  and eventual limit squared-tail bounds. The moment-premise and
+  centered-scalar wrappers expose the same transfer directly from conditional
+  bootstrap mean/second-moment convergence and Hansen's displayed `1 / (B - 1)`
+  estimator.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -12442,6 +12444,81 @@ theorem
     (chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
 
+/-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
+convergence and fourth-moment tail controls. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_fourthMoment_tail
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt hLimitTail)
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
+bootstrap weak convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_fourthMoment_tail
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt hLimitTail)
+
 /-- Indexed Hansen Theorem 10.9/10.11 bridge from finite-replication
 simulation error.
 
@@ -12632,6 +12709,86 @@ theorem
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
     (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from
+bootstrap weak convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_indexed_finiteReplicationVariance_tendsto_of_weak_distribution_fourthMoment_tail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt hLimitTail)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
+from bootstrap weak convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_fourthMoment_tail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt hLimitTail)
 
 /-- Finite-replication covariance moment bridge for two real statistics.
 
