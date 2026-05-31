@@ -276,6 +276,9 @@ used throughout the chapter:
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
   expose the pointwise threshold bound for Hansen's trimmed bootstrap statistic.
+  Fixed/indexed dominated-tail bridges compare coordinate, coordinate-sum, and
+  coordinate-product squared tails of `Z**` to the corresponding original
+  statistic tails.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -9190,6 +9193,79 @@ theorem integral_tail_sq_mul_trimmedBootstrapStatistic_apply_eq_zero_of_lt
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
+/-- Coordinate squared tails of the trimmed statistic are pointwise dominated
+by the corresponding original-statistic squared tails. -/
+theorem tail_sq_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) (a : k) (R : ℝ) :
+    Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatistic Zstar τ n ω ωs a) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+      (fun ωs => (Zstar n ω ωs a) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatistic, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a|}
+            (fun x => (Zstar n ω x a) ^ 2) ωs :=
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Zstar n ω x a)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatistic, htrim] using hnonneg
+
+/-- Coordinate-sum squared tails of the trimmed statistic are pointwise
+dominated by the corresponding original-statistic squared tails. -/
+theorem tail_sq_add_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) (a c : k) (R : ℝ) :
+    Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatistic, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a + Zstar n ω x c|}
+            (fun x => (Zstar n ω x a + Zstar n ω x c) ^ 2) ωs :=
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (Zstar n ω x a + Zstar n ω x c)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatistic, htrim] using hnonneg
+
+/-- Coordinate-product squared tails of the trimmed statistic are pointwise
+dominated by the corresponding original-statistic squared tails. -/
+theorem tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) (a c : k) (R : ℝ) :
+    Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatistic, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a * Zstar n ω x c|}
+            (fun x => (Zstar n ω x a * Zstar n ω x c) ^ 2) ωs :=
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (Zstar n ω x a * Zstar n ω x c)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatistic, htrim] using hnonneg
+
 /-- Hansen's trimmed bootstrap statistic is a.e. strongly measurable whenever
 the original bootstrap statistic is. -/
 theorem aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
@@ -9501,6 +9577,82 @@ theorem integral_tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_l
       not_le.mpr (lt_of_le_of_lt hprod hR)
     rw [Set.indicator_of_notMem hnotmem]
     simp
+
+/-- Indexed coordinate squared tails of the trimmed statistic are pointwise
+dominated by the corresponding original-statistic squared tails. -/
+theorem tail_sq_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) (a : k) (R : ℝ) :
+    Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+      (fun ωs => (Zstar n ω ωs a) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatisticIndexed, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a|}
+            (fun x => (Zstar n ω x a) ^ 2) ωs :=
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Zstar n ω x a)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatisticIndexed, htrim] using hnonneg
+
+/-- Indexed coordinate-sum squared tails of the trimmed statistic are
+pointwise dominated by the corresponding original-statistic squared tails. -/
+theorem tail_sq_add_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) (a c : k) (R : ℝ) :
+    Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatisticIndexed, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a + Zstar n ω x c|}
+            (fun x => (Zstar n ω x a + Zstar n ω x c) ^ 2) ωs :=
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (Zstar n ω x a + Zstar n ω x c)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatisticIndexed, htrim] using hnonneg
+
+/-- Indexed coordinate-product squared tails of the trimmed statistic are
+pointwise dominated by the corresponding original-statistic squared tails. -/
+theorem tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) (a c : k) (R : ℝ) :
+    Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ≤
+    Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · simp [Set.indicator, trimmedBootstrapStatisticIndexed, htrim]
+  · have hnonneg :
+        0 ≤
+          Set.indicator {x | R ≤ |Zstar n ω x a * Zstar n ω x c|}
+            (fun x => (Zstar n ω x a * Zstar n ω x c) ^ 2) ωs :=
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (Zstar n ω x a * Zstar n ω x c)) ωs
+    simpa [Set.indicator, trimmedBootstrapStatisticIndexed, htrim] using hnonneg
 
 /-- Indexed Hansen trimmed bootstrap statistic is a.e. strongly measurable
 whenever the original indexed bootstrap statistic is. -/
