@@ -213,7 +213,9 @@ used throughout the chapter:
 * `chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance` and
   `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
   combine finite-replication simulation error with the conditional-bootstrap
-  variance consistency layer from Hansen Theorem 10.9.
+  variance consistency layer from Hansen Theorem 10.9; the moment-premise
+  wrapper exposes the same transfer directly from conditional bootstrap mean
+  and second-moment convergence.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -5860,6 +5862,66 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
     TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
       (fun _ => σ2) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 finite-replication variance from conditional
+bootstrap moment convergence.
+
+This combines the finite-replication simulation-error bridge with the
+conditional bootstrap variance moment theorem: convergence of the conditional
+bootstrap mean and second moment supplies the conditional variance target. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_moments
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {m m₂ : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => m₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_variance_consistency_of_moment_convergence
+      (μ := μ) hPstar hZ hmean hsecond)
+
+/-- Zero-mean finite-replication variance wrapper for Hansen Theorem 10.11.
+
+When the conditional bootstrap mean converges to zero, the moment-premise
+finite-replication bridge targets the limiting second moment directly. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_zero_mean_moments
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+        (fun _ => 0))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => σ2))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) := by
+  simpa using
+    (chapter10_finiteReplicationVariance_tendsto_of_bootstrap_moments
+      (μ := μ) (m := 0) (m₂ := σ2)
+      hPstar hZ hmean hsecond hfinite)
 
 /-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
 convergence and a uniform-square-tail condition.
