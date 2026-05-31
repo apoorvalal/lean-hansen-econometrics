@@ -260,6 +260,10 @@ used throughout the chapter:
 * `BootstrapUniformSquareTail` and
   `BootstrapUniformSquareTailIndexed` expose that long tail condition as a
   reusable theorem-facing assumption.
+* `bootstrapUniformSquareTail_of_integral_tail_sq_le` and its indexed
+  counterpart transfer that condition across conditional squared-tail
+  domination; the trimmed-statistic wrappers apply this to coordinates,
+  coordinate sums, and coordinate products of Hansen's `Z**`.
 * `chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail`
   and `chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail`
   expose the conditional moment convergence pieces used by the Theorem 10.9
@@ -7378,6 +7382,65 @@ def BootstrapUniformSquareTail
             0})
       atTop (𝓝 0)
 
+private theorem integrable_tail_sq_indicator_of_memLp
+    {α : Type*} [MeasurableSpace α] {P : Measure α}
+    {Y : α → ℝ} (hY : MemLp Y 2 P) (R : ℝ) :
+    Integrable
+      (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) P := by
+  have htail_null : NullMeasurableSet {ω | R ≤ |Y ω|} P :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable
+        hY.aestronglyMeasurable.aemeasurable)
+  exact hY.integrable_sq.indicator₀ htail_null
+
+/-- Uniform square-tail control transfers to a statistic whose conditional
+tail integrals are pointwise dominated by the original statistic's tail
+integrals. -/
+theorem bootstrapUniformSquareTail_of_integral_tail_sq_le
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    (hTail : BootstrapUniformSquareTail μ Pstar Xstar ν Z)
+    (hle : ∀ n ω R,
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Ystar n ω ωs|}
+          (fun ωs => (Ystar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+      ∫ ωs,
+        Set.indicator {ωs | R ≤ |Xstar n ω ωs|}
+          (fun ωs => (Xstar n ω ωs) ^ 2) ωs ∂Pstar n ω) :
+    BootstrapUniformSquareTail μ Pstar Ystar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hlimTail, hsourceTail⟩ := hTail ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hsourceTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let yTail : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Ystar n ω ωs|}
+        (fun ωs => (Ystar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  let xTail : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Xstar n ω ωs|}
+        (fun ωs => (Xstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have hy_nonneg : 0 ≤ yTail := by
+    dsimp [yTail]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Ystar n ω x)) ωs
+  have hx_nonneg : 0 ≤ xTail := by
+    dsimp [xTail]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Xstar n ω x)) ωs
+  have hy_large : ε ≤ yTail := by
+    simpa [Real.dist_eq, yTail, abs_of_nonneg hy_nonneg] using hω
+  have hxy : yTail ≤ xTail := by
+    simpa [xTail, yTail] using hle n ω R
+  have hx_large : ε ≤ xTail := hy_large.trans hxy
+  simpa [Real.dist_eq, xTail, abs_of_nonneg hx_nonneg] using hx_large
+
 /-- Hansen Theorem 10.9 conditional mean convergence from weak convergence and
 uniform square-tail control.
 
@@ -7679,6 +7742,54 @@ def BootstrapUniformSquareTailIndexed
                 (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
             0})
       atTop (𝓝 0)
+
+/-- Indexed version of
+`bootstrapUniformSquareTail_of_integral_tail_sq_le`. -/
+theorem bootstrapUniformSquareTailIndexed_of_integral_tail_sq_le
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Xstar ν Z)
+    (hle : ∀ n ω R,
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Ystar n ω ωs|}
+          (fun ωs => (Ystar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+      ∫ ωs,
+        Set.indicator {ωs | R ≤ |Xstar n ω ωs|}
+          (fun ωs => (Xstar n ω ωs) ^ 2) ωs ∂Pstar n ω) :
+    BootstrapUniformSquareTailIndexed μ Pstar Ystar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hlimTail, hsourceTail⟩ := hTail ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hsourceTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let yTail : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Ystar n ω ωs|}
+        (fun ωs => (Ystar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  let xTail : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Xstar n ω ωs|}
+        (fun ωs => (Xstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have hy_nonneg : 0 ≤ yTail := by
+    dsimp [yTail]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Ystar n ω x)) ωs
+  have hx_nonneg : 0 ≤ xTail := by
+    dsimp [xTail]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Xstar n ω x)) ωs
+  have hy_large : ε ≤ yTail := by
+    simpa [Real.dist_eq, yTail, abs_of_nonneg hy_nonneg] using hω
+  have hxy : yTail ≤ xTail := by
+    simpa [xTail, yTail] using hle n ω R
+  have hx_large : ε ≤ xTail := hy_large.trans hxy
+  simpa [Real.dist_eq, xTail, abs_of_nonneg hx_nonneg] using hx_large
 
 /-- Indexed Hansen Theorem 10.9 conditional mean convergence from weak
 convergence and uniform square-tail control. -/
@@ -9354,6 +9465,85 @@ theorem integral_tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
       tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
         (Zstar := Zstar) (τ := τ) n ω ωs a c R
 
+/-- Original coordinate uniform square-tail control transfers to Hansen's
+trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_trimmedBootstrapStatistic_apply
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a : k)
+    (hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a) ν Z)
+    (hZmem :
+      ∀ n ω, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω)) :
+    BootstrapUniformSquareTail μ Pstar
+      (fun n ω ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) ν Z :=
+  bootstrapUniformSquareTail_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_trimmedBootstrapStatistic_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) n ω a R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω) (Y := fun ωs => Zstar n ω ωs a)
+          (hZmem n ω) R))
+
+/-- Original coordinate-sum uniform square-tail control transfers to Hansen's
+trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_add_trimmedBootstrapStatistic_apply
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a c : k)
+    (hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν Z)
+    (hZmem :
+      ∀ n ω,
+        MemLp (fun ωs => Zstar n ω ωs a + Zstar n ω ωs c) 2
+          (Pstar n ω)) :
+    BootstrapUniformSquareTail μ Pstar
+      (fun n ω ωs =>
+        trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ν Z :=
+  bootstrapUniformSquareTail_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_add_trimmedBootstrapStatistic_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) n ω a c R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω)
+          (Y := fun ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+          (hZmem n ω) R))
+
+/-- Original coordinate-product uniform square-tail control transfers to
+Hansen's trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_mul_trimmedBootstrapStatistic_apply
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a c : k)
+    (hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a * Zstar n ω ωs c) ν Z)
+    (hZmem :
+      ∀ n ω,
+        MemLp (fun ωs => Zstar n ω ωs a * Zstar n ω ωs c) 2
+          (Pstar n ω)) :
+    BootstrapUniformSquareTail μ Pstar
+      (fun n ω ωs =>
+        trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ν Z :=
+  bootstrapUniformSquareTail_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) n ω a c R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω)
+          (Y := fun ωs => Zstar n ω ωs a * Zstar n ω ωs c)
+          (hZmem n ω) R))
+
 /-- Hansen's trimmed bootstrap statistic is a.e. strongly measurable whenever
 the original bootstrap statistic is. -/
 theorem aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
@@ -9833,6 +10023,88 @@ theorem integral_tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
   · exact ae_of_all P fun ωs =>
       tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
         (Zstar := Zstar) (τ := τ) n ω ωs a c R
+
+/-- Indexed original coordinate uniform square-tail control transfers to
+Hansen's trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_trimmedBootstrapStatisticIndexed_apply
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a : k)
+    (hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a) ν Z)
+    (hZmem :
+      ∀ n ω, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω)) :
+    BootstrapUniformSquareTailIndexed μ Pstar
+      (fun n ω ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ν Z :=
+  bootstrapUniformSquareTailIndexed_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) (n := n) ω a R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω) (Y := fun ωs => Zstar n ω ωs a)
+          (hZmem n ω) R))
+
+/-- Indexed original coordinate-sum uniform square-tail control transfers to
+Hansen's trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_add_trimmedBootstrapStatisticIndexed_apply
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a c : k)
+    (hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν Z)
+    (hZmem :
+      ∀ n ω,
+        MemLp (fun ωs => Zstar n ω ωs a + Zstar n ω ωs c) 2
+          (Pstar n ω)) :
+    BootstrapUniformSquareTailIndexed μ Pstar
+      (fun n ω ωs =>
+        trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ν Z :=
+  bootstrapUniformSquareTailIndexed_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) (n := n) ω a c R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω)
+          (Y := fun ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+          (hZmem n ω) R))
+
+/-- Indexed original coordinate-product uniform square-tail control transfers
+to Hansen's trimmed bootstrap statistic. -/
+theorem bootstrapUniformSquareTail_mul_trimmedBootstrapStatisticIndexed_apply
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} (a c : k)
+    (hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a * Zstar n ω ωs c) ν Z)
+    (hZmem :
+      ∀ n ω,
+        MemLp (fun ωs => Zstar n ω ωs a * Zstar n ω ωs c) 2
+          (Pstar n ω)) :
+    BootstrapUniformSquareTailIndexed μ Pstar
+      (fun n ω ωs =>
+        trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ν Z :=
+  bootstrapUniformSquareTailIndexed_of_integral_tail_sq_le
+    (μ := μ) (Pstar := Pstar) hTail
+    (fun n ω R =>
+      integral_tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ) (n := n) ω a c R
+        (integrable_tail_sq_indicator_of_memLp
+          (P := Pstar n ω)
+          (Y := fun ωs => Zstar n ω ωs a * Zstar n ω ωs c)
+          (hZmem n ω) R))
 
 /-- Indexed Hansen trimmed bootstrap statistic is a.e. strongly measurable
 whenever the original indexed bootstrap statistic is. -/
