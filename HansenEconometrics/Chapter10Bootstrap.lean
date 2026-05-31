@@ -209,7 +209,9 @@ used throughout the chapter:
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
   variance wrapper for Hansen Theorem 10.19.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
-  finite-replication variance moment bridge behind Hansen Theorem 10.11.
+  finite-replication variance moment bridge behind Hansen Theorem 10.11; the
+  centered scalar wrapper states the same result for Hansen's displayed
+  `1 / (B - 1)` estimator.
 * `chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance` and
   `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
   combine finite-replication simulation error with the conditional-bootstrap
@@ -5455,6 +5457,14 @@ noncomputable def finiteReplicationCovarianceCenteredReal
       (X B b ω - finiteReplicationMeanReal X B ω) *
         (Y B b ω - finiteReplicationMeanReal Y B ω)
 
+/-- Centered finite-replication variance estimator for a real statistic.
+
+This is the scalar `X = Y` notation for Hansen's centered finite-replication
+covariance estimator. -/
+noncomputable def finiteReplicationVarianceCenteredReal
+    (Z : ℕ → ℕ → Ω → ℝ) (B : ℕ) (ω : Ω) : ℝ :=
+  finiteReplicationCovarianceCenteredReal Z Z B ω
+
 /-- Mean vector across `B` finite bootstrap replications. -/
 noncomputable def finiteReplicationMeanVec
     (Z : ℕ → ℕ → Ω → k → ℝ) (B : ℕ) (ω : Ω) : k → ℝ :=
@@ -5722,6 +5732,18 @@ theorem finiteReplicationCovarianceCenteredReal_eq_momentReal
   rw [hcenter_sum]
   field_simp [hB0, hden_ne]
 
+/-- The centered finite-replication variance formula equals its moment form
+whenever the number of replications is greater than one. -/
+theorem finiteReplicationVarianceCenteredReal_eq_momentReal
+    {Z : ℕ → ℕ → Ω → ℝ} {B : ℕ} (hB : 1 < B) (ω : Ω) :
+    finiteReplicationVarianceCenteredReal Z B ω =
+      finiteReplicationVarianceMomentReal Z B ω := by
+  simpa [finiteReplicationVarianceCenteredReal,
+    finiteReplicationVarianceMomentReal, finiteReplicationCovarianceMomentReal,
+    finiteReplicationCrossMomentReal, finiteReplicationSecondMomentReal, pow_two]
+    using finiteReplicationCovarianceCenteredReal_eq_momentReal
+      (X := Z) (Y := Z) hB ω
+
 /-- Matrix form of `finiteReplicationCovarianceCenteredReal_eq_momentReal`. -/
 theorem finiteReplicationCovarianceCenteredMat_eq_momentMat
     {k : Type*} {Z : ℕ → ℕ → Ω → k → ℝ} {B : ℕ}
@@ -5840,6 +5862,63 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_l2_error_bounds
       (μ := μ) (Z := Z) (m₂ := m₂) (C := Csecond)
       hsecondInt hsecondBound)
 
+/-- Hansen Theorem 10.11, centered finite-replication variance moment bridge.
+
+This is the textbook-centered version of
+`chapter10_finiteReplicationVariance_tendsto_of_moments`, obtained from the
+exact centered/moment-form identity for `B > 1`. -/
+theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_moments
+    {Z : ℕ → ℕ → Ω → ℝ} {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (finiteReplicationMeanReal Z) atTop (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (finiteReplicationSecondMomentReal Z) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Z) atTop
+      (fun _ => m₂ - m ^ 2) := by
+  have hmoment :=
+    chapter10_finiteReplicationVariance_tendsto_of_moments
+      (μ := μ) hmean hsecond
+  refine TendstoInMeasure.congr'
+    (f := finiteReplicationVarianceMomentReal Z)
+    (f' := finiteReplicationVarianceCenteredReal Z)
+    (g := fun _ : Ω => m₂ - m ^ 2)
+    (g' := fun _ : Ω => m₂ - m ^ 2)
+    ?_ EventuallyEq.rfl hmoment
+  filter_upwards [eventually_gt_atTop 1] with B hB
+  exact ae_of_all μ fun ω =>
+    (finiteReplicationVarianceCenteredReal_eq_momentReal
+      (Z := Z) hB ω).symm
+
+/-- Hansen Theorem 10.11, centered finite-replication variance from
+bounded-trimmed `L²` WLLN bounds. -/
+theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_l2_error_bounds
+    [IsFiniteMeasure μ]
+    {Z : ℕ → ℕ → Ω → ℝ} {m m₂ Cmean Csecond : ℝ}
+    (hmeanInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ)) μ)
+    (hmeanBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationMeanReal Z B ω - m‖ ^ (2 : ℝ) ∂μ) ≤
+          Cmean / (B : ℝ))
+    (hsecondInt :
+      ∀ B, Integrable
+        (fun ω => ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ)) μ)
+    (hsecondBound :
+      ∀ᶠ B in atTop,
+        (∫ ω, ‖finiteReplicationSecondMomentReal Z B ω - m₂‖ ^ (2 : ℝ) ∂μ) ≤
+          Csecond / (B : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Z) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_moments
+    (μ := μ)
+    (finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (m := m) (C := Cmean) hmeanInt hmeanBound)
+    (finiteReplicationSecondMomentReal_tendsto_of_integral_sq_error_le_inv
+      (μ := μ) (Z := Z) (m₂ := m₂) (C := Csecond)
+      hsecondInt hsecondBound)
+
 /-- Hansen Theorem 10.9/10.11 bridge from finite-replication simulation error.
 
 If the finite-replication variance estimator differs from the conditional
@@ -5922,6 +6001,55 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_zero_mean_momen
     (chapter10_finiteReplicationVariance_tendsto_of_bootstrap_moments
       (μ := μ) (m := 0) (m₂ := σ2)
       hPstar hZ hmean hsecond hfinite)
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
+conditional bootstrap variance consistency.
+
+This is the scalar textbook-centered analogue of
+`chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance`. -/
+theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
+conditional bootstrap moment convergence. -/
+theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_moments
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {m m₂ : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => m₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_variance_consistency_of_moment_convergence
+      (μ := μ) hPstar hZ hmean hsecond)
 
 /-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
 convergence and a uniform-square-tail condition.
