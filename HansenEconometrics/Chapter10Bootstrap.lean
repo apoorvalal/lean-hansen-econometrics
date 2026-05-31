@@ -214,7 +214,8 @@ used throughout the chapter:
   10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance`
   combines finite-replication covariance simulation error with conditional
-  bootstrap covariance consistency.
+  bootstrap covariance consistency; the trimmed zero-mean wrapper exposes the
+  Theorem 10.12 target covariance directly.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -5814,6 +5815,44 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_mome
     (μ := μ) hfinite
     (chapter10_trimmedBootstrapVariance_tendsto_of_moments
       (μ := μ) hPstar hZ hmean hcross)
+
+/-- Hansen Theorem 10.11/10.12 zero-mean finite-replication trimmed covariance
+wrapper.
+
+In the asymptotically centered case, simulation error against the trimmed
+conditional covariance plus convergence of the trimmed conditional cross moment
+to `V` yields consistency of Hansen's centered finite-replication covariance
+estimator for `V`. -/
+theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {τ : ℕ → ℝ} {V : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVec Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMat Pstar (trimmedBootstrapStatistic Zstar τ))
+        atTop (fun _ => V))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMat Pstar Zstar τ n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) := by
+  simpa using
+    (chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_moments
+      (μ := μ) (m := fun _ : k => 0) (M₂ := V)
+      hPstar hZ hmean hcross hfinite)
 
 end FiniteReplicationVariance
 
