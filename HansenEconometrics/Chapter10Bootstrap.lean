@@ -274,6 +274,8 @@ used throughout the chapter:
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
+* `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
+  expose the pointwise threshold bound for Hansen's trimmed bootstrap statistic.
 * `chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments` exposes the
   centered covariance-matrix target directly from zero conditional means and
   cross-moment convergence.
@@ -8918,6 +8920,53 @@ noncomputable def trimmedBootstrapStatisticIndexed
     (Zstar : ∀ n, Ω → Ωboot n → k → ℝ) (τ : ℕ → ℝ)
     (n : ℕ) (ω : Ω) (ωs : Ωboot n) : k → ℝ :=
   if ‖Zstar n ω ωs‖ ≤ τ n then Zstar n ω ωs else 0
+
+/-- The norm of Hansen's trimmed bootstrap statistic is bounded by
+`max (τ n) 0` pointwise. -/
+theorem norm_trimmedBootstrapStatistic_le_max
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) :
+    ‖trimmedBootstrapStatistic Zstar τ n ω ωs‖ ≤ max (τ n) 0 := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · have hle : ‖Zstar n ω ωs‖ ≤ max (τ n) 0 :=
+      htrim.trans (le_max_left _ _)
+    simp [trimmedBootstrapStatistic, htrim, hle]
+  · simp [trimmedBootstrapStatistic, htrim]
+
+/-- If the trimming threshold is nonnegative, Hansen's trimmed bootstrap
+statistic has norm bounded by that threshold pointwise. -/
+theorem norm_trimmedBootstrapStatistic_le_of_nonneg
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωs) :
+    ‖trimmedBootstrapStatistic Zstar τ n ω ωs‖ ≤ τ n :=
+  (norm_trimmedBootstrapStatistic_le_max (Zstar := Zstar) (τ := τ) n ω ωs).trans
+    (max_le le_rfl hτ)
+
+/-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
+theorem norm_trimmedBootstrapStatisticIndexed_le_max
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) :
+    ‖trimmedBootstrapStatisticIndexed Zstar τ n ω ωs‖ ≤ max (τ n) 0 := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · have hle : ‖Zstar n ω ωs‖ ≤ max (τ n) 0 :=
+      htrim.trans (le_max_left _ _)
+    simp [trimmedBootstrapStatisticIndexed, htrim, hle]
+  · simp [trimmedBootstrapStatisticIndexed, htrim]
+
+/-- Indexed pointwise threshold bound for Hansen's trimmed bootstrap statistic. -/
+theorem norm_trimmedBootstrapStatisticIndexed_le_of_nonneg
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωboot n) :
+    ‖trimmedBootstrapStatisticIndexed Zstar τ n ω ωs‖ ≤ τ n :=
+  (norm_trimmedBootstrapStatisticIndexed_le_max
+    (Zstar := Zstar) (τ := τ) n ω ωs).trans
+    (max_le le_rfl hτ)
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
