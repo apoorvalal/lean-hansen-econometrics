@@ -203,10 +203,16 @@ used throughout the chapter:
   and `chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail`
   expose the conditional moment convergence pieces used by the Theorem 10.9
   variance bridge.
+* `chapter10_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail`
+  is the finite-dimensional coordinatewise mean-vector version used by the
+  covariance and trimmed-variance layers.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
+* `chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments` exposes the
+  centered covariance-matrix target directly from zero conditional means and
+  cross-moment convergence.
 * `chapter10_bootstrap_regression_theta_gaussian` and
   `chapter10_bootstrap_regression_theta_gaussian_distribution` are
   regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18.
@@ -5238,6 +5244,44 @@ theorem bootstrapCovarianceMat_eq_momentMat
     bootstrapMeanVec, Pi.mul_apply] using
     (ProbabilityTheory.covariance_eq_sub (hZ n ω a) (hZ n ω c))
 
+/-- Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
+
+Bootstrap weak convergence of the vector statistic plus the named
+uniform-square-tail condition on each coordinate implies convergence in
+probability of the conditional bootstrap mean vector.  This is the
+coordinatewise vector surface used by the covariance and trimmed-variance
+layers, where the textbook proofs first establish scalar uniform
+square-integrability for every coordinate. -/
+theorem chapter10_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a)) :
+    TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar) atTop
+      (fun _ => fun a => ∫ ωlim, Z ωlim a ∂ν) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  have hweak_a :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a) ν
+        (fun ωlim => Z ωlim a) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := fun z : k → ℝ => z a) hweak (continuous_apply a)
+  simpa [bootstrapMeanVec, bootstrapMeanReal] using
+    chapter10_bootstrap_mean_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => Zstar n ω ωs a)
+      (Z := fun ωlim => Z ωlim a)
+      hPstar (fun n ω => hZmem n ω a) (hZlim a) hweak_a (hTail a)
+
 /-- Conditional bootstrap covariance moment bridge for two real coordinates. -/
 theorem chapter10_bootstrap_covarianceReal_tendsto_of_moments
     {Pstar : ℕ → Ω → Measure Ωs} {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
@@ -5310,6 +5354,27 @@ theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
   simpa [bootstrapCovarianceMomentMat, bootstrapMeanVec, bootstrapCrossMomentMat]
     using hentry
 
+/-- Zero-mean conditional bootstrap covariance-moment matrix bridge.
+
+When the conditional bootstrap mean vector converges to zero, convergence of
+the conditional cross-moment matrix targets the covariance matrix directly. -/
+theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMat Pstar Zstar)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (bootstrapCovarianceMomentMat Pstar Zstar)
+      atTop (fun _ => V) := by
+  simpa using
+    (chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (m := fun _ : k => 0) (M₂ := V) hmean hcross)
+
 /-- Conditional bootstrap covariance matrix bridge, stated for `cov`. -/
 theorem chapter10_bootstrap_covarianceMat_tendsto_of_moments
     {k : Type*} [Fintype k]
@@ -5336,6 +5401,31 @@ theorem chapter10_bootstrap_covarianceMat_tendsto_of_moments
   exact ae_of_all μ fun ω =>
     (bootstrapCovarianceMat_eq_momentMat
       (Pstar := Pstar) (Zstar := Zstar) hPstar hZ n ω).symm
+
+/-- Zero-mean conditional bootstrap covariance-matrix bridge, stated for
+`cov`.
+
+This is the Theorem 10.12/10.19 covariance target in the asymptotically
+centered case: zero conditional means plus cross-moment convergence imply
+conditional bootstrap covariance convergence to `V`. -/
+theorem chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMat Pstar Zstar)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar)
+      atTop (fun _ => V) := by
+  simpa using
+    (chapter10_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      hPstar hZ (m := fun _ : k => 0) (M₂ := V) hmean hcross)
 
 /-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
 noncomputable def trimmedBootstrapStatistic
