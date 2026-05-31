@@ -265,6 +265,9 @@ used throughout the chapter:
   Hansen's uniform-square-tail premise once the limit squared tail and
   `R⁻²` fourth-moment scale are made small at the same threshold; variants with
   eventual limit-tail premises choose that common threshold internally.
+* `chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_tails`
+  and its indexed counterpart assemble those fourth-moment tail constructors
+  into the finite-dimensional covariance consistency bridge.
 * `bootstrapUniformSquareTail_of_integral_tail_sq_le` and its indexed
   counterpart transfer that condition across conditional squared-tail
   domination; the trimmed-statistic wrappers apply this to coordinates,
@@ -293,7 +296,9 @@ used throughout the chapter:
   `oₚ(1)`.
   Fixed/indexed direct trimmed-covariance wrappers assemble that weak transfer
   with original coordinate and coordinate-sum uniform-square-tail controls into
-  Hansen Theorem 10.12 covariance consistency.
+  Hansen Theorem 10.12 covariance consistency, with fourth-moment-tail variants
+  that discharge those uniform-square-tail premises from conditional fourth
+  moments and eventual limit squared-tail bounds.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -9085,6 +9090,77 @@ theorem chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSq
     (chapter10_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
 
+/-- Hansen Theorem 10.9/10.12 covariance matrix from bootstrap weak
+convergence and fourth-moment tail controls.
+
+This theorem-facing wrapper discharges the scalar coordinate and coordinate-sum
+uniform-square-tail assumptions from conditional fourth-moment convergence plus
+eventual squared-tail bounds for the weak limit law. -/
+theorem chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_tails
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε) :
+    TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+    hPstar hZmem hZlim hweak
+    (fun a =>
+      bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (B := Bcoord a)
+        (hBcoord a) (hFourthCoord a)
+        (fun n ω => hFourthCoordInt n ω a)
+        (hLimitTailCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (B := Bsum a c)
+        (hBsum a c) (hFourthSum a c)
+        (fun n ω => hFourthSumInt n ω a c)
+        (hLimitTailSum a c))
+
 /-- Indexed Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
 This is the sample-size-dependent counterpart of
@@ -9323,6 +9399,76 @@ theorem chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_u
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord)
     (chapter10_indexed_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
+/-- Indexed Hansen Theorem 10.9/10.12 covariance matrix from bootstrap weak
+convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_tails
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε) :
+    TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+    hPstar hZmem hZlim hweak
+    (fun a =>
+      bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (B := Bcoord a)
+        (hBcoord a) (hFourthCoord a)
+        (fun n ω => hFourthCoordInt n ω a)
+        (hLimitTailCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (B := Bsum a c)
+        (hBsum a c) (hFourthSum a c)
+        (fun n ω => hFourthSumInt n ω a c)
+        (hLimitTailSum a c))
 
 /-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
 noncomputable def trimmedBootstrapStatistic
@@ -11043,6 +11189,87 @@ theorem
       (Zstar := trimmedBootstrapStatistic Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
 
+/-- Hansen Theorem 10.12 trimmed covariance from weak convergence and
+fourth-moment tail controls.
+
+The original bootstrap statistic supplies weak convergence and an `oₚ(1)`
+large-norm trimming event.  Conditional fourth-moment convergence for each
+coordinate and coordinate sum discharges the uniform-square-tail assumptions
+used by the trimmed covariance wrapper. -/
+theorem
+    chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_fourthMoment_tails
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z) (τ := τ)
+    hPstar hτ hZmeas hZmem hZlim hweak hTailProb
+    (fun a =>
+      bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (B := Bcoord a)
+        (hBcoord a) (hFourthCoord a)
+        (fun n ω => hFourthCoordInt n ω a)
+        (hLimitTailCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (B := Bsum a c)
+        (hBsum a c) (hFourthSum a c)
+        (fun n ω => hFourthSumInt n ω a c)
+        (hLimitTailSum a c))
+
 /-- Indexed Theorem 10.12 trimmed covariance from weak convergence and
 uniform-square-tail controls. -/
 theorem
@@ -11122,6 +11349,84 @@ theorem
       (μ := μ) (ν := ν) (Pstar := Pstar)
       (Zstar := trimmedBootstrapStatisticIndexed Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
+
+/-- Indexed Hansen Theorem 10.12 trimmed covariance from weak convergence and
+fourth-moment tail controls. -/
+theorem
+    chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_fourthMoment_tails
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z) (τ := τ)
+    hPstar hτ hZmeas hZmem hZlim hweak hTailProb
+    (fun a =>
+      bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (B := Bcoord a)
+        (hBcoord a) (hFourthCoord a)
+        (fun n ω => hFourthCoordInt n ω a)
+        (hLimitTailCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (B := Bsum a c)
+        (hBsum a c) (hFourthSum a c)
+        (fun n ω => hFourthSumInt n ω a c)
+        (hLimitTailSum a c))
 
 end BootstrapCovariance
 
