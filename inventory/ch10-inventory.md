@@ -189,7 +189,8 @@
   percentile, percentile-`t`, and bootstrap critical-value quantiles, concrete lower generalized inverses, a
   Stieltjes-function wrapper that discharges the right-continuity bracketing premise, and a
   percentile endpoint constructor that converts scaled bootstrap lower quantiles back to
-  original-scale interval endpoints.
+  original-scale interval endpoints. The percentile endpoint route now also has an indexed
+  sample-size-dependent bootstrap-distribution wrapper for ordinary nonparametric bootstrap laws.
 - Theorem 10.14's percentile-`t` coverage bridge is formalized: positive standard errors turn
   Hansen's interval into the event `q*_{α/2} <= T <= q*_{1-α/2}`, and joint convergence gives
   the limiting coverage probability, with a scalar-event calibrated wrapper for `qL <= ξ <= qU`.
@@ -199,7 +200,9 @@
   t-ratio convergence and endpoint convergence in probability, including the symmetric endpoint
   specialization with limiting bootstrap endpoints `-q` and `q`; a lower-generalized-inverse
   constructor identifies those endpoints from pointwise conditional bootstrap CDF convergence, and
-  its probability-level Definition 10.2 wrapper discharges the quantile bracketing premises.
+  its probability-level Definition 10.2 wrapper discharges the quantile bracketing premises. The
+  percentile-`t` route also has an indexed sample-size-dependent bootstrap-distribution wrapper for
+  ordinary nonparametric bootstrap laws.
 - Theorem 10.16's two-sided bootstrap-test bridge is formalized: joint convergence of the test
   statistic and bootstrap critical value implies convergence of rejection probabilities, with a
   calibrated size-`α` wrapper and a scalar-event form for `q < |ξ|`. Scalar critical-value
@@ -207,8 +210,8 @@
   limit laws can supply both the boundary-null and rejection-mass calibration. Componentwise
   Slutsky plus endpoint-CDF wrappers now state the size-`α` conclusion directly from statistic
   convergence and critical-value convergence in probability, including a lower-generalized-inverse
-  constructor, local-limit-CDF bracket variants, and probability-level Definition 10.2 wrappers for
-  bootstrap critical values.
+  constructor, local-limit-CDF bracket variants, probability-level Definition 10.2 wrappers for
+  bootstrap critical values, and an indexed sample-size-dependent bootstrap-distribution wrapper.
 - Theorems 10.15 and 10.17 now have second-order transfer wrappers: once the bootstrap quantile or
   critical-value argument supplies an `o(n⁻¹)` replacement error relative to the fixed symmetric
   interval/test probability, the fixed-critical Edgeworth expansion transfers to the random
@@ -277,10 +280,13 @@ Conventions:
 | --- | --- |
 | [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrapDistribution_quantile_prob](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.13 probability-level wrapper: one-dimensional bootstrap distribution convergence plus probability conditional laws, pointwise a.e.-measurability, and `0 < α < 1` discharge the lower-quantile bracketing premises for symmetric percentile coverage. |
 | [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrapDistribution_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.13 non-strict percentile endpoint route: local left/right limit-CDF bracketing at `-q` and `q` replaces global strict monotonicity of the scalar limit CDF, while the probability-level wrapper still discharges the bootstrap-side lower-quantile premises. |
+| [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_scaled_quantiles](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_percentileCI_coverage_tendsto_one_sub_alpha_indexed_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.13 indexed percentile route: abstract scaled endpoint-quantile convergence is converted back to original-scale percentile endpoints, and indexed one-dimensional Definition 10.2 plus probability/a.e.-measurability supplies that endpoint convergence for sample-size-dependent bootstrap spaces. |
 | [chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrapDistribution_quantile_prob](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.14 probability-level wrapper: the same discharged lower-quantile bracketing route gives symmetric percentile-`t` coverage from t-ratio convergence and one-dimensional bootstrap distribution convergence. |
 | [chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrapDistribution_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.14 non-strict percentile-`t` route: local left/right limit-CDF bracketing at `-q` and `q` replaces global strict monotonicity of the scalar t-ratio limit CDF, while the probability-level wrapper still discharges the bootstrap-side lower-quantile premises. |
+| [chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.14 indexed percentile-`t` route: indexed one-dimensional Definition 10.2 plus probability/a.e.-measurability supplies the lower-quantile endpoint convergence for sample-size-dependent bootstrap spaces, then the symmetric percentile-`t` coverage wrapper gives the `1−α` conclusion. |
 | [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistribution_quantile_prob](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.16 probability-level wrapper: one-dimensional bootstrap distribution convergence for the absolute bootstrap statistic gives the lower-quantile critical-value route with bracketing discharged at level `1 - α`. |
 | [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuantile_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistribution_brackets](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_bootstrap_abs_test_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.16 non-strict critical-value route: local left/right limit-CDF bracketing at `critLim` replaces global strict monotonicity of the absolute-statistic CDF, while the probability-level wrapper still discharges the bootstrap-side lower-quantile premises. |
+| [chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_brackets](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.16 indexed bootstrap-test route: indexed one-dimensional Definition 10.2 plus probability/a.e.-measurability supplies the lower critical-value convergence for sample-size-dependent bootstrap spaces, then the componentwise rejection-probability wrapper gives the size-`α` conclusion. |
 | [bootstrapTailProb](../HansenEconometrics/BootstrapUtils.lean) | Conditional bootstrap tail probability used by Definition 10.1. |
 | [tendstoInBootstrapProbability_of_tail_bound](../HansenEconometrics/BootstrapUtils.lean) | Generic conditional tail-bound bridge; this is the reusable Markov/Chebyshev step for the centered bootstrap WLLN and later bootstrap consistency proofs. |
 | [bootstrapTailProbIndexed](../HansenEconometrics/Chapter10Bootstrap.lean), [TendstoInBootstrapProbabilityIndexed](../HansenEconometrics/Chapter10Bootstrap.lean), [tendstoInBootstrapProbabilityIndexed_of_tail_bound](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound](../HansenEconometrics/Chapter10Bootstrap.lean), [chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean](../HansenEconometrics/Chapter10Bootstrap.lean) | Sample-size-indexed bootstrap-probability bridge for ordinary finite nonparametric bootstrap resampling spaces such as `Fin (n+1) -> Fin (n+1)`. |
