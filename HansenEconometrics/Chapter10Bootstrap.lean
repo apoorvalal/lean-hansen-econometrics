@@ -181,6 +181,8 @@ used throughout the chapter:
   feed that bridge directly into quantile convergence.
   `scalarCDF_mono`, `bootstrapScalarCDF_mono`, and the finite-measure
   lower-quantile wrappers discharge the ordinary CDF monotonicity premise.
+  `scalarCDF_id_eq_cdf` and the law-CDF lower-quantile wrappers connect the
+  scalar bridge to Mathlib's `cdf η` notation used by the coverage theorems.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
   `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
@@ -7823,6 +7825,16 @@ theorem scalarCDF_mono
   refine ENNReal.toReal_mono (measure_ne_top ν {ωlim | Z ωlim ≤ y}) ?_
   exact measure_mono fun ωlim hωlim => le_trans hωlim hxy
 
+/-- The scalar-CDF bridge agrees with Mathlib's real-law CDF for the identity
+statistic. -/
+@[simp]
+theorem scalarCDF_id_eq_cdf
+    (η : Measure ℝ) [IsProbabilityMeasure η] :
+    scalarCDF η (fun x : ℝ => x) = fun x => cdf η x := by
+  funext x
+  simpa [scalarCDF, Set.Iic, Measure.real] using
+    (ProbabilityTheory.cdf_eq_real η x).symm
+
 /-- Scalar CDF continuity gives continuity of the one-dimensional vector-CDF
 view used by Hansen Definition 10.2. -/
 theorem continuousAt_vectorCDF_unit_of_scalarCDF
@@ -7915,6 +7927,24 @@ theorem TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit_of_scalar
       atTop (fun _ => scalarCDF ν Z x) :=
   hZ.bootstrapScalarCDF_tendsto_unit (x := x)
     (continuousAt_vectorCDF_unit_of_scalarCDF hx)
+
+/-- Scalar CDF convergence from one-dimensional Hansen Definition 10.2 when
+the limiting statistic is the identity under a scalar probability law. -/
+theorem TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit_id_cdf
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η]
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    {x : ℝ}
+    (hx : ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+      atTop (fun _ => cdf η x) := by
+  simpa using
+    (TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit_of_scalar_continuity
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := η)
+      (Z := fun x : ℝ => x) hZ (by simpa using hx))
 
 /-- Bootstrap scalar quantile convergence from pointwise conditional-CDF
 convergence.
@@ -8197,6 +8227,68 @@ theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_stric
     bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_finite
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       hPstar hne hbdd hlocal hleft hright hZ hcont
+
+/-- Law-CDF specialization of the finite-measure scalar lower-quantile
+Definition 10.2 wrapper.
+
+The limiting one-dimensional statistic is the identity under the scalar law
+`η`, so the limiting CDF is Mathlib's `cdf η`. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < cdf η (q + ε))
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) := by
+  exact
+    bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := η)
+      (Z := fun x : ℝ => x) hPstar hne hbdd hlocal
+      (by simpa using hleft) (by simpa using hright) hZ
+      (by simpa using hcont)
+
+/-- Strict law-CDF specialization of the finite-measure scalar lower-quantile
+Definition 10.2 wrapper. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_strictMono_id_cdf_finite
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hq : cdf η q = p)
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) := by
+  exact
+    bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_strictMono_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := η)
+      (Z := fun x : ℝ => x) hPstar hne hbdd hlocal
+      (by simpa using hstrict) (by simpa using hq) hZ (by simpa using hcont)
 
 end QuantileConvergence
 
