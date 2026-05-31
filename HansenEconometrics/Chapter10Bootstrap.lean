@@ -260,6 +260,10 @@ used throughout the chapter:
 * `BootstrapUniformSquareTail` and
   `BootstrapUniformSquareTailIndexed` expose that long tail condition as a
   reusable theorem-facing assumption.
+* `integral_tail_sq_le_inv_sq_mul_integral_fourth` and the fixed/indexed
+  fourth-moment constructors turn conditional fourth-moment convergence into
+  Hansen's uniform-square-tail premise once the limit squared tail and
+  `R⁻²` fourth-moment scale are made small at the same threshold.
 * `bootstrapUniformSquareTail_of_integral_tail_sq_le` and its indexed
   counterpart transfer that condition across conditional squared-tail
   domination; the trimmed-statistic wrappers apply this to coordinates,
@@ -7399,6 +7403,137 @@ private theorem integrable_tail_sq_indicator_of_memLp
         hY.aestronglyMeasurable.aemeasurable)
   exact hY.integrable_sq.indicator₀ htail_null
 
+/-- Fourth-moment domination of a scalar squared tail.
+
+For `R > 0`, the tail identity
+`Y² 1{|Y| ≥ R} ≤ R⁻² Y⁴` gives the conditional tail bound used to discharge
+Hansen's uniform square-tail premise from a fourth-moment calculation. -/
+theorem integral_tail_sq_le_inv_sq_mul_integral_fourth
+    {α : Type*} [MeasurableSpace α] {P : Measure α}
+    {Y : α → ℝ} {R : ℝ} (hR : 0 < R)
+    (hY4 : Integrable (fun x => (Y x) ^ 4) P) :
+    (∫ x, Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x ∂P) ≤
+      R⁻¹ ^ 2 * ∫ x, (Y x) ^ 4 ∂P := by
+  have hgi : Integrable (fun x => R⁻¹ ^ 2 * (Y x) ^ 4) P :=
+    hY4.const_mul _
+  have hnonneg :
+      0 ≤ᶠ[ae P]
+        fun x => Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x :=
+    ae_of_all P fun x =>
+      Set.indicator_nonneg (fun x _ => sq_nonneg (Y x)) x
+  have hle :
+      (fun x => Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x) ≤ᶠ[ae P]
+        fun x => R⁻¹ ^ 2 * (Y x) ^ 4 := by
+    refine ae_of_all P fun x => ?_
+    by_cases hx : R ≤ |Y x|
+    · have hR_sq_le : R ^ 2 ≤ (Y x) ^ 2 := by
+        simpa [sq_abs] using pow_le_pow_left₀ hR.le hx 2
+      have hYsq_nonneg : 0 ≤ (Y x) ^ 2 := sq_nonneg (Y x)
+      have hmul :
+          R ^ 2 * (Y x) ^ 2 ≤ (Y x) ^ 2 * (Y x) ^ 2 :=
+        mul_le_mul_of_nonneg_right hR_sq_le hYsq_nonneg
+      have hscale_nonneg : 0 ≤ R⁻¹ ^ 2 := sq_nonneg R⁻¹
+      have hscaled :
+          R⁻¹ ^ 2 * (R ^ 2 * (Y x) ^ 2) ≤
+            R⁻¹ ^ 2 * ((Y x) ^ 2 * (Y x) ^ 2) :=
+        mul_le_mul_of_nonneg_left hmul hscale_nonneg
+      have hpoint : (Y x) ^ 2 ≤ R⁻¹ ^ 2 * (Y x) ^ 4 := by
+        calc
+          (Y x) ^ 2 = R⁻¹ ^ 2 * (R ^ 2 * (Y x) ^ 2) := by
+            field_simp [hR.ne']
+          _ ≤ R⁻¹ ^ 2 * ((Y x) ^ 2 * (Y x) ^ 2) := hscaled
+          _ = R⁻¹ ^ 2 * (Y x) ^ 4 := by ring
+      have hxmem : x ∈ {x | R ≤ |Y x|} := hx
+      simpa [Set.indicator_of_mem hxmem] using hpoint
+    · have htail_zero :
+          Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x = 0 :=
+        by simp [Set.indicator, hx]
+      have hfour_nonneg : 0 ≤ (Y x) ^ 4 := by
+        nlinarith [sq_nonneg ((Y x) ^ 2)]
+      have hright_nonneg : 0 ≤ R⁻¹ ^ 2 * (Y x) ^ 4 :=
+        mul_nonneg (sq_nonneg R⁻¹) hfour_nonneg
+      simpa [htail_zero] using hright_nonneg
+  calc
+    (∫ x, Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x ∂P) ≤
+        ∫ x, R⁻¹ ^ 2 * (Y x) ^ 4 ∂P :=
+      integral_mono_of_nonneg hnonneg hgi hle
+    _ = R⁻¹ ^ 2 * ∫ x, (Y x) ^ 4 ∂P := by
+      rw [integral_const_mul]
+
+/-- Uniform square-tail constructor from a fourth-moment convergence premise.
+
+The conditional fourth moment controls the conditional squared tail by
+`R⁻² E*[Z*⁴]`.  If that fourth moment converges in probability to `B`, and the
+chosen threshold also makes the limit squared tail small, then Hansen's named
+uniform square-tail condition follows. -/
+theorem bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {B : ℝ}
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hChoose :
+      ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+        R⁻¹ ^ 2 * (B + 1) < ε ∧
+        (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+          (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hRbound, hlimTail⟩ := hChoose ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  have hFourthTail :
+      Tendsto
+        (fun n =>
+          μ {ω | 1 ≤
+            dist (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) B})
+        atTop (𝓝 0) := by
+    simpa using (tendstoInMeasure_iff_dist.mp hFourth) 1 (by norm_num)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hFourthTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let tailSq : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+        (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have htailSq_nonneg : 0 ≤ tailSq := by
+    dsimp [tailSq]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+  have htail_large : ε ≤ tailSq := by
+    simpa [Real.dist_eq, tailSq, abs_of_nonneg htailSq_nonneg] using hω
+  by_contra hsmall_not
+  have hsmall : dist (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) B < 1 :=
+    not_le.mp hsmall_not
+  have hfourth_lt :
+      (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) < B + 1 := by
+    rw [Real.dist_eq] at hsmall
+    have hle_abs :
+        (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) - B ≤
+          |(∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) - B| :=
+      le_abs_self _
+    linarith
+  have htail_le :
+      tailSq ≤ R⁻¹ ^ 2 * ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω := by
+    dsimp [tailSq]
+    exact integral_tail_sq_le_inv_sq_mul_integral_fourth
+      (P := Pstar n ω) (Y := Zstar n ω)
+      (zero_lt_one.trans_le hR) (hFourthInt n ω)
+  have hscale_nonneg : 0 ≤ R⁻¹ ^ 2 := sq_nonneg R⁻¹
+  have htail_lt : tailSq < ε := by
+    have hmul_le :
+        R⁻¹ ^ 2 * (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) ≤
+          R⁻¹ ^ 2 * (B + 1) :=
+      mul_le_mul_of_nonneg_left hfourth_lt.le hscale_nonneg
+    exact lt_of_le_of_lt (htail_le.trans hmul_le) hRbound
+  exact not_lt_of_ge htail_large htail_lt
+
 /-- Uniform square-tail control transfers to a statistic whose conditional
 tail integrals are pointwise dominated by the original statistic's tail
 integrals. -/
@@ -7748,6 +7883,77 @@ def BootstrapUniformSquareTailIndexed
                 (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
             0})
       atTop (𝓝 0)
+
+/-- Indexed uniform square-tail constructor from a fourth-moment convergence
+premise for sample-size-dependent bootstrap spaces. -/
+theorem bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {B : ℝ}
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hChoose :
+      ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+        R⁻¹ ^ 2 * (B + 1) < ε ∧
+        (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+          (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hRbound, hlimTail⟩ := hChoose ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  have hFourthTail :
+      Tendsto
+        (fun n =>
+          μ {ω | 1 ≤
+            dist (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) B})
+        atTop (𝓝 0) := by
+    simpa using (tendstoInMeasure_iff_dist.mp hFourth) 1 (by norm_num)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hFourthTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let tailSq : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+        (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have htailSq_nonneg : 0 ≤ tailSq := by
+    dsimp [tailSq]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+  have htail_large : ε ≤ tailSq := by
+    simpa [Real.dist_eq, tailSq, abs_of_nonneg htailSq_nonneg] using hω
+  by_contra hsmall_not
+  have hsmall : dist (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) B < 1 :=
+    not_le.mp hsmall_not
+  have hfourth_lt :
+      (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) < B + 1 := by
+    rw [Real.dist_eq] at hsmall
+    have hle_abs :
+        (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) - B ≤
+          |(∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) - B| :=
+      le_abs_self _
+    linarith
+  have htail_le :
+      tailSq ≤ R⁻¹ ^ 2 * ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω := by
+    dsimp [tailSq]
+    exact integral_tail_sq_le_inv_sq_mul_integral_fourth
+      (P := Pstar n ω) (Y := Zstar n ω)
+      (zero_lt_one.trans_le hR) (hFourthInt n ω)
+  have hscale_nonneg : 0 ≤ R⁻¹ ^ 2 := sq_nonneg R⁻¹
+  have htail_lt : tailSq < ε := by
+    have hmul_le :
+        R⁻¹ ^ 2 * (∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω) ≤
+          R⁻¹ ^ 2 * (B + 1) :=
+      mul_le_mul_of_nonneg_left hfourth_lt.le hscale_nonneg
+    exact lt_of_le_of_lt (htail_le.trans hmul_le) hRbound
+  exact not_lt_of_ge htail_large htail_lt
 
 /-- Indexed version of
 `bootstrapUniformSquareTail_of_integral_tail_sq_le`. -/
