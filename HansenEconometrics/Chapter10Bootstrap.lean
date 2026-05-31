@@ -43,9 +43,13 @@ used throughout the chapter:
 * `TendstoInBootstrapProbabilityIndexed` and
   `chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean` provide the
   sample-size-indexed ordinary nonparametric-bootstrap version with resampling
-  spaces `Fin (n+1) -> Fin (n+1)`;
+  spaces `Fin (n+1) -> Fin (n+1)`, with
+  `chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean` as the
+  scalar specialization;
   `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean` packages the
-  corresponding level conclusion.
+  corresponding level conclusion, with
+  `chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean` as the
+  scalar specialization.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
   `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, and `.sub`
@@ -2449,6 +2453,53 @@ theorem integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
     simp [marcinkiewiczWLLNStatisticNat, pow_two, mul_assoc]
   exact hfinite.trans_eq hscale
 
+/-- Scalar sample-size-indexed finite-resample second-moment bound in Hansen's
+Theorem 10.2 scale.
+
+For sample size `n+1`, the expected squared centered ordinary
+nonparametric-bootstrap mean is bounded by Hansen's
+`(n+1)^{-2} sum_{i<n+1} |Y_i|^2` Marcinkiewicz statistic. -/
+theorem integral_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω)) ^ 2
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) ≤
+      marcinkiewiczWLLNStatisticNat Y 2 (n + 1) ω := by
+  classical
+  have hfinite :=
+    integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω)
+  have hsum :
+      (∑ i : Fin (n + 1), (Y i.val ω) ^ 2) =
+        ∑ i ∈ Finset.range (n + 1), |Y i ω| ^ 2 := by
+    rw [Finset.sum_range]
+    refine Finset.sum_congr rfl ?_
+    intro i _hi
+    simp [sq_abs]
+  have hscale :
+      (Fintype.card (Fin (n + 1)) : ℝ)⁻¹ *
+          (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+            ∑ i : Fin (n + 1), (Y i.val ω) ^ 2) =
+        marcinkiewiczWLLNStatisticNat Y 2 (n + 1) ω := by
+    have hcard_real : (Fintype.card (Fin (n + 1)) : ℝ) = (n + 1 : ℝ) := by
+      simp [Fintype.card_fin]
+    have hcard_enn_inv :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) = (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    rw [hsum, hcard_real, hcard_enn_inv]
+    simp [marcinkiewiczWLLNStatisticNat, pow_two, mul_assoc]
+  exact hfinite.trans_eq hscale
+
 /-- Indexed-space Hansen Theorem 10.2 centered WLLN from a concrete conditional
 second-moment bound. -/
 theorem chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
@@ -2666,6 +2717,139 @@ theorem chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean
     (Ybar := fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
     (μY := μY)
     (chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean
+      (μ := μ) Y hu)
+    hYbar
+
+/-- Ordinary scalar finite nonparametric-bootstrap centered WLLN for
+`Fin (n+1)` samples.
+
+This is the one-dimensional counterpart of
+`chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean`, using the
+scalar empirical second-moment identity before applying Hansen's
+Marcinkiewicz bound. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ) (hu : UniformIntegrable Y 1 μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      (fun _ => 0) := by
+  have hPstar :
+      ∀ n (ω : Ω),
+        IsProbabilityMeasure
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    infer_instance
+  have hZ :
+      ∀ n (ω : Ω),
+        MemLp
+          (fun ωs : Fin (n + 1) → Fin (n + 1) =>
+            empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+          2
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    exact memLp_two_uniformOn_univ
+      (Y := fun ωs : Fin (n + 1) → Fin (n + 1) =>
+        empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+  refine tendstoInBootstrapProbabilityIndexed_of_tail_bound
+    (bound := fun η n ω => bootstrapWLLNSecondMomentBound Y η (n + 1) ω) ?_ ?_
+  · intro η hη
+    exact bootstrapWLLNSecondMomentBound_succ_tendsto_zero
+      (μ := μ) (u := Y) (η := η) hu hη
+  · intro η hη n ω
+    calc
+      bootstrapTailProbIndexed
+          (fun n _ =>
+            ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+          (fun n ω ωs =>
+            empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+          (fun _ => 0) η n ω
+          ≤ (∫ ωs : Fin (n + 1) → Fin (n + 1),
+              ‖empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)‖ ^ 2
+              ∂(ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1)))) / η ^ 2 :=
+            bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+              (Pstar := fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (Zstar := fun n ω ωs =>
+                empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+              hPstar hZ hη n ω
+      _ ≤ marcinkiewiczWLLNStatisticNat Y 2 (n + 1) ω / η ^ 2 :=
+            div_le_div_of_nonneg_right ?_ (sq_nonneg η)
+      _ = bootstrapWLLNSecondMomentBound Y η (n + 1) ω := by
+            rw [bootstrapWLLNSecondMomentBound]
+            field_simp [hη.ne']
+    simpa [Real.norm_eq_abs, sq_abs] using
+      integral_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
+        (Y := Y) n ω
+
+/-- Ordinary scalar finite nonparametric-bootstrap level WLLN for `Fin (n+1)`
+samples.
+
+This packages the concrete centered scalar finite-resample theorem with an
+ordinary sample-mean convergence premise, giving Hansen Theorem 10.2's level
+conclusion for the one-dimensional indexed ordinary nonparametric bootstrap. -/
+theorem chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ) {μY : ℝ}
+    (hu : UniformIntegrable Y 1 μ)
+    (hYbar :
+      TendstoInMeasure μ
+        (fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+          (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+      (fun _ => μY) := by
+  have hPstar :
+      ∀ n (ω : Ω),
+        IsProbabilityMeasure
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    infer_instance
+  exact chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ)
+    (Pstar := fun n _ =>
+      ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+    hPstar
+    (YbarStar := fun n ω ωs =>
+      empiricalBootstrapResampleMean
+        (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+    (Ybar := fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+    (μY := μY)
+    (chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean
       (μ := μ) Y hu)
     hYbar
 
