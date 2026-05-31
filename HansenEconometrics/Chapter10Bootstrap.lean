@@ -276,6 +276,9 @@ used throughout the chapter:
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
   expose the pointwise threshold bound for Hansen's trimmed bootstrap statistic.
+  The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
+  a.e. strong measurability of `Z*` plus a nonnegative threshold into the
+  integrability premises used by the trimmed covariance route.
 * `chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments` exposes the
   centered covariance-matrix target directly from zero conditional means and
   cross-moment convergence.
@@ -9156,6 +9159,43 @@ theorem integral_tail_sq_add_trimmedBootstrapStatistic_apply_eq_zero_of_lt
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
+/-- Hansen's trimmed bootstrap statistic is a.e. strongly measurable whenever
+the original bootstrap statistic is. -/
+theorem aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω)
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    AEStronglyMeasurable
+      (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs) P := by
+  let trimSet : Set Ωs := {ωs | ‖Zstar n ω ωs‖ ≤ τ n}
+  have htrimSet : NullMeasurableSet trimSet P :=
+    (hZ.norm.nullMeasurableSet_le aestronglyMeasurable_const)
+  have hind :
+      AEStronglyMeasurable
+        (trimSet.indicator (fun ωs => Zstar n ω ωs)) P :=
+    hZ.indicator₀ htrimSet
+  refine hind.congr ?_
+  exact ae_of_all P fun ωs => by
+    by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+    · simp [trimSet, trimmedBootstrapStatistic, htrim]
+    · simp [trimSet, trimmedBootstrapStatistic, htrim]
+
+/-- Coordinate measurability of Hansen's trimmed bootstrap statistic. -/
+theorem
+    aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (a : k)
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    AEStronglyMeasurable
+      (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) P :=
+  (continuous_apply a).comp_aestronglyMeasurable
+    (aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω hZ)
+
 /-- A bounded measurable coordinate of Hansen's trimmed bootstrap statistic is
 in every finite-measure `Lᵖ` space. -/
 theorem memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable_of_nonneg
@@ -9172,6 +9212,21 @@ theorem memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable_of_nonneg
       simpa [Real.norm_eq_abs] using
         abs_trimmedBootstrapStatistic_apply_le_of_nonneg
           (Zstar := Zstar) (τ := τ) hτ ω ωs a
+
+/-- A coordinate of Hansen's trimmed bootstrap statistic is in every
+finite-measure `Lᵖ` space whenever the original vector statistic is a.e.
+strongly measurable and the trim threshold is nonnegative. -/
+theorem memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs} [IsFiniteMeasure P]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (a : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) p P :=
+  memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable_of_nonneg
+    (Zstar := Zstar) (τ := τ) hτ ω a
+    (aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω a hZ)
 
 /-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
 theorem norm_trimmedBootstrapStatisticIndexed_le_max
@@ -9337,6 +9392,44 @@ theorem integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_l
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
+/-- Indexed Hansen trimmed bootstrap statistic is a.e. strongly measurable
+whenever the original indexed bootstrap statistic is. -/
+theorem
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} (ω : Ω)
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    AEStronglyMeasurable
+      (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) P := by
+  let trimSet : Set (Ωboot n) := {ωs | ‖Zstar n ω ωs‖ ≤ τ n}
+  have htrimSet : NullMeasurableSet trimSet P :=
+    (hZ.norm.nullMeasurableSet_le aestronglyMeasurable_const)
+  have hind :
+      AEStronglyMeasurable
+        (trimSet.indicator (fun ωs => Zstar n ω ωs)) P :=
+    hZ.indicator₀ htrimSet
+  refine hind.congr ?_
+  exact ae_of_all P fun ωs => by
+    by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+    · simp [trimSet, trimmedBootstrapStatisticIndexed, htrim]
+    · simp [trimSet, trimmedBootstrapStatisticIndexed, htrim]
+
+/-- Indexed coordinate measurability of Hansen's trimmed bootstrap statistic. -/
+theorem
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} (ω : Ω) (a : k)
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    AEStronglyMeasurable
+      (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) P :=
+  (continuous_apply a).comp_aestronglyMeasurable
+    (aestronglyMeasurable_trimmedBootstrapStatisticIndexed_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω hZ)
+
 /-- Indexed bounded measurable coordinates of Hansen's trimmed bootstrap
 statistic are in every finite-measure `Lᵖ` space. -/
 theorem
@@ -9355,6 +9448,22 @@ theorem
       simpa [Real.norm_eq_abs] using
         abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
           (Zstar := Zstar) (τ := τ) hτ ω ωs a
+
+/-- Indexed coordinates of Hansen's trimmed bootstrap statistic are in every
+finite-measure `Lᵖ` space whenever the original vector statistic is a.e.
+strongly measurable and the trim threshold is nonnegative. -/
+theorem memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} [IsFiniteMeasure P]
+    (hτ : 0 ≤ τ n) (ω : Ω) (a : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) p P :=
+  memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable_of_nonneg
+    (Zstar := Zstar) (τ := τ) hτ ω a
+    (aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω a hZ)
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
