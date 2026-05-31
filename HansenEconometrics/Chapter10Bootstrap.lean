@@ -220,8 +220,9 @@ used throughout the chapter:
   `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
   combine finite-replication simulation error with the conditional-bootstrap
   variance consistency layer from Hansen Theorem 10.9; the moment-premise
-  wrapper exposes the same transfer directly from conditional bootstrap mean
-  and second-moment convergence.
+  and centered-scalar wrappers expose the same transfer directly from
+  conditional bootstrap mean/second-moment convergence and Hansen's displayed
+  `1 / (B - 1)` estimator.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -6179,6 +6180,38 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniform
     TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
       (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
   chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
+bootstrap weak convergence and a named uniform-square-tail condition.
+
+This is the textbook-centered scalar counterpart of
+`chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`:
+simulation error against the conditional bootstrap variance plus the Theorem
+10.9 uniform-square-tail variance bridge yields consistency of Hansen's
+centered finite-replication variance estimator. -/
+theorem
+    chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_weak_distribution_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTail μ Pstar Zstar ν Z)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
     (chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
