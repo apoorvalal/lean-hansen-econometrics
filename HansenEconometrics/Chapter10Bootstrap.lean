@@ -115,7 +115,8 @@ used throughout the chapter:
   continuous event-probability face of Hansen Theorem 10.5 built from the
   bounded-continuous sandwich bridge.
 * `BootstrapAEMappingPremise` records the textbook measurability and
-  a.e.-continuity condition for Hansen Theorem 10.5; the corresponding
+  a.e.-continuity condition for Hansen Theorem 10.5, with global continuity as
+  a constructor; the corresponding
   `chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier`
   wrapper applies the null-frontier event-probability bridge once transformed
   weak convergence has been supplied.
@@ -4045,6 +4046,17 @@ structure BootstrapAEMappingPremise
     (ν : Measure Ωlim) (Z : Ωlim → E) (g : E → F) : Prop where
   aemeasurable : AEMeasurable (fun ωlim => g (Z ωlim)) ν
   ae_continuous : ∀ᵐ ωlim ∂ν, ContinuousAt g (Z ωlim)
+
+/-- Global continuity supplies Hansen's a.e.-continuity mapping premise. -/
+theorem BootstrapAEMappingPremise.of_continuous
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F]
+    {ν : Measure Ωlim} {Z : Ωlim → E} {g : E → F}
+    (hZ : AEMeasurable Z ν) (hg : Continuous g) :
+    BootstrapAEMappingPremise ν Z g := by
+  exact
+    { aemeasurable := hg.measurable.aemeasurable.comp_aemeasurable hZ
+      ae_continuous := ae_of_all ν fun _ => hg.continuousAt }
 
 /-- Hansen Theorem 10.5, a.e.-continuous transformed-event face.
 
