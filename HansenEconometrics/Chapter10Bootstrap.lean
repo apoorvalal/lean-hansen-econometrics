@@ -297,7 +297,8 @@ used throughout the chapter:
   from conditional bootstrap mean and cross-moment convergence, with indexed
   mean-vector/cross-moment/covariance bridges and zero-mean specializations for
   centered targets. The trimmed zero-mean wrapper exposes
-  the Theorem 10.12 target covariance directly.
+  the Theorem 10.12 target covariance directly, with indexed trimmed
+  finite-replication counterparts.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -10157,6 +10158,29 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBoots
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite htrim
 
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+bridge for sample-size-dependent bootstrap spaces. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ} {V : Matrix k k ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
+        atTop (fun _ => 0))
+    (htrim :
+      TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite htrim
+
 /-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
 trimmed conditional moments.
 
@@ -10194,6 +10218,45 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_mome
     (chapter10_trimmedBootstrapVariance_tendsto_of_moments
       (μ := μ) hPstar hZ hmean hcross)
 
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+from trimmed conditional moments. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ} {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => M₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    (μ := μ) hfinite
+    (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_moments
+      (μ := μ) hPstar hZ hmean hcross)
+
 /-- Hansen Theorem 10.11/10.12 zero-mean finite-replication trimmed covariance
 wrapper.
 
@@ -10229,6 +10292,45 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_zero
       (fun _ => V) := by
   simpa using
     (chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_moments
+      (μ := μ) (m := fun _ : k => 0) (M₂ := V)
+      hPstar hZ hmean hcross hfinite)
+
+/-- Indexed Hansen Theorem 10.11/10.12 zero-mean finite-replication trimmed
+covariance wrapper. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ} {V : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => V))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_moments
       (μ := μ) (m := fun _ : k => 0) (M₂ := V)
       hPstar hZ hmean hcross hfinite)
 
