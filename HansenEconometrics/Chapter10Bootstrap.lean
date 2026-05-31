@@ -221,8 +221,10 @@ used throughout the chapter:
   10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance`
   combines finite-replication covariance simulation error with conditional
-  bootstrap covariance consistency; the trimmed zero-mean wrapper exposes the
-  Theorem 10.12 target covariance directly.
+  bootstrap covariance consistency; scalar and matrix moment-premise wrappers
+  expose the same transfer directly from conditional bootstrap mean and
+  cross-moment convergence. The trimmed zero-mean wrapper exposes the Theorem
+  10.12 target covariance directly.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -6176,6 +6178,100 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_co
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
+from conditional bootstrap covariance consistency.
+
+This is the real-coordinate counterpart of
+`chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance`:
+an `oₚ(1)` simulation-error premise against the conditional bootstrap
+covariance transfers conditional covariance consistency to Hansen's centered
+finite-replication covariance estimator. -/
+theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {v : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+              (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]))
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+            (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => v)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => v) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
+from conditional bootstrap moment convergence.
+
+This packages the simulation-error bridge with the conditional bootstrap
+covariance moment theorem: convergence of the conditional bootstrap means and
+cross moment supplies the conditional covariance target. -/
+theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_moments
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Xstar n ω])
+        atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs])
+        atTop (fun _ => mXY))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+              (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]))
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => mXY - mX * mY) :=
+  chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_covarianceReal_tendsto_of_moments
+      (μ := μ) hmeanX hmeanY hcross)
+
+/-- Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
+conditional bootstrap moment convergence.
+
+This combines the centered finite-replication simulation-error premise with
+the conditional bootstrap covariance-matrix moment bridge. It is the untrimmed
+matrix analogue of the trimmed moment wrapper used for Theorem 10.12. -/
+theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_moments
+    {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVec Pstar Zstar) atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMat Pstar Zstar) atTop
+        (fun _ => M₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMat Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) hPstar hZ hmean hcross)
 
 /-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance bridge.
 
