@@ -143,7 +143,8 @@ used throughout the chapter:
   bounded-continuous test-function integral differs by `oₚ(1)`.
 * `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_integral_diff`,
   `TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_integral_diff`,
-  and `TendstoInBootstrapDistribution.of_weakDistribution_integral_diff`
+  `TendstoInBootstrapDistribution.of_weakDistribution_integral_diff`, and their
+  indexed counterparts
   push that same linearization transfer through null-frontier event probabilities
   and Hansen's coordinate-CDF API.
 * `finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv` and its
@@ -3737,6 +3738,31 @@ theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_integral
   exact (hweak.of_integral_difference_zero hdiff).event_probability_tendsto_of_null_frontier
     hPstar hZstar' hZ hA hfrontier
 
+/-- Indexed bootstrap weak convergence plus a bounded-continuous integral
+linearization gives event-probability convergence for null-frontier events. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_integral_diff
+    [PseudoEMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E} {A : Set E}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction E ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map Z) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar Zstar' A)
+      atTop (fun _ => (ν.map Z).real A) := by
+  exact (hweak.of_integral_difference_zero hdiff).event_probability_tendsto_of_null_frontier
+    hPstar hZstar' hZ hA hfrontier
+
 /-- Coordinate lower orthants are closed in product space. -/
 theorem isClosed_coordinateLE (x : k → ℝ) :
     IsClosed {z : k → ℝ | coordinateLE z x} := by
@@ -3922,6 +3948,31 @@ theorem TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_integra
     (hZ : AEMeasurable Z ν) {x : k → ℝ}
     (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
     TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar' x n ω)
+      atTop (fun _ => vectorCDF ν Z x) := by
+  exact (hweak.of_integral_difference_zero hdiff).bootstrapVectorCDF_tendsto_of_null_frontier
+    hPstar hZstar' hZ hfrontier
+
+/-- Indexed bootstrap weak convergence plus a bounded-continuous integral
+linearization gives Hansen coordinate-CDF convergence at lower-orthant
+null-frontier points. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.bootstrapVectorCDF_tendsto_of_integral_diff
+    [Finite k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction (k → ℝ) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν) {x : k → ℝ}
+    (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInMeasure μ (fun n ω => bootstrapVectorCDFIndexed Pstar Zstar' x n ω)
       atTop (fun _ => vectorCDF ν Z x) := by
   exact (hweak.of_integral_difference_zero hdiff).bootstrapVectorCDF_tendsto_of_null_frontier
     hPstar hZstar' hZ hfrontier
@@ -4118,6 +4169,34 @@ theorem TendstoInBootstrapDistribution.of_weakDistribution_integral_diff
       ContinuousAt (fun y => vectorCDF ν Z y) x →
         (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
     TendstoInBootstrapDistribution μ Pstar Zstar' ν Z := by
+  letI : Fintype k := Fintype.ofFinite k
+  intro x hx
+  exact hweak.bootstrapVectorCDF_tendsto_of_integral_diff
+    hdiff hPstar hZstar' hZ (hfrontier x hx)
+
+/-- Indexed weak bootstrap convergence plus bounded-continuous integral
+linearization implies indexed Hansen coordinate-CDF bootstrap distribution
+convergence when the limiting lower orthants have null frontiers. -/
+theorem TendstoInBootstrapDistributionIndexed.of_weakDistribution_integral_diff
+    [Finite k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hdiff :
+      ∀ f : BoundedContinuousFunction (k → ℝ) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+              bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZ : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y => vectorCDF ν Z y) x →
+        (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar Zstar' ν Z := by
   letI : Fintype k := Fintype.ofFinite k
   intro x hx
   exact hweak.bootstrapVectorCDF_tendsto_of_integral_diff
