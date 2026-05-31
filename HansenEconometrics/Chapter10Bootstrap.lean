@@ -43,7 +43,9 @@ used throughout the chapter:
 * `TendstoInBootstrapProbabilityIndexed` and
   `chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean` provide the
   sample-size-indexed ordinary nonparametric-bootstrap version with resampling
-  spaces `Fin (n+1) -> Fin (n+1)`.
+  spaces `Fin (n+1) -> Fin (n+1)`;
+  `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean` packages the
+  corresponding level conclusion.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -1955,6 +1957,132 @@ theorem tendstoInBootstrapProbabilityIndexed_of_tail_bound
     (hle η hη)
     (hbound η hη)
 
+/-- Indexed-space version of Hansen Theorem 10.1.
+
+If `Zₙ ->p Z` under the original-sample law, then the same statistic, viewed as
+constant under each sample-size-dependent bootstrap law, converges to `Z` in
+indexed bootstrap probability. -/
+theorem tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
+    [PseudoMetricSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zseq : ℕ → Ω → E} {Z : Ω → E}
+    (hZ : TendstoInMeasure μ Zseq atTop Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar (fun n ω _ => Zseq n ω) Z := by
+  classical
+  intro η hη
+  let A : ℕ → Set Ω := fun n => {ω | η ≤ dist (Zseq n ω) (Z ω)}
+  have hA : Tendsto (fun n => μ (A n)) atTop (𝓝 0) :=
+    (tendstoInMeasure_iff_dist.mp hZ) η hη
+  have hindicator :
+      TendstoInMeasure μ (fun n ω => if ω ∈ A n then (1 : ℝ) else 0)
+        atTop (fun _ => 0) :=
+    tendstoInMeasure_indicator_zero_of_tendsto_measure (μ := μ) hA
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hindicator
+  refine Filter.Eventually.of_forall ?_
+  intro ω
+  by_cases hω : ω ∈ A n
+  · have hset :
+        {ωs : Ωboot n | η ≤ dist (Zseq n ω) (Z ω)} = Set.univ := by
+      have htail : η ≤ dist (Zseq n ω) (Z ω) := by simpa [A] using hω
+      ext ωs
+      simp [htail]
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    simp [bootstrapTailProbIndexed, A, hω, hset]
+  · have hset :
+        {ωs : Ωboot n | η ≤ dist (Zseq n ω) (Z ω)} = ∅ := by
+      have htail : ¬ η ≤ dist (Zseq n ω) (Z ω) := by simpa [A] using hω
+      ext ωs
+      simp [htail]
+    simp [bootstrapTailProbIndexed, A, hω, hset]
+
+namespace TendstoInBootstrapProbabilityIndexed
+
+/-- Indexed bootstrap convergence is invariant under pointwise equality of the
+bootstrap statistic and limit target. -/
+theorem congr [PseudoMetricSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E} {Z Z' : Ω → E}
+    (hstar : ∀ n ω ωs, Zstar n ω ωs = Zstar' n ω ωs)
+    (hlim : ∀ ω, Z ω = Z' ω)
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar Zstar' Z' := by
+  intro η hη
+  simpa [bootstrapTailProbIndexed, hstar, hlim] using hZ η hη
+
+/-- Indexed bootstrap convergence in probability is closed under addition. -/
+theorem add [SeminormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → E} {X Y : Ω → E}
+    (hX : TendstoInBootstrapProbabilityIndexed μ Pstar Xstar X)
+    (hY : TendstoInBootstrapProbabilityIndexed μ Pstar Ystar Y) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs + Ystar n ω ωs)
+      (fun ω => X ω + Y ω) := by
+  intro η hη
+  have hhalf : 0 < η / 2 := by linarith
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => Xstar n ω ωs + Ystar n ω ωs)
+        (fun ω => X ω + Y ω) η n ω)
+    (g := fun n ω =>
+      bootstrapTailProbIndexed Pstar Xstar X (η / 2) n ω +
+        bootstrapTailProbIndexed Pstar Ystar Y (η / 2) n ω)
+    ?_ ?_
+    (tendstoInMeasure_add_nonneg_zero
+      (μ := μ)
+      (f := fun n ω => bootstrapTailProbIndexed Pstar Xstar X (η / 2) n ω)
+      (g := fun n ω => bootstrapTailProbIndexed Pstar Ystar Y (η / 2) n ω)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (hX (η / 2) hhalf) (hY (η / 2) hhalf))
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    let C : Set (Ωboot n) :=
+      {ωs | η ≤ dist (Xstar n ω ωs + Ystar n ω ωs) (X ω + Y ω)}
+    let A : Set (Ωboot n) := {ωs | η / 2 ≤ dist (Xstar n ω ωs) (X ω)}
+    let B : Set (Ωboot n) := {ωs | η / 2 ≤ dist (Ystar n ω ωs) (Y ω)}
+    have hsubset : C ⊆ A ∪ B := by
+      intro ωs hωs
+      by_cases hA : η / 2 ≤ dist (Xstar n ω ωs) (X ω)
+      · exact Or.inl hA
+      · right
+        by_contra hB
+        have hX_lt : dist (Xstar n ω ωs) (X ω) < η / 2 := lt_of_not_ge hA
+        have hY_lt : dist (Ystar n ω ωs) (Y ω) < η / 2 := lt_of_not_ge hB
+        have hdist_le :
+            dist (Xstar n ω ωs + Ystar n ω ωs) (X ω + Y ω) ≤
+              dist (Xstar n ω ωs) (X ω) + dist (Ystar n ω ωs) (Y ω) :=
+          dist_add_add_le _ _ _ _
+        have hdist_lt :
+            dist (Xstar n ω ωs + Ystar n ω ωs) (X ω + Y ω) < η := by
+          linarith
+        exact (not_lt_of_ge hωs) hdist_lt
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    calc
+      bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => Xstar n ω ωs + Ystar n ω ωs)
+          (fun ω => X ω + Y ω) η n ω
+          = ((Pstar n ω) C).toReal := rfl
+      _ ≤ ((Pstar n ω) (A ∪ B)).toReal :=
+          ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (A ∪ B))
+            (measure_mono hsubset)
+      _ ≤ ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+          ENNReal.toReal_mono
+            (ENNReal.add_ne_top.2
+              ⟨measure_ne_top (Pstar n ω) A, measure_ne_top (Pstar n ω) B⟩)
+            (measure_union_le A B)
+      _ ≤ ((Pstar n ω) A).toReal + ((Pstar n ω) B).toReal :=
+          ENNReal.toReal_add_le
+      _ = bootstrapTailProbIndexed Pstar Xstar X (η / 2) n ω +
+          bootstrapTailProbIndexed Pstar Ystar Y (η / 2) n ω := rfl
+
+end TendstoInBootstrapProbabilityIndexed
+
 /-- Indexed-space conditional Markov inequality, stated with a concrete
 second moment. -/
 theorem bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
@@ -2079,6 +2207,31 @@ theorem chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
             rw [bootstrapWLLNSecondMomentBound]
             field_simp [hη.ne']
 
+/-- Indexed-space Hansen Theorem 10.2 level WLLN from the centered conclusion.
+
+This is the indexed analogue of `chapter10_bootstrap_wlln_level_from_centered`:
+centered bootstrap convergence on sample-size-dependent resampling spaces plus
+ordinary convergence of the sample mean gives the level bootstrap WLLN. -/
+theorem chapter10_indexed_bootstrap_wlln_level_from_centered
+    [SeminormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E} {μY : E}
+    (hcenter :
+      TendstoInBootstrapProbabilityIndexed μ Pstar
+        (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0))
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) := by
+  have hYbar_boot :
+      TendstoInBootstrapProbabilityIndexed μ Pstar
+        (fun n ω _ => Ybar n ω) (fun _ => μY) :=
+    tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure hPstar hYbar
+  have hsum :=
+    TendstoInBootstrapProbabilityIndexed.add hPstar hcenter hYbar_boot
+  exact hsum.congr
+    (fun n ω ωs => by simp)
+    (fun ω => by simp)
+
 /-- Ordinary finite nonparametric-bootstrap centered WLLN for `Fin (n+1)`
 samples, obtained by feeding the finite squared-norm calculation into Hansen's
 Theorem 10.2 Marcinkiewicz bound. -/
@@ -2165,6 +2318,50 @@ theorem chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean
       _ = bootstrapWLLNSecondMomentBound (fun i ω => ‖Y i ω‖) η (n + 1) ω := by
             rw [bootstrapWLLNSecondMomentBound]
             field_simp [hη.ne']
+
+/-- Ordinary finite nonparametric-bootstrap level WLLN for `Fin (n+1)` samples.
+
+This packages the concrete centered finite-resample theorem with an ordinary
+sample-mean convergence premise, giving Hansen Theorem 10.2's level conclusion
+for the indexed ordinary nonparametric bootstrap. -/
+theorem chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k) {μY : EuclideanSpace ℝ k}
+    (hu : UniformIntegrable (fun i ω => ‖Y i ω‖) 1 μ)
+    (hYbar :
+      TendstoInMeasure μ
+        (fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+          (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+      (fun _ => μY) := by
+  have hPstar :
+      ∀ n (ω : Ω),
+        IsProbabilityMeasure
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    infer_instance
+  exact chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ)
+    (Pstar := fun n _ =>
+      ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+    hPstar
+    (YbarStar := fun n ω ωs =>
+      empiricalBootstrapResampleMean
+        (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+    (Ybar := fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+    (μY := μY)
+    (chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean
+      (μ := μ) Y hu)
+    hYbar
 
 end IndexedBootstrapWLLN
 

@@ -23,6 +23,10 @@ The public surface starts with:
 * `TendstoInBootstrapProbability.prodMk`, `.add`, `.neg`, and `.sub` —
   elementary bootstrap-probability algebra used by Slutsky, delta-method, and
   plug-in covariance wrappers.
+* `tendstoInMeasure_add_nonneg_zero` and
+  `tendstoInMeasure_indicator_zero_of_tendsto_measure` are scalar
+  convergence-in-probability helpers used by fixed-space and indexed bootstrap
+  tail-probability constructors.
 
 The bootstrap-distribution interface is kept out of this first layer so that
 the Chapter 10 module can introduce it with the exact theorem-facing
@@ -95,7 +99,9 @@ theorem tendstoInMeasure_zero_of_nonneg_le
   rw [hg_abs]
   exact hω_le.trans (hfg n ω)
 
-private theorem tendstoInMeasure_add_nonneg_zero
+/-- Sum of two nonnegative real sequences converging to zero in probability also
+converges to zero in probability. -/
+theorem tendstoInMeasure_add_nonneg_zero
     {f g : ℕ → Ω → ℝ}
     (hf_nonneg : ∀ n ω, 0 ≤ f n ω)
     (hg_nonneg : ∀ n ω, 0 ≤ g n ω)
@@ -147,7 +153,9 @@ private theorem tendstoInMeasure_add_nonneg_zero
         μ {ω | ε / 2 ≤ dist (g n ω) 0} :=
           measure_union_le _ _
 
-private theorem tendstoInMeasure_indicator_zero_of_tendsto_measure
+/-- If the probabilities of events `Aₙ` vanish, their indicator functions
+converge to zero in probability. -/
+theorem tendstoInMeasure_indicator_zero_of_tendsto_measure
     {A : ℕ → Set Ω}
     [∀ n, DecidablePred (fun ω => ω ∈ A n)]
     (hA : Tendsto (fun n => μ (A n)) atTop (𝓝 0)) :
