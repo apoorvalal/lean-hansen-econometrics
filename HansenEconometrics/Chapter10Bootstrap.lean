@@ -116,17 +116,17 @@ used throughout the chapter:
   sample-size-indexed weak-convergence face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers` and
   `chapter10_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers`
-  are the corresponding finite-dimensional CDF faces under null-frontier
-  hypotheses for transformed lower orthants.
+  and their indexed counterparts are the corresponding finite-dimensional CDF
+  faces under null-frontier hypotheses for transformed lower orthants.
 * `chapter10_bootstrap_continuous_mapping_event_probability` is the globally
-  continuous event-probability face of Hansen Theorem 10.5 built from the
-  bounded-continuous sandwich bridge.
+  continuous event-probability face of Hansen Theorem 10.5, with an indexed
+  counterpart for sample-size-dependent bootstrap spaces.
 * `BootstrapAEMappingPremise` records the textbook measurability and
   a.e.-continuity condition for Hansen Theorem 10.5, with global continuity as
   a constructor; the corresponding
   `chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier`
-  wrapper applies the null-frontier event-probability bridge once transformed
-  weak convergence has been supplied.
+  wrapper and its indexed counterpart apply the null-frontier event-probability
+  bridge once transformed weak convergence has been supplied.
 * `chapter10_bootstrap_delta_method_linear` and
   `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
   Gaussian covariance faces of Hansen Theorem 10.6, with
@@ -4677,6 +4677,39 @@ theorem chapter10_bootstrap_continuous_mapping_event_probability
       (g := g) hZ hg).event_probability_tendsto_of_boundedContinuous_sandwich
         happrox
 
+/-- Indexed Hansen Theorem 10.5, globally continuous event-probability face. -/
+theorem chapter10_indexed_bootstrap_continuous_mapping_event_probability
+    [TopologicalSpace E] [TopologicalSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} {g : E → F} {A : Set F} {c : ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (happrox : ∀ ε : ℝ, 0 < ε →
+      ∃ lower upper : BoundedContinuousFunction F ℝ,
+        (∫ ωlim, lower (g (Z ωlim)) ∂ν) ≤ c ∧
+          c ≤ (∫ ωlim, upper (g (Z ωlim)) ∂ν) ∧
+          (∫ ωlim, upper (g (Z ωlim)) ∂ν) -
+              (∫ ωlim, lower (g (Z ωlim)) ∂ν) ≤ ε ∧
+          (∀ n ω,
+            bootstrapBoundedContinuousIntegralIndexed Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) lower n ω ≤
+              bootstrapEventProbabilityIndexed Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) A n ω) ∧
+          (∀ n ω,
+            bootstrapEventProbabilityIndexed Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) A n ω ≤
+              bootstrapBoundedContinuousIntegralIndexed Pstar
+                (fun n ω ωs => g (Zstar n ω ωs)) upper n ω)) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => c) := by
+  exact
+    (chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hZ hg).event_probability_tendsto_of_sandwich happrox
+
 /-- Hansen Theorem 10.5, globally continuous event-probability face with a
 null-frontier event.
 
@@ -4710,6 +4743,41 @@ theorem chapter10_bootstrap_continuous_mapping_event_probability_of_null_frontie
       ?_ hPstar ?_ ?_ hA hfrontier
   · exact
       chapter10_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        (g := g) hZ hg
+  · intro n ω
+    exact hg.measurable.comp (hZstar n ω)
+  · have hg_ae : AEMeasurable g (ν.map Z) := hg.measurable.aemeasurable
+    simpa [Function.comp_def] using hg_ae.comp_aemeasurable hZlim
+
+/-- Indexed Hansen Theorem 10.5, globally continuous event-probability face
+with a null-frontier event. -/
+theorem chapter10_indexed_bootstrap_continuous_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  refine
+    TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_null_frontier
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+      (ν := ν) (Z := fun ωlim => g (Z ωlim)) (A := A)
+      ?_ hPstar ?_ ?_ hA hfrontier
+  · exact
+      chapter10_indexed_bootstrap_continuous_mapping_distribution
         (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
         (g := g) hZ hg
   · intro n ω
@@ -4773,6 +4841,33 @@ theorem chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_fron
       (ν := ν) (Z := fun ωlim => g (Z ωlim)) (A := A)
       hweakMapped hPstar hZstar hmap.aemeasurable hA hfrontier
 
+/-- Indexed Hansen Theorem 10.5, a.e.-continuous transformed-event face. -/
+theorem chapter10_indexed_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hmap : BootstrapAEMappingPremise ν Z g)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  exact
+    TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_null_frontier
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+      (ν := ν) (Z := fun ωlim => g (Z ωlim)) (A := A)
+      hweakMapped hPstar hZstar hmap.aemeasurable hA hfrontier
+
 /-- Hansen Theorem 10.5, a.e.-continuous finite-dimensional CDF face.
 
 This is the Definition 10.2 counterpart of
@@ -4801,6 +4896,33 @@ theorem chapter10_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers
       (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
   exact
     TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+      (ν := ν) (Z := fun ωlim => g (Z ωlim))
+      hweakMapped hPstar hZstar hmap.aemeasurable hfrontier
+
+/-- Indexed Hansen Theorem 10.5, a.e.-continuous finite-dimensional CDF face. -/
+theorem chapter10_indexed_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers
+    [TopologicalSpace E] [Finite k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hmap : BootstrapAEMappingPremise ν Z g)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  exact
+    TendstoInBootstrapDistributionIndexed.of_weakDistribution_null_frontiers
       (μ := μ) (Pstar := Pstar)
       (Zstar := fun n ω ωs => g (Zstar n ω ωs))
       (ν := ν) (Z := fun ωlim => g (Z ωlim))
