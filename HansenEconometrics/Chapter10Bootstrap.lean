@@ -5101,6 +5101,38 @@ theorem chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_sq
   simpa [bootstrapSecondMomentReal] using
     hweak.integral_sq_tendsto_of_realClip_tailProb hTailSecondProb
 
+/-- Hansen Theorem 10.9 conditional mean convergence from the named
+uniform-square-tail condition package. -/
+theorem chapter10_bootstrap_mean_tendsto_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTail μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, Z ωlim ∂ν) :=
+  chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
+
+/-- Hansen Theorem 10.9 conditional second-moment convergence from the named
+uniform-square-tail condition package. -/
+theorem chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTail μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) :=
+  chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
+
 /-- Hansen Theorem 10.9, weak-distribution plus uniform-square-tail variance
 bridge.
 
