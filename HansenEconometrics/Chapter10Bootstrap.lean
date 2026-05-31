@@ -219,7 +219,9 @@ used throughout the chapter:
   continuous-mapping bridge behind Hansen Theorem 10.8.
 * `chapter10_bootstrap_smooth_variance_consistency_of_components` derives the
   Theorem 10.8 bridge from separate bootstrap convergence of the plug-in
-  Jacobian and covariance inputs.
+  Jacobian and covariance inputs. The continuous-plugin and indexed
+  counterparts cover stochastic plug-ins obtained by applying continuous maps
+  to a bootstrap statistic, including sample-size-dependent bootstrap spaces.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
   moment-convergence bridge behind Hansen Theorem 10.9; the indexed
   counterpart uses `bootstrapMeanRealIndexed`,
@@ -5651,6 +5653,124 @@ theorem chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_comp
       (μ := μ) (Pstar := Pstar) hPstar hG)
     (chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability
       (μ := μ) (Pstar := Pstar) hPstar hV)
+
+/-- Hansen Theorem 10.8, plug-in covariance bridge from continuous stochastic
+component maps.
+
+This is the CMT-shaped constructor for stochastic plug-in Jacobian/covariance
+inputs: if a bootstrap statistic `Ustar` converges to a constant `u` and the
+Jacobian and covariance plug-ins are continuous at `u`, then
+`G(Ustar)ᵀ V(Ustar) G(Ustar)` converges to `G(u)ᵀ V(u) G(u)`. -/
+theorem chapter10_bootstrap_smooth_variance_consistency_of_continuous_plugins
+    {d r A : Type*} [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Ustar : ℕ → Ω → Ωs → A} {u : A}
+    {Gfun : A → Matrix d r ℝ} {Vfun : A → Matrix d d ℝ}
+    (hU : TendstoInBootstrapProbability μ Pstar Ustar (fun _ => u))
+    (hG : ContinuousAt Gfun u) (hV : ContinuousAt Vfun u) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gfun (Ustar n ω ωs))
+          (Vfun (Ustar n ω ωs)))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (Vfun u)) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_components hPstar
+    (TendstoInBootstrapProbability.continuousAt_const_comp
+      (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hG)
+    (TendstoInBootstrapProbability.continuousAt_const_comp
+      (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hV)
+
+/-- Indexed Hansen Theorem 10.8, plug-in covariance continuous-mapping bridge
+for sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_smooth_variance_consistency
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gstar : ∀ n, Ω → Ωboot n → Matrix d r ℝ}
+    {Vstar : ∀ n, Ω → Ωboot n → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hGV :
+      TendstoInBootstrapProbabilityIndexed μ Pstar
+        (fun n ω ωs => (Gstar n ω ωs, Vstar n ω ωs))
+        (fun _ => (G, V))) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gstar n ω ωs) (Vstar n ω ωs))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  TendstoInBootstrapProbabilityIndexed.continuousAt_const_comp
+    (E := Matrix d r ℝ × Matrix d d ℝ)
+    (F := Matrix r r ℝ)
+    (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (Gstar n ω ωs, Vstar n ω ωs))
+    (c := (G, V))
+    (g := fun p => smoothFunctionVarianceFunctional p.1 p.2)
+    hPstar hGV smoothFunctionVarianceFunctional_continuous.continuousAt
+
+/-- Indexed Hansen Theorem 10.8, componentwise plug-in covariance bridge. -/
+theorem chapter10_indexed_bootstrap_smooth_variance_consistency_of_components
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gstar : ∀ n, Ω → Ωboot n → Matrix d r ℝ}
+    {Vstar : ∀ n, Ω → Ωboot n → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hG :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Gstar (fun _ => G))
+    (hV :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Vstar (fun _ => V)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gstar n ω ωs) (Vstar n ω ωs))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency hPstar
+    (TendstoInBootstrapProbabilityIndexed.prodMk hPstar hG hV)
+
+/-- Indexed Hansen Theorem 10.8, plug-in covariance bridge from ordinary
+component convergence. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gseq : ℕ → Ω → Matrix d r ℝ}
+    {Vseq : ℕ → Ω → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV : TendstoInMeasure μ Vseq atTop (fun _ => V)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ => smoothFunctionVarianceFunctional (Gseq n ω) (Vseq n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_components hPstar
+    (tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
+      (μ := μ) (Pstar := Pstar) hPstar hG)
+    (tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
+      (μ := μ) (Pstar := Pstar) hPstar hV)
+
+/-- Indexed Hansen Theorem 10.8, plug-in covariance bridge from continuous
+stochastic component maps. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_continuous_plugins
+    {d r A : Type*} [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Ustar : ∀ n, Ω → Ωboot n → A} {u : A}
+    {Gfun : A → Matrix d r ℝ} {Vfun : A → Matrix d d ℝ}
+    (hU : TendstoInBootstrapProbabilityIndexed μ Pstar Ustar (fun _ => u))
+    (hG : ContinuousAt Gfun u) (hV : ContinuousAt Vfun u) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gfun (Ustar n ω ωs))
+          (Vfun (Ustar n ω ωs)))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (Vfun u)) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_components hPstar
+    (TendstoInBootstrapProbabilityIndexed.continuousAt_const_comp
+      (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hG)
+    (TendstoInBootstrapProbabilityIndexed.continuousAt_const_comp
+      (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hV)
 
 end SmoothFunctionBootstrapVariance
 
