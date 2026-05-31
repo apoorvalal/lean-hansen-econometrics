@@ -48,6 +48,8 @@ used throughout the chapter:
   corresponding level conclusion.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
+  `TendstoInBootstrapProbabilityIndexed.prodMk` is the indexed joint
+  convergence constructor for product statistics.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -2085,6 +2087,67 @@ theorem lipschitz_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
           _ = η := by
             field_simp [ne_of_gt hC]
       exact (not_lt_of_ge hωs) hmap_lt
+
+/-- Indexed bootstrap convergence in probability is closed under forming
+product statistics. -/
+theorem prodMk [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Xstar : ∀ n, Ω → Ωboot n → E} {X : Ω → E}
+    {Ystar : ∀ n, Ω → Ωboot n → F} {Y : Ω → F}
+    (hX : TendstoInBootstrapProbabilityIndexed μ Pstar Xstar X)
+    (hY : TendstoInBootstrapProbabilityIndexed μ Pstar Ystar Y) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+      (fun ω => (X ω, Y ω)) := by
+  intro η hη
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (fun ω => (X ω, Y ω)) η n ω)
+    (g := fun n ω =>
+      bootstrapTailProbIndexed Pstar Xstar X η n ω +
+        bootstrapTailProbIndexed Pstar Ystar Y η n ω)
+    ?_ ?_
+    (tendstoInMeasure_add_nonneg_zero
+      (μ := μ)
+      (f := fun n ω => bootstrapTailProbIndexed Pstar Xstar X η n ω)
+      (g := fun n ω => bootstrapTailProbIndexed Pstar Ystar Y η n ω)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (fun _ _ => ENNReal.toReal_nonneg)
+      (hX η hη) (hY η hη))
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    let C : Set (Ωboot n) :=
+      {ωs | η ≤ dist (Xstar n ω ωs, Ystar n ω ωs) (X ω, Y ω)}
+    let A : Set (Ωboot n) := {ωs | η ≤ dist (Xstar n ω ωs) (X ω)}
+    let B : Set (Ωboot n) := {ωs | η ≤ dist (Ystar n ω ωs) (Y ω)}
+    have hsubset : C ⊆ A ∪ B := by
+      intro ωs hωs
+      rcases le_max_iff.mp (by simpa [C, A, B, Prod.dist_eq] using hωs) with h | h
+      · exact Or.inl h
+      · exact Or.inr h
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    calc
+      bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+          (fun ω => (X ω, Y ω)) η n ω
+          = ((Pstar n ω) C).toReal := rfl
+      _ ≤ ((Pstar n ω) (A ∪ B)).toReal :=
+          ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (A ∪ B))
+            (measure_mono hsubset)
+      _ ≤ ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+          ENNReal.toReal_mono
+            (ENNReal.add_ne_top.2
+              ⟨measure_ne_top (Pstar n ω) A, measure_ne_top (Pstar n ω) B⟩)
+            (measure_union_le A B)
+      _ ≤ ((Pstar n ω) A).toReal + ((Pstar n ω) B).toReal :=
+          ENNReal.toReal_add_le
+      _ = bootstrapTailProbIndexed Pstar Xstar X η n ω +
+          bootstrapTailProbIndexed Pstar Ystar Y η n ω := rfl
 
 /-- Indexed bootstrap convergence in probability is closed under addition. -/
 theorem add [SeminormedAddCommGroup E]
