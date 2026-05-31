@@ -11962,6 +11962,76 @@ bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_strict
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η)
       hPstar hne hbdd hlocal hleft hright hZ hcont
 
+/-- Indexed law-CDF scalar lower-quantile wrapper with the local-right CDF
+bracketing premise discharged from pointwise a.e. measurability. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_aemeasurable
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hleft : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < cdf η (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η) (p := p)
+      (q := q) hPstarFinite hne hbdd
+      (bootstrapScalarCDFIndexed_local_right_lt_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas)
+      hleft hright hZ hcont
+
+/-- Strict indexed law-CDF scalar lower-quantile wrapper with the local-right
+CDF bracketing premise discharged from pointwise a.e. measurability. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_strictMono_id_cdf_aemeasurable
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hq : cdf η q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_aemeasurable
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η)
+      hPstar hZmeas hne hbdd hleft hright hZ hcont
+
 /-- Indexed law-CDF scalar lower-quantile wrapper for probability-valued
 conditional bootstrap CDFs at levels `0 < p < 1`. -/
 theorem
@@ -11982,20 +12052,14 @@ bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf
     TendstoInMeasure μ
       (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
       atTop (fun _ => q) := by
-  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
-    intro n ω
-    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
-    infer_instance
   exact
-    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_aemeasurable
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η) (p := p)
-      (q := q) hPstarFinite
+      (q := q) hPstar hZmeas
       (bootstrapScalarCDFIndexed_level_nonempty_of_aemeasurable
         (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas hp_lt_one)
       (bootstrapScalarCDFIndexed_level_bddBelow_of_aemeasurable
         (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas hp_pos)
-      (bootstrapScalarCDFIndexed_local_right_lt_of_aemeasurable
-        (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas)
       hleft hright hZ hcont
 
 /-- Strict indexed law-CDF scalar lower-quantile wrapper for
