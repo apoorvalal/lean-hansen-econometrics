@@ -4260,6 +4260,36 @@ theorem chapter10_bootstrap_delta_method_gaussian_distribution
       (Z := fun z : EuclideanSpace ℝ r => coord z)
       hcoordWeak hPstar hZstar hZlim hfrontier
 
+/-- Hansen Theorem 10.6, Gaussian CDF specialization with positive definite
+transformed covariance.
+
+When `G V G'` is positive definite, the Gaussian lower-orthant null-frontier
+premise in `chapter10_bootstrap_delta_method_gaussian_distribution` is
+automatic. -/
+theorem chapter10_bootstrap_delta_method_gaussian_distribution_posDef
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hGVG : (G * V * Gᵀ).PosDef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap G (Tstar n ω ωs) :
+          EuclideanSpace ℝ r) : r → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => (z : r → ℝ)) :=
+  chapter10_bootstrap_delta_method_gaussian_distribution
+    (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G
+    hV hT hPstar hTstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hGVG x)
+
 /-- Hansen Theorem 10.7, smooth-function Gaussian bootstrap wrapper.
 
 If the bootstrap moment/statistic has Gaussian bootstrap limit `N(0,V)` and
@@ -4339,6 +4369,39 @@ theorem chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearizati
   exact hdelta.congr_bootstrap fun n ω ωs =>
     congrArg (fun z : EuclideanSpace ℝ r => (z : r → ℝ))
       (hlinearization n ω ωs).symm
+
+/-- Hansen Theorem 10.7 smooth-function Gaussian CDF wrapper from exact
+linearization with positive definite transformed covariance.
+
+This is the positive-definite covariance specialization of
+`chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization`;
+the Gaussian lower-orthant null-frontier premise is discharged automatically. -/
+theorem chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization_posDef
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hGVG : (G * V * Gᵀ).PosDef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => (z : r → ℝ)) :=
+  chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization
+    (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+    (thetaStar := thetaStar) (V := V) G hV hT hPstar hTstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hGVG x)
+    hlinearization
 
 /-- Hansen Theorem 10.7 smooth-function Gaussian wrapper from
 bounded-continuous test-function linearization.
@@ -4443,6 +4506,42 @@ theorem chapter10_bootstrap_smooth_function_gaussian_distribution_of_integral_li
       (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
       (Z := fun z : EuclideanSpace ℝ r => z)
       (g := coord) hweak hcoord hPstar hZstar hcoord.aemeasurable hfrontier
+
+/-- Hansen Theorem 10.7 smooth-function Gaussian CDF wrapper from
+bounded-continuous test-function linearization with positive definite
+transformed covariance. -/
+theorem chapter10_bootstrap_smooth_function_gaussian_distribution_of_integral_linearization_posDef
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    (hV : V.PosSemidef)
+    (hGVG : (G * V * Gᵀ).PosDef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hlinearization :
+      ∀ f : BoundedContinuousFunction (EuclideanSpace ℝ r) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar thetaStar f n ω -
+              bootstrapBoundedContinuousIntegral Pstar
+                (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+                f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => (z : r → ℝ)) :=
+  chapter10_bootstrap_smooth_function_gaussian_distribution_of_integral_linearization
+    (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+    (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+    hPstar hthetaStar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hGVG x)
 
 end BootstrapDeltaMethod
 
