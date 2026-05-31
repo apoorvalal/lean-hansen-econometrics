@@ -263,7 +263,8 @@ used throughout the chapter:
 * `integral_tail_sq_le_inv_sq_mul_integral_fourth` and the fixed/indexed
   fourth-moment constructors turn conditional fourth-moment convergence into
   Hansen's uniform-square-tail premise once the limit squared tail and
-  `R⁻²` fourth-moment scale are made small at the same threshold.
+  `R⁻²` fourth-moment scale are made small at the same threshold; variants with
+  eventual limit-tail premises choose that common threshold internally.
 * `bootstrapUniformSquareTail_of_integral_tail_sq_le` and its indexed
   counterpart transfer that condition across conditional squared-tail
   domination; the trimmed-statistic wrappers apply this to coordinates,
@@ -7460,6 +7461,33 @@ theorem integral_tail_sq_le_inv_sq_mul_integral_fourth
     _ = R⁻¹ ^ 2 * ∫ x, (Y x) ^ 4 ∂P := by
       rw [integral_const_mul]
 
+private theorem inv_sq_mul_add_one_lt_of_div_add_one_le
+    {B ε R : ℝ} (hB : 0 ≤ B) (hε : 0 < ε)
+    (hRlarge : (B + 1) / ε + 1 ≤ R) :
+    R⁻¹ ^ 2 * (B + 1) < ε := by
+  have hB1pos : 0 < B + 1 := by linarith
+  have hRpos : 0 < R := by
+    have hlarge_pos : 0 < (B + 1) / ε + 1 := by positivity
+    exact hlarge_pos.trans_le hRlarge
+  have hRgt : (B + 1) / ε < R := by linarith
+  have hB_lt_mul : B + 1 < ε * R := by
+    have h := (div_lt_iff₀ hε).mp hRgt
+    linarith
+  have hR_one : 1 ≤ R := by
+    have hlarge_one : 1 ≤ (B + 1) / ε + 1 := by
+      have hdiv_nonneg : 0 ≤ (B + 1) / ε := div_nonneg hB1pos.le hε.le
+      linarith
+    exact hlarge_one.trans hRlarge
+  have hR_le_sq : R ≤ R ^ 2 := by
+    simpa using Bound.le_self_pow_of_pos hR_one (by norm_num : 0 < 2)
+  have hmul_le_sq : ε * R ≤ ε * R ^ 2 :=
+    mul_le_mul_of_nonneg_left hR_le_sq hε.le
+  have hB_lt_sq : B + 1 < ε * R ^ 2 := hB_lt_mul.trans_le hmul_le_sq
+  have hdiv_lt : (B + 1) / R ^ 2 < ε := by
+    rw [div_lt_iff₀ (sq_pos_of_pos hRpos)]
+    nlinarith
+  simpa [div_eq_inv_mul, mul_comm, mul_left_comm, mul_assoc] using hdiv_lt
+
 /-- Uniform square-tail constructor from a fourth-moment convergence premise.
 
 The conditional fourth moment controls the conditional squared tail by
@@ -7533,6 +7561,41 @@ theorem bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure
       mul_le_mul_of_nonneg_left hfourth_lt.le hscale_nonneg
     exact lt_of_le_of_lt (htail_le.trans hmul_le) hRbound
   exact not_lt_of_ge htail_large htail_lt
+
+/-- Fourth-moment uniform square-tail constructor with an eventual limit-tail
+threshold premise.
+
+This wrapper chooses the common threshold internally: the limit-tail premise
+only needs to hold for all sufficiently large thresholds, while the deterministic
+`R⁻² (B + 1)` bound is made small using `B ≥ 0`. -/
+theorem bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {B : ℝ}
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hFourth hFourthInt
+    (fun ε hε => by
+      obtain ⟨R₀, hR₀, hlimTail⟩ := hLimitTail ε hε
+      let R : ℝ := max R₀ ((B + 1) / ε + 1)
+      have hR₀_le : R₀ ≤ R := le_max_left _ _
+      have hRlarge : (B + 1) / ε + 1 ≤ R := le_max_right _ _
+      exact ⟨R, hR₀.trans hR₀_le,
+        inv_sq_mul_add_one_lt_of_div_add_one_le hB hε hRlarge,
+        hlimTail R hR₀_le⟩)
 
 /-- Uniform square-tail control transfers to a statistic whose conditional
 tail integrals are pointwise dominated by the original statistic's tail
@@ -7954,6 +8017,39 @@ theorem bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure
       mul_le_mul_of_nonneg_left hfourth_lt.le hscale_nonneg
     exact lt_of_le_of_lt (htail_le.trans hmul_le) hRbound
   exact not_lt_of_ge htail_large htail_lt
+
+/-- Indexed fourth-moment uniform square-tail constructor with an eventual
+limit-tail threshold premise. -/
+theorem
+    bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_eventual_limit_tail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {B : ℝ}
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hFourth hFourthInt
+    (fun ε hε => by
+      obtain ⟨R₀, hR₀, hlimTail⟩ := hLimitTail ε hε
+      let R : ℝ := max R₀ ((B + 1) / ε + 1)
+      have hR₀_le : R₀ ≤ R := le_max_left _ _
+      have hRlarge : (B + 1) / ε + 1 ≤ R := le_max_right _ _
+      exact ⟨R, hR₀.trans hR₀_le,
+        inv_sq_mul_add_one_lt_of_div_add_one_le hB hε hRlarge,
+        hlimTail R hR₀_le⟩)
 
 /-- Indexed version of
 `bootstrapUniformSquareTail_of_integral_tail_sq_le`. -/
