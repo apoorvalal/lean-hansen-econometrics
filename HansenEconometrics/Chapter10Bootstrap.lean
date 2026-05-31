@@ -173,6 +173,8 @@ used throughout the chapter:
   `bootstrapScalarCDF`, and `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
   provide the pointwise-CDF bracketing route from bootstrap CDF convergence to
   endpoint and critical-value convergence for Theorems 10.13, 10.14, and 10.16.
+  `TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit` extracts
+  scalar CDF convergence from the one-dimensional Definition 10.2 API.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
   `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
@@ -7807,6 +7809,35 @@ noncomputable def bootstrapScalarCDF
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
     (x : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
   ((Pstar n ω) {ωs | Zstar n ω ωs ≤ x}).toReal
+
+/-- Scalar CDF convergence extracted from Hansen Definition 10.2 in one
+dimension.
+
+This bridge lets scalar quantile arguments consume a one-dimensional
+bootstrap-distribution convergence theorem stated in the finite-dimensional
+`Unit → ℝ` API. -/
+theorem TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    {x : ℝ}
+    (hx :
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
+      atTop (fun _ => (ν {ωlim | Z ωlim ≤ x}).toReal) := by
+  have hunit :=
+    hZ.tendsto_cdf (x := fun _ : Unit => x) hx
+  refine TendstoInMeasure.congr (fun n => ?_) ?_ hunit
+  · exact ae_of_all μ fun ω => by
+      simp [bootstrapScalarCDF, bootstrapVectorCDF, coordinateLE]
+  · exact ae_of_all μ fun _ => by
+      simp [vectorCDF, coordinateLE]
 
 /-- Bootstrap scalar quantile convergence from pointwise conditional-CDF
 convergence.
