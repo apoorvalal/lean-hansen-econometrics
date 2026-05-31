@@ -283,6 +283,9 @@ used throughout the chapter:
   Fixed/indexed dominated-tail bridges compare coordinate, coordinate-sum, and
   coordinate-product squared tails of `Z**` to the corresponding original
   statistic tails, both pointwise and after integration.
+  Fixed/indexed weak-transfer wrappers show that `Z*` and `Z**` have the same
+  bounded-continuous bootstrap weak limit when the trimming tail probability is
+  `oₚ(1)`.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -9118,6 +9121,290 @@ theorem abs_sub_trimmedBootstrapStatisticIndexed_apply_le_tail_norm
   exact hcoord.trans
     (norm_sub_trimmedBootstrapStatisticIndexed_le_tail_norm
       (Zstar := Zstar) (τ := τ) n ω ωs)
+
+/-- Bounded-continuous test-function integrals of `Z**` and `Z*` differ only
+on the original large-norm trimming tail. -/
+theorem abs_bootstrapBoundedContinuousIntegral_trimmedBootstrapStatistic_sub_le_tailProb
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (f : BoundedContinuousFunction (k → ℝ) ℝ) (n : ℕ) (ω : Ω) :
+    |bootstrapBoundedContinuousIntegral Pstar
+        (trimmedBootstrapStatistic Zstar τ) f n ω -
+      bootstrapBoundedContinuousIntegral Pstar Zstar f n ω| ≤
+      2 * ‖f‖ *
+        ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal := by
+  classical
+  haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+  let tail : Set Ωs := {ωs | τ n < ‖Zstar n ω ωs‖}
+  have hnorm_meas : Measurable fun ωs => ‖Zstar n ω ωs‖ :=
+    continuous_norm.measurable.comp (hZmeas n ω)
+  have htail_meas : MeasurableSet tail := by
+    simpa [tail] using measurableSet_lt measurable_const hnorm_meas
+  have htrimSet_meas : MeasurableSet {ωs | ‖Zstar n ω ωs‖ ≤ τ n} := by
+    exact measurableSet_le hnorm_meas measurable_const
+  have htrim_meas :
+      Measurable fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs := by
+    simpa [trimmedBootstrapStatistic] using
+      Measurable.ite htrimSet_meas (hZmeas n ω) measurable_const
+  have htrim_int :
+      Integrable
+        (fun ωs => f (trimmedBootstrapStatistic Zstar τ n ω ωs))
+        (Pstar n ω) := by
+    refine Integrable.of_bound
+      ((f.continuous.measurable.comp htrim_meas).aestronglyMeasurable)
+      ‖f‖ ?_
+    exact ae_of_all (Pstar n ω) fun _ => f.norm_coe_le_norm _
+  have hstar_int :
+      Integrable (fun ωs => f (Zstar n ω ωs)) (Pstar n ω) := by
+    refine Integrable.of_bound
+      ((f.continuous.measurable.comp (hZmeas n ω)).aestronglyMeasurable)
+      ‖f‖ ?_
+    exact ae_of_all (Pstar n ω) fun _ => f.norm_coe_le_norm _
+  have hbound_point :
+      ∀ ωs,
+        ‖f (trimmedBootstrapStatistic Zstar τ n ω ωs) -
+            f (Zstar n ω ωs)‖ ≤
+          tail.indicator (fun _ => 2 * ‖f‖) ωs := by
+    intro ωs
+    by_cases htail : ωs ∈ tail
+    · rw [Set.indicator_of_mem htail]
+      calc
+        ‖f (trimmedBootstrapStatistic Zstar τ n ω ωs) -
+            f (Zstar n ω ωs)‖ ≤
+            ‖f (trimmedBootstrapStatistic Zstar τ n ω ωs)‖ +
+              ‖f (Zstar n ω ωs)‖ := norm_sub_le _ _
+        _ ≤ ‖f‖ + ‖f‖ :=
+            add_le_add (f.norm_coe_le_norm _) (f.norm_coe_le_norm _)
+        _ = 2 * ‖f‖ := by ring
+    · have hnot : ¬ τ n < ‖Zstar n ω ωs‖ := by
+        simpa [tail] using htail
+      have htrim : ‖Zstar n ω ωs‖ ≤ τ n := le_of_not_gt hnot
+      rw [Set.indicator_of_notMem htail]
+      simp [trimmedBootstrapStatistic, htrim]
+  have hbound_int :
+      ‖∫ ωs,
+          f (trimmedBootstrapStatistic Zstar τ n ω ωs) -
+            f (Zstar n ω ωs) ∂Pstar n ω‖ ≤
+        ∫ ωs, tail.indicator (fun _ => 2 * ‖f‖) ωs ∂Pstar n ω := by
+    have hIntBound :
+        Integrable (fun ωs => tail.indicator (fun _ => 2 * ‖f‖) ωs)
+          (Pstar n ω) :=
+      (integrable_const (2 * ‖f‖)).indicator htail_meas
+    exact norm_integral_le_of_norm_le hIntBound
+      (ae_of_all (Pstar n ω) hbound_point)
+  have hdiff_eq :
+      bootstrapBoundedContinuousIntegral Pstar
+          (trimmedBootstrapStatistic Zstar τ) f n ω -
+        bootstrapBoundedContinuousIntegral Pstar Zstar f n ω =
+      ∫ ωs,
+        f (trimmedBootstrapStatistic Zstar τ n ω ωs) -
+          f (Zstar n ω ωs) ∂Pstar n ω := by
+    simpa [bootstrapBoundedContinuousIntegral] using
+      (integral_sub htrim_int hstar_int).symm
+  calc
+    |bootstrapBoundedContinuousIntegral Pstar
+        (trimmedBootstrapStatistic Zstar τ) f n ω -
+      bootstrapBoundedContinuousIntegral Pstar Zstar f n ω| =
+        ‖∫ ωs,
+          f (trimmedBootstrapStatistic Zstar τ n ω ωs) -
+            f (Zstar n ω ωs) ∂Pstar n ω‖ := by
+          rw [hdiff_eq]
+          rfl
+    _ ≤ ∫ ωs, tail.indicator (fun _ => 2 * ‖f‖) ωs ∂Pstar n ω := hbound_int
+    _ = 2 * ‖f‖ *
+        ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal := by
+          rw [integral_indicator_const (2 * ‖f‖) htail_meas]
+          simp [tail, measureReal_def, smul_eq_mul, mul_comm, mul_assoc]
+
+/-- Indexed bounded-continuous test-function integrals of `Z**` and `Z*`
+differ only on the original large-norm trimming tail. -/
+theorem
+    abs_bootstrapBoundedContinuousIntegral_trimmedBootstrapStatisticIndexed_sub_le_tailProb
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (f : BoundedContinuousFunction (k → ℝ) ℝ) (n : ℕ) (ω : Ω) :
+    |bootstrapBoundedContinuousIntegralIndexed Pstar
+        (trimmedBootstrapStatisticIndexed Zstar τ) f n ω -
+      bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| ≤
+      2 * ‖f‖ *
+        ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal := by
+  classical
+  haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+  let tail : Set (Ωboot n) := {ωs | τ n < ‖Zstar n ω ωs‖}
+  have hnorm_meas : Measurable fun ωs => ‖Zstar n ω ωs‖ :=
+    continuous_norm.measurable.comp (hZmeas n ω)
+  have htail_meas : MeasurableSet tail := by
+    simpa [tail] using measurableSet_lt measurable_const hnorm_meas
+  have htrimSet_meas : MeasurableSet {ωs | ‖Zstar n ω ωs‖ ≤ τ n} := by
+    exact measurableSet_le hnorm_meas measurable_const
+  have htrim_meas :
+      Measurable fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs := by
+    simpa [trimmedBootstrapStatisticIndexed] using
+      Measurable.ite htrimSet_meas (hZmeas n ω) measurable_const
+  have htrim_int :
+      Integrable
+        (fun ωs => f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs))
+        (Pstar n ω) := by
+    refine Integrable.of_bound
+      ((f.continuous.measurable.comp htrim_meas).aestronglyMeasurable)
+      ‖f‖ ?_
+    exact ae_of_all (Pstar n ω) fun _ => f.norm_coe_le_norm _
+  have hstar_int :
+      Integrable (fun ωs => f (Zstar n ω ωs)) (Pstar n ω) := by
+    refine Integrable.of_bound
+      ((f.continuous.measurable.comp (hZmeas n ω)).aestronglyMeasurable)
+      ‖f‖ ?_
+    exact ae_of_all (Pstar n ω) fun _ => f.norm_coe_le_norm _
+  have hbound_point :
+      ∀ ωs,
+        ‖f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) -
+            f (Zstar n ω ωs)‖ ≤
+          tail.indicator (fun _ => 2 * ‖f‖) ωs := by
+    intro ωs
+    by_cases htail : ωs ∈ tail
+    · rw [Set.indicator_of_mem htail]
+      calc
+        ‖f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) -
+            f (Zstar n ω ωs)‖ ≤
+            ‖f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs)‖ +
+              ‖f (Zstar n ω ωs)‖ := norm_sub_le _ _
+        _ ≤ ‖f‖ + ‖f‖ :=
+            add_le_add (f.norm_coe_le_norm _) (f.norm_coe_le_norm _)
+        _ = 2 * ‖f‖ := by ring
+    · have hnot : ¬ τ n < ‖Zstar n ω ωs‖ := by
+        simpa [tail] using htail
+      have htrim : ‖Zstar n ω ωs‖ ≤ τ n := le_of_not_gt hnot
+      rw [Set.indicator_of_notMem htail]
+      simp [trimmedBootstrapStatisticIndexed, htrim]
+  have hbound_int :
+      ‖∫ ωs,
+          f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) -
+            f (Zstar n ω ωs) ∂Pstar n ω‖ ≤
+        ∫ ωs, tail.indicator (fun _ => 2 * ‖f‖) ωs ∂Pstar n ω := by
+    have hIntBound :
+        Integrable (fun ωs => tail.indicator (fun _ => 2 * ‖f‖) ωs)
+          (Pstar n ω) :=
+      (integrable_const (2 * ‖f‖)).indicator htail_meas
+    exact norm_integral_le_of_norm_le hIntBound
+      (ae_of_all (Pstar n ω) hbound_point)
+  have hdiff_eq :
+      bootstrapBoundedContinuousIntegralIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ) f n ω -
+        bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω =
+      ∫ ωs,
+        f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) -
+          f (Zstar n ω ωs) ∂Pstar n ω := by
+    simpa [bootstrapBoundedContinuousIntegralIndexed] using
+      (integral_sub htrim_int hstar_int).symm
+  calc
+    |bootstrapBoundedContinuousIntegralIndexed Pstar
+        (trimmedBootstrapStatisticIndexed Zstar τ) f n ω -
+      bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| =
+        ‖∫ ωs,
+          f (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) -
+            f (Zstar n ω ωs) ∂Pstar n ω‖ := by
+          rw [hdiff_eq]
+          rfl
+    _ ≤ ∫ ωs, tail.indicator (fun _ => 2 * ‖f‖) ωs ∂Pstar n ω := hbound_int
+    _ = 2 * ‖f‖ *
+        ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal := by
+          rw [integral_indicator_const (2 * ‖f‖) htail_meas]
+          simp [tail, measureReal_def, smul_eq_mul, mul_comm, mul_assoc]
+
+/-- If the original large-norm trimming tail has conditional probability
+`oₚ(1)`, weak bootstrap convergence transfers from `Z*` to `Z**`. -/
+theorem TendstoInBootstrapWeakDistribution.trimmedBootstrapStatistic_of_tailProb
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (trimmedBootstrapStatistic Zstar τ) ν Z := by
+  refine hweak.of_integral_difference_zero ?_
+  intro f
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hscaled :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (2 * ‖f‖) *
+            ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) (2 * ‖f‖) hTailProb
+  refine TendstoInMeasure.of_abs_le_zero_real hscaled ?_
+  intro n ω
+  have hbound :=
+    abs_bootstrapBoundedContinuousIntegral_trimmedBootstrapStatistic_sub_le_tailProb
+      (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstarFinite hZmeas f n ω
+  have htail_nonneg :
+      0 ≤
+        (2 * ‖f‖) *
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal :=
+    mul_nonneg (mul_nonneg (by norm_num) (norm_nonneg f)) ENNReal.toReal_nonneg
+  simpa [abs_of_nonneg htail_nonneg] using hbound
+
+/-- Indexed version of
+`TendstoInBootstrapWeakDistribution.trimmedBootstrapStatistic_of_tailProb`. -/
+theorem
+    TendstoInBootstrapWeakDistributionIndexed.trimmedBootstrapStatistic_of_tailProb
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → k → ℝ}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (trimmedBootstrapStatisticIndexed Zstar τ) ν Z := by
+  refine hweak.of_integral_difference_zero ?_
+  intro f
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hscaled :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (2 * ‖f‖) *
+            ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) (2 * ‖f‖) hTailProb
+  refine TendstoInMeasure.of_abs_le_zero_real hscaled ?_
+  intro n ω
+  have hbound :=
+    abs_bootstrapBoundedContinuousIntegral_trimmedBootstrapStatisticIndexed_sub_le_tailProb
+      (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstarFinite hZmeas f n ω
+  have htail_nonneg :
+      0 ≤
+        (2 * ‖f‖) *
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal :=
+    mul_nonneg (mul_nonneg (by norm_num) (norm_nonneg f)) ENNReal.toReal_nonneg
+  simpa [abs_of_nonneg htail_nonneg] using hbound
 
 /-- The norm of Hansen's trimmed bootstrap statistic is bounded by
 `max (τ n) 0` pointwise. -/
