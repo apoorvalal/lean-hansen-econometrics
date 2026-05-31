@@ -102,10 +102,12 @@ used throughout the chapter:
   bootstrap spaces.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails` and
   `TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails`
-  add the UI/tail unclipping step for the first two moments.
+  add the UI/tail unclipping step for the first two moments, also in indexed
+  form.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tailProb`
   and `TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tailProb`
-  provide the probability-mode version of that unclipping step.
+  provide the probability-mode version of that unclipping step, also in indexed
+  form.
 * `bootstrapMeanReal_realClip_tails_of_tail_integrals` and
   `bootstrapSecondMomentReal_realClip_tails_of_tail_integrals` turn concrete
   first- and second-tail integral controls into those unclipping premises.
@@ -4382,6 +4384,50 @@ theorem TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails
     TendstoInMeasure.of_sub_limit_zero_real hmean0
   exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hmean⟩
 
+/-- Indexed bootstrap weak convergence plus clipping-tail control gives full
+first moment convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_tendsto_of_realClip_tails
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[Zstar n ω] -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[Zstar n ω])
+      atTop (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipMean : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]
+  let clipLimit : ℝ := ∫ ωlim, realClip R (Z ωlim) ∂ν
+  have hclip :
+      TendstoInMeasure μ clipMean atTop (fun _ => clipLimit) := by
+    simpa [clipMean, clipLimit] using
+      hZ.integral_realClip_tendsto hR
+  have hclip0 :
+      TendstoInMeasure μ (fun n ω => clipMean n ω - clipLimit)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_limit_zero_real hclip
+  have hsum := TendstoInMeasure.add_zero_real htail hclip0
+  have hmean0 :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[Zstar n ω] - clipLimit)
+        atTop (fun _ => 0) := by
+    refine hsum.congr_left (fun n => ae_of_all μ fun ω => ?_)
+    dsimp [clipMean]
+    ring
+  have hmean :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Zstar n ω])
+        atTop (fun _ => clipLimit) :=
+    TendstoInMeasure.of_sub_limit_zero_real hmean0
+  exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hmean⟩
+
 /-- Bootstrap weak convergence plus tail-small-in-probability control gives
 full first moment convergence.
 
@@ -4392,6 +4438,36 @@ theorem TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tailProb
     {Pstar : ℕ → Ω → Measure Ωs}
     {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
     (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              ((Pstar n ω)[Zstar n ω] -
+                (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[Zstar n ω])
+      atTop (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real_tailProb (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipMean : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]
+  let clipLimit : ℝ := ∫ ωlim, realClip R (Z ωlim) ∂ν
+  refine ⟨clipMean, clipLimit, ?_, ?_, ?_⟩
+  · simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim
+  · simpa [clipMean, clipLimit] using hZ.integral_realClip_tendsto hR
+  · simpa [clipMean] using htail
+
+/-- Indexed bootstrap weak convergence plus tail-small-in-probability control
+gives full first moment convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_tendsto_of_realClip_tailProb
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
     (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
       |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
       Tendsto
@@ -4464,6 +4540,51 @@ theorem TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails
     TendstoInMeasure.of_sub_limit_zero_real hsecond0
   exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hsecond⟩
 
+/-- Indexed bootstrap weak convergence plus clipping-tail control gives full
+second moment convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_sq_tendsto_of_realClip_tails
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[(Zstar n ω) ^ 2] -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2])
+      atTop (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipSecond : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]
+  let clipLimit : ℝ := ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν
+  have hclip :
+      TendstoInMeasure μ clipSecond atTop (fun _ => clipLimit) := by
+    simpa [clipSecond, clipLimit] using
+      hZ.integral_realClip_sq_tendsto hR
+  have hclip0 :
+      TendstoInMeasure μ (fun n ω => clipSecond n ω - clipLimit)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_limit_zero_real hclip
+  have hsum := TendstoInMeasure.add_zero_real htail hclip0
+  have hsecond0 :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2] - clipLimit)
+        atTop (fun _ => 0) := by
+    refine hsum.congr_left (fun n => ae_of_all μ fun ω => ?_)
+    dsimp [clipSecond]
+    ring
+  have hsecond :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2])
+        atTop (fun _ => clipLimit) :=
+    TendstoInMeasure.of_sub_limit_zero_real hsecond0
+  exact ⟨clipLimit, by simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim, hsecond⟩
+
 /-- Bootstrap weak convergence plus tail-small-in-probability control gives
 full second moment convergence.
 
@@ -4474,6 +4595,37 @@ theorem TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tailP
     {Pstar : ℕ → Ω → Measure Ωs}
     {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
     (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              ((Pstar n ω)[(Zstar n ω) ^ 2] -
+                (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[(Zstar n ω) ^ 2])
+      atTop (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+  refine tendstoInMeasure_of_approx_limits_real_tailProb (μ := μ) ?_
+  intro ε hε
+  obtain ⟨R, hR, hlim, htail⟩ := hTail ε hε
+  let clipSecond : ℕ → Ω → ℝ :=
+    fun n ω => (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]
+  let clipLimit : ℝ := ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν
+  refine ⟨clipSecond, clipLimit, ?_, ?_, ?_⟩
+  · simpa [clipLimit, Real.dist_eq, abs_sub_comm] using hlim
+  · simpa [clipSecond, clipLimit] using hZ.integral_realClip_sq_tendsto hR
+  · simpa [clipSecond] using htail
+
+/-- Indexed bootstrap weak convergence plus tail-small-in-probability control
+gives full second moment convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_sq_tendsto_of_realClip_tailProb
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
     (hTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
       |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
           ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
