@@ -244,11 +244,12 @@ used throughout the chapter:
   10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance`
   combines finite-replication covariance simulation error with conditional
-  bootstrap covariance consistency; scalar and matrix moment-premise wrappers
-  expose the same transfer directly from conditional bootstrap mean and
-  cross-moment convergence, with zero-mean specializations for centered
-  targets. The trimmed zero-mean wrapper exposes the Theorem 10.12 target
-  covariance directly.
+  bootstrap covariance consistency. Its weak/uniform-square-tail wrapper
+  composes this transfer with the Theorem 10.9 conditional covariance layer.
+  Scalar and matrix moment-premise wrappers expose the same transfer directly
+  from conditional bootstrap mean and cross-moment convergence, with zero-mean
+  specializations for centered targets. The trimmed zero-mean wrapper exposes
+  the Theorem 10.12 target covariance directly.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -7150,6 +7151,48 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_co
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication covariance from
+bootstrap weak convergence and uniform-square-tail controls.
+
+This composes the Theorem 10.9 conditional covariance consistency wrapper with
+the finite-replication simulation-error transfer for Hansen's centered
+covariance estimator. Coordinate and coordinate-sum uniform square tails supply
+the conditional covariance target by polarization. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_weak_distribution_uniformSquareTail
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMat Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
 
 /-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
 from conditional bootstrap covariance consistency.
