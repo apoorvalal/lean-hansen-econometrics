@@ -199,6 +199,10 @@ used throughout the chapter:
 * `BootstrapUniformSquareTail` and
   `chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail`
   expose that long tail condition as a reusable theorem-facing assumption.
+* `chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail`
+  and `chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail`
+  expose the conditional moment convergence pieces used by the Theorem 10.9
+  variance bridge.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
@@ -4911,13 +4915,13 @@ def BootstrapUniformSquareTail
             0})
       atTop (𝓝 0)
 
-/-- Hansen Theorem 10.9, weak-distribution plus uniform-square-tail variance
-bridge.
+/-- Hansen Theorem 10.9 conditional mean convergence from weak convergence and
+uniform square-tail control.
 
-This is the theorem-facing uniform-integrability assembly: for every tolerance
-one chooses a large threshold whose squared tail is small for the limit law and
-small in probability for the conditional bootstrap law. -/
-theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
+This is one of the two conditional moment conclusions used by the variance
+consistency bridge.  Squared-tail control supplies the first-moment clipping
+error because thresholds are chosen at least one. -/
+theorem chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
     [IsFiniteMeasure ν]
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
     {Z : Ωlim → ℝ}
@@ -4937,8 +4941,8 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_sq
                   (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
               0})
         atTop (𝓝 0)) :
-    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
-      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+    TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
   have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
     intro n ω
     haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
@@ -5010,6 +5014,40 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_sq
         simpa [Real.dist_eq] using hω
       have htail_ge : ε / 2 ≤ tailSq := by nlinarith
       simpa [tailSq, Real.dist_eq, abs_of_nonneg htailSq_nonneg] using htail_ge
+  simpa [bootstrapMeanReal] using
+    hweak.integral_tendsto_of_realClip_tailProb hTailMeanProb
+
+/-- Hansen Theorem 10.9 conditional second-moment convergence from weak
+convergence and uniform square-tail control.
+
+This is the second conditional moment conclusion used by the variance
+consistency bridge. -/
+theorem chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (∫ ωs,
+                Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                  (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
   have hTailSecondProb : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
       |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
           ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
@@ -5060,16 +5098,47 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_sq
         simpa [Real.dist_eq] using hω
       have htail_ge : ε / 2 ≤ tailSq := by nlinarith
       simpa [tailSq, Real.dist_eq, abs_of_nonneg htailSq_nonneg] using htail_ge
+  simpa [bootstrapSecondMomentReal] using
+    hweak.integral_sq_tendsto_of_realClip_tailProb hTailSecondProb
+
+/-- Hansen Theorem 10.9, weak-distribution plus uniform-square-tail variance
+bridge.
+
+This is the theorem-facing uniform-integrability assembly: for every tolerance
+one chooses a large threshold whose squared tail is small for the limit law and
+small in probability for the conditional bootstrap law. -/
+theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (∫ ωs,
+                Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                  (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
   have hmean :
       TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
-        (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
-    simpa [bootstrapMeanReal] using
-      hweak.integral_tendsto_of_realClip_tailProb hTailMeanProb
+        (fun _ => ∫ ωlim, Z ωlim ∂ν) :=
+    chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailSq
   have hsecond :
       TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
-        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
-    simpa [bootstrapSecondMomentReal] using
-      hweak.integral_sq_tendsto_of_realClip_tailProb hTailSecondProb
+        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) :=
+    chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailSq
   exact chapter10_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZmem hmean hsecond
 
