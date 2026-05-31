@@ -209,6 +209,9 @@ used throughout the chapter:
   and 10.16.
   Their indexed counterparts expose the same local-limit-CDF and strict-CDF
   routes for sample-size-dependent bootstrap spaces.
+  `bootstrapScalarQuantileIndexed_*` and
+  `bootstrapScalarLowerQuantileIndexed_*` mirror the fixed-space scalar
+  quantile backend for indexed bootstrap laws.
   The two-sided critical-value route also has local-limit-CDF bracket variants,
   avoiding a global strict-CDF assumption for absolute-statistic laws.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
@@ -11557,6 +11560,101 @@ theorem TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_id
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := η)
       (Z := fun x : ℝ => x) hZ (by simpa using hx))
 
+/-- Indexed bootstrap scalar quantile convergence from pointwise conditional-CDF
+convergence. -/
+theorem bootstrapScalarQuantileIndexed_tendsto_of_cdf_brackets
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ} {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) p qseq)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_cdf_brackets
+    (μ := μ)
+    (Gseq := fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+    hbracket hleft hright hG
+
+/-- Indexed bootstrap scalar quantile convergence with a strictly increasing
+limiting CDF. -/
+theorem bootstrapScalarQuantileIndexed_tendsto_of_strictMono_cdf
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ} {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) p qseq)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  tendstoInMeasure_quantile_of_strictMono_cdf
+    (μ := μ)
+    (Gseq := fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+    hbracket hstrict hq hG
+
+/-- Indexed bootstrap scalar quantile convergence from one-dimensional indexed
+Hansen Definition 10.2. -/
+theorem bootstrapScalarQuantileIndexed_tendsto_of_bootstrapDistribution_unit
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) p qseq)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  bootstrapScalarQuantileIndexed_tendsto_of_cdf_brackets
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (G := scalarCDF ν Z)
+    hbracket hleft hright
+    (fun x =>
+      TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_of_scalar_continuity
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        hZ (hcont x))
+
+/-- Strict-limit-CDF specialization of indexed scalar quantile convergence from
+one-dimensional indexed Hansen Definition 10.2. -/
+theorem
+bootstrapScalarQuantileIndexed_tendsto_of_bootstrapDistribution_unit_strictMono
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) p qseq)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarQuantileIndexed_tendsto_of_bootstrapDistribution_unit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hbracket hleft hright hZ hcont
+
 /-- Lower generalized inverse of an indexed scalar conditional bootstrap CDF. -/
 noncomputable def bootstrapScalarLowerQuantileIndexed
     (Pstar : ∀ n, Ω → Measure (Ωboot n))
@@ -11598,6 +11696,191 @@ theorem bootstrapScalarLowerQuantileIndexed_tendsto_of_cdf_brackets
     (μ := μ)
     (Gseq := fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
     hmono hne hbdd hlocal hleft hright hG
+
+/-- Indexed scalar lower-quantile convergence with a strictly increasing
+limiting CDF. -/
+theorem bootstrapScalarLowerQuantileIndexed_tendsto_of_strictMono_cdf
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) :=
+  lowerCDFQuantile_tendstoInMeasure_of_strictMono_cdf
+    (μ := μ)
+    (Gseq := fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+    hmono hne hbdd hlocal hstrict hq hG
+
+/-- Indexed scalar lower-quantile convergence from one-dimensional indexed
+Hansen Definition 10.2. -/
+theorem bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) :=
+  bootstrapScalarLowerQuantileIndexed_tendsto_of_cdf_brackets
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (G := scalarCDF ν Z)
+    hmono hne hbdd hlocal hleft hright
+    (fun x =>
+      TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_of_scalar_continuity
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        hZ (hcont x))
+
+/-- Strict-limit-CDF specialization of indexed scalar lower-quantile
+convergence from one-dimensional indexed Hansen Definition 10.2. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_strictMono
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hmono hne hbdd hlocal hleft hright hZ hcont
+
+/-- Finite-measure indexed scalar lower-quantile convergence from
+one-dimensional indexed Hansen Definition 10.2. -/
+theorem bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_finite
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  have hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω) := by
+    intro n ω
+    haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    exact bootstrapScalarCDFIndexed_mono (Pstar := Pstar) (Zstar := Zstar)
+      (n := n) (ω := ω)
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hmono hne hbdd hlocal hleft hright hZ hcont
+
+/-- Strict finite-measure indexed scalar lower-quantile convergence from
+one-dimensional indexed Hansen Definition 10.2. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_strictMono_finite
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hPstar hne hbdd hlocal hleft hright hZ hcont
 
 /-- Law-CDF specialization of indexed scalar lower-quantile convergence from
 one-dimensional indexed Hansen Definition 10.2. -/
