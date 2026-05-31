@@ -9160,6 +9160,36 @@ theorem integral_tail_sq_add_trimmedBootstrapStatistic_apply_eq_zero_of_lt
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
+/-- The coordinate-product squared tail of a trimmed statistic is zero above
+the squared trim threshold. -/
+theorem integral_tail_sq_mul_trimmedBootstrapStatistic_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) {R : ℝ} (hR : (τ n) ^ 2 < R)
+    (ω : Ω) (a c : k) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hprod :=
+      abs_mul_trimmedBootstrapStatistic_apply_le_sq_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+    have hnotmem :
+        ωs ∉
+          {x |
+            R ≤ |trimmedBootstrapStatistic Zstar τ n ω x a *
+              trimmedBootstrapStatistic Zstar τ n ω x c|} :=
+      not_le.mpr (lt_of_le_of_lt hprod hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
+
 /-- Hansen's trimmed bootstrap statistic is a.e. strongly measurable whenever
 the original bootstrap statistic is. -/
 theorem aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
@@ -9438,6 +9468,37 @@ theorem integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_l
             R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω x a +
               trimmedBootstrapStatisticIndexed Zstar τ n ω x c|} :=
       not_le.mpr (lt_of_le_of_lt hsum hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
+
+/-- Indexed coordinate-product squared tail of a trimmed statistic is zero
+above the squared trim threshold. -/
+theorem integral_tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (hτ : 0 ≤ τ n) {R : ℝ} (hR : (τ n) ^ 2 < R)
+    (ω : Ω) (a c : k) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hprod :=
+      abs_mul_trimmedBootstrapStatisticIndexed_apply_le_sq_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+    have hnotmem :
+        ωs ∉
+          {x |
+            R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω x a *
+              trimmedBootstrapStatisticIndexed Zstar τ n ω x c|} :=
+      not_le.mpr (lt_of_le_of_lt hprod hR)
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
