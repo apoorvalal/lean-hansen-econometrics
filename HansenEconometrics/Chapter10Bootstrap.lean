@@ -8701,6 +8701,399 @@ bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_strictMono_id
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η)
       hPstar hZmeas hp_pos hp_lt_one hleft hright hZ hcont
 
+variable {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+
+/-- Scalar conditional bootstrap CDF for sample-size-dependent bootstrap
+spaces. -/
+noncomputable def bootstrapScalarCDFIndexed
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ)
+    (x : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ((Pstar n ω) {ωs | Zstar n ω ωs ≤ x}).toReal
+
+/-- Indexed scalar conditional bootstrap CDF as Mathlib's CDF of the
+push-forward law. -/
+theorem bootstrapScalarCDFIndexed_eq_cdf_map
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {n : ℕ} {ω : Ω}
+    (hPstar : IsProbabilityMeasure (Pstar n ω))
+    (hZ : AEMeasurable (Zstar n ω) (Pstar n ω)) (x : ℝ) :
+    bootstrapScalarCDFIndexed Pstar Zstar x n ω =
+      cdf ((Pstar n ω).map (Zstar n ω)) x := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar
+  haveI : IsProbabilityMeasure ((Pstar n ω).map (Zstar n ω)) :=
+    Measure.isProbabilityMeasure_map hZ
+  rw [ProbabilityTheory.cdf_eq_real]
+  rw [Measure.real]
+  rw [Measure.map_apply_of_aemeasurable hZ measurableSet_Iic]
+  simp [bootstrapScalarCDFIndexed, Set.Iic]
+
+/-- Indexed scalar conditional bootstrap CDFs are monotone under finite
+conditional bootstrap measures. -/
+theorem bootstrapScalarCDFIndexed_mono
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {n : ℕ} {ω : Ω} [IsFiniteMeasure (Pstar n ω)] :
+    Monotone (fun x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) := by
+  intro x y hxy
+  refine ENNReal.toReal_mono
+    (measure_ne_top (Pstar n ω) {ωs | Zstar n ω ωs ≤ y}) ?_
+  exact measure_mono fun ωs hωs => le_trans hωs hxy
+
+/-- Indexed scalar conditional bootstrap CDFs remain below a level just to the
+right of any point where they are strictly below it. -/
+theorem bootstrapScalarCDFIndexed_exists_right_lt_of_lt
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {n : ℕ} {ω : Ω}
+    (hPstar : IsProbabilityMeasure (Pstar n ω))
+    (hZ : AEMeasurable (Zstar n ω) (Pstar n ω))
+    {p x : ℝ}
+    (hx : bootstrapScalarCDFIndexed Pstar Zstar x n ω < p) :
+    ∃ δ : ℝ, 0 < δ ∧
+      bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p := by
+  let η : Measure ℝ := (Pstar n ω).map (Zstar n ω)
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar
+  haveI : IsProbabilityMeasure η := Measure.isProbabilityMeasure_map hZ
+  have hcdf_eq :
+      ∀ y : ℝ, bootstrapScalarCDFIndexed Pstar Zstar y n ω = cdf η y := by
+    intro y
+    exact bootstrapScalarCDFIndexed_eq_cdf_map
+      (Pstar := Pstar) (Zstar := Zstar) (n := n) (ω := ω) hPstar hZ y
+  have hx_cdf : cdf η x < p := by
+    simpa [hcdf_eq x] using hx
+  obtain ⟨δ, hδ_pos, hδ⟩ :=
+    stieltjesFunction_exists_right_lt_of_lt (cdf η) (x := x) hx_cdf
+  exact ⟨δ, hδ_pos, by simpa [hcdf_eq (x + δ)] using hδ⟩
+
+/-- Pointwise a.e.-measurability package for indexed scalar conditional CDF
+local-right bracketing. -/
+theorem bootstrapScalarCDFIndexed_local_right_lt_of_aemeasurable
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    {p : ℝ} :
+    ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+      ∃ δ : ℝ, 0 < δ ∧
+        bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p :=
+  fun n ω x hx =>
+    bootstrapScalarCDFIndexed_exists_right_lt_of_lt
+      (Pstar := Pstar) (Zstar := Zstar) (n := n) (ω := ω)
+      (x := x) (hPstar n ω) (hZ n ω) hx
+
+/-- For an indexed scalar conditional bootstrap CDF, every level below one is
+reached somewhere. -/
+theorem bootstrapScalarCDFIndexed_level_nonempty_of_aemeasurable
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    {p : ℝ} (hp : p < 1) :
+    ∀ n ω,
+      ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+        Set ℝ).Nonempty := by
+  intro n ω
+  let η : Measure ℝ := (Pstar n ω).map (Zstar n ω)
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  haveI : IsProbabilityMeasure η := Measure.isProbabilityMeasure_map (hZ n ω)
+  have hEventually :
+      ∀ᶠ x in atTop, p < cdf η x :=
+    (ProbabilityTheory.tendsto_cdf_atTop η).eventually_const_lt hp
+  obtain ⟨x, hx⟩ := hEventually.exists
+  refine ⟨x, ?_⟩
+  have hcdf_eq :
+      bootstrapScalarCDFIndexed Pstar Zstar x n ω = cdf η x :=
+    bootstrapScalarCDFIndexed_eq_cdf_map
+      (Pstar := Pstar) (Zstar := Zstar) (n := n) (ω := ω)
+      (hPstar n ω) (hZ n ω) x
+  change p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω
+  rw [hcdf_eq]
+  exact le_of_lt hx
+
+/-- For an indexed scalar conditional bootstrap CDF, every strictly positive
+level has a lower-bounded generalized-inverse set. -/
+theorem bootstrapScalarCDFIndexed_level_bddBelow_of_aemeasurable
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    {p : ℝ} (hp : 0 < p) :
+    ∀ n ω, BddBelow
+      {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} := by
+  intro n ω
+  let η : Measure ℝ := (Pstar n ω).map (Zstar n ω)
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  haveI : IsProbabilityMeasure η := Measure.isProbabilityMeasure_map (hZ n ω)
+  have hEventually :
+      ∀ᶠ x in atBot, cdf η x < p :=
+    (ProbabilityTheory.tendsto_cdf_atBot η).eventually_lt_const hp
+  obtain ⟨M, hM⟩ := eventually_atBot.mp hEventually
+  refine ⟨M, ?_⟩
+  intro x hx
+  by_contra hnot
+  have hx_le : x ≤ M := le_of_not_ge hnot
+  have hcdf_lt : cdf η x < p := hM x hx_le
+  have hboot_lt : bootstrapScalarCDFIndexed Pstar Zstar x n ω < p := by
+    have hcdf_eq :
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω = cdf η x :=
+      bootstrapScalarCDFIndexed_eq_cdf_map
+        (Pstar := Pstar) (Zstar := Zstar) (n := n) (ω := ω)
+        (hPstar n ω) (hZ n ω) x
+    simpa [hcdf_eq] using hcdf_lt
+  exact not_lt_of_ge hx hboot_lt
+
+/-- Scalar CDF convergence extracted from indexed one-dimensional Hansen
+Definition 10.2. -/
+theorem TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    {x : ℝ}
+    (hx :
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ
+      (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+      atTop (fun _ => scalarCDF ν Z x) := by
+  have hunit :=
+    hZ.tendsto_cdf (x := fun _ : Unit => x) hx
+  refine TendstoInMeasure.congr (fun n => ?_) ?_ hunit
+  · exact ae_of_all μ fun ω => by
+      simp [bootstrapScalarCDFIndexed, bootstrapVectorCDFIndexed, coordinateLE]
+  · exact ae_of_all μ fun _ => by
+      simp [scalarCDF, vectorCDF, coordinateLE]
+
+/-- Scalar CDF convergence extracted from indexed one-dimensional Hansen
+Definition 10.2, with continuity stated for the scalar CDF. -/
+theorem
+TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_of_scalar_continuity
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    {x : ℝ}
+    (hx : ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+      atTop (fun _ => scalarCDF ν Z x) :=
+  hZ.bootstrapScalarCDF_tendsto_unit (x := x)
+    (continuousAt_vectorCDF_unit_of_scalarCDF hx)
+
+/-- Indexed scalar CDF convergence when the limiting statistic is the identity
+under a scalar probability law. -/
+theorem TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_id_cdf
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η]
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    {x : ℝ}
+    (hx : ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+      atTop (fun _ => cdf η x) := by
+  simpa using
+    (TendstoInBootstrapDistributionIndexed.bootstrapScalarCDF_tendsto_unit_of_scalar_continuity
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := η)
+      (Z := fun x : ℝ => x) hZ (by simpa using hx))
+
+/-- Lower generalized inverse of an indexed scalar conditional bootstrap CDF. -/
+noncomputable def bootstrapScalarLowerQuantileIndexed
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ)
+    (p : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  lowerCDFQuantile (fun x => bootstrapScalarCDFIndexed Pstar Zstar x n ω) p
+
+/-- Indexed scalar lower-quantile convergence from pointwise CDF convergence
+and concrete generalized-inverse bracketing assumptions. -/
+theorem bootstrapScalarLowerQuantileIndexed_tendsto_of_cdf_brackets
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {G : ℝ → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → G (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < G (q + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) :=
+  lowerCDFQuantile_tendstoInMeasure_of_cdf_brackets
+    (μ := μ)
+    (Gseq := fun n ω x => bootstrapScalarCDFIndexed Pstar Zstar x n ω)
+    hmono hne hbdd hlocal hleft hright hG
+
+/-- Law-CDF specialization of indexed scalar lower-quantile convergence from
+one-dimensional indexed Hansen Definition 10.2. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < cdf η (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  have hmono :
+      ∀ n ω, Monotone (fun x =>
+        bootstrapScalarCDFIndexed Pstar Zstar x n ω) := by
+    intro n ω
+    haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    exact bootstrapScalarCDFIndexed_mono (Pstar := Pstar) (Zstar := Zstar)
+      (n := n) (ω := ω)
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_cdf_brackets
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (G := fun x => cdf η x) hmono hne hbdd hlocal
+      hleft hright
+      (fun x =>
+        hZ.bootstrapScalarCDF_tendsto_unit_id_cdf
+          (Pstar := Pstar) (Zstar := Zstar) (x := x) (hcont x))
+
+/-- Strict law-CDF specialization of indexed scalar lower-quantile
+convergence. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_strictMono_id_cdf_finite
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω,
+        BddBelow {x : ℝ | p ≤ bootstrapScalarCDFIndexed Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDFIndexed Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧
+          bootstrapScalarCDFIndexed Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hq : cdf η q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η)
+      hPstar hne hbdd hlocal hleft hright hZ hcont
+
+/-- Indexed law-CDF scalar lower-quantile wrapper for probability-valued
+conditional bootstrap CDFs at levels `0 < p < 1`. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_probability
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    (hp_pos : 0 < p) (hp_lt_one : p < 1)
+    (hleft : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < cdf η (q + ε))
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η) (p := p)
+      (q := q) hPstarFinite
+      (bootstrapScalarCDFIndexed_level_nonempty_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas hp_lt_one)
+      (bootstrapScalarCDFIndexed_level_bddBelow_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas hp_pos)
+      (bootstrapScalarCDFIndexed_local_right_lt_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Zstar) hPstar hZmeas)
+      hleft hright hZ hcont
+
+/-- Strict indexed law-CDF scalar lower-quantile wrapper for
+probability-valued conditional bootstrap CDFs at levels `0 < p < 1`. -/
+theorem
+bootstrapScalarLowerQuantileIndexed_tendsto_of_strictMono_id_cdf_probability
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {η : Measure ℝ} [IsProbabilityMeasure η] {p q : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, AEMeasurable (Zstar n ω) (Pstar n ω))
+    (hp_pos : 0 < p) (hp_lt_one : p < 1)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hq : cdf η q = p)
+    (hZ :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) η
+        (fun x (_ : Unit) => x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantileIndexed Pstar Zstar p)
+      atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_id_cdf_probability
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (η := η)
+      hPstar hZmeas hp_pos hp_lt_one hleft hright hZ hcont
+
 end QuantileConvergence
 
 section PercentileIntervals
