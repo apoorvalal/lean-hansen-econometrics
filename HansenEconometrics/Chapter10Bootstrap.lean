@@ -271,7 +271,8 @@ used throughout the chapter:
 * `chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance` and
   `chapter10_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail`
   combine finite-replication simulation error with the conditional-bootstrap
-  variance consistency layer from Hansen Theorem 10.9; the moment-premise
+  variance consistency layer from Hansen Theorem 10.9, with indexed
+  counterparts for sample-size-dependent bootstrap spaces; the moment-premise
   and centered-scalar wrappers expose the same transfer directly from
   conditional bootstrap mean/second-moment convergence and Hansen's displayed
   `1 / (B - 1)` estimator.
@@ -8312,6 +8313,197 @@ theorem
   chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
     (chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
+
+/-- Indexed Hansen Theorem 10.9/10.11 bridge from finite-replication
+simulation error.
+
+This is the sample-size-dependent bootstrap-space analogue of
+`chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance`. -/
+theorem chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from
+conditional bootstrap moment convergence. -/
+theorem chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {m m₂ : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => m₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
+      (μ := μ) hPstar hZ hmean hsecond)
+
+/-- Indexed zero-mean finite-replication variance wrapper for Hansen Theorem
+10.11. -/
+theorem
+    chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_zero_mean_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => 0))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_moments
+      (μ := μ) (m := 0) (m₂ := σ2)
+      hPstar hZ hmean hsecond hfinite)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
+from conditional bootstrap variance consistency. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
+from conditional bootstrap moment convergence. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {m m₂ : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => m₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
+      (μ := μ) hPstar hZ hmean hsecond)
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from
+bootstrap weak convergence and a named uniform-square-tail condition. -/
+theorem
+    chapter10_indexed_finiteReplicationVariance_tendsto_of_weak_distribution_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
+from bootstrap weak convergence and a named uniform-square-tail condition. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail)
 
 /-- Finite-replication covariance moment bridge for two real statistics.
