@@ -46,6 +46,8 @@ used throughout the chapter:
   spaces `Fin (n+1) -> Fin (n+1)`;
   `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean` packages the
   corresponding level conclusion.
+* `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
+  sample-size-indexed form of Hansen Theorem 10.3.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -2010,6 +2012,80 @@ theorem congr [PseudoMetricSpace E]
   intro η hη
   simpa [bootstrapTailProbIndexed, hstar, hlim] using hZ η hη
 
+/-- Indexed-space Hansen Theorem 10.3, bootstrap continuous-mapping theorem in
+probability.
+
+If `Zₙ* ->p* c` on sample-size-dependent bootstrap spaces and `g` is
+continuous at `c`, then `g(Zₙ*) ->p* g(c)`. -/
+theorem continuousAt_const_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ∀ n, Ω → Ωboot n → E} {c : E} {g : E → F}
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar (fun _ => c))
+    (hg : ContinuousAt g c) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun _ => g c) := by
+  intro η hη
+  obtain ⟨δ, hδ, hδ_eventually⟩ := (Metric.continuousAt_iff.mp hg) η hη
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) (fun _ => g c) η n ω)
+    (g := fun n ω => bootstrapTailProbIndexed Pstar Zstar (fun _ => c) δ n ω)
+    ?_ ?_ (hZ δ hδ)
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω)
+        {ωs | δ ≤ dist (Zstar n ω ωs) c}
+    · intro ωs hωs
+      by_contra hnot
+      have hlt : dist (Zstar n ω ωs) c < δ := lt_of_not_ge hnot
+      exact (not_lt_of_ge hωs) (hδ_eventually hlt)
+
+/-- Indexed bootstrap convergence in probability is preserved by globally
+Lipschitz maps. -/
+theorem lipschitz_comp [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E} {g : E → F} {C : ℝ}
+    (hC : 0 < C)
+    (hg : ∀ x y, dist (g x) (g y) ≤ C * dist x y)
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) := by
+  intro η hη
+  have hδ : 0 < η / C := div_pos hη hC
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω))
+        η n ω)
+    (g := fun n ω => bootstrapTailProbIndexed Pstar Zstar Z (η / C) n ω)
+    ?_ ?_ (hZ (η / C) hδ)
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω)
+        {ωs | η / C ≤ dist (Zstar n ω ωs) (Z ω)}
+    · intro ωs hωs
+      by_contra hnot
+      have hlt : dist (Zstar n ω ωs) (Z ω) < η / C := lt_of_not_ge hnot
+      have hmap_lt : dist (g (Zstar n ω ωs)) (g (Z ω)) < η := by
+        calc
+          dist (g (Zstar n ω ωs)) (g (Z ω))
+              ≤ C * dist (Zstar n ω ωs) (Z ω) := hg _ _
+          _ < C * (η / C) := mul_lt_mul_of_pos_left hlt hC
+          _ = η := by
+            field_simp [ne_of_gt hC]
+      exact (not_lt_of_ge hωs) hmap_lt
+
 /-- Indexed bootstrap convergence in probability is closed under addition. -/
 theorem add [SeminormedAddCommGroup E]
     {Pstar : ∀ n, Ω → Measure (Ωboot n)}
@@ -2082,6 +2158,35 @@ theorem add [SeminormedAddCommGroup E]
           bootstrapTailProbIndexed Pstar Ystar Y (η / 2) n ω := rfl
 
 end TendstoInBootstrapProbabilityIndexed
+
+/-- Indexed-space Hansen Theorem 10.3, chapter-facing name.
+
+If `Zₙ* ->p* c` on sample-size-dependent bootstrap spaces and `g` is
+continuous at `c`, then `g(Zₙ*) ->p* g(c)`. -/
+theorem chapter10_indexed_bootstrap_continuous_mapping_probability
+    [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ∀ n, Ω → Ωboot n → E} {c : E} {g : E → F}
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar (fun _ => c))
+    (hg : ContinuousAt g c) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun _ => g c) :=
+  hZ.continuousAt_const_comp hPstar hg
+
+/-- Indexed-space globally Lipschitz mapping bridge for bootstrap convergence
+in probability. -/
+theorem chapter10_indexed_bootstrap_lipschitz_mapping_probability
+    [PseudoMetricSpace E] [PseudoMetricSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E} {g : E → F} {C : ℝ}
+    (hC : 0 < C)
+    (hg : ∀ x y, dist (g x) (g y) ≤ C * dist x y)
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) :=
+  hZ.lipschitz_comp hPstar hC hg
 
 /-- Indexed-space conditional Markov inequality, stated with a concrete
 second moment. -/
