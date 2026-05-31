@@ -8944,6 +8944,28 @@ theorem norm_trimmedBootstrapStatistic_le_of_nonneg
   (norm_trimmedBootstrapStatistic_le_max (Zstar := Zstar) (τ := τ) n ω ωs).trans
     (max_le le_rfl hτ)
 
+/-- Coordinate bound for Hansen's trimmed bootstrap statistic. -/
+theorem abs_trimmedBootstrapStatistic_apply_le_of_nonneg
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωs) (a : k) :
+    |trimmedBootstrapStatistic Zstar τ n ω ωs a| ≤ τ n := by
+  simpa [Real.norm_eq_abs] using
+    (norm_le_pi_norm (trimmedBootstrapStatistic Zstar τ n ω ωs) a).trans
+      (norm_trimmedBootstrapStatistic_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs)
+
+/-- Squared coordinate bound for Hansen's trimmed bootstrap statistic. -/
+theorem sq_trimmedBootstrapStatistic_apply_le_sq_of_nonneg
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωs) (a : k) :
+    (trimmedBootstrapStatistic Zstar τ n ω ωs a) ^ 2 ≤ (τ n) ^ 2 :=
+  sq_le_sq.mpr (by
+    simpa [abs_of_nonneg hτ] using
+      abs_trimmedBootstrapStatistic_apply_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a)
+
 /-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
 theorem norm_trimmedBootstrapStatisticIndexed_le_max
     {k : Type*} [Fintype k]
@@ -8967,6 +8989,30 @@ theorem norm_trimmedBootstrapStatisticIndexed_le_of_nonneg
   (norm_trimmedBootstrapStatisticIndexed_le_max
     (Zstar := Zstar) (τ := τ) n ω ωs).trans
     (max_le le_rfl hτ)
+
+/-- Indexed coordinate bound for Hansen's trimmed bootstrap statistic. -/
+theorem abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωboot n) (a : k) :
+    |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a| ≤ τ n := by
+  simpa [Real.norm_eq_abs] using
+    (norm_le_pi_norm (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) a).trans
+      (norm_trimmedBootstrapStatisticIndexed_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs)
+
+/-- Indexed squared coordinate bound for Hansen's trimmed bootstrap statistic. -/
+theorem sq_trimmedBootstrapStatisticIndexed_apply_le_sq_of_nonneg
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (ωs : Ωboot n) (a : k) :
+    (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ^ 2 ≤ (τ n) ^ 2 :=
+  sq_le_sq.mpr (by
+    simpa [abs_of_nonneg hτ] using
+      abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a)
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
