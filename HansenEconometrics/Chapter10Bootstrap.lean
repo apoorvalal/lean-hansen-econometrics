@@ -8329,6 +8329,245 @@ theorem chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSq
     (chapter10_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
 
+/-- Indexed Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
+
+This is the sample-size-dependent counterpart of
+`chapter10_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail`. -/
+theorem chapter10_indexed_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a)) :
+    TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar) atTop
+      (fun _ => fun a => ∫ ωlim, Z ωlim a ∂ν) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  have hweak_a :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a) ν
+        (fun ωlim => Z ωlim a) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := fun z : k → ℝ => z a) hweak (continuous_apply a)
+  simpa [bootstrapMeanVecIndexed, bootstrapMeanRealIndexed] using
+    chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => Zstar n ω ωs a)
+      (Z := fun ωlim => Z ωlim a)
+      hPstar (fun n ω => hZmem n ω a) (hZlim a) hweak_a (hTail a)
+
+/-- Indexed Hansen Theorem 10.9 finite-dimensional cross-moment wrapper.
+
+Coordinate and coordinate-sum indexed uniform-square-tail conditions identify
+the conditional cross moments by the same polarization identity as the
+fixed-space theorem. -/
+theorem
+    chapter10_indexed_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar) atTop
+      (fun _ => fun a c => ∫ ωlim, Z ωlim a * Z ωlim c ∂ν) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  have hweak_a :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a) ν
+        (fun ωlim => Z ωlim a) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := fun z : k → ℝ => z a) hweak (continuous_apply a)
+  have hweak_c :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs c) ν
+        (fun ωlim => Z ωlim c) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := fun z : k → ℝ => z c) hweak (continuous_apply c)
+  have hweak_sum :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+        (fun ωlim => Z ωlim a + Z ωlim c) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := fun z : k → ℝ => z a + z c) hweak
+      ((continuous_apply a).add (continuous_apply c))
+  have hsecond_a :
+      TendstoInMeasure μ
+        (bootstrapSecondMomentRealIndexed Pstar
+          (fun n ω ωs => Zstar n ω ωs a))
+        atTop (fun _ => ∫ ωlim, (Z ωlim a) ^ 2 ∂ν) :=
+    chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => Zstar n ω ωs a)
+      (Z := fun ωlim => Z ωlim a)
+      hPstar (fun n ω => hZmem n ω a) (hZlim a) hweak_a (hTailCoord a)
+  have hsecond_c :
+      TendstoInMeasure μ
+        (bootstrapSecondMomentRealIndexed Pstar
+          (fun n ω ωs => Zstar n ω ωs c))
+        atTop (fun _ => ∫ ωlim, (Z ωlim c) ^ 2 ∂ν) :=
+    chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => Zstar n ω ωs c)
+      (Z := fun ωlim => Z ωlim c)
+      hPstar (fun n ω => hZmem n ω c) (hZlim c) hweak_c (hTailCoord c)
+  have hsecond_sum :
+      TendstoInMeasure μ
+        (bootstrapSecondMomentRealIndexed Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c))
+        atTop
+          (fun _ => ∫ ωlim, (Z ωlim a + Z ωlim c) ^ 2 ∂ν) :=
+    chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+      (Z := fun ωlim => Z ωlim a + Z ωlim c)
+      hPstar
+      (fun n ω => (hZmem n ω a).add (hZmem n ω c))
+      ((hZlim a).add (hZlim c)) hweak_sum (hTailSum a c)
+  have hcenter0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) n ω -
+              ∫ ωlim, (Z ωlim a + Z ωlim c) ^ 2 ∂ν) -
+            (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a) n ω -
+              ∫ ωlim, (Z ωlim a) ^ 2 ∂ν)) -
+            (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs c) n ω -
+              ∫ ωlim, (Z ωlim c) ^ 2 ∂ν))
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_zero_real
+      (TendstoInMeasure.sub_zero_real
+        (TendstoInMeasure.sub_limit_zero_real hsecond_sum)
+        (TendstoInMeasure.sub_limit_zero_real hsecond_a))
+      (TendstoInMeasure.sub_limit_zero_real hsecond_c)
+  have hhalf0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (1 / 2 : ℝ) *
+            (((bootstrapSecondMomentRealIndexed Pstar
+                (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) n ω -
+                ∫ ωlim, (Z ωlim a + Z ωlim c) ^ 2 ∂ν) -
+              (bootstrapSecondMomentRealIndexed Pstar
+                (fun n ω ωs => Zstar n ω ωs a) n ω -
+                ∫ ωlim, (Z ωlim a) ^ 2 ∂ν)) -
+              (bootstrapSecondMomentRealIndexed Pstar
+                (fun n ω ωs => Zstar n ω ωs c) n ω -
+                ∫ ωlim, (Z ωlim c) ^ 2 ∂ν)))
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) (1 / 2 : ℝ) hcenter0
+  have hcross0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapCrossMomentMatIndexed Pstar Zstar n ω a c -
+            ∫ ωlim, Z ωlim a * Z ωlim c ∂ν)
+        atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hhalf0
+    refine ae_of_all μ fun ω => ?_
+    have hboot :
+        bootstrapCrossMomentMatIndexed Pstar Zstar n ω a c =
+          ((bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) n ω) -
+            (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a) n ω) -
+            (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs c) n ω)) / 2 := by
+      simpa [bootstrapCrossMomentMatIndexed, bootstrapSecondMomentRealIndexed] using
+        integral_mul_eq_half_integral_add_sq_sub_sq
+          (P := Pstar n ω)
+          (X := fun ωs => Zstar n ω ωs a)
+          (Y := fun ωs => Zstar n ω ωs c)
+          (hZmem n ω a) (hZmem n ω c)
+    have hlim :
+        ∫ ωlim, Z ωlim a * Z ωlim c ∂ν =
+          ((∫ ωlim, (Z ωlim a + Z ωlim c) ^ 2 ∂ν) -
+            (∫ ωlim, (Z ωlim a) ^ 2 ∂ν) -
+            (∫ ωlim, (Z ωlim c) ^ 2 ∂ν)) / 2 := by
+      simpa using
+        integral_mul_eq_half_integral_add_sq_sub_sq
+          (P := ν)
+          (X := fun ωlim => Z ωlim a)
+          (Y := fun ωlim => Z ωlim c)
+          (hZlim a) (hZlim c)
+    change
+      (1 / 2 : ℝ) *
+        ((bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) n ω -
+            ∫ ωlim, (Z ωlim a + Z ωlim c) ^ 2 ∂ν -
+          (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs a) n ω -
+            ∫ ωlim, (Z ωlim a) ^ 2 ∂ν)) -
+          (bootstrapSecondMomentRealIndexed Pstar
+              (fun n ω ωs => Zstar n ω ωs c) n ω -
+            ∫ ωlim, (Z ωlim c) ^ 2 ∂ν)) =
+        bootstrapCrossMomentMatIndexed Pstar Zstar n ω a c -
+          ∫ ωlim, Z ωlim a * Z ωlim c ∂ν
+    rw [hboot, hlim]
+    ring
+  simpa [bootstrapCrossMomentMatIndexed] using
+    TendstoInMeasure.of_sub_limit_zero_real hcross0
+
+/-- Indexed Hansen Theorem 10.9/10.12 covariance matrix from bootstrap weak
+convergence and scalar indexed uniform-square-tail controls. -/
+theorem chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+    hPstar hZmem
+    (chapter10_indexed_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord)
+    (chapter10_indexed_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
 /-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
 noncomputable def trimmedBootstrapStatistic
     {k : Type*} [Fintype k]
@@ -10017,6 +10256,45 @@ theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_weak_distribution_un
     (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
 
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
+from bootstrap weak convergence and indexed uniform-square-tail controls. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
 /-- Hansen Theorem 10.9/10.11 bridge for the textbook-centered finite
 replication covariance matrix.
 
@@ -10106,6 +10384,45 @@ theorem
   chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
     (μ := μ) hfinite
     (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication covariance
+from bootstrap weak convergence and indexed uniform-square-tail controls. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_weak_tail
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailCoord hTailSum)
 
 /-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
