@@ -266,7 +266,8 @@ used throughout the chapter:
   cross-moment convergence.
 * `chapter10_bootstrap_regression_theta_gaussian` and
   `chapter10_bootstrap_regression_theta_gaussian_distribution` are
-  regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18.
+  regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18;
+  indexed counterparts cover sample-size-dependent bootstrap spaces.
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
   variance wrapper for Hansen Theorem 10.19.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
@@ -8310,6 +8311,90 @@ theorem chapter10_bootstrap_regression_theta_gaussian_distribution_posDef
       (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
       (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
   chapter10_bootstrap_regression_theta_gaussian_distribution
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar) (Vβ := Vβ)
+    R hVβ hβ hPstar hTbetaStar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+/-- Indexed Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian
+wrapper for sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_regression_theta_gaussian
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => z) := by
+  simpa [Matrix.transpose_transpose] using
+    chapter10_indexed_bootstrap_delta_method_gaussian
+      (μ := μ) (Pstar := Pstar) (Tstar := TbetaStar) (V := Vβ)
+      (G := Rᵀ) hVβ hβ
+
+/-- Indexed Hansen Theorem 10.18, regression Gaussian CDF wrapper. -/
+theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) := by
+  simpa [Matrix.transpose_transpose] using
+    chapter10_indexed_bootstrap_delta_method_gaussian_distribution
+      (μ := μ) (Pstar := Pstar) (Tstar := TbetaStar) (V := Vβ)
+      (G := Rᵀ) hVβ hβ hPstar hTbetaStar
+      (by simpa [Matrix.transpose_transpose] using hfrontier)
+
+/-- Indexed Hansen Theorem 10.18, regression Gaussian CDF wrapper with
+positive definite transformed covariance. -/
+theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hRVR : (Rᵀ * Vβ * R).PosDef)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
     (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar) (Vβ := Vβ)
     R hVβ hβ hPstar hTbetaStar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
