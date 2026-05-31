@@ -170,11 +170,15 @@ used throughout the chapter:
   packages that finite result in the `Fin (n+1)` Marcinkiewicz scale used by
   the indexed centered WLLN.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
-  `bootstrapScalarCDF`, and `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
+  `scalarCDF`, `bootstrapScalarCDF`, and
+  `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
   provide the pointwise-CDF bracketing route from bootstrap CDF convergence to
   endpoint and critical-value convergence for Theorems 10.13, 10.14, and 10.16.
   `TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit` extracts
-  scalar CDF convergence from the one-dimensional Definition 10.2 API.
+  scalar CDF convergence from the one-dimensional Definition 10.2 API, while
+  `bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit` and
+  `bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit`
+  feed that bridge directly into quantile convergence.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
   `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
@@ -7804,6 +7808,11 @@ theorem lowerCDFQuantile_tendstoInMeasure_of_stieltjesFunction_strictMono
     (hbracket := lowerCDFQuantile_bracket_of_stieltjesFunction hne hbdd)
     hstrict hq hG
 
+/-- Limit scalar CDF `G(x) = P[Z ≤ x]`. -/
+noncomputable def scalarCDF
+    (ν : Measure Ωlim) (Z : Ωlim → ℝ) (x : ℝ) : ℝ :=
+  (ν {ωlim | Z ωlim ≤ x}).toReal
+
 /-- Scalar conditional bootstrap CDF `P*[Zₙ* ≤ x]`. -/
 noncomputable def bootstrapScalarCDF
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
@@ -7830,14 +7839,14 @@ theorem TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit
           vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
         (fun _ : Unit => x)) :
     TendstoInMeasure μ (fun n ω => bootstrapScalarCDF Pstar Zstar x n ω)
-      atTop (fun _ => (ν {ωlim | Z ωlim ≤ x}).toReal) := by
+      atTop (fun _ => scalarCDF ν Z x) := by
   have hunit :=
     hZ.tendsto_cdf (x := fun _ : Unit => x) hx
   refine TendstoInMeasure.congr (fun n => ?_) ?_ hunit
   · exact ae_of_all μ fun ω => by
       simp [bootstrapScalarCDF, bootstrapVectorCDF, coordinateLE]
   · exact ae_of_all μ fun _ => by
-      simp [vectorCDF, coordinateLE]
+      simp [scalarCDF, vectorCDF, coordinateLE]
 
 /-- Bootstrap scalar quantile convergence from pointwise conditional-CDF
 convergence.
@@ -7882,6 +7891,65 @@ theorem bootstrapScalarQuantile_tendsto_of_strictMono_cdf
   tendstoInMeasure_quantile_of_strictMono_cdf
     (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
     hbracket hstrict hq hG
+
+/-- Bootstrap scalar quantile convergence from one-dimensional Hansen
+Definition 10.2.
+
+This composes the one-dimensional Definition 10.2-to-scalar-CDF bridge with
+the pointwise-CDF quantile constructor. -/
+theorem bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω) p qseq)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ,
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) :=
+  bootstrapScalarQuantile_tendsto_of_cdf_brackets
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (G := scalarCDF ν Z)
+    hbracket hleft hright
+    (fun x =>
+      TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        hZ (x := x) (hcont x))
+
+/-- Strict-limit-CDF specialization of scalar quantile convergence from
+one-dimensional Hansen Definition 10.2. -/
+theorem bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit_strictMono
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    {qseq : ℕ → Ω → ℝ}
+    (hbracket :
+      CDFQuantileBracket
+        (fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω) p qseq)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ,
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ qseq atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hbracket hleft hright hZ hcont
 
 /-- Lower generalized inverse of the scalar conditional bootstrap CDF. -/
 noncomputable def bootstrapScalarLowerQuantile
@@ -7944,6 +8012,79 @@ theorem bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
   lowerCDFQuantile_tendstoInMeasure_of_strictMono_cdf
     (μ := μ) (Gseq := fun n ω x => bootstrapScalarCDF Pstar Zstar x n ω)
     hmono hne hbdd hlocal hstrict hq hG
+
+/-- Bootstrap scalar lower-quantile convergence from one-dimensional Hansen
+Definition 10.2.
+
+This is the concrete generalized-inverse version of
+`bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit`. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ,
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) :=
+  bootstrapScalarLowerQuantile_tendsto_of_cdf_brackets
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (G := scalarCDF ν Z)
+    hmono hne hbdd hlocal hleft hright
+    (fun x =>
+      TendstoInBootstrapDistribution.bootstrapScalarCDF_tendsto_unit
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+        hZ (x := x) (hcont x))
+
+/-- Strict-limit-CDF specialization of scalar lower-quantile convergence from
+one-dimensional Hansen Definition 10.2. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_strictMono
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Zstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ,
+      ContinuousAt
+        (fun y : Unit → ℝ =>
+          vectorCDF ν (fun ωlim (_ : Unit) => Z ωlim) y)
+        (fun _ : Unit => x)) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hmono hne hbdd hlocal hleft hright hZ hcont
 
 end QuantileConvergence
 
