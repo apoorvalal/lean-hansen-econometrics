@@ -193,6 +193,8 @@ used throughout the chapter:
   The probability-level percentile, percentile-`t`, and critical-value wrappers
   apply those discharged quantile premises directly to Theorems 10.13, 10.14,
   and 10.16.
+  The two-sided critical-value route also has local-limit-CDF bracket variants,
+  avoiding a global strict-CDF assumption for absolute-statistic laws.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
   `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
@@ -10771,6 +10773,69 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_l
       hξ hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Two-sided bootstrap-test calibration from a bootstrap lower critical
+quantile, using local limit-CDF bracketing.
+
+This is the non-strict-CDF version of the lower-generalized-inverse route for
+Hansen Theorem 10.16.  It requires only that the limiting absolute-statistic
+CDF lies below `1 - α` immediately to the left of `critLim` and above it
+immediately to the right. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuantile_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {Gabs : ℝ → ℝ}
+    {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Astar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow
+        {x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Astar x n ω < 1 - α →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Astar (x + δ) n ω <
+          1 - α)
+    (hleft : ∀ ε : ℝ, 0 < ε → Gabs (critLim - ε) < 1 - α)
+    (hright : ∀ ε : ℝ, 0 < ε → 1 - α < Gabs (critLim + ε))
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Astar x n ω)
+          atTop (fun _ => Gabs x))
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  have hcrit :
+      TendstoInMeasure μ
+        (bootstrapScalarLowerQuantile Pstar Astar (1 - α))
+        atTop (fun _ => critLim) :=
+    bootstrapScalarLowerQuantile_tendsto_of_cdf_brackets
+      (μ := μ) (Pstar := Pstar) (Zstar := Astar)
+      (G := Gabs) (p := 1 - α) (q := critLim)
+      hmono hne hbdd hlocal hleft hright hG
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints
+      (μ := μ) (ν := ν) (η := η)
+      (T := T) (crit := bootstrapScalarLowerQuantile Pstar Astar (1 - α))
+      (ξ := ξ) (critLim := critLim) (α := α)
+      hT hcrit hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Two-sided bootstrap-test calibration from a bootstrap lower critical
 quantile.
 
 This is the theorem-facing quantile-identification route for Hansen Theorem
@@ -10902,6 +10967,77 @@ theorem
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Two-sided bootstrap-test calibration from bootstrap-distribution
+convergence of the absolute bootstrap statistic, using local limit-CDF
+bracketing at the critical value.
+
+This variant avoids a global strict-monotonicity requirement on the limiting
+absolute-statistic CDF; it only needs the local lower-quantile bracketing
+premises around `critLim`. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistribution_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω} :
+          Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow
+        {x : ℝ | 1 - α ≤ bootstrapScalarCDF Pstar Astar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Astar x n ω < 1 - α →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Astar (x + δ) n ω <
+          1 - α)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε))
+    (hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) ηAbs
+        (fun x (_ : Unit) => x))
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  have hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Astar x n ω) := by
+    intro n ω
+    haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+    exact bootstrapScalarCDF_mono (Pstar := Pstar) (Zstar := Astar)
+      (n := n) (ω := ω)
+  have hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Astar x n ω)
+          atTop (fun _ => cdf ηAbs x) :=
+    fun x =>
+      hAstar.bootstrapScalarCDF_tendsto_unit_id_cdf
+        (Pstar := Pstar) (Zstar := Astar) (x := x) (hcontAbs x)
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuantile_brackets
+      (μ := μ) (ν := ν) (η := η) (Pstar := Pstar) (Astar := Astar)
+      (T := T) (ξ := ξ) (Gabs := fun x => cdf ηAbs x)
+      (critLim := critLim) (α := α)
+      hT hmono hne hbdd hlocal hleft hright hG hcrit_meas hξ
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Two-sided bootstrap-test calibration from bootstrap-distribution
 convergence of the absolute bootstrap statistic, with probability-CDF
 bracketing discharged at level `1 - α`.
 
@@ -10957,6 +11093,67 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistributio
       (bootstrapScalarCDF_local_right_lt_of_aemeasurable
         (Pstar := Pstar) (Zstar := Astar) hPstar hAmeas)
       hstrictAbs hcritLevel hAstar hcontAbs hcrit_meas hξ hcrit_nonneg
+      hcdfLower hcdfUpper
+
+/-- Two-sided bootstrap-test calibration from bootstrap-distribution
+convergence of the absolute bootstrap statistic, with bootstrap-side
+probability-CDF bracketing discharged and local limit-CDF bracketing retained.
+
+This is the probability-level version of
+`chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistribution_brackets`.
+It avoids the global strict-CDF assumption on the limiting absolute-statistic
+law. -/
+theorem
+chapter10_bootstrap_abs_test_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε))
+    (hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) ηAbs
+        (fun x (_ : Unit) => x))
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrapDistribution_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs) (Pstar := Pstar)
+      (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
+      (α := α) hT hPstarFinite
+      (bootstrapScalarCDF_level_nonempty_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Astar) hPstar hAmeas
+        (by linarith : 1 - α < 1))
+      (bootstrapScalarCDF_level_bddBelow_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Astar) hPstar hAmeas
+        (by linarith : 0 < 1 - α))
+      (bootstrapScalarCDF_local_right_lt_of_aemeasurable
+        (Pstar := Pstar) (Zstar := Astar) hPstar hAmeas)
+      hleft hright hAstar hcontAbs hcrit_meas hξ hcrit_nonneg
       hcdfLower hcdfUpper
 
 end BootstrapTests
