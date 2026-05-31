@@ -237,14 +237,15 @@ used throughout the chapter:
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail`
   states the Theorem 10.9 conclusion from the textbook-style uniform
   square-tail condition: for every tolerance, a squared tail is small in
-  probability at a large threshold.
+  probability at a large threshold; the indexed counterpart covers
+  sample-size-dependent bootstrap spaces.
 * `BootstrapUniformSquareTail` and
-  `chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail`
-  expose that long tail condition as a reusable theorem-facing assumption.
+  `BootstrapUniformSquareTailIndexed` expose that long tail condition as a
+  reusable theorem-facing assumption.
 * `chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail`
   and `chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail`
   expose the conditional moment convergence pieces used by the Theorem 10.9
-  variance bridge.
+  variance bridge, with indexed counterparts for sample-size-dependent spaces.
 * `chapter10_bootstrap_meanVec_tendsto_of_weak_distribution_of_uniformSquareTail`
   is the finite-dimensional coordinatewise mean-vector version used by the
   covariance and trimmed-variance layers.
@@ -6596,6 +6597,314 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniform
     TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
       (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
   chapter10_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
+
+/-- Indexed textbook-style uniform square-tail condition for Hansen Theorem
+10.9.
+
+This is the sample-size-dependent bootstrap-space version of
+`BootstrapUniformSquareTail`: for every tolerance, one threshold makes the
+limit squared tail small and makes the corresponding indexed conditional
+bootstrap squared tail small in probability. -/
+def BootstrapUniformSquareTailIndexed
+    (μ : Measure Ω) {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ) (ν : Measure Ωlim)
+    (Z : Ωlim → ℝ) : Prop :=
+  ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+    (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+      (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+    Tendsto
+      (fun n =>
+        μ {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0})
+      atTop (𝓝 0)
+
+/-- Indexed Hansen Theorem 10.9 conditional mean convergence from weak
+convergence and uniform square-tail control. -/
+theorem chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (∫ ωs,
+                Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                  (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hZstarInt : ∀ n ω, Integrable (Zstar n ω) (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    exact memLp_one_iff_integrable.mp ((hZmem n ω).mono_exponent one_le_two)
+  have hZlimInt : Integrable Z ν :=
+    memLp_one_iff_integrable.mp (hZlim.mono_exponent one_le_two)
+  have hTailMeanProb : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (bootstrapMeanRealIndexed Pstar Zstar n ω -
+                (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+              0})
+        atTop (𝓝 0) := by
+    intro ε hε
+    obtain ⟨R, hR_one, hlimSq, hsourceSq⟩ := hTailSq (ε / 2) (by positivity)
+    have hR_nonneg : 0 ≤ R := zero_le_one.trans hR_one
+    refine ⟨R, hR_nonneg, ?_, ?_⟩
+    · have hlimAbsLe :=
+        integral_tail_abs_le_integral_tail_sq_of_one_le
+          (μ := ν) (Y := Z) hZlim hR_one
+      have hclip :=
+        abs_integral_sub_realClip_le_two_mul_integral_tail_abs
+          (μ := ν) (Y := Z) hZlimInt hR_nonneg
+      calc
+        |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤
+            2 * ∫ ωlim,
+              Set.indicator {ωlim | R ≤ |Z ωlim|}
+                (fun ωlim => |Z ωlim|) ωlim ∂ν := hclip
+        _ ≤ 2 * ∫ ωlim,
+              Set.indicator {ωlim | R ≤ |Z ωlim|}
+                (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν := by nlinarith
+        _ ≤ 2 * (ε / 2) := by nlinarith
+        _ = ε := by ring
+    · refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+        hsourceSq (fun _ => zero_le _) ?_
+      intro n
+      refine measure_mono ?_
+      intro ω hω
+      simp only [Set.mem_setOf_eq] at hω ⊢
+      let tailSq : ℝ :=
+        ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+      have htailSq_nonneg : 0 ≤ tailSq := by
+        dsimp [tailSq]
+        exact integral_nonneg fun ωs =>
+          Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+      have hboundMean :
+          |bootstrapMeanRealIndexed Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]| ≤
+            2 * ∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω := by
+        haveI : IsFiniteMeasure (Pstar n ω) := hPstarFinite n ω
+        simpa [bootstrapMeanRealIndexed] using
+          abs_integral_sub_realClip_le_two_mul_integral_tail_abs
+            (μ := Pstar n ω) (Y := Zstar n ω) (hZstarInt n ω) hR_nonneg
+      have htailAbsLe :
+          ∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => |Zstar n ω ωs|) ωs ∂Pstar n ω ≤ tailSq := by
+        haveI : IsFiniteMeasure (Pstar n ω) := hPstarFinite n ω
+        exact integral_tail_abs_le_integral_tail_sq_of_one_le
+          (μ := Pstar n ω) (Y := Zstar n ω) (hZmem n ω) hR_one
+      have hdist_mean :
+          ε ≤
+            |bootstrapMeanRealIndexed Pstar Zstar n ω -
+              (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)]| := by
+        simpa [Real.dist_eq] using hω
+      have htail_ge : ε / 2 ≤ tailSq := by nlinarith
+      simpa [tailSq, Real.dist_eq, abs_of_nonneg htailSq_nonneg] using htail_ge
+  simpa [bootstrapMeanRealIndexed] using
+    hweak.integral_tendsto_of_realClip_tailProb hTailMeanProb
+
+/-- Indexed Hansen Theorem 10.9 conditional second-moment convergence from
+weak convergence and uniform square-tail control. -/
+theorem chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (∫ ωs,
+                Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                  (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+  have hPstarFinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hTailSecondProb : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+                (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+              0})
+        atTop (𝓝 0) := by
+    intro ε hε
+    obtain ⟨R, hR_one, hlimSq, hsourceSq⟩ := hTailSq (ε / 2) (by positivity)
+    have hR_nonneg : 0 ≤ R := zero_le_one.trans hR_one
+    refine ⟨R, hR_nonneg, ?_, ?_⟩
+    · have hclip :=
+        abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+          (μ := ν) (Y := Z) hZlim hR_nonneg
+      calc
+        |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+            ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤
+            2 * ∫ ωlim,
+              Set.indicator {ωlim | R ≤ |Z ωlim|}
+                (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν := hclip
+        _ ≤ 2 * (ε / 2) := by nlinarith
+        _ = ε := by ring
+    · refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+        hsourceSq (fun _ => zero_le _) ?_
+      intro n
+      refine measure_mono ?_
+      intro ω hω
+      simp only [Set.mem_setOf_eq] at hω ⊢
+      let tailSq : ℝ :=
+        ∫ ωs,
+          Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+            (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+      have htailSq_nonneg : 0 ≤ tailSq := by
+        dsimp [tailSq]
+        exact integral_nonneg fun ωs =>
+          Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+      have hboundSecond :
+          |bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]| ≤
+            2 * ∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω := by
+        haveI : IsFiniteMeasure (Pstar n ω) := hPstarFinite n ω
+        simpa [bootstrapSecondMomentRealIndexed] using
+          abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+            (μ := Pstar n ω) (Y := Zstar n ω) (hZmem n ω) hR_nonneg
+      have hdist_second :
+          ε ≤
+            |bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+              (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2]| := by
+        simpa [Real.dist_eq] using hω
+      have htail_ge : ε / 2 ≤ tailSq := by nlinarith
+      simpa [tailSq, Real.dist_eq, abs_of_nonneg htailSq_nonneg] using htail_ge
+  simpa [bootstrapSecondMomentRealIndexed] using
+    hweak.integral_sq_tendsto_of_realClip_tailProb hTailSecondProb
+
+/-- Indexed Hansen Theorem 10.9 conditional mean convergence from the named
+uniform-square-tail condition package. -/
+theorem chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, Z ωlim ∂ν) :=
+  chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
+
+/-- Indexed Hansen Theorem 10.9 conditional second-moment convergence from the
+named uniform-square-tail condition package. -/
+theorem chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) :=
+  chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
+
+/-- Indexed Hansen Theorem 10.9, weak-distribution plus uniform-square-tail
+variance bridge. -/
+theorem chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailSq : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+        (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            ε ≤ dist
+              (∫ ωs,
+                Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                  (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+              0})
+        atTop (𝓝 0)) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, Z ωlim ∂ν) :=
+    chapter10_indexed_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailSq
+  have hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) :=
+    chapter10_indexed_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTailSq
+  exact chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
+    hPstar hZmem hmean hsecond
+
+/-- Indexed Hansen Theorem 10.9 from a named uniform-square-tail condition. -/
+theorem chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTail : BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_uniform_square_tail
     (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
 
 end BootstrapVariance
