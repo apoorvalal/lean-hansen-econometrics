@@ -9076,6 +9076,23 @@ theorem integral_tail_sq_add_trimmedBootstrapStatistic_apply_eq_zero_of_lt
     rw [Set.indicator_of_notMem hnotmem]
     simp
 
+/-- A bounded measurable coordinate of Hansen's trimmed bootstrap statistic is
+in every finite-measure `Lᵖ` space. -/
+theorem memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable_of_nonneg
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs} [IsFiniteMeasure P]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (a : k) {p : ℝ≥0∞}
+    (hmeas :
+      AEStronglyMeasurable
+        (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) P) :
+    MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) p P :=
+  MemLp.of_bound hmeas (τ n) <|
+    ae_of_all P fun ωs => by
+      simpa [Real.norm_eq_abs] using
+        abs_trimmedBootstrapStatistic_apply_le_of_nonneg
+          (Zstar := Zstar) (τ := τ) hτ ω ωs a
+
 /-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
 theorem norm_trimmedBootstrapStatisticIndexed_le_max
     {k : Type*} [Fintype k]
@@ -9239,6 +9256,25 @@ theorem integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_l
       not_le.mpr (lt_of_le_of_lt hsum hR)
     rw [Set.indicator_of_notMem hnotmem]
     simp
+
+/-- Indexed bounded measurable coordinates of Hansen's trimmed bootstrap
+statistic are in every finite-measure `Lᵖ` space. -/
+theorem
+    memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable_of_nonneg
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} [IsFiniteMeasure P]
+    (hτ : 0 ≤ τ n) (ω : Ω) (a : k) {p : ℝ≥0∞}
+    (hmeas :
+      AEStronglyMeasurable
+        (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) P) :
+    MemLp (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) p P :=
+  MemLp.of_bound hmeas (τ n) <|
+    ae_of_all P fun ωs => by
+      simpa [Real.norm_eq_abs] using
+        abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
+          (Zstar := Zstar) (τ := τ) hτ ω ωs a
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
