@@ -8921,6 +8921,86 @@ noncomputable def trimmedBootstrapStatisticIndexed
     (n : ℕ) (ω : Ω) (ωs : Ωboot n) : k → ℝ :=
   if ‖Zstar n ω ωs‖ ≤ τ n then Zstar n ω ωs else 0
 
+/-- Trimming changes the bootstrap statistic only on the large-norm tail. -/
+theorem norm_sub_trimmedBootstrapStatistic_le_tail_norm
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) :
+    ‖Zstar n ω ωs - trimmedBootstrapStatistic Zstar τ n ω ωs‖ ≤
+      Set.indicator {ωs | τ n < ‖Zstar n ω ωs‖}
+        (fun ωs => ‖Zstar n ω ωs‖) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · have hnot :
+        ωs ∉ {x | τ n < ‖Zstar n ω x‖} := by
+      simpa using not_lt.mpr htrim
+    simp [trimmedBootstrapStatistic, htrim, hnot]
+  · have htail :
+        ωs ∈ {x | τ n < ‖Zstar n ω x‖} := by
+      simpa using lt_of_not_ge htrim
+    simp [trimmedBootstrapStatistic, htrim, htail]
+
+/-- Coordinate version of `norm_sub_trimmedBootstrapStatistic_le_tail_norm`. -/
+theorem abs_sub_trimmedBootstrapStatistic_apply_le_tail_norm
+    {k : Type*} [Fintype k]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωs) (a : k) :
+    |Zstar n ω ωs a - trimmedBootstrapStatistic Zstar τ n ω ωs a| ≤
+      Set.indicator {ωs | τ n < ‖Zstar n ω ωs‖}
+        (fun ωs => ‖Zstar n ω ωs‖) ωs := by
+  have hcoord :
+      |Zstar n ω ωs a - trimmedBootstrapStatistic Zstar τ n ω ωs a| ≤
+        ‖Zstar n ω ωs - trimmedBootstrapStatistic Zstar τ n ω ωs‖ := by
+    simpa [Pi.sub_apply, Real.norm_eq_abs] using
+      norm_le_pi_norm
+        (Zstar n ω ωs - trimmedBootstrapStatistic Zstar τ n ω ωs) a
+  exact hcoord.trans
+    (norm_sub_trimmedBootstrapStatistic_le_tail_norm
+      (Zstar := Zstar) (τ := τ) n ω ωs)
+
+/-- Indexed trimming changes the bootstrap statistic only on the large-norm
+tail. -/
+theorem norm_sub_trimmedBootstrapStatisticIndexed_le_tail_norm
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) :
+    ‖Zstar n ω ωs - trimmedBootstrapStatisticIndexed Zstar τ n ω ωs‖ ≤
+      Set.indicator {ωs | τ n < ‖Zstar n ω ωs‖}
+        (fun ωs => ‖Zstar n ω ωs‖) ωs := by
+  by_cases htrim : ‖Zstar n ω ωs‖ ≤ τ n
+  · have hnot :
+        ωs ∉ {x | τ n < ‖Zstar n ω x‖} := by
+      simpa using not_lt.mpr htrim
+    simp [trimmedBootstrapStatisticIndexed, htrim, hnot]
+  · have htail :
+        ωs ∈ {x | τ n < ‖Zstar n ω x‖} := by
+      simpa using lt_of_not_ge htrim
+    simp [trimmedBootstrapStatisticIndexed, htrim, htail]
+
+/-- Indexed coordinate version of
+`norm_sub_trimmedBootstrapStatisticIndexed_le_tail_norm`. -/
+theorem abs_sub_trimmedBootstrapStatisticIndexed_apply_le_tail_norm
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) (a : k) :
+    |Zstar n ω ωs a -
+      trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a| ≤
+      Set.indicator {ωs | τ n < ‖Zstar n ω ωs‖}
+        (fun ωs => ‖Zstar n ω ωs‖) ωs := by
+  have hcoord :
+      |Zstar n ω ωs a -
+        trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a| ≤
+        ‖Zstar n ω ωs -
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs‖ := by
+    simpa [Pi.sub_apply, Real.norm_eq_abs] using
+      norm_le_pi_norm
+        (Zstar n ω ωs -
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs) a
+  exact hcoord.trans
+    (norm_sub_trimmedBootstrapStatisticIndexed_le_tail_norm
+      (Zstar := Zstar) (τ := τ) n ω ωs)
+
 /-- The norm of Hansen's trimmed bootstrap statistic is bounded by
 `max (τ n) 0` pointwise. -/
 theorem norm_trimmedBootstrapStatistic_le_max
