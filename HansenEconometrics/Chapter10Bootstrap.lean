@@ -347,7 +347,8 @@ used throughout the chapter:
   mean-vector/cross-moment/covariance bridges and zero-mean specializations for
   centered targets. The trimmed zero-mean wrapper exposes
   the Theorem 10.12 target covariance directly, with indexed trimmed
-  finite-replication counterparts.
+  finite-replication counterparts; fourth-moment-tail variants compose that
+  transfer with the direct trimmed covariance route.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -14004,6 +14005,143 @@ theorem
     (chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_moments
       (μ := μ) (m := fun _ : k => 0) (M₂ := V)
       hPstar hZ hmean hcross hfinite)
+
+/-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
+bootstrap weak convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_fourthMoment_tails
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMat Pstar Zstar τ n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    (μ := μ) hfinite
+    (chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_fourthMoment_tails
+      (μ := μ) (ν := ν) hPstar hτ hZmeas hZmem hZlim hweak hTailProb
+      hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
+      hBsum hFourthSum hFourthSumInt hLimitTailSum)
+
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+from bootstrap weak convergence and fourth-moment tail controls. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_fourthMoment_tails
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hLimitTailCoord :
+      ∀ a ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a|}
+            (fun ωlim => (Z ωlim a) ^ 2) ωlim ∂ν) ≤ ε)
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hLimitTailSum :
+      ∀ a c ε, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim a + Z ωlim c|}
+            (fun ωlim => (Z ωlim a + Z ωlim c) ^ 2) ωlim ∂ν) ≤ ε)
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    (μ := μ) hfinite
+    (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_fourthMoment_tails
+      (μ := μ) (ν := ν) hPstar hτ hZmeas hZmem hZlim hweak hTailProb
+      hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
+      hBsum hFourthSum hFourthSumInt hLimitTailSum)
 
 end FiniteReplicationVariance
 
