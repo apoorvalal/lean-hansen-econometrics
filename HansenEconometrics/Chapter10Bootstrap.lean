@@ -61,6 +61,11 @@ used throughout the chapter:
 * `chapter10_bootstrap_clt_gaussian_of_weakDistribution` is the corresponding
   weak-distribution Gaussian wrapper, using null frontiers of coordinate lower
   orthants to recover Hansen Definition 10.2.
+* `chapter10_bootstrap_clt_gaussian_of_weakDistribution_posDef` is the
+  positive-definite covariance specialization matching Hansen Theorem 10.4.
+* `multivariateGaussian_coordinateLE_frontier_null_of_posDef` supplies those
+  Gaussian lower-orthant null-frontier premises from positive definite
+  covariance matrices.
 * `TendstoInBootstrapWeakDistribution` is a bounded-continuous-test-function
   backend for bootstrap distributional convergence, used by the distributional
   continuous-mapping theorem.
@@ -3357,6 +3362,105 @@ theorem measurableSet_coordinateLE
     MeasurableSet {z : k → ℝ | coordinateLE z x} :=
   (isClosed_coordinateLE x).measurableSet
 
+/-- The frontier of a finite-dimensional coordinate lower orthant is contained
+in the finite union of its coordinate hyperplanes. -/
+theorem frontier_coordinateLE_subset_iUnion_coord_eq [Finite k] (x : k → ℝ) :
+    frontier {z : k → ℝ | coordinateLE z x} ⊆
+      ⋃ i : k, {z : k → ℝ | z i = x i} := by
+  intro z hz
+  have hz_lower : z ∈ {z : k → ℝ | coordinateLE z x} :=
+    (isClosed_coordinateLE x).frontier_subset hz
+  by_contra hnot
+  have hstrict : ∀ i : k, z i < x i := by
+    intro i
+    have hne : z i ≠ x i := by
+      intro hi
+      exact hnot (Set.mem_iUnion.mpr ⟨i, by simp [hi]⟩)
+    exact lt_of_le_of_ne (hz_lower i) hne
+  have hopen :
+      IsOpen {z : k → ℝ | ∀ i : k, z i < x i} := by
+    rw [show {z : k → ℝ | ∀ i : k, z i < x i} =
+        ⋂ i : k, {z : k → ℝ | z i < x i} by
+      ext y
+      simp]
+    exact isOpen_iInter_of_finite fun i =>
+      isOpen_lt (continuous_apply i) continuous_const
+  have hsubset :
+      {z : k → ℝ | ∀ i : k, z i < x i} ⊆
+        {z : k → ℝ | coordinateLE z x} := by
+    intro y hy i
+    exact (hy i).le
+  have hz_interior : z ∈ interior {z : k → ℝ | coordinateLE z x} :=
+    interior_maximal hsubset hopen hstrict
+  exact ((mem_frontier_iff_notMem_interior hz_lower).mp hz) hz_interior
+
+/-- A coordinate lower-orthant frontier is null when every coordinate
+hyperplane at the cutoff is null. -/
+theorem measure_frontier_coordinateLE_eq_zero_of_coord_singletons [Finite k]
+    {law : Measure (k → ℝ)} (x : k → ℝ)
+    (hcoord : ∀ i : k, law {z : k → ℝ | z i = x i} = 0) :
+    law (frontier {z : k → ℝ | coordinateLE z x}) = 0 := by
+  refine measure_mono_null (frontier_coordinateLE_subset_iUnion_coord_eq x) ?_
+  exact measure_iUnion_null hcoord
+
+/-- Mapped lower-orthant frontiers are null when each transformed coordinate
+has zero mass at the cutoff. -/
+theorem map_measure_frontier_coordinateLE_eq_zero_of_coord_singletons [Finite k]
+    {ν : Measure Ωlim} {Z : Ωlim → k → ℝ} (hZ : AEMeasurable Z ν)
+    (x : k → ℝ) (hcoord : ∀ i : k, ν {ωlim | Z ωlim i = x i} = 0) :
+    (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0 := by
+  refine measure_frontier_coordinateLE_eq_zero_of_coord_singletons x ?_
+  intro i
+  have hhyperplane :
+      MeasurableSet {z : k → ℝ | z i = x i} :=
+    (isClosed_eq (continuous_apply i) continuous_const).measurableSet
+  rw [Measure.map_apply_of_aemeasurable hZ hhyperplane]
+  simpa using hcoord i
+
+/-- Positive definite multivariate Gaussian laws assign zero mass to coordinate
+lower-orthant frontiers.
+
+This discharges the null-frontier premise in the Gaussian finite-dimensional
+faces of Hansen Theorems 10.4, 10.6, and 10.7 when the covariance matrix is
+positive definite. -/
+theorem multivariateGaussian_coordinateLE_frontier_null_of_posDef
+    [Fintype k] [DecidableEq k] {S : Matrix k k ℝ}
+    (hS : S.PosDef) (x : k → ℝ) :
+    ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+      (frontier {z : k → ℝ | coordinateLE z x}) = 0 := by
+  have hcoord_aemeas :
+      AEMeasurable (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S) :=
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)).aemeasurable
+  refine map_measure_frontier_coordinateLE_eq_zero_of_coord_singletons
+    (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+    (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+    hcoord_aemeas x ?_
+  intro i
+  have hvar_pos : 0 < S i i := hS.diag_pos
+  have hvar_ne : (S i i).toNNReal ≠ 0 :=
+    ne_of_gt (Real.toNNReal_pos.mpr hvar_pos)
+  haveI : NoAtoms (gaussianReal 0 (S i i).toNNReal) :=
+    noAtoms_gaussianReal hvar_ne
+  have hLaw :
+      HasLaw (fun z : EuclideanSpace ℝ k => z.ofLp i)
+        (gaussianReal 0 (S i i).toNNReal)
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S) := by
+    simpa using
+      (multivariateGaussian_eval_hasLaw
+        (μ := (0 : EuclideanSpace ℝ k)) (S := S) hS.posSemidef (i := i))
+  have hpre :=
+    HasLaw.preimage_eq (μ := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      hLaw (measurableSet_singleton (x i))
+  calc
+    (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+        {z : EuclideanSpace ℝ k | (z : k → ℝ) i = x i}
+        =
+          (gaussianReal 0 (S i i).toNNReal) {x i} := by
+            simpa using hpre
+    _ = 0 := measure_singleton (x i)
+
 /-- Weak bootstrap convergence gives conditional-CDF convergence at a
 lower-orthant null-frontier point.
 
@@ -3471,6 +3575,32 @@ theorem chapter10_bootstrap_clt_gaussian_of_weakDistribution
       (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
       (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
       hweak hPstar hZstar hZlim hfrontier
+
+/-- Hansen Theorem 10.4 Gaussian bootstrap CLT from weak bootstrap convergence
+with positive definite covariance.
+
+This is the theorem-facing finite-dimensional route: positive definiteness of
+`Σ` makes every Gaussian lower-orthant frontier null, so a bounded-continuous
+bootstrap weak limit to `N(0,Σ)` directly yields Hansen Definition 10.2. -/
+theorem chapter10_bootstrap_clt_gaussian_of_weakDistribution_posDef
+    [Fintype k] [DecidableEq k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar Zstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_bootstrap_clt_gaussian_of_weakDistribution
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
+    hweak hPstar hZstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Weak bootstrap convergence plus bounded-continuous integral
 linearization implies Hansen's coordinate-CDF bootstrap distribution
