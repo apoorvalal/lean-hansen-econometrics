@@ -4621,6 +4621,31 @@ theorem chapter10_bootstrap_smooth_variance_consistency_of_components
   chapter10_bootstrap_smooth_variance_consistency hPstar
     (TendstoInBootstrapProbability.prodMk hPstar hG hV)
 
+/-- Hansen Theorem 10.8, plug-in covariance bridge from ordinary component
+convergence.
+
+This wrapper covers the common plug-in case where the bootstrap component
+statistics are deterministic under the resampling law.  Ordinary convergence in
+probability of `G_n` and `V_n` is lifted to bootstrap-probability convergence by
+Theorem 10.1, then fed through the smooth covariance continuous-mapping bridge. -/
+theorem chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Gseq : ℕ → Ω → Matrix d r ℝ}
+    {Vseq : ℕ → Ω → Matrix d d ℝ}
+    {G : Matrix d r ℝ} {V : Matrix d d ℝ}
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV : TendstoInMeasure μ Vseq atTop (fun _ => V)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ => smoothFunctionVarianceFunctional (Gseq n ω) (Vseq n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_components hPstar
+    (chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability
+      (μ := μ) (Pstar := Pstar) hPstar hG)
+    (chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability
+      (μ := μ) (Pstar := Pstar) hPstar hV)
+
 end SmoothFunctionBootstrapVariance
 
 section BootstrapVariance
