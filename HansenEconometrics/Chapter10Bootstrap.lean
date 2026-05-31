@@ -286,6 +286,9 @@ used throughout the chapter:
   Fixed/indexed weak-transfer wrappers show that `Z*` and `Z**` have the same
   bounded-continuous bootstrap weak limit when the trimming tail probability is
   `oₚ(1)`.
+  Fixed/indexed direct trimmed-covariance wrappers assemble that weak transfer
+  with original coordinate and coordinate-sum uniform-square-tail controls into
+  Hansen Theorem 10.12 covariance consistency.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -10655,6 +10658,168 @@ theorem chapter10_indexed_trimmedBootstrapVariance_tendsto
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
       hPstar hZ hmean hcross
   simpa using h
+
+/-- Hansen Theorem 10.12 trimmed covariance from weak convergence and
+uniform-square-tail controls.
+
+If `Z*` converges weakly conditionally, the large-norm trimming event has
+conditional probability `oₚ(1)`, and the original coordinate and coordinate-sum
+statistics satisfy the scalar uniform-square-tail premises, then Hansen's
+trimmed covariance matrix converges to the covariance matrix of the weak
+limit. -/
+theorem
+    chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) := by
+  have hweakTrim :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (trimmedBootstrapStatistic Zstar τ) ν Z :=
+    hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas hTailProb
+  have hTrimMem :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) 2
+          (Pstar n ω) := by
+    intro n ω a
+    haveI : IsFiniteMeasure (Pstar n ω) := by
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      infer_instance
+    exact
+      memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ)
+        (hτ n) ω a ((hZmeas n ω).aestronglyMeasurable)
+  have hTailCoordTrim :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) ν
+          (fun ωlim => Z ωlim a) :=
+    fun a =>
+      bootstrapUniformSquareTail_trimmedBootstrapStatistic_apply
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+        a (hTailCoord a) (fun n ω => hZmem n ω a)
+  have hTailSumTrim :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs =>
+            trimmedBootstrapStatistic Zstar τ n ω ωs a +
+              trimmedBootstrapStatistic Zstar τ n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c) :=
+    fun a c =>
+      bootstrapUniformSquareTail_add_trimmedBootstrapStatistic_apply
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+        a c (hTailSum a c)
+        (fun n ω => (hZmem n ω a).add (hZmem n ω c))
+  simpa [trimmedBootstrapCovarianceMat] using
+    chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatistic Zstar τ) (Z := Z)
+      hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
+
+/-- Indexed Theorem 10.12 trimmed covariance from weak convergence and
+uniform-square-tail controls. -/
+theorem
+    chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) := by
+  have hweakTrim :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (trimmedBootstrapStatisticIndexed Zstar τ) ν Z :=
+    hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas hTailProb
+  have hTrimMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω) := by
+    intro n ω a
+    haveI : IsFiniteMeasure (Pstar n ω) := by
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      infer_instance
+    exact
+      memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ)
+        (hτ n) ω a ((hZmeas n ω).aestronglyMeasurable)
+  have hTailCoordTrim :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs =>
+            trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ν
+          (fun ωlim => Z ωlim a) :=
+    fun a =>
+      bootstrapUniformSquareTail_trimmedBootstrapStatisticIndexed_apply
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+        a (hTailCoord a) (fun n ω => hZmem n ω a)
+  have hTailSumTrim :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs =>
+            trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+              trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c) :=
+    fun a c =>
+      bootstrapUniformSquareTail_add_trimmedBootstrapStatisticIndexed_apply
+        (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+        a c (hTailSum a c)
+        (fun n ω => (hZmem n ω a).add (hZmem n ω c))
+  simpa [trimmedBootstrapCovarianceMatIndexed] using
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatisticIndexed Zstar τ) (Z := Z)
+      hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
 
 end BootstrapCovariance
 
