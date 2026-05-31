@@ -2232,6 +2232,35 @@ theorem chapter10_indexed_bootstrap_wlln_level_from_centered
     (fun n ω ωs => by simp)
     (fun ω => by simp)
 
+/-- Indexed-space Hansen Theorem 10.2 level WLLN from a conditional
+second-moment bound.
+
+This is the sample-size-dependent analogue of
+`chapter10_bootstrap_wlln_level_of_integral_norm_sq_bound`: a concrete
+conditional bound on `E*[‖Ybar* - Ybar‖²]`, Hansen's Marcinkiewicz convergence
+for the bound, and the ordinary WLLN for `Ybar` imply the level indexed
+bootstrap WLLN. -/
+theorem chapter10_indexed_bootstrap_wlln_level_of_integral_norm_sq_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ n ω,
+        (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hPstar hu hZ hbound)
+    hYbar
+
 /-- Ordinary finite nonparametric-bootstrap centered WLLN for `Fin (n+1)`
 samples, obtained by feeding the finite squared-norm calculation into Hansen's
 Theorem 10.2 Marcinkiewicz bound. -/
