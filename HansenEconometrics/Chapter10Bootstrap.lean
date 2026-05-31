@@ -6101,6 +6101,36 @@ theorem chapter10_bootstrap_regression_theta_gaussian_distribution
       (G := Rᵀ) hVβ hβ hPstar hTbetaStar
       (by simpa [Matrix.transpose_transpose] using hfrontier)
 
+/-- Hansen Theorem 10.18, regression Gaussian CDF wrapper with positive
+definite transformed covariance.
+
+When `R' Vβ R` is positive definite, the transformed Gaussian lower-orthant
+null-frontier premise in `chapter10_bootstrap_regression_theta_gaussian_distribution`
+is automatic. -/
+theorem chapter10_bootstrap_regression_theta_gaussian_distribution_posDef
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hVβ : Vβ.PosSemidef)
+    (hRVR : (Rᵀ * Vβ * R).PosDef)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q) (Rᵀ * Vβ * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_bootstrap_regression_theta_gaussian_distribution
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar) (Vβ := Vβ)
+    R hVβ hβ hPstar hTbetaStar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
 /-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
 
 For the transformed regression statistic, if the trimmed conditional mean
