@@ -48,8 +48,9 @@ used throughout the chapter:
   corresponding level conclusion.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
-  `TendstoInBootstrapProbabilityIndexed.prodMk` is the indexed joint
-  convergence constructor for product statistics.
+  `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, and `.sub`
+  are the indexed algebra constructors for product, sum, negation, and
+  difference statistics.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -2219,6 +2220,33 @@ theorem add [SeminormedAddCommGroup E]
           ENNReal.toReal_add_le
       _ = bootstrapTailProbIndexed Pstar Xstar X (η / 2) n ω +
           bootstrapTailProbIndexed Pstar Ystar Y (η / 2) n ω := rfl
+
+/-- Indexed bootstrap convergence in probability is closed under negation. -/
+theorem neg [SeminormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => -Zstar n ω ωs) (fun ω => -Z ω) := by
+  intro η hη
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl (hZ η hη)
+  refine ae_of_all μ fun ω => ?_
+  simp [bootstrapTailProbIndexed]
+
+/-- Indexed bootstrap convergence in probability is closed under subtraction. -/
+theorem sub [SeminormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → E} {X Y : Ω → E}
+    (hX : TendstoInBootstrapProbabilityIndexed μ Pstar Xstar X)
+    (hY : TendstoInBootstrapProbabilityIndexed μ Pstar Ystar Y) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs - Ystar n ω ωs)
+      (fun ω => X ω - Y ω) := by
+  have hsum := hX.add hPstar hY.neg
+  exact hsum.congr
+    (fun n ω ωs => by simp [sub_eq_add_neg])
+    (fun ω => by simp [sub_eq_add_neg])
 
 end TendstoInBootstrapProbabilityIndexed
 
