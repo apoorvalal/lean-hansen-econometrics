@@ -328,7 +328,8 @@ used throughout the chapter:
   variance consistency layer from Hansen Theorem 10.9, with indexed
   counterparts for sample-size-dependent bootstrap spaces. The fourth-moment
   variants feed the same transfer from conditional fourth-moment convergence
-  and eventual limit squared-tail bounds. The moment-premise and
+  and eventual limit squared-tail bounds, with `MemLp` weak-limit variants
+  discharging those bounds directly. The moment-premise and
   centered-scalar wrappers expose the same transfer directly from conditional
   bootstrap mean/second-moment convergence and Hansen's displayed `1 / (B - 1)`
   estimator.
@@ -343,7 +344,8 @@ used throughout the chapter:
   sample-size-dependent bootstrap spaces. Weak/uniform-square-tail wrappers
   compose this transfer with the Theorem 10.9 conditional covariance layer;
   fourth-moment-tail variants use the corresponding fixed/indexed covariance
-  wrappers directly.
+  wrappers directly, with `MemLp` weak-limit variants for coordinates and
+  coordinate sums.
   Scalar and matrix moment-premise wrappers expose the same transfer directly
   from conditional bootstrap mean and cross-moment convergence, with indexed
   mean-vector/cross-moment/covariance bridges and zero-mean specializations for
@@ -12737,6 +12739,74 @@ theorem
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
       hFourth hFourthInt hLimitTail)
 
+/-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
+convergence and fourth-moment convergence, with the weak-limit tail premise
+discharged by `MemLp Z 2 ν`. -/
+theorem
+    chapter10_finiteReplicationVariance_tendsto_of_fourthMoment_memLp_limit
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt)
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
+bootstrap weak convergence and fourth-moment convergence, with the weak-limit
+tail premise discharged by `MemLp Z 2 ν`. -/
+theorem
+    chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_fourthMoment_memLp_limit
+    [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt)
+
 /-- Indexed Hansen Theorem 10.9/10.11 bridge from finite-replication
 simulation error.
 
@@ -13007,6 +13077,78 @@ theorem
     (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
       hFourth hFourthInt hLimitTail)
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap
+weak convergence and fourth-moment convergence, with the weak-limit tail premise
+discharged by `MemLp Z 2 ν`. -/
+theorem
+    chapter10_indexed_finiteReplicationVariance_tendsto_of_fourthMoment_memLp_limit
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance from
+bootstrap weak convergence and fourth-moment convergence, with the weak-limit
+tail premise discharged by `MemLp Z 2 ν`. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_fourthMoment_memLp_limit
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, (Zstar n ω ωs) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω, Integrable (fun ωs => (Zstar n ω ωs) ^ 4) (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) hfinite
+    (chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hB
+      hFourth hFourthInt)
 
 /-- Finite-replication covariance moment bridge for two real statistics.
 
@@ -13493,6 +13635,57 @@ theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_fourthMoment_tails
       hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
       hBsum hFourthSum hFourthSumInt hLimitTailSum)
 
+/-- Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
+bootstrap weak convergence and fourth-moment convergence, with weak-limit
+coordinate and coordinate-sum tail premises discharged by `MemLp`. -/
+theorem
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_fourthMoment_memLp_limit
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMat Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+      hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
+
 /-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
 from bootstrap weak convergence and fourth-moment tail controls. -/
 theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_fourthMoment_tails
@@ -13553,6 +13746,59 @@ theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_fourthMoment
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
       hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
       hBsum hFourthSum hFourthSumInt hLimitTailSum)
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
+bootstrap weak convergence and fourth-moment convergence, with weak-limit
+coordinate and coordinate-sum tail premises discharged by `MemLp`. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_fourthMoment_memLp_limit
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+      hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
 
 /-- Hansen Theorem 10.9/10.11 bridge for the textbook-centered finite
 replication covariance matrix.
@@ -13744,6 +13990,57 @@ theorem
       hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
       hBsum hFourthSum hFourthSumInt hLimitTailSum)
 
+/-- Hansen Theorem 10.9/10.11 centered finite-replication covariance from
+bootstrap weak convergence and fourth-moment convergence, with weak-limit
+coordinate and coordinate-sum tail premises discharged by `MemLp`. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_fourthMoment_memLp_limit
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMat Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+      hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
+
 /-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication covariance
 from bootstrap weak convergence and fourth-moment tail controls. -/
 theorem
@@ -13805,6 +14102,59 @@ theorem
       (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
       hBcoord hFourthCoord hFourthCoordInt hLimitTailCoord
       hBsum hFourthSum hFourthSumInt hLimitTailSum)
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication covariance
+from bootstrap weak convergence and fourth-moment convergence, with weak-limit
+coordinate and coordinate-sum tail premises discharged by `MemLp`. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_fourthMoment_memLp_limit
+    {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Bcoord : k → ℝ} {Bsum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4) (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+      hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
 
 /-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
 from conditional bootstrap covariance consistency.
