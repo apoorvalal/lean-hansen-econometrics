@@ -800,6 +800,85 @@ theorem integral_tail_abs_le_of_eLpNorm_tail
   rw [hreal_eq]
   exact ENNReal.toReal_le_of_le_ofReal hε hTail
 
+/-- Square integrability makes the squared tail small for all sufficiently
+large thresholds. -/
+theorem integral_tail_sq_eventual_le_of_memLp_two
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) :
+    ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+      ∀ R : ℝ, R₀ ≤ R →
+        (∫ ω, Set.indicator {ω | R ≤ |Y ω|}
+          (fun ω => (Y ω) ^ 2) ω ∂μ) ≤ ε := by
+  intro ε hε
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ :=
+    hY.integrable_sq
+  have hYsq_mem : MemLp (fun ω => (Y ω) ^ 2) 1 μ :=
+    memLp_one_iff_integrable.mpr hYsq_int
+  obtain ⟨M, hM_nonneg, hMtail⟩ :=
+    MemLp.integral_indicator_norm_ge_nonneg_le
+      (μ := μ) (f := fun ω => (Y ω) ^ 2) hYsq_mem hε
+  let C : ℝ≥0 := ⟨M, hM_nonneg⟩
+  have hMtail_e :
+      eLpNorm
+        ({ω | C ≤ ‖(Y ω) ^ 2‖₊}.indicator
+          (fun ω => (Y ω) ^ 2)) 1 μ ≤ ENNReal.ofReal ε := by
+    have hset :
+        {ω | C ≤ ‖Y ω‖₊ ^ 2} =
+          {ω | M ≤ (Y ω) ^ 2} := by
+      ext ω
+      simp only [Set.mem_setOf_eq]
+      rw [← NNReal.coe_le_coe]
+      simp [C]
+    simpa [eLpNorm_one_eq_lintegral_enorm, hset] using hMtail
+  have hMtail_real :
+      ∫ ω,
+        Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2) ω ∂μ ≤ ε := by
+    simpa [C] using
+      integral_tail_abs_le_of_eLpNorm_tail
+        (μ := μ) (Y := fun ω => (Y ω) ^ 2)
+        hYsq_int hε.le hMtail_e
+  refine ⟨max 1 M, le_max_left _ _, fun R hR => ?_⟩
+  have hR_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable
+        hY.aestronglyMeasurable.aemeasurable)
+  have hR_int :
+      Integrable
+        (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ hR_null
+  have hM_null : NullMeasurableSet {ω | M ≤ (Y ω) ^ 2} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      hYsq_int.aemeasurable
+  have hM_int :
+      Integrable
+        (Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ hM_null
+  have hmono :
+      (∫ ω, Set.indicator {ω | R ≤ |Y ω|}
+        (fun ω => (Y ω) ^ 2) ω ∂μ) ≤
+      ∫ ω,
+        Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2) ω ∂μ := by
+    refine integral_mono hR_int hM_int ?_
+    intro ω
+    by_cases htail : R ≤ |Y ω|
+    · have hR₀_tail : max 1 M ≤ |Y ω| := hR.trans htail
+      have hone_tail : 1 ≤ |Y ω| := (le_max_left 1 M).trans hR₀_tail
+      have hM_tail_abs : M ≤ |Y ω| := (le_max_right 1 M).trans hR₀_tail
+      have habs_le_sq : |Y ω| ≤ (Y ω) ^ 2 := by
+        have hmul := mul_le_mul_of_nonneg_right hone_tail (abs_nonneg (Y ω))
+        simpa [sq_abs, pow_two] using hmul
+      have hM_tail_sq : M ≤ (Y ω) ^ 2 :=
+        hM_tail_abs.trans habs_le_sq
+      simp [htail, hM_tail_sq]
+    · have hleft_zero :
+          Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω = 0 := by
+        simp [Set.indicator, htail]
+      exact hleft_zero.trans_le
+        (Set.indicator_nonneg (fun ω _ => sq_nonneg (Y ω)) ω)
+  exact hmono.trans hMtail_real
+
 /-- **Hansen Theorem 6.15, bounded continuous weak-moment face.**
 
 Weak convergence is exactly convergence of expectations for bounded continuous
