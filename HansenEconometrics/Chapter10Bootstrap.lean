@@ -278,7 +278,8 @@ used throughout the chapter:
   expose the pointwise threshold bound for Hansen's trimmed bootstrap statistic.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
-  integrability premises used by the trimmed covariance route.
+  coordinate, coordinate-sum, and coordinate-product integrability premises
+  used by the trimmed covariance route.
 * `chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments` exposes the
   centered covariance-matrix target directly from zero conditional means and
   cross-moment convergence.
@@ -9228,6 +9229,54 @@ theorem memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
     (aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
       (Zstar := Zstar) (τ := τ) n ω a hZ)
 
+/-- A coordinate sum of Hansen's trimmed bootstrap statistic is in every
+finite-measure `Lᵖ` space under the nonnegative threshold bound. -/
+theorem memLp_add_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs} [IsFiniteMeasure P]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (a c : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp
+      (fun ωs =>
+        trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) p P := by
+  have ha :=
+    aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω a hZ
+  have hc :=
+    aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω c hZ
+  refine MemLp.of_bound (ha.add hc) (2 * τ n) ?_
+  exact ae_of_all P fun ωs => by
+    simpa [Real.norm_eq_abs] using
+      abs_add_trimmedBootstrapStatistic_apply_le_two_mul_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+
+/-- A coordinate product of Hansen's trimmed bootstrap statistic is in every
+finite-measure `Lᵖ` space under the nonnegative threshold bound. -/
+theorem memLp_mul_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs} [IsFiniteMeasure P]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) (ω : Ω) (a c : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp
+      (fun ωs =>
+        trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) p P := by
+  have ha :=
+    aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω a hZ
+  have hc :=
+    aestronglyMeasurable_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) n ω c hZ
+  refine MemLp.of_bound (ha.mul hc) ((τ n) ^ 2) ?_
+  exact ae_of_all P fun ωs => by
+    simpa [Real.norm_eq_abs] using
+      abs_mul_trimmedBootstrapStatistic_apply_le_sq_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+
 /-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
 theorem norm_trimmedBootstrapStatisticIndexed_le_max
     {k : Type*} [Fintype k]
@@ -9464,6 +9513,56 @@ theorem memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
     (Zstar := Zstar) (τ := τ) hτ ω a
     (aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
       (Zstar := Zstar) (τ := τ) ω a hZ)
+
+/-- Indexed coordinate sums of Hansen's trimmed bootstrap statistic are in
+every finite-measure `Lᵖ` space under the nonnegative threshold bound. -/
+theorem memLp_add_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} [IsFiniteMeasure P]
+    (hτ : 0 ≤ τ n) (ω : Ω) (a c : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp
+      (fun ωs =>
+        trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) p P := by
+  have ha :=
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω a hZ
+  have hc :=
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω c hZ
+  refine MemLp.of_bound (ha.add hc) (2 * τ n) ?_
+  exact ae_of_all P fun ωs => by
+    simpa [Real.norm_eq_abs] using
+      abs_add_trimmedBootstrapStatisticIndexed_apply_le_two_mul_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+
+/-- Indexed coordinate products of Hansen's trimmed bootstrap statistic are in
+every finite-measure `Lᵖ` space under the nonnegative threshold bound. -/
+theorem memLp_mul_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)} [IsFiniteMeasure P]
+    (hτ : 0 ≤ τ n) (ω : Ω) (a c : k) {p : ℝ≥0∞}
+    (hZ : AEStronglyMeasurable (fun ωs => Zstar n ω ωs) P) :
+    MemLp
+      (fun ωs =>
+        trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) p P := by
+  have ha :=
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω a hZ
+  have hc :=
+    aestronglyMeasurable_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+      (Zstar := Zstar) (τ := τ) ω c hZ
+  refine MemLp.of_bound (ha.mul hc) ((τ n) ^ 2) ?_
+  exact ae_of_all P fun ωs => by
+    simpa [Real.norm_eq_abs] using
+      abs_mul_trimmedBootstrapStatisticIndexed_apply_le_sq_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
