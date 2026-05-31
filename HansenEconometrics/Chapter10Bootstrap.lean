@@ -151,6 +151,10 @@ used throughout the chapter:
   transfer a bootstrap weak limit across a nonlinear linearization when every
   bounded-continuous test-function integral differs by `oₚ(1)`; indexed
   versions provide the same route for sample-size-dependent spaces.
+* `TendstoInBootstrapWeakDistribution.integral_tendsto_of_boundedContinuous_sandwich`
+  and `TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich`
+  transfer weak bootstrap convergence through bounded-continuous sandwich
+  approximations, with indexed counterparts.
 * `TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_integral_diff`,
   `TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_integral_diff`,
   `TendstoInBootstrapDistribution.of_weakDistribution_integral_diff`, and their
@@ -3514,6 +3518,147 @@ theorem TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_s
     ∫ ωlim, upper (Z ωlim) ∂ν, hlc, hcu, hgap, hlower, hupper, ?_, ?_⟩
   · exact hZ.tendsto_integral lower
   · exact hZ.tendsto_integral upper
+
+/-- Bootstrap weak convergence transfers any real conditional functional that
+can be squeezed by bounded continuous test-function integrals.
+
+This is the general bounded-continuous sandwich step behind the
+Portmanteau/event-probability bridge and the a.e.-continuous mapping route:
+once the target conditional functional lies between lower and upper bounded
+continuous test integrals whose limit-law integrals have arbitrarily small
+gap, convergence in probability follows. -/
+theorem TendstoInBootstrapWeakDistribution.integral_tendsto_of_boundedContinuous_sandwich
+    [TopologicalSpace E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {X : ℕ → Ω → ℝ} {c : ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (happrox : ∀ ε : ℝ, 0 < ε →
+      ∃ lower upper : BoundedContinuousFunction E ℝ,
+        (∫ ωlim, lower (Z ωlim) ∂ν) ≤ c ∧
+          c ≤ (∫ ωlim, upper (Z ωlim) ∂ν) ∧
+          (∫ ωlim, upper (Z ωlim) ∂ν) -
+              (∫ ωlim, lower (Z ωlim) ∂ν) ≤ ε ∧
+          (∀ n ω,
+            bootstrapBoundedContinuousIntegral Pstar Zstar lower n ω ≤ X n ω) ∧
+          (∀ n ω,
+            X n ω ≤
+              bootstrapBoundedContinuousIntegral Pstar Zstar upper n ω)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  refine tendstoInMeasure_of_squeeze_approx_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨lower, upper, hlc, hcu, hgap, hlower, hupper⟩ := happrox ε hε
+  refine ⟨bootstrapBoundedContinuousIntegral Pstar Zstar lower,
+    bootstrapBoundedContinuousIntegral Pstar Zstar upper,
+    ∫ ωlim, lower (Z ωlim) ∂ν,
+    ∫ ωlim, upper (Z ωlim) ∂ν, hlc, hcu, hgap, hlower, hupper, ?_, ?_⟩
+  · exact hZ.tendsto_integral lower
+  · exact hZ.tendsto_integral upper
+
+/-- Indexed bootstrap weak convergence transfers real conditional functionals
+that are squeezed by bounded continuous test-function integrals. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_tendsto_of_sandwich
+    [TopologicalSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} {X : ℕ → Ω → ℝ} {c : ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (happrox : ∀ ε : ℝ, 0 < ε →
+      ∃ lower upper : BoundedContinuousFunction E ℝ,
+        (∫ ωlim, lower (Z ωlim) ∂ν) ≤ c ∧
+          c ≤ (∫ ωlim, upper (Z ωlim) ∂ν) ∧
+          (∫ ωlim, upper (Z ωlim) ∂ν) -
+              (∫ ωlim, lower (Z ωlim) ∂ν) ≤ ε ∧
+          (∀ n ω,
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar lower n ω ≤ X n ω) ∧
+          (∀ n ω,
+            X n ω ≤
+              bootstrapBoundedContinuousIntegralIndexed Pstar Zstar upper n ω)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  refine tendstoInMeasure_of_squeeze_approx_real (μ := μ) ?_
+  intro ε hε
+  obtain ⟨lower, upper, hlc, hcu, hgap, hlower, hupper⟩ := happrox ε hε
+  refine ⟨bootstrapBoundedContinuousIntegralIndexed Pstar Zstar lower,
+    bootstrapBoundedContinuousIntegralIndexed Pstar Zstar upper,
+    ∫ ωlim, lower (Z ωlim) ∂ν,
+    ∫ ωlim, upper (Z ωlim) ∂ν, hlc, hcu, hgap, hlower, hupper, ?_, ?_⟩
+  · exact hZ.tendsto_integral lower
+  · exact hZ.tendsto_integral upper
+
+/-- Bootstrap weak convergence mapped through a possibly discontinuous
+transformation, assuming bounded-continuous sandwich approximations for every
+bounded continuous test function after transformation.
+
+This is the reusable approximation-facing form of Hansen Theorem 10.5.  The
+separate topological step for an a.e.-continuous `g` is to construct the
+sandwich premise for each transformed test function. -/
+theorem TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich
+    [TopologicalSpace E] [TopologicalSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {g : E → F}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (happrox :
+      ∀ f : BoundedContinuousFunction F ℝ, ∀ ε : ℝ, 0 < ε →
+        ∃ lower upper : BoundedContinuousFunction E ℝ,
+          (∫ ωlim, lower (Z ωlim) ∂ν) ≤
+              (∫ ωlim, f (g (Z ωlim)) ∂ν) ∧
+            (∫ ωlim, f (g (Z ωlim)) ∂ν) ≤
+              (∫ ωlim, upper (Z ωlim) ∂ν) ∧
+            (∫ ωlim, upper (Z ωlim) ∂ν) -
+                (∫ ωlim, lower (Z ωlim) ∂ν) ≤ ε ∧
+            (∀ n ω,
+              bootstrapBoundedContinuousIntegral Pstar Zstar lower n ω ≤
+                bootstrapBoundedContinuousIntegral Pstar
+                  (fun n ω ωs => g (Zstar n ω ωs)) f n ω) ∧
+            (∀ n ω,
+              bootstrapBoundedContinuousIntegral Pstar
+                  (fun n ω ωs => g (Zstar n ω ωs)) f n ω ≤
+                bootstrapBoundedContinuousIntegral Pstar Zstar upper n ω)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  intro f
+  exact hZ.integral_tendsto_of_boundedContinuous_sandwich
+    (X := fun n ω =>
+      bootstrapBoundedContinuousIntegral Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) f n ω)
+    (c := ∫ ωlim, f (g (Z ωlim)) ∂ν)
+    (happrox f)
+
+/-- Indexed version of
+`TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich`. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.map_of_boundedContinuous_sandwich
+    [TopologicalSpace E] [TopologicalSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} {g : E → F}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (happrox :
+      ∀ f : BoundedContinuousFunction F ℝ, ∀ ε : ℝ, 0 < ε →
+        ∃ lower upper : BoundedContinuousFunction E ℝ,
+          (∫ ωlim, lower (Z ωlim) ∂ν) ≤
+              (∫ ωlim, f (g (Z ωlim)) ∂ν) ∧
+            (∫ ωlim, f (g (Z ωlim)) ∂ν) ≤
+              (∫ ωlim, upper (Z ωlim) ∂ν) ∧
+            (∫ ωlim, upper (Z ωlim) ∂ν) -
+                (∫ ωlim, lower (Z ωlim) ∂ν) ≤ ε ∧
+            (∀ n ω,
+              bootstrapBoundedContinuousIntegralIndexed Pstar Zstar lower n ω ≤
+                bootstrapBoundedContinuousIntegralIndexed Pstar
+                  (fun n ω ωs => g (Zstar n ω ωs)) f n ω) ∧
+            (∀ n ω,
+              bootstrapBoundedContinuousIntegralIndexed Pstar
+                  (fun n ω ωs => g (Zstar n ω ωs)) f n ω ≤
+                bootstrapBoundedContinuousIntegralIndexed Pstar Zstar upper n ω)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  intro f
+  exact hZ.integral_tendsto_of_sandwich
+    (X := fun n ω =>
+      bootstrapBoundedContinuousIntegralIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) f n ω)
+    (c := ∫ ωlim, f (g (Z ωlim)) ∂ν)
+    (happrox f)
 
 private noncomputable def nnrealBoundedContinuousFunctionToReal
     [TopologicalSpace E] (f : BoundedContinuousFunction E NNReal) :
