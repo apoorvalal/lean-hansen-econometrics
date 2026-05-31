@@ -278,7 +278,7 @@ used throughout the chapter:
   expose the pointwise threshold bound for Hansen's trimmed bootstrap statistic.
   Fixed/indexed dominated-tail bridges compare coordinate, coordinate-sum, and
   coordinate-product squared tails of `Z**` to the corresponding original
-  statistic tails.
+  statistic tails, both pointwise and after integration.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -9266,6 +9266,94 @@ theorem tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
         (fun x _ => sq_nonneg (Zstar n ω x a * Zstar n ω x c)) ωs
     simpa [Set.indicator, trimmedBootstrapStatistic, htrim] using hnonneg
 
+/-- Integral form of `tail_sq_trimmedBootstrapStatistic_apply_le_tail_sq`. -/
+theorem integral_tail_sq_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (a : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+          (fun ωs => (Zstar n ω ωs a) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatistic Zstar τ n ω ωs a) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+      (fun ωs => (Zstar n ω ωs a) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (trimmedBootstrapStatistic Zstar τ n ω x a)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_trimmedBootstrapStatistic_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a R
+
+/-- Integral form of
+`tail_sq_add_trimmedBootstrapStatistic_apply_le_tail_sq`. -/
+theorem integral_tail_sq_add_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (a c : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ =>
+          sq_nonneg
+            (trimmedBootstrapStatistic Zstar τ n ω x a +
+              trimmedBootstrapStatistic Zstar τ n ω x c)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_add_trimmedBootstrapStatistic_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a c R
+
+/-- Integral form of
+`tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq`. -/
+theorem integral_tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    (n : ℕ) (ω : Ω) (a c : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+          (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a *
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ =>
+          sq_nonneg
+            (trimmedBootstrapStatistic Zstar τ n ω x a *
+              trimmedBootstrapStatistic Zstar τ n ω x c)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_mul_trimmedBootstrapStatistic_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a c R
+
 /-- Hansen's trimmed bootstrap statistic is a.e. strongly measurable whenever
 the original bootstrap statistic is. -/
 theorem aestronglyMeasurable_trimmedBootstrapStatistic_of_aestronglyMeasurable
@@ -9653,6 +9741,98 @@ theorem tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
       Set.indicator_nonneg
         (fun x _ => sq_nonneg (Zstar n ω x a * Zstar n ω x c)) ωs
     simpa [Set.indicator, trimmedBootstrapStatisticIndexed, htrim] using hnonneg
+
+/-- Indexed integral form of
+`tail_sq_trimmedBootstrapStatisticIndexed_apply_le_tail_sq`. -/
+theorem integral_tail_sq_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (ω : Ω) (a : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+          (fun ωs => (Zstar n ω ωs a) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a|}
+      (fun ωs => (Zstar n ω ωs a) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ => sq_nonneg (trimmedBootstrapStatisticIndexed Zstar τ n ω x a)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a R
+
+/-- Indexed integral form of
+`tail_sq_add_trimmedBootstrapStatisticIndexed_apply_le_tail_sq`. -/
+theorem integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (ω : Ω) (a c : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a + Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ =>
+          sq_nonneg
+            (trimmedBootstrapStatisticIndexed Zstar τ n ω x a +
+              trimmedBootstrapStatisticIndexed Zstar τ n ω x c)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_add_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a c R
+
+/-- Indexed integral form of
+`tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq`. -/
+theorem integral_tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (ω : Ω) (a c : k) (R : ℝ)
+    (hInt :
+      Integrable
+        (Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+          (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2)) P) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a *
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) ≤
+    ∫ ωs, Set.indicator {ωs | R ≤ |Zstar n ω ωs a * Zstar n ω ωs c|}
+      (fun ωs => (Zstar n ω ωs a * Zstar n ω ωs c) ^ 2) ωs ∂P := by
+  refine integral_mono_of_nonneg ?_ hInt ?_
+  · exact ae_of_all P fun ωs =>
+      Set.indicator_nonneg
+        (fun x _ =>
+          sq_nonneg
+            (trimmedBootstrapStatisticIndexed Zstar τ n ω x a *
+              trimmedBootstrapStatisticIndexed Zstar τ n ω x c)) ωs
+  · exact ae_of_all P fun ωs =>
+      tail_sq_mul_trimmedBootstrapStatisticIndexed_apply_le_tail_sq
+        (Zstar := Zstar) (τ := τ) n ω ωs a c R
 
 /-- Indexed Hansen trimmed bootstrap statistic is a.e. strongly measurable
 whenever the original indexed bootstrap statistic is. -/
