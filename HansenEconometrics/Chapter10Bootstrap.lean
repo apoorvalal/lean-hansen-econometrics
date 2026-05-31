@@ -3977,6 +3977,41 @@ theorem chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers
         (g := g) hZ hg)
       hPstar hZstarMapped hZMapped hfrontier
 
+/-- Hansen Theorem 10.5, globally continuous finite-dimensional CDF face with
+measurability derived from the underlying statistic.
+
+This is a convenience wrapper around
+`chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers` for the
+common case where `g` is globally continuous and the original bootstrap and
+limit statistics are measurable. -/
+theorem chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers_measurable
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  refine
+    chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hZ hg hPstar ?_ ?_ hfrontier
+  · intro n ω
+    exact hg.measurable.comp (hZstar n ω)
+  · have hg_ae : AEMeasurable g (ν.map Z) := hg.measurable.aemeasurable
+    simpa [Function.comp_def] using hg_ae.comp_aemeasurable hZlim
+
 /-- Hansen Theorem 10.5, globally continuous event-probability face.
 
 After a continuous transformation `g`, bounded-continuous lower/upper
