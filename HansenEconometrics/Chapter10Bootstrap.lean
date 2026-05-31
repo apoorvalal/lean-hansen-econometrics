@@ -9022,6 +9022,60 @@ theorem abs_mul_trimmedBootstrapStatistic_apply_le_sq_of_nonneg
     _ ≤ τ n * τ n := mul_le_mul ha hc (abs_nonneg _) hτ
     _ = (τ n) ^ 2 := by ring
 
+/-- The coordinate squared tail of a trimmed statistic is zero above the trim
+threshold. -/
+theorem integral_tail_sq_trimmedBootstrapStatistic_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) {R : ℝ} (hR : τ n < R)
+    (ω : Ω) (a : k) :
+    (∫ ωs, Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatistic Zstar τ n ω ωs a) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hcoord :=
+      abs_trimmedBootstrapStatistic_apply_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a
+    have hnotmem :
+        ωs ∉
+          {x | R ≤ |trimmedBootstrapStatistic Zstar τ n ω x a|} :=
+      not_le.mpr (lt_of_le_of_lt hcoord hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
+
+/-- The coordinate-sum squared tail of a trimmed statistic is zero above twice
+the trim threshold. -/
+theorem integral_tail_sq_add_trimmedBootstrapStatistic_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {P : Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} (hτ : 0 ≤ τ n) {R : ℝ} (hR : 2 * τ n < R)
+    (ω : Ω) (a c : k) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatistic Zstar τ n ω ωs a +
+          trimmedBootstrapStatistic Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hsum :=
+      abs_add_trimmedBootstrapStatistic_apply_le_two_mul_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+    have hnotmem :
+        ωs ∉
+          {x |
+            R ≤ |trimmedBootstrapStatistic Zstar τ n ω x a +
+              trimmedBootstrapStatistic Zstar τ n ω x c|} :=
+      not_le.mpr (lt_of_le_of_lt hsum hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
+
 /-- Indexed version of `norm_trimmedBootstrapStatistic_le_max`. -/
 theorem norm_trimmedBootstrapStatisticIndexed_le_max
     {k : Type*} [Fintype k]
@@ -9129,6 +9183,62 @@ theorem abs_mul_trimmedBootstrapStatisticIndexed_apply_le_sq_of_nonneg
           |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c| := abs_mul _ _
     _ ≤ τ n * τ n := mul_le_mul ha hc (abs_nonneg _) hτ
     _ = (τ n) ^ 2 := by ring
+
+/-- Indexed coordinate squared tail of a trimmed statistic is zero above the
+trim threshold. -/
+theorem integral_tail_sq_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (hτ : 0 ≤ τ n) {R : ℝ} (hR : τ n < R)
+    (ω : Ω) (a : k) :
+    (∫ ωs, Set.indicator
+      {ωs | R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a|}
+      (fun ωs => (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hcoord :=
+      abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a
+    have hnotmem :
+        ωs ∉
+          {x | R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω x a|} :=
+      not_le.mpr (lt_of_le_of_lt hcoord hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
+
+/-- Indexed coordinate-sum squared tail of a trimmed statistic is zero above
+twice the trim threshold. -/
+theorem integral_tail_sq_add_trimmedBootstrapStatisticIndexed_apply_eq_zero_of_lt
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {n : ℕ} {P : Measure (Ωboot n)}
+    (hτ : 0 ≤ τ n) {R : ℝ} (hR : 2 * τ n < R)
+    (ω : Ω) (a c : k) :
+    (∫ ωs, Set.indicator
+      {ωs |
+        R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c|}
+      (fun ωs =>
+        (trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a +
+          trimmedBootstrapStatisticIndexed Zstar τ n ω ωs c) ^ 2)
+      ωs ∂P) = 0 := by
+  refine integral_eq_zero_of_ae ?_
+  exact ae_of_all P fun ωs => by
+    have hsum :=
+      abs_add_trimmedBootstrapStatisticIndexed_apply_le_two_mul_of_nonneg
+        (Zstar := Zstar) (τ := τ) hτ ω ωs a c
+    have hnotmem :
+        ωs ∉
+          {x |
+            R ≤ |trimmedBootstrapStatisticIndexed Zstar τ n ω x a +
+              trimmedBootstrapStatisticIndexed Zstar τ n ω x c|} :=
+      not_le.mpr (lt_of_le_of_lt hsum hR)
+    rw [Set.indicator_of_notMem hnotmem]
+    simp
 
 /-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
 statistic. -/
