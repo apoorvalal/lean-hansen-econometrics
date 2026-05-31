@@ -179,6 +179,8 @@ used throughout the chapter:
   `bootstrapScalarQuantile_tendsto_of_bootstrapDistribution_unit` and
   `bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit`
   feed that bridge directly into quantile convergence.
+  `scalarCDF_mono`, `bootstrapScalarCDF_mono`, and the finite-measure
+  lower-quantile wrappers discharge the ordinary CDF monotonicity premise.
   `strictMono_cdf_brackets` and the corresponding strict-CDF quantile wrappers
   package the common `G(q) = p` plus strict-monotonicity calibration.
   `lowerCDFQuantile`, `lowerCDFQuantile_bracket_of_stieltjesFunction`, and
@@ -7813,6 +7815,14 @@ noncomputable def scalarCDF
     (ν : Measure Ωlim) (Z : Ωlim → ℝ) (x : ℝ) : ℝ :=
   (ν {ωlim | Z ωlim ≤ x}).toReal
 
+/-- Limit scalar CDFs are monotone under finite limit measures. -/
+theorem scalarCDF_mono
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} [IsFiniteMeasure ν] :
+    Monotone (scalarCDF ν Z) := by
+  intro x y hxy
+  refine ENNReal.toReal_mono (measure_ne_top ν {ωlim | Z ωlim ≤ y}) ?_
+  exact measure_mono fun ωlim hωlim => le_trans hωlim hxy
+
 /-- Scalar CDF continuity gives continuity of the one-dimensional vector-CDF
 view used by Hansen Definition 10.2. -/
 theorem continuousAt_vectorCDF_unit_of_scalarCDF
@@ -7849,6 +7859,17 @@ noncomputable def bootstrapScalarCDF
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → ℝ)
     (x : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
   ((Pstar n ω) {ωs | Zstar n ω ωs ≤ x}).toReal
+
+/-- Conditional bootstrap scalar CDFs are monotone under finite conditional
+bootstrap measures. -/
+theorem bootstrapScalarCDF_mono
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {n : ℕ} {ω : Ω} [IsFiniteMeasure (Pstar n ω)] :
+    Monotone (fun x => bootstrapScalarCDF Pstar Zstar x n ω) := by
+  intro x y hxy
+  refine ENNReal.toReal_mono
+    (measure_ne_top (Pstar n ω) {ωs | Zstar n ω ωs ≤ y}) ?_
+  exact measure_mono fun ωs hωs => le_trans hωs hxy
 
 /-- Scalar CDF convergence extracted from Hansen Definition 10.2 in one
 dimension.
@@ -8116,6 +8137,66 @@ theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_stric
     bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       hmono hne hbdd hlocal hleft hright hZ hcont
+
+/-- Finite conditional bootstrap measures supply the scalar-CDF monotonicity
+premise in the lower-quantile Definition 10.2 wrapper. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_finite
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hleft : ∀ ε : ℝ, 0 < ε → scalarCDF ν Z (q - ε) < p)
+    (hright : ∀ ε : ℝ, 0 < ε → p < scalarCDF ν Z (q + ε))
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) :=
+  bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (fun n ω => by
+      haveI : IsFiniteMeasure (Pstar n ω) := hPstar n ω
+      exact bootstrapScalarCDF_mono (Pstar := Pstar) (Zstar := Zstar)
+        (n := n) (ω := ω))
+    hne hbdd hlocal hleft hright hZ hcont
+
+/-- Strict-limit-CDF specialization of the finite-measure scalar
+lower-quantile Definition 10.2 wrapper. -/
+theorem bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_strictMono_finite
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → ℝ} {p q : ℝ}
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Zstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Zstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Zstar (x + δ) n ω < p)
+    (hstrict : StrictMono (scalarCDF ν Z))
+    (hq : scalarCDF ν Z q = p)
+    (hZ :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Zstar n ω ωs) ν
+        (fun ωlim (_ : Unit) => Z ωlim))
+    (hcont : ∀ x : ℝ, ContinuousAt (scalarCDF ν Z) x) :
+    TendstoInMeasure μ
+      (bootstrapScalarLowerQuantile Pstar Zstar p) atTop (fun _ => q) := by
+  obtain ⟨hleft, hright⟩ := strictMono_cdf_brackets hstrict hq
+  exact
+    bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_finite
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hPstar hne hbdd hlocal hleft hright hZ hcont
 
 end QuantileConvergence
 
