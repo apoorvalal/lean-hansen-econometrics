@@ -269,7 +269,8 @@ used throughout the chapter:
   regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18;
   indexed counterparts cover sample-size-dependent bootstrap spaces.
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
-  variance wrapper for Hansen Theorem 10.19.
+  variance wrapper for Hansen Theorem 10.19, with an indexed trimmed-covariance
+  counterpart.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11; the
   centered scalar wrapper states the same result for Hansen's displayed
@@ -8152,6 +8153,26 @@ noncomputable def trimmedBootstrapCovarianceMat
     (τ : ℕ → ℝ) (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
   bootstrapCovarianceMat Pstar (trimmedBootstrapStatistic Zstar τ) n ω
 
+/-- Indexed Hansen trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}` for
+sample-size-dependent bootstrap spaces. -/
+noncomputable def trimmedBootstrapStatisticIndexed
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*}
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ) (τ : ℕ → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Ωboot n) : k → ℝ :=
+  if ‖Zstar n ω ωs‖ ≤ τ n then Zstar n ω ωs else 0
+
+/-- Indexed conditional covariance matrix of Hansen's trimmed bootstrap
+statistic. -/
+noncomputable def trimmedBootstrapCovarianceMatIndexed
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
+    (τ : ℕ → ℝ) (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  bootstrapCovarianceMatIndexed Pstar (trimmedBootstrapStatisticIndexed Zstar τ)
+    n ω
+
 /-- Hansen Theorem 10.12, trimmed conditional covariance moment bridge.
 
 For the trimmed statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`, convergence of its conditional
@@ -8212,6 +8233,71 @@ theorem chapter10_trimmedBootstrapVariance_tendsto
       (fun _ => V) := by
   have h :=
     chapter10_trimmedBootstrapVariance_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZ hmean hcross
+  simpa using h
+
+/-- Indexed Hansen Theorem 10.12, trimmed conditional covariance moment
+bridge. -/
+theorem chapter10_indexed_trimmedBootstrapVariance_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => M₂)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop (fun _ => fun a c => M₂ a c - m a * m c) := by
+  simpa [trimmedBootstrapCovarianceMatIndexed] using
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatisticIndexed Zstar τ)
+      hPstar hZ hmean hcross
+
+/-- Indexed Theorem 10.12 zero-mean covariance specialization. -/
+theorem chapter10_indexed_trimmedBootstrapVariance_tendsto
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω))
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed Zstar τ))
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop (fun _ => V) := by
+  have h :=
+    chapter10_indexed_trimmedBootstrapVariance_tendsto_of_moments
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
       hPstar hZ hmean hcross
   simpa using h
@@ -8427,6 +8513,38 @@ theorem chapter10_bootstrap_regression_trimmedVariance_tendsto
     TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar ZthetaStar τ) atTop
       (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
   chapter10_trimmedBootstrapVariance_tendsto
+    (μ := μ) (Pstar := Pstar) (Zstar := ZthetaStar) (τ := τ)
+    hPstar hZ hmean hcross
+
+/-- Indexed Hansen Theorem 10.19, regression-facing trimmed bootstrap variance
+bridge for sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_regression_trimmedVariance_tendsto
+    {k q : Type*} [Fintype k] [Fintype q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {ZthetaStar : ∀ n, Ω → Ωboot n → q → ℝ}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            trimmedBootstrapStatisticIndexed ZthetaStar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed ZthetaStar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed ZthetaStar τ))
+        atTop (fun _ => smoothFunctionVarianceFunctional R Vβ)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMatIndexed Pstar ZthetaStar τ)
+      atTop (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_indexed_trimmedBootstrapVariance_tendsto
     (μ := μ) (Pstar := Pstar) (Zstar := ZthetaStar) (τ := τ)
     hPstar hZ hmean hcross
 
