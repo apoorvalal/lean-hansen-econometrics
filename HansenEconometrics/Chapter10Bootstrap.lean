@@ -98,7 +98,8 @@ used throughout the chapter:
 * `TendstoInBootstrapWeakDistribution.integral_realClip_tendsto` and
   `TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto` turn weak
   bootstrap convergence into clipped first- and second-moment convergence for
-  Hansen Theorem 10.9.
+  Hansen Theorem 10.9, with indexed counterparts for sample-size-dependent
+  bootstrap spaces.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_realClip_tails` and
   `TendstoInBootstrapWeakDistribution.integral_sq_tendsto_of_realClip_tails`
   add the UI/tail unclipping step for the first two moments.
@@ -4219,6 +4220,20 @@ theorem TendstoInBootstrapWeakDistribution.integral_realClip_tendsto
   simpa [bootstrapBoundedContinuousIntegral, realClipBoundedContinuousFunction_apply]
     using hZ (realClipBoundedContinuousFunction R hR)
 
+/-- Indexed clipped first moments converge under indexed bootstrap weak
+convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_realClip_tendsto
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    {R : ℝ} (hR : 0 ≤ R) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+      atTop
+      (fun _ => ∫ ωlim, realClip R (Z ωlim) ∂ν) := by
+  simpa [bootstrapBoundedContinuousIntegralIndexed, realClipBoundedContinuousFunction_apply]
+    using hZ (realClipBoundedContinuousFunction R hR)
+
 /-- Clipped second moments converge under bootstrap weak convergence.
 
 This is the bounded-continuous core used before the UI/tail argument upgrades
@@ -4234,6 +4249,20 @@ theorem TendstoInBootstrapWeakDistribution.integral_realClip_sq_tendsto
       atTop
       (fun _ => ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν) := by
   simpa [bootstrapBoundedContinuousIntegral, realClipBoundedContinuousFunction_apply]
+    using hZ ((realClipBoundedContinuousFunction R hR) ^ (2 : ℕ))
+
+/-- Indexed clipped second moments converge under indexed bootstrap weak
+convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.integral_realClip_sq_tendsto
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    {R : ℝ} (hR : 0 ≤ R) :
+    TendstoInMeasure μ
+      (fun n ω => (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+      atTop
+      (fun _ => ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν) := by
+  simpa [bootstrapBoundedContinuousIntegralIndexed, realClipBoundedContinuousFunction_apply]
     using hZ ((realClipBoundedContinuousFunction R hR) ^ (2 : ℕ))
 
 private theorem tendstoInMeasure_of_approx_limits_real
