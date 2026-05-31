@@ -221,10 +221,13 @@ used throughout the chapter:
   Theorem 10.8 bridge from separate bootstrap convergence of the plug-in
   Jacobian and covariance inputs.
 * `chapter10_bootstrap_variance_consistency_of_moment_convergence` is the
-  moment-convergence bridge behind Hansen Theorem 10.9.
+  moment-convergence bridge behind Hansen Theorem 10.9; the indexed
+  counterpart uses `bootstrapMeanRealIndexed`,
+  `bootstrapSecondMomentRealIndexed`, and `bootstrapVarianceRealIndexed`.
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_tails`
   derives that bridge's moment premises from bootstrap weak convergence plus
-  first/second clipping-tail controls.
+  first/second clipping-tail controls, with an indexed counterpart for
+  sample-size-dependent bootstrap spaces.
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_tail_integrals`
   packages the same Theorem 10.9 conclusion from concrete first/second
   tail-integral controls.
@@ -5667,6 +5670,27 @@ noncomputable def bootstrapVarianceReal
     (n : ℕ) (ω : Ω) : ℝ :=
   Var[Zstar n ω; Pstar n ω]
 
+/-- Indexed conditional bootstrap mean of a real statistic. -/
+noncomputable def bootstrapMeanRealIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[Zstar n ω]
+
+/-- Indexed conditional bootstrap second moment of a real statistic. -/
+noncomputable def bootstrapSecondMomentRealIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[(Zstar n ω) ^ 2]
+
+/-- Indexed conditional bootstrap variance of a real statistic. -/
+noncomputable def bootstrapVarianceRealIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  Var[Zstar n ω; Pstar n ω]
+
 /-- Pointwise bootstrap mean clipping error bound by an absolute-tail integral. -/
 theorem bootstrapMeanReal_abs_sub_realClip_le_two_mul_integral_tail_abs
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
@@ -5911,6 +5935,24 @@ theorem bootstrapVarianceReal_eq_secondMoment_sub_mean_sq
     using (ProbabilityTheory.variance_eq_sub (μ := Pstar n ω) (X := Zstar n ω)
       (hZ n ω))
 
+/-- Indexed conditional variance equals second moment minus squared conditional
+mean. -/
+theorem bootstrapVarianceRealIndexed_eq_secondMoment_sub_mean_sq
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (n : ℕ) (ω : Ω) :
+    bootstrapVarianceRealIndexed Pstar Zstar n ω =
+      bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+        (bootstrapMeanRealIndexed Pstar Zstar n ω) ^ 2 := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapVarianceRealIndexed, bootstrapSecondMomentRealIndexed,
+    bootstrapMeanRealIndexed] using
+      (ProbabilityTheory.variance_eq_sub (μ := Pstar n ω) (X := Zstar n ω)
+        (hZ n ω))
+
 /-- Hansen Theorem 10.9, variance-consistency moment bridge.
 
 If the conditional bootstrap first and second moments of a real statistic
@@ -5977,6 +6019,67 @@ theorem chapter10_bootstrap_variance_consistency_of_moment_convergence
     ring
   simpa [pow_two] using hvar
 
+/-- Indexed Hansen Theorem 10.9, variance-consistency moment bridge. -/
+theorem chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+      (fun _ => m₂ - m ^ 2) := by
+  have hmean_sq :
+      TendstoInMeasure μ
+        (fun n ω => bootstrapMeanRealIndexed Pstar Zstar n ω *
+          bootstrapMeanRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => m * m) :=
+    TendstoInMeasure.mul_limits_real hmean hmean
+  have hsecond0 := TendstoInMeasure.sub_limit_zero_real hsecond
+  have hmean_sq0 := TendstoInMeasure.sub_limit_zero_real hmean_sq
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+            bootstrapMeanRealIndexed Pstar Zstar n ω *
+              bootstrapMeanRealIndexed Pstar Zstar n ω) -
+            (m₂ - m * m))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hsecond0 hmean_sq0
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsub
+    refine ae_of_all μ fun ω => ?_
+    ring
+  have hdiff :
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+            bootstrapMeanRealIndexed Pstar Zstar n ω *
+              bootstrapMeanRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => m₂ - m * m) :=
+    TendstoInMeasure.of_sub_limit_zero_real hdiff0
+  have hvar :
+      TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+        (fun _ => m₂ - m * m) := by
+    refine TendstoInMeasure.congr
+      (f := fun n ω =>
+        bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+          bootstrapMeanRealIndexed Pstar Zstar n ω *
+            bootstrapMeanRealIndexed Pstar Zstar n ω)
+      (f' := bootstrapVarianceRealIndexed Pstar Zstar)
+      (g := fun _ : Ω => m₂ - m * m)
+      (g' := fun _ : Ω => m₂ - m * m)
+      (fun n => ?_) EventuallyEq.rfl hdiff
+    refine ae_of_all μ fun ω => ?_
+    rw [bootstrapVarianceRealIndexed_eq_secondMoment_sub_mean_sq hPstar hZ]
+    ring
+  simpa [pow_two] using hvar
+
 /-- Hansen Theorem 10.10, smooth-function variance-consistency wrapper.
 
 In the smooth-function model, Hansen's bounded-derivative argument is used to
@@ -6039,6 +6142,46 @@ theorem chapter10_bootstrap_variance_consistency_of_weak_distribution_realClip_t
     simpa [bootstrapSecondMomentReal] using
       hweak.integral_sq_tendsto_of_realClip_tails hTailSecond
   exact chapter10_bootstrap_variance_consistency_of_moment_convergence
+    hPstar hZmem hmean hsecond
+
+/-- Indexed Hansen Theorem 10.9, weak-distribution plus UI/tail variance
+bridge. -/
+theorem chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_realClip_tails
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {Z : Ωlim → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailMean : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, Z ωlim ∂ν) - ∫ ωlim, realClip R (Z ωlim) ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapMeanRealIndexed Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => realClip R (Zstar n ω ωs)])
+        atTop (fun _ => 0))
+    (hTailSecond : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 0 ≤ R ∧
+      |(∫ ωlim, (Z ωlim) ^ 2 ∂ν) -
+          ∫ ωlim, (realClip R (Z ωlim)) ^ 2 ∂ν| ≤ ε ∧
+      TendstoInMeasure μ
+        (fun n ω =>
+          bootstrapSecondMomentRealIndexed Pstar Zstar n ω -
+            (Pstar n ω)[fun ωs => (realClip R (Zstar n ω ωs)) ^ 2])
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, Z ωlim ∂ν) := by
+    simpa [bootstrapMeanRealIndexed] using
+      hweak.integral_tendsto_of_realClip_tails hTailMean
+  have hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν) := by
+    simpa [bootstrapSecondMomentRealIndexed] using
+      hweak.integral_sq_tendsto_of_realClip_tails hTailSecond
+  exact chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZmem hmean hsecond
 
 /-- Hansen Theorem 10.9, weak-distribution plus concrete tail-integral
