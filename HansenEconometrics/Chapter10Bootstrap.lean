@@ -283,11 +283,13 @@ used throughout the chapter:
   10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance`
   combines finite-replication covariance simulation error with conditional
-  bootstrap covariance consistency. Weak/uniform-square-tail wrappers compose
-  this transfer with the Theorem 10.9 conditional covariance layer.
+  bootstrap covariance consistency, with indexed counterparts for
+  sample-size-dependent bootstrap spaces. Weak/uniform-square-tail wrappers
+  compose this transfer with the Theorem 10.9 conditional covariance layer.
   Scalar and matrix moment-premise wrappers expose the same transfer directly
-  from conditional bootstrap mean and cross-moment convergence, with zero-mean
-  specializations for centered targets. The trimmed zero-mean wrapper exposes
+  from conditional bootstrap mean and cross-moment convergence, with indexed
+  mean-vector/cross-moment/covariance bridges and zero-mean specializations for
+  centered targets. The trimmed zero-mean wrapper exposes
   the Theorem 10.12 target covariance directly.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
@@ -6953,6 +6955,60 @@ theorem bootstrapCovarianceMat_eq_momentMat
     bootstrapMeanVec, Pi.mul_apply] using
     (ProbabilityTheory.covariance_eq_sub (hZ n ω a) (hZ n ω c))
 
+/-- Indexed conditional bootstrap mean vector of a finite-dimensional statistic. -/
+noncomputable def bootstrapMeanVecIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
+    (n : ℕ) (ω : Ω) : k → ℝ :=
+  fun a => (Pstar n ω)[fun ωs => Zstar n ω ωs a]
+
+/-- Indexed conditional bootstrap cross-moment matrix of a finite-dimensional
+statistic. -/
+noncomputable def bootstrapCrossMomentMatIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c => (Pstar n ω)[fun ωs => Zstar n ω ωs a * Zstar n ω ωs c]
+
+/-- Indexed moment-form conditional bootstrap covariance matrix. -/
+noncomputable def bootstrapCovarianceMomentMatIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c =>
+    bootstrapCrossMomentMatIndexed Pstar Zstar n ω a c -
+      bootstrapMeanVecIndexed Pstar Zstar n ω a *
+        bootstrapMeanVecIndexed Pstar Zstar n ω c
+
+/-- Indexed conditional bootstrap covariance matrix, stated directly with
+`cov`. -/
+noncomputable def bootstrapCovarianceMatIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
+    (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
+  fun a c => cov[fun ωs => Zstar n ω ωs a,
+    fun ωs => Zstar n ω ωs c; Pstar n ω]
+
+/-- Indexed conditional covariance equals the moment-form covariance matrix. -/
+theorem bootstrapCovarianceMatIndexed_eq_momentMat
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (n : ℕ) (ω : Ω) :
+    bootstrapCovarianceMatIndexed Pstar Zstar n ω =
+      bootstrapCovarianceMomentMatIndexed Pstar Zstar n ω := by
+  ext a c
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  simpa [bootstrapCovarianceMatIndexed, bootstrapCovarianceMomentMatIndexed,
+    bootstrapCrossMomentMatIndexed, bootstrapMeanVecIndexed, Pi.mul_apply] using
+      (ProbabilityTheory.covariance_eq_sub (hZ n ω a) (hZ n ω c))
+
 /-- Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
 Bootstrap weak convergence of the vector statistic plus the named
@@ -7261,6 +7317,47 @@ theorem chapter10_bootstrap_covarianceReal_tendsto_of_moments
     exact ae_of_all μ fun ω => by ring
   exact TendstoInMeasure.of_sub_limit_zero_real hdiff0
 
+/-- Indexed conditional bootstrap covariance moment bridge for two real
+coordinates. -/
+theorem chapter10_indexed_bootstrap_covarianceReal_tendsto_of_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Xstar n ω])
+        atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs])
+        atTop (fun _ => mXY)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+          (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+      atTop (fun _ => mXY - mX * mY) := by
+  have hmean_prod :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mX * mY) :=
+    TendstoInMeasure.mul_limits_real hmeanX hmeanY
+  have hcross0 := TendstoInMeasure.sub_limit_zero_real hcross
+  have hmean_prod0 := TendstoInMeasure.sub_limit_zero_real hmean_prod
+  have hdiff0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+            (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]) -
+            (mXY - mX * mY))
+        atTop (fun _ => 0) := by
+    have hsub := TendstoInMeasure.sub_zero_real hcross0 hmean_prod0
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsub
+    exact ae_of_all μ fun ω => by ring
+  exact TendstoInMeasure.of_sub_limit_zero_real hdiff0
+
 /-- Conditional bootstrap covariance-matrix bridge from mean-vector and
 cross-moment convergence. -/
 theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
@@ -7295,6 +7392,43 @@ theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
   simpa [bootstrapCovarianceMomentMat, bootstrapMeanVec, bootstrapCrossMomentMat]
     using hentry
 
+/-- Indexed conditional bootstrap covariance-matrix bridge from mean-vector and
+cross-moment convergence. -/
+theorem chapter10_indexed_bootstrap_covarianceMomentMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (bootstrapCovarianceMomentMatIndexed Pstar Zstar)
+      atTop (fun _ => fun a c => M₂ a c - m a * m c) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  have hentry :=
+    chapter10_indexed_bootstrap_covarianceReal_tendsto_of_moments
+      (μ := μ)
+      (Pstar := Pstar)
+      (Xstar := fun n ω ωs => Zstar n ω ωs a)
+      (Ystar := fun n ω ωs => Zstar n ω ωs c)
+      (mX := m a) (mY := m c) (mXY := M₂ a c)
+      (by
+        simpa [bootstrapMeanVecIndexed] using
+          TendstoInMeasure.pi_apply hmean a)
+      (by
+        simpa [bootstrapMeanVecIndexed] using
+          TendstoInMeasure.pi_apply hmean c)
+      (by
+        simpa [bootstrapCrossMomentMatIndexed] using
+          TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hcross a) c)
+  simpa [bootstrapCovarianceMomentMatIndexed, bootstrapMeanVecIndexed,
+    bootstrapCrossMomentMatIndexed] using hentry
+
 /-- Zero-mean conditional bootstrap covariance-moment matrix bridge.
 
 When the conditional bootstrap mean vector converges to zero, convergence of
@@ -7313,6 +7447,26 @@ theorem chapter10_bootstrap_covarianceMomentMat_tendsto_of_zero_mean_moments
       atTop (fun _ => V) := by
   simpa using
     (chapter10_bootstrap_covarianceMomentMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (m := fun _ : k => 0) (M₂ := V) hmean hcross)
+
+/-- Indexed zero-mean conditional bootstrap covariance-moment matrix bridge. -/
+theorem chapter10_indexed_bootstrap_covarianceMomentMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (bootstrapCovarianceMomentMatIndexed Pstar Zstar)
+      atTop (fun _ => V) := by
+  simpa using
+    (chapter10_indexed_bootstrap_covarianceMomentMat_tendsto_of_moments
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
       (m := fun _ : k => 0) (M₂ := V) hmean hcross)
 
@@ -7343,6 +7497,36 @@ theorem chapter10_bootstrap_covarianceMat_tendsto_of_moments
     (bootstrapCovarianceMat_eq_momentMat
       (Pstar := Pstar) (Zstar := Zstar) hPstar hZ n ω).symm
 
+/-- Indexed conditional bootstrap covariance matrix bridge, stated for `cov`. -/
+theorem chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar) atTop
+        (fun _ => M₂)) :
+    TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) := by
+  have hmoment :=
+    chapter10_indexed_bootstrap_covarianceMomentMat_tendsto_of_moments
+      (μ := μ) hmean hcross
+  refine TendstoInMeasure.congr
+    (f := bootstrapCovarianceMomentMatIndexed Pstar Zstar)
+    (f' := bootstrapCovarianceMatIndexed Pstar Zstar)
+    (g := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    (g' := fun _ : Ω => fun a c => M₂ a c - m a * m c)
+    (fun n => ?_) EventuallyEq.rfl hmoment
+  exact ae_of_all μ fun ω =>
+    (bootstrapCovarianceMatIndexed_eq_momentMat
+      (Pstar := Pstar) (Zstar := Zstar) hPstar hZ n ω).symm
+
 /-- Zero-mean conditional bootstrap covariance-matrix bridge, stated for
 `cov`.
 
@@ -7365,6 +7549,29 @@ theorem chapter10_bootstrap_covarianceMat_tendsto_of_zero_mean_moments
       atTop (fun _ => V) := by
   simpa using
     (chapter10_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      hPstar hZ (m := fun _ : k => 0) (M₂ := V) hmean hcross)
+
+/-- Indexed zero-mean conditional bootstrap covariance-matrix bridge, stated
+for `cov`. -/
+theorem chapter10_indexed_bootstrap_covarianceMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    {V : Matrix k k ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar)
+      atTop (fun _ => V) := by
+  simpa using
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
       hPstar hZ (m := fun _ : k => 0) (M₂ := V) hmean hcross)
 
@@ -8768,6 +8975,89 @@ theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
 
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
+from conditional bootstrap covariance consistency. -/
+theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => V) :=
+  TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
+from conditional bootstrap moment convergence. -/
+theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar) atTop
+        (fun _ => M₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) hPstar hZ hmean hcross)
+
+/-- Indexed zero-mean finite-replication covariance-matrix wrapper for Hansen
+Theorem 10.11. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar)
+        atTop (fun _ => V))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => V) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_moments
+      (μ := μ) (m := fun _ : k => 0) (M₂ := V)
+      hPstar hZ hmean hcross hfinite)
+
 /-- Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
 bootstrap weak convergence and uniform-square-tail controls.
 
@@ -8831,6 +9121,29 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_co
         atTop (fun _ => 0))
     (hboot :
       TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 bridge for the textbook-centered finite
+replication covariance matrix. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
         (fun _ => V)) :
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
       (fun _ => V) :=
@@ -9002,6 +9315,38 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_mo
     (chapter10_bootstrap_covarianceMat_tendsto_of_moments
       (μ := μ) hPstar hZ hmean hcross)
 
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
+from conditional bootstrap moment convergence, stated for Hansen's centered
+estimator. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {m : k → ℝ} {M₂ : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar) atTop
+        (fun _ => m))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar) atTop
+        (fun _ => M₂))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c => M₂ a c - m a * m c) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_moments
+      (μ := μ) hPstar hZ hmean hcross)
+
 /-- Zero-mean finite-replication covariance-matrix wrapper for Hansen Theorem
 10.11. -/
 theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_zero_mean_moments
@@ -9027,6 +9372,37 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_ze
       (fun _ => V) := by
   simpa using
     (chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_moments
+      (μ := μ) (m := fun _ : k => 0) (M₂ := V)
+      hPstar hZ hmean hcross hfinite)
+
+/-- Indexed zero-mean finite-replication covariance-matrix wrapper for Hansen
+Theorem 10.11, stated for Hansen's centered estimator. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_zero_mean_moments
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanVecIndexed Pstar Zstar)
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ (bootstrapCrossMomentMatIndexed Pstar Zstar)
+        atTop (fun _ => V))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_moments
       (μ := μ) (m := fun _ : k => 0) (M₂ := V)
       hPstar hZ hmean hcross hfinite)
 
