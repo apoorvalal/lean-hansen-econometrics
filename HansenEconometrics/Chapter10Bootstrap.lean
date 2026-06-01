@@ -93,7 +93,9 @@ used throughout the chapter:
   projected conditional characteristic functions, and the
   `*_of_ae_charFun_pow*` variants start from the empirical one-draw
   characteristic-function power condition obtained by the normalized finite
-  resampling identity.
+  resampling identity.  The `*_of_ae_charFun_remainder*` variants start from
+  empirical projected-variance convergence plus the explicit diagonal
+  characteristic-function Taylor remainder.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -268,7 +270,10 @@ used throughout the chapter:
   empirical variance convergence plus an explicit Taylor remainder, while
   `charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto`
   transfers that power limit to the actual normalized ordinary-bootstrap
-  resample mean's conditional characteristic function.
+  resample mean's conditional characteristic function.  The projected Gaussian
+  bridge `charFun_map_multivariateGaussian_zero_dotProduct_eq_exp` rewrites the
+  scalar exponent as the characteristic function of the projected Gaussian
+  limit used by the theorem-facing CLT wrappers.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -4077,6 +4082,26 @@ theorem
     simpa [centeredEmpiricalCharFunFinSucc] using
       (charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
         (Y := Y) n ω u).symm
+
+/-- Characteristic function of a projected centered multivariate Gaussian.
+
+For Hansen Theorem 10.4's Cramér-Wold route, a fixed projection of
+`N(0, S)` has characteristic function
+`exp (-t² (a' S a) / 2)`. -/
+theorem charFun_map_multivariateGaussian_zero_dotProduct_eq_exp
+    [Fintype k] [DecidableEq k] {S : Matrix k k ℝ}
+    (hS : S.PosSemidef) (a : k → ℝ) (u : ℝ) :
+    charFun
+        ((multivariateGaussian 0 S).map
+          (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a))
+        u =
+      Complex.exp (scalarGaussianCharFunExponent u (a ⬝ᵥ (S *ᵥ a))) := by
+  have hLaw := hasLaw_multivariateGaussian_zero_dotProduct (n := k) hS a
+  have hquad_nonneg : 0 ≤ a ⬝ᵥ (S *ᵥ a) := by
+    simpa using hS.dotProduct_mulVec_nonneg a
+  rw [hLaw.map_eq, charFun_gaussianReal]
+  simp [scalarGaussianCharFunExponent, Real.toNNReal_of_nonneg hquad_nonneg]
+  ring_nf
 
 /-- Vector `Fin (n+1)` CLT-scale mean-zero identity for the ordinary
 nonparametric bootstrap.
@@ -8064,6 +8089,106 @@ theorem
   exact Eventually.of_forall fun n =>
     (charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
       (Y := fun i ω => Y i ω ⬝ᵥ a) n ω t).symm
+
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure empirical variance convergence and characteristic-function
+remainders.
+
+For each scalar projection, this wrapper turns convergence of the empirical
+one-draw variance and the explicit `1 / sqrt(n+1)` Taylor remainder into
+conditional characteristic-function convergence for the normalized bootstrap
+mean, then applies the Lévy route. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_remainder
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosSemidef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hvar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n)
+        atTop (𝓝 (a ⬝ᵥ (S *ᵥ a))))
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun
+    (μ := μ) (Y := Y) (S := S) hY ?_ hfrontier
+  filter_upwards [hvar, hrem] with ω hvarω hremω
+  intro a t
+  have hchar :=
+    charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto
+      (Y := fun i ω => Y i ω ⬝ᵥ a) (ω := ω)
+      (σ2 := a ⬝ᵥ (S *ᵥ a)) (hvarω a) t (hremω a t)
+  simpa [charFun_map_multivariateGaussian_zero_dotProduct_eq_exp hS a t] using hchar
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from almost-sure empirical variance convergence and
+characteristic-function remainders. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_remainder_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hvar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n)
+        atTop (𝓝 (a ⬝ᵥ (S *ᵥ a))))
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_remainder
+    (μ := μ) (Y := Y) (S := S) hS.posSemidef hY hvar hrem
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
 Gaussian CLT from almost-sure scalar projection CLTs for the normalized
