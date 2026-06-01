@@ -49,7 +49,12 @@ used throughout the chapter:
   `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean` packages the
   corresponding level conclusion, with
   `chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean` as the
-  scalar specialization.
+  scalar specialization.  The scalar wrappers
+  `chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean_of_identDistrib_memLp`
+  and
+  `chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean_of_iid_integrable`
+  discharge the centered and level ordinary-bootstrap WLLN from iid
+  integrability assumptions.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
   `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, and `.sub`
@@ -3432,6 +3437,88 @@ theorem chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean
       integral_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
         (Y := Y) n ω
 
+/-- Ordinary scalar finite nonparametric-bootstrap centered WLLN from identical
+distribution and a finite first moment.
+
+This is a textbook-facing wrapper around
+`chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean`: identical
+distribution plus `Y₀ ∈ L¹` supplies the uniform-integrability premise used in
+Hansen's Theorem 10.2 proof. -/
+theorem
+    chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean_of_identDistrib_memLp
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 1 μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      (fun _ => 0) :=
+  chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean
+    (μ := μ) Y
+    (uniformIntegrable_one_of_identDistrib_memLp
+      (μ := μ) (Z := Y) hY hident)
+
+/-- Shifted scalar empirical mean WLLN for `Fin (n+1)` empirical supports.
+
+This rewrites the shifted empirical-uniform integral WLLN through the canonical
+`empiricalMean` API used by the ordinary nonparametric-bootstrap statements. -/
+theorem empiricalMean_finSucc_tendstoInMeasure_wlln_real_of_iIndep
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 1 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
+  have hint : Integrable (Y 0) μ := memLp_one_iff_integrable.mp hY
+  have hpair : Pairwise ((· ⟂ᵢ[μ] ·) on Y) :=
+    fun _ _ hij => hindep.indepFun hij
+  have hbase :=
+    tendstoInMeasure_wlln (μ := μ) Y hint hpair hident
+  have hshift :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω)
+        atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
+    rw [tendstoInMeasure_iff_dist] at hbase ⊢
+    intro ε hε
+    simpa [Function.comp_def, Nat.cast_add, Nat.cast_one] using
+      (hbase ε hε).comp (tendsto_add_atTop_nat 1)
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hshift
+  exact ae_of_all μ fun ω => by
+    have hcoeff :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
+            (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    have hsum :
+        (∑ i : Fin (n + 1), Y i.val ω) =
+          ∑ i ∈ Finset.range (n + 1), Y i ω := by
+      rw [Finset.sum_range]
+    calc
+      (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω =
+          ((n + 1 : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω := by
+            simp [Nat.cast_add, Nat.cast_one]
+      _ = ((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+            ∑ i : Fin (n + 1), Y i.val ω := by
+            rw [hcoeff, hsum]
+      _ = empiricalMean (fun i : Fin (n + 1) => Y i.val ω) := rfl
+
 /-- Ordinary scalar finite nonparametric-bootstrap level WLLN for `Fin (n+1)`
 samples.
 
@@ -3476,6 +3563,35 @@ theorem chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean
     (chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean
       (μ := μ) Y hu)
     hYbar
+
+/-- Ordinary scalar finite nonparametric-bootstrap level WLLN from iid
+integrability.
+
+The centered bootstrap conclusion is supplied by identical distribution plus
+`Y₀ ∈ L¹`; the ordinary empirical mean convergence is supplied by the shifted
+WLLN and the `iIndepFun` independence premise. -/
+theorem
+    chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean_of_iid_integrable
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 1 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+          (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+      (fun _ => ∫ ω, Y 0 ω ∂μ) :=
+  chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean
+    (μ := μ) Y
+    (uniformIntegrable_one_of_identDistrib_memLp
+      (μ := μ) (Z := Y) hY hident)
+    (empiricalMean_finSucc_tendstoInMeasure_wlln_real_of_iIndep
+      (μ := μ) Y hY hindep hident)
 
 end IndexedBootstrapWLLN
 
