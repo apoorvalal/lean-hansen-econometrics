@@ -221,6 +221,11 @@ used throughout the chapter:
   give exact zero-mean, covariance, cross-moment, scalar raw-second-moment, and
   Euclidean norm second-moment identities for the `sqrt (#κ)` normalized
   centered ordinary bootstrap mean used by the concrete Theorem 10.4 CLT path.
+  `integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance`,
+  `covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq`, and
+  `integral_norm_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_trace_covMat`
+  specialize these CLT-scale identities to the sample-size-indexed
+  `Fin (n+1) -> Fin (n+1)` ordinary nonparametric bootstrap space.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -2940,6 +2945,85 @@ theorem integral_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz
     rw [hsum, hcard_real, hcard_enn_inv]
     simp [marcinkiewiczWLLNStatisticNat, pow_two, mul_assoc]
   exact hfinite.trans_eq hscale
+
+/-- Scalar `Fin (n+1)` CLT-scale second-moment identity for the ordinary
+nonparametric bootstrap.
+
+For the sample-size-indexed resampling space used later in the chapter,
+`sqrt (n+1) (Ybar* - Ybar)` has raw second moment equal to the finite empirical
+one-draw variance. -/
+theorem integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        (Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω))) ^ 2
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) =
+      Var[fun i : Fin (n + 1) => Y i.val ω;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))] := by
+  simpa [Fintype.card_fin] using
+    (integral_sq_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_variance
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Matrix `Fin (n+1)` CLT-scale covariance identity for the ordinary
+nonparametric bootstrap.
+
+This is the sample-size-indexed finite-resample covariance normalization used
+by the concrete Theorem 10.4 path. -/
+theorem covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) :
+    covMat
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1)))
+        (fun ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)) =
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a) := by
+  simpa [Fintype.card_fin] using
+    (covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Euclidean `Fin (n+1)` CLT-scale second-moment identity for the ordinary
+nonparametric bootstrap.
+
+The conditional expectation of the squared norm of
+`sqrt (n+1) (Ybar* - Ybar)` equals the trace of the finite empirical covariance
+matrix. -/
+theorem integral_norm_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_trace_covMat
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k) (n : ℕ) (ω : Ω) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        ‖Real.sqrt (n + 1 : ℝ) •
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω))‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) =
+      Matrix.trace
+        (covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))
+          (fun i a => Y i.val ω a)) := by
+  simpa [Fintype.card_fin] using
+    (integral_norm_sq_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_trace_covMat
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
 
 /-- Indexed-space Hansen Theorem 10.2 centered WLLN from a concrete conditional
 second-moment bound. -/
