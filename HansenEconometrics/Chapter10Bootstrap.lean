@@ -147,9 +147,10 @@ used throughout the chapter:
   `chapter10_bootstrap_delta_method_gaussian_distribution` exposing the
   corresponding Hansen Definition 10.2 CDF surface. Indexed counterparts cover
   sample-size-dependent bootstrap spaces.
-* `chapter10_bootstrap_smooth_function_gaussian_of_linearization` and
-  `chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization`
-  are the weak and CDF smooth-function Gaussian wrappers for Hansen Theorem
+* `chapter10_bootstrap_smooth_function_gaussian_of_linearization`,
+  `chapter10_bootstrap_smooth_function_gaussian_event_probability_of_linearization`,
+  and `chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization`
+  are the weak/event/CDF smooth-function Gaussian wrappers for Hansen Theorem
   10.7 once the bootstrap statistic has been reduced to its
   derivative-linearized form, with indexed analogues for varying resampling
   spaces.
@@ -8224,6 +8225,62 @@ theorem chapter10_bootstrap_smooth_function_gaussian_of_linearization
     (Tstar := Tstar) (V := V) G hV hT).congr_bootstrap
       (fun n ω ωs => (hlinearization n ω ωs).symm)
 
+/-- Hansen Theorem 10.7 smooth-function Gaussian event-probability wrapper
+from exact derivative linearization. -/
+theorem chapter10_bootstrap_smooth_function_gaussian_event_probability_of_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0)
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs)) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_smooth_function_gaussian_of_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  have hthetaStar : ∀ n ω, Measurable (thetaStar n ω) := by
+    intro n ω
+    have heq :
+        thetaStar n ω =
+          fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs) := by
+      funext ωs
+      exact hlinearization n ω ωs
+    rw [heq]
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
+
 /-- Hansen Theorem 10.7, smooth-function Gaussian CDF wrapper from exact
 linearization.
 
@@ -8347,6 +8404,60 @@ theorem chapter10_bootstrap_smooth_function_gaussian_of_integral_linearization
     (chapter10_bootstrap_delta_method_gaussian (μ := μ) (Pstar := Pstar)
       (Tstar := Tstar) (V := V) G hV hT)
     hlinearization
+
+/-- Hansen Theorem 10.7 smooth-function Gaussian event-probability wrapper
+from bounded-continuous test-function linearization. -/
+theorem
+    chapter10_bootstrap_smooth_function_gaussian_event_probability_of_integral_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hlinearization :
+      ∀ f : BoundedContinuousFunction (EuclideanSpace ℝ r) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegral Pstar thetaStar f n ω -
+              bootstrapBoundedContinuousIntegral Pstar
+                (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+                f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_smooth_function_gaussian_of_integral_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
 
 /-- Hansen Theorem 10.7, smooth-function Gaussian CDF wrapper from
 bounded-continuous test-function linearization.
@@ -8644,6 +8755,63 @@ theorem chapter10_indexed_bootstrap_smooth_function_gaussian_of_linearization
     (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT).congr_bootstrap
       (fun n ω ωs => (hlinearization n ω ωs).symm)
 
+/-- Indexed Hansen Theorem 10.7 smooth-function Gaussian event-probability
+wrapper from exact derivative linearization. -/
+theorem chapter10_indexed_bootstrap_smooth_gaussian_event_probability_of_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0)
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs)) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  have hthetaStar : ∀ n ω, Measurable (thetaStar n ω) := by
+    intro n ω
+    have heq :
+        thetaStar n ω =
+          fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs) := by
+      funext ωs
+      exact hlinearization n ω ωs
+    rw [heq]
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
+
 /-- Indexed Hansen Theorem 10.7, smooth-function Gaussian CDF wrapper from
 exact linearization. -/
 theorem
@@ -8757,6 +8925,61 @@ theorem chapter10_indexed_bootstrap_smooth_function_gaussian_of_integral_lineari
     (chapter10_indexed_bootstrap_delta_method_gaussian
       (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT)
     hlinearization
+
+/-- Indexed Hansen Theorem 10.7 smooth-function Gaussian event-probability
+wrapper from bounded-continuous test-function linearization. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_gaussian_event_probability_of_integral_linearization
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hlinearization :
+      ∀ f : BoundedContinuousFunction (EuclideanSpace ℝ r) ℝ,
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapBoundedContinuousIntegralIndexed Pstar thetaStar f n ω -
+              bootstrapBoundedContinuousIntegralIndexed Pstar
+                (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+                f n ω)
+          atTop (fun _ => 0))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_integral_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
 
 /-- Indexed Hansen Theorem 10.7, smooth-function Gaussian CDF wrapper from
 bounded-continuous test-function linearization. -/
