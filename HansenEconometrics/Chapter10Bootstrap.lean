@@ -203,6 +203,10 @@ used throughout the chapter:
   `integral_empiricalBootstrapResampleMean_eq_of_coord_integrals`, and
   `integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero` provide
   the finite-resampling sample-mean API used by the concrete Theorem 10.2 path.
+* `uniformOn_fun_univ_eq_pi_uniformOn_univ`,
+  `iIndepFun_uniformOn_fun_eval`, and their transformed-statistic wrappers
+  expose the ordinary finite nonparametric bootstrap draws as iid coordinates
+  under the uniform function-space law.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -616,6 +620,113 @@ theorem integral_uniformOn_univ_eq_empiricalMean
     ∫ i, Y i ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
       empiricalMean Y :=
   integral_uniformOn_univ_eq_card_inv_smul_sum Y
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Uniform law on finite resampling functions is the product of empirical
+uniform laws.
+
+This is the measure-level iid structure behind ordinary finite
+nonparametric-bootstrap resampling. -/
+theorem uniformOn_fun_univ_eq_pi_uniformOn_univ
+    {κ ι : Type*} [MeasurableSpace ι] [Fintype κ] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass ι] [MeasurableSingletonClass (κ → ι)] :
+    (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      Measure.pi
+        (fun _ : κ =>
+          (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)) := by
+  classical
+  letI : Fintype ι := Fintype.ofFinite ι
+  simpa using
+    (ProbabilityTheory.uniformOn_pi (Ω := ι) (ι := κ)
+      (f := fun _ : κ => (Set.univ : Set ι)))
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Coordinate projections of the finite ordinary-bootstrap resampling space
+are independent under the uniform law.
+
+This exposes the iid coordinate fact used implicitly in the finite covariance
+proofs and needed by the ordinary-bootstrap CLT route. -/
+theorem iIndepFun_uniformOn_fun_eval
+    {κ ι : Type*} [MeasurableSpace ι] [Finite κ] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass ι] [MeasurableSingletonClass (κ → ι)] :
+    iIndepFun (fun t (ωs : κ → ι) => ωs t)
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι)) := by
+  classical
+  letI : Fintype κ := Fintype.ofFinite κ
+  letI : Fintype ι := Fintype.ofFinite ι
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have hP :
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        Measure.pi (fun _ : κ => Pι) := by
+    simpa [Pι] using
+      (uniformOn_fun_univ_eq_pi_uniformOn_univ (κ := κ) (ι := ι))
+  rw [hP]
+  simpa [Pι] using
+    (ProbabilityTheory.iIndepFun_pi
+      (μ := fun _ : κ => Pι) (X := fun _ : κ => id)
+      (fun _ => aemeasurable_id))
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Each coordinate projection of the finite ordinary-bootstrap resampling
+space has the empirical uniform law. -/
+theorem identDistrib_uniformOn_fun_eval
+    {κ ι : Type*} [MeasurableSpace ι] [Finite κ] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass ι] [MeasurableSingletonClass (κ → ι)] (t : κ) :
+    IdentDistrib
+      (fun ωs : κ → ι => ωs t) (fun i : ι => i)
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι))
+      (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) := by
+  classical
+  letI : Fintype κ := Fintype.ofFinite κ
+  letI : Fintype ι := Fintype.ofFinite ι
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have hP :
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        Measure.pi (fun _ : κ => Pι) := by
+    simpa [Pι] using
+      (uniformOn_fun_univ_eq_pi_uniformOn_univ (κ := κ) (ι := ι))
+  have hmap :
+      Measure.map (Function.eval t)
+          (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+            Measure (κ → ι)) =
+        Pι := by
+    rw [hP]
+    exact (measurePreserving_eval (μ := fun _ : κ => Pι) t).map_eq
+  exact
+    { aemeasurable_fst := (measurable_pi_apply t).aemeasurable
+      aemeasurable_snd := aemeasurable_id
+      map_eq := by simpa [Pι] using hmap }
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Transformed ordinary-bootstrap draws are independent coordinates under the
+finite uniform resampling law. -/
+theorem iIndepFun_uniformOn_fun_eval_comp
+    {κ ι E : Type*} [MeasurableSpace ι] [MeasurableSpace E]
+    [Finite κ] [Finite ι] [Nonempty ι] [MeasurableSingletonClass ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (g : ι → E) (hg : Measurable g) :
+    iIndepFun (fun t (ωs : κ → ι) => g (ωs t))
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι)) :=
+  (iIndepFun_uniformOn_fun_eval (κ := κ) (ι := ι)).comp
+    (fun _ => g) (fun _ => hg)
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Transformed ordinary-bootstrap draws are identically distributed with the
+same transform under the empirical uniform law. -/
+theorem identDistrib_uniformOn_fun_eval_comp
+    {κ ι E : Type*} [MeasurableSpace ι] [MeasurableSpace E]
+    [Finite κ] [Finite ι] [Nonempty ι] [MeasurableSingletonClass ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (g : ι → E) (hg : Measurable g) (t : κ) :
+    IdentDistrib
+      (fun ωs : κ → ι => g (ωs t)) g
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι))
+      (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) :=
+  (identDistrib_uniformOn_fun_eval (κ := κ) (ι := ι) t).comp hg
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Coordinate marginal identity for finite uniform resampling.
