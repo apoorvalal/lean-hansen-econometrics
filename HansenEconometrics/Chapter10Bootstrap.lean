@@ -49,12 +49,16 @@ used throughout the chapter:
   `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean` packages the
   corresponding level conclusion, with
   `chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean` as the
-  scalar specialization.  The scalar wrappers
-  `chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean_of_identDistrib_memLp`
+  scalar specialization.  The vector and scalar wrappers
+  `chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean_of_identDistrib_memLp`,
+  `chapter10_indexed_bootstrap_wlln_centered_real_finSucc_resampleMean_of_identDistrib_memLp`,
+  `chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean_of_iid_integrable`,
   and
   `chapter10_indexed_bootstrap_wlln_level_real_finSucc_resampleMean_of_iid_integrable`
   discharge the centered and level ordinary-bootstrap WLLN from iid
-  integrability assumptions.
+  integrability assumptions, using
+  `empiricalMean_finSucc_tendstoInMeasure_wlln_of_iIndep` for the shifted
+  ordinary sample mean.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
   `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, and `.sub`
@@ -3349,6 +3353,129 @@ theorem chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean
       (μ := μ) Y hu)
     hYbar
 
+/-- Shifted Banach-valued empirical mean WLLN for `Fin (n+1)` empirical
+supports.
+
+This rewrites the ordinary WLLN through the canonical `empiricalMean` API used
+by the finite ordinary nonparametric-bootstrap statements. -/
+theorem empiricalMean_finSucc_tendstoInMeasure_wlln_of_iIndep
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    [MeasurableSpace E] [BorelSpace E] [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → E)
+    (hint : Integrable (Y 0) μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
+  have hpair : Pairwise ((· ⟂ᵢ[μ] ·) on Y) :=
+    fun _ _ hij => hindep.indepFun hij
+  have hbase :=
+    tendstoInMeasure_wlln (μ := μ) Y hint hpair hident
+  have hshift :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω)
+        atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
+    rw [tendstoInMeasure_iff_dist] at hbase ⊢
+    intro ε hε
+    simpa [Function.comp_def, Nat.cast_add, Nat.cast_one] using
+      (hbase ε hε).comp (tendsto_add_atTop_nat 1)
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hshift
+  exact ae_of_all μ fun ω => by
+    have hcoeff :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
+            (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    have hsum :
+        (∑ i : Fin (n + 1), Y i.val ω) =
+          ∑ i ∈ Finset.range (n + 1), Y i ω := by
+      rw [Finset.sum_range]
+    calc
+      (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω =
+          ((n + 1 : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), Y i ω := by
+            simp [Nat.cast_add, Nat.cast_one]
+      _ = ((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+            ∑ i : Fin (n + 1), Y i.val ω := by
+            rw [hcoeff, hsum]
+      _ = empiricalMean (fun i : Fin (n + 1) => Y i.val ω) := rfl
+
+/-- Ordinary finite-dimensional nonparametric-bootstrap centered WLLN from
+identical distribution and a finite first moment.
+
+This is the vector counterpart of the scalar iid-integrable wrapper: identical
+distribution of the observations transfers to identical distribution of their
+norms, and `Y₀ ∈ L¹` supplies the norm uniform-integrability premise in
+Hansen's Theorem 10.2 proof. -/
+theorem
+    chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean_of_identDistrib_memLp
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k)
+    (hY : MemLp (Y 0) 1 μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+      (fun _ => 0) := by
+  have hnorm_ident :
+      ∀ i,
+        IdentDistrib (fun ω => ‖Y i ω‖) (fun ω => ‖Y 0 ω‖) μ μ := by
+    intro i
+    simpa [Function.comp_def] using (hident i).comp continuous_norm.measurable
+  exact chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean
+    (μ := μ) Y
+    (uniformIntegrable_one_of_identDistrib_memLp
+      (μ := μ) (Z := fun i ω => ‖Y i ω‖) hY.norm hnorm_ident)
+
+/-- Ordinary finite-dimensional nonparametric-bootstrap level WLLN from iid
+integrability.
+
+The centered bootstrap conclusion is supplied by identical distribution plus
+`Y₀ ∈ L¹`; the ordinary empirical mean convergence is supplied by the shifted
+Banach-valued WLLN and the `iIndepFun` independence premise. -/
+theorem
+    chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean_of_iid_integrable
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → EuclideanSpace ℝ k)
+    (hY : MemLp (Y 0) 1 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInBootstrapProbabilityIndexed (μ := μ)
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        empiricalBootstrapResampleMean
+          (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs)
+      (fun _ => ∫ ω, Y 0 ω ∂μ) :=
+  chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean
+    (μ := μ) Y
+    (by
+      have hnorm_ident :
+          ∀ i,
+            IdentDistrib (fun ω => ‖Y i ω‖) (fun ω => ‖Y 0 ω‖) μ μ := by
+        intro i
+        simpa [Function.comp_def] using (hident i).comp continuous_norm.measurable
+      exact uniformIntegrable_one_of_identDistrib_memLp
+        (μ := μ) (Z := fun i ω => ‖Y i ω‖) hY.norm hnorm_ident)
+    (empiricalMean_finSucc_tendstoInMeasure_wlln_of_iIndep
+      (μ := μ) Y (memLp_one_iff_integrable.mp hY) hindep hident)
+
 /-- Ordinary scalar finite nonparametric-bootstrap centered WLLN for
 `Fin (n+1)` samples.
 
@@ -3477,47 +3604,9 @@ theorem empiricalMean_finSucc_tendstoInMeasure_wlln_real_of_iIndep
     (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
     TendstoInMeasure μ
       (fun n ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
-      atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
-  have hint : Integrable (Y 0) μ := memLp_one_iff_integrable.mp hY
-  have hpair : Pairwise ((· ⟂ᵢ[μ] ·) on Y) :=
-    fun _ _ hij => hindep.indepFun hij
-  have hbase :=
-    tendstoInMeasure_wlln (μ := μ) Y hint hpair hident
-  have hshift :
-      TendstoInMeasure μ
-        (fun n ω =>
-          (((n + 1 : ℕ) : ℝ)⁻¹) •
-            ∑ i ∈ Finset.range (n + 1), Y i ω)
-        atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
-    rw [tendstoInMeasure_iff_dist] at hbase ⊢
-    intro ε hε
-    simpa [Function.comp_def, Nat.cast_add, Nat.cast_one] using
-      (hbase ε hε).comp (tendsto_add_atTop_nat 1)
-  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hshift
-  exact ae_of_all μ fun ω => by
-    have hcoeff :
-        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
-          ((n + 1 : ℝ)⁻¹) := by
-      have htoReal :
-          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
-            (n + 1 : ℝ) := by
-        rw [Fintype.card_fin]
-        simpa using ENNReal.toReal_natCast (n + 1)
-      rw [ENNReal.toReal_inv, htoReal]
-    have hsum :
-        (∑ i : Fin (n + 1), Y i.val ω) =
-          ∑ i ∈ Finset.range (n + 1), Y i ω := by
-      rw [Finset.sum_range]
-    calc
-      (((n + 1 : ℕ) : ℝ)⁻¹) •
-            ∑ i ∈ Finset.range (n + 1), Y i ω =
-          ((n + 1 : ℝ)⁻¹) •
-            ∑ i ∈ Finset.range (n + 1), Y i ω := by
-            simp [Nat.cast_add, Nat.cast_one]
-      _ = ((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
-            ∑ i : Fin (n + 1), Y i.val ω := by
-            rw [hcoeff, hsum]
-      _ = empiricalMean (fun i : Fin (n + 1) => Y i.val ω) := rfl
+      atTop (fun _ => ∫ ω, Y 0 ω ∂μ) :=
+  empiricalMean_finSucc_tendstoInMeasure_wlln_of_iIndep
+    (μ := μ) Y (memLp_one_iff_integrable.mp hY) hindep hident
 
 /-- Ordinary scalar finite nonparametric-bootstrap level WLLN for `Fin (n+1)`
 samples.
