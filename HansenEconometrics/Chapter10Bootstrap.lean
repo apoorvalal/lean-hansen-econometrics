@@ -61,9 +61,9 @@ used throughout the chapter:
   ordinary sample mean.
 * `chapter10_indexed_bootstrap_continuous_mapping_probability` is the
   sample-size-indexed form of Hansen Theorem 10.3.
-  `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, and `.sub`
-  are the indexed algebra constructors for product, sum, negation, and
-  difference statistics.
+  `TendstoInBootstrapProbabilityIndexed.prodMk`, `.add`, `.neg`, `.sub`, and
+  `.smul` are the indexed algebra constructors for product, sum, negation,
+  difference, and scalar-multiple statistics.
 * `TendstoInBootstrapDistribution` is Hansen Definition 10.2 for
   finite-dimensional random vectors, stated in the chapter-facing CDF form.
 * `TendstoInBootstrapDistribution.of_tendsto_cdf` and congruence lemmas expose
@@ -1891,6 +1891,21 @@ theorem chapter10_bootstrap_lipschitz_mapping_probability
       (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) :=
   hZ.lipschitz_comp hPstar hC hg
 
+/-- Chapter 10 bootstrap-probability scalar-multiplication bridge.
+
+This is the named normalization wrapper used when a bootstrap statistic is
+multiplied by a fixed real scalar. -/
+theorem chapter10_bootstrap_smul_probability
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (c : ℝ)
+    {Zstar : ℕ → Ω → Ωs → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbability μ Pstar Zstar Z) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => c • Zstar n ω ωs) (fun ω => c • Z ω) :=
+  hZ.smul hPstar c
+
 /-- Hansen Theorem 10.2, centered WLLN from the conditional tail bound.
 
 This is the reusable form of the textbook proof: Markov's inequality and the
@@ -3153,6 +3168,26 @@ theorem sub [SeminormedAddCommGroup E]
     (fun n ω ωs => by simp [sub_eq_add_neg])
     (fun ω => by simp [sub_eq_add_neg])
 
+/-- Indexed bootstrap convergence in probability is closed under scalar
+multiplication by a fixed real constant. -/
+theorem smul [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (c : ℝ)
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => c • Zstar n ω ωs) (fun ω => c • Z ω) := by
+  have hC : 0 < |c| + 1 := by
+    nlinarith [abs_nonneg c]
+  refine hZ.lipschitz_comp hPstar hC ?_
+  intro x y
+  calc
+    dist (c • x) (c • y) ≤ |c| * dist x y := by
+      simpa [Real.norm_eq_abs] using dist_smul_le c x y
+    _ ≤ (|c| + 1) * dist x y :=
+      mul_le_mul_of_nonneg_right (by linarith [abs_nonneg c]) dist_nonneg
+
 end TendstoInBootstrapProbabilityIndexed
 
 /-- Indexed-space Hansen Theorem 10.3, chapter-facing name.
@@ -3183,6 +3218,18 @@ theorem chapter10_indexed_bootstrap_lipschitz_mapping_probability
     TendstoInBootstrapProbabilityIndexed μ Pstar
       (fun n ω ωs => g (Zstar n ω ωs)) (fun ω => g (Z ω)) :=
   hZ.lipschitz_comp hPstar hC hg
+
+/-- Indexed-space bootstrap-probability scalar-multiplication bridge. -/
+theorem chapter10_indexed_bootstrap_smul_probability
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (c : ℝ)
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbabilityIndexed μ Pstar Zstar Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => c • Zstar n ω ωs) (fun ω => c • Z ω) :=
+  hZ.smul hPstar c
 
 /-- Indexed-space conditional Markov inequality, stated with a concrete
 second moment. -/

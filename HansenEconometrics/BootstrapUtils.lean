@@ -20,9 +20,9 @@ The public surface starts with:
   probability to a constant.
 * `TendstoInBootstrapProbability.lipschitz_comp` — a reusable bootstrap
   probability mapping bridge for globally Lipschitz transformations.
-* `TendstoInBootstrapProbability.prodMk`, `.add`, `.neg`, and `.sub` —
-  elementary bootstrap-probability algebra used by Slutsky, delta-method, and
-  plug-in covariance wrappers.
+* `TendstoInBootstrapProbability.prodMk`, `.add`, `.neg`, `.sub`, and `.smul` —
+  elementary bootstrap-probability algebra used by Slutsky, delta-method,
+  normalization, and plug-in covariance wrappers.
 * `tendstoInMeasure_add_nonneg_zero` and
   `tendstoInMeasure_indicator_zero_of_tendsto_measure` are scalar
   convergence-in-probability helpers used by fixed-space and indexed bootstrap
@@ -494,6 +494,26 @@ theorem sub [SeminormedAddCommGroup E]
   exact hsum.congr
     (fun n ω ωs => by simp [sub_eq_add_neg])
     (fun ω => by simp [sub_eq_add_neg])
+
+/-- Bootstrap convergence in probability is closed under scalar
+multiplication by a fixed real constant. -/
+theorem smul [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (c : ℝ)
+    {Zstar : ℕ → Ω → Ωs → E} {Z : Ω → E}
+    (hZ : TendstoInBootstrapProbability μ Pstar Zstar Z) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω ωs => c • Zstar n ω ωs) (fun ω => c • Z ω) := by
+  have hC : 0 < |c| + 1 := by
+    nlinarith [abs_nonneg c]
+  refine hZ.lipschitz_comp hPstar hC ?_
+  intro x y
+  calc
+    dist (c • x) (c • y) ≤ |c| * dist x y := by
+      simpa [Real.norm_eq_abs] using dist_smul_le c x y
+    _ ≤ (|c| + 1) * dist x y :=
+      mul_le_mul_of_nonneg_right (by linarith [abs_nonneg c]) dist_nonneg
 
 end TendstoInBootstrapProbability
 
