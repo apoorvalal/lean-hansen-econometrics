@@ -123,8 +123,8 @@ used throughout the chapter:
   sample-size-indexed weak-convergence face of Hansen Theorem 10.5.
 * `chapter10_bootstrap_continuous_mapping_distribution_of_compact_range_closeness`
   and its indexed counterpart transfer the globally continuous CMT across a
-  compact-range bootstrap-probability approximation, with CDF null-frontier
-  faces for Hansen Definition 10.2.
+  compact-range bootstrap-probability approximation, with event-probability and
+  CDF null-frontier faces.
 * `chapter10_bootstrap_continuous_mapping_distribution_of_null_frontiers` and
   `chapter10_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers`
   and their indexed counterparts are the corresponding finite-dimensional CDF
@@ -5766,6 +5766,93 @@ theorem
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
     (g := g) hZ hg).of_bootstrap_dist_tendsto_zero_compact_range
       hK hPstar hZstarMapped hZstar' hZstarMapped_mem hZstar'_mem hclose
+
+/-- Hansen Theorem 10.5, compact-range approximation event-probability face
+for globally continuous mappings. -/
+theorem
+    chapter10_bootstrap_continuous_mapping_event_probability_of_compact_range_closeness
+    [TopologicalSpace E]
+    [PseudoMetricSpace F] [MeasurableSpace F] [OpensMeasurableSpace F]
+    [SecondCountableTopology F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E} {Zstar' : ℕ → Ω → Ωs → F}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A K : Set F}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstarMapped_mem : ∀ n ω ωs, g (Zstar n ω ωs) ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (Zstar' n ω ωs) (g (Zstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hZMapped : AEMeasurable (fun ωlim => g (Z ωlim)) ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar' A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν (fun ωlim => g (Z ωlim)) :=
+    chapter10_bootstrap_continuous_mapping_distribution_of_compact_range_closeness
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (Zstar' := Zstar')
+      (ν := ν) (Z := Z) (g := g) (K := K)
+      hZ hg hK hPstar hZstarMapped hZstar' hZstarMapped_mem hZstar'_mem hclose
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact hweak.event_probability_tendsto_of_null_frontier
+    hPfinite hZstar' hZMapped hA hfrontier
+
+/-- Indexed Hansen Theorem 10.5, compact-range approximation
+event-probability face for globally continuous mappings. -/
+theorem
+    chapter10_indexed_bootstrap_continuous_mapping_event_probability_of_compact_range_closeness
+    [TopologicalSpace E]
+    [PseudoMetricSpace F] [MeasurableSpace F] [OpensMeasurableSpace F]
+    [SecondCountableTopology F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E} {Zstar' : ∀ n, Ω → Ωboot n → F}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A K : Set F}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hg : Continuous g)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstarMapped_mem : ∀ n ω ωs, g (Zstar n ω ωs) ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (Zstar' n ω ωs) (g (Zstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hZMapped : AEMeasurable (fun ωlim => g (Z ωlim)) ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar Zstar' A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar' ν
+        (fun ωlim => g (Z ωlim)) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution_of_compact_range_closeness
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (Zstar' := Zstar')
+      (ν := ν) (Z := Z) (g := g) (K := K)
+      hZ hg hK hPstar hZstarMapped hZstar' hZstarMapped_mem hZstar'_mem hclose
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact hweak.event_probability_tendsto_of_null_frontier
+    hPfinite hZstar' hZMapped hA hfrontier
 
 /-- Hansen Theorem 10.5, globally continuous finite-dimensional CDF face.
 
