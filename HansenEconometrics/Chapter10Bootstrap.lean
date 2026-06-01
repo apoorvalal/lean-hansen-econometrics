@@ -1,3 +1,4 @@
+import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import Mathlib.MeasureTheory.Function.LpSeminorm.ChebyshevMarkov
 import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
 import Mathlib.Probability.UniformOn
@@ -255,7 +256,10 @@ used throughout the chapter:
   finite empirical variance and centered raw-second-moment identities behind
   equation (10.11); `taylor_charFun_centered_standardized_uniformOn_univ`
   packages these identities with Mathlib's second-order characteristic-function
-  Taylor expansion for the standardized centered empirical one-draw law.
+  Taylor expansion for the standardized centered empirical one-draw law, and
+  `charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto`
+  converts that expansion into the fixed-support Gaussian
+  characteristic-function power limit.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -1409,6 +1413,115 @@ theorem taylor_charFun_centered_standardized_uniformOn_univ
       _ = 1 := by
             field_simp [hsqrt_ne]
   simpa [P, v, X] using taylor_charFun_two hX hzero hone
+
+private theorem complex_tendsto_one_add_succ_pow_exp_of_tendsto {g : ℕ → ℂ} {t : ℂ}
+    (hg : Tendsto (fun n => ((n + 1 : ℕ) : ℂ) * g n) atTop (𝓝 t)) :
+    Tendsto (fun n => (1 + g n) ^ Nat.succ n) atTop (𝓝 (Complex.exp t)) := by
+  let h : ℕ → ℂ := fun m => if m = 0 then 0 else g (m - 1)
+  have hh : Tendsto (fun m : ℕ => (m : ℂ) * (h m)) atTop (𝓝 t) := by
+    rw [← tendsto_add_atTop_iff_nat (f := fun m : ℕ => (m : ℂ) * (h m)) 1]
+    refine hg.congr' ?_
+    exact Eventually.of_forall fun n => by
+      simp [h, Nat.cast_add]
+  have hpow := Complex.tendsto_one_add_pow_exp_of_tendsto hh
+  rw [← tendsto_add_atTop_iff_nat (f := fun m => (1 + h m) ^ m) 1] at hpow
+  refine hpow.congr' ?_
+  exact Eventually.of_forall fun n => by
+    simp [h, Nat.succ_eq_add_one]
+
+private theorem complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div {f : ℕ → ℂ} (t : ℂ)
+    (hf : (fun n => f n - (1 + t / ((n + 1 : ℕ) : ℂ))) =o[atTop]
+      fun n => 1 / ((n + 1 : ℕ) : ℂ)) :
+    Tendsto (fun n => f n ^ Nat.succ n) atTop (𝓝 (Complex.exp t)) := by
+  rw [show (fun n => f n ^ Nat.succ n) =
+      (fun n => (1 + (f n - 1)) ^ Nat.succ n) by ext n; simp]
+  refine complex_tendsto_one_add_succ_pow_exp_of_tendsto (t := t)
+    (tendsto_sub_nhds_zero_iff.1 ?_)
+  convert hf.tendsto_inv_smul_nhds_zero.congr' ?_
+  filter_upwards [eventually_ne_atTop 0] with n h0
+  simp
+  field_simp [Nat.cast_ne_zero.2 (Nat.succ_ne_zero n)]
+  ring
+
+private theorem tendsto_charFun_inv_sqrt_succ_mul_pow_of_taylor
+    {φ : ℝ → ℂ}
+    (hφ : (fun x => φ x - (1 - x ^ 2 / 2)) =o[𝓝 0] fun x => x ^ 2)
+    (t : ℝ) :
+    Tendsto
+      (fun n : ℕ => φ ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) ^ Nat.succ n)
+      atTop
+      (𝓝 (Complex.exp (-(t : ℂ) ^ 2 / 2))) := by
+  apply complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div
+  suffices
+      (fun n : ℕ => φ ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+          (1 + (-((((Real.sqrt (n + 1 : ℝ))⁻¹ * t) ^ 2) / 2) : ℂ))) =o[atTop]
+        fun n : ℕ => (((Real.sqrt (n + 1 : ℝ))⁻¹ * t) ^ 2) by
+    have aux :
+        (fun n : ℕ => ‖(1 / (((n + 1 : ℕ) : ℂ)) : ℂ)‖) =
+          fun n : ℕ => ‖(1 / (((n + 1 : ℕ) : ℝ)) : ℝ)‖ := by
+      funext n
+      simp only [one_div, norm_inv]
+      congr 1
+      calc
+        ‖(((n + 1 : ℕ) : ℂ))‖ = (((n + 1 : ℕ) : ℝ)) := by
+          simpa using Complex.norm_natCast (n + 1)
+        _ = |(((n + 1 : ℕ) : ℝ))| :=
+          (abs_of_nonneg (Nat.cast_nonneg (n + 1))).symm
+    rw [← Asymptotics.isLittleO_norm_right, aux, Asymptotics.isLittleO_norm_right]
+    refine .of_const_mul_right (c := t ^ 2) ?_
+    convert this using 4 with n
+    · norm_cast
+      simp only [Nat.cast_add, Nat.cast_one]
+      have hsqrt_ne : Real.sqrt ((n : ℝ) + 1) ≠ 0 :=
+        (Real.sqrt_pos.2 (by positivity : 0 < (n : ℝ) + 1)).ne'
+      field_simp [hsqrt_ne]
+      rw [Real.sq_sqrt (by positivity : 0 ≤ (n : ℝ) + 1)]
+    · rename_i m
+      norm_cast
+      simp only [Nat.cast_add, Nat.cast_one, one_div]
+      have hsqrt_ne : Real.sqrt ((m : ℝ) + 1) ≠ 0 :=
+        (Real.sqrt_pos.2 (by positivity : 0 < (m : ℝ) + 1)).ne'
+      field_simp [hsqrt_ne]
+      rw [Real.sq_sqrt (by positivity : 0 ≤ (m : ℝ) + 1)]
+  have hscale :
+      Tendsto (fun n : ℕ => (Real.sqrt (n + 1 : ℝ))⁻¹ * t) atTop (𝓝 0) := by
+    have hnat : Tendsto (fun n : ℕ => (n + 1 : ℝ)) atTop atTop := by
+      refine ((tendsto_natCast_atTop_atTop (R := ℝ)).comp
+        (tendsto_add_atTop_nat 1)).congr' ?_
+      exact Eventually.of_forall fun n => by simp [Nat.cast_add]
+    rw [← zero_mul t]
+    exact .mul_const t (tendsto_inv_atTop_zero.comp <|
+      Real.tendsto_sqrt_atTop.comp hnat)
+  convert hφ.comp_tendsto hscale using 2
+  simp
+  ring
+
+/-- Gaussian characteristic-function power limit for a standardized centered
+empirical one-draw law with fixed support.
+
+This is the fixed-support analytic bridge behind the characteristic-function
+proof of Hansen Theorem 10.4: once the empirical one-draw statistic is centered
+and divided by its empirical standard deviation, the `n+1` iid bootstrap draws
+have the standard-normal characteristic-function limit. -/
+theorem charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto
+    [Nonempty ι] (Y : ι → ℝ)
+    (hvar : Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+      Measure ι)] ≠ 0) (t : ℝ) :
+    Tendsto
+      (fun n : ℕ =>
+        (charFun
+            (((ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+              Measure ι).map
+              (fun i =>
+                (Y i - empiricalMean Y) /
+                  Real.sqrt
+                    (Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+                      Measure ι)]))))
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t)) ^ Nat.succ n)
+      atTop
+      (𝓝 (Complex.exp (-(t : ℂ) ^ 2 / 2))) :=
+  tendsto_charFun_inv_sqrt_succ_mul_pow_of_taylor
+    (taylor_charFun_centered_standardized_uniformOn_univ (Y := Y) hvar) t
 
 omit [Fintype ι] in
 /-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
