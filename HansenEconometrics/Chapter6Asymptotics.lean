@@ -7,8 +7,9 @@ import HansenEconometrics.ProbabilityUtils
 # Chapter 6 Asymptotics
 
 This file collects chapter-facing large-sample theorem wrappers.  The current
-public surface covers the iid scalar CLT and the finite-dimensional iid vector
-CLT, using Mathlib's one-dimensional CLT plus the reusable Cramer-Wold bridge in
+public surface covers the iid scalar CLT, the finite-dimensional iid vector
+CLT, and fixed/indexed Cramér-Wold endpoints for triangular-array CLTs, using
+Mathlib's one-dimensional CLT plus the reusable Cramer-Wold bridges in
 `AsymptoticUtils`.
 -/
 
@@ -126,6 +127,50 @@ theorem vectorCLT_tendstoInDistribution_multivariateGaussian_of_projections
     refine TendstoInDistribution.congr ?_ ?_ hscalar
     · intro n
       exact ae_of_all μ (fun ω => by
+        change T n ω ⬝ᵥ a =
+          inner ℝ t (WithLp.toLp 2 (T n ω))
+        simpa [a] using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := k)
+          t.ofLp (T n ω)).symm)
+    · exact ae_of_all (multivariateGaussian 0 S) (fun z => by
+        change z.ofLp ⬝ᵥ a = inner ℝ t z
+        simpa [a] using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := k)
+          t.ofLp z.ofLp).symm)
+
+/-- **Chapter 6 indexed vector CLT reduction by Cramér-Wold.**
+
+If every fixed scalar projection of a finite-dimensional statistic converges to
+the matching scalar projection of a centered multivariate Gaussian, then the
+whole statistic converges to that multivariate Gaussian. Unlike
+`vectorCLT_tendstoInDistribution_multivariateGaussian_of_projections`, this
+version allows the source probability space and law to vary with the sequence
+index, matching ordinary bootstrap resampling spaces. -/
+theorem vectorCLT_tendstoInDistribution_multivariateGaussian_of_projections_indexed
+    {Ωrow : ℕ → Type*} [∀ n, MeasurableSpace (Ωrow n)]
+    {P : ∀ n, Measure (Ωrow n)} [∀ n, IsProbabilityMeasure (P n)]
+    {T : ∀ n, Ωrow n → k → ℝ} {S : Matrix k k ℝ}
+    (hT : ∀ n, AEMeasurable (T n) (P n))
+    (hproj : ∀ a : k → ℝ,
+      TendstoInDistribution
+        (fun n ω => T n ω ⬝ᵥ a)
+        atTop
+        (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a)
+        P
+        (multivariateGaussian 0 S)) :
+    TendstoInDistribution
+      (fun n ω => WithLp.toLp 2 (T n ω))
+      atTop
+      (fun z : EuclideanSpace ℝ k => z)
+      P
+      (multivariateGaussian 0 S) := by
+  refine cramerWold_tendstoInDistribution_indexed ?_ (by fun_prop) ?_
+  · intro n
+    exact (PiLp.continuous_toLp 2 (fun _ : k => ℝ)).measurable.comp_aemeasurable (hT n)
+  · intro t
+    let a : k → ℝ := t.ofLp
+    have hscalar := hproj a
+    refine TendstoInDistribution.congr ?_ ?_ hscalar
+    · intro n
+      exact ae_of_all (P n) (fun ω => by
         change T n ω ⬝ᵥ a =
           inner ℝ t (WithLp.toLp 2 (T n ω))
         simpa [a] using (EuclideanSpace.inner_toLp_toLp (𝕜 := ℝ) (ι := k)
@@ -850,6 +895,47 @@ theorem multivariateLindebergCLT_tendstoInDistribution
       (fun _ => μ)
       (multivariateGaussian 0 S) :=
   vectorCLT_tendstoInDistribution_multivariateGaussian_of_projections
+    h.aemeasurable h.projection_clt
+
+/-- Indexed projection-level sufficient condition package for Hansen's
+multivariate Lindeberg CLT.
+
+This is the indexed-source-space analogue of
+`MultivariateLindebergCLTConditions`, intended for triangular-array or bootstrap
+CLTs whose row probability space varies with the sample size. -/
+structure MultivariateIndexedLindebergCLTConditions
+    (Ωrow : ℕ → Type*) [∀ n, MeasurableSpace (Ωrow n)]
+    (P : ∀ n, Measure (Ωrow n)) [∀ n, IsProbabilityMeasure (P n)]
+    (T : ∀ n, Ωrow n → (k → ℝ)) (S : Matrix k k ℝ) where
+  /-- A.e. measurability of the normalized indexed-array statistic in each row. -/
+  aemeasurable : ∀ n, AEMeasurable (T n) (P n)
+  /-- Scalar projection CLTs against the matching multivariate Gaussian law. -/
+  projection_clt : ∀ a : k → ℝ,
+    TendstoInDistribution
+      (fun n ω => T n ω ⬝ᵥ a)
+      atTop
+      (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a)
+      P
+      (multivariateGaussian 0 S)
+
+/-- Indexed multivariate Lindeberg CLT endpoint.
+
+Once scalar projection Lindeberg CLTs are available for an indexed normalized
+array statistic, indexed Cramér-Wold gives the corresponding multivariate
+Gaussian limit. This is the source-space-varying analogue of
+`multivariateLindebergCLT_tendstoInDistribution`. -/
+theorem multivariateIndexedLindebergCLT_tendstoInDistribution
+    {Ωrow : ℕ → Type*} [∀ n, MeasurableSpace (Ωrow n)]
+    {P : ∀ n, Measure (Ωrow n)} [∀ n, IsProbabilityMeasure (P n)]
+    {T : ∀ n, Ωrow n → (k → ℝ)} {S : Matrix k k ℝ}
+    (h : MultivariateIndexedLindebergCLTConditions Ωrow P T S) :
+    TendstoInDistribution
+      (fun n ω => WithLp.toLp 2 (T n ω))
+      atTop
+      (fun z : EuclideanSpace ℝ k => z)
+      P
+      (multivariateGaussian 0 S) :=
+  vectorCLT_tendstoInDistribution_multivariateGaussian_of_projections_indexed
     h.aemeasurable h.projection_clt
 
 /-- Projection-level sufficient condition package for Hansen's heterogeneous

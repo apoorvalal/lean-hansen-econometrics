@@ -82,7 +82,9 @@ used throughout the chapter:
   from pathwise conditional weak convergence stated in Mathlib's distributional
   form.  The `*_finSucc_resampleMean_of_ae_tendstoInDistribution*` wrappers
   specialize this route to the ordinary `Fin (n+1) -> Fin (n+1)` normalized
-  empirical-bootstrap statistic.
+  empirical-bootstrap statistic, and the corresponding `*_of_ae_lindeberg*`
+  wrappers start from the Chapter 6 indexed Lindeberg/Cramér-Wold condition
+  package.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -6987,6 +6989,103 @@ theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_tendstoInDistribution
     (μ := μ) (Y := Y) (S := S) hY hae
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from an
+almost-sure indexed Lindeberg/Cramér-Wold condition package for the normalized
+`Fin (n+1)` resample mean.
+
+The Chapter 6 indexed Lindeberg endpoint turns the supplied projection CLTs
+into pathwise conditional weak convergence; the finite-uniform bootstrap
+measurability and Hansen Definition 10.2 conversion are then discharged by the
+ordinary-bootstrap pathwise CLT wrapper. -/
+theorem chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_lindeberg
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hclt : ∀ᵐ ω ∂μ,
+      MultivariateIndexedLindebergCLTConditions
+        (fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        S)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_tendstoInDistribution
+    (μ := μ) (Y := Y) (S := S) hY ?_ hfrontier
+  refine hclt.mono ?_
+  intro ω hω
+  have hEuclid := multivariateIndexedLindebergCLT_tendstoInDistribution hω
+  have hMap := TendstoInDistribution.continuous_comp
+    (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid
+  simpa [Function.comp_def] using hMap
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from an almost-sure indexed Lindeberg/Cramér-Wold package for the
+normalized `Fin (n+1)` resample mean. -/
+theorem chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_lindeberg_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hclt : ∀ᵐ ω ∂μ,
+      MultivariateIndexedLindebergCLTConditions
+        (fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        S) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_lindeberg
+    (μ := μ) (Y := Y) (S := S) hY hclt
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Weak bootstrap convergence plus bounded-continuous integral

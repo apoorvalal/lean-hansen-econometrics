@@ -32,6 +32,9 @@ Mathlib does not currently provide as named lemmas:
 * `TendstoInDistribution.integral_boundedContinuous_tendsto_indexed` — the
   bounded-continuous integral face of weak convergence when source spaces and
   laws vary with the sequence index.
+* `cramerWold_tendstoInDistribution_indexed` — Cramér-Wold convergence for
+  finite-dimensional statistics whose source spaces and laws vary with the
+  sequence index.
 
 Both are stated for general Banach-space codomains, so they specialize
 directly to scalar, vector, and matrix random variables.
@@ -1311,6 +1314,39 @@ theorem cramerWold_tendstoInDistribution
   convert hscalar using 1
   · ext n
     exact charFun_map_eq_charFun_dualMap_one (hT n) t
+  · change 𝓝 (charFun (ν.map Z) t) =
+      𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
+    exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
+
+/-- Indexed Cramér-Wold convergence bridge for finite-dimensional inner-product
+spaces.
+
+This is the source-space-indexed analogue of
+`cramerWold_tendstoInDistribution`: if every fixed inner-product projection
+converges in distribution and the measures/source spaces may vary with the
+sequence index, then the vector statistic converges in distribution. -/
+theorem cramerWold_tendstoInDistribution_indexed
+    {Ω : ℕ → Type*} {Ω' E : Type*}
+    [∀ n, MeasurableSpace (Ω n)] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) (μ n))
+    (hZ : AEMeasurable Z ν)
+    (hproj : ∀ t : E,
+      TendstoInDistribution
+        (fun n ω => (InnerProductSpace.toDualMap ℝ E t) (T n ω)) atTop
+        (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω)) μ ν) :
+    TendstoInDistribution T atTop Z μ ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  have hscalar := (ProbabilityMeasure.tendsto_iff_tendsto_charFun.mp (hproj t).tendsto) 1
+  convert hscalar using 1
+  · ext i
+    exact charFun_map_eq_charFun_dualMap_one (hT i) t
   · change 𝓝 (charFun (ν.map Z) t) =
       𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
     exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
