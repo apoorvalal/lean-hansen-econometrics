@@ -102,10 +102,13 @@ used throughout the chapter:
   the `*_of_ae_covMat_tail*` variants combine the same centered-tail bridge
   with pathwise empirical covariance-matrix convergence.  `empiricalTailSqFinSucc`
   and `empiricalTailSqFinSucc_tendsto_ae_wlln` supply the fixed-threshold
-  uncentered square-tail strong-law layer used to build the remaining iid
-  centered-tail premise.  The
-  `*_of_iid_covMat_remainder*` and `*_of_iIndep_covMat_remainder*` variants
-  discharge the covariance premise from iid finite-second-moment assumptions.
+  uncentered square-tail strong-law layer, while the projected norm-tail
+  bridge and `centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iid`
+  discharge the centered-tail premise from iid finite-second-moment
+  assumptions.  The `*_of_iid_covMat_remainder*`,
+  `*_of_iIndep_covMat_remainder*`, `*_of_iid_covMat_tail*`, and
+  `*_of_iIndep_covMat_tail*` variants discharge the theorem-facing covariance
+  routes from iid finite-second-moment assumptions.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -16756,6 +16759,436 @@ theorem empiricalTailSqFinSucc_tendsto_ae_wlln_of_iIndep
   empiricalTailSqFinSucc_tendsto_ae_wlln
     (μ := μ) Y R hY (fun _ _ hij => hindep.indepFun hij) hident
 
+/-- Almost-sure fixed-threshold empirical square tails are eventually small
+under iid finite second moments.
+
+This countable-grid bridge combines the fixed-threshold shifted strong law with
+the population square-tail truncation lemma.  It is the pathwise input required
+by `centeredEmpiricalTailSqFinSucc_tendsto_zero_of_empiricalMean_tendsto_tail`.
+-/
+theorem empiricalTailSqFinSucc_eventually_small_ae_of_iid
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc (fun i => Y i ω) n R ≤ ε := by
+  classical
+  let γ : ℕ → ℝ := fun m => (((m + 1 : ℕ) : ℝ))⁻¹
+  have hγ_pos : ∀ m, 0 < γ m := by
+    intro m
+    dsimp [γ]
+    positivity
+  have hchoose : ∀ m : ℕ, ∃ R : ℝ, 1 ≤ R ∧
+      (∫ ω, Set.indicator {ω | R ≤ |Y 0 ω|}
+        (fun ω => (Y 0 ω) ^ 2) ω ∂μ) ≤ γ m / 2 := by
+    intro m
+    rcases integral_tail_sq_eventual_le_of_memLp_two
+        (μ := μ) (Y := Y 0) hY (γ m / 2) (by positivity) with
+      ⟨R, hR, htailR⟩
+    exact ⟨R, hR, htailR R le_rfl⟩
+  choose R hR_one hR_tail using hchoose
+  have htail_grid : ∀ m : ℕ, ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalTailSqFinSucc (fun i => Y i ω) n (R m))
+        atTop
+        (𝓝
+          (∫ ω, Set.indicator {ω | R m ≤ |Y 0 ω|}
+            (fun ω => (Y 0 ω) ^ 2) ω ∂μ)) := by
+    intro m
+    exact empiricalTailSqFinSucc_tendsto_ae_wlln
+      (μ := μ) Y (R m) hY hindep hident
+  have htail_all : ∀ᵐ ω ∂μ, ∀ m : ℕ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalTailSqFinSucc (fun i => Y i ω) n (R m))
+        atTop
+        (𝓝
+          (∫ ω, Set.indicator {ω | R m ≤ |Y 0 ω|}
+            (fun ω => (Y 0 ω) ^ 2) ω ∂μ)) :=
+    ae_all_iff.2 htail_grid
+  filter_upwards [htail_all] with ω hω
+  intro ε hε
+  rcases exists_nat_one_div_lt hε with ⟨m, hm⟩
+  refine ⟨R m, hR_one m, ?_⟩
+  have hlimit_lt :
+      (∫ ω, Set.indicator {ω | R m ≤ |Y 0 ω|}
+        (fun ω => (Y 0 ω) ^ 2) ω ∂μ) < ε := by
+    have hhalf_lt : γ m / 2 < γ m := by
+      linarith [hγ_pos m]
+    have hγ_lt : γ m < ε := by
+      simpa [γ, Nat.cast_add, Nat.cast_one, one_div] using hm
+    exact lt_of_le_of_lt (hR_tail m) (hhalf_lt.trans hγ_lt)
+  filter_upwards [(hω m).eventually (Iio_mem_nhds hlimit_lt)] with n hn
+  exact le_of_lt hn
+
+/-- Almost-sure fixed-threshold empirical square tails are eventually small
+under iid finite second moments, with the textbook `iIndepFun` premise. -/
+theorem empiricalTailSqFinSucc_eventually_small_ae_of_iIndep
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc (fun i => Y i ω) n R ≤ ε :=
+  empiricalTailSqFinSucc_eventually_small_ae_of_iid
+    (μ := μ) Y hY (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Centered moving empirical square tails vanish almost surely under iid
+finite second moments.
+
+The empirical mean converges by the shifted strong law.  The centered-tail
+truncation bridge then reduces the moving `1 / sqrt (n+1)` tail to the
+fixed-threshold uncentered empirical square tails controlled above. -/
+theorem centeredEmpiricalTailSqFinSucc_tendsto_ae_of_iid
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0) := by
+  have hY_int : Integrable (Y 0) μ :=
+    memLp_one_iff_integrable.mp (hY.mono_exponent one_le_two)
+  have hmean :
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω ∂μ)) :=
+    integral_uniformOn_finSucc_tendsto_ae_wlln
+      (μ := μ) Y hY_int hindep hident
+  have htail :=
+    empiricalTailSqFinSucc_eventually_small_ae_of_iid
+      (μ := μ) Y hY hindep hident
+  filter_upwards [hmean, htail] with ω hmeanω htailω
+  intro t δ hδ
+  refine centeredEmpiricalTailSqFinSucc_tendsto_zero_of_empiricalMean_tendsto_tail
+    (Y := fun i => Y i ω) (m := ∫ ω, Y 0 ω ∂μ) ?_ htailω t hδ
+  refine hmeanω.congr' ?_
+  exact Eventually.of_forall fun n => by
+    simpa using
+      (integral_uniformOn_univ_eq_empiricalMean
+        (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Centered moving empirical square tails vanish almost surely under iid
+finite second moments, with the textbook `iIndepFun` premise. -/
+theorem centeredEmpiricalTailSqFinSucc_tendsto_ae_of_iIndep
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0) :=
+  centeredEmpiricalTailSqFinSucc_tendsto_ae_of_iid
+    (μ := μ) Y hY (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- A finite-dimensional dot product is bounded by the `L¹` coefficient norm
+times the ambient sup norm. -/
+theorem abs_dotProduct_le_l1_mul_norm
+    {k : Type*} [Fintype k] (x a : k → ℝ) :
+    |x ⬝ᵥ a| ≤ (∑ j : k, |a j|) * ‖x‖ := by
+  have hsum_abs :
+      |∑ j : k, x j * a j| ≤ ∑ j : k, |x j * a j| :=
+    Finset.abs_sum_le_sum_abs (fun j : k => x j * a j) Finset.univ
+  have hterm :
+      ∑ j : k, |x j * a j| ≤ ∑ j : k, |a j| * ‖x‖ := by
+    refine Finset.sum_le_sum ?_
+    intro j _hj
+    have hxj : |x j| ≤ ‖x‖ := by
+      simpa [Real.norm_eq_abs] using norm_le_pi_norm x j
+    calc
+      |x j * a j| = |a j| * |x j| := by rw [abs_mul, mul_comm]
+      _ ≤ |a j| * ‖x‖ :=
+        mul_le_mul_of_nonneg_left hxj (abs_nonneg (a j))
+  calc
+    |x ⬝ᵥ a| = |∑ j : k, x j * a j| := by rfl
+    _ ≤ ∑ j : k, |x j * a j| := hsum_abs
+    _ ≤ ∑ j : k, |a j| * ‖x‖ := hterm
+    _ = (∑ j : k, |a j|) * ‖x‖ := by
+      rw [Finset.sum_mul]
+
+/-- Fixed uncentered projection tails are dominated by vector norm tails.
+
+The threshold is inflated by the `L¹` coefficient bound `A`; on the projected
+tail event, the vector norm must be in the corresponding norm tail, and the
+projected square is bounded by `A² ‖Yᵢ‖²`. -/
+theorem empiricalTailSqFinSucc_dotProduct_le_const_mul_norm_tail
+    {k : Type*} [Fintype k]
+    (Y : ℕ → k → ℝ) (n : ℕ) (a : k → ℝ) {R A : ℝ}
+    (hA : max 1 (∑ j : k, |a j|) ≤ A) :
+    empiricalTailSqFinSucc (fun i => Y i ⬝ᵥ a) n (A * R) ≤
+      A ^ 2 * empiricalTailSqFinSucc (fun i => ‖Y i‖) n R := by
+  classical
+  let P : Measure (Fin (n + 1)) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+  have hA_one : 1 ≤ A := (le_max_left _ _).trans hA
+  have hA_pos : 0 < A := zero_lt_one.trans_le hA_one
+  have hA_nonneg : 0 ≤ A := hA_pos.le
+  change
+    ∫ i : Fin (n + 1),
+        Set.indicator {i : Fin (n + 1) | A * R ≤ |Y i.val ⬝ᵥ a|}
+          (fun i => (Y i.val ⬝ᵥ a) ^ 2) i ∂P ≤
+      A ^ 2 *
+        ∫ i : Fin (n + 1),
+          Set.indicator {i : Fin (n + 1) | R ≤ |‖Y i.val‖|}
+            (fun i => ‖Y i.val‖ ^ 2) i ∂P
+  rw [← integral_const_mul]
+  refine integral_mono Integrable.of_finite Integrable.of_finite ?_
+  intro i
+  by_cases hproj : A * R ≤ |Y i.val ⬝ᵥ a|
+  · have hdot_le : |Y i.val ⬝ᵥ a| ≤ A * ‖Y i.val‖ := by
+      calc
+        |Y i.val ⬝ᵥ a| ≤ (∑ j : k, |a j|) * ‖Y i.val‖ :=
+          abs_dotProduct_le_l1_mul_norm (Y i.val) a
+        _ ≤ A * ‖Y i.val‖ :=
+          mul_le_mul_of_nonneg_right
+            ((le_max_right (1 : ℝ) (∑ j : k, |a j|)).trans hA)
+            (norm_nonneg _)
+    have hnorm_tail : R ≤ ‖Y i.val‖ :=
+      le_of_mul_le_mul_left (hproj.trans hdot_le) hA_pos
+    have hnorm_tail_abs : R ≤ |‖Y i.val‖| := by
+      simpa [abs_of_nonneg (norm_nonneg (Y i.val))] using hnorm_tail
+    have hproj_mem :
+        i ∈ {i : Fin (n + 1) | A * R ≤ |Y i.val ⬝ᵥ a|} := hproj
+    have hnorm_mem :
+        i ∈ {i : Fin (n + 1) | R ≤ |‖Y i.val‖|} := hnorm_tail_abs
+    rw [Set.indicator_of_mem hproj_mem]
+    change (Y i.val ⬝ᵥ a) ^ 2 ≤
+      A ^ 2 *
+        Set.indicator {i : Fin (n + 1) | R ≤ |‖Y i.val‖|}
+          (fun i => ‖Y i.val‖ ^ 2) i
+    rw [Set.indicator_of_mem hnorm_mem]
+    have hsq :=
+      pow_le_pow_left₀ (abs_nonneg (Y i.val ⬝ᵥ a)) hdot_le 2
+    simpa [sq_abs, mul_pow] using hsq
+  · have hnot :
+        i ∉ {i : Fin (n + 1) | A * R ≤ |Y i.val ⬝ᵥ a|} := hproj
+    rw [Set.indicator_of_notMem hnot]
+    exact mul_nonneg (sq_nonneg A)
+      (Set.indicator_nonneg (fun i _ => sq_nonneg ‖Y i.val‖) i)
+
+/-- Pathwise norm-tail control implies pathwise fixed uncentered tail control
+for every scalar projection. -/
+theorem empiricalTailSqFinSucc_dotProduct_eventually_small_of_norm_tail
+    {k : Type*} [Fintype k]
+    (Y : ℕ → k → ℝ)
+    (hnormTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc (fun i => ‖Y i‖) n R ≤ ε)
+    (a : k → ℝ) :
+    ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc (fun i => Y i ⬝ᵥ a) n R ≤ ε := by
+  classical
+  intro ε hε
+  let A : ℝ := max 1 (∑ j : k, |a j|)
+  have hA_one : 1 ≤ A := by
+    dsimp [A]
+    exact le_max_left _ _
+  have hA_pos : 0 < A := zero_lt_one.trans_le hA_one
+  let C : ℝ := A ^ 2
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hCden_pos : 0 < C + 1 := by positivity
+  let εnorm : ℝ := ε / (C + 1)
+  have hεnorm_pos : 0 < εnorm := by
+    dsimp [εnorm]
+    positivity
+  rcases hnormTail εnorm hεnorm_pos with ⟨Rnorm, hRnorm, htailnorm⟩
+  refine ⟨A * Rnorm, ?_, ?_⟩
+  · have hA_nonneg : 0 ≤ A := zero_le_one.trans hA_one
+    have hmul :=
+      mul_le_mul hA_one hRnorm (zero_le_one : (0 : ℝ) ≤ 1) hA_nonneg
+    simpa using hmul
+  · have hC_eps_lt : C * εnorm < ε := by
+      have hfrac : C / (C + 1) < 1 := by
+        rw [div_lt_one hCden_pos]
+        linarith
+      have heq : C * εnorm = ε * (C / (C + 1)) := by
+        dsimp [εnorm]
+        field_simp [hCden_pos.ne']
+      rw [heq]
+      calc
+        ε * (C / (C + 1)) < ε * 1 :=
+          mul_lt_mul_of_pos_left hfrac hε
+        _ = ε := by ring
+    filter_upwards [htailnorm] with n hn
+    have hle :=
+      empiricalTailSqFinSucc_dotProduct_le_const_mul_norm_tail
+        (Y := Y) (n := n) (a := a) (R := Rnorm) (A := A) le_rfl
+    have hmul_le : C * empiricalTailSqFinSucc (fun i => ‖Y i‖) n Rnorm ≤
+        C * εnorm :=
+      mul_le_mul_of_nonneg_left hn hC_nonneg
+    exact le_trans hle (le_of_lt (lt_of_le_of_lt hmul_le hC_eps_lt))
+
+/-- Pathwise vector empirical-mean and norm-tail controls imply centered
+moving-tail convergence for every scalar projection. -/
+theorem centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_zero_of_empiricalMean_tendsto_norm_tail
+    {k : Type*} [Fintype k]
+    (Y : ℕ → k → ℝ) {m : k → ℝ}
+    (hmean :
+      Tendsto
+        (fun n : ℕ =>
+          empiricalMean (fun i : Fin (n + 1) => Y i.val))
+        atTop (𝓝 m))
+    (hnormTail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc (fun i => ‖Y i‖) n R ≤ ε)
+    (a : k → ℝ) (t : ℝ) {δ : ℝ} (hδ : 0 < δ) :
+    Tendsto
+      (fun n : ℕ =>
+        centeredEmpiricalTailSqFinSucc (fun i => Y i ⬝ᵥ a) n
+          ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+      atTop (𝓝 0) := by
+  have hmean_proj :
+      Tendsto
+        (fun n : ℕ =>
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ⬝ᵥ a))
+        atTop (𝓝 (m ⬝ᵥ a)) := by
+    have hdot :
+        Tendsto
+          (fun n : ℕ =>
+            empiricalMean (fun i : Fin (n + 1) => Y i.val) ⬝ᵥ a)
+          atTop (𝓝 (m ⬝ᵥ a)) :=
+      ((continuous_id.dotProduct continuous_const).tendsto m).comp hmean
+    refine hdot.congr' ?_
+    exact Eventually.of_forall fun n =>
+      empiricalMean_dotProduct (Y := fun i : Fin (n + 1) => Y i.val) a
+  exact
+    centeredEmpiricalTailSqFinSucc_tendsto_zero_of_empiricalMean_tendsto_tail
+      (Y := fun i => Y i ⬝ᵥ a) (m := m ⬝ᵥ a) hmean_proj
+      (empiricalTailSqFinSucc_dotProduct_eventually_small_of_norm_tail
+        (Y := Y) hnormTail a)
+      t hδ
+
+/-- Centered projected moving empirical square tails vanish almost surely for
+finite-dimensional iid observations with finite second moments.
+
+The proof constructs one pathwise set: coordinate empirical means converge on
+that set, and the scalar strong law applied to the vector norm supplies a
+single norm-tail control.  The deterministic norm-tail bridge then gives every
+projection simultaneously. -/
+theorem centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iid
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0) := by
+  classical
+  have hY0 : MemLp (Y 0) 2 μ := MemLp.of_eval hYmem
+  have hnorm_mem : MemLp (fun ω => ‖Y 0 ω‖) 2 μ := by
+    have hnorm_aesm : AEStronglyMeasurable (fun ω => ‖Y 0 ω‖) μ :=
+      hY0.aestronglyMeasurable.norm
+    refine (memLp_two_iff_integrable_sq hnorm_aesm).2 ?_
+    exact (memLp_two_iff_integrable_sq_norm hY0.aestronglyMeasurable).1 hY0
+  have hnorm_meas : Measurable (fun x : k → ℝ => ‖x‖) :=
+    continuous_norm.measurable
+  have hindep_norm :
+      Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => ‖Y i ω‖) := by
+    intro i j hij
+    exact IndepFun.comp (hindep hij) hnorm_meas hnorm_meas
+  have hident_norm :
+      ∀ i, IdentDistrib (fun ω => ‖Y i ω‖) (fun ω => ‖Y 0 ω‖) μ μ := by
+    intro i
+    exact (hident i).comp hnorm_meas
+  have hnorm_tail :
+      ∀ᵐ ω ∂μ, ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+        ∀ᶠ n in atTop,
+          empiricalTailSqFinSucc (fun i => ‖Y i ω‖) n R ≤ ε :=
+    empiricalTailSqFinSucc_eventually_small_ae_of_iid
+      (μ := μ) (Y := fun i ω => ‖Y i ω‖)
+      hnorm_mem hindep_norm hident_norm
+  have hmean_coord : ∀ a : k,
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω a))
+          atTop (𝓝 (∫ ω, Y 0 ω a ∂μ)) := by
+    intro a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hYint : Integrable (fun ω => Y 0 ω a) μ :=
+      memLp_one_iff_integrable.mp ((hYmem a).mono_exponent one_le_two)
+    have hindep_a :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => Y i ω a) := by
+      intro i j hij
+      simpa [evalA] using IndepFun.comp (hindep hij) heval heval
+    have hident_a :
+        ∀ i, IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      intro i
+      simpa [evalA] using (hident i).comp heval
+    have hmean_int :=
+      integral_uniformOn_finSucc_tendsto_ae_wlln
+        (μ := μ) (X := fun i ω => Y i ω a)
+        hYint hindep_a hident_a
+    filter_upwards [hmean_int] with ω hω
+    refine hω.congr' ?_
+    exact Eventually.of_forall fun n => by
+      simpa using
+        (integral_uniformOn_univ_eq_empiricalMean
+          (Y := fun i : Fin (n + 1) => Y i.val ω a))
+  have hmean_all : ∀ᵐ ω ∂μ, ∀ a : k,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω a))
+        atTop (𝓝 (∫ ω, Y 0 ω a ∂μ)) :=
+    ae_all_iff.2 hmean_coord
+  filter_upwards [hmean_all, hnorm_tail] with ω hmeanω hnormTailω
+  let m : k → ℝ := fun a => ∫ ω, Y 0 ω a ∂μ
+  have hmean_vec :
+      Tendsto
+        (fun n : ℕ =>
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (𝓝 m) := by
+    refine tendsto_pi_nhds.2 ?_
+    intro a
+    refine (hmeanω a).congr' ?_
+    exact Eventually.of_forall fun n => by
+      simp [empiricalMean]
+  intro a t δ hδ
+  exact
+    centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_zero_of_empiricalMean_tendsto_norm_tail
+      (Y := fun i => Y i ω) (m := m) hmean_vec hnormTailω a t hδ
+
+/-- Centered projected moving empirical square tails vanish almost surely for
+finite-dimensional iid observations with finite second moments, using the
+textbook `iIndepFun` premise. -/
+theorem centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iIndep
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0) :=
+  centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
 /-- Empirical covariance convergence from empirical first and cross moments.
 
 This is the finite empirical bridge behind the ordinary-bootstrap CLT path:
@@ -17368,6 +17801,153 @@ theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder_posDef
     (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hS hrem
+
+/-- Iid-facing ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian
+CLT through the covariance-matrix centered-tail route.
+
+The iid finite-second-moment assumptions supply both pathwise empirical
+covariance convergence and the centered projected Lindeberg tails, leaving only
+the Gaussian frontier condition for possibly singular covariance matrices. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian
+            (0 : EuclideanSpace ℝ k) (covMat μ (Y 0))).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hY0 : MemLp (Y 0) 2 μ := MemLp.of_eval hYmem
+  have hYae : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ := by
+    intro i a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hcoord :
+        IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      simpa [evalA] using (hident i).comp heval
+    exact hcoord.aemeasurable_fst
+  exact
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail
+      (μ := μ) (Y := Y) (S := covMat μ (Y 0))
+      (covMat_posSemidef (μ := μ) hY0) hYae
+      (covMat_uniformOn_finSucc_tendsto_ae_of_iid
+        (μ := μ) Y hYmem hindep hident)
+      (centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iid
+        (μ := μ) Y hYmem hindep hident)
+      hfrontier
+
+/-- Positive-definite iid-facing ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the covariance-matrix centered-tail route. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail_posDef
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (Y 0)).PosDef) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail
+    (μ := μ) Y hYmem hindep hident
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Iid-facing ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian
+CLT through the covariance-matrix centered-tail route, with the textbook
+`iIndepFun` premise. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_tail
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian
+            (0 : EuclideanSpace ℝ k) (covMat μ (Y 0))).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hfrontier
+
+/-- Positive-definite iid-facing ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the covariance-matrix centered-tail route,
+with the textbook `iIndepFun` premise. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_tail_posDef
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (Y 0)).PosDef) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail_posDef
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hS
 
 /-- Indexed normalized ordinary-bootstrap cross moments converge once the
 finite empirical one-draw covariance converges through first and cross moments.
