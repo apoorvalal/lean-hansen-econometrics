@@ -214,10 +214,13 @@ used throughout the chapter:
   `integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz`
   packages that finite result in the `Fin (n+1)` Marcinkiewicz scale used by
   the indexed centered WLLN.
-* `variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq` and
-  `covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq` give the
-  scalar and matrix covariance identities for the `sqrt (#κ)` normalized
-  centered ordinary bootstrap mean used by the concrete Theorem 10.4 CLT path.
+* `integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero`,
+  `variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq`,
+  `covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq`, and
+  `integral_mul_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_covMat`
+  give exact zero-mean, covariance, and cross-moment identities for the
+  `sqrt (#κ)` normalized centered ordinary bootstrap mean used by the concrete
+  Theorem 10.4 CLT path.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -715,6 +718,27 @@ theorem integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
     (fun _t => Integrable.of_finite)
     (fun t => integral_uniformOn_fun_eval_eq_empiricalMean (Y := Y) t)
 
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Normalized centered mean of the ordinary finite nonparametric-bootstrap
+sample mean.
+
+The `sqrt (#κ)` scaling used in Hansen's bootstrap CLT leaves the exact
+conditional mean at zero. -/
+theorem integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+    {κ : Type*} [MeasurableSpace (κ → ι)] [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) :
+    ∫ ωs : κ → ι,
+        Real.sqrt (Fintype.card κ : ℝ) •
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y)
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      0 := by
+  classical
+  rw [integral_smul]
+  rw [integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero (Y := Y)]
+  simp
+
 /-- Finite empirical second-moment identity for one bootstrap draw.
 
 Under uniform resampling from a finite empirical support, the conditional
@@ -1189,6 +1213,101 @@ theorem covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
     _ = covMat Pι Y a b := by
           rw [hsqrt_sq]
           field_simp [hcard_pos.ne']
+
+omit [MeasurableSingletonClass ι] in
+/-- Coordinate zero-mean identity for the normalized ordinary
+nonparametric-bootstrap sample mean.
+
+This is the coordinate face of
+`integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero`,
+stated in the matrix notation used by the finite-dimensional CLT path. -/
+theorem integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_apply_sub_eq_zero
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) (a : k) :
+    ∫ ωs : κ → ι,
+        Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a -
+            empiricalMean Y a)
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      0 := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Z : (κ → ι) → k → ℝ :=
+    fun ωs =>
+      Real.sqrt (Fintype.card κ : ℝ) •
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y)
+  have hZ_int : Integrable Z Pκ := Integrable.of_finite
+  have hzero : ∫ ωs, Z ωs ∂Pκ = 0 := by
+    simpa [Z, Pκ] using
+      integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+        (κ := κ) (Y := Y)
+  have hcoord : ∫ ωs, Z ωs a ∂Pκ = 0 := by
+    rw [← integral_apply (μ := Pκ) (f := Z) hZ_int a, hzero]
+    rfl
+  simpa [Z, Pκ, Pi.smul_apply] using hcoord
+
+/-- Raw cross-moment identity for the normalized ordinary
+nonparametric-bootstrap sample mean.
+
+Because the normalized centered resample mean has exact conditional mean zero,
+its conditional cross moment equals its covariance.  Combined with
+`covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq`, this gives
+the empirical covariance matrix as the exact finite-resample second moment of
+the CLT-normalized bootstrap mean. -/
+theorem integral_mul_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_covMat
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) (a b : k) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a -
+            empiricalMean Y a)) *
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs b -
+            empiricalMean Y b))
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) Y a b := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let Z : (κ → ι) → k → ℝ :=
+    fun ωs a =>
+      Real.sqrt (Fintype.card κ : ℝ) *
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a -
+          empiricalMean Y a)
+  have hZa : MemLp (fun ωs : κ → ι => Z ωs a) 2 Pκ := by
+    exact memLp_two_uniformOn_univ (ι := κ → ι) (E := ℝ)
+      (Y := fun ωs : κ → ι => Z ωs a)
+  have hZb : MemLp (fun ωs : κ → ι => Z ωs b) 2 Pκ := by
+    exact memLp_two_uniformOn_univ (ι := κ → ι) (E := ℝ)
+      (Y := fun ωs : κ → ι => Z ωs b)
+  have hmean_a : ∫ ωs, Z ωs a ∂Pκ = 0 := by
+    simpa [Z, Pκ] using
+      integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_apply_sub_eq_zero
+        (κ := κ) (Y := Y) a
+  have hmean_b : ∫ ωs, Z ωs b ∂Pκ = 0 := by
+    simpa [Z, Pκ] using
+      integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_apply_sub_eq_zero
+        (κ := κ) (Y := Y) b
+  have hcov_raw :
+      cov[fun ωs => Z ωs a, fun ωs => Z ωs b; Pκ] =
+        ∫ ωs, Z ωs a * Z ωs b ∂Pκ := by
+    rw [ProbabilityTheory.covariance_eq_sub hZa hZb, hmean_a, hmean_b]
+    simp
+  have hcov :
+      cov[fun ωs => Z ωs a, fun ωs => Z ωs b; Pκ] =
+        covMat Pι Y a b := by
+    have hcovMat :=
+      congrFun
+        (congrFun
+          (covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+            (κ := κ) (Y := Y)) a) b
+    simpa [covMat, Z, Pκ, Pι] using hcovMat
+  rw [← hcov_raw]
+  exact hcov
 
 omit [Fintype ι] in
 /-- Trace of the finite-dimensional nonparametric-bootstrap sample-mean
