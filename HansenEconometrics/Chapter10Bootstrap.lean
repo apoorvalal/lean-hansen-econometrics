@@ -144,9 +144,10 @@ used throughout the chapter:
 * `chapter10_bootstrap_delta_method_linear` and
   `chapter10_bootstrap_delta_method_gaussian` are the linear-image and
   Gaussian covariance faces of Hansen Theorem 10.6, with
+  `chapter10_bootstrap_delta_method_gaussian_event_probability` and
   `chapter10_bootstrap_delta_method_gaussian_distribution` exposing the
-  corresponding Hansen Definition 10.2 CDF surface. Indexed counterparts cover
-  sample-size-dependent bootstrap spaces.
+  null-frontier event and Hansen Definition 10.2 CDF surfaces. Indexed
+  counterparts cover sample-size-dependent bootstrap spaces.
 * `chapter10_bootstrap_smooth_function_gaussian_of_linearization`,
   `chapter10_bootstrap_smooth_function_gaussian_event_probability_of_linearization`,
   and `chapter10_bootstrap_smooth_function_gaussian_distribution_of_linearization`
@@ -7477,6 +7478,59 @@ theorem chapter10_bootstrap_delta_method_gaussian
       f.continuous.aestronglyMeasurable
   simpa [htarget] using hlinear.tendsto_integral f
 
+/-- Hansen Theorem 10.6, Gaussian event-probability specialization.
+
+The matrix-linear bootstrap Delta method implies convergence of conditional
+bootstrap probabilities for events whose transformed Gaussian limit-law
+frontier has zero mass. -/
+theorem chapter10_bootstrap_delta_method_gaussian_event_probability
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_delta_method_gaussian
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT
+  have hZstar :
+      ∀ n ω,
+        Measurable (fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) := by
+    intro n ω
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hZstar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
+
 /-- Hansen Theorem 10.6, Gaussian CDF specialization.
 
 This is the Hansen Definition 10.2 face of the matrix-linear bootstrap Delta
@@ -7872,6 +7926,57 @@ theorem chapter10_indexed_bootstrap_delta_method_gaussian
     exact integral_map (matrixContinuousLinearMap G).continuous.aemeasurable
       f.continuous.aestronglyMeasurable
   simpa [htarget] using hlinear.tendsto_integral f
+
+/-- Indexed Hansen Theorem 10.6, Gaussian event-probability specialization for
+sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_delta_method_gaussian_event_probability
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_delta_method_gaussian
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT
+  have hZstar :
+      ∀ n ω,
+        Measurable (fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) := by
+    intro n ω
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPstar hZstar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
 
 /-- Indexed Hansen Theorem 10.6, Gaussian CDF specialization. -/
 theorem chapter10_indexed_bootstrap_delta_method_gaussian_distribution
