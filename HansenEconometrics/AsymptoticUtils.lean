@@ -29,6 +29,9 @@ Mathlib does not currently provide as named lemmas:
 * `TendstoInDistribution.tendsto_measure_preimage_of_null_frontier` — a
   reusable Portmanteau event-probability bridge for coverage and critical-region
   arguments.
+* `TendstoInDistribution.integral_boundedContinuous_tendsto_indexed` — the
+  bounded-continuous integral face of weak convergence when source spaces and
+  laws vary with the sequence index.
 
 Both are stated for general Banach-space codomains, so they specialize
 directly to scalar, vector, and matrix random variables.
@@ -910,6 +913,42 @@ theorem TendstoInDistribution.integral_boundedContinuous_tendsto
   have hseq :
       (fun n => ∫ x, f x ∂(μ.map (X n))) =
         fun n => ∫ ω, f (X n ω) ∂μ := by
+    funext n
+    rw [integral_map (hX.forall_aemeasurable n) (by fun_prop)]
+  simpa [hlimit, hseq] using hmap
+
+/-- Bounded-continuous integral convergence from weak convergence with
+sample-size-dependent source spaces.
+
+This is the indexed-space form of
+`TendstoInDistribution.integral_boundedContinuous_tendsto`. It is useful for
+ordinary nonparametric bootstrap laws, where the resampling space varies with
+`n`. -/
+theorem TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
+    {Ω : ℕ → Type*} {mΩ : ∀ n, MeasurableSpace (Ω n)}
+    {Ω' E : Type*} {mΩ' : MeasurableSpace Ω'}
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hX : TendstoInDistribution X atTop Z μ ν)
+    (f : BoundedContinuousFunction E ℝ) :
+    Tendsto (fun n => ∫ ω, f (X n ω) ∂μ n) atTop
+      (𝓝 (∫ ω, f (Z ω) ∂ν)) := by
+  have hmap :
+      Tendsto (fun n => ∫ x, f x ∂((μ n).map (X n))) atTop
+        (𝓝 (∫ x, f x ∂(ν.map Z))) := by
+    let lawZ : ProbabilityMeasure E :=
+      ⟨ν.map Z, Measure.isProbabilityMeasure_map hX.aemeasurable_limit⟩
+    have hcont :=
+      (ProbabilityMeasure.continuous_integral_boundedContinuousFunction f).tendsto lawZ
+    simpa [lawZ] using hcont.comp hX.tendsto
+  have hlimit :
+      ∫ x, f x ∂(ν.map Z) = ∫ ω, f (Z ω) ∂ν := by
+    rw [integral_map hX.aemeasurable_limit (by fun_prop)]
+  have hseq :
+      (fun n => ∫ x, f x ∂((μ n).map (X n))) =
+        fun n => ∫ ω, f (X n ω) ∂μ n := by
     funext n
     rw [integral_map (hX.forall_aemeasurable n) (by fun_prop)]
   simpa [hlimit, hseq] using hmap

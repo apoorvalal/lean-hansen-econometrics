@@ -78,7 +78,9 @@ used throughout the chapter:
   positive-definite covariance specialization matching Hansen Theorem 10.4.
   The `*_of_ae_tendsto_integrals*` variants turn pathwise conditional
   bounded-continuous integral convergence into the same theorem-facing Gaussian
-  CLT conclusions.
+  CLT conclusions, while the `*_of_ae_tendstoInDistribution` constructors start
+  from pathwise conditional weak convergence stated in Mathlib's distributional
+  form.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   and
@@ -4429,6 +4431,37 @@ theorem TendstoInBootstrapWeakDistribution.of_ae_tendsto_integrals
   intro f
   exact tendstoInMeasure_of_tendsto_ae (hmeas f) (hae f)
 
+/-- Bootstrap weak convergence from pathwise conditional weak convergence in
+Mathlib's `TendstoInDistribution` form.
+
+This removes one layer of bounded-continuous integral bookkeeping: a conditional
+CLT stated as weak convergence of the conditional bootstrap laws supplies the
+integral convergence premises of
+`TendstoInBootstrapWeakDistribution.of_ae_tendsto_integrals`. -/
+theorem TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} [IsProbabilityMeasure ν]
+    (hmeas : ∀ f : BoundedContinuousFunction E ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z := by
+  refine TendstoInBootstrapWeakDistribution.of_ae_tendsto_integrals
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hmeas ?_
+  intro f
+  filter_upwards [hae] with ω hdist
+  simpa [bootstrapBoundedContinuousIntegral] using
+    (TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
+      (Ω := fun _ : ℕ => Ωs) (μ := fun n => Pstar n ω)
+      (X := fun n (ωs : Ωs) => Zstar n ω ωs) (Z := Z) hdist f)
+
 /-- Measurability of finite-uniform bootstrap bounded-continuous integrals.
 
 When the bootstrap law is the uniform law on a finite resampling space, the
@@ -4856,6 +4889,37 @@ theorem TendstoInBootstrapWeakDistributionIndexed.of_ae_tendsto_integrals
     TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z := by
   intro f
   exact tendstoInMeasure_of_tendsto_ae (hmeas f) (hae f)
+
+/-- Indexed bootstrap weak convergence from pathwise conditional weak
+convergence in Mathlib's `TendstoInDistribution` form.
+
+This is the sample-size-dependent counterpart of
+`TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution`, used when the
+ordinary nonparametric-bootstrap resampling space varies with `n`. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} [IsProbabilityMeasure ν]
+    (hmeas : ∀ f : BoundedContinuousFunction E ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z := by
+  refine TendstoInBootstrapWeakDistributionIndexed.of_ae_tendsto_integrals
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hmeas ?_
+  intro f
+  filter_upwards [hae] with ω hdist
+  simpa [bootstrapBoundedContinuousIntegralIndexed] using
+    (TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
+      (Ω := Ωboot) (μ := fun n => Pstar n ω)
+      (X := fun n (ωs : Ωboot n) => Zstar n ω ωs) (Z := Z) hdist f)
 
 /-- Measurability of indexed finite-uniform bootstrap bounded-continuous
 integrals.
