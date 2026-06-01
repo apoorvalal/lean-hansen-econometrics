@@ -294,7 +294,8 @@ used throughout the chapter:
   deterministically bounded.
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail`
   and its indexed counterpart package those constructors into scalar
-  conditional bootstrap variance consistency.
+  conditional bootstrap variance consistency; the eventual-bound variance
+  wrappers provide the corresponding bounded-statistic route.
 * `chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_tails`
   and its indexed counterpart assemble those fourth-moment tail constructors
   into the finite-dimensional covariance consistency bridge.
@@ -10930,6 +10931,30 @@ theorem
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       (B := B) hB hZlim hFourth hFourthInt)
 
+/-- Hansen Theorem 10.9 from bootstrap weak convergence and an eventual
+deterministic bootstrap bound.
+
+This bounded-statistic route discharges Hansen's uniform-square-tail premise
+by making the conditional bootstrap squared tail eventually zero, while
+`MemLp Z 2` controls the weak-limit tail. -/
+theorem
+    chapter10_bootstrap_variance_consistency_of_weak_distribution_eventualBound_memLp_limit
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {Z : Ωlim → ℝ} {C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs| ≤ C) :
+    TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+    (bootstrapUniformSquareTail_of_eventually_bound_memLp_limit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hZlim hbound)
+
 /-- Indexed textbook-style uniform square-tail condition for Hansen Theorem
 10.9.
 
@@ -11520,6 +11545,27 @@ theorem
     (bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_memLp_limit
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       (B := B) hB hZlim hFourth hFourthInt)
+
+/-- Indexed Hansen Theorem 10.9 from bootstrap weak convergence and an
+eventual deterministic bootstrap bound. -/
+theorem
+    chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_eventualBound_memLp_limit
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ} {C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZlim : MemLp Z 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs| ≤ C) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+      (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) :=
+  chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+    (μ := μ) (ν := ν) hPstar hZmem hZlim hweak
+    (bootstrapUniformSquareTailIndexed_of_eventually_bound_memLp_limit
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      hZlim hbound)
 
 end BootstrapVariance
 
