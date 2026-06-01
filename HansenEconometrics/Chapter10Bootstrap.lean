@@ -332,7 +332,9 @@ used throughout the chapter:
   Hansen Theorem 10.12 covariance consistency, with fourth-moment-tail variants
   that discharge those uniform-square-tail premises from conditional fourth
   moments and eventual limit squared-tail bounds, plus `MemLp` weak-limit
-  variants that discharge the limit-tail bounds directly.
+  variants that discharge the limit-tail bounds directly.  Eventual-bound
+  trimmed wrappers use a bounded nonnegative trimming threshold to discharge
+  the trimmed coordinate and coordinate-sum tail premises directly.
   The fixed/indexed trimmed-statistic measurability and `MemLp` bridges turn
   a.e. strong measurability of `Z*` plus a nonnegative threshold into the
   coordinate, coordinate-sum, and coordinate-product integrability premises
@@ -14567,6 +14569,70 @@ theorem
       (Zstar := trimmedBootstrapStatistic Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
 
+/-- Hansen Theorem 10.12 trimmed covariance from weak convergence and an
+eventually bounded trim threshold.
+
+The trimming-tail probability transfers weak convergence from `Z*` to `Z**`.
+Once the nonnegative threshold is eventually bounded, the trimmed coordinates
+and coordinate sums are eventually deterministically bounded, so Hansen's
+uniform-square-tail premise follows from the bounded-statistic constructor. -/
+theorem
+    chapter10_trimmedBootstrapVariance_tendsto_of_eventualBound_memLp_limit
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hτBound : ∀ᶠ n in atTop, τ n ≤ C)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) := by
+  have hweakTrim :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (trimmedBootstrapStatistic Zstar τ) ν Z :=
+    hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas hTailProb
+  have hTrimMem :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic Zstar τ n ω ωs a) 2
+          (Pstar n ω) := by
+    intro n ω a
+    haveI : IsFiniteMeasure (Pstar n ω) := by
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      infer_instance
+    exact
+      memLp_trimmedBootstrapStatistic_apply_of_aestronglyMeasurable
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ)
+        (hτ n) ω a ((hZmeas n ω).aestronglyMeasurable)
+  simpa [trimmedBootstrapCovarianceMat] using
+    chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_eventualBound_memLp_limit
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatistic Zstar τ) (Z := Z)
+      hPstar hTrimMem hZlim hweakTrim
+      (Ccoord := fun _ => C) (Csum := fun _ _ => 2 * C)
+      (fun a => by
+        filter_upwards [hτBound] with n hτC
+        intro ω ωs
+        exact
+          (abs_trimmedBootstrapStatistic_apply_le_of_nonneg
+            (Zstar := Zstar) (τ := τ) (hτ n) ω ωs a).trans hτC)
+      (fun a c => by
+        filter_upwards [hτBound] with n hτC
+        intro ω ωs
+        exact
+          (abs_add_trimmedBootstrapStatistic_apply_le_two_mul_of_nonneg
+            (Zstar := Zstar) (τ := τ) (hτ n) ω ωs a c).trans
+            (by nlinarith))
+
 /-- Hansen Theorem 10.12 trimmed covariance from weak convergence and
 fourth-moment tail controls.
 
@@ -14792,6 +14858,68 @@ theorem
       (μ := μ) (ν := ν) (Pstar := Pstar)
       (Zstar := trimmedBootstrapStatisticIndexed Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
+
+/-- Indexed Hansen Theorem 10.12 trimmed covariance from weak convergence and
+an eventually bounded trim threshold. -/
+theorem
+    chapter10_indexed_trimmedBootstrapVariance_tendsto_of_eventualBound_memLp_limit
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hτBound : ∀ᶠ n in atTop, τ n ≤ C)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) := by
+  have hweakTrim :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (trimmedBootstrapStatisticIndexed Zstar τ) ν Z :=
+    hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas hTailProb
+  have hTrimMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs => trimmedBootstrapStatisticIndexed Zstar τ n ω ωs a) 2
+          (Pstar n ω) := by
+    intro n ω a
+    haveI : IsFiniteMeasure (Pstar n ω) := by
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      infer_instance
+    exact
+      memLp_trimmedBootstrapStatisticIndexed_apply_of_aestronglyMeasurable
+        (P := Pstar n ω) (Zstar := Zstar) (τ := τ)
+        (hτ n) ω a ((hZmeas n ω).aestronglyMeasurable)
+  simpa [trimmedBootstrapCovarianceMatIndexed] using
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_eventualBound_memLp_limit
+      (μ := μ) (ν := ν) (Pstar := Pstar)
+      (Zstar := trimmedBootstrapStatisticIndexed Zstar τ) (Z := Z)
+      hPstar hTrimMem hZlim hweakTrim
+      (Ccoord := fun _ => C) (Csum := fun _ _ => 2 * C)
+      (fun a => by
+        filter_upwards [hτBound] with n hτC
+        intro ω ωs
+        exact
+          (abs_trimmedBootstrapStatisticIndexed_apply_le_of_nonneg
+            (Zstar := Zstar) (τ := τ) (hτ n) ω ωs a).trans hτC)
+      (fun a c => by
+        filter_upwards [hτBound] with n hτC
+        intro ω ωs
+        exact
+          (abs_add_trimmedBootstrapStatisticIndexed_apply_le_two_mul_of_nonneg
+            (Zstar := Zstar) (τ := τ) (hτ n) ω ωs a c).trans
+            (by nlinarith))
 
 /-- Indexed Hansen Theorem 10.12 trimmed covariance from weak convergence and
 fourth-moment tail controls. -/
