@@ -298,7 +298,9 @@ used throughout the chapter:
   wrappers provide the corresponding bounded-statistic route.
 * `chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_tails`
   and its indexed counterpart assemble those fourth-moment tail constructors
-  into the finite-dimensional covariance consistency bridge.
+  into the finite-dimensional covariance consistency bridge; the
+  eventual-bound covariance wrappers provide the corresponding bounded
+  coordinate and coordinate-sum route.
 * `bootstrapUniformSquareTail_of_integral_tail_sq_le` and its indexed
   counterpart transfer that condition across conditional squared-tail
   domination; the trimmed-statistic wrappers apply this to coordinates,
@@ -12398,6 +12400,47 @@ theorem
         (hBsum a c) ((hZlim a).add (hZlim c)) (hFourthSum a c)
         (fun n ω => hFourthSumInt n ω a c))
 
+/-- Hansen Theorem 10.9/10.12 covariance matrix from bootstrap weak
+convergence and eventual deterministic coordinate and coordinate-sum bounds.
+
+The coordinate bounds discharge the scalar mean/second-moment tail conditions;
+the coordinate-sum bounds discharge the cross-moment tails used by the
+polarization identity. -/
+theorem
+    chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_eventualBound_memLp_limit
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Ccoord : k → ℝ} {Csum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hboundCoord :
+      ∀ a, ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs a| ≤ Ccoord a)
+    (hboundSum :
+      ∀ a c, ∀ᶠ n in atTop, ∀ ω ωs,
+        |Zstar n ω ωs a + Zstar n ω ωs c| ≤ Csum a c) :
+    TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+    hPstar hZmem hZlim hweak
+    (fun a =>
+      bootstrapUniformSquareTail_of_eventually_bound_memLp_limit
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (C := Ccoord a) (hZlim a) (hboundCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTail_of_eventually_bound_memLp_limit
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (C := Csum a c) ((hZlim a).add (hZlim c)) (hboundSum a c))
+
 /-- Indexed Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
 This is the sample-size-dependent counterpart of
@@ -12765,6 +12808,45 @@ theorem
         (B := Bsum a c)
         (hBsum a c) ((hZlim a).add (hZlim c)) (hFourthSum a c)
         (fun n ω => hFourthSumInt n ω a c))
+
+/-- Indexed Hansen Theorem 10.9/10.12 covariance matrix from bootstrap weak
+convergence and eventual deterministic coordinate and coordinate-sum bounds. -/
+theorem
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_eventualBound_memLp_limit
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ}
+    {Ccoord : k → ℝ} {Csum : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hboundCoord :
+      ∀ a, ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs a| ≤ Ccoord a)
+    (hboundSum :
+      ∀ a c, ∀ᶠ n in atTop, ∀ ω ωs,
+        |Zstar n ω ωs a + Zstar n ω ωs c| ≤ Csum a c) :
+    TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+    hPstar hZmem hZlim hweak
+    (fun a =>
+      bootstrapUniformSquareTailIndexed_of_eventually_bound_memLp_limit
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a)
+        (ν := ν) (Z := fun ωlim => Z ωlim a)
+        (C := Ccoord a) (hZlim a) (hboundCoord a))
+    (fun a c =>
+      bootstrapUniformSquareTailIndexed_of_eventually_bound_memLp_limit
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c)
+        (ν := ν) (Z := fun ωlim => Z ωlim a + Z ωlim c)
+        (C := Csum a c) ((hZlim a).add (hZlim c)) (hboundSum a c))
 
 /-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
 noncomputable def trimmedBootstrapStatistic
