@@ -85,7 +85,9 @@ used throughout the chapter:
   empirical-bootstrap statistic, and the corresponding `*_of_ae_lindeberg*`
   wrappers start from the Chapter 6 indexed Lindeberg/Cramér-Wold condition
   package.  The `*_of_ae_projection_clt*` wrappers discharge that package's
-  finite-path measurability field and ask only for the scalar projection CLTs.
+  finite-path measurability field and ask only for the scalar projection CLTs,
+  while the `*_of_ae_scalar_projection_clt*` variants state those CLTs directly
+  for the one-dimensional projected bootstrap means.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -619,6 +621,24 @@ noncomputable def empiricalBootstrapResampleMean
     [NormedAddCommGroup E] [NormedSpace ℝ E]
     (Y : ι → E) (I : Ωs → κ → ι) (ωs : Ωs) : E :=
   ((Fintype.card κ : ℝ)⁻¹) • ∑ t, Y (I ωs t)
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Dot-product projection of a finite empirical mean. -/
+theorem empiricalMean_dotProduct
+    {k : Type*} [Fintype k]
+    (Y : ι → k → ℝ) (a : k → ℝ) :
+    empiricalMean Y ⬝ᵥ a = empiricalMean (fun i => Y i ⬝ᵥ a) := by
+  simp [empiricalMean, smul_dotProduct, sum_dotProduct, smul_eq_mul]
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Dot-product projection of a finite bootstrap resample mean. -/
+theorem empiricalBootstrapResampleMean_dotProduct
+    {κ : Type*} [Fintype κ] {Ωs : Type*}
+    {k : Type*} [Fintype k]
+    (Y : ι → k → ℝ) (I : Ωs → κ → ι) (ωs : Ωs) (a : k → ℝ) :
+    empiricalBootstrapResampleMean Y I ωs ⬝ᵥ a =
+      empiricalBootstrapResampleMean (fun i => Y i ⬝ᵥ a) I ωs := by
+  simp [empiricalBootstrapResampleMean, smul_dotProduct, sum_dotProduct, smul_eq_mul]
 
 /-- Empirical mean identity for one bootstrap draw.
 
@@ -3449,6 +3469,41 @@ theorem integral_normalized_finSucc_resampleMean_sub_empiricalMean_apply_eq_zero
     (integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_apply_sub_eq_zero
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω) a)
+
+/-- Scalar projection of the normalized ordinary bootstrap mean.
+
+The Cramér-Wold projection of `sqrt (n+1) (Ybar* - Ybar)` is the same
+normalized scalar bootstrap mean formed from the projected observations
+`Y_i · a`. -/
+theorem dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω)
+    (ωs : Fin (n + 1) → Fin (n + 1)) (a : k → ℝ) :
+    (fun b =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs b -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b)) ⬝ᵥ a =
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+            (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)) := by
+  change
+      (Real.sqrt (n + 1 : ℝ) •
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω))) ⬝ᵥ a =
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a))
+  rw [smul_dotProduct, sub_dotProduct, empiricalBootstrapResampleMean_dotProduct,
+    empiricalMean_dotProduct]
+  rfl
 
 /-- Matrix `Fin (n+1)` CLT-scale covariance identity for the ordinary
 nonparametric bootstrap.
@@ -7147,6 +7202,67 @@ theorem chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_proj
           (Y := Y) n ω).aemeasurable
       projection_clt := hω }
 
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure scalar bootstrap-mean CLTs for projected observations.
+
+This variant states the Cramér-Wold premise directly in the one-dimensional
+bootstrap statistic formed from `Y_i · a`. The vector-projection wrapper above
+then supplies the Chapter 6 indexed Lindeberg/Cramér-Wold package. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_scalar_projection_clt
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hproj : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      TendstoInDistribution
+        (fun n (ωs : Fin (n + 1) → Fin (n + 1)) =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)))
+        atTop
+        (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a)
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (multivariateGaussian 0 S))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_projection_clt
+    (μ := μ) (Y := Y) (S := S) hY ?_ hfrontier
+  refine hproj.mono ?_
+  intro ω hω a
+  refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) (hω a)
+  intro n
+  exact ae_of_all
+    (ProbabilityTheory.uniformOn
+      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+        Measure (Fin (n + 1) → Fin (n + 1))) (fun ωs =>
+      (dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+        (Y := Y) n ω ωs a).symm)
+
 /-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
 Gaussian CLT from almost-sure scalar projection CLTs for the normalized
 `Fin (n+1)` resample mean. -/
@@ -7186,6 +7302,47 @@ theorem
       (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_projection_clt
+    (μ := μ) (Y := Y) (S := S) hY hproj
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from almost-sure scalar bootstrap-mean CLTs for projected
+observations. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_scalar_projection_clt_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hproj : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      TendstoInDistribution
+        (fun n (ωs : Fin (n + 1) → Fin (n + 1)) =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)))
+        atTop
+        (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a)
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (multivariateGaussian 0 S)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_scalar_projection_clt
     (μ := μ) (Y := Y) (S := S) hY hproj
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
