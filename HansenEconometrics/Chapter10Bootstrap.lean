@@ -97,7 +97,9 @@ used throughout the chapter:
   empirical projected-variance convergence plus the explicit diagonal
   characteristic-function Taylor remainder, and the `*_of_ae_covMat_remainder*`
   variants derive the projected-variance premise from pathwise empirical
-  covariance-matrix convergence.
+  covariance-matrix convergence.  The `*_of_iid_covMat_remainder*` and
+  `*_of_iIndep_covMat_remainder*` variants discharge that covariance premise
+  from iid finite-second-moment assumptions.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -328,7 +330,10 @@ used throughout the chapter:
   `bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid`
   discharge the same covariance-convergence path from iid finite-second-moment
   assumptions through the shifted empirical-uniform WLLN, with `iIndepFun`
-  wrappers for the textbook independence premise.
+  wrappers for the textbook independence premise.  The corresponding
+  `integral_uniformOn_finSucc_tendsto_ae_wlln` and
+  `covMat_uniformOn_finSucc_tendsto_ae_of_iid` variants keep this convergence
+  path almost sure for the characteristic-function route.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -15374,6 +15379,85 @@ theorem integral_uniformOn_finSucc_tendstoInMeasure_wlln_of_iIndep
   exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
     (μ := μ) X hint (fun _ _ hij => hindep.indepFun hij) hident
 
+/-- Shifted empirical-uniform strong law on `Fin (n+1)`.
+
+This is the almost-sure counterpart of
+`integral_uniformOn_finSucc_tendstoInMeasure_wlln`, keeping the pathwise
+convergence supplied by Mathlib's strong law.  It is used by the
+characteristic-function route for Hansen Theorem 10.4, where the conditional
+bootstrap characteristic functions are first handled pathwise. -/
+theorem integral_uniformOn_finSucc_tendsto_ae_wlln
+    [IsFiniteMeasure μ]
+    (X : ℕ → Ω → ℝ)
+    (hint : Integrable (X 0) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on X))
+    (hident : ∀ i, IdentDistrib (X i) (X 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          ∫ i : Fin (n + 1), X i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (𝓝 (∫ ω, X 0 ω ∂μ)) := by
+  have hbase :
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ => (n : ℝ)⁻¹ • ∑ i ∈ Finset.range n, X i ω)
+          atTop (𝓝 (∫ ω, X 0 ω ∂μ)) := by
+    simpa using ProbabilityTheory.strong_law_ae X hint hindep hident
+  filter_upwards [hbase] with ω hω
+  have hshift :
+      Tendsto
+        (fun n : ℕ =>
+          (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), X i ω)
+        atTop (𝓝 (∫ ω, X 0 ω ∂μ)) := by
+    simpa [Function.comp_def, Nat.cast_add, Nat.cast_one] using
+      hω.comp (tendsto_add_atTop_nat 1)
+  refine hshift.congr' ?_
+  exact Eventually.of_forall fun n => by
+    have hfinite :
+        ∫ i : Fin (n + 1), X i.val ω
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1))) =
+        ((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+          ∑ i : Fin (n + 1), X i.val ω :=
+      integral_uniformOn_univ_eq_card_inv_smul_sum
+        (Y := fun i : Fin (n + 1) => X i.val ω)
+    have hcoeff :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
+            (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    have hsum :
+        (∑ i : Fin (n + 1), X i.val ω) =
+          ∑ i ∈ Finset.range (n + 1), X i ω := by
+      rw [Finset.sum_range]
+    rw [hcoeff, hsum] at hfinite
+    simpa [Nat.cast_add, Nat.cast_one] using hfinite.symm
+
+/-- Shifted empirical-uniform strong law with a textbook iid independence
+premise. -/
+theorem integral_uniformOn_finSucc_tendsto_ae_wlln_of_iIndep
+    [IsFiniteMeasure μ]
+    (X : ℕ → Ω → ℝ)
+    (hint : Integrable (X 0) μ)
+    (hindep : iIndepFun X μ)
+    (hident : ∀ i, IdentDistrib (X i) (X 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          ∫ i : Fin (n + 1), X i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (𝓝 (∫ ω, X 0 ω ∂μ)) := by
+  exact integral_uniformOn_finSucc_tendsto_ae_wlln
+    (μ := μ) X hint (fun _ _ hij => hindep.indepFun hij) hident
+
 /-- Empirical covariance convergence from empirical first and cross moments.
 
 This is the finite empirical bridge behind the ordinary-bootstrap CLT path:
@@ -15596,6 +15680,396 @@ theorem covMat_uniformOn_finSucc_tendsto_of_iIndep
       atTop (fun _ => covMat μ (Y 0)) :=
   covMat_uniformOn_finSucc_tendsto_of_iid
     (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Pathwise empirical covariance convergence from pathwise empirical first and
+cross moments.
+
+This is the almost-sure counterpart of
+`covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments`, used by the
+characteristic-function proof of Hansen Theorem 10.4. -/
+theorem covMat_uniformOn_finSucc_tendsto_ae_of_mean_cross_moments
+    [IsProbabilityMeasure μ] [Countable k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hmean : ∀ a,
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a ∂μ)))
+    (hcross : ∀ a b,
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a * Y 0 ω b ∂μ))) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 (covMat μ (Y 0))) := by
+  have hmean_all :
+      ∀ᵐ ω ∂μ, ∀ a,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a ∂μ)) :=
+    ae_all_iff.2 hmean
+  have hcross_all :
+      ∀ᵐ ω ∂μ, ∀ a b,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a * Y 0 ω b ∂μ)) := by
+    exact ae_all_iff.2 fun a => ae_all_iff.2 fun b => hcross a b
+  filter_upwards [hmean_all, hcross_all] with ω hmeanω hcrossω
+  refine tendsto_pi_nhds.2 fun a => ?_
+  refine tendsto_pi_nhds.2 fun b => ?_
+  have hmean_prod :
+      Tendsto
+        (fun n : ℕ =>
+          (∫ i : Fin (n + 1), Y i.val ω a
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))) *
+            (∫ i : Fin (n + 1), Y i.val ω b
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1)))))
+        atTop
+        (𝓝 ((∫ ω, Y 0 ω a ∂μ) * (∫ ω, Y 0 ω b ∂μ))) :=
+    (hmeanω a).mul (hmeanω b)
+  have hentry :
+      Tendsto
+        (fun n : ℕ =>
+          (∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))) -
+            (∫ i : Fin (n + 1), Y i.val ω a
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1)))) *
+              (∫ i : Fin (n + 1), Y i.val ω b
+                ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                  Measure (Fin (n + 1)))))
+        atTop
+        (𝓝 ((∫ ω, Y 0 ω a * Y 0 ω b ∂μ) -
+          (∫ ω, Y 0 ω a ∂μ) * (∫ ω, Y 0 ω b ∂μ))) :=
+    (hcrossω a b).sub hmean_prod
+  have hlimit :
+      covMat μ (Y 0) a b =
+        (∫ ω, Y 0 ω a * Y 0 ω b ∂μ) -
+          (∫ ω, Y 0 ω a ∂μ) * (∫ ω, Y 0 ω b ∂μ) := by
+    simpa [covMat, Pi.mul_apply] using
+      (ProbabilityTheory.covariance_eq_sub (hYmem a) (hYmem b))
+  rw [hlimit]
+  refine hentry.congr' ?_
+  exact Eventually.of_forall fun n => by
+    let P : Measure (Fin (n + 1)) :=
+      ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+    haveI : IsProbabilityMeasure P := inferInstance
+    have hYa : MemLp (fun i : Fin (n + 1) => Y i.val ω a) 2 P :=
+      memLp_two_uniformOn_univ
+        (Y := fun i : Fin (n + 1) => Y i.val ω a)
+    have hYb : MemLp (fun i : Fin (n + 1) => Y i.val ω b) 2 P :=
+      memLp_two_uniformOn_univ
+        (Y := fun i : Fin (n + 1) => Y i.val ω b)
+    have hsource :
+        covMat P (fun i a => Y i.val ω a) a b =
+          (∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b ∂P) -
+            (∫ i : Fin (n + 1), Y i.val ω a ∂P) *
+              (∫ i : Fin (n + 1), Y i.val ω b ∂P) := by
+      simpa [covMat, Pi.mul_apply] using
+        (ProbabilityTheory.covariance_eq_sub hYa hYb)
+    simpa [P] using hsource.symm
+
+/-- Pathwise empirical covariance convergence for iid finite-dimensional
+observations.
+
+The finite-second-moment coordinate assumption supplies integrability of both
+coordinates and cross products; the pathwise shifted empirical-uniform strong
+law supplies the coordinate mean and cross-moment limits. -/
+theorem covMat_uniformOn_finSucc_tendsto_ae_of_iid
+    [IsProbabilityMeasure μ] [Countable k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 (covMat μ (Y 0))) := by
+  have hmean : ∀ a,
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a ∂μ)) := by
+    intro a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hint : Integrable (fun ω => Y 0 ω a) μ :=
+      memLp_one_iff_integrable.mp ((hYmem a).mono_exponent one_le_two)
+    have hindep_a :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => Y i ω a) := by
+      intro i j hij
+      simpa [evalA] using IndepFun.comp (hindep hij) heval heval
+    have hident_a :
+        ∀ i, IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      intro i
+      simpa [evalA] using (hident i).comp heval
+    exact integral_uniformOn_finSucc_tendsto_ae_wlln
+      (μ := μ) (X := fun i ω => Y i ω a) hint hindep_a hident_a
+  have hcross : ∀ a b,
+      ∀ᵐ ω ∂μ,
+        Tendsto
+          (fun n : ℕ =>
+            ∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1))))
+          atTop (𝓝 (∫ ω, Y 0 ω a * Y 0 ω b ∂μ)) := by
+    intro a b
+    let crossAB : (k → ℝ) → ℝ := fun y => y a * y b
+    have hcross_meas : Measurable crossAB := by
+      dsimp [crossAB]
+      fun_prop
+    have hint : Integrable (fun ω => Y 0 ω a * Y 0 ω b) μ :=
+      (hYmem a).integrable_mul (hYmem b)
+    have hindep_ab :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => Y i ω a * Y i ω b) := by
+      intro i j hij
+      simpa [crossAB] using IndepFun.comp (hindep hij) hcross_meas hcross_meas
+    have hident_ab :
+        ∀ i,
+          IdentDistrib
+            (fun ω => Y i ω a * Y i ω b)
+            (fun ω => Y 0 ω a * Y 0 ω b) μ μ := by
+      intro i
+      simpa [crossAB] using (hident i).comp hcross_meas
+    exact integral_uniformOn_finSucc_tendsto_ae_wlln
+      (μ := μ) (X := fun i ω => Y i ω a * Y i ω b)
+      hint hindep_ab hident_ab
+  exact covMat_uniformOn_finSucc_tendsto_ae_of_mean_cross_moments
+    (μ := μ) Y hYmem hmean hcross
+
+/-- Pathwise empirical covariance convergence for iid finite-dimensional
+observations with the textbook `iIndepFun` premise. -/
+theorem covMat_uniformOn_finSucc_tendsto_ae_of_iIndep
+    [IsProbabilityMeasure μ] [Countable k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 (covMat μ (Y 0))) :=
+  covMat_uniformOn_finSucc_tendsto_ae_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Iid-facing ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian
+CLT through the covariance-matrix characteristic-function remainder route.
+
+The iid finite-second-moment assumptions supply pathwise empirical covariance
+convergence via `covMat_uniformOn_finSucc_tendsto_ae_of_iid`; the remaining
+analytic input is the explicit diagonal characteristic-function Taylor
+remainder. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian
+            (0 : EuclideanSpace ℝ k) (covMat μ (Y 0))).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hY0 : MemLp (Y 0) 2 μ := MemLp.of_eval hYmem
+  have hYae : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ := by
+    intro i a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hcoord :
+        IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      simpa [evalA] using (hident i).comp heval
+    exact hcoord.aemeasurable_fst
+  exact
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_remainder
+      (μ := μ) (Y := Y) (S := covMat μ (Y 0))
+      (covMat_posSemidef (μ := μ) hY0) hYae
+      (covMat_uniformOn_finSucc_tendsto_ae_of_iid
+        (μ := μ) Y hYmem hindep hident)
+      hrem hfrontier
+
+/-- Positive-definite iid-facing ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the covariance-matrix
+characteristic-function remainder route. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder_posDef
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (Y 0)).PosDef)
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder
+    (μ := μ) Y hYmem hindep hident hrem
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Iid-facing ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian
+CLT through the covariance-matrix characteristic-function remainder route, with
+the textbook `iIndepFun` premise. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_remainder
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian
+            (0 : EuclideanSpace ℝ k) (covMat μ (Y 0))).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hrem hfrontier
+
+/-- Positive-definite iid-facing ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the covariance-matrix
+characteristic-function remainder route, with the textbook `iIndepFun`
+premise. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_remainder_posDef
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (Y 0)).PosDef)
+    (hrem : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω ⬝ᵥ a) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+            (1 +
+              scalarGaussianCharFunExponent t
+                  (empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_remainder_posDef
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hS hrem
 
 /-- Indexed normalized ordinary-bootstrap cross moments converge once the
 finite empirical one-draw covariance converges through first and cross moments.
