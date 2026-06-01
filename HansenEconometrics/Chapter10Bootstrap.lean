@@ -97,9 +97,15 @@ used throughout the chapter:
   empirical projected-variance convergence plus the explicit diagonal
   characteristic-function Taylor remainder, and the `*_of_ae_covMat_remainder*`
   variants derive the projected-variance premise from pathwise empirical
-  covariance-matrix convergence.  The `*_of_iid_covMat_remainder*` and
-  `*_of_iIndep_covMat_remainder*` variants discharge that covariance premise
-  from iid finite-second-moment assumptions.
+  covariance-matrix convergence.  The `*_of_ae_charFun_tail*` variants
+  discharge that explicit remainder from `centeredEmpiricalTailSqFinSucc`, and
+  the `*_of_ae_covMat_tail*` variants combine the same centered-tail bridge
+  with pathwise empirical covariance-matrix convergence.  `empiricalTailSqFinSucc`
+  and `empiricalTailSqFinSucc_tendsto_ae_wlln` supply the fixed-threshold
+  uncentered square-tail strong-law layer used to build the remaining iid
+  centered-tail premise.  The
+  `*_of_iid_covMat_remainder*` and `*_of_iIndep_covMat_remainder*` variants
+  discharge the covariance premise from iid finite-second-moment assumptions.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -271,13 +277,26 @@ used throughout the chapter:
   `centeredEmpiricalCharFunFinSucc`, and
   `centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto`
   package the diagonal `Fin (n+1)` changing-support power bridge from
-  empirical variance convergence plus an explicit Taylor remainder, while
+  empirical variance convergence plus an explicit Taylor remainder.
+  `empiricalTailSqFinSucc`, `centeredEmpiricalTailSqFinSucc`,
+  `centeredEmpiricalTailSqFinSucc_le_const_mul_empiricalTailSqFinSucc`,
+  `centeredEmpiricalTailSqFinSucc_tendsto_zero_of_empiricalMean_tendsto_tail`,
+  `centeredEmpiricalCharFunFinSucc_remainder_norm_le_integral_split`,
+  `centeredEmpiricalCharFunFinSucc_remainder_scaled_norm_le`, and
+  `centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail`
+  discharge that remainder from empirical variance convergence plus centered
+  Lindeberg tails; `empiricalTailSqFinSucc_tendsto_ae_wlln` and its `iIndepFun`
+  wrapper provide the corresponding fixed-threshold uncentered square-tail
+  strong law.  Meanwhile,
   `charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto`
-  transfers that power limit to the actual normalized ordinary-bootstrap
+  and
+  `charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto_tail`
+  transfer those power limits to the actual normalized ordinary-bootstrap
   resample mean's conditional characteristic function.  The projected Gaussian
   bridge `charFun_map_multivariateGaussian_zero_dotProduct_eq_exp` rewrites the
   scalar exponent as the characteristic function of the projected Gaussian
-  limit used by the theorem-facing CLT wrappers.
+  limit used by the theorem-facing CLT wrappers, including the
+  `*_of_ae_charFun_tail*` and `*_of_ae_covMat_tail*` variants.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -1646,6 +1665,253 @@ noncomputable def centeredEmpiricalCharFunFinSucc
         Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)))
     u
 
+/-- Centered finite empirical square-tail integral.
+
+This is the scalar Lindeberg tail for the centered one-draw empirical
+bootstrap summand, evaluated at a deterministic scale `u`. -/
+noncomputable def centeredEmpiricalTailSqFinSucc
+    (Y : ℕ → ℝ) (n : ℕ) (u δ : ℝ) : ℝ :=
+  ∫ i : Fin (n + 1),
+    Set.indicator
+      {i : Fin (n + 1) |
+        δ ≤ |u * (Y i.val -
+          empiricalMean (fun j : Fin (n + 1) => Y j.val))|}
+      (fun i =>
+        (Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)) ^ 2) i
+    ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+      Measure (Fin (n + 1)))
+
+/-- Uncentered finite empirical square-tail integral.
+
+This records the fixed-threshold square tails used to dominate the centered
+moving `sqrt n` tails in the diagonal characteristic-function argument. -/
+noncomputable def empiricalTailSqFinSucc
+    (Y : ℕ → ℝ) (n : ℕ) (R : ℝ) : ℝ :=
+  ∫ i : Fin (n + 1),
+    Set.indicator {i : Fin (n + 1) | R ≤ |Y i.val|}
+      (fun i => (Y i.val) ^ 2) i
+    ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+      Measure (Fin (n + 1)))
+
+/-- Centered empirical square tails are dominated by fixed uncentered square
+tails once the empirical mean is bounded and the moving scaled-tail event
+implies the fixed raw-tail event. -/
+theorem centeredEmpiricalTailSqFinSucc_le_const_mul_empiricalTailSqFinSucc
+    (Y : ℕ → ℝ) (n : ℕ) {u δ M R : ℝ}
+    (hM :
+      |empiricalMean (fun i : Fin (n + 1) => Y i.val)| ≤ M)
+    (hR : 1 ≤ R)
+    (himp : ∀ i : Fin (n + 1),
+      δ ≤ |u * (Y i.val -
+        empiricalMean (fun j : Fin (n + 1) => Y j.val))| →
+      R ≤ |Y i.val|) :
+    centeredEmpiricalTailSqFinSucc Y n u δ ≤
+      (2 + 2 * M ^ 2) * empiricalTailSqFinSucc Y n R := by
+  classical
+  let P : Measure (Fin (n + 1)) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+  let m : ℝ := empiricalMean (fun i : Fin (n + 1) => Y i.val)
+  let scaledTail : Set (Fin (n + 1)) :=
+    {i : Fin (n + 1) | δ ≤ |u * (Y i.val - m)|}
+  let rawTail : Set (Fin (n + 1)) :=
+    {i : Fin (n + 1) | R ≤ |Y i.val|}
+  have hM_nonneg : 0 ≤ M :=
+    (abs_nonneg m).trans hM
+  have hcoeff_nonneg : 0 ≤ 2 + 2 * M ^ 2 := by positivity
+  have hleft_int :
+      Integrable
+        (fun i : Fin (n + 1) =>
+          Set.indicator scaledTail (fun i => (Y i.val - m) ^ 2) i)
+        P :=
+    Integrable.of_finite
+  have hright_int :
+      Integrable
+        (fun i : Fin (n + 1) =>
+          (2 + 2 * M ^ 2) *
+            Set.indicator rawTail (fun i => (Y i.val) ^ 2) i)
+        P :=
+    Integrable.of_finite
+  change
+    ∫ i : Fin (n + 1),
+        Set.indicator scaledTail (fun i => (Y i.val - m) ^ 2) i ∂P ≤
+      (2 + 2 * M ^ 2) *
+        ∫ i : Fin (n + 1),
+          Set.indicator rawTail (fun i => (Y i.val) ^ 2) i ∂P
+  rw [← integral_const_mul]
+  refine integral_mono hleft_int hright_int ?_
+  intro i
+  by_cases hscaled : i ∈ scaledTail
+  · have hraw : i ∈ rawTail := by
+      exact himp i hscaled
+    rw [Set.indicator_of_mem hscaled]
+    change (Y i.val - m) ^ 2 ≤
+      (2 + 2 * M ^ 2) *
+        Set.indicator rawTail (fun i => (Y i.val) ^ 2) i
+    rw [Set.indicator_of_mem hraw]
+    have hy_abs_one : 1 ≤ |Y i.val| := hR.trans hraw
+    have hy_sq_one : 1 ≤ (Y i.val) ^ 2 := by
+      have hmul :=
+        mul_le_mul_of_nonneg_right hy_abs_one (abs_nonneg (Y i.val))
+      exact hy_abs_one.trans (by simpa [sq_abs, pow_two] using hmul)
+    have hm_sq_le : m ^ 2 ≤ M ^ 2 := by
+      have hpow := pow_le_pow_left₀ (abs_nonneg m) hM 2
+      simpa [sq_abs] using hpow
+    have hbasic : (Y i.val - m) ^ 2 ≤ 2 * (Y i.val) ^ 2 + 2 * m ^ 2 := by
+      nlinarith [sq_nonneg (Y i.val + m)]
+    have hM_sq_mul : M ^ 2 ≤ M ^ 2 * (Y i.val) ^ 2 := by
+      calc
+        M ^ 2 = M ^ 2 * 1 := by ring
+        _ ≤ M ^ 2 * (Y i.val) ^ 2 :=
+          mul_le_mul_of_nonneg_left hy_sq_one (sq_nonneg M)
+    nlinarith
+  · rw [Set.indicator_of_notMem hscaled]
+    exact mul_nonneg hcoeff_nonneg
+      (Set.indicator_nonneg (fun i _ => sq_nonneg (Y i.val)) i)
+
+/-- Centered empirical square tails vanish when empirical means are bounded
+and fixed uncentered empirical square tails can be made uniformly small.
+
+This deterministic constructor is the pathwise truncation bridge needed to
+turn strong-law fixed-tail controls into the centered moving Lindeberg tail used
+by the Taylor remainder. -/
+theorem centeredEmpiricalTailSqFinSucc_tendsto_zero_of_empiricalMean_tendsto_tail
+    (Y : ℕ → ℝ) {m : ℝ}
+    (hmean :
+      Tendsto
+        (fun n : ℕ =>
+          empiricalMean (fun i : Fin (n + 1) => Y i.val))
+        atTop (𝓝 m))
+    (htail : ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+      ∀ᶠ n in atTop, empiricalTailSqFinSucc Y n R ≤ ε)
+    (u : ℝ) {δ : ℝ} (hδ : 0 < δ) :
+    Tendsto
+      (fun n : ℕ =>
+        centeredEmpiricalTailSqFinSucc Y n
+          ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ)
+      atTop (𝓝 0) := by
+  classical
+  let M : ℝ := |m| + 1
+  have hM_nonneg : 0 ≤ M := by
+    dsimp [M]
+    positivity
+  have hmean_bound :
+      ∀ᶠ n in atTop,
+        |empiricalMean (fun i : Fin (n + 1) => Y i.val)| ≤ M := by
+    have hball : Metric.ball m (1 : ℝ) ∈ 𝓝 m :=
+      Metric.ball_mem_nhds _ zero_lt_one
+    filter_upwards [hmean.eventually hball] with n hn
+    have habs : |empiricalMean (fun i : Fin (n + 1) => Y i.val) - m| < 1 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hn
+    have htri :
+        |empiricalMean (fun i : Fin (n + 1) => Y i.val)| ≤
+          |empiricalMean (fun i : Fin (n + 1) => Y i.val) - m| + |m| := by
+      calc
+        |empiricalMean (fun i : Fin (n + 1) => Y i.val)| =
+            |(empiricalMean (fun i : Fin (n + 1) => Y i.val) - m) + m| := by
+              rw [sub_add_cancel]
+        _ ≤ |empiricalMean (fun i : Fin (n + 1) => Y i.val) - m| + |m| :=
+            abs_add_le _ _
+    dsimp [M]
+    linarith
+  have hscale :
+      Tendsto (fun n : ℕ => (Real.sqrt (n + 1 : ℝ))⁻¹ * u) atTop (𝓝 0) := by
+    have hnat : Tendsto (fun n : ℕ => (n + 1 : ℝ)) atTop atTop := by
+      refine ((tendsto_natCast_atTop_atTop (R := ℝ)).comp
+        (tendsto_add_atTop_nat 1)).congr' ?_
+      exact Eventually.of_forall fun n => by simp [Nat.cast_add]
+    rw [← zero_mul u]
+    exact .mul_const u (tendsto_inv_atTop_zero.comp <|
+      Real.tendsto_sqrt_atTop.comp hnat)
+  refine tendsto_order.2 ⟨?_, ?_⟩
+  · intro a ha
+    filter_upwards with n
+    have hnonneg :
+        0 ≤
+          centeredEmpiricalTailSqFinSucc Y n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ := by
+      dsimp [centeredEmpiricalTailSqFinSucc]
+      exact integral_nonneg fun i =>
+        Set.indicator_nonneg
+          (fun i _ =>
+            sq_nonneg
+              (Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val))) i
+    linarith
+  · intro a ha
+    let C : ℝ := 2 + 2 * M ^ 2
+    have hC_nonneg : 0 ≤ C := by
+      dsimp [C]
+      positivity
+    have hCden_pos : 0 < C + 1 := by positivity
+    let εtail : ℝ := a / (C + 1)
+    have hεtail_pos : 0 < εtail := by
+      dsimp [εtail]
+      positivity
+    rcases htail εtail hεtail_pos with ⟨R, hR, htail_event⟩
+    have hR_nonneg : 0 ≤ R := by linarith
+    have hRM_nonneg : 0 ≤ R + M := add_nonneg hR_nonneg hM_nonneg
+    have hscale_event :
+        ∀ᶠ (n : ℕ) in atTop,
+          |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * (R + M) < δ := by
+      have hscale_abs :
+          Tendsto
+            (fun n : ℕ => |(Real.sqrt (n + 1 : ℝ))⁻¹ * u|)
+            atTop (𝓝 0) := by
+        simpa only [Function.comp_apply, abs_zero] using
+          (continuous_abs.tendsto 0).comp hscale
+      have hprod :
+          Tendsto
+            (fun n : ℕ =>
+              |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * (R + M))
+            atTop (𝓝 0) := by
+        simpa using hscale_abs.mul_const (R + M)
+      exact hprod.eventually (Iio_mem_nhds hδ)
+    have hC_eps_lt : C * εtail < a := by
+      have hfrac : C / (C + 1) < 1 := by
+        rw [div_lt_one hCden_pos]
+        linarith
+      have heq : C * εtail = a * (C / (C + 1)) := by
+        dsimp [εtail]
+        field_simp [hCden_pos.ne']
+      rw [heq]
+      calc
+        a * (C / (C + 1)) < a * 1 :=
+          mul_lt_mul_of_pos_left hfrac ha
+        _ = a := by ring
+    filter_upwards [hmean_bound, htail_event, hscale_event] with n hmean_n htail_n hscale_n
+    have hle :=
+      centeredEmpiricalTailSqFinSucc_le_const_mul_empiricalTailSqFinSucc
+        (Y := Y) (n := n) (u := (Real.sqrt (n + 1 : ℝ))⁻¹ * u)
+        (δ := δ) (M := M) (R := R) hmean_n hR ?_
+    · have hmul_le : C * empiricalTailSqFinSucc Y n R ≤ C * εtail :=
+        mul_le_mul_of_nonneg_left htail_n hC_nonneg
+      exact lt_of_le_of_lt (hle.trans hmul_le) hC_eps_lt
+    · intro i hi
+      by_contra hnot
+      have hy_lt : |Y i.val| < R := not_le.mp hnot
+      let mean_n : ℝ := empiricalMean (fun j : Fin (n + 1) => Y j.val)
+      have hdiff_abs :
+          |Y i.val - mean_n| ≤ |Y i.val| + |mean_n| := by
+        simpa [sub_eq_add_neg] using abs_add_le (Y i.val) (-mean_n)
+      have hdiff_lt : |Y i.val - mean_n| < R + M := by
+        dsimp [mean_n]
+        linarith
+      have hscale_abs_nonneg : 0 ≤ |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| :=
+        abs_nonneg _
+      have hprod_le :
+          |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * |Y i.val - mean_n| ≤
+            |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * (R + M) :=
+        mul_le_mul_of_nonneg_left hdiff_lt.le hscale_abs_nonneg
+      have hscaled_lt :
+          |((Real.sqrt (n + 1 : ℝ))⁻¹ * u) *
+              (Y i.val - mean_n)| < δ := by
+        calc
+          |((Real.sqrt (n + 1 : ℝ))⁻¹ * u) * (Y i.val - mean_n)| =
+              |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * |Y i.val - mean_n| := by
+                rw [abs_mul]
+          _ ≤ |(Real.sqrt (n + 1 : ℝ))⁻¹ * u| * (R + M) := hprod_le
+          _ < δ := hscale_n
+      exact not_le_of_gt hscaled_lt hi
+
 /-- Scalar Gaussian characteristic-function exponent `-t² σ² / 2`. -/
 noncomputable def scalarGaussianCharFunExponent (t variance : ℝ) : ℂ :=
   -((t : ℂ) ^ 2 * (variance : ℂ) / 2)
@@ -1654,6 +1920,737 @@ noncomputable def scalarGaussianCharFunExponent (t variance : ℝ) : ℂ :=
 statements. -/
 noncomputable def complexInvNatSucc (n : ℕ) : ℂ :=
   (Nat.succ n : ℂ)⁻¹
+
+private theorem complex_exp_I_sub_quadratic_isLittleO :
+    (fun x : ℝ =>
+      Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)) =o[𝓝 0]
+      fun x : ℝ => x ^ 2 := by
+  let δ₁ : Measure ℝ := Measure.dirac (1 : ℝ)
+  have hmem : MemLp id 2 δ₁ := by
+    exact MemLp.ae_eq (ae_eq_dirac (fun x : ℝ => x)).symm
+      (memLp_const (1 : ℝ))
+  have ht :
+      (fun x : ℝ => charFun δ₁ x - taylorWithinEval (charFun δ₁) 2 Set.univ 0 x) =o[𝓝 0]
+        fun x : ℝ => (x - 0) ^ 2 :=
+    taylor_isLittleO_univ
+      (f := charFun δ₁) (x₀ := 0) (n := 2) (contDiff_charFun hmem)
+  refine ht.congr' ?_ ?_
+  · filter_upwards with x
+    rw [taylorWithinEval_charFun_zero hmem]
+    rw [charFun_apply_real]
+    norm_num [δ₁, Finset.sum_range_succ]
+    have hsq : ((x : ℂ) * Complex.I) ^ 2 = -((x : ℂ) ^ 2) := by
+      rw [mul_pow, Complex.I_sq]
+      ring
+    rw [hsq]
+    ring
+  · filter_upwards with x
+    ring
+
+private theorem complex_exp_I_sub_quadratic_norm_le (x : ℝ) :
+    ‖Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ ≤
+      2 + |x| + x ^ 2 / 2 := by
+  let e : ℂ := Complex.exp ((x : ℂ) * Complex.I)
+  let a : ℂ := (x : ℂ) * Complex.I
+  let b : ℂ := (x : ℂ) ^ 2 / 2
+  have he : ‖e‖ = 1 := by
+    simp [e]
+  have ha : ‖a‖ = |x| := by
+    simp [a, Real.norm_eq_abs]
+  have hb : ‖b‖ = x ^ 2 / 2 := by
+    simp [b, Real.norm_eq_abs, sq_abs]
+  have hpoly : ‖1 + a - b‖ ≤ ‖(1 : ℂ)‖ + ‖a‖ + ‖b‖ := by
+    calc
+      ‖1 + a - b‖ ≤ ‖1 + a‖ + ‖b‖ := by
+        simpa [sub_eq_add_neg] using norm_add_le (1 + a) (-b)
+      _ ≤ (‖(1 : ℂ)‖ + ‖a‖) + ‖b‖ := by
+        linarith [norm_add_le (1 : ℂ) a]
+      _ = ‖(1 : ℂ)‖ + ‖a‖ + ‖b‖ := by ring
+  calc
+    ‖Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ =
+        ‖e - (1 + a - b)‖ := rfl
+    _ ≤ ‖e‖ + ‖1 + a - b‖ := norm_sub_le e (1 + a - b)
+    _ ≤ ‖e‖ + (‖(1 : ℂ)‖ + ‖a‖ + ‖b‖) := by
+      linarith
+    _ = 2 + |x| + x ^ 2 / 2 := by
+      rw [he, ha, hb]
+      norm_num
+      ring
+
+private theorem complex_exp_I_sub_quadratic_norm_le_const_mul_sq_of_le_abs
+    {δ x : ℝ} (hδ : 0 < δ) (hx : δ ≤ |x|) :
+    ‖Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ ≤
+      (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) * x ^ 2 := by
+  have hbase := complex_exp_I_sub_quadratic_norm_le x
+  have hδ_ne : δ ≠ 0 := hδ.ne'
+  have hδ2_le_x2 : δ ^ 2 ≤ x ^ 2 := by
+    simpa [sq_abs] using pow_le_pow_left₀ hδ.le hx 2
+  have htwo_le : 2 ≤ (2 * δ⁻¹ ^ 2) * x ^ 2 := by
+    have hscale_nonneg : 0 ≤ 2 * δ⁻¹ ^ 2 := by positivity
+    have hmul :
+        (2 * δ⁻¹ ^ 2) * δ ^ 2 ≤ (2 * δ⁻¹ ^ 2) * x ^ 2 :=
+      mul_le_mul_of_nonneg_left hδ2_le_x2 hscale_nonneg
+    have hleft : (2 * δ⁻¹ ^ 2) * δ ^ 2 = 2 := by
+      field_simp [hδ_ne]
+    calc
+      2 = (2 * δ⁻¹ ^ 2) * δ ^ 2 := hleft.symm
+      _ ≤ (2 * δ⁻¹ ^ 2) * x ^ 2 := hmul
+  have habs_le : |x| ≤ δ⁻¹ * x ^ 2 := by
+    have hmul :
+        δ * |x| ≤ |x| * |x| :=
+      mul_le_mul_of_nonneg_right hx (abs_nonneg x)
+    have hmul' : δ * |x| ≤ x ^ 2 := by
+      simpa [sq_abs, pow_two] using hmul
+    have hscale :
+        δ⁻¹ * (δ * |x|) ≤ δ⁻¹ * x ^ 2 :=
+      mul_le_mul_of_nonneg_left hmul' (inv_nonneg.mpr hδ.le)
+    have hleft : δ⁻¹ * (δ * |x|) = |x| := by
+      field_simp [hδ_ne]
+    calc
+      |x| = δ⁻¹ * (δ * |x|) := hleft.symm
+      _ ≤ δ⁻¹ * x ^ 2 := hscale
+  calc
+    ‖Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ ≤
+        2 + |x| + x ^ 2 / 2 := hbase
+    _ ≤ (2 * δ⁻¹ ^ 2) * x ^ 2 + δ⁻¹ * x ^ 2 + (1 / 2) * x ^ 2 := by
+      nlinarith [htwo_le, habs_le]
+    _ = (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) * x ^ 2 := by ring
+
+private theorem complex_exp_I_sub_quadratic_norm_le_eta_mul_sq_near_zero
+    {η : ℝ} (hη : 0 < η) :
+    ∃ δ : ℝ, 0 < δ ∧ ∀ x : ℝ, |x| < δ →
+      ‖Complex.exp ((x : ℂ) * Complex.I) -
+          (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ ≤
+        η * x ^ 2 := by
+  have hnear := complex_exp_I_sub_quadratic_isLittleO.def hη
+  rcases Metric.mem_nhds_iff.1 hnear with ⟨δ, hδ, hδsub⟩
+  refine ⟨δ, hδ, fun x hx => ?_⟩
+  have hxball : x ∈ Metric.ball (0 : ℝ) δ := by
+    simpa [Real.dist_eq, abs_sub_comm] using hx
+  have hle := hδsub hxball
+  simpa [Real.norm_eq_abs, sq_abs] using hle
+
+private theorem complex_exp_I_sub_quadratic_norm_le_split
+    {δ η x : ℝ} (hδ : 0 < δ) (hη : 0 ≤ η)
+    (hsmall : ∀ y : ℝ, |y| < δ →
+      ‖Complex.exp ((y : ℂ) * Complex.I) -
+          (1 + (y : ℂ) * Complex.I - (y : ℂ) ^ 2 / 2)‖ ≤
+        η * y ^ 2) :
+    ‖Complex.exp ((x : ℂ) * Complex.I) -
+        (1 + (x : ℂ) * Complex.I - (x : ℂ) ^ 2 / 2)‖ ≤
+      η * x ^ 2 +
+        (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) *
+          Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) x := by
+  by_cases hxsmall : |x| < δ
+  · have hnot : x ∉ {y : ℝ | δ ≤ |y|} := by
+      exact not_le.mpr hxsmall
+    rw [Set.indicator_of_notMem hnot]
+    have hsq_nonneg : 0 ≤ x ^ 2 := sq_nonneg x
+    have htail_nonneg :
+        0 ≤ (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) * 0 := by norm_num
+    nlinarith [hsmall x hxsmall]
+  · have htail : δ ≤ |x| := le_of_not_gt hxsmall
+    have hmem : x ∈ {y : ℝ | δ ≤ |y|} := htail
+    rw [Set.indicator_of_mem hmem]
+    have hglobal :=
+      complex_exp_I_sub_quadratic_norm_le_const_mul_sq_of_le_abs hδ htail
+    have hsq_nonneg : 0 ≤ x ^ 2 := sq_nonneg x
+    have hηterm_nonneg : 0 ≤ η * x ^ 2 := mul_nonneg hη hsq_nonneg
+    nlinarith [hglobal, hηterm_nonneg]
+
+/-- Finite empirical characteristic-function Taylor remainder bound.
+
+For the ordinary `Fin (n+1)` empirical one-draw law, the diagonal
+characteristic-function remainder is bounded by the empirical integral of the
+pointwise second-order exponential remainder.  The right side is split into a
+small quadratic term and a large-tail quadratic term, matching the Lindeberg
+calculation used in Hansen Theorem 10.4. -/
+theorem centeredEmpiricalCharFunFinSucc_remainder_norm_le_integral_split
+    (Y : ℕ → ℝ) (n : ℕ) (t δ η : ℝ)
+    (hδ : 0 < δ) (hη : 0 ≤ η)
+    (hsmall : ∀ y : ℝ, |y| < δ →
+      ‖Complex.exp ((y : ℂ) * Complex.I) -
+          (1 + (y : ℂ) * Complex.I - (y : ℂ) ^ 2 / 2)‖ ≤
+        η * y ^ 2) :
+    ‖centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+        (1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n)‖ ≤
+      ∫ i : Fin (n + 1),
+        η *
+            (((Real.sqrt (n + 1 : ℝ))⁻¹ * t) *
+              (Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val))) ^ 2 +
+          (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) *
+            Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2)
+              (((Real.sqrt (n + 1 : ℝ))⁻¹ * t) *
+                (Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)))
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1))) := by
+  classical
+  let P : Measure (Fin (n + 1)) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+  let Z : Fin (n + 1) → ℝ :=
+    fun i => Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)
+  let u : ℝ := (Real.sqrt (n + 1 : ℝ))⁻¹ * t
+  let C : ℝ := 2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2
+  change
+    ‖centeredEmpiricalCharFunFinSucc Y n u -
+        (1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n)‖ ≤
+      ∫ i : Fin (n + 1),
+        η * (u * Z i) ^ 2 +
+          C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+        ∂P
+  have hcenter : ∫ i, Z i ∂P = 0 := by
+    simpa [P, Z] using
+      integral_uniformOn_univ_sub_empiricalMean_eq_zero
+        (Y := fun j : Fin (n + 1) => Y j.val)
+  have hsecond :
+      ∫ i, (Z i) ^ 2 ∂P = empiricalVarianceFinSucc Y n := by
+    simpa [P, Z, empiricalVarianceFinSucc] using
+      integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance
+        (Y := fun j : Fin (n + 1) => Y j.val)
+  have hNpos : 0 < ((n + 1 : ℕ) : ℝ) := by positivity
+  have hsqrt_ne : Real.sqrt ((n + 1 : ℕ) : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hNpos).ne'
+  have hu2_real :
+      u ^ 2 = t ^ 2 * (((n + 1 : ℕ) : ℝ))⁻¹ := by
+    have hsqrt_sq :
+        Real.sqrt ((n : ℝ) + 1) ^ 2 = (n : ℝ) + 1 :=
+      Real.sq_sqrt (by positivity)
+    dsimp [u]
+    norm_num [Nat.cast_add]
+    rw [mul_pow]
+    rw [show (Real.sqrt ((n : ℝ) + 1))⁻¹ ^ 2 = ((n : ℝ) + 1)⁻¹ by
+      have hNne : (n : ℝ) + 1 ≠ 0 := by positivity
+      have hsqrt_ne' : Real.sqrt ((n : ℝ) + 1) ≠ 0 := by
+        exact (Real.sqrt_pos.2 (by positivity)).ne'
+      field_simp [hsqrt_ne', hNne]
+      rw [hsqrt_sq]]
+    ring
+  have hu2_complex :
+      (u : ℂ) ^ 2 = (t : ℂ) ^ 2 * complexInvNatSucc n := by
+    calc
+      (u : ℂ) ^ 2 = ((u ^ 2 : ℝ) : ℂ) := by norm_num
+      _ = ((t ^ 2 * (((n + 1 : ℕ) : ℝ))⁻¹ : ℝ) : ℂ) := by
+        rw [hu2_real]
+      _ = (t : ℂ) ^ 2 * complexInvNatSucc n := by
+        simp [complexInvNatSucc, Nat.succ_eq_add_one]
+  let expTerm : Fin (n + 1) → ℂ :=
+    fun i => Complex.exp (((u * Z i : ℝ) : ℂ) * Complex.I)
+  let constTerm : Fin (n + 1) → ℂ := fun _ => 1
+  let linTerm : Fin (n + 1) → ℂ :=
+    fun i => ((u * Z i : ℝ) : ℂ) * Complex.I
+  let sqTerm : Fin (n + 1) → ℂ :=
+    fun i => ((u * Z i : ℝ) : ℂ) ^ 2 / 2
+  let quadTerm : Fin (n + 1) → ℂ :=
+    fun i => constTerm i + linTerm i - sqTerm i
+  let remTerm : Fin (n + 1) → ℂ := fun i => expTerm i - quadTerm i
+  have hphi :
+      centeredEmpiricalCharFunFinSucc Y n u = ∫ i, expTerm i ∂P := by
+    change charFun (P.map Z) u = ∫ i, expTerm i ∂P
+    rw [charFun_apply_real,
+      integral_map (by exact (measurable_of_finite Z).aemeasurable) (by fun_prop)]
+    simp [expTerm, mul_assoc]
+  have hconst_int : Integrable constTerm P :=
+    integrable_const _
+  have hlin_int : Integrable linTerm P :=
+    Integrable.of_finite
+  have hquad_int : Integrable sqTerm P :=
+    Integrable.of_finite
+  have hlinear :
+      ∫ i, linTerm i ∂P = 0 := by
+    change ∫ i, ((u * Z i : ℝ) : ℂ) * Complex.I ∂P = 0
+    calc
+      ∫ i, ((u * Z i : ℝ) : ℂ) * Complex.I ∂P =
+          (∫ i, ((u * Z i : ℝ) : ℂ) ∂P) * Complex.I := by
+            exact integral_mul_const (μ := P) Complex.I
+              (fun i : Fin (n + 1) => ((u * Z i : ℝ) : ℂ))
+      _ = ((∫ i, u * Z i ∂P : ℝ) : ℂ) * Complex.I := by
+            rw [integral_complex_ofReal]
+      _ = ((u * ∫ i, Z i ∂P : ℝ) : ℂ) * Complex.I := by
+            rw [integral_const_mul]
+      _ = 0 := by
+            rw [hcenter]
+            simp
+  have hquad_real :
+      ∫ i, (u * Z i) ^ 2 / 2 ∂P =
+        u ^ 2 * empiricalVarianceFinSucc Y n / 2 := by
+    have hfun :
+        (fun i : Fin (n + 1) => (u * Z i) ^ 2 / 2) =
+          fun i : Fin (n + 1) => (u ^ 2 / 2) * (Z i) ^ 2 := by
+      funext i
+      ring
+    rw [hfun, integral_const_mul, hsecond]
+    ring
+  have hquad :
+      ∫ i, sqTerm i ∂P =
+        (u : ℂ) ^ 2 * (empiricalVarianceFinSucc Y n : ℂ) / 2 := by
+    change
+      ∫ i, ((u * Z i : ℝ) : ℂ) ^ 2 / 2 ∂P =
+        (u : ℂ) ^ 2 * (empiricalVarianceFinSucc Y n : ℂ) / 2
+    have hfun :
+        (fun i : Fin (n + 1) => ((u * Z i : ℝ) : ℂ) ^ 2 / 2) =
+          fun i : Fin (n + 1) => (((u * Z i) ^ 2 / 2 : ℝ) : ℂ) := by
+      funext i
+      norm_num
+    rw [hfun, integral_complex_ofReal, hquad_real]
+    norm_num
+  have hpoly_int :
+      ∫ i, quadTerm i ∂P =
+        1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n := by
+    have hconst : ∫ i, constTerm i ∂P = 1 := by
+      simp [P, constTerm]
+    calc
+      ∫ i, quadTerm i ∂P =
+          ∫ i, (constTerm i + linTerm i) - sqTerm i ∂P := rfl
+      _ =
+          ∫ i, constTerm i + linTerm i ∂P -
+            ∫ i, sqTerm i ∂P :=
+            integral_sub (hconst_int.add hlin_int) hquad_int
+      _ =
+          (∫ i, constTerm i ∂P) + ∫ i, linTerm i ∂P -
+            ∫ i, sqTerm i ∂P := by
+            rw [integral_add hconst_int hlin_int]
+      _ = 1 - ((u : ℂ) ^ 2 * (empiricalVarianceFinSucc Y n : ℂ) / 2) := by
+            rw [hconst, hlinear, hquad]
+            ring
+      _ = 1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n := by
+            rw [hu2_complex]
+            simp [scalarGaussianCharFunExponent]
+            ring
+  have hexp_int : Integrable expTerm P := Integrable.of_finite
+  have hquadTerm_int : Integrable quadTerm P :=
+    (hconst_int.add hlin_int).sub hquad_int
+  have hrem_eq :
+      centeredEmpiricalCharFunFinSucc Y n u -
+          (1 +
+            scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n) =
+        ∫ i, remTerm i ∂P := by
+    calc
+      centeredEmpiricalCharFunFinSucc Y n u -
+          (1 +
+            scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n) =
+          ∫ i, expTerm i ∂P - ∫ i, quadTerm i ∂P := by
+            rw [hphi, hpoly_int]
+      _ = ∫ i, expTerm i - quadTerm i ∂P := by
+            rw [integral_sub hexp_int hquadTerm_int]
+      _ = ∫ i, remTerm i ∂P := rfl
+  have hbound_int :
+      Integrable
+        (fun i : Fin (n + 1) =>
+          η * (u * Z i) ^ 2 +
+            C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i))
+        P :=
+    Integrable.of_finite
+  have hpoint :
+      ∀ i : Fin (n + 1),
+        ‖remTerm i‖ ≤
+          η * (u * Z i) ^ 2 +
+            C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i) := by
+    intro i
+    simpa [remTerm, expTerm, quadTerm, constTerm, linTerm, sqTerm, C,
+      Complex.ofReal_mul] using
+      complex_exp_I_sub_quadratic_norm_le_split
+        (x := u * Z i) hδ hη hsmall
+  calc
+    ‖centeredEmpiricalCharFunFinSucc Y n u -
+        (1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n)‖ =
+        ‖∫ i, remTerm i ∂P‖ := by rw [hrem_eq]
+    _ ≤
+        ∫ i : Fin (n + 1),
+          η * (u * Z i) ^ 2 +
+            C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+          ∂P :=
+        norm_integral_le_of_norm_le hbound_int (ae_of_all P hpoint)
+
+/-- Scaled finite empirical characteristic-function Taylor remainder bound.
+
+After multiplying by `n+1`, the small part of the empirical Taylor bound is
+`η t²` times the empirical variance and the large part is `t²` times the
+centered Lindeberg tail. -/
+theorem centeredEmpiricalCharFunFinSucc_remainder_scaled_norm_le
+    (Y : ℕ → ℝ) (n : ℕ) (t δ η : ℝ)
+    (hδ : 0 < δ) (hη : 0 ≤ η)
+    (hsmall : ∀ y : ℝ, |y| < δ →
+      ‖Complex.exp ((y : ℂ) * Complex.I) -
+          (1 + (y : ℂ) * Complex.I - (y : ℂ) ^ 2 / 2)‖ ≤
+        η * y ^ 2) :
+    ((n + 1 : ℕ) : ℝ) *
+        ‖centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) -
+          (1 +
+            scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)‖ ≤
+      η * t ^ 2 * empiricalVarianceFinSucc Y n +
+        (2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2) * t ^ 2 *
+          ∫ i : Fin (n + 1),
+            Set.indicator
+              {i : Fin (n + 1) |
+                δ ≤
+                  |((Real.sqrt (n + 1 : ℝ))⁻¹ * t) *
+                    (Y i.val -
+                      empiricalMean (fun j : Fin (n + 1) => Y j.val))|}
+              (fun i =>
+                (Y i.val -
+                  empiricalMean (fun j : Fin (n + 1) => Y j.val)) ^ 2) i
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))) := by
+  classical
+  let P : Measure (Fin (n + 1)) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+  let Z : Fin (n + 1) → ℝ :=
+    fun i => Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)
+  let u : ℝ := (Real.sqrt (n + 1 : ℝ))⁻¹ * t
+  let N : ℝ := ((n + 1 : ℕ) : ℝ)
+  let C : ℝ := 2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2
+  let tail : Fin (n + 1) → ℝ :=
+    fun i => Set.indicator {i : Fin (n + 1) | δ ≤ |u * Z i|}
+      (fun i => (Z i) ^ 2) i
+  change
+    N *
+        ‖centeredEmpiricalCharFunFinSucc Y n u -
+          (1 +
+            scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)‖ ≤
+      η * t ^ 2 * empiricalVarianceFinSucc Y n +
+        C * t ^ 2 * ∫ i : Fin (n + 1), tail i ∂P
+  have hNpos : 0 < N := by
+    dsimp [N]
+    positivity
+  have hNnonneg : 0 ≤ N := hNpos.le
+  have hsecond :
+      ∫ i, (Z i) ^ 2 ∂P = empiricalVarianceFinSucc Y n := by
+    simpa [P, Z, empiricalVarianceFinSucc] using
+      integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance
+        (Y := fun j : Fin (n + 1) => Y j.val)
+  have hu2_real : u ^ 2 = t ^ 2 * N⁻¹ := by
+    have hsqrt_sq :
+        Real.sqrt ((n : ℝ) + 1) ^ 2 = (n : ℝ) + 1 :=
+      Real.sq_sqrt (by positivity)
+    dsimp [u, N]
+    norm_num [Nat.cast_add]
+    rw [mul_pow]
+    rw [show (Real.sqrt ((n : ℝ) + 1))⁻¹ ^ 2 = ((n : ℝ) + 1)⁻¹ by
+      have hNne : (n : ℝ) + 1 ≠ 0 := by positivity
+      have hsqrt_ne' : Real.sqrt ((n : ℝ) + 1) ≠ 0 := by
+        exact (Real.sqrt_pos.2 (by positivity)).ne'
+      field_simp [hsqrt_ne', hNne]
+      rw [hsqrt_sq]]
+    ring
+  have hNu2 : N * u ^ 2 = t ^ 2 := by
+    rw [hu2_real]
+    field_simp [hNpos.ne']
+  have hbound :=
+    centeredEmpiricalCharFunFinSucc_remainder_norm_le_integral_split
+      (Y := Y) (n := n) (t := t) (δ := δ) (η := η) hδ hη hsmall
+  change
+    ‖centeredEmpiricalCharFunFinSucc Y n u -
+        (1 +
+          scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+            complexInvNatSucc n)‖ ≤
+      ∫ i : Fin (n + 1),
+        η * (u * Z i) ^ 2 +
+          C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+        ∂P at hbound
+  have htail_fun :
+      (fun i : Fin (n + 1) =>
+          Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)) =
+        fun i : Fin (n + 1) => u ^ 2 * tail i := by
+    funext i
+    dsimp [tail]
+    by_cases hi : δ ≤ |u * Z i|
+    · have hmem_real : u * Z i ∈ {y : ℝ | δ ≤ |y|} := hi
+      have hmem_tail : i ∈ {i : Fin (n + 1) | δ ≤ |u * Z i|} := hi
+      rw [Set.indicator_of_mem hmem_real, Set.indicator_of_mem hmem_tail]
+      ring
+    · have hnot_real : u * Z i ∉ {y : ℝ | δ ≤ |y|} := hi
+      have hnot_tail : i ∉ {i : Fin (n + 1) | δ ≤ |u * Z i|} := hi
+      rw [Set.indicator_of_notMem hnot_real, Set.indicator_of_notMem hnot_tail]
+      ring
+  have hsmall_fun :
+      (fun i : Fin (n + 1) => η * (u * Z i) ^ 2) =
+        fun i : Fin (n + 1) => (η * u ^ 2) * (Z i) ^ 2 := by
+    funext i
+    ring
+  have hsmall_int :
+      ∫ i : Fin (n + 1), η * (u * Z i) ^ 2 ∂P =
+        η * u ^ 2 * empiricalVarianceFinSucc Y n := by
+    rw [hsmall_fun, integral_const_mul, hsecond]
+  have htail_int :
+      ∫ i : Fin (n + 1),
+          C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+          ∂P =
+        C * u ^ 2 * ∫ i : Fin (n + 1), tail i ∂P := by
+    have hfun :
+        (fun i : Fin (n + 1) =>
+            C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)) =
+          fun i : Fin (n + 1) => (C * u ^ 2) * tail i := by
+      funext i
+      have hi_eq := congr_fun htail_fun i
+      rw [hi_eq]
+      ring
+    rw [hfun, integral_const_mul]
+  have hsum_int :
+      ∫ i : Fin (n + 1),
+          η * (u * Z i) ^ 2 +
+            C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+          ∂P =
+        η * u ^ 2 * empiricalVarianceFinSucc Y n +
+          C * u ^ 2 * ∫ i : Fin (n + 1), tail i ∂P := by
+    rw [integral_add Integrable.of_finite Integrable.of_finite,
+      hsmall_int, htail_int]
+  calc
+    N *
+        ‖centeredEmpiricalCharFunFinSucc Y n u -
+          (1 +
+            scalarGaussianCharFunExponent t (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)‖ ≤
+        N *
+          ∫ i : Fin (n + 1),
+            η * (u * Z i) ^ 2 +
+              C * Set.indicator {y : ℝ | δ ≤ |y|} (fun y => y ^ 2) (u * Z i)
+            ∂P :=
+        mul_le_mul_of_nonneg_left hbound hNnonneg
+    _ = η * t ^ 2 * empiricalVarianceFinSucc Y n +
+        C * t ^ 2 * ∫ i : Fin (n + 1), tail i ∂P := by
+          rw [hsum_int]
+          rw [← hNu2]
+          ring
+
+private theorem isLittleO_complexInvNatSucc_of_natSucc_mul_norm_tendsto_zero
+    {R : ℕ → ℂ}
+    (hR : Tendsto (fun n : ℕ => ((n + 1 : ℕ) : ℝ) * ‖R n‖) atTop (𝓝 0)) :
+    R =o[atTop] fun n : ℕ => complexInvNatSucc n := by
+  refine Asymptotics.IsLittleO.of_bound fun c hc => ?_
+  filter_upwards [hR.eventually (gt_mem_nhds hc)] with n hn
+  have hNpos : 0 < ((n + 1 : ℕ) : ℝ) := by positivity
+  have hnorm_inv :
+      ‖complexInvNatSucc n‖ = (((n + 1 : ℕ) : ℝ))⁻¹ := by
+    have hnat :
+        ‖(((n + 1 : ℕ) : ℂ))‖ = (((n + 1 : ℕ) : ℝ)) := by
+      simpa using Complex.norm_natCast (n + 1)
+    calc
+      ‖complexInvNatSucc n‖ = ‖(((n + 1 : ℕ) : ℂ))⁻¹‖ := by
+        simp [complexInvNatSucc, Nat.succ_eq_add_one]
+      _ = ‖(((n + 1 : ℕ) : ℂ))‖⁻¹ := norm_inv _
+      _ = (((n + 1 : ℕ) : ℝ))⁻¹ := by rw [hnat]
+  have hlt_div : ‖R n‖ < c / (((n + 1 : ℕ) : ℝ)) := by
+    rw [lt_div_iff₀ hNpos]
+    simpa [mul_comm] using hn
+  calc
+    ‖R n‖ ≤ c * (((n + 1 : ℕ) : ℝ))⁻¹ := by
+      simpa [div_eq_mul_inv] using le_of_lt hlt_div
+    _ = c * ‖complexInvNatSucc n‖ := by rw [hnorm_inv]
+
+/-- Diagonal empirical characteristic-function remainder from a scaled norm
+estimate.
+
+This deterministic bridge is the norm-estimate face of the Taylor remainder
+premise used in the changing-support empirical characteristic-function power
+argument: it is enough to show that `n+1` times the norm of the displayed
+second-order remainder tends to zero. -/
+theorem centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_scaled_norm_tendsto_zero
+    (Y : ℕ → ℝ) (u : ℝ)
+    (hscaled :
+      Tendsto
+        (fun n : ℕ =>
+          ((n + 1 : ℕ) : ℝ) *
+            ‖centeredEmpiricalCharFunFinSucc Y n
+                ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+              (1 +
+                scalarGaussianCharFunExponent u
+                    (empiricalVarianceFinSucc Y n) *
+                  complexInvNatSucc n)‖)
+        atTop (𝓝 0)) :
+    ((fun n : ℕ =>
+        centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+          (1 +
+            scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)) =o[atTop]
+      (fun n : ℕ => complexInvNatSucc n)) :=
+  isLittleO_complexInvNatSucc_of_natSucc_mul_norm_tendsto_zero hscaled
+
+/-- Diagonal empirical characteristic-function remainder from bounded
+empirical variance and centered Lindeberg tails.
+
+This deterministic constructor discharges the explicit Taylor-remainder
+premise used by the changing-support characteristic-function bridge once the
+empirical variances are eventually bounded and every centered scaled square
+tail tends to zero. -/
+theorem
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_bound_tail
+    (Y : ℕ → ℝ) (u : ℝ) {B : ℝ} (hB : 0 ≤ B)
+    (hvar_bound : ∀ᶠ n in atTop, empiricalVarianceFinSucc Y n ≤ B)
+    (htail : ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc Y n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ)
+        atTop (𝓝 0)) :
+    ((fun n : ℕ =>
+        centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+          (1 +
+            scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)) =o[atTop]
+      (fun n : ℕ => complexInvNatSucc n)) := by
+  refine
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_scaled_norm_tendsto_zero
+      (Y := Y) (u := u) ?_
+  refine tendsto_order.2 ⟨?_, ?_⟩
+  · intro a ha
+    filter_upwards with n
+    have hnonneg :
+        0 ≤ ((n + 1 : ℕ) : ℝ) *
+          ‖centeredEmpiricalCharFunFinSucc Y n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+            (1 +
+              scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+                complexInvNatSucc n)‖ :=
+      mul_nonneg (Nat.cast_nonneg _) (norm_nonneg _)
+    linarith
+  · intro a ha
+    let D : ℝ := u ^ 2 * B
+    have hD_nonneg : 0 ≤ D := by
+      dsimp [D]
+      exact mul_nonneg (sq_nonneg u) hB
+    let η : ℝ := a / (4 * (D + 1))
+    have hη_pos : 0 < η := by
+      dsimp [η]
+      positivity
+    rcases complex_exp_I_sub_quadratic_norm_le_eta_mul_sq_near_zero hη_pos with
+      ⟨δ, hδ, hsmall⟩
+    let C : ℝ := 2 * δ⁻¹ ^ 2 + δ⁻¹ + 1 / 2
+    let K : ℝ := C * u ^ 2
+    have htailK :
+        Tendsto
+          (fun n : ℕ =>
+            K *
+              centeredEmpiricalTailSqFinSucc Y n
+                ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ)
+          atTop (𝓝 0) := by
+      simpa [K] using tendsto_const_nhds.mul (htail δ hδ)
+    have htail_event :
+        ∀ᶠ n in atTop,
+          K *
+              centeredEmpiricalTailSqFinSucc Y n
+                ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ <
+            a / 2 :=
+      htailK.eventually (Iio_mem_nhds (half_pos ha))
+    filter_upwards [hvar_bound, htail_event] with n hvarn htailn
+    have hle :=
+      centeredEmpiricalCharFunFinSucc_remainder_scaled_norm_le
+        (Y := Y) (n := n) (t := u) (δ := δ) (η := η) hδ hη_pos.le hsmall
+    change
+      ((n + 1 : ℕ) : ℝ) *
+          ‖centeredEmpiricalCharFunFinSucc Y n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+            (1 +
+              scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+                complexInvNatSucc n)‖ ≤
+        η * u ^ 2 * empiricalVarianceFinSucc Y n +
+          C * u ^ 2 *
+            centeredEmpiricalTailSqFinSucc Y n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ at hle
+    have hvar_scaled_le : u ^ 2 * empiricalVarianceFinSucc Y n ≤ D := by
+      dsimp [D]
+      exact mul_le_mul_of_nonneg_left hvarn (sq_nonneg u)
+    have hsmall_le_D :
+        η * u ^ 2 * empiricalVarianceFinSucc Y n ≤ η * D := by
+      calc
+        η * u ^ 2 * empiricalVarianceFinSucc Y n =
+            η * (u ^ 2 * empiricalVarianceFinSucc Y n) := by ring
+        _ ≤ η * D := mul_le_mul_of_nonneg_left hvar_scaled_le hη_pos.le
+    have hηD_le : η * D ≤ a / 4 := by
+      have hD1pos : 0 < D + 1 := by positivity
+      have hfrac : D / (D + 1) ≤ 1 := by
+        rw [div_le_one hD1pos]
+        linarith
+      have heq : η * D = (a / 4) * (D / (D + 1)) := by
+        dsimp [η]
+        field_simp [hD1pos.ne']
+      rw [heq]
+      calc
+        (a / 4) * (D / (D + 1)) ≤ (a / 4) * 1 := by
+          exact mul_le_mul_of_nonneg_left hfrac (by positivity)
+        _ = a / 4 := by ring
+    have hsmall_le : η * u ^ 2 * empiricalVarianceFinSucc Y n ≤ a / 4 :=
+      hsmall_le_D.trans hηD_le
+    have htail_lt :
+        C * u ^ 2 *
+            centeredEmpiricalTailSqFinSucc Y n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ <
+          a / 2 := by
+      simpa [K, mul_assoc] using htailn
+    calc
+      ((n + 1 : ℕ) : ℝ) *
+          ‖centeredEmpiricalCharFunFinSucc Y n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+            (1 +
+              scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+                complexInvNatSucc n)‖ ≤
+          η * u ^ 2 * empiricalVarianceFinSucc Y n +
+            C * u ^ 2 *
+              centeredEmpiricalTailSqFinSucc Y n
+                ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ := hle
+      _ < a := by nlinarith
+
+/-- Diagonal empirical characteristic-function remainder from empirical
+variance convergence and centered Lindeberg tails.
+
+This is the chapter-facing deterministic form used after the projected
+empirical variance has been identified: convergence of that variance supplies
+the eventual bound required by
+`centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_bound_tail`. -/
+theorem
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail
+    (Y : ℕ → ℝ) {σ2 : ℝ}
+    (hvar : Tendsto (fun n : ℕ => empiricalVarianceFinSucc Y n) atTop (𝓝 σ2))
+    (u : ℝ)
+    (htail : ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc Y n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ)
+        atTop (𝓝 0)) :
+    ((fun n : ℕ =>
+        centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+          (1 +
+            scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+              complexInvNatSucc n)) =o[atTop]
+      (fun n : ℕ => complexInvNatSucc n)) := by
+  let B : ℝ := |σ2| + 1
+  have hB : 0 ≤ B := by
+    dsimp [B]
+    positivity
+  have hvar_bound : ∀ᶠ n in atTop, empiricalVarianceFinSucc Y n ≤ B := by
+    have hball :
+        Metric.ball σ2 (1 : ℝ) ∈ 𝓝 σ2 :=
+      Metric.ball_mem_nhds _ zero_lt_one
+    filter_upwards [hvar.eventually hball] with n hn
+    have habs : |empiricalVarianceFinSucc Y n - σ2| < 1 := by
+      simpa [Metric.mem_ball, Real.dist_eq] using hn
+    have hupper : empiricalVarianceFinSucc Y n - σ2 < 1 :=
+      (abs_lt.1 habs).2
+    have hσ_le_abs : σ2 ≤ |σ2| := le_abs_self σ2
+    dsimp [B]
+    linarith
+  exact
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_bound_tail
+      (Y := Y) (u := u) hB hvar_bound htail
 
 /-- Diagonal changing-support characteristic-function power bridge for the
 ordinary `Fin (n+1)` empirical law.
@@ -4089,6 +5086,48 @@ theorem
     simpa [centeredEmpiricalCharFunFinSucc] using
       (charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
         (Y := Y) n ω u).symm
+
+/-- Pathwise characteristic-function convergence for the normalized ordinary
+bootstrap sample mean from empirical variance convergence and centered
+Lindeberg tails.
+
+This is the scalar pathwise face of Hansen Theorem 10.4 after the diagonal
+Taylor remainder has been discharged by
+`centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail`. -/
+theorem
+    charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto_tail
+    (Y : ℕ → Ω → ℝ) (ω : Ω) {σ2 : ℝ}
+    (hvar :
+      Tendsto
+        (fun n : ℕ => empiricalVarianceFinSucc (fun i => Y i ω) n)
+        atTop (𝓝 σ2))
+    (u : ℝ)
+    (htail : ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) δ)
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        charFun
+          (((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))).map
+            (fun ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))))
+          u)
+      atTop
+      (𝓝 (Complex.exp (scalarGaussianCharFunExponent u σ2))) := by
+  exact
+    charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto
+      (Y := Y) (ω := ω) hvar u
+      (centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail
+        (Y := fun i => Y i ω) hvar u htail)
 
 /-- Characteristic function of a projected centered multivariate Gaussian.
 
@@ -8242,6 +9281,97 @@ theorem
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure empirical variance convergence and centered Lindeberg tails.
+
+For each scalar projection, the centered empirical square-tail condition
+discharges the diagonal characteristic-function Taylor remainder, then the
+existing characteristic-function remainder route applies. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosSemidef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hvar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n)
+        atTop (𝓝 (a ⬝ᵥ (S *ᵥ a))))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_remainder
+      (μ := μ) (Y := Y) (S := S) hS hY hvar ?_ hfrontier
+  filter_upwards [hvar, htail] with ω hvarω htailω
+  intro a t
+  exact
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail
+      (Y := fun i => Y i ω ⬝ᵥ a) (hvarω a) t (htailω a t)
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from almost-sure empirical variance convergence and centered
+Lindeberg tails. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hvar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n)
+        atTop (𝓝 (a ⬝ᵥ (S *ᵥ a))))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail
+    (μ := μ) (Y := Y) (S := S) hS.posSemidef hY hvar htail
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
 almost-sure empirical covariance convergence and characteristic-function
 remainders.
 
@@ -8344,6 +9474,102 @@ theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_remainder
     (μ := μ) (Y := Y) (S := S) hS.posSemidef hY hcov hrem
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure empirical covariance convergence and centered Lindeberg tails.
+
+Pathwise empirical covariance-matrix convergence supplies every projected
+empirical variance, while the centered tail condition discharges the diagonal
+Taylor remainder. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosSemidef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hcov : ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 S))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail
+      (μ := μ) (Y := Y) (S := S) hS hY ?_ htail hfrontier
+  filter_upwards [hcov] with ω hcovω
+  intro a
+  exact empiricalVarianceFinSucc_dotProduct_tendsto_of_covMat_tendsto
+    (Y := fun i a => Y i ω a) hcovω a
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from almost-sure empirical covariance convergence and centered
+Lindeberg tails. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hcov : ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 S))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail
+    (μ := μ) (Y := Y) (S := S) hS.posSemidef hY hcov htail
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
@@ -15457,6 +16683,78 @@ theorem integral_uniformOn_finSucc_tendsto_ae_wlln_of_iIndep
         atTop (𝓝 (∫ ω, X 0 ω ∂μ)) := by
   exact integral_uniformOn_finSucc_tendsto_ae_wlln
     (μ := μ) X hint (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Shifted empirical square-tail strong law on `Fin (n+1)`.
+
+For every fixed threshold `R`, the empirical uncentered square-tail integral
+converges almost surely to the corresponding population square tail.  This is
+the fixed-threshold strong-law input for the centered moving-tail
+characteristic-function remainder bridge. -/
+theorem empiricalTailSqFinSucc_tendsto_ae_wlln
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ) (R : ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalTailSqFinSucc (fun i => Y i ω) n R)
+        atTop
+        (𝓝
+          (∫ ω, Set.indicator {ω | R ≤ |Y 0 ω|}
+            (fun ω => (Y 0 ω) ^ 2) ω ∂μ)) := by
+  let tailMap : ℝ → ℝ :=
+    fun x => Set.indicator {y : ℝ | R ≤ |y|} (fun y => y ^ 2) x
+  have htail_meas : Measurable tailMap := by
+    dsimp [tailMap]
+    have hsq : Measurable (fun y : ℝ => y ^ 2) := by fun_prop
+    exact hsq.indicator
+      (measurableSet_le measurable_const continuous_abs.measurable)
+  have hint : Integrable (fun ω => tailMap (Y 0 ω)) μ := by
+    simpa [tailMap] using
+      integrable_tail_sq_indicator_of_memLp (P := μ) (Y := Y 0) hY R
+  have hindep_tail :
+      Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => tailMap (Y i ω)) := by
+    intro i j hij
+    exact IndepFun.comp (hindep hij) htail_meas htail_meas
+  have hident_tail :
+      ∀ i,
+        IdentDistrib
+          (fun ω => tailMap (Y i ω))
+          (fun ω => tailMap (Y 0 ω)) μ μ := by
+    intro i
+    exact (hident i).comp htail_meas
+  have hbase :=
+    integral_uniformOn_finSucc_tendsto_ae_wlln
+      (μ := μ) (X := fun i ω => tailMap (Y i ω))
+      hint hindep_tail hident_tail
+  filter_upwards [hbase] with ω hω
+  refine hω.congr' ?_
+  exact Eventually.of_forall fun n => by
+    refine integral_congr_ae ?_
+    exact ae_of_all _ fun i => by
+      by_cases hi : R ≤ |Y i.val ω| <;>
+        simp [tailMap, hi]
+
+/-- Shifted empirical square-tail strong law on `Fin (n+1)` with the textbook
+`iIndepFun` premise. -/
+theorem empiricalTailSqFinSucc_tendsto_ae_wlln_of_iIndep
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → ℝ) (R : ℝ)
+    (hY : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalTailSqFinSucc (fun i => Y i ω) n R)
+        atTop
+        (𝓝
+          (∫ ω, Set.indicator {ω | R ≤ |Y 0 ω|}
+            (fun ω => (Y 0 ω) ^ 2) ω ∂μ)) :=
+  empiricalTailSqFinSucc_tendsto_ae_wlln
+    (μ := μ) Y R hY (fun _ _ hij => hindep.indepFun hij) hident
 
 /-- Empirical covariance convergence from empirical first and cross moments.
 
