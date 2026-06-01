@@ -6689,6 +6689,54 @@ theorem TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compac
   rw [Real.dist_eq]
   simpa [abs_of_nonneg hCprod_nonneg, C, pbad] using hpbad_ge
 
+namespace TendstoInBootstrapWeakDistribution
+
+/-- Compact-range nonlinear transfer from a pointwise distance bound.
+
+This is the remainder-bound form used by smooth bootstrap Delta-method
+arguments: if a remainder envelope has vanishing conditional bootstrap tails,
+then the compact-range closeness premise follows. -/
+theorem of_bootstrap_dist_tendsto_zero_compact_range_of_dist_bound
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {K : Set E} {R : ℕ → Ω → Ωs → ℝ}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (Zstar' n ω ωs) (Zstar n ω ωs) ≤ R n ω ωs) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z := by
+  refine hZ.of_bootstrap_dist_tendsto_zero_compact_range
+    hK hPstar hZstar hZstar' hZstar_mem hZstar'_mem ?_
+  intro δ hδ
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      (Pstar n ω).real
+        {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+    (g := fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+    ?_ ?_ (hR_tail δ hδ)
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω) {ωs | δ ≤ R n ω ωs}
+    · intro ωs hωs
+      exact hωs.trans (hR_bound n ω ωs)
+
+end TendstoInBootstrapWeakDistribution
+
 variable {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
 
 /-- Indexed conditional bootstrap expectation of a bounded continuous test
@@ -7168,6 +7216,53 @@ theorem TendstoInBootstrapWeakDistributionIndexed.of_bootstrap_dist_tendsto_zero
   have hCprod_nonneg : 0 ≤ C * pbad := mul_nonneg hC_nonneg hpbad_nonneg
   rw [Real.dist_eq]
   simpa [abs_of_nonneg hCprod_nonneg, C, pbad] using hpbad_ge
+
+namespace TendstoInBootstrapWeakDistributionIndexed
+
+/-- Indexed compact-range nonlinear transfer from a pointwise distance bound.
+
+This is the sample-size-dependent counterpart of
+`TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compact_range_of_dist_bound`. -/
+theorem of_bootstrap_dist_tendsto_zero_compact_range_of_dist_bound
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} {K : Set E} {R : ∀ n, Ω → Ωboot n → ℝ}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (Zstar' n ω ωs) (Zstar n ω ωs) ≤ R n ω ωs) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar' ν Z := by
+  refine hZ.of_bootstrap_dist_tendsto_zero_compact_range
+    hK hPstar hZstar hZstar' hZstar_mem hZstar'_mem ?_
+  intro δ hδ
+  refine tendstoInMeasure_zero_of_nonneg_le
+    (μ := μ)
+    (f := fun n ω =>
+      (Pstar n ω).real
+        {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+    (g := fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+    ?_ ?_ (hR_tail δ hδ)
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω) {ωs | δ ≤ R n ω ωs}
+    · intro ωs hωs
+      exact hωs.trans (hR_bound n ω ωs)
+
+end TendstoInBootstrapWeakDistributionIndexed
 
 private theorem tendstoInMeasure_of_squeeze_approx_real
     {X : ℕ → Ω → ℝ} {c : ℝ}
@@ -13779,6 +13874,61 @@ theorem chapter10_bootstrap_smooth_function_gaussian_of_compact_range_closeness
     (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
     hlinearized_mem hthetaStar_mem hclose
 
+/-- Hansen Theorem 10.7 smooth-function Gaussian wrapper from a compact-range
+remainder bound.
+
+This is the `o_p*` remainder form of the compact-range route: a smooth-model
+Taylor argument may supply the pointwise distance bound, while the bootstrap
+tail premise states that the bound is negligible in conditional bootstrap
+probability. -/
+theorem
+    chapter10_bootstrap_smooth_function_gaussian_of_compact_range_remainder_bound
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {R : ℕ → Ω → Ωs → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs) :
+    TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => z) := by
+  have hlinearizedMeas :
+      ∀ n ω,
+        Measurable (fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) := by
+    intro n ω
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hdelta :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_delta_method_gaussian
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT
+  exact
+    hdelta.of_bootstrap_dist_tendsto_zero_compact_range_of_dist_bound
+      hK hPstar hlinearizedMeas hthetaStar hlinearized_mem hthetaStar_mem
+      hR_tail hR_bound
+
 /-- Hansen Theorem 10.7 smooth-function Gaussian event-probability wrapper
 from compact-range bootstrap-probability closeness to the
 derivative-linearized statistic. -/
@@ -14294,6 +14444,57 @@ theorem
     (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
     (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
     hlinearized_mem hthetaStar_mem hclose
+
+/-- Indexed Hansen Theorem 10.7 smooth-function Gaussian wrapper from a
+compact-range remainder bound. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_compact_range_remainder_bound
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {R : ∀ n, Ω → Ωboot n → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (fun z : EuclideanSpace ℝ r => z) := by
+  have hlinearizedMeas :
+      ∀ n ω,
+        Measurable (fun ωs => matrixContinuousLinearMap G (Tstar n ω ωs)) := by
+    intro n ω
+    exact (matrixContinuousLinearMap G).continuous.measurable.comp (hTstar n ω)
+  have hdelta :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => matrixContinuousLinearMap G (Tstar n ω ωs))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_delta_method_gaussian
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar) (V := V) G hV hT
+  exact
+    hdelta.of_bootstrap_dist_tendsto_zero_compact_range_of_dist_bound
+      hK hPstar hlinearizedMeas hthetaStar hlinearized_mem hthetaStar_mem
+      hR_tail hR_bound
 
 /-- Indexed Hansen Theorem 10.7 smooth-function Gaussian event-probability
 wrapper from compact-range bootstrap-probability closeness to the
