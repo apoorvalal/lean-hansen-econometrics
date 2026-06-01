@@ -234,6 +234,11 @@ used throughout the chapter:
   expose the same normalized `Fin (n+1)` identities through the indexed
   conditional mean, cross-moment, and covariance APIs used by later Chapter 10
   theorem wrappers.
+  `bootstrapMeanRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero`,
+  `bootstrapSecondMomentRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance`,
+  and `bootstrapVarianceRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance`
+  are the corresponding scalar indexed conditional mean, second-moment, and
+  variance API forms.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -10144,6 +10149,86 @@ noncomputable def bootstrapVarianceRealIndexed
     (Pstar : ∀ n, Ω → Measure (Ωboot n))
     (Zstar : ∀ n, Ω → Ωboot n → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
   Var[Zstar n ω; Pstar n ω]
+
+/-- Indexed conditional mean of the normalized scalar ordinary
+nonparametric-bootstrap mean.
+
+For the `Fin (n+1) -> Fin (n+1)` resampling space, the CLT-scaled centered
+bootstrap mean has exact conditional mean zero. -/
+theorem bootstrapMeanRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapMeanRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        n ω =
+      0 := by
+  simpa [bootstrapMeanRealIndexed, Fintype.card_fin, smul_eq_mul] using
+    (integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Indexed conditional second moment of the normalized scalar ordinary
+nonparametric-bootstrap mean.
+
+The raw second moment of the CLT-scaled centered bootstrap mean is the finite
+empirical one-draw variance. -/
+theorem
+    bootstrapSecondMomentRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapSecondMomentRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        n ω =
+      Var[fun i : Fin (n + 1) => Y i.val ω;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))] := by
+  simpa [bootstrapSecondMomentRealIndexed] using
+    integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance
+      (Y := Y) n ω
+
+/-- Indexed conditional variance of the normalized scalar ordinary
+nonparametric-bootstrap mean.
+
+The conditional variance API agrees exactly with the finite empirical one-draw
+variance, matching the scalar CLT-scale covariance calculation. -/
+theorem
+    bootstrapVarianceRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapVarianceRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        n ω =
+      Var[fun i : Fin (n + 1) => Y i.val ω;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))] := by
+  simpa [bootstrapVarianceRealIndexed, Fintype.card_fin] using
+    (variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
 
 /-- Pointwise bootstrap mean clipping error bound by an absolute-tail integral. -/
 theorem bootstrapMeanReal_abs_sub_realClip_le_two_mul_integral_tail_abs
