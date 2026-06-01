@@ -245,6 +245,12 @@ used throughout the chapter:
   turn empirical first/cross-moment convergence into convergence of the finite
   empirical covariance matrix and the normalized indexed ordinary-bootstrap
   cross-moment/covariance APIs.
+  `integral_uniformOn_finSucc_tendstoInMeasure_wlln`,
+  `covMat_uniformOn_finSucc_tendsto_of_iid`,
+  `bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid`, and
+  `bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid`
+  discharge the same covariance-convergence path from iid finite-second-moment
+  assumptions through the shifted empirical-uniform WLLN.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -532,7 +538,8 @@ Detailed theorem-by-theorem status lives in `inventory/ch10-inventory.md`.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
-open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix Matrix.Norms.Elementwise
+open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
+open scoped Matrix.Norms.Elementwise Function
 
 namespace HansenEconometrics
 
@@ -12361,6 +12368,62 @@ theorem
     covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq
       (Y := Y) n ω
 
+/-- Shifted empirical-uniform WLLN on `Fin (n+1)`.
+
+The reusable WLLN in `AsymptoticUtils` is stated for averages over
+`Finset.range n`.  Ordinary finite nonparametric bootstrap support uses
+`Fin (n+1)` to avoid the empty sample at `n = 0`; this bridge rewrites the
+uniform empirical integral into the shifted range average. -/
+theorem integral_uniformOn_finSucc_tendstoInMeasure_wlln
+    [IsFiniteMeasure μ]
+    (X : ℕ → Ω → ℝ)
+    (hint : Integrable (X 0) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on X))
+    (hident : ∀ i, IdentDistrib (X i) (X 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        ∫ i : Fin (n + 1), X i.val ω
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1))))
+      atTop (fun _ => ∫ ω, X 0 ω ∂μ) := by
+  have hbase :=
+    tendstoInMeasure_wlln (μ := μ) X hint hindep hident
+  have hshift :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (((n + 1 : ℕ) : ℝ)⁻¹) •
+            ∑ i ∈ Finset.range (n + 1), X i ω)
+        atTop (fun _ => ∫ ω, X 0 ω ∂μ) := by
+    rw [tendstoInMeasure_iff_dist] at hbase ⊢
+    intro ε hε
+    simpa [Function.comp_def, Nat.cast_add, Nat.cast_one] using
+      (hbase ε hε).comp (tendsto_add_atTop_nat 1)
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hshift
+  exact ae_of_all μ fun ω => by
+    have hfinite :
+        ∫ i : Fin (n + 1), X i.val ω
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1))) =
+        ((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal •
+          ∑ i : Fin (n + 1), X i.val ω :=
+      integral_uniformOn_univ_eq_card_inv_smul_sum
+        (Y := fun i : Fin (n + 1) => X i.val ω)
+    have hcoeff :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          ((n + 1 : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
+            (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+    have hsum :
+        (∑ i : Fin (n + 1), X i.val ω) =
+          ∑ i ∈ Finset.range (n + 1), X i ω := by
+      rw [Finset.sum_range]
+    rw [hcoeff, hsum] at hfinite
+    simpa [Nat.cast_add, Nat.cast_one] using hfinite.symm
+
 /-- Empirical covariance convergence from empirical first and cross moments.
 
 This is the finite empirical bridge behind the ordinary-bootstrap CLT path:
@@ -12492,6 +12555,80 @@ theorem covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments
       simpa [P] using hsource.symm
   · exact ae_of_all μ fun _ => hlimit.symm
 
+/-- Empirical covariance convergence for iid finite-dimensional observations.
+
+This discharges the first- and cross-moment premises of
+`covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments` with the shifted
+empirical-uniform WLLN.  The finite-second-moment coordinate assumption supplies
+integrability of both coordinates and their products by Hölder. -/
+theorem covMat_uniformOn_finSucc_tendsto_of_iid
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))
+          (fun i a => Y i.val ω a))
+      atTop (fun _ => covMat μ (Y 0)) := by
+  have hmean : ∀ a,
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), Y i.val ω a
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, Y 0 ω a ∂μ) := by
+    intro a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hint : Integrable (fun ω => Y 0 ω a) μ :=
+      memLp_one_iff_integrable.mp ((hYmem a).mono_exponent one_le_two)
+    have hindep_a :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => Y i ω a) := by
+      intro i j hij
+      simpa [evalA] using IndepFun.comp (hindep hij) heval heval
+    have hident_a :
+        ∀ i, IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      intro i
+      simpa [evalA] using (hident i).comp heval
+    exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
+      (μ := μ) (X := fun i ω => Y i ω a) hint hindep_a hident_a
+  have hcross : ∀ a b,
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), Y i.val ω a * Y i.val ω b
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, Y 0 ω a * Y 0 ω b ∂μ) := by
+    intro a b
+    let crossAB : (k → ℝ) → ℝ := fun y => y a * y b
+    have hcross_meas : Measurable crossAB := by
+      dsimp [crossAB]
+      fun_prop
+    have hint : Integrable (fun ω => Y 0 ω a * Y 0 ω b) μ :=
+      (hYmem a).integrable_mul (hYmem b)
+    have hindep_ab :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => Y i ω a * Y i ω b) := by
+      intro i j hij
+      simpa [crossAB] using IndepFun.comp (hindep hij) hcross_meas hcross_meas
+    have hident_ab :
+        ∀ i,
+          IdentDistrib
+            (fun ω => Y i ω a * Y i ω b)
+            (fun ω => Y 0 ω a * Y 0 ω b) μ μ := by
+      intro i
+      simpa [crossAB] using (hident i).comp hcross_meas
+    exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
+      (μ := μ) (X := fun i ω => Y i ω a * Y i ω b)
+      hint hindep_ab hident_ab
+  exact covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments
+    (μ := μ) Y hYmem hmean hcross
+
 /-- Indexed normalized ordinary-bootstrap cross moments converge once the
 finite empirical one-draw covariance converges through first and cross moments.
 
@@ -12552,6 +12689,56 @@ theorem
     (fun n => ?_) EventuallyEq.rfl
     (covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments
       (μ := μ) Y hYmem hmean hcross)
+  exact ae_of_all μ fun ω =>
+    (bootstrapCrossMomentMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+      (Y := Y) n ω).symm
+
+/-- Indexed normalized ordinary-bootstrap cross moments converge for iid
+finite-dimensional observations.
+
+This composes the iid empirical-covariance WLLN with the exact finite
+normalization identity for `sqrt (n+1) (Ybar* - Ybar)`. -/
+theorem bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapCrossMomentMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+      atTop (fun _ => covMat μ (Y 0)) := by
+  refine TendstoInMeasure.congr
+    (f := fun n ω =>
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a))
+    (f' := bootstrapCrossMomentMatIndexed
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+    (g := fun _ : Ω => covMat μ (Y 0))
+    (g' := fun _ : Ω => covMat μ (Y 0))
+    (fun n => ?_) EventuallyEq.rfl
+    (covMat_uniformOn_finSucc_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
   exact ae_of_all μ fun ω =>
     (bootstrapCrossMomentMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
       (Y := Y) n ω).symm
@@ -12617,6 +12804,56 @@ theorem
     (fun n => ?_) EventuallyEq.rfl
     (covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments
       (μ := μ) Y hYmem hmean hcross)
+  exact ae_of_all μ fun ω =>
+    (bootstrapCovarianceMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+      (Y := Y) n ω).symm
+
+/-- Indexed normalized ordinary-bootstrap covariance matrices converge for iid
+finite-dimensional observations.
+
+This is the `cov`-API counterpart of
+`bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid`. -/
+theorem bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapCovarianceMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+      atTop (fun _ => covMat μ (Y 0)) := by
+  refine TendstoInMeasure.congr
+    (f := fun n ω =>
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a))
+    (f' := bootstrapCovarianceMatIndexed
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+    (g := fun _ : Ω => covMat μ (Y 0))
+    (g' := fun _ : Ω => covMat μ (Y 0))
+    (fun n => ?_) EventuallyEq.rfl
+    (covMat_uniformOn_finSucc_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
   exact ae_of_all μ fun ω =>
     (bootstrapCovarianceMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
       (Y := Y) n ω).symm
