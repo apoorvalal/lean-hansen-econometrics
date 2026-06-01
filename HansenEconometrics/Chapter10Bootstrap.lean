@@ -6569,6 +6569,86 @@ theorem chapter10_bootstrap_clt_gaussian_of_ae_tendsto_integrals_posDef
     hmeas hae hPstar hZstar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
+/-- Hansen Theorem 10.4 Gaussian bootstrap CLT from pathwise conditional weak
+convergence in Mathlib's distributional form.
+
+This theorem-facing wrapper lets a conditional CLT stated as
+`TendstoInDistribution` feed directly into Hansen Definition 10.2; the
+bounded-continuous integral route is derived internally. -/
+theorem chapter10_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n => Pstar n ω)
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar Zstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+    TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+      hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := inferInstance
+    infer_instance
+  exact chapter10_bootstrap_clt_gaussian_of_weakDistribution
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
+    hweak hPfinite hZstar hfrontier
+
+/-- Positive-definite Hansen Theorem 10.4 Gaussian bootstrap CLT from pathwise
+conditional weak convergence in Mathlib's distributional form. -/
+theorem chapter10_bootstrap_clt_gaussian_of_ae_tendstoInDistribution_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegral Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n => Pstar n ω)
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
+    hmeas hae hZstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
 /-- Indexed-space Hansen Theorem 10.4 Gaussian bootstrap CLT from weak
 bootstrap convergence. -/
 theorem chapter10_indexed_bootstrap_clt_gaussian_of_weakDistribution
@@ -6697,6 +6777,82 @@ theorem chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendsto_integrals_posDef
   chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendsto_integrals
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
     hmeas hae hPstar hZstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Indexed-space Hansen Theorem 10.4 Gaussian bootstrap CLT from pathwise
+conditional weak convergence in Mathlib's distributional form. -/
+theorem chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n => Pstar n ω)
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+    TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+      hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := inferInstance
+    infer_instance
+  exact chapter10_indexed_bootstrap_clt_gaussian_of_weakDistribution
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
+    hweak hPfinite hZstar hfrontier
+
+/-- Positive-definite indexed Hansen Theorem 10.4 Gaussian bootstrap CLT from
+pathwise conditional weak convergence in Mathlib's distributional form. -/
+theorem chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω => bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n => Pstar n ω)
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar Zstar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
+    hmeas hae hZstar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Weak bootstrap convergence plus bounded-continuous integral
