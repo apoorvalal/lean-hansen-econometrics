@@ -230,7 +230,10 @@ used throughout the chapter:
   expose the ordinary finite nonparametric bootstrap draws, including centered
   and scaled centered draws, as iid coordinates under the uniform function-space
   law; `charFun_sum_uniformOn_fun_eval_smul_sub_empiricalMean_eq_pow` gives
-  the corresponding finite characteristic-function product formula.
+  the corresponding finite characteristic-function product formula, and
+  `charFun_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_pow`
+  plus `charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow`
+  package the exact `sqrt n (Ybar* - Ybar)` characteristic-function identity.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -908,6 +911,138 @@ theorem charFun_sum_uniformOn_fun_eval_smul_sub_empiricalMean_eq_pow
         (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
           (fun i => c • (Y i - empiricalMean Y)))) u) ^ Fintype.card κ := by
       simp [Pι, G]
+
+/-- Characteristic function of the normalized ordinary-bootstrap sample mean.
+
+This rewrites the CLT-scaled statistic
+`sqrt (#κ) * (Ybar* - Ybar)` as a sum of iid centered empirical draws scaled by
+`(sqrt (#κ))⁻¹`, so the characteristic function is the centered empirical
+one-draw characteristic function at the CLT scale, raised to `#κ`. -/
+theorem charFun_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_pow
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (u : ℝ) :
+    charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+          Measure (κ → ι)).map
+          (fun ωs =>
+            Real.sqrt (Fintype.card κ : ℝ) *
+              (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+                empiricalMean Y)))) u =
+      (charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+          (fun i => Y i - empiricalMean Y)))
+        ((Real.sqrt (Fintype.card κ : ℝ))⁻¹ * u)) ^ Fintype.card κ := by
+  classical
+  let c : ℝ := (Real.sqrt (Fintype.card κ : ℝ))⁻¹
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hsqrt_ne : Real.sqrt (Fintype.card κ : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hcard_pos).ne'
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  have hcoef :
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (Fintype.card κ : ℝ)⁻¹ =
+        c := by
+    calc
+      Real.sqrt (Fintype.card κ : ℝ) * (Fintype.card κ : ℝ)⁻¹ =
+          Real.sqrt (Fintype.card κ : ℝ) *
+            (Real.sqrt (Fintype.card κ : ℝ) ^ 2)⁻¹ := by
+            rw [hsqrt_sq]
+      _ = (Real.sqrt (Fintype.card κ : ℝ))⁻¹ := by
+            field_simp [hsqrt_ne]
+      _ = c := rfl
+  have hcard_coef :
+      (Fintype.card κ : ℝ) * c =
+        Real.sqrt (Fintype.card κ : ℝ) := by
+    calc
+      (Fintype.card κ : ℝ) * c =
+          Real.sqrt (Fintype.card κ : ℝ) ^ 2 * c := by
+            rw [hsqrt_sq]
+      _ = Real.sqrt (Fintype.card κ : ℝ) := by
+            rw [show c = (Real.sqrt (Fintype.card κ : ℝ))⁻¹ by rfl]
+            field_simp [hsqrt_ne]
+  have hstat :
+      (fun ωs : κ → ι =>
+        Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) =
+      fun ωs : κ → ι => ∑ t : κ, c • (Y (ωs t) - empiricalMean Y) := by
+    funext ωs
+    change
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y) =
+        ∑ t : κ, c * (Y (ωs t) - empiricalMean Y)
+    have hcenter :
+        (∑ t : κ, (Y (ωs t) - empiricalMean Y)) =
+          (∑ t : κ, Y (ωs t)) - (Fintype.card κ : ℝ) * empiricalMean Y := by
+      simp [Finset.sum_sub_distrib, Finset.sum_const, nsmul_eq_mul]
+    calc
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y) =
+          Real.sqrt (Fintype.card κ : ℝ) *
+            ((Fintype.card κ : ℝ)⁻¹ * (∑ t : κ, Y (ωs t)) -
+              empiricalMean Y) := by
+            simp [empiricalBootstrapResampleMean, smul_eq_mul]
+      _ = c * (∑ t : κ, Y (ωs t)) -
+          Real.sqrt (Fintype.card κ : ℝ) * empiricalMean Y := by
+            rw [mul_sub, ← mul_assoc, hcoef]
+      _ = c * (∑ t : κ, Y (ωs t)) -
+          ((Fintype.card κ : ℝ) * c) * empiricalMean Y := by
+            rw [hcard_coef]
+      _ = c * ((∑ t : κ, Y (ωs t)) -
+          (Fintype.card κ : ℝ) * empiricalMean Y) := by
+            ring
+      _ = c * (∑ t : κ, (Y (ωs t) - empiricalMean Y)) := by
+            rw [hcenter]
+      _ = ∑ t : κ, c * (Y (ωs t) - empiricalMean Y) := by
+            rw [Finset.mul_sum]
+  have hpow :=
+    charFun_sum_uniformOn_fun_eval_smul_sub_empiricalMean_eq_pow
+      (κ := κ) (ι := ι) c Y u
+  have hscale :
+      charFun
+          (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+            (fun i => c • (Y i - empiricalMean Y)))) u =
+        charFun
+          (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+            (fun i => Y i - empiricalMean Y))) (c * u) := by
+    simpa [Pι, c, smul_eq_mul] using
+      (charFun_map_mul_comp
+        (μ := Pι)
+        (f := fun i : ι => Y i - empiricalMean Y)
+        ((measurable_of_finite (fun i : ι => Y i - empiricalMean Y)).aemeasurable)
+        c u)
+  calc
+    charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+          Measure (κ → ι)).map
+          (fun ωs =>
+            Real.sqrt (Fintype.card κ : ℝ) *
+              (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+                empiricalMean Y)))) u =
+        charFun
+          (((ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+            Measure (κ → ι)).map
+            (fun ωs => ∑ t : κ, c • (Y (ωs t) - empiricalMean Y)))) u := by
+          rw [hstat]
+    _ =
+      (charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+          (fun i => c • (Y i - empiricalMean Y)))) u) ^ Fintype.card κ := hpow
+    _ =
+      (charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+          (fun i => Y i - empiricalMean Y)))
+        ((Real.sqrt (Fintype.card κ : ℝ))⁻¹ * u)) ^ Fintype.card κ := by
+        rw [hscale]
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Coordinate marginal identity for finite uniform resampling.
@@ -3488,6 +3623,35 @@ theorem integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_varianc
     (integral_sq_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_variance
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Scalar `Fin (n+1)` characteristic-function identity for the ordinary
+nonparametric-bootstrap CLT statistic.
+
+The conditional characteristic function of
+`sqrt (n+1) (Ybar* - Ybar)` is the centered empirical one-draw characteristic
+function evaluated at `(sqrt (n+1))⁻¹ t`, raised to `n+1`. -/
+theorem charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
+    (Y : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) (u : ℝ) :
+    (charFun
+        (((ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))).map
+          (fun ωs =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))) u =
+      (charFun
+        ((ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1))).map
+          (fun i : Fin (n + 1) => Y i.val ω -
+            empiricalMean (fun j : Fin (n + 1) => Y j.val ω)))
+        ((Real.sqrt (n + 1 : ℝ))⁻¹ * u)) ^ Nat.succ n) := by
+  simpa [Fintype.card_fin] using
+    (charFun_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_pow
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω) u)
 
 /-- Vector `Fin (n+1)` CLT-scale mean-zero identity for the ordinary
 nonparametric bootstrap.
