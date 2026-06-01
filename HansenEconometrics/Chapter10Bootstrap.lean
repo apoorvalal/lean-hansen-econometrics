@@ -259,7 +259,9 @@ used throughout the chapter:
   Taylor expansion for the standardized centered empirical one-draw law, and
   `charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto`
   converts that expansion into the fixed-support Gaussian
-  characteristic-function power limit.
+  characteristic-function power limit.  The unstandardized wrapper
+  `charFun_centered_uniformOn_univ_inv_sqrt_succ_pow_tendsto` carries the
+  empirical variance scale directly.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -1522,6 +1524,67 @@ theorem charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto
       (𝓝 (Complex.exp (-(t : ℂ) ^ 2 / 2))) :=
   tendsto_charFun_inv_sqrt_succ_mul_pow_of_taylor
     (taylor_charFun_centered_standardized_uniformOn_univ (Y := Y) hvar) t
+
+/-- Gaussian characteristic-function power limit for a centered empirical
+one-draw law with fixed support.
+
+This removes the standardization from
+`charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto`: the
+fixed-support limit has the empirical one-draw variance as its Gaussian scale. -/
+theorem charFun_centered_uniformOn_univ_inv_sqrt_succ_pow_tendsto
+    [Nonempty ι] (Y : ι → ℝ)
+    (hvar : Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+      Measure ι)] ≠ 0) (t : ℝ) :
+    Tendsto
+      (fun n : ℕ =>
+        (charFun
+            (((ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+              Measure ι).map
+              (fun i => Y i - empiricalMean Y)))
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t)) ^ Nat.succ n)
+      atTop
+      (𝓝 (Complex.exp
+        (-(((Real.sqrt
+          (Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+            Measure ι)]) * t : ℝ) : ℂ) ^ 2) / 2))) := by
+  let P : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let v : ℝ := Var[Y; P]
+  let Z : ι → ℝ := fun i => Y i - empiricalMean Y
+  let σ : ℝ := Real.sqrt v
+  have hv_nonneg : 0 ≤ v := by
+    dsimp [v]
+    exact variance_nonneg Y P
+  have hσ_ne : σ ≠ 0 := by
+    exact (Real.sqrt_pos.2 (lt_of_le_of_ne hv_nonneg (by simpa [v, P] using hvar.symm))).ne'
+  have hstd :=
+    charFun_centered_standardized_uniformOn_univ_inv_sqrt_succ_pow_tendsto
+      (Y := Y) hvar (σ * t)
+  refine hstd.congr' ?_
+  exact Eventually.of_forall fun n => by
+    change
+      (charFun (P.map (fun i => Z i / σ))
+          ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t))) ^ Nat.succ n =
+        (charFun (P.map Z) ((Real.sqrt (n + 1 : ℝ))⁻¹ * t)) ^ Nat.succ n
+    have hscale :
+        charFun (P.map (fun i => Z i / σ))
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t)) =
+          charFun (P.map Z)
+            (σ⁻¹ * ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t))) := by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
+        (charFun_map_mul_comp
+          (μ := P)
+          (f := Z)
+          ((measurable_of_finite Z).aemeasurable)
+          σ⁻¹ ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t)))
+    calc
+      (charFun (P.map (fun i => Z i / σ))
+          ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t))) ^ Nat.succ n =
+          (charFun (P.map Z)
+            (σ⁻¹ * ((Real.sqrt (n + 1 : ℝ))⁻¹ * (σ * t)))) ^ Nat.succ n := by
+            rw [hscale]
+      _ = (charFun (P.map Z) ((Real.sqrt (n + 1 : ℝ))⁻¹ * t)) ^ Nat.succ n := by
+            congr 2
+            field_simp [hσ_ne]
 
 omit [Fintype ι] in
 /-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
