@@ -261,7 +261,11 @@ used throughout the chapter:
   converts that expansion into the fixed-support Gaussian
   characteristic-function power limit.  The unstandardized wrapper
   `charFun_centered_uniformOn_univ_inv_sqrt_succ_pow_tendsto` carries the
-  empirical variance scale directly.
+  empirical variance scale directly.  `empiricalVarianceFinSucc`,
+  `centeredEmpiricalCharFunFinSucc`, and
+  `centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto`
+  package the diagonal `Fin (n+1)` changing-support power bridge from
+  empirical variance convergence plus an explicit Taylor remainder.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -1609,6 +1613,82 @@ theorem charFun_centered_uniformOn_univ_inv_sqrt_succ_pow_tendsto
       _ = (charFun (P.map Z) ((Real.sqrt (n + 1 : ℝ))⁻¹ * t)) ^ Nat.succ n := by
             congr 2
             field_simp [hσ_ne]
+
+/-- Empirical one-draw variance over the first `n+1` scalar observations. -/
+noncomputable def empiricalVarianceFinSucc (Y : ℕ → ℝ) (n : ℕ) : ℝ :=
+  Var[fun i : Fin (n + 1) => Y i.val;
+    (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+      Measure (Fin (n + 1)))]
+
+/-- Centered empirical one-draw characteristic function over the first `n+1`
+scalar observations. -/
+noncomputable def centeredEmpiricalCharFunFinSucc
+    (Y : ℕ → ℝ) (n : ℕ) (u : ℝ) : ℂ :=
+  charFun
+    ((ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+      Measure (Fin (n + 1))).map
+      (fun i : Fin (n + 1) =>
+        Y i.val - empiricalMean (fun j : Fin (n + 1) => Y j.val)))
+    u
+
+/-- Scalar Gaussian characteristic-function exponent `-t² σ² / 2`. -/
+noncomputable def scalarGaussianCharFunExponent (t variance : ℝ) : ℂ :=
+  -((t : ℂ) ^ 2 * (variance : ℂ) / 2)
+
+/-- The complex reciprocal of `n+1`, written without nested casts in theorem
+statements. -/
+noncomputable def complexInvNatSucc (n : ℕ) : ℂ :=
+  (Nat.succ n : ℂ)⁻¹
+
+/-- Diagonal changing-support characteristic-function power bridge for the
+ordinary `Fin (n+1)` empirical law.
+
+If the empirical one-draw variance converges and the centered empirical
+one-draw characteristic function has the displayed second-order Taylor
+remainder at the `1 / sqrt (n+1)` scale, then the `n+1`-draw power converges to
+the Gaussian characteristic function with the limiting variance scale.  This is
+the theorem-facing reduction needed before discharging the Taylor remainder
+from iid finite-second-moment assumptions in Hansen Theorem 10.4. -/
+theorem
+    centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto
+    (Y : ℕ → ℝ) {σ2 : ℝ}
+    (hvar : Tendsto (fun n : ℕ => empiricalVarianceFinSucc Y n) atTop (𝓝 σ2))
+    (u : ℝ)
+    (hrem :
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+            (1 +
+              scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n))) :
+    Tendsto
+      (fun n : ℕ =>
+        centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) ^
+          Nat.succ n)
+      atTop
+      (𝓝 (Complex.exp (scalarGaussianCharFunExponent u σ2))) := by
+  let A : ℕ → ℂ := fun n =>
+    scalarGaussianCharFunExponent u (empiricalVarianceFinSucc Y n)
+  have hVC :
+      Tendsto (fun n : ℕ => (empiricalVarianceFinSucc Y n : ℂ)) atTop
+        (𝓝 (σ2 : ℂ)) := by
+    exact (Complex.continuous_ofReal.tendsto σ2).comp hvar
+  have hA :
+      Tendsto A atTop (𝓝 (scalarGaussianCharFunExponent u σ2)) := by
+    have hmul :
+        Tendsto
+          (fun n : ℕ => (u : ℂ) ^ 2 * (empiricalVarianceFinSucc Y n : ℂ))
+          atTop (𝓝 ((u : ℂ) ^ 2 * (σ2 : ℂ))) :=
+      tendsto_const_nhds.mul hVC
+    exact (hmul.div_const (2 : ℂ)).neg
+  exact
+    complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div_tendsto
+      (f := fun n : ℕ =>
+        centeredEmpiricalCharFunFinSucc Y n ((Real.sqrt (n + 1 : ℝ))⁻¹ * u))
+      (a := A) (t := scalarGaussianCharFunExponent u σ2) hA
+      (by
+        simpa [A, complexInvNatSucc, one_div, div_eq_mul_inv, Nat.succ_eq_add_one]
+          using hrem)
 
 omit [Fintype ι] in
 /-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
