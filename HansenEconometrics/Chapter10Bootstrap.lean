@@ -6125,9 +6125,10 @@ theorem TendstoInBootstrapDistributionIndexed.congr
 
 If the conditional CDFs of a normalized bootstrap statistic converge in
 probability to the CDF of `N(0, Σ)` at every continuity point, then the
-statistic converges in bootstrap distribution to that Gaussian law. The
-remaining empirical-bootstrap CLT work is to derive this CDF premise from
-Hansen's iid and second-moment assumptions. -/
+statistic converges in bootstrap distribution to that Gaussian law. Later
+ordinary-bootstrap wrappers discharge this premise through pathwise weak
+convergence, scalar projection/characteristic-function routes, and the iid
+covariance-tail route. -/
 theorem chapter10_bootstrap_clt_gaussian_of_tendsto_cdf
     [Fintype k] [DecidableEq k]
     {Pstar : ℕ → Ω → Measure Ωs}
@@ -6289,6 +6290,47 @@ theorem TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution
     (TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
       (Ω := fun _ : ℕ => Ωs) (μ := fun n => Pstar n ω)
       (X := fun n (ωs : Ωs) => Zstar n ω ωs) (Z := Z) hdist f)
+
+/-- Bootstrap weak convergence after an a.e.-continuous mapping, from pathwise
+conditional weak convergence in Mathlib's `TendstoInDistribution` form.
+
+This is the pathwise-distribution version of Hansen Theorem 10.5: for almost
+every original sample path, Mathlib's a.e.-continuous CMT maps the conditional
+weak convergence of `Zstar` to the conditional weak convergence of `g ∘ Zstar`;
+the existing pathwise-to-bootstrap bridge then turns those conditional weak
+limits into bootstrap weak convergence in probability. -/
+theorem TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution_ae_continuous_comp
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [OpensMeasurableSpace F]
+    [BorelSpace F] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E}
+    {g : E → F} (hg : Measurable g) {D : Set E}
+    (hD : (ν.map Z) D = 0)
+    (hcont : ∀ x, x ∉ D → ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  refine TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution
+    (μ := μ) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+    (ν := ν) (Z := fun ωlim => g (Z ωlim)) hmeas ?_
+  filter_upwards [hae] with ω hdist
+  exact
+    tendstoInDistribution_ae_continuous_comp
+      (P := fun n => Pstar n ω) (ν := ν)
+      (X := fun n (ωs : Ωs) => Zstar n ω ωs) (Z := Z)
+      (g := g) hdist hg hD hcont
 
 /-- Measurability of finite-uniform bootstrap bounded-continuous integrals.
 
@@ -6748,6 +6790,43 @@ theorem TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution
     (TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
       (Ω := Ωboot) (μ := fun n => Pstar n ω)
       (X := fun n (ωs : Ωboot n) => Zstar n ω ωs) (Z := Z) hdist f)
+
+/-- Indexed bootstrap weak convergence after an a.e.-continuous mapping, from
+pathwise conditional weak convergence in Mathlib's `TendstoInDistribution`
+form. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution_ae_continuous_comp
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [OpensMeasurableSpace F]
+    [BorelSpace F] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E}
+    {g : E → F} (hg : Measurable g) {D : Set E}
+    (hD : (ν.map Z) D = 0)
+    (hcont : ∀ x, x ∉ D → ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  refine TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution
+    (μ := μ) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => g (Zstar n ω ωs))
+    (ν := ν) (Z := fun ωlim => g (Z ωlim)) hmeas ?_
+  filter_upwards [hae] with ω hdist
+  exact
+    tendstoInDistribution_ae_continuous_comp_indexed
+      (P := fun n => Pstar n ω) (ν := ν)
+      (X := fun n (ωs : Ωboot n) => Zstar n ω ωs) (Z := Z)
+      (g := g) hdist hg hD hcont
 
 /-- Measurability of indexed finite-uniform bootstrap bounded-continuous
 integrals.
@@ -11437,6 +11516,420 @@ theorem chapter10_indexed_bootstrap_law_ae_mapping_distribution_of_null_frontier
     (BootstrapAEMappingPremise.of_measurable_law_ae_continuous
       hZlim hg hg_cont)
     hweakMapped hPstar hZstar hfrontier
+
+/-- Hansen Theorem 10.5, law-level null-discontinuity weak-convergence
+constructor from pathwise conditional weak convergence.
+
+This is the theorem-facing a.e.-continuous CMT route: Mathlib's
+Portmanteau-based CMT maps the conditional laws on almost every original sample
+path, then the bootstrap weak-convergence bridge turns those pathwise limits
+into convergence in bootstrap distribution. -/
+theorem chapter10_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [OpensMeasurableSpace F] [BorelSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F}
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  refine
+    TendstoInBootstrapWeakDistribution.of_ae_tendstoInDistribution_ae_continuous_comp
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg (D := {x | ¬ ContinuousAt g x}) hg_disc ?_ hmeas hae
+  intro x hx
+  exact not_not.mp hx
+
+/-- Indexed Hansen Theorem 10.5, law-level null-discontinuity
+weak-convergence constructor from pathwise conditional weak convergence. -/
+theorem
+    chapter10_indexed_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [OpensMeasurableSpace F] [BorelSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F}
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  refine
+    TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution_ae_continuous_comp
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg (D := {x | ¬ ContinuousAt g x}) hg_disc ?_ hmeas hae
+  intro x hx
+  exact not_not.mp hx
+
+/-- Hansen Theorem 10.5, law-level null-discontinuity transformed-event face
+from pathwise conditional weak convergence. -/
+theorem
+    chapter10_bootstrap_law_null_disc_mapping_event_probability_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hweakMapped :=
+    chapter10_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg hg_disc hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    infer_instance
+  have hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)) := by
+    intro n ω
+    exact hg.comp (hZstar n ω)
+  exact
+    chapter10_bootstrap_law_null_disc_mapping_event_probability_of_null_frontier
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) (A := A)
+      hZlim hg hg_disc hweakMapped hPfinite hZstarMapped hA hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level null-discontinuity transformed-event
+face from pathwise conditional weak convergence. -/
+theorem
+    chapter10_indexed_bootstrap_law_null_disc_mapping_event_probability_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hweakMapped :=
+    chapter10_indexed_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg hg_disc hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    infer_instance
+  have hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)) := by
+    intro n ω
+    exact hg.comp (hZstar n ω)
+  exact
+    chapter10_indexed_bootstrap_law_null_disc_mapping_event_probability_of_null_frontier
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) (A := A)
+      hZlim hg hg_disc hweakMapped hPfinite hZstarMapped hA hfrontier
+
+/-- Hansen Theorem 10.5, law-level null-discontinuity finite-dimensional CDF
+face from pathwise conditional weak convergence. -/
+theorem
+    chapter10_bootstrap_law_null_disc_mapping_distribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E] [Finite k] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  have hweakMapped :=
+    chapter10_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg hg_disc hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    infer_instance
+  have hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)) := by
+    intro n ω
+    exact hg.comp (hZstar n ω)
+  exact
+    chapter10_bootstrap_law_null_disc_mapping_distribution_of_null_frontiers
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g)
+      hZlim hg hg_disc hweakMapped hPfinite hZstarMapped hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level null-discontinuity
+finite-dimensional CDF face from pathwise conditional weak convergence. -/
+theorem
+    chapter10_indexed_bootstrap_law_null_disc_mapping_distribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E] [Finite k] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  have hweakMapped :=
+    chapter10_indexed_bootstrap_law_null_disc_mapping_weakDistribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) hg hg_disc hmeas hae
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    infer_instance
+  have hZstarMapped : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)) := by
+    intro n ω
+    exact hg.comp (hZstar n ω)
+  exact
+    chapter10_indexed_bootstrap_law_null_disc_mapping_distribution_of_null_frontiers
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g)
+      hZlim hg hg_disc hweakMapped hPfinite hZstarMapped hfrontier
+
+/-- Hansen Theorem 10.5, law-level a.e.-continuous transformed-event face from
+pathwise conditional weak convergence. -/
+theorem chapter10_bootstrap_law_ae_mapping_event_probability_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0 := by
+    rw [ae_iff] at hg_cont
+    simpa using hg_cont
+  exact
+    chapter10_bootstrap_law_null_disc_mapping_event_probability_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) (A := A)
+      hZlim hg hg_disc hmeas hae hZstar hA hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level a.e.-continuous transformed-event
+face from pathwise conditional weak convergence. -/
+theorem
+    chapter10_indexed_bootstrap_law_ae_mapping_event_probability_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction F ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) := by
+  have hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0 := by
+    rw [ae_iff] at hg_cont
+    simpa using hg_cont
+  exact
+    chapter10_indexed_bootstrap_law_null_disc_mapping_event_probability_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g) (A := A)
+      hZlim hg hg_disc hmeas hae hZstar hA hfrontier
+
+/-- Hansen Theorem 10.5, law-level a.e.-continuous finite-dimensional CDF face
+from pathwise conditional weak convergence. -/
+theorem chapter10_bootstrap_law_ae_mapping_distribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E] [Finite k] [IsFiniteMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs} [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegral Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωs) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  have hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0 := by
+    rw [ae_iff] at hg_cont
+    simpa using hg_cont
+  exact
+    chapter10_bootstrap_law_null_disc_mapping_distribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g)
+      hZlim hg hg_disc hmeas hae hZstar hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level a.e.-continuous finite-dimensional
+CDF face from pathwise conditional weak convergence. -/
+theorem chapter10_indexed_bootstrap_law_ae_mapping_distribution_of_ae_tendstoInDistribution
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E] [Finite k] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    [∀ n ω, IsProbabilityMeasure (Pstar n ω)]
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x)
+    (hmeas : ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          bootstrapBoundedContinuousIntegralIndexed Pstar
+            (fun n ω ωs => g (Zstar n ω ωs)) f n ω) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Ωboot n) => Zstar n ω ωs)
+        atTop Z (fun n => Pstar n ω) ν)
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) := by
+  have hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0 := by
+    rw [ae_iff] at hg_cont
+    simpa using hg_cont
+  exact
+    chapter10_indexed_bootstrap_law_null_disc_mapping_distribution_of_ae_tendstoInDistribution
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+      (g := g)
+      hZlim hg hg_disc hmeas hae hZstar hfrontier
 
 /-- Hansen Theorem 10.5, a.e.-continuous sandwich-mapped event face.
 

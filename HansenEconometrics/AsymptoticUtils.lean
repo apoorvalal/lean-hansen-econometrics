@@ -26,6 +26,9 @@ Mathlib does not currently provide as named lemmas:
   continuous-map case, wrapping Mathlib's distributional CMT.
 * `tendstoInDistribution_ae_continuous_comp` — Hansen Theorem 6.7 in its
   textbook a.s.-continuity form, proved from a Portmanteau closed-set argument.
+* `tendstoInDistribution_ae_continuous_comp_indexed` — the same
+  a.s.-continuity CMT when the source probability spaces vary with the sequence
+  index.
 * `TendstoInDistribution.tendsto_measure_preimage_of_null_frontier` — a
   reusable Portmanteau event-probability bridge for coverage and critical-region
   arguments.
@@ -216,6 +219,48 @@ theorem tendstoInDistribution_ae_continuous_comp
     [HasOuterApproxClosed E]
     [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F]
     {X : ℕ → Ω → E} {Z : Ω' → E} {g : E → F}
+    (hX : TendstoInDistribution X atTop Z P ν)
+    (hg : Measurable g) {D : Set E}
+    (hD : (ν.map Z) D = 0)
+    (hcont : ∀ x, x ∉ D → ContinuousAt g x) :
+    TendstoInDistribution (fun n ω => g (X n ω)) atTop (fun ω => g (Z ω)) P ν := by
+  have hcomp :
+      TendstoInDistribution (fun n => g ∘ X n) atTop (g ∘ Z) P ν := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro n
+      exact hg.comp_aemeasurable (hX.forall_aemeasurable n)
+    · exact hg.comp_aemeasurable hX.aemeasurable_limit
+    let law : ℕ → ProbabilityMeasure E := fun n =>
+      ⟨(P n).map (X n), Measure.isProbabilityMeasure_map (hX.forall_aemeasurable n)⟩
+    let lawZ : ProbabilityMeasure E :=
+      ⟨ν.map Z, Measure.isProbabilityMeasure_map hX.aemeasurable_limit⟩
+    have hmap :=
+      probabilityMeasure_tendsto_map_of_tendsto_of_ae_continuous
+        (νs := law) (ν := lawZ) (L := atTop) hX.tendsto hg
+        (by simpa [lawZ] using hD) hcont
+    convert hmap with n
+    · simp only [law, ProbabilityMeasure.map, ProbabilityMeasure.coe_mk, Subtype.mk.injEq]
+      rw [AEMeasurable.map_map_of_aemeasurable hg.aemeasurable (hX.forall_aemeasurable n)]
+    · apply ProbabilityMeasure.toMeasure_injective
+      simp only [lawZ, ProbabilityMeasure.map, ProbabilityMeasure.coe_mk]
+      rw [AEMeasurable.map_map_of_aemeasurable hg.aemeasurable hX.aemeasurable_limit]
+  simpa [Function.comp_def] using hcomp
+
+/-- **Indexed Hansen Theorem 6.7, a.s.-continuity CMT in distribution.**
+
+This is the sample-size-dependent source-space counterpart of
+`tendstoInDistribution_ae_continuous_comp`. If `Xₙ ⇒ Z` and each `Xₙ` may live
+on its own probability space, then a measurable map `g` that is continuous off a
+`(ν.map Z)`-null set preserves convergence in distribution. -/
+theorem tendstoInDistribution_ae_continuous_comp_indexed
+    {Ω : ℕ → Type*} {Ω' E F : Type*}
+    {mΩ : ∀ n, MeasurableSpace (Ω n)} {mΩ' : MeasurableSpace Ω'}
+    {P : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F]
+    {X : ∀ n, Ω n → E} {Z : Ω' → E} {g : E → F}
     (hX : TendstoInDistribution X atTop Z P ν)
     (hg : Measurable g) {D : Set E}
     (hD : (ν.map Z) D = 0)
