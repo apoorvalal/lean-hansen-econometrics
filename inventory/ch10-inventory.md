@@ -120,7 +120,10 @@
   coordinate means and cross moments to finite empirical covariance convergence, with normalized
   indexed ordinary-bootstrap cross-moment and covariance wrappers. The same path is now discharged
   from iid finite-second-moment assumptions by the shifted `Fin (n+1)` empirical-uniform WLLN,
-  with `iIndepFun` wrappers for the textbook independence premise.
+  with `iIndepFun` wrappers for the textbook independence premise. The Lindeberg side of Hansen's
+  proof now also has the finite empirical fourth-moment identity and the shifted Marcinkiewicz
+  bridge showing `(n+1)^{-1} E*[‖Y_i^*‖⁴] ->p 0` from `Y₀ ∈ L²` and identical distribution,
+  plus the normalized one-draw Lindeberg tail bound that sends the corresponding tail term to zero.
 - Theorem 10.5's bounded-continuous-test-function backend now includes the global-continuity
   bootstrap distributional CMT, finite-dimensional CDF wrappers for transformed lower orthants,
   a Portmanteau-style event-probability bridge, the null-frontier
@@ -306,7 +309,9 @@
   uniformly-integrable wrapper. The natural-power convenience face is also formalized for
   integer-moment applications.
 - Concrete nonparametric-bootstrap constructors remain to be added for the full bootstrap CLT,
-  variance, percentile, percentile-t, refinement, test, and regression results. Theorem 10.2's
+  variance, percentile, percentile-t, refinement, test, and regression results. The CLT path now
+  has empirical covariance and fourth-moment/Lindeberg building blocks, but the constructor
+  deriving conditional CDF or weak convergence remains open. Theorem 10.2's
   scalar and vector conditional-Chebyshev/Markov constructors are formalized, including
   sample-size-indexed ordinary nonparametric-bootstrap scalar and Euclidean-vector WLLNs on
   `Fin (n+1) -> Fin (n+1)` resampling spaces, iid-integrable scalar and Euclidean-vector level
@@ -438,6 +443,7 @@ Conventions:
 | [integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance](../HansenEconometrics/Chapter10Bootstrap.lean), [covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq](../HansenEconometrics/Chapter10Bootstrap.lean), [integral_norm_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_trace_covMat](../HansenEconometrics/Chapter10Bootstrap.lean) | Indexed ordinary nonparametric-bootstrap specializations of the CLT-scale moment identities on `Fin (n+1) -> Fin (n+1)` resampling spaces. |
 | [integral_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero](../HansenEconometrics/Chapter10Bootstrap.lean), [integral_normalized_finSucc_resampleMean_sub_empiricalMean_apply_eq_zero](../HansenEconometrics/Chapter10Bootstrap.lean), [integral_mul_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat](../HansenEconometrics/Chapter10Bootstrap.lean) | Indexed ordinary nonparametric-bootstrap zero-mean and raw cross-moment specializations of the normalized CLT-scale identities on `Fin (n+1) -> Fin (n+1)` resampling spaces. |
 | [bootstrapMeanRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapSecondMomentRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance](../HansenEconometrics/Chapter10Bootstrap.lean), [bootstrapVarianceRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance](../HansenEconometrics/Chapter10Bootstrap.lean) | Scalar conditional moment API wrappers for the indexed normalized ordinary bootstrap mean, matching the exact mean-zero, raw-second-moment, and variance calculations. |
+| [integral_norm_fourth_uniformOn_univ_eq_card_inv_smul_sum](../HansenEconometrics/Chapter10Bootstrap.lean), [marcinkiewiczWLLNStatisticNat_succ_tendsto_zero_of_uniformIntegrable](../HansenEconometrics/Chapter10Bootstrap.lean), [marcinkiewicz_norm_sq_finSucc_tendsto_zero_of_identDistrib_memLp_two](../HansenEconometrics/Chapter10Bootstrap.lean), [scaled_integral_norm_fourth_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two](../HansenEconometrics/Chapter10Bootstrap.lean), [lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth](../HansenEconometrics/Chapter10Bootstrap.lean), and [lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two](../HansenEconometrics/Chapter10Bootstrap.lean) | Theorem 10.4 Lindeberg-building blocks: the one-draw empirical fourth moment is the finite average of `‖Y_i‖⁴`, applying the shifted Marcinkiewicz WLLN to `u_i = ‖Y_i‖²` gives `(n+1)^{-1} E*[‖Y_i^*‖⁴] ->p 0` from finite second moments and identical distribution, and the normalized one-draw Lindeberg tail is bounded by that scaled fourth moment and hence vanishes in probability. |
 | [trace_covMat_resampleMean_eq_inv_card_mul](../HansenEconometrics/Chapter10Bootstrap.lean), [trace_covMat_uniformOn_univ_le_card_inv_smul_sum_sq](../HansenEconometrics/Chapter10Bootstrap.lean), [trace_covMat_resampleMean_le_inv_card_mul_secondMoment](../HansenEconometrics/Chapter10Bootstrap.lean) | Trace form of (10.13) and the empirical raw-second-moment trace bound used by the vector Theorem 10.2 proof. |
 | [integral_norm_sq_sub_mean_eq_trace_covMat_euclidean_of_finite](../HansenEconometrics/ProbabilityUtils.lean) | Finite-space Euclidean helper: expected squared deviation from the mean equals the trace of the coordinate covariance matrix. |
 | [integral_norm_sq_resampleMean_sub_empiricalMean_eq_trace_covMat](../HansenEconometrics/Chapter10Bootstrap.lean), [integral_norm_sq_resampleMean_sub_empiricalMean_le_secondMoment](../HansenEconometrics/Chapter10Bootstrap.lean) | Euclidean norm form of the finite-dimensional bootstrap sample-mean second-moment calculation used by Theorem 10.2. |

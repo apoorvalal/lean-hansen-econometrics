@@ -206,6 +206,14 @@ used throughout the chapter:
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
+* `integral_norm_fourth_uniformOn_univ_eq_card_inv_smul_sum` and
+  `scaled_integral_norm_fourth_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two`
+  expose the empirical fourth-moment identity and shifted Marcinkiewicz
+  convergence step used in Hansen's Theorem 10.4 bootstrap-CLT Lindeberg proof.
+* `lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth` and
+  `lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two`
+  turn that fourth-moment convergence into the finite normalized one-draw
+  Lindeberg bound for the ordinary bootstrap CLT route.
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
   finite empirical variance identity behind equation (10.11).
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
@@ -792,6 +800,20 @@ theorem integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum
       ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ‖Y i‖ ^ 2 :=
   integral_uniformOn_univ_eq_card_inv_smul_sum (E := ℝ)
     (fun i => ‖Y i‖ ^ 2)
+
+/-- Finite empirical fourth-moment identity for one bootstrap draw.
+
+Under uniform resampling from a finite empirical support, the conditional
+expectation of the fourth power of the norm is the finite-sample average of
+fourth powers. This is the empirical moment identity used in Hansen's Theorem
+10.4 Lindeberg calculation. -/
+theorem integral_norm_fourth_uniformOn_univ_eq_card_inv_smul_sum
+    [NormedAddCommGroup E] (Y : ι → E) :
+    ∫ i, ‖Y i‖ ^ 4
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ i, ‖Y i‖ ^ 4 :=
+  integral_uniformOn_univ_eq_card_inv_smul_sum (E := ℝ)
+    (fun i => ‖Y i‖ ^ 4)
 
 /-- Finite empirical second-moment bound from a pointwise norm envelope. -/
 theorem integral_norm_sq_uniformOn_univ_le_card_inv_smul_sum_sq_of_norm_le
@@ -2019,6 +2041,109 @@ theorem chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
     (μ := μ) (u := u) hp
     (max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r (μ := μ) (Z := u) hu)
     (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
+
+/-- Shifted `Fin (n+1)` version of Hansen Theorem 10.20.
+
+Ordinary nonparametric bootstrap support uses `Fin (n+1)` to avoid the empty
+sample at `n = 0`; this is the corresponding shifted Marcinkiewicz WLLN. -/
+theorem marcinkiewiczWLLNStatisticNat_succ_tendsto_zero_of_uniformIntegrable
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ} {p : ℕ}
+    (hp : 2 ≤ p)
+    (hu : UniformIntegrable u 1 μ) :
+    TendstoInMeasure μ
+      (fun n ω => marcinkiewiczWLLNStatisticNat u p (n + 1) ω)
+      atTop (fun _ => 0) := by
+  have h :=
+    chapter10_marcinkiewicz_wlln_natPower_of_uniformIntegrable
+      (μ := μ) (u := u) (p := p) hp hu
+  rw [tendstoInMeasure_iff_dist] at h ⊢
+  intro ε hε
+  simpa [Function.comp_def] using
+    (h ε hε).comp (tendsto_add_atTop_nat 1)
+
+private theorem memLp_norm_sq_one_of_memLp_two
+    [NormedAddCommGroup E] [MeasurableSpace E] [BorelSpace E] [IsFiniteMeasure μ]
+    {Y : Ω → E} (hY : MemLp Y 2 μ) :
+    MemLp (fun ω => ‖Y ω‖ ^ 2) 1 μ := by
+  have hsq_int : Integrable (fun ω => ‖Y ω‖ ^ 2) μ :=
+    (memLp_two_iff_integrable_sq_norm hY.aestronglyMeasurable).1 hY
+  exact memLp_one_iff_integrable.mpr hsq_int
+
+/-- The shifted empirical fourth-moment Marcinkiewicz step in Hansen Theorem
+10.4.
+
+If `Y₀` has a finite second moment and the observations are identically
+distributed, then applying Theorem 10.20 to `uᵢ = ‖Yᵢ‖²` gives
+`(n+1)^{-2} sum_{i<n+1} ‖Yᵢ‖⁴ ->p 0`. -/
+theorem marcinkiewicz_norm_sq_finSucc_tendsto_zero_of_identDistrib_memLp_two
+    [NormedAddCommGroup E] [MeasurableSpace E] [BorelSpace E] [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → E)
+    (hY : MemLp (Y 0) 2 μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        marcinkiewiczWLLNStatisticNat (fun i ω => ‖Y i ω‖ ^ 2) 2 (n + 1) ω)
+      atTop (fun _ => 0) := by
+  have hYnormSq : MemLp (fun ω => ‖Y 0 ω‖ ^ 2) 1 μ :=
+    memLp_norm_sq_one_of_memLp_two (μ := μ) hY
+  have hnormSq_ident :
+      ∀ i,
+        IdentDistrib (fun ω => ‖Y i ω‖ ^ 2) (fun ω => ‖Y 0 ω‖ ^ 2) μ μ := by
+    intro i
+    simpa [Function.comp_def] using (hident i).comp ((continuous_norm.pow 2).measurable)
+  exact marcinkiewiczWLLNStatisticNat_succ_tendsto_zero_of_uniformIntegrable
+    (μ := μ) (u := fun i ω => ‖Y i ω‖ ^ 2) (p := 2) (by norm_num)
+    (uniformIntegrable_one_of_identDistrib_memLp
+      (μ := μ) (Z := fun i ω => ‖Y i ω‖ ^ 2) hYnormSq hnormSq_ident)
+
+/-- Empirical fourth-moment form of the shifted Marcinkiewicz step.
+
+For the ordinary `Fin (n+1)` empirical law, the quantity
+`(n+1)^{-1} E*[‖Y_i^*‖⁴]` is exactly the shifted Marcinkiewicz statistic for
+`uᵢ = ‖Yᵢ‖²`, hence it converges to zero under the finite-second-moment
+identical-distribution assumptions. -/
+theorem scaled_integral_norm_fourth_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two
+    [NormedAddCommGroup E] [MeasurableSpace E] [BorelSpace E] [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → E)
+    (hY : MemLp (Y 0) 2 μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        (((n + 1 : ℕ) : ℝ)⁻¹) *
+          ∫ i : Fin (n + 1), ‖Y i.val ω‖ ^ 4
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+      atTop (fun _ => 0) := by
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl
+    (marcinkiewicz_norm_sq_finSucc_tendsto_zero_of_identDistrib_memLp_two
+      (μ := μ) Y hY hident)
+  exact ae_of_all μ fun ω => by
+    change
+      marcinkiewiczWLLNStatisticNat (fun i ω => ‖Y i ω‖ ^ 2) 2 (n + 1) ω =
+        (((n + 1 : ℕ) : ℝ)⁻¹) *
+          ∫ i : Fin (n + 1), ‖Y i.val ω‖ ^ 4
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+    rw [integral_norm_fourth_uniformOn_univ_eq_card_inv_smul_sum
+      (Y := fun i : Fin (n + 1) => Y i.val ω)]
+    have hcoeff :
+        (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal) =
+          (((n + 1 : ℕ) : ℝ)⁻¹) := by
+      have htoReal :
+          ((Fintype.card (Fin (n + 1)) : ℝ≥0∞).toReal) =
+            (n + 1 : ℝ) := by
+        rw [Fintype.card_fin]
+        simpa using ENNReal.toReal_natCast (n + 1)
+      rw [ENNReal.toReal_inv, htoReal]
+      simp [Nat.cast_add, Nat.cast_one]
+    have hsum :
+        (∑ i : Fin (n + 1), ‖Y i.val ω‖ ^ 4) =
+          ∑ i ∈ Finset.range (n + 1), ‖Y i ω‖ ^ 4 := by
+      rw [Finset.sum_range]
+    rw [hcoeff, hsum]
+    simp [marcinkiewiczWLLNStatisticNat, smul_eq_mul, pow_two,
+      Nat.cast_add, Nat.cast_one]
+    ring_nf
 
 /-- Hansen Theorem 10.20, real-exponent convergence engine.
 
@@ -11160,6 +11285,133 @@ theorem integral_tail_sq_le_inv_sq_mul_integral_fourth
       integral_mono_of_nonneg hnonneg hgi hle
     _ = R⁻¹ ^ 2 * ∫ x, (Y x) ^ 4 ∂P := by
       rw [integral_const_mul]
+
+/-- Finite normalized one-draw Lindeberg bound for Hansen Theorem 10.4.
+
+For the ordinary `Fin (n+1)` empirical law, the conditional Lindeberg tail of
+the `sqrt (n+1)`-normalized one-draw summand is bounded by `ε^{-2}` times the
+scaled empirical fourth moment. This is the finite inequality used before the
+shifted Marcinkiewicz step sends the right side to zero in probability. -/
+theorem lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (Y : Fin (n + 1) → E) {ε : ℝ} (hε : 0 < ε) :
+    ((n + 1 : ℕ) : ℝ) *
+        ∫ i : Fin (n + 1),
+          Set.indicator
+            {i | ε ≤ ‖((Real.sqrt ((n + 1 : ℕ) : ℝ))⁻¹) • Y i‖}
+            (fun i => ‖((Real.sqrt ((n + 1 : ℕ) : ℝ))⁻¹) • Y i‖ ^ 2) i
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1))) ≤
+      ε⁻¹ ^ 2 *
+        (((n + 1 : ℕ) : ℝ)⁻¹ *
+          ∫ i : Fin (n + 1), ‖Y i‖ ^ 4
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))) := by
+  let P : Measure (Fin (n + 1)) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+  let N : ℝ := ((n + 1 : ℕ) : ℝ)
+  let c : ℝ := (Real.sqrt N)⁻¹
+  have hNpos : 0 < N := by
+    dsimp [N]
+    positivity
+  have hNnonneg : 0 ≤ N := hNpos.le
+  have hc_nonneg : 0 ≤ c := by
+    dsimp [c]
+    exact inv_nonneg.mpr (Real.sqrt_nonneg N)
+  have htail :
+      ∫ i : Fin (n + 1),
+          Set.indicator {i | ε ≤ ‖c • Y i‖}
+            (fun i => ‖c • Y i‖ ^ 2) i ∂P ≤
+        ε⁻¹ ^ 2 * ∫ i : Fin (n + 1), ‖c • Y i‖ ^ 4 ∂P := by
+    have hfourth_int :
+        Integrable (fun i : Fin (n + 1) => ‖c • Y i‖ ^ 4) P :=
+      Integrable.of_finite
+    have hbase :=
+      integral_tail_sq_le_inv_sq_mul_integral_fourth
+        (P := P) (Y := fun i : Fin (n + 1) => ‖c • Y i‖)
+        hε hfourth_int
+    simpa only [abs_of_nonneg (norm_nonneg _)] using hbase
+  have hscaled :
+      ∫ i : Fin (n + 1), ‖c • Y i‖ ^ 4 ∂P =
+        c ^ 4 * ∫ i : Fin (n + 1), ‖Y i‖ ^ 4 ∂P := by
+    have hfun :
+        (fun i : Fin (n + 1) => ‖c • Y i‖ ^ 4) =
+          fun i : Fin (n + 1) => c ^ 4 * ‖Y i‖ ^ 4 := by
+      funext i
+      rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg hc_nonneg]
+      ring
+    rw [hfun, integral_const_mul]
+  have hc4 : c ^ 4 = N⁻¹ ^ 2 := by
+    have hsqrt_sq : (Real.sqrt N) ^ 2 = N :=
+      Real.sq_sqrt hNnonneg
+    have hsqrt4 : (Real.sqrt N) ^ 4 = N ^ 2 := by
+      calc
+        (Real.sqrt N) ^ 4 = ((Real.sqrt N) ^ 2) ^ 2 := by ring
+        _ = N ^ 2 := by rw [hsqrt_sq]
+    calc
+      c ^ 4 = ((Real.sqrt N) ^ 4)⁻¹ := by simp [c, inv_pow]
+      _ = (N ^ 2)⁻¹ := by rw [hsqrt4]
+      _ = N⁻¹ ^ 2 := by simp [inv_pow]
+  change
+    N *
+        ∫ i : Fin (n + 1),
+          Set.indicator {i | ε ≤ ‖c • Y i‖}
+            (fun i => ‖c • Y i‖ ^ 2) i ∂P ≤
+      ε⁻¹ ^ 2 * (N⁻¹ * ∫ i : Fin (n + 1), ‖Y i‖ ^ 4 ∂P)
+  calc
+    N *
+        ∫ i : Fin (n + 1),
+          Set.indicator {i | ε ≤ ‖c • Y i‖}
+            (fun i => ‖c • Y i‖ ^ 2) i ∂P
+        ≤ N * (ε⁻¹ ^ 2 * ∫ i : Fin (n + 1), ‖c • Y i‖ ^ 4 ∂P) :=
+          mul_le_mul_of_nonneg_left htail hNnonneg
+    _ = ε⁻¹ ^ 2 * (N⁻¹ * ∫ i : Fin (n + 1), ‖Y i‖ ^ 4 ∂P) := by
+      rw [hscaled, hc4]
+      field_simp [hNpos.ne']
+
+/-- Lindeberg tail convergence for the normalized ordinary-bootstrap one-draw
+summands in Hansen Theorem 10.4.
+
+The finite Lindeberg inequality reduces the tail term to the scaled empirical
+fourth moment. The shifted Marcinkiewicz bridge then sends that right side to
+zero in probability under finite second moments and identical distribution. -/
+theorem
+    lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
+    [IsFiniteMeasure μ]
+    (Y : ℕ → Ω → E)
+    (hY : MemLp (Y 0) 2 μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    {ε : ℝ} (hε : 0 < ε) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        ((n + 1 : ℕ) : ℝ) *
+          ∫ i : Fin (n + 1),
+            Set.indicator
+              {i | ε ≤
+                ‖((Real.sqrt ((n + 1 : ℕ) : ℝ))⁻¹) • Y i.val ω‖}
+              (fun i =>
+                ‖((Real.sqrt ((n + 1 : ℕ) : ℝ))⁻¹) • Y i.val ω‖ ^ 2) i
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+      atTop (fun _ => 0) := by
+  have hfourth :=
+    scaled_integral_norm_fourth_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two
+      (μ := μ) Y hY hident
+  have hbound_tendsto :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) (ε⁻¹ ^ 2) hfourth
+  refine tendstoInMeasure_zero_of_nonneg_le (μ := μ) ?_ ?_ hbound_tendsto
+  · intro n ω
+    exact mul_nonneg (Nat.cast_nonneg _)
+      (integral_nonneg fun i =>
+        Set.indicator_nonneg
+          (fun i _ =>
+            sq_nonneg
+              (‖((Real.sqrt ((n + 1 : ℕ) : ℝ))⁻¹) • Y i.val ω‖)) i)
+  · intro n ω
+    exact
+      lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth
+        (Y := fun i : Fin (n + 1) => Y i.val ω) hε
 
 private theorem inv_sq_mul_add_one_lt_of_div_add_one_le
     {B ε R : ℝ} (hB : 0 ≤ B) (hε : 0 < ε)
