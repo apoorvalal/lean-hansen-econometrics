@@ -80,13 +80,16 @@ used throughout the chapter:
   bounded-continuous integral convergence into the same theorem-facing Gaussian
   CLT conclusions, while the `*_of_ae_tendstoInDistribution` constructors start
   from pathwise conditional weak convergence stated in Mathlib's distributional
-  form.
+  form.  The `*_finSucc_resampleMean_of_ae_tendstoInDistribution*` wrappers
+  specialize this route to the ordinary `Fin (n+1) -> Fin (n+1)` normalized
+  empirical-bootstrap statistic.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
+  `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
   and
   `bootstrapBoundedContinuousIntegralIndexed_normalized_finSucc_resampleMean_aestronglyMeasurable`
-  discharge the measurability side condition for finite-uniform
-  bounded-continuous bootstrap integrals, including the ordinary
+  discharge the measurability side conditions for finite-uniform
+  bounded-continuous bootstrap integrals and the ordinary
   `Fin (n+1) -> Fin (n+1)` statistic used by the empirical-bootstrap CLT path.
 * `multivariateGaussian_coordinateLE_frontier_null_of_posDef` supplies those
   Gaussian lower-orthant null-frontier premises from positive definite
@@ -4993,6 +4996,24 @@ theorem normalized_finSucc_resampleMean_sub_empiricalMean_aemeasurable
       hmean_sum.const_smul (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal)
   exact (hboot.sub hmean).const_mul (Real.sqrt (n + 1 : ℝ))
 
+/-- Measurability in the finite resampling path of the normalized ordinary
+empirical-bootstrap sample mean.
+
+This discharges the bootstrap-statistic measurability side condition in
+Hansen Theorem 10.4 wrappers for the concrete `Fin (n+1) -> Fin (n+1)`
+ordinary-bootstrap statistic. -/
+theorem normalized_finSucc_resampleMean_sub_empiricalMean_measurable
+    {Y : ℕ → Ω → k → ℝ} [Fintype k]
+    (n : ℕ) (ω : Ω) :
+    Measurable
+      (fun ωs : Fin (n + 1) → Fin (n + 1) => fun a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)) :=
+  measurable_of_finite _
+
 /-- Bounded-continuous conditional integrals of the normalized ordinary
 empirical-bootstrap sample mean are a.e.-strongly measurable in the original
 sample.
@@ -6853,6 +6874,119 @@ theorem chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution_pos
   chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (S := S)
     hmeas hae hZstar
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from a
+pathwise conditional weak CLT for the normalized `Fin (n+1)` resample mean.
+
+The finite-uniform bounded-continuous-integral measurability and the
+bootstrap-statistic measurability premises are discharged internally; the
+remaining mathematical input is the conditional CLT stated in Mathlib's
+`TendstoInDistribution` form. -/
+theorem chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_tendstoInDistribution
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Fin (n + 1) → Fin (n + 1)) => fun a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  letI : ∀ n, Ω → IsProbabilityMeasure
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))) := fun n _ => by
+    infer_instance
+  exact chapter10_indexed_bootstrap_clt_gaussian_of_ae_tendstoInDistribution
+    (μ := μ) (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Zstar := fun n ω ωs a =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs a -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+    (S := S)
+    (bootstrapBoundedContinuousIntegralIndexed_normalized_finSucc_resampleMean_aestronglyMeasurable
+      (μ := μ) (Y := Y) hY)
+    hae
+    (fun n ω => normalized_finSucc_resampleMean_sub_empiricalMean_measurable (Y := Y) n ω)
+    hfrontier
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from a pathwise conditional weak CLT for the normalized
+`Fin (n+1)` resample mean. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_tendstoInDistribution_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hae : ∀ᵐ ω ∂μ,
+      TendstoInDistribution
+        (fun n (ωs : Fin (n + 1) → Fin (n + 1)) => fun a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        atTop
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) S)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_tendstoInDistribution
+    (μ := μ) (Y := Y) (S := S) hY hae
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Weak bootstrap convergence plus bounded-continuous integral
