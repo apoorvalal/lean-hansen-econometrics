@@ -222,7 +222,9 @@ used throughout the chapter:
   and coordinatewise matrix `O(n⁻¹)` simulation-error bounds into `oₚ(1)`
   premises for finite-replication transfer theorems.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
-  identity behind equations (10.10) and (10.12).
+  identity behind equations (10.10) and (10.12), while
+  `integral_uniformOn_univ_sub_empiricalMean_eq_zero` gives the centered
+  one-draw mean-zero form used by characteristic-function expansions.
 * `empiricalMean`, `empiricalBootstrapResampleMean`,
   `integral_uniformOn_fun_eval_eq_empiricalMean`,
   `integral_empiricalBootstrapResampleMean_eq_of_coord_integrals`, and
@@ -248,8 +250,10 @@ used throughout the chapter:
   `lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two`
   turn that fourth-moment convergence into the finite normalized one-draw
   Lindeberg bound for the ordinary bootstrap CLT route.
-* `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` is the scalar
-  finite empirical variance identity behind equation (10.11).
+* `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` and
+  `integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance` are the scalar
+  finite empirical variance and centered raw-second-moment identities behind
+  equation (10.11).
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -668,6 +672,21 @@ theorem integral_uniformOn_univ_eq_empiricalMean
     ∫ i, Y i ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
       empiricalMean Y :=
   integral_uniformOn_univ_eq_card_inv_smul_sum Y
+
+/-- Centered empirical one-draw mean is zero under the finite uniform law. -/
+theorem integral_uniformOn_univ_sub_empiricalMean_eq_zero
+    [Nonempty ι]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    (Y : ι → E) :
+    ∫ i, Y i - empiricalMean Y
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      0 := by
+  let P : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  have hY : Integrable Y P := Integrable.of_finite
+  have hmean : Integrable (fun _ : ι => empiricalMean Y) P := integrable_const _
+  rw [integral_sub hY hmean]
+  rw [integral_uniformOn_univ_eq_empiricalMean (Y := Y)]
+  simp [P, empiricalMean]
 
 omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
 /-- Uniform law on finite resampling functions is the product of empirical
@@ -1318,6 +1337,18 @@ theorem variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered
   rw [ProbabilityTheory.variance_eq_integral (measurable_of_finite Y).aemeasurable, hmean]
   exact integral_uniformOn_univ_eq_card_inv_smul_sum
     (fun i => (Y i - ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal • ∑ j, Y j) ^ 2)
+
+/-- Raw second moment of a centered empirical one-draw statistic.
+
+Since the centered empirical one-draw statistic has exact mean zero, its raw
+second moment is the empirical one-draw variance. -/
+theorem integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance
+    (Y : ι → ℝ) :
+    ∫ i, (Y i - empiricalMean Y) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+  rw [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered (Y := Y)]
+  simp [integral_uniformOn_univ_eq_card_inv_smul_sum, empiricalMean]
 
 omit [Fintype ι] in
 /-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
