@@ -164,6 +164,10 @@ used throughout the chapter:
 * `finiteReplicationMeanReal_tendsto_of_integral_sq_error_le_inv` and its
   moment/covariance wrappers turn bounded-trimmed finite-replication WLLN
   `L²` error bounds into the moment premises used in Hansen Theorem 10.11.
+* `tendstoInMeasure_zero_of_integral_sq_error_le_inv` and
+  `tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv` turn real
+  and coordinatewise matrix `O(n⁻¹)` simulation-error bounds into `oₚ(1)`
+  premises for finite-replication transfer theorems.
 * `integral_uniformOn_univ_eq_card_inv_smul_sum` is the finite empirical mean
   identity behind equations (10.10) and (10.12).
 * `empiricalMean`, `empiricalBootstrapResampleMean`,
@@ -333,7 +337,9 @@ used throughout the chapter:
   discharging those bounds directly. The moment-premise and
   centered-scalar wrappers expose the same transfer directly from conditional
   bootstrap mean/second-moment convergence and Hansen's displayed `1 / (B - 1)`
-  estimator.
+  estimator. The fixed/indexed `*_of_l2_simulation_error` wrappers discharge
+  the finite-replication simulation-error premise from `O(n⁻¹)` mean-square
+  bounds.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -346,7 +352,10 @@ used throughout the chapter:
   compose this transfer with the Theorem 10.9 conditional covariance layer;
   fourth-moment-tail variants use the corresponding fixed/indexed covariance
   wrappers directly, with `MemLp` weak-limit variants for coordinates and
-  coordinate sums.
+  coordinate sums. The fixed/indexed covariance-matrix `*_of_l2_simulation_error`
+  wrappers discharge the simulation-error premise from coordinatewise
+  `O(n⁻¹)` mean-square bounds, including Hansen's centered covariance estimator
+  and trimmed covariance transfer.
   Scalar and matrix moment-premise wrappers expose the same transfer directly
   from conditional bootstrap mean and cross-moment convergence, with indexed
   mean-vector/cross-moment/covariance bridges and zero-mean specializations for
@@ -12218,6 +12227,43 @@ private theorem tendstoInMeasure_of_integral_norm_sq_le_inv
     simpa using hsub_scaled
   exact TendstoInMeasure.of_sub_limit_zero_real hsub
 
+/-- Real `L²` simulation-error constructor.
+
+An `O(n⁻¹)` mean-square bound for a real approximation error implies that the
+error is `oₚ(1)`.  The finite-replication variance/covariance wrappers below
+use this to replace abstract simulation-error convergence premises by the
+mean-square bounds supplied by bounded bootstrap simulations. -/
+theorem tendstoInMeasure_zero_of_integral_sq_error_le_inv
+    [IsFiniteMeasure μ] {E : ℕ → Ω → ℝ} {C : ℝ}
+    (hInt : ∀ n, Integrable (fun ω => ‖E n ω‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ᶠ n in atTop,
+        (∫ ω, ‖E n ω‖ ^ (2 : ℝ) ∂μ) ≤ C / (n : ℝ)) :
+    TendstoInMeasure μ E atTop (fun _ => 0) := by
+  refine tendstoInMeasure_of_integral_norm_sq_le_inv
+    (μ := μ) (X := E) (x := 0) (C := C) ?_ ?_
+  · simpa using hInt
+  · simpa using hbound
+
+/-- Matrix `L²` simulation-error constructor from coordinatewise
+`O(n⁻¹)` bounds. -/
+theorem tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {E : ℕ → Ω → Matrix k k ℝ} {C : k → k → ℝ}
+    (hInt :
+      ∀ a c n, Integrable (fun ω => ‖E n ω a c‖ ^ (2 : ℝ)) μ)
+    (hbound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω, ‖E n ω a c‖ ^ (2 : ℝ) ∂μ) ≤ C a c / (n : ℝ)) :
+    TendstoInMeasure μ E atTop (fun _ => 0) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun c => ?_)
+  simpa using
+    tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ) (E := fun n ω => E n ω a c) (C := C a c)
+      (hInt a c) (hbound a c)
+
 /-- Finite-replication WLLN for real means from an `L²` error bound.
 
 This is the bounded-trimmed WLLN constructor used by Hansen Theorem 10.11:
@@ -12627,6 +12673,44 @@ theorem chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
       (fun _ => σ2) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
 
+/-- Hansen Theorem 10.9/10.11 finite-replication variance from an `L²`
+simulation-error bound.
+
+This theorem-facing constructor replaces the abstract finite-replication
+`oₚ(1)` premise by a concrete `O(n⁻¹)` mean-square bound for the difference
+between the finite-replication variance and the conditional bootstrap
+variance. -/
+theorem chapter10_finiteReplicationVariance_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) :=
+  chapter10_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ)
+    (tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationVarianceMomentReal Zsim n ω -
+          bootstrapVarianceReal Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
+
 /-- Hansen Theorem 10.9/10.11 finite-replication variance from conditional
 bootstrap moment convergence.
 
@@ -12708,6 +12792,40 @@ theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_var
     TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
       (fun _ => σ2) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Hansen Theorem 10.9/10.11 centered finite-replication variance from an
+`L²` simulation-error bound. -/
+theorem
+    chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceReal Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) :=
+  chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ)
+    (tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationVarianceCenteredReal Zsim n ω -
+          bootstrapVarianceReal Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
 
 /-- Hansen Theorem 10.9/10.11 centered finite-replication variance from
 conditional bootstrap moment convergence. -/
@@ -12965,6 +13083,41 @@ theorem chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_varianc
       (fun _ => σ2) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
 
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from an
+`L²` simulation-error bound. -/
+theorem chapter10_indexed_finiteReplicationVariance_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => σ2) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_variance
+    (μ := μ)
+    (tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationVarianceMomentReal Zsim n ω -
+          bootstrapVarianceRealIndexed Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
+
 /-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from
 conditional bootstrap moment convergence. -/
 theorem chapter10_indexed_finiteReplicationVariance_tendsto_of_bootstrap_moments
@@ -13045,6 +13198,42 @@ theorem
     TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
       (fun _ => σ2) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance from
+an `L²` simulation-error bound. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_variance
+    (μ := μ)
+    (tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationVarianceCenteredReal Zsim n ω -
+          bootstrapVarianceRealIndexed Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
 
 /-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
 from conditional bootstrap moment convergence. -/
@@ -13546,6 +13735,40 @@ theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
 
+/-- Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
+coordinatewise `L²` simulation-error bounds. -/
+theorem chapter10_finiteReplicationCovarianceMat_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceMomentMat Zsim n ω -
+          bootstrapCovarianceMat Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
+
 /-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
 from conditional bootstrap covariance consistency. -/
 theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
@@ -13567,6 +13790,44 @@ theorem chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_co
     TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix from
+coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceMomentMat Zsim n ω -
+          bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
 
 /-- Indexed Hansen Theorem 10.9/10.11 finite-replication covariance matrix
 from conditional bootstrap moment convergence. -/
@@ -13960,6 +14221,41 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_co
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
 
+/-- Hansen Theorem 10.9/10.11 centered finite-replication covariance matrix
+from coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredMat Zsim n ω -
+          bootstrapCovarianceMat Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
+
 /-- Indexed Hansen Theorem 10.9/10.11 bridge for the textbook-centered finite
 replication covariance matrix. -/
 theorem
@@ -13982,6 +14278,45 @@ theorem
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication covariance
+matrix from coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredMat Zsim n ω -
+          bootstrapCovarianceMatIndexed Pstar Zstar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    hboot
 
 /-- Hansen Theorem 10.9/10.11 centered finite-replication covariance from
 bootstrap weak convergence and uniform-square-tail controls.
@@ -14529,6 +14864,43 @@ theorem chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBoots
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite htrim
 
+/-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
+coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {τ : ℕ → ℝ} {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (htrim :
+      TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredMat Zsim n ω -
+          trimmedBootstrapCovarianceMat Pstar Zstar τ n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    htrim
+
 /-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
 bridge for sample-size-dependent bootstrap spaces. -/
 theorem
@@ -14551,6 +14923,45 @@ theorem
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
       (fun _ => V) :=
   TendstoInMeasure.of_sub_tendsto_zero_matrix hfinite htrim
+
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+from coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {τ : ℕ → ℝ} {V : Matrix k k ℝ} {Cfinite : k → k → ℝ}
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (htrim :
+      TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+        atTop (fun _ => V)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => V) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmedBootstrapVariance
+    (μ := μ)
+    (tendstoInMeasure_matrix_zero_of_integral_sq_entry_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredMat Zsim n ω -
+          trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound)
+    htrim
 
 /-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
 trimmed conditional moments.
