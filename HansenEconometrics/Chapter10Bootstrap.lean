@@ -289,7 +289,9 @@ used throughout the chapter:
   `R⁻²` fourth-moment scale are made small at the same threshold; variants with
   eventual limit-tail premises choose that common threshold internally, and
   `MemLp` limit variants discharge that limit-tail premise from square
-  integrability of the weak limit.
+  integrability of the weak limit.  Fixed/indexed eventual-bound constructors
+  discharge the bootstrap tail side directly when the statistic is eventually
+  deterministically bounded.
 * `chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_tail`
   and its indexed counterpart package those constructors into scalar
   conditional bootstrap variance consistency.
@@ -10262,6 +10264,20 @@ private theorem integrable_tail_sq_indicator_of_memLp
         hY.aestronglyMeasurable.aemeasurable)
   exact hY.integrable_sq.indicator₀ htail_null
 
+private theorem integral_tail_sq_eq_zero_of_abs_le_lt
+    {α : Type*} [MeasurableSpace α] {P : Measure α}
+    {Y : α → ℝ} {C R : ℝ}
+    (hY : ∀ x, |Y x| ≤ C) (hCR : C < R) :
+    (∫ x, Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x ∂P) = 0 := by
+  have hfun :
+      (fun x => Set.indicator {x | R ≤ |Y x|} (fun x => (Y x) ^ 2) x) =
+        fun _ => 0 := by
+    funext x
+    have hnot : x ∉ {x | R ≤ |Y x|} :=
+      not_le_of_gt ((hY x).trans_lt hCR)
+    rw [Set.indicator_of_notMem hnot]
+  simp [hfun]
+
 /-- Fourth-moment domination of a scalar squared tail.
 
 For `R > 0`, the tail identity
@@ -10475,6 +10491,60 @@ theorem bootstrapUniformSquareTail_of_fourthMoment_tendstoInMeasure_of_memLp_lim
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
     (B := B) hB hFourth hFourthInt
     (integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim)
+
+/-- Uniform square-tail constructor for eventually bounded conditional
+bootstrap statistics.
+
+If the bootstrap statistic is eventually bounded by a deterministic constant
+and the weak limit is square-integrable, the bootstrap squared tail is
+eventually identically zero above a large enough deterministic threshold, while
+the limit squared tail is small by `MemLp Z 2`. -/
+theorem bootstrapUniformSquareTail_of_eventually_bound_memLp_limit
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    {C : ℝ}
+    (hZlim : MemLp Z 2 ν)
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs| ≤ C) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R₀, hR₀, hlimTail⟩ :=
+    integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim ε hε
+  let R : ℝ := max R₀ (C + 1)
+  have hR₀_le : R₀ ≤ R := le_max_left _ _
+  have hCadd_le : C + 1 ≤ R := le_max_right _ _
+  have hR : 1 ≤ R := hR₀.trans hR₀_le
+  have hC_lt_R : C < R := (lt_add_one C).trans_le hCadd_le
+  refine ⟨R, hR, hlimTail R hR₀_le, ?_⟩
+  have hsource_zero :
+      (fun n =>
+        μ {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0}) =ᶠ[atTop] fun _ => 0 := by
+    filter_upwards [hbound] with n hn
+    have hset :
+        {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0} = ∅ := by
+      ext ω
+      have htail_zero :
+          (∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) = 0 :=
+        integral_tail_sq_eq_zero_of_abs_le_lt
+          (P := Pstar n ω) (Y := Zstar n ω) (C := C) (R := R)
+          (hn ω) hC_lt_R
+      simp [htail_zero, not_le_of_gt hε]
+    rw [hset]
+    simp
+  rw [tendsto_congr' hsource_zero]
+  exact tendsto_const_nhds
 
 /-- Uniform square-tail control transfers to a statistic whose conditional
 tail integrals are pointwise dominated by the original statistic's tail
@@ -11011,6 +11081,56 @@ theorem
     (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
     (B := B) hB hFourth hFourthInt
     (integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim)
+
+/-- Indexed uniform square-tail constructor for eventually bounded conditional
+bootstrap statistics. -/
+theorem bootstrapUniformSquareTailIndexed_of_eventually_bound_memLp_limit
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    {C : ℝ}
+    (hZlim : MemLp Z 2 ν)
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Zstar n ω ωs| ≤ C) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R₀, hR₀, hlimTail⟩ :=
+    integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim ε hε
+  let R : ℝ := max R₀ (C + 1)
+  have hR₀_le : R₀ ≤ R := le_max_left _ _
+  have hCadd_le : C + 1 ≤ R := le_max_right _ _
+  have hR : 1 ≤ R := hR₀.trans hR₀_le
+  have hC_lt_R : C < R := (lt_add_one C).trans_le hCadd_le
+  refine ⟨R, hR, hlimTail R hR₀_le, ?_⟩
+  have hsource_zero :
+      (fun n =>
+        μ {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0}) =ᶠ[atTop] fun _ => 0 := by
+    filter_upwards [hbound] with n hn
+    have hset :
+        {ω |
+          ε ≤ dist
+            (∫ ωs,
+              Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+                (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω)
+            0} = ∅ := by
+      ext ω
+      have htail_zero :
+          (∫ ωs,
+            Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+              (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) = 0 :=
+        integral_tail_sq_eq_zero_of_abs_le_lt
+          (P := Pstar n ω) (Y := Zstar n ω) (C := C) (R := R)
+          (hn ω) hC_lt_R
+      simp [htail_zero, not_le_of_gt hε]
+    rw [hset]
+    simp
+  rw [tendsto_congr' hsource_zero]
+  exact tendsto_const_nhds
 
 /-- Indexed version of
 `bootstrapUniformSquareTail_of_integral_tail_sq_le`. -/
