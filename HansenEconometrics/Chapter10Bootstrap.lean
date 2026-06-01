@@ -229,7 +229,8 @@ used throughout the chapter:
   `iIndepFun_uniformOn_fun_eval`, and their transformed-statistic wrappers
   expose the ordinary finite nonparametric bootstrap draws, including centered
   and scaled centered draws, as iid coordinates under the uniform function-space
-  law.
+  law; `charFun_sum_uniformOn_fun_eval_smul_sub_empiricalMean_eq_pow` gives
+  the corresponding finite characteristic-function product formula.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -850,6 +851,63 @@ theorem identDistrib_uniformOn_fun_eval_smul_sub_empiricalMean
     (identDistrib_uniformOn_fun_eval_comp (κ := κ) (ι := ι) (E := E)
       (g := fun i : ι => c • (Y i - empiricalMean Y))
       (measurable_of_finite (fun i : ι => c • (Y i - empiricalMean Y))) t)
+
+/-- Characteristic function of the sum of scaled centered ordinary-bootstrap
+draws.
+
+Under the finite uniform resampling law on `κ → ι`, the scaled centered draws
+are iid with empirical one-draw law, so the characteristic function of their
+sum is the corresponding one-draw characteristic function raised to `#κ`. -/
+theorem charFun_sum_uniformOn_fun_eval_smul_sub_empiricalMean_eq_pow
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (c : ℝ) (Y : ι → ℝ) (u : ℝ) :
+    charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+          Measure (κ → ι)).map
+          (fun ωs => ∑ t : κ, c • (Y (ωs t) - empiricalMean Y)))) u =
+      (charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+          (fun i => c • (Y i - empiricalMean Y)))) u) ^ Fintype.card κ := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => c • (Y (ωs t) - empiricalMean Y)
+  let G : ι → ℝ := fun i => c • (Y i - empiricalMean Y)
+  have hIndep : iIndepFun X Pκ := by
+    simpa [X, Pκ] using
+      (iIndepFun_uniformOn_fun_eval_smul_sub_empiricalMean
+        (κ := κ) (ι := ι) (E := ℝ) c Y)
+  have hMeas : ∀ t : κ, AEMeasurable (X t) Pκ := fun t =>
+    (measurable_of_finite (X t)).aemeasurable
+  have hprod := hIndep.charFun_map_fun_sum_eq_prod hMeas
+  have hident : ∀ t : κ, IdentDistrib (X t) G Pκ Pι := by
+    intro t
+    simpa [X, G, Pκ, Pι] using
+      (identDistrib_uniformOn_fun_eval_smul_sub_empiricalMean
+        (κ := κ) (ι := ι) (E := ℝ) c Y t)
+  calc
+    charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+          Measure (κ → ι)).map
+          (fun ωs => ∑ t : κ, c • (Y (ωs t) - empiricalMean Y)))) u =
+        charFun (Pκ.map (fun ωs => ∑ t : κ, X t ωs)) u := by
+          simp [Pκ, X]
+    _ = (∏ t : κ, charFun (Pκ.map (X t)) u) := by
+      simpa using congrFun hprod u
+    _ = (∏ _t : κ, charFun (Pι.map G) u) := by
+      refine Finset.prod_congr rfl ?_
+      intro t _ht
+      rw [(hident t).map_eq]
+    _ = (charFun (Pι.map G) u) ^ Fintype.card κ := by
+      simp
+    _ =
+      (charFun
+        (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+          (fun i => c • (Y i - empiricalMean Y)))) u) ^ Fintype.card κ := by
+      simp [Pι, G]
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Coordinate marginal identity for finite uniform resampling.
