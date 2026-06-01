@@ -253,7 +253,9 @@ used throughout the chapter:
 * `variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered` and
   `integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance` are the scalar
   finite empirical variance and centered raw-second-moment identities behind
-  equation (10.11).
+  equation (10.11); `taylor_charFun_centered_standardized_uniformOn_univ`
+  packages these identities with Mathlib's second-order characteristic-function
+  Taylor expansion for the standardized centered empirical one-draw law.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -1349,6 +1351,64 @@ theorem integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance
       Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
   rw [variance_uniformOn_univ_eq_card_inv_smul_sum_sq_centered (Y := Y)]
   simp [integral_uniformOn_univ_eq_card_inv_smul_sum, empiricalMean]
+
+/-- Taylor expansion at zero for the standardized centered empirical one-draw
+characteristic function.
+
+This packages Mathlib's second-order characteristic-function Taylor lemma with
+the finite empirical mean-zero and variance identities. It is the local analytic
+input used by the characteristic-function proof of Hansen Theorem 10.4. -/
+theorem taylor_charFun_centered_standardized_uniformOn_univ
+    [Nonempty ι] (Y : ι → ℝ)
+    (hvar : Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+      Measure ι)] ≠ 0) :
+    (fun t =>
+      charFun
+          (((ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι).map
+            (fun i =>
+              (Y i - empiricalMean Y) /
+                Real.sqrt
+                  (Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) :
+                    Measure ι)])))) t -
+        (1 - t ^ 2 / 2)) =o[𝓝 0] fun t => t ^ 2 := by
+  let P : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let v : ℝ := Var[Y; P]
+  let X : ι → ℝ := fun i => (Y i - empiricalMean Y) / Real.sqrt v
+  have hvar_nonneg : 0 ≤ v := by
+    dsimp [v]
+    exact variance_nonneg Y P
+  have hvar_pos : 0 < v := lt_of_le_of_ne hvar_nonneg (by simpa [v, P] using hvar.symm)
+  have hsqrt_ne : Real.sqrt v ≠ 0 := (Real.sqrt_pos.2 hvar_pos).ne'
+  have hX : AEMeasurable X P := (measurable_of_finite X).aemeasurable
+  have hzero : P[X] = 0 := by
+    have hcenter :
+        ∫ i, Y i - empiricalMean Y ∂P = 0 := by
+      simpa [P] using integral_uniformOn_univ_sub_empiricalMean_eq_zero (Y := Y)
+    change ∫ i, X i ∂P = 0
+    have hfun :
+        X = fun i => (Real.sqrt v)⁻¹ * (Y i - empiricalMean Y) := by
+      funext i
+      simp [X, div_eq_mul_inv, mul_comm]
+    rw [hfun, integral_const_mul, hcenter, mul_zero]
+  have hone : P[X ^ 2] = 1 := by
+    have hsecond :
+        ∫ i, (Y i - empiricalMean Y) ^ 2 ∂P = v := by
+      simpa [P, v] using integral_sq_sub_empiricalMean_uniformOn_univ_eq_variance
+        (Y := Y)
+    change ∫ i, X i ^ 2 ∂P = 1
+    have hfun :
+        (fun i => X i ^ 2) =
+          fun i => (Real.sqrt v)⁻¹ ^ 2 * (Y i - empiricalMean Y) ^ 2 := by
+      funext i
+      simp [X, div_eq_mul_inv, pow_two, mul_assoc, mul_comm, mul_left_comm]
+    rw [hfun, integral_const_mul, hsecond]
+    calc
+      (Real.sqrt v)⁻¹ ^ 2 * v =
+          (Real.sqrt v)⁻¹ ^ 2 * Real.sqrt v ^ 2 := by
+            rw [Real.sq_sqrt hvar_nonneg]
+      _ = 1 := by
+            field_simp [hsqrt_ne]
+  simpa [P, v, X] using taylor_charFun_two hX hzero hone
 
 omit [Fintype ι] in
 /-- Scalar variance of the ordinary finite nonparametric bootstrap sample mean.
