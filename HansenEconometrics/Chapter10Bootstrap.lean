@@ -155,9 +155,9 @@ used throughout the chapter:
   bounded-continuous test-function integral differs by `oₚ(1)`; indexed
   versions provide the same route for sample-size-dependent spaces.
   `TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compact`
-  and its indexed counterpart derive that integral-linearization premise from
+  and compact-range variants derive that integral-linearization premise from
   conditional closeness in bootstrap probability when the statistic's codomain
-  is compact.
+  is compact or both statistics lie in a fixed compact set.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_boundedContinuous_sandwich`
   and `TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich`
   transfer weak bootstrap convergence through bounded-continuous sandwich
@@ -3342,7 +3342,8 @@ theorem abs_integral_boundedContinuous_comp_sub_le_of_dist_event
     (hZ : Measurable Z) (hZ' : Measurable Z')
     (f : BoundedContinuousFunction E ℝ)
     {η δ : ℝ} (hη : 0 ≤ η)
-    (hsmall : ∀ ⦃x y : E⦄, dist x y < δ → |f x - f y| ≤ η) :
+    (hsmall : ∀ ωs, dist (Z' ωs) (Z ωs) < δ →
+      |f (Z' ωs) - f (Z ωs)| ≤ η) :
     |(∫ ωs, f (Z' ωs) ∂P) - (∫ ωs, f (Z ωs) ∂P)| ≤
       η + (2 * ‖f‖) * P.real {ωs | δ ≤ dist (Z' ωs) (Z ωs)} := by
   classical
@@ -3394,7 +3395,7 @@ theorem abs_integral_boundedContinuous_comp_sub_le_of_dist_event
     · have hdist_lt : dist (Z' ωs) (Z ωs) < δ := by
         exact not_le.mp hω
       have hsmall' : |f (Z' ωs) - f (Z ωs)| ≤ η :=
-        hsmall hdist_lt
+        hsmall ωs hdist_lt
       simp [hω, hsmall']
   have habs_bound :
       ∫ ωs, |f (Z' ωs) - f (Z ωs)| ∂P ≤
@@ -3486,8 +3487,87 @@ theorem TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compac
     refine abs_integral_boundedContinuous_comp_sub_le_of_dist_event
       (P := Pstar n ω) (Z := Zstar n ω) (Z' := Zstar' n ω)
       (hZstar n ω) (hZstar' n ω) f (le_of_lt hε2) ?_
-    intro x y hxy
+    intro ωs hxy
     have hxy' := hδ hxy
+    exact le_of_lt (by simpa [Real.dist_eq] using hxy')
+  have habs_ge :
+      ε ≤ |bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+          bootstrapBoundedContinuousIntegral Pstar Zstar f n ω| := by
+    simpa [Real.dist_eq] using hω
+  have hpbad_ge : ε / 2 ≤ C * pbad := by
+    linarith
+  have hCprod_nonneg : 0 ≤ C * pbad := mul_nonneg hC_nonneg hpbad_nonneg
+  rw [Real.dist_eq]
+  simpa [abs_of_nonneg hCprod_nonneg, C, pbad] using hpbad_ge
+
+/-- Compact-range nonlinear transfer for bootstrap weak convergence.
+
+This version only requires both bootstrap statistics to take values in a fixed
+compact set. It is the useful form for bounded or trimmed finite-dimensional
+statistics, where the ambient codomain need not itself be compact. -/
+theorem TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compact_range
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {Z : Ωlim → E} {K : Set E}
+    (hZ : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistribution μ Pstar Zstar' ν Z := by
+  refine hZ.of_integral_difference_zero ?_
+  intro f
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by positivity
+  have hf_uc : UniformContinuousOn (fun x => f x) K :=
+    hK.uniformContinuousOn_of_continuous f.continuous.continuousOn
+  obtain ⟨δ, hδ_pos, hδ⟩ :=
+    Metric.uniformContinuousOn_iff.mp hf_uc (ε / 2) hε2
+  let C : ℝ := 2 * ‖f‖
+  have hCclose :
+      TendstoInMeasure μ
+        (fun n ω =>
+          C * (Pstar n ω).real
+            {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real C (hclose δ hδ_pos)
+  rw [tendstoInMeasure_iff_dist] at hCclose
+  have htail := hCclose (ε / 2) hε2
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds htail
+    (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let pbad : ℝ :=
+    (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)}
+  have hpbad_nonneg : 0 ≤ pbad := measureReal_nonneg
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hdist_integral :
+      |bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
+          bootstrapBoundedContinuousIntegral Pstar Zstar f n ω| ≤
+        ε / 2 + C * pbad := by
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    dsimp [bootstrapBoundedContinuousIntegral, pbad, C]
+    refine abs_integral_boundedContinuous_comp_sub_le_of_dist_event
+      (P := Pstar n ω) (Z := Zstar n ω) (Z' := Zstar' n ω)
+      (hZstar n ω) (hZstar' n ω) f (le_of_lt hε2) ?_
+    intro ωs hxy
+    have hxy' :=
+      hδ (Zstar' n ω ωs) (hZstar'_mem n ω ωs)
+        (Zstar n ω ωs) (hZstar_mem n ω ωs) hxy
     exact le_of_lt (by simpa [Real.dist_eq] using hxy')
   have habs_ge :
       ε ≤ |bootstrapBoundedContinuousIntegral Pstar Zstar' f n ω -
@@ -3678,8 +3758,83 @@ theorem TendstoInBootstrapWeakDistributionIndexed.of_bootstrap_dist_tendsto_zero
     refine abs_integral_boundedContinuous_comp_sub_le_of_dist_event
       (P := Pstar n ω) (Z := Zstar n ω) (Z' := Zstar' n ω)
       (hZstar n ω) (hZstar' n ω) f (le_of_lt hε2) ?_
-    intro x y hxy
+    intro ωs hxy
     have hxy' := hδ hxy
+    exact le_of_lt (by simpa [Real.dist_eq] using hxy')
+  have habs_ge :
+      ε ≤ |bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+          bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| := by
+    simpa [Real.dist_eq] using hω
+  have hpbad_ge : ε / 2 ≤ C * pbad := by
+    linarith
+  have hCprod_nonneg : 0 ≤ C * pbad := mul_nonneg hC_nonneg hpbad_nonneg
+  rw [Real.dist_eq]
+  simpa [abs_of_nonneg hCprod_nonneg, C, pbad] using hpbad_ge
+
+/-- Indexed compact-range nonlinear transfer for bootstrap weak convergence. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.of_bootstrap_dist_tendsto_zero_compact_range
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E}
+    {Z : Ωlim → E} {K : Set E}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar' ν Z := by
+  refine hZ.of_integral_difference_zero ?_
+  intro f
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by positivity
+  have hf_uc : UniformContinuousOn (fun x => f x) K :=
+    hK.uniformContinuousOn_of_continuous f.continuous.continuousOn
+  obtain ⟨δ, hδ_pos, hδ⟩ :=
+    Metric.uniformContinuousOn_iff.mp hf_uc (ε / 2) hε2
+  let C : ℝ := 2 * ‖f‖
+  have hCclose :
+      TendstoInMeasure μ
+        (fun n ω =>
+          C * (Pstar n ω).real
+            {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real C (hclose δ hδ_pos)
+  rw [tendstoInMeasure_iff_dist] at hCclose
+  have htail := hCclose (ε / 2) hε2
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds htail
+    (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let pbad : ℝ :=
+    (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)}
+  have hpbad_nonneg : 0 ≤ pbad := measureReal_nonneg
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hdist_integral :
+      |bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+          bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| ≤
+        ε / 2 + C * pbad := by
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    dsimp [bootstrapBoundedContinuousIntegralIndexed, pbad, C]
+    refine abs_integral_boundedContinuous_comp_sub_le_of_dist_event
+      (P := Pstar n ω) (Z := Zstar n ω) (Z' := Zstar' n ω)
+      (hZstar n ω) (hZstar' n ω) f (le_of_lt hε2) ?_
+    intro ωs hxy
+    have hxy' :=
+      hδ (Zstar' n ω ωs) (hZstar'_mem n ω ωs)
+        (Zstar n ω ωs) (hZstar_mem n ω ωs) hxy
     exact le_of_lt (by simpa [Real.dist_eq] using hxy')
   have habs_ge :
       ε ≤ |bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
