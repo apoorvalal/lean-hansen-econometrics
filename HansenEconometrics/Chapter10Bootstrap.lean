@@ -214,6 +214,10 @@ used throughout the chapter:
   `integral_norm_sq_finSucc_resampleMean_sub_empiricalMean_le_marcinkiewicz`
   packages that finite result in the `Fin (n+1)` Marcinkiewicz scale used by
   the indexed centered WLLN.
+* `variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq` and
+  `covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq` give the
+  scalar and matrix covariance identities for the `sqrt (#κ)` normalized
+  centered ordinary bootstrap mean used by the concrete Theorem 10.4 CLT path.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -856,6 +860,63 @@ theorem variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul
           dsimp [c]
           field_simp [hcard]
 
+/-- Scalar covariance scale for the normalized ordinary nonparametric-bootstrap
+sample mean.
+
+Multiplying the centered resample mean by `sqrt (#κ)` exactly restores the
+one-draw empirical variance.  This is the scalar finite-sample covariance
+identity behind Hansen's bootstrap CLT normalization. -/
+theorem variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    Var[fun ωs : κ → ι =>
+        Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y);
+        (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))] =
+      Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : (κ → ι) → ℝ :=
+    fun ωs => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs
+  have hX_meas : AEStronglyMeasurable X Pκ :=
+    AEStronglyMeasurable.of_discrete
+  have hvar_center :
+      Var[fun ωs : κ → ι => X ωs - empiricalMean Y; Pκ] =
+        Var[X; Pκ] := by
+    exact ProbabilityTheory.variance_sub_const hX_meas (empiricalMean Y)
+  have hbase :
+      Var[X; Pκ] =
+        (Fintype.card κ : ℝ)⁻¹ *
+          Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+    simpa [X, Pκ] using
+      variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul
+        (κ := κ) (Y := Y)
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  calc
+    Var[fun ωs : κ → ι =>
+        Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y); Pκ]
+        = Real.sqrt (Fintype.card κ : ℝ) ^ 2 *
+            Var[fun ωs : κ → ι => X ωs - empiricalMean Y; Pκ] := by
+          rw [ProbabilityTheory.variance_const_mul]
+    _ = Real.sqrt (Fintype.card κ : ℝ) ^ 2 * Var[X; Pκ] := by
+          rw [hvar_center]
+    _ = Real.sqrt (Fintype.card κ : ℝ) ^ 2 *
+          ((Fintype.card κ : ℝ)⁻¹ *
+            Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)]) := by
+          rw [hbase]
+    _ = Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+          rw [hsqrt_sq]
+          field_simp [hcard_pos.ne']
+
 /-- Centered second moment of the ordinary finite nonparametric bootstrap
 sample mean.
 
@@ -1055,6 +1116,79 @@ theorem covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul
     _ = c • covMat Pprod (Z j) := hsample_cov
     _ = c • covMat Pι Y := by
           rw [hcov_eval j]
+
+/-- Matrix covariance scale for the normalized ordinary nonparametric-bootstrap
+sample mean.
+
+The covariance matrix of `sqrt (#κ) (Ybar* - Ybar)` under the finite uniform
+resampling law is exactly the empirical one-draw covariance matrix.  This is
+the finite-dimensional counterpart of
+`variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq` and the
+matrix form of Hansen's bootstrap CLT normalization calculation. -/
+theorem covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Finite ι] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → k → ℝ) :
+    covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι))
+        (fun ωs a =>
+          Real.sqrt (Fintype.card κ : ℝ) *
+            (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a -
+              empiricalMean Y a)) =
+      covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) Y := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let X : (κ → ι) → k → ℝ :=
+    fun ωs => empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs
+  have hbase :
+      covMat Pκ X = (Fintype.card κ : ℝ)⁻¹ • covMat Pι Y := by
+    simpa [X, Pκ, Pι] using
+      covMat_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_smul
+        (κ := κ) (Y := Y)
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  ext a b
+  have hXa : Integrable (fun ωs => X ωs a) Pκ := Integrable.of_finite
+  have hXb : Integrable (fun ωs => X ωs b) Pκ := Integrable.of_finite
+  have hcenter :
+      cov[fun ωs => X ωs a - empiricalMean Y a,
+          fun ωs => X ωs b - empiricalMean Y b; Pκ] =
+        cov[fun ωs => X ωs a, fun ωs => X ωs b; Pκ] := by
+    rw [ProbabilityTheory.covariance_sub_const_left hXa,
+      ProbabilityTheory.covariance_sub_const_right hXb]
+  have hbase_ab := congrFun (congrFun hbase a) b
+  have hbase_cov :
+      cov[fun ωs => X ωs a, fun ωs => X ωs b; Pκ] =
+        (Fintype.card κ : ℝ)⁻¹ * covMat Pι Y a b := by
+    simpa [covMat, Matrix.smul_apply] using hbase_ab
+  calc
+    covMat Pκ
+        (fun ωs a =>
+          Real.sqrt (Fintype.card κ : ℝ) *
+            (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs a -
+              empiricalMean Y a)) a b
+        =
+          Real.sqrt (Fintype.card κ : ℝ) ^ 2 *
+            cov[fun ωs => X ωs a - empiricalMean Y a,
+              fun ωs => X ωs b - empiricalMean Y b; Pκ] := by
+          dsimp [covMat, X]
+          rw [ProbabilityTheory.covariance_const_mul_left,
+            ProbabilityTheory.covariance_const_mul_right]
+          ring
+    _ = Real.sqrt (Fintype.card κ : ℝ) ^ 2 *
+          cov[fun ωs => X ωs a, fun ωs => X ωs b; Pκ] := by
+          rw [hcenter]
+    _ = Real.sqrt (Fintype.card κ : ℝ) ^ 2 *
+          ((Fintype.card κ : ℝ)⁻¹ * covMat Pι Y a b) := by
+          rw [hbase_cov]
+    _ = covMat Pι Y a b := by
+          rw [hsqrt_sq]
+          field_simp [hcard_pos.ne']
 
 omit [Fintype ι] in
 /-- Trace of the finite-dimensional nonparametric-bootstrap sample-mean
