@@ -265,7 +265,10 @@ used throughout the chapter:
   `centeredEmpiricalCharFunFinSucc`, and
   `centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto`
   package the diagonal `Fin (n+1)` changing-support power bridge from
-  empirical variance convergence plus an explicit Taylor remainder.
+  empirical variance convergence plus an explicit Taylor remainder, while
+  `charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto`
+  transfers that power limit to the actual normalized ordinary-bootstrap
+  resample mean's conditional characteristic function.
 * `variance_empiricalBootstrapResampleMean_uniformOn_fun_eq_inv_card_mul` and
   `integral_sq_resampleMean_sub_empiricalMean_le_inv_card_mul_secondMoment`
   provide the scalar bootstrap sample-mean variance and second-moment bound
@@ -4026,6 +4029,54 @@ theorem charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
     (charFun_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_pow
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω) u)
+
+/-- Pathwise characteristic-function convergence for the normalized ordinary
+`Fin (n+1)` bootstrap sample mean from the diagonal empirical one-draw bridge.
+
+This composes the finite normalized characteristic-function identity with
+`centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto`.
+It is the pathwise scalar step used before feeding characteristic-function
+convergence into the Lévy route for Hansen Theorem 10.4. -/
+theorem
+    charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto
+    (Y : ℕ → Ω → ℝ) (ω : Ω) {σ2 : ℝ}
+    (hvar :
+      Tendsto
+        (fun n : ℕ => empiricalVarianceFinSucc (fun i => Y i ω) n)
+        atTop (𝓝 σ2))
+    (u : ℝ)
+    (hrem :
+      ((fun n : ℕ =>
+          centeredEmpiricalCharFunFinSucc (fun i => Y i ω) n
+              ((Real.sqrt (n + 1 : ℝ))⁻¹ * u) -
+            (1 +
+              scalarGaussianCharFunExponent u
+                  (empiricalVarianceFinSucc (fun i => Y i ω) n) *
+                complexInvNatSucc n)) =o[atTop]
+        (fun n : ℕ => complexInvNatSucc n))) :
+    Tendsto
+      (fun n : ℕ =>
+        charFun
+          (((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))).map
+            (fun ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))))
+          u)
+      atTop
+      (𝓝 (Complex.exp (scalarGaussianCharFunExponent u σ2))) := by
+  have hpow :=
+    centeredEmpiricalCharFunFinSucc_inv_sqrt_succ_pow_tendsto_of_variance_tendsto
+      (Y := fun i => Y i ω) hvar u hrem
+  refine hpow.congr' ?_
+  exact Eventually.of_forall fun n => by
+    simpa [centeredEmpiricalCharFunFinSucc] using
+      (charFun_normalized_finSucc_resampleMean_sub_empiricalMean_eq_pow
+        (Y := Y) n ω u).symm
 
 /-- Vector `Fin (n+1)` CLT-scale mean-zero identity for the ordinary
 nonparametric bootstrap.
