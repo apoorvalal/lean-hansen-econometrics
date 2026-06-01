@@ -5614,6 +5614,32 @@ theorem BootstrapAEMappingPremise.of_law_null_discontinuities
     rw [ae_iff]
     exact hg_disc
 
+/-- Measurable transformations with law-level a.e.-continuity supply Hansen's
+a.e.-continuity mapping premise. -/
+theorem BootstrapAEMappingPremise.of_measurable_law_ae_continuous
+    [TopologicalSpace E] [MeasurableSpace E]
+    [TopologicalSpace F] [MeasurableSpace F]
+    {ν : Measure Ωlim} {Z : Ωlim → E} {g : E → F}
+    (hZ : AEMeasurable Z ν)
+    (hg_meas : Measurable g)
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x) :
+    BootstrapAEMappingPremise ν Z g :=
+  BootstrapAEMappingPremise.of_law_ae_continuous
+    hZ hg_meas.aemeasurable hg_cont
+
+/-- Measurable transformations whose discontinuities are null under the limit
+law supply Hansen's a.e.-continuity mapping premise. -/
+theorem BootstrapAEMappingPremise.of_measurable_law_null_discontinuities
+    [TopologicalSpace E] [MeasurableSpace E]
+    [TopologicalSpace F] [MeasurableSpace F]
+    {ν : Measure Ωlim} {Z : Ωlim → E} {g : E → F}
+    (hZ : AEMeasurable Z ν)
+    (hg_meas : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0) :
+    BootstrapAEMappingPremise ν Z g :=
+  BootstrapAEMappingPremise.of_law_null_discontinuities
+    hZ hg_meas.aemeasurable hg_disc
+
 /-- Hansen Theorem 10.5, a.e.-continuous transformed-event face.
 
 The a.e.-continuity package records the textbook mapping premise, while the
