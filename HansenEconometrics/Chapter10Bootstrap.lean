@@ -1445,6 +1445,30 @@ private theorem complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div {f : ℕ �
   field_simp [Nat.cast_ne_zero.2 (Nat.succ_ne_zero n)]
   ring
 
+private theorem complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div_tendsto
+    {f a : ℕ → ℂ} {t : ℂ}
+    (ha : Tendsto a atTop (𝓝 t))
+    (hf : (fun n => f n - (1 + a n / ((n + 1 : ℕ) : ℂ))) =o[atTop]
+      fun n => 1 / ((n + 1 : ℕ) : ℂ)) :
+    Tendsto (fun n => f n ^ Nat.succ n) atTop (𝓝 (Complex.exp t)) := by
+  refine complex_tendsto_pow_succ_exp_of_isLittleO_sub_add_div (f := f) t ?_
+  have hscale :
+      (fun n => (a n - t) / ((n + 1 : ℕ) : ℂ)) =o[atTop]
+        fun n => 1 / ((n + 1 : ℕ) : ℂ) := by
+    refine Asymptotics.isLittleO_of_tendsto ?_ ?_
+    · intro n hn
+      exfalso
+      have hne : (1 / ((n + 1 : ℕ) : ℂ) : ℂ) ≠ 0 := by
+        exact one_div_ne_zero (Nat.cast_ne_zero.2 (Nat.succ_ne_zero n))
+      exact hne hn
+    · refine (tendsto_sub_nhds_zero_iff.2 ha).congr' ?_
+      filter_upwards with n
+      field_simp [Nat.cast_ne_zero.2 (Nat.succ_ne_zero n)]
+  refine (hf.add hscale).congr' ?_ EventuallyEq.rfl
+  filter_upwards with n
+  field_simp [Nat.cast_ne_zero.2 (Nat.succ_ne_zero n)]
+  ring
+
 private theorem tendsto_charFun_inv_sqrt_succ_mul_pow_of_taylor
     {φ : ℝ → ℂ}
     (hφ : (fun x => φ x - (1 - x ^ 2 / 2)) =o[𝓝 0] fun x => x ^ 2)
