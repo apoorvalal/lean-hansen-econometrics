@@ -2390,6 +2390,25 @@ theorem chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable
     (max_norm_scaled_tendstoInMeasure_zero_of_uniformIntegrable_norm_r (μ := μ) (Z := u) hu)
     (sampleAbsMean_boundedInProbability_of_uniformIntegrable (μ := μ) hu)
 
+/-- Shifted real-exponent version of Hansen Theorem 10.20.
+
+Ordinary nonparametric bootstrap support uses `Fin (n+1)` to avoid the empty
+sample at `n = 0`; this is the corresponding shifted form of Hansen's stated
+real-exponent Marcinkiewicz WLLN. -/
+theorem marcinkiewiczWLLNStatisticRpow_succ_tendsto_zero_of_uniformIntegrable
+    [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ} {r : ℝ}
+    (hr : 1 < r)
+    (hu : UniformIntegrable u 1 μ) :
+    TendstoInMeasure μ
+      (fun n ω => marcinkiewiczWLLNStatisticRpow u r (n + 1) ω)
+      atTop (fun _ => 0) := by
+  have h :=
+    chapter10_marcinkiewicz_wlln_rpow_of_uniformIntegrable
+      (μ := μ) (u := u) hr hu
+  rw [tendstoInMeasure_iff_dist] at h ⊢
+  intro ε hε
+  simpa using (h ε hε).comp (tendsto_add_atTop_nat 1)
+
 end MarcinkiewiczWLLN
 
 section BootstrapWLLNSecondMoment
