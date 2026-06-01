@@ -5759,6 +5759,128 @@ theorem chapter10_indexed_bootstrap_ae_continuous_mapping_distribution_of_null_f
       (ν := ν) (Z := fun ωlim => g (Z ωlim))
       hweakMapped hPstar hZstar hmap.aemeasurable hfrontier
 
+/-- Hansen Theorem 10.5, law-level null-discontinuity transformed-event face.
+
+This is the mapped-weak-convergence route stated with Hansen's textbook
+discontinuity-set hypothesis under the law of `Z`. -/
+theorem chapter10_bootstrap_law_null_disc_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E] [MeasurableSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbability Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) :=
+  chapter10_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (g := g) (A := A)
+    (BootstrapAEMappingPremise.of_measurable_law_null_discontinuities
+      hZlim hg hg_disc)
+    hweakMapped hPstar hZstar hA hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level null-discontinuity transformed-event
+face. -/
+theorem chapter10_indexed_bootstrap_law_null_disc_mapping_event_probability_of_null_frontier
+    [TopologicalSpace E] [MeasurableSpace E]
+    [PseudoEMetricSpace F] [MeasurableSpace F] [BorelSpace F] [OpensMeasurableSpace F]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → F} {A : Set F}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map (fun ωlim => g (Z ωlim))) (frontier A) = 0) :
+    TendstoInMeasure μ
+      (bootstrapEventProbabilityIndexed Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) A)
+      atTop (fun _ => (ν.map (fun ωlim => g (Z ωlim))).real A) :=
+  chapter10_indexed_bootstrap_ae_continuous_mapping_event_probability_of_null_frontier
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (g := g) (A := A)
+    (BootstrapAEMappingPremise.of_measurable_law_null_discontinuities
+      hZlim hg hg_disc)
+    hweakMapped hPstar hZstar hA hfrontier
+
+/-- Hansen Theorem 10.5, law-level null-discontinuity finite-dimensional CDF
+face. -/
+theorem chapter10_bootstrap_law_null_disc_mapping_distribution_of_null_frontiers
+    [TopologicalSpace E] [MeasurableSpace E] [Finite k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) :=
+  chapter10_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (g := g)
+    (BootstrapAEMappingPremise.of_measurable_law_null_discontinuities
+      hZlim hg hg_disc)
+    hweakMapped hPstar hZstar hfrontier
+
+/-- Indexed Hansen Theorem 10.5, law-level null-discontinuity
+finite-dimensional CDF face. -/
+theorem chapter10_indexed_bootstrap_law_null_disc_mapping_distribution_of_null_frontiers
+    [TopologicalSpace E] [MeasurableSpace E] [Finite k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν]
+    {Z : Ωlim → E} {g : E → k → ℝ}
+    (hZlim : AEMeasurable Z ν)
+    (hg : Measurable g)
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0)
+    (hweakMapped :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (fun ωs => g (Zstar n ω ωs)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y =>
+        vectorCDF ν (fun ωlim => g (Z ωlim)) y) x →
+        (ν.map (fun ωlim => g (Z ωlim)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs => g (Zstar n ω ωs)) ν (fun ωlim => g (Z ωlim)) :=
+  chapter10_indexed_bootstrap_ae_continuous_mapping_distribution_of_null_frontiers
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (g := g)
+    (BootstrapAEMappingPremise.of_measurable_law_null_discontinuities
+      hZlim hg hg_disc)
+    hweakMapped hPstar hZstar hfrontier
+
 /-- Hansen Theorem 10.5, a.e.-continuous sandwich-mapped event face.
 
 The a.e.-continuity package records Hansen's textbook mapping premise, while
