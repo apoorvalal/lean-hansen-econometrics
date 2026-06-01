@@ -221,11 +221,19 @@ used throughout the chapter:
   give exact zero-mean, covariance, cross-moment, scalar raw-second-moment, and
   Euclidean norm second-moment identities for the `sqrt (#κ)` normalized
   centered ordinary bootstrap mean used by the concrete Theorem 10.4 CLT path.
+  `integral_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero`,
+  `integral_mul_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat`,
   `integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance`,
   `covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq`, and
   `integral_norm_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_trace_covMat`
   specialize these CLT-scale identities to the sample-size-indexed
   `Fin (n+1) -> Fin (n+1)` ordinary nonparametric bootstrap space.
+  `bootstrapMeanVecIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero`,
+  `bootstrapCrossMomentMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat`,
+  and `bootstrapCovarianceMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat`
+  expose the same normalized `Fin (n+1)` identities through the indexed
+  conditional mean, cross-moment, and covariance APIs used by later Chapter 10
+  theorem wrappers.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -2970,6 +2978,47 @@ theorem integral_sq_normalized_finSucc_resampleMean_sub_empiricalMean_eq_varianc
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω))
 
+/-- Vector `Fin (n+1)` CLT-scale mean-zero identity for the ordinary
+nonparametric bootstrap.
+
+The normalized centered resample mean has exact conditional mean zero in the
+indexed resampling space used by Hansen Theorem 10.4. -/
+theorem integral_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        Real.sqrt (n + 1 : ℝ) •
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) =
+      0 := by
+  simpa [Fintype.card_fin] using
+    (integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Coordinate `Fin (n+1)` CLT-scale mean-zero identity for the ordinary
+nonparametric bootstrap. -/
+theorem integral_normalized_finSucc_resampleMean_sub_empiricalMean_apply_eq_zero
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) (a : k) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω) (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) =
+      0 := by
+  simpa [Fintype.card_fin] using
+    (integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_apply_sub_eq_zero
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω) a)
+
 /-- Matrix `Fin (n+1)` CLT-scale covariance identity for the ordinary
 nonparametric bootstrap.
 
@@ -2996,6 +3045,37 @@ theorem covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq
     (covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Matrix-entry `Fin (n+1)` CLT-scale raw cross-moment identity for the
+ordinary nonparametric bootstrap.
+
+Since the normalized centered resample mean has exact conditional mean zero,
+its raw cross moments equal the finite empirical one-draw covariance matrix. -/
+theorem integral_mul_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+    {k : Type*} [Fintype k]
+    (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) (a b : k) :
+    ∫ ωs : Fin (n + 1) → Fin (n + 1),
+        (Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)) *
+        (Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs b -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b))
+        ∂(ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) =
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a) a b := by
+  simpa [Fintype.card_fin] using
+    (integral_mul_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_covMat
+      (κ := Fin (n + 1)) (ι := Fin (n + 1))
+      (Y := fun i : Fin (n + 1) => Y i.val ω) a b)
 
 /-- Euclidean `Fin (n+1)` CLT-scale second-moment identity for the ordinary
 nonparametric bootstrap.
@@ -12106,6 +12186,89 @@ theorem bootstrapCovarianceMatIndexed_eq_momentMat
   simpa [bootstrapCovarianceMatIndexed, bootstrapCovarianceMomentMatIndexed,
     bootstrapCrossMomentMatIndexed, bootstrapMeanVecIndexed, Pi.mul_apply] using
       (ProbabilityTheory.covariance_eq_sub (hZ n ω a) (hZ n ω c))
+
+/-- Indexed conditional mean of the normalized ordinary nonparametric-bootstrap
+mean.
+
+For the `Fin (n+1) -> Fin (n+1)` resampling space, Hansen's CLT-scaled
+centered bootstrap mean has exact conditional mean zero. -/
+theorem bootstrapMeanVecIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_zero
+    [Fintype k] (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapMeanVecIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        n ω =
+      0 := by
+  ext a
+  simpa [bootstrapMeanVecIndexed] using
+    integral_normalized_finSucc_resampleMean_sub_empiricalMean_apply_eq_zero
+      (Y := Y) n ω a
+
+/-- Indexed conditional cross moments of the normalized ordinary
+nonparametric-bootstrap mean.
+
+The CLT-scaled centered bootstrap mean has raw cross moments equal to the
+finite empirical one-draw covariance matrix. -/
+theorem
+    bootstrapCrossMomentMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+    [Fintype k] (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapCrossMomentMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        n ω =
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a) := by
+  ext a b
+  simpa [bootstrapCrossMomentMatIndexed] using
+    integral_mul_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+      (Y := Y) n ω a b
+
+/-- Indexed conditional covariance matrix of the normalized ordinary
+nonparametric-bootstrap mean.
+
+This packages the finite `Fin (n+1)` covariance identity in the indexed
+conditional covariance API used by the Chapter 10 variance and regression
+wrappers. -/
+theorem
+    bootstrapCovarianceMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
+    [Fintype k] (Y : ℕ → Ω → k → ℝ) (n : ℕ) (ω : Ω) :
+    bootstrapCovarianceMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        n ω =
+      covMat
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))
+        (fun i a => Y i.val ω a) := by
+  simpa [bootstrapCovarianceMatIndexed] using
+    covMat_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+      (Y := Y) n ω
 
 /-- Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
