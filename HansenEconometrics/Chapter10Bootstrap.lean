@@ -205,8 +205,8 @@ used throughout the chapter:
   the finite-resampling sample-mean API used by the concrete Theorem 10.2 path.
 * `uniformOn_fun_univ_eq_pi_uniformOn_univ`,
   `iIndepFun_uniformOn_fun_eval`, and their transformed-statistic wrappers
-  expose the ordinary finite nonparametric bootstrap draws as iid coordinates
-  under the uniform function-space law.
+  expose the ordinary finite nonparametric bootstrap draws, including centered
+  draws `Y_i^* - Ybar`, as iid coordinates under the uniform function-space law.
 * `integral_norm_sq_uniformOn_univ_eq_card_inv_smul_sum` and
   `memLp_two_uniformOn_univ` are finite empirical squared-norm helpers used by
   the concrete Theorem 10.2 second-moment route.
@@ -727,6 +727,47 @@ theorem identDistrib_uniformOn_fun_eval_comp
         Measure (κ → ι))
       (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) :=
   (identDistrib_uniformOn_fun_eval (κ := κ) (ι := ι) t).comp hg
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Centered transformed ordinary-bootstrap draws are independent coordinates
+under the finite uniform resampling law.
+
+This is the iid summand shape used in Hansen's ordinary-bootstrap CLT proof:
+each draw is centered at the finite empirical mean. -/
+theorem iIndepFun_uniformOn_fun_eval_sub_empiricalMean
+    {κ ι E : Type*} [MeasurableSpace ι] [MeasurableSpace E]
+    [Finite κ] [Fintype ι] [Nonempty ι] [MeasurableSingletonClass ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) :
+    iIndepFun (fun t (ωs : κ → ι) => Y (ωs t) - empiricalMean Y)
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι)) := by
+  simpa using
+    (iIndepFun_uniformOn_fun_eval_comp (κ := κ) (ι := ι) (E := E)
+      (g := fun i : ι => Y i - empiricalMean Y)
+      (measurable_of_finite (fun i : ι => Y i - empiricalMean Y)))
+
+omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
+/-- Centered transformed ordinary-bootstrap draws are identically distributed
+with their empirical-support counterpart.
+
+This packages the one-draw law for the centered summands
+`Y_i^* - Ybar` used by the ordinary-bootstrap CLT route. -/
+theorem identDistrib_uniformOn_fun_eval_sub_empiricalMean
+    {κ ι E : Type*} [MeasurableSpace ι] [MeasurableSpace E]
+    [Finite κ] [Fintype ι] [Nonempty ι] [MeasurableSingletonClass ι]
+    [MeasurableSingletonClass (κ → ι)]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) (t : κ) :
+    IdentDistrib
+      (fun ωs : κ → ι => Y (ωs t) - empiricalMean Y)
+      (fun i : ι => Y i - empiricalMean Y)
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) :
+        Measure (κ → ι))
+      (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) := by
+  simpa using
+    (identDistrib_uniformOn_fun_eval_comp (κ := κ) (ι := ι) (E := E)
+      (g := fun i : ι => Y i - empiricalMean Y)
+      (measurable_of_finite (fun i : ι => Y i - empiricalMean Y)) t)
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Coordinate marginal identity for finite uniform resampling.
