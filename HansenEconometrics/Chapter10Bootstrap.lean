@@ -5583,6 +5583,37 @@ theorem BootstrapAEMappingPremise.of_continuous
     { aemeasurable := hg.measurable.aemeasurable.comp_aemeasurable hZ
       ae_continuous := ae_of_all ν fun _ => hg.continuousAt }
 
+/-- Law-level a.e.-continuity supplies Hansen's a.e.-continuity mapping
+premise.
+
+This is the textbook-facing constructor: the continuity condition is stated
+under the limit law of `Z`, then pulled back to the underlying limit
+probability space. -/
+theorem BootstrapAEMappingPremise.of_law_ae_continuous
+    [TopologicalSpace E] [MeasurableSpace E]
+    [TopologicalSpace F] [MeasurableSpace F]
+    {ν : Measure Ωlim} {Z : Ωlim → E} {g : E → F}
+    (hZ : AEMeasurable Z ν)
+    (hg_meas : AEMeasurable g (ν.map Z))
+    (hg_cont : ∀ᵐ x ∂ν.map Z, ContinuousAt g x) :
+    BootstrapAEMappingPremise ν Z g :=
+  { aemeasurable := hg_meas.comp_aemeasurable hZ
+    ae_continuous := ae_of_ae_map hZ hg_cont }
+
+/-- Null discontinuity sets under the limit law supply Hansen's
+a.e.-continuity mapping premise. -/
+theorem BootstrapAEMappingPremise.of_law_null_discontinuities
+    [TopologicalSpace E] [MeasurableSpace E]
+    [TopologicalSpace F] [MeasurableSpace F]
+    {ν : Measure Ωlim} {Z : Ωlim → E} {g : E → F}
+    (hZ : AEMeasurable Z ν)
+    (hg_meas : AEMeasurable g (ν.map Z))
+    (hg_disc : (ν.map Z) {x | ¬ ContinuousAt g x} = 0) :
+    BootstrapAEMappingPremise ν Z g :=
+  BootstrapAEMappingPremise.of_law_ae_continuous hZ hg_meas <| by
+    rw [ae_iff]
+    exact hg_disc
+
 /-- Hansen Theorem 10.5, a.e.-continuous transformed-event face.
 
 The a.e.-continuity package records the textbook mapping premise, while the
