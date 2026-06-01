@@ -218,9 +218,9 @@ used throughout the chapter:
   `variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq`,
   `covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq`, and
   `integral_mul_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_covMat`
-  give exact zero-mean, covariance, and cross-moment identities for the
-  `sqrt (#κ)` normalized centered ordinary bootstrap mean used by the concrete
-  Theorem 10.4 CLT path.
+  give exact zero-mean, covariance, cross-moment, scalar raw-second-moment, and
+  Euclidean norm second-moment identities for the `sqrt (#κ)` normalized
+  centered ordinary bootstrap mean used by the concrete Theorem 10.4 CLT path.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -941,6 +941,50 @@ theorem variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
           rw [hsqrt_sq]
           field_simp [hcard_pos.ne']
 
+/-- Scalar raw second moment of the normalized ordinary
+nonparametric-bootstrap sample mean.
+
+Since `sqrt (#κ) (Ybar* - Ybar)` has exact conditional mean zero, its raw
+second moment is the empirical one-draw variance. -/
+theorem integral_sq_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_variance
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      Var[Y; (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)] := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let Z : (κ → ι) → ℝ :=
+    fun ωs =>
+      Real.sqrt (Fintype.card κ : ℝ) *
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+          empiricalMean Y)
+  have hmean : ∫ ωs, Z ωs ∂Pκ = 0 := by
+    simpa [Z, Pκ, smul_eq_mul] using
+      integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+        (κ := κ) (Y := Y)
+  have hvar : Var[Z; Pκ] = Var[Y; Pι] := by
+    simpa [Z, Pκ, Pι] using
+      variance_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+        (κ := κ) (Y := Y)
+  change ∫ ωs, Z ωs ^ 2 ∂Pκ = Var[Y; Pι]
+  calc
+    ∫ ωs, Z ωs ^ 2 ∂Pκ =
+        ∫ ωs, (Z ωs - ∫ ωs, Z ωs ∂Pκ) ^ 2 ∂Pκ := by
+          rw [hmean]
+          simp
+    _ = Var[Z; Pκ] := by
+          exact (ProbabilityTheory.variance_eq_integral
+            (AEStronglyMeasurable.of_discrete :
+              AEStronglyMeasurable Z Pκ).aemeasurable).symm
+    _ = Var[Y; Pι] := hvar
+
 /-- Centered second moment of the ordinary finite nonparametric bootstrap
 sample mean.
 
@@ -1308,6 +1352,56 @@ theorem integral_mul_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_
     simpa [covMat, Z, Pκ, Pι] using hcovMat
   rw [← hcov_raw]
   exact hcov
+
+/-- Euclidean raw second moment of the normalized ordinary
+nonparametric-bootstrap sample mean.
+
+The squared Euclidean norm of `sqrt (#κ) (Ybar* - Ybar)` has conditional
+expectation equal to the trace of the empirical one-draw covariance matrix.
+This is the finite-dimensional raw second-moment face of Hansen's bootstrap
+CLT normalization. -/
+theorem integral_norm_sq_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq_trace_covMat
+    {κ k : Type*} [Fintype κ] [Nonempty κ] [Fintype k] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → EuclideanSpace ℝ k) :
+    ∫ ωs : κ → ι,
+        ‖Real.sqrt (Fintype.card κ : ℝ) •
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y)‖ ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      Matrix.trace
+        (covMat (ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι)
+          (fun i a => Y i a)) := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let Pι : Measure ι := ProbabilityTheory.uniformOn (Set.univ : Set ι)
+  let Z : (κ → ι) → EuclideanSpace ℝ k :=
+    fun ωs =>
+      Real.sqrt (Fintype.card κ : ℝ) •
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y)
+  have hmean : ∫ ωs, Z ωs ∂Pκ = 0 := by
+    simpa [Z, Pκ] using
+      integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero
+        (κ := κ) (Y := Y)
+  have htrace :
+      Matrix.trace (covMat Pκ (fun ωs a => Z ωs a)) =
+        Matrix.trace (covMat Pι (fun i a => Y i a)) := by
+    have hcov :=
+      covMat_normalized_empiricalBootstrapResampleMean_uniformOn_fun_eq
+        (κ := κ) (Y := fun i a => Y i a)
+    simpa [Z, Pκ, Pι, Pi.smul_apply, empiricalBootstrapResampleMean, empiricalMean] using
+      congrArg Matrix.trace hcov
+  change ∫ ωs, ‖Z ωs‖ ^ 2 ∂Pκ =
+    Matrix.trace (covMat Pι (fun i a => Y i a))
+  calc
+    ∫ ωs, ‖Z ωs‖ ^ 2 ∂Pκ =
+        ∫ ωs, ‖Z ωs - ∫ ωs, Z ωs ∂Pκ‖ ^ 2 ∂Pκ := by
+          rw [hmean]
+          simp
+    _ = Matrix.trace (covMat Pκ (fun ωs a => Z ωs a)) := by
+          exact integral_norm_sq_sub_mean_eq_trace_covMat_euclidean_of_finite
+            (μ := Pκ) Z
+    _ = Matrix.trace (covMat Pι (fun i a => Y i a)) := htrace
 
 omit [Fintype ι] in
 /-- Trace of the finite-dimensional nonparametric-bootstrap sample-mean
