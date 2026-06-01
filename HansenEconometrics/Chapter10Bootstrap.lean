@@ -167,7 +167,7 @@ used throughout the chapter:
   `chapter10_bootstrap_delta_method_gaussian_of_compact_range_closeness` and
   `chapter10_bootstrap_smooth_function_gaussian_of_compact_range_closeness`
   wrappers expose that compact-range route as theorem-facing Hansen Theorems
-  10.6 and 10.7 Gaussian weak/CDF conclusions.
+  10.6 and 10.7 Gaussian weak/event/CDF conclusions.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_boundedContinuous_sandwich`
   and `TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich`
   transfer weak bootstrap convergence through bounded-continuous sandwich
@@ -7633,6 +7633,69 @@ theorem chapter10_bootstrap_delta_method_gaussian_of_compact_range_closeness
     hdelta.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hlinearizedMeas
       hthetaStar hlinearized_mem hthetaStar_mem hclose
 
+/-- Hansen Theorem 10.6 Gaussian Delta-method event-probability wrapper from
+compact-range bootstrap-probability closeness to the derivative-linearized
+statistic. -/
+theorem
+    chapter10_bootstrap_delta_method_gaussian_event_probability_of_compact_range_closeness
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (thetaStar n ω ωs)
+              (matrixContinuousLinearMap G (Tstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_delta_method_gaussian_of_compact_range_closeness
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
+      hlinearized_mem hthetaStar_mem hclose
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPfinite hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
+
 /-- Hansen Theorem 10.6 Gaussian Delta-method CDF wrapper from compact-range
 bootstrap-probability closeness to the derivative-linearized statistic. -/
 theorem
@@ -7955,6 +8018,70 @@ theorem
   exact
     hdelta.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hlinearizedMeas
       hthetaStar hlinearized_mem hthetaStar_mem hclose
+
+/-- Indexed Hansen Theorem 10.6 Gaussian Delta-method event-probability
+wrapper from compact-range bootstrap-probability closeness to the
+derivative-linearized statistic. -/
+theorem
+    chapter10_indexed_bootstrap_delta_method_gaussian_event_probability_of_compact_range_closeness
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (thetaStar n ω ωs)
+              (matrixContinuousLinearMap G (Tstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) := by
+  have hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_delta_method_gaussian_of_compact_range_closeness
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
+      hlinearized_mem hthetaStar_mem hclose
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hfrontier_map :
+      ((multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).map
+          (fun z : EuclideanSpace ℝ r => z)) (frontier A) = 0 := by
+    simpa using hfrontier
+  have hres :=
+    hweak.event_probability_tendsto_of_null_frontier
+      hPfinite hthetaStar
+      (aemeasurable_id :
+        AEMeasurable (fun z : EuclideanSpace ℝ r => z)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+      hA hfrontier_map
+  simpa using hres
 
 /-- Indexed Hansen Theorem 10.6 Gaussian Delta-method CDF wrapper from
 compact-range bootstrap-probability closeness to the derivative-linearized
@@ -8364,6 +8491,49 @@ theorem chapter10_bootstrap_smooth_function_gaussian_of_compact_range_closeness
     (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
     hlinearized_mem hthetaStar_mem hclose
 
+/-- Hansen Theorem 10.7 smooth-function Gaussian event-probability wrapper
+from compact-range bootstrap-probability closeness to the
+derivative-linearized statistic. -/
+theorem
+    chapter10_bootstrap_smooth_function_gaussian_event_probability_of_compact_range_closeness
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (thetaStar n ω ωs)
+              (matrixContinuousLinearMap G (Tstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) :=
+  chapter10_bootstrap_delta_method_gaussian_event_probability_of_compact_range_closeness
+    (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+    (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
+    hlinearized_mem hthetaStar_mem hclose hA hfrontier
+
 /-- Hansen Theorem 10.7 smooth-function Gaussian CDF wrapper from compact-range
 bootstrap-probability closeness to the derivative-linearized statistic. -/
 theorem
@@ -8724,6 +8894,50 @@ theorem
     (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
     (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
     hlinearized_mem hthetaStar_mem hclose
+
+/-- Indexed Hansen Theorem 10.7 smooth-function Gaussian event-probability
+wrapper from compact-range bootstrap-probability closeness to the
+derivative-linearized statistic. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_gaussian_event_probability_of_compact_range_closeness
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {A K : Set (EuclideanSpace ℝ r)}
+    (hV : V.PosSemidef)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hlinearized_mem :
+      ∀ n ω ωs, matrixContinuousLinearMap G (Tstar n ω ωs) ∈ K)
+    (hthetaStar_mem : ∀ n ω ωs, thetaStar n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (thetaStar n ω ωs)
+              (matrixContinuousLinearMap G (Tstar n ω ωs))})
+        atTop (fun _ => 0))
+    (hA : MeasurableSet A)
+    (hfrontier :
+      (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar thetaStar A)
+      atTop
+        (fun _ =>
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)).real A) :=
+  chapter10_indexed_bootstrap_delta_method_gaussian_event_probability_of_compact_range_closeness
+    (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+    (thetaStar := thetaStar) (V := V) G hV hT hK hPstar hTstar hthetaStar
+    hlinearized_mem hthetaStar_mem hclose hA hfrontier
 
 /-- Indexed Hansen Theorem 10.7 smooth-function Gaussian CDF wrapper from
 compact-range bootstrap-probability closeness to the derivative-linearized
