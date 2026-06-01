@@ -157,7 +157,9 @@ used throughout the chapter:
   `TendstoInBootstrapWeakDistribution.of_bootstrap_dist_tendsto_zero_compact`
   and compact-range variants derive that integral-linearization premise from
   conditional closeness in bootstrap probability when the statistic's codomain
-  is compact or both statistics lie in a fixed compact set.
+  is compact or both statistics lie in a fixed compact set. Compact-range
+  null-frontier wrappers push the same closeness directly through event
+  probabilities, coordinate CDFs, and Hansen Definition 10.2.
 * `TendstoInBootstrapWeakDistribution.integral_tendsto_of_boundedContinuous_sandwich`
   and `TendstoInBootstrapWeakDistribution.map_of_boundedContinuous_sandwich`
   transfer weak bootstrap convergence through bounded-continuous sandwich
@@ -4576,6 +4578,74 @@ theorem TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_i
   exact (hweak.of_integral_difference_zero hdiff).event_probability_tendsto_of_null_frontier
     hPstar hZstar' hZ hA hfrontier
 
+/-- Compact-range bootstrap-probability closeness gives event-probability
+convergence for null-frontier events. -/
+theorem TendstoInBootstrapWeakDistribution.event_probability_tendsto_of_compact_range_closeness
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar Zstar' : ℕ → Ω → Ωs → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E} {A K : Set E}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map Z) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbability Pstar Zstar' A)
+      atTop (fun _ => (ν.map Z).real A) := by
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    (hweak.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hZstar hZstar'
+      hZstar_mem hZstar'_mem hclose).event_probability_tendsto_of_null_frontier
+      hPfinite hZstar' hZ hA hfrontier
+
+/-- Indexed compact-range bootstrap-probability closeness gives
+event-probability convergence for null-frontier events. -/
+theorem
+    TendstoInBootstrapWeakDistributionIndexed.event_probability_tendsto_of_compact_range_closeness
+    [PseudoMetricSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [SecondCountableTopology E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → E} {A K : Set E}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν)
+    (hA : MeasurableSet A)
+    (hfrontier : (ν.map Z) (frontier A) = 0) :
+    TendstoInMeasure μ (bootstrapEventProbabilityIndexed Pstar Zstar' A)
+      atTop (fun _ => (ν.map Z).real A) := by
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    (hweak.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hZstar hZstar'
+      hZstar_mem hZstar'_mem hclose).event_probability_tendsto_of_null_frontier
+      hPfinite hZstar' hZ hA hfrontier
+
 /-- Coordinate lower orthants are closed in product space. -/
 theorem isClosed_coordinateLE (x : k → ℝ) :
     IsClosed {z : k → ℝ | coordinateLE z x} := by
@@ -4790,6 +4860,74 @@ theorem TendstoInBootstrapWeakDistributionIndexed.bootstrapVectorCDF_tendsto_of_
   exact (hweak.of_integral_difference_zero hdiff).bootstrapVectorCDF_tendsto_of_null_frontier
     hPstar hZstar' hZ hfrontier
 
+/-- Compact-range bootstrap-probability closeness gives Hansen coordinate-CDF
+convergence at lower-orthant null-frontier points. -/
+theorem
+    TendstoInBootstrapWeakDistribution.bootstrapVectorCDF_tendsto_of_compact_range_closeness
+    [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    {K : Set (k → ℝ)}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν) {x : k → ℝ}
+    (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInMeasure μ (fun n ω => bootstrapVectorCDF Pstar Zstar' x n ω)
+      atTop (fun _ => vectorCDF ν Z x) := by
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    (hweak.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hZstar hZstar'
+      hZstar_mem hZstar'_mem hclose).bootstrapVectorCDF_tendsto_of_null_frontier
+      hPfinite hZstar' hZ hfrontier
+
+/-- Indexed compact-range bootstrap-probability closeness gives Hansen
+coordinate-CDF convergence at lower-orthant null-frontier points. -/
+theorem
+    TendstoInBootstrapWeakDistributionIndexed.bootstrapVectorCDF_tendsto_of_compact_range_closeness
+    [Fintype k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    {K : Set (k → ℝ)}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν) {x : k → ℝ}
+    (hfrontier : (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInMeasure μ (fun n ω => bootstrapVectorCDFIndexed Pstar Zstar' x n ω)
+      atTop (fun _ => vectorCDF ν Z x) := by
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  exact
+    (hweak.of_bootstrap_dist_tendsto_zero_compact_range hK hPstar hZstar hZstar'
+      hZstar_mem hZstar'_mem hclose).bootstrapVectorCDF_tendsto_of_null_frontier
+      hPfinite hZstar' hZ hfrontier
+
 /-- Weak bootstrap convergence implies Hansen's coordinate-CDF bootstrap
 distribution convergence when every relevant lower orthant has null frontier
 under the limiting law.
@@ -4833,6 +4971,64 @@ theorem TendstoInBootstrapDistributionIndexed.of_weakDistribution_null_frontiers
   intro x hx
   exact hweak.bootstrapVectorCDF_tendsto_of_null_frontier
     hPstar hZstar hZ (hfrontier x hx)
+
+/-- Compact-range bootstrap-probability closeness transfers a weak bootstrap
+limit into Hansen Definition 10.2's coordinate-CDF API. -/
+theorem TendstoInBootstrapDistribution.of_weakDistribution_compact_range_closeness
+    [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    {K : Set (k → ℝ)}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y => vectorCDF ν Z y) x →
+        (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar Zstar' ν Z := by
+  intro x hx
+  exact hweak.bootstrapVectorCDF_tendsto_of_compact_range_closeness
+    hK hPstar hZstar hZstar' hZstar_mem hZstar'_mem hclose hZ (hfrontier x hx)
+
+/-- Indexed compact-range bootstrap-probability closeness transfers a weak
+bootstrap limit into Hansen Definition 10.2's coordinate-CDF API. -/
+theorem TendstoInBootstrapDistributionIndexed.of_weakDistribution_compact_range_closeness
+    [Fintype k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → k → ℝ}
+    {ν : Measure Ωlim} [IsProbabilityMeasure ν] {Z : Ωlim → k → ℝ}
+    {K : Set (k → ℝ)}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hK : IsCompact K)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hZstar_mem : ∀ n ω ωs, Zstar n ω ωs ∈ K)
+    (hZstar'_mem : ∀ n ω ωs, Zstar' n ω ωs ∈ K)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0))
+    (hZ : AEMeasurable Z ν)
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt (fun y => vectorCDF ν Z y) x →
+        (ν.map Z) (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar Zstar' ν Z := by
+  intro x hx
+  exact hweak.bootstrapVectorCDF_tendsto_of_compact_range_closeness
+    hK hPstar hZstar hZstar' hZstar_mem hZstar'_mem hclose hZ (hfrontier x hx)
 
 /-- Hansen Theorem 10.4, Gaussian bootstrap CLT from weak bootstrap
 convergence.
