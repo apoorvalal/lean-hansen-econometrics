@@ -393,9 +393,10 @@ used throughout the chapter:
   finite-replication counterparts; fourth-moment-tail variants compose that
   transfer with the direct trimmed covariance route, including `MemLp`
   weak-limit variants. The fixed/indexed trimmed
-  `*_of_trimmed_uniformSquareTail_l2`, `*_of_trimmed_fourthMoment_tails_l2`,
-  and `*_of_fourthMoment_memLp_l2` wrappers discharge the finite-replication
-  simulation-error premise from coordinatewise `O(n⁻¹)` mean-square bounds.
+  `*_of_trimmed_uniformSquareTail_l2`, `*_of_trimmed_eventualBound_l2`,
+  `*_of_trimmed_fourthMoment_tails_l2`, and `*_of_fourthMoment_memLp_l2`
+  wrappers discharge the finite-replication simulation-error premise from
+  coordinatewise `O(n⁻¹)` mean-square bounds.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -18703,6 +18704,52 @@ theorem
       hTailCoord hTailSum)
 
 /-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
+weak convergence, an eventually bounded trim threshold, and coordinatewise `L²`
+simulation-error bounds. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_eventualBound_l2
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {Cτ : ℝ}
+    {Cfinite : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hτBound : ∀ᶠ n in atTop, τ n ≤ Cτ)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+    hfiniteInt hfiniteBound
+    (chapter10_trimmedBootstrapVariance_tendsto_of_eventualBound_memLp_limit
+      (μ := μ) (ν := ν) hPstar hτ hτBound hZmeas hZlim hweak hTailProb)
+
+/-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
 bootstrap weak convergence, fourth-moment tail controls, and coordinatewise
 `L²` simulation-error bounds. -/
 theorem
@@ -18907,6 +18954,53 @@ theorem
     (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hτ hZmeas hZmem hZlim hweak hTailProb
       hTailCoord hTailSum)
+
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+from weak convergence, an eventually bounded trim threshold, and coordinatewise
+`L²` simulation-error bounds. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_eventualBound_l2
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {Cτ : ℝ}
+    {Cfinite : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hτBound : ∀ᶠ n in atTop, τ n ≤ Cτ)
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+        atTop (fun _ => 0))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_eventualBound_memLp_limit
+      (μ := μ) (ν := ν) hPstar hτ hτBound hZmeas hZlim hweak hTailProb)
 
 /-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
 from bootstrap weak convergence, fourth-moment tail controls, and
