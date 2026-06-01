@@ -79,6 +79,13 @@ used throughout the chapter:
   The `*_of_ae_tendsto_integrals*` variants turn pathwise conditional
   bounded-continuous integral convergence into the same theorem-facing Gaussian
   CLT conclusions.
+* `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
+  `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
+  and
+  `bootstrapBoundedContinuousIntegralIndexed_normalized_finSucc_resampleMean_aestronglyMeasurable`
+  discharge the measurability side condition for finite-uniform
+  bounded-continuous bootstrap integrals, including the ordinary
+  `Fin (n+1) -> Fin (n+1)` statistic used by the empirical-bootstrap CLT path.
 * `multivariateGaussian_coordinateLE_frontier_null_of_posDef` supplies those
   Gaussian lower-orthant null-frontier premises from positive definite
   covariance matrices.
@@ -4422,6 +4429,36 @@ theorem TendstoInBootstrapWeakDistribution.of_ae_tendsto_integrals
   intro f
   exact tendstoInMeasure_of_tendsto_ae (hmeas f) (hae f)
 
+/-- Measurability of finite-uniform bootstrap bounded-continuous integrals.
+
+When the bootstrap law is the uniform law on a finite resampling space, the
+conditional integral is a finite average over resampling paths.  Thus
+a.e.-measurability of each pathwise statistic in the original sample is enough
+to discharge the measurability side condition in pathwise conditional weak
+convergence constructors. -/
+theorem bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable
+    [TopologicalSpace E] [MeasurableSpace E] [BorelSpace E]
+    [MeasurableSpace Ωs] [Finite Ωs] [MeasurableSingletonClass Ωs]
+    {μ : Measure Ω} {Zstar : ℕ → Ω → Ωs → E}
+    (hZ : ∀ n ωs, AEMeasurable (fun ω => Zstar n ω ωs) μ)
+    (f : BoundedContinuousFunction E ℝ) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => bootstrapBoundedContinuousIntegral
+        (fun _ _ => ProbabilityTheory.uniformOn (Set.univ : Set Ωs))
+        Zstar f n ω) μ := by
+  classical
+  letI : Fintype Ωs := Fintype.ofFinite Ωs
+  have hsum : AEStronglyMeasurable
+      (fun ω => ∑ ωs : Ωs, f (Zstar n ω ωs)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum Finset.univ (fun ωs _ => ?_)
+    exact (f.continuous.measurable.comp_aemeasurable (hZ n ωs)).aestronglyMeasurable
+  refine (hsum.const_smul (((Fintype.card Ωs : ℝ≥0∞)⁻¹).toReal)).congr ?_
+  exact ae_of_all μ fun ω => by
+    symm
+    simpa [bootstrapBoundedContinuousIntegral] using
+      (integral_uniformOn_univ_eq_card_inv_smul_sum
+        (ι := Ωs) (E := ℝ) (fun ωs => f (Zstar n ω ωs)))
+
 /-- Bootstrap weak convergence is invariant under pointwise equality of the
 bootstrap statistic. -/
 theorem TendstoInBootstrapWeakDistribution.congr_bootstrap
@@ -4819,6 +4856,110 @@ theorem TendstoInBootstrapWeakDistributionIndexed.of_ae_tendsto_integrals
     TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z := by
   intro f
   exact tendstoInMeasure_of_tendsto_ae (hmeas f) (hae f)
+
+/-- Measurability of indexed finite-uniform bootstrap bounded-continuous
+integrals.
+
+This is the sample-size-indexed counterpart of
+`bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`, used
+for ordinary bootstrap spaces such as `Fin (n+1) -> Fin (n+1)`. -/
+theorem bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable
+    [TopologicalSpace E] [MeasurableSpace E] [BorelSpace E]
+    [∀ n, Finite (Ωboot n)] [∀ n, MeasurableSingletonClass (Ωboot n)]
+    {μ : Measure Ω} {Zstar : ∀ n, Ω → Ωboot n → E}
+    (hZ : ∀ n ωs, AEMeasurable (fun ω => Zstar n ω ωs) μ)
+    (f : BoundedContinuousFunction E ℝ) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => bootstrapBoundedContinuousIntegralIndexed
+        (Ωboot := Ωboot)
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Ωboot n)) :
+            Measure (Ωboot n)))
+        Zstar f n ω) μ := by
+  classical
+  letI : Fintype (Ωboot n) := Fintype.ofFinite (Ωboot n)
+  have hsum : AEStronglyMeasurable
+      (fun ω => ∑ ωs : Ωboot n, f (Zstar n ω ωs)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum Finset.univ (fun ωs _ => ?_)
+    exact (f.continuous.measurable.comp_aemeasurable (hZ n ωs)).aestronglyMeasurable
+  refine (hsum.const_smul (((Fintype.card (Ωboot n) : ℝ≥0∞)⁻¹).toReal)).congr ?_
+  exact ae_of_all μ fun ω => by
+    symm
+    simpa [bootstrapBoundedContinuousIntegralIndexed] using
+      (integral_uniformOn_univ_eq_card_inv_smul_sum
+        (ι := Ωboot n) (E := ℝ) (fun ωs => f (Zstar n ω ωs)))
+
+/-- A.e.-measurability of the normalized ordinary empirical-bootstrap sample
+mean along a fixed finite resampling path.
+
+This is the pathwise measurability input needed by the indexed finite-uniform
+bounded-continuous integral helper for Hansen Theorem 10.4. -/
+theorem normalized_finSucc_resampleMean_sub_empiricalMean_aemeasurable
+    {μ : Measure Ω} {Y : ℕ → Ω → k → ℝ} [Fintype k]
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (n : ℕ) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    AEMeasurable
+      (fun ω a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)) μ := by
+  classical
+  refine aemeasurable_pi_lambda _ ?_
+  intro a
+  have hboot_sum : AEMeasurable
+      (fun ω => ∑ t : Fin (n + 1), Y (ωs t).val ω a) μ := by
+    exact Finset.aemeasurable_fun_sum Finset.univ
+      (fun t _ => hY (ωs t).val a)
+  have hboot : AEMeasurable
+      (fun ω =>
+        empiricalBootstrapResampleMean
+          (fun i : Fin (n + 1) => Y i.val ω)
+          (fun ωs t => ωs t) ωs a) μ := by
+    simpa [empiricalBootstrapResampleMean] using
+      hboot_sum.const_smul ((Fintype.card (Fin (n + 1)) : ℝ)⁻¹)
+  have hmean_sum : AEMeasurable
+      (fun ω => ∑ i : Fin (n + 1), Y i.val ω a) μ := by
+    exact Finset.aemeasurable_fun_sum Finset.univ
+      (fun i _ => hY i.val a)
+  have hmean : AEMeasurable
+      (fun ω => empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a) μ := by
+    simpa [empiricalMean] using
+      hmean_sum.const_smul (((Fintype.card (Fin (n + 1)) : ℝ≥0∞)⁻¹).toReal)
+  exact (hboot.sub hmean).const_mul (Real.sqrt (n + 1 : ℝ))
+
+/-- Bounded-continuous conditional integrals of the normalized ordinary
+empirical-bootstrap sample mean are a.e.-strongly measurable in the original
+sample.
+
+This discharges the measurability side condition in
+`TendstoInBootstrapWeakDistributionIndexed.of_ae_tendsto_integrals` for the
+ordinary `Fin (n+1) -> Fin (n+1)` bootstrap statistic used in Hansen Theorem
+10.4. -/
+theorem
+    bootstrapBoundedContinuousIntegralIndexed_normalized_finSucc_resampleMean_aestronglyMeasurable
+    {μ : Measure Ω} {Y : ℕ → Ω → k → ℝ} [Fintype k]
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (f : BoundedContinuousFunction (k → ℝ) ℝ) (n : ℕ) :
+    AEStronglyMeasurable
+      (fun ω => bootstrapBoundedContinuousIntegralIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        f n ω) μ := by
+  refine bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable
+    (Ωboot := fun n => Fin (n + 1) → Fin (n + 1)) ?_ f n
+  intro n ωs
+  exact normalized_finSucc_resampleMean_sub_empiricalMean_aemeasurable hY n ωs
 
 /-- Indexed bootstrap weak convergence is invariant under pointwise equality of
 the bootstrap statistic. -/
