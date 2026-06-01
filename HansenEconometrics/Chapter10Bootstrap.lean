@@ -250,7 +250,8 @@ used throughout the chapter:
   `bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid`, and
   `bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid`
   discharge the same covariance-convergence path from iid finite-second-moment
-  assumptions through the shifted empirical-uniform WLLN.
+  assumptions through the shifted empirical-uniform WLLN, with `iIndepFun`
+  wrappers for the textbook independence premise.
 * `CDFQuantileBracket`, `tendstoInMeasure_quantile_of_cdf_brackets`,
   `scalarCDF`, `bootstrapScalarCDF`, and
   `bootstrapScalarQuantile_tendsto_of_cdf_brackets`
@@ -12424,6 +12425,26 @@ theorem integral_uniformOn_finSucc_tendstoInMeasure_wlln
     rw [hcoeff, hsum] at hfinite
     simpa [Nat.cast_add, Nat.cast_one] using hfinite.symm
 
+/-- Shifted empirical-uniform WLLN with a textbook iid independence premise.
+
+This is the `iIndepFun`-facing wrapper around
+`integral_uniformOn_finSucc_tendstoInMeasure_wlln`; the core theorem only needs
+pairwise independence. -/
+theorem integral_uniformOn_finSucc_tendstoInMeasure_wlln_of_iIndep
+    [IsFiniteMeasure μ]
+    (X : ℕ → Ω → ℝ)
+    (hint : Integrable (X 0) μ)
+    (hindep : iIndepFun X μ)
+    (hident : ∀ i, IdentDistrib (X i) (X 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        ∫ i : Fin (n + 1), X i.val ω
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1))))
+      atTop (fun _ => ∫ ω, X 0 ω ∂μ) := by
+  exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
+    (μ := μ) X hint (fun _ _ hij => hindep.indepFun hij) hident
+
 /-- Empirical covariance convergence from empirical first and cross moments.
 
 This is the finite empirical bridge behind the ordinary-bootstrap CLT path:
@@ -12629,6 +12650,24 @@ theorem covMat_uniformOn_finSucc_tendsto_of_iid
   exact covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments
     (μ := μ) Y hYmem hmean hcross
 
+/-- Empirical covariance convergence for iid finite-dimensional observations,
+with the textbook `iIndepFun` premise. -/
+theorem covMat_uniformOn_finSucc_tendsto_of_iIndep
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        covMat
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))
+          (fun i a => Y i.val ω a))
+      atTop (fun _ => covMat μ (Y 0)) :=
+  covMat_uniformOn_finSucc_tendsto_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
 /-- Indexed normalized ordinary-bootstrap cross moments converge once the
 finite empirical one-draw covariance converges through first and cross moments.
 
@@ -12742,6 +12781,30 @@ theorem bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid
   exact ae_of_all μ fun ω =>
     (bootstrapCrossMomentMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
       (Y := Y) n ω).symm
+
+/-- Indexed normalized ordinary-bootstrap cross moments converge for iid
+finite-dimensional observations with the textbook `iIndepFun` premise. -/
+theorem bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iIndep
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapCrossMomentMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+      atTop (fun _ => covMat μ (Y 0)) :=
+  bootstrapCrossMomentMatIndexed_normalized_finSucc_tendsto_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
 
 /-- Indexed normalized ordinary-bootstrap covariance matrices converge once
 the finite empirical one-draw covariance converges through first and cross
@@ -12857,6 +12920,30 @@ theorem bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
   exact ae_of_all μ fun ω =>
     (bootstrapCovarianceMatIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_covMat
       (Y := Y) n ω).symm
+
+/-- Indexed normalized ordinary-bootstrap covariance matrices converge for iid
+finite-dimensional observations with the textbook `iIndepFun` premise. -/
+theorem bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iIndep
+    [IsProbabilityMeasure μ] [Fintype k]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapCovarianceMatIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a)))
+      atTop (fun _ => covMat μ (Y 0)) :=
+  bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
 
 /-- Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
