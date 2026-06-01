@@ -87,7 +87,9 @@ used throughout the chapter:
   package.  The `*_of_ae_projection_clt*` wrappers discharge that package's
   finite-path measurability field and ask only for the scalar projection CLTs,
   while the `*_of_ae_scalar_projection_clt*` variants state those CLTs directly
-  for the one-dimensional projected bootstrap means.
+  for the one-dimensional projected bootstrap means.  The `*_of_ae_charFun*`
+  variants use Lévy's theorem to start from pointwise convergence of the
+  projected conditional characteristic functions.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -7263,6 +7265,100 @@ theorem
       (dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
         (Y := Y) n ω ωs a).symm)
 
+/-- Ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure characteristic-function convergence for projected bootstrap means.
+
+This is the Lévy-continuity face of the scalar Cramér-Wold route: callers prove
+pointwise convergence of the conditional characteristic functions of each
+projected scalar bootstrap mean, and the indexed characteristic-function
+constructor supplies the corresponding scalar distributional CLTs. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hchar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      Tendsto
+        (fun n =>
+          charFun
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))).map
+              (fun ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a))))
+            t)
+        atTop
+        (𝓝 (charFun
+          ((multivariateGaussian 0 S).map
+            (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a))
+          t)))
+    (hfrontier : ∀ x : k → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+              (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ k) S).map
+            (fun z : EuclideanSpace ℝ k => (z : k → ℝ)))
+          (frontier {z : k → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_scalar_projection_clt
+      (μ := μ) (Y := Y) (S := S) hY ?_ hfrontier
+  refine hchar.mono ?_
+  intro ω hω a
+  refine TendstoInDistribution.of_tendsto_charFun_indexed ?_ ?_ (hω a)
+  · intro n
+    have hvec : AEMeasurable
+        (fun ωs : Fin (n + 1) → Fin (n + 1) => fun b =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs b -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b))
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) :=
+      (normalized_finSucc_resampleMean_sub_empiricalMean_measurable
+        (Y := Y) n ω).aemeasurable
+    have hdot : AEMeasurable
+        (fun ωs : Fin (n + 1) → Fin (n + 1) =>
+          (fun b =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs b -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b)) ⬝ᵥ a)
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) :=
+      ((continuous_id.dotProduct continuous_const).measurable.comp_aemeasurable hvec)
+    exact hdot.congr
+      (ae_of_all
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) fun ωs =>
+        dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+          (Y := Y) n ω ωs a)
+  · exact ((continuous_id.dotProduct continuous_const).measurable.comp_aemeasurable
+      ((PiLp.continuous_ofLp 2 (fun _ : k => ℝ)).measurable.aemeasurable))
+
 /-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
 Gaussian CLT from almost-sure scalar projection CLTs for the normalized
 `Fin (n+1)` resample mean. -/
@@ -7344,6 +7440,51 @@ theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_scalar_projection_clt
     (μ := μ) (Y := Y) (S := S) hY hproj
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
+
+/-- Positive-definite ordinary nonparametric-bootstrap Hansen Theorem 10.4
+Gaussian CLT from almost-sure characteristic-function convergence for projected
+bootstrap means. -/
+theorem
+    chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun_posDef
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosDef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hchar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      Tendsto
+        (fun n =>
+          charFun
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))).map
+              (fun ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a))))
+            t)
+        atTop
+        (𝓝 (charFun
+          ((multivariateGaussian 0 S).map
+            (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a))
+          t))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
+  chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun
+    (μ := μ) (Y := Y) (S := S) hY hchar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hS x)
 
 /-- Weak bootstrap convergence plus bounded-continuous integral

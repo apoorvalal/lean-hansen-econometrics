@@ -32,6 +32,9 @@ Mathlib does not currently provide as named lemmas:
 * `TendstoInDistribution.integral_boundedContinuous_tendsto_indexed` — the
   bounded-continuous integral face of weak convergence when source spaces and
   laws vary with the sequence index.
+* `TendstoInDistribution.of_tendsto_charFun` and
+  `TendstoInDistribution.of_tendsto_charFun_indexed` — Lévy
+  characteristic-function constructors for fixed and indexed source spaces.
 * `cramerWold_tendstoInDistribution_indexed` — Cramér-Wold convergence for
   finite-dimensional statistics whose source spaces and laws vary with the
   sequence index.
@@ -1286,6 +1289,54 @@ theorem charFun_map_eq_charFun_dualMap_one
   · rfl
   · exact (InnerProductSpace.toDualMap ℝ E t).continuous.aemeasurable
   · exact hX
+
+/-- Lévy characteristic-function constructor for convergence in distribution.
+
+If the characteristic functions of the pushforward laws converge pointwise to
+the characteristic function of the limit law, then the random variables converge
+in distribution. -/
+theorem TendstoInDistribution.of_tendsto_charFun
+    {Ω Ω' E : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ℕ → Ω → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) μ)
+    (hZ : AEMeasurable Z ν)
+    (hchar : ∀ t : E,
+      Tendsto (fun n => charFun (μ.map (T n)) t) atTop
+        (𝓝 (charFun (ν.map Z) t))) :
+    TendstoInDistribution T atTop Z (fun _ => μ) ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  simpa using hchar t
+
+/-- Indexed Lévy characteristic-function constructor for convergence in
+distribution.
+
+This is the source-space-indexed analogue of
+`TendstoInDistribution.of_tendsto_charFun`: the source probability space and
+law may vary with the sequence index. -/
+theorem TendstoInDistribution.of_tendsto_charFun_indexed
+    {Ω : ℕ → Type*} {Ω' E : Type*}
+    [∀ n, MeasurableSpace (Ω n)] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) (μ n))
+    (hZ : AEMeasurable Z ν)
+    (hchar : ∀ t : E,
+      Tendsto (fun n => charFun ((μ n).map (T n)) t) atTop
+        (𝓝 (charFun (ν.map Z) t))) :
+    TendstoInDistribution T atTop Z μ ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  simpa using hchar t
 
 /-- **Cramér-Wold convergence bridge for finite-dimensional inner-product spaces.**
 
