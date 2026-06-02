@@ -515,7 +515,10 @@ used throughout the chapter:
   two-sided bootstrap-test critical-value route.
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
   variance wrapper for Hansen Theorem 10.19, with an indexed trimmed-covariance
-  counterpart.
+  counterpart. The fixed/indexed
+  `chapter10_regression_finiteReplicationTrimmedVariance_l2` wrappers compose
+  that regression target with Hansen's centered finite-replication covariance
+  estimator under coordinatewise `L²` simulation-error bounds.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11; the
   centered scalar wrapper states the same result for Hansen's displayed
@@ -35534,6 +35537,109 @@ theorem
           trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω)
       (C := Cfinite) hfiniteInt hfiniteBound)
     htrim
+
+/-- Hansen Theorems 10.11 and 10.19 for finite-replication regression
+trimmed variance.
+
+For a transformed regression statistic, trimmed conditional moment convergence
+to `R' Vβ R` plus coordinatewise `L²` simulation-error bounds for Hansen's
+centered finite-replication covariance estimator imply finite-replication
+covariance consistency for `R' Vβ R`. -/
+theorem chapter10_regression_finiteReplicationTrimmedVariance_l2
+    [IsFiniteMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q]
+    {Zsim : ℕ → ℕ → Ω → q → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {ZthetaStar : ℕ → Ω → Ωs → q → ℝ}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    {Cfinite : q → q → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp (fun ωs => trimmedBootstrapStatistic ZthetaStar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVec Pstar (trimmedBootstrapStatistic ZthetaStar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMat Pstar
+          (trimmedBootstrapStatistic ZthetaStar τ))
+        atTop (fun _ => smoothFunctionVarianceFunctional R Vβ))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMat Pstar ZthetaStar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMat Pstar ZthetaStar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := ZthetaStar) (τ := τ) hfiniteInt hfiniteBound
+    (chapter10_bootstrap_regression_trimmedVariance_tendsto
+      (μ := μ) (Pstar := Pstar) (ZthetaStar := ZthetaStar)
+      (τ := τ) (Vβ := Vβ) R hPstar hZ hmean hcross)
+
+/-- Indexed finite-replication version of Hansen Theorem 10.19 for
+sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_regression_finiteReplicationTrimmedVariance_l2
+    [IsFiniteMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → q → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {ZthetaStar : ∀ n, Ω → Ωboot n → q → ℝ}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    {Cfinite : q → q → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            trimmedBootstrapStatisticIndexed ZthetaStar τ n ω ωs a) 2
+          (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ
+        (bootstrapMeanVecIndexed Pstar
+          (trimmedBootstrapStatisticIndexed ZthetaStar τ))
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (bootstrapCrossMomentMatIndexed Pstar
+          (trimmedBootstrapStatisticIndexed ZthetaStar τ))
+        atTop (fun _ => smoothFunctionVarianceFunctional R Vβ))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMatIndexed Pstar ZthetaStar τ n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMatIndexed Pstar ZthetaStar τ n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := ZthetaStar) (τ := τ) hfiniteInt hfiniteBound
+    (chapter10_indexed_bootstrap_regression_trimmedVariance_tendsto
+      (μ := μ) (Pstar := Pstar) (ZthetaStar := ZthetaStar)
+      (τ := τ) (Vβ := Vβ) R hPstar hZ hmean hcross)
 
 /-- Hansen Theorem 10.11/10.12 smooth finite-replication trimmed covariance
 bridge from exact linearization and an underlying norm fourth moment.
