@@ -459,6 +459,10 @@ used throughout the chapter:
   uniform-square-tail conditions on coordinates and coordinate sums.
 * `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
   the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
+  The Gaussian coordinate wrappers compose the smooth-function weak limit from
+  Hansen Theorem 10.7 with the Theorem 10.9 uniform-square-tail or
+  fourth-moment variance routes, including indexed sample-size-dependent
+  bootstrap spaces.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
@@ -17456,6 +17460,249 @@ theorem
     (bootstrapUniformSquareTailIndexed_of_eventually_bound_memLp_limit
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       hZlim hbound)
+
+/-- Hansen Theorem 10.10, smooth-function Gaussian coordinate variance
+consistency from the Theorem 10.9 uniform-square-tail premise.
+
+This composes the smooth-function Gaussian bootstrap limit supplied by Hansen
+Theorem 10.7 with the scalar Theorem 10.9 variance bridge for a chosen
+coordinate. Hansen's bounded-derivative Taylor/Rosenthal argument is the
+model-specific route that supplies the uniform-square-tail premise. -/
+theorem
+    chapter10_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+    {r : Type*} [Fintype r] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {S : Matrix r r ℝ}
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) S)]
+    (a : r)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S))
+    (hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z))
+    (hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) ^ 2) := by
+  have hcoordContinuous :
+      Continuous (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    (continuous_apply a).comp (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hweakCoord :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      hGaussian hcoordContinuous
+  exact
+    chapter10_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      hPstar hcoordMem hlimMem hweakCoord hTail
+
+/-- Hansen Theorem 10.10, smooth-function Gaussian coordinate variance
+consistency from conditional fourth-moment convergence.
+
+The fourth-moment premise is the formal endpoint of Hansen's
+bounded-derivative Taylor/Rosenthal calculation before uniform square
+integrability is applied. -/
+theorem
+    chapter10_smooth_bootstrap_variance_consistency_of_gaussian_fourthMoment
+    {r : Type*} [Fintype r] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {S : Matrix r r ℝ}
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) S)]
+    {B : ℝ} (a : r)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S))
+    (hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z))
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs, ((thetaStar n ω ωs : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) ^ 2) := by
+  have hcoordContinuous :
+      Continuous (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    (continuous_apply a).comp (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hweakCoord :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      hGaussian hcoordContinuous
+  exact
+    chapter10_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      hPstar hcoordMem hlimMem hweakCoord hB hFourth hFourthInt
+
+/-- Indexed Hansen Theorem 10.10, smooth-function Gaussian coordinate variance
+consistency from the Theorem 10.9 uniform-square-tail premise. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+    {r : Type*} [Fintype r] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {S : Matrix r r ℝ}
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) S)]
+    (a : r)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S))
+    (hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z))
+    (hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) ^ 2) := by
+  have hcoordContinuous :
+      Continuous (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    (continuous_apply a).comp (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hweakCoord :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      hGaussian hcoordContinuous
+  exact
+    chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      hPstar hcoordMem hlimMem hweakCoord hTail
+
+/-- Indexed Hansen Theorem 10.10, smooth-function Gaussian coordinate variance
+consistency from conditional fourth-moment convergence. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_gaussian_fourthMoment
+    {r : Type*} [Fintype r] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {S : Matrix r r ℝ}
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) S)]
+    {B : ℝ} (a : r)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S))
+    (hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z))
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs, ((thetaStar n ω ωs : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) ^ 2) := by
+  have hcoordContinuous :
+      Continuous (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    (continuous_apply a).comp (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hweakCoord :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      hGaussian hcoordContinuous
+  exact
+    chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      hPstar hcoordMem hlimMem hweakCoord hB hFourth hFourthInt
 
 end BootstrapVariance
 
