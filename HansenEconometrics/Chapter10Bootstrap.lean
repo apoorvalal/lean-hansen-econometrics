@@ -499,6 +499,9 @@ used throughout the chapter:
   `chapter10_bootstrap_regression_theta_gaussian_distribution` are
   regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18;
   indexed counterparts cover sample-size-dependent bootstrap spaces.
+  `chapter10_bootstrap_regression_tstat_standardNormal` and its indexed
+  counterpart expose the Assumption 7.4 studentized t-statistic route from a
+  joint numerator/standard-error bootstrap weak limit plus scale consistency.
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
   variance wrapper for Hansen Theorem 10.19, with an indexed trimmed-covariance
   counterpart.
@@ -29433,6 +29436,354 @@ theorem
 
 end SmoothFunctionBootstrapVarianceCovarianceRoutes
 
+section BootstrapStudentization
+
+private theorem abs_integral_boundedContinuous_ratio_sub_clipped_le
+    {P : Measure Ωs} [IsProbabilityMeasure P] {X Y : Ωs → ℝ}
+    (hX : Measurable X) (hY : Measurable Y)
+    (f : BoundedContinuousFunction ℝ ℝ) (c₂ : ℝ) :
+    |(∫ ωs, f (X ωs / Y ωs) ∂P) -
+        (∫ ωs, f (X ωs / max (Y ωs) c₂) ∂P)| ≤
+      (2 * ‖f‖) * P.real {ωs | Y ωs < c₂} := by
+  classical
+  let bad : Set Ωs := {ωs | Y ωs < c₂}
+  let C : ℝ := 2 * ‖f‖
+  have hbad : MeasurableSet bad := by
+    dsimp [bad]
+    exact measurableSet_lt hY measurable_const
+  have hactual_meas : Measurable (fun ωs => f (X ωs / Y ωs)) :=
+    f.continuous.measurable.comp (hX.div hY)
+  have hclipped_meas : Measurable (fun ωs => f (X ωs / max (Y ωs) c₂)) :=
+    f.continuous.measurable.comp (hX.div (hY.max measurable_const))
+  have hactual_int : Integrable (fun ωs => f (X ωs / Y ωs)) P := by
+    refine Integrable.of_bound hactual_meas.aestronglyMeasurable ‖f‖ ?_
+    exact ae_of_all P fun ωs => f.norm_coe_le_norm (X ωs / Y ωs)
+  have hclipped_int : Integrable (fun ωs => f (X ωs / max (Y ωs) c₂)) P := by
+    refine Integrable.of_bound hclipped_meas.aestronglyMeasurable ‖f‖ ?_
+    exact ae_of_all P fun ωs => f.norm_coe_le_norm (X ωs / max (Y ωs) c₂)
+  have hdiff_int :
+      Integrable
+        (fun ωs => f (X ωs / Y ωs) - f (X ωs / max (Y ωs) c₂)) P :=
+    hactual_int.sub hclipped_int
+  have hbad_ind_int :
+      Integrable (fun ωs => if ωs ∈ bad then (1 : ℝ) else 0) P := by
+    have hindicator_eq :
+        (fun ωs => if ωs ∈ bad then (1 : ℝ) else 0) =
+          bad.indicator (fun _ : Ωs => (1 : ℝ)) := by
+      funext ωs
+      by_cases hω : ωs ∈ bad <;> simp [Set.indicator, hω]
+    rw [hindicator_eq]
+    exact
+      (integrable_indicator_iff hbad).mpr
+        (integrable_const (1 : ℝ)).integrableOn
+  have hbound_int :
+      Integrable (fun ωs => C * (if ωs ∈ bad then (1 : ℝ) else 0)) P :=
+    hbad_ind_int.const_mul C
+  have hpoint :
+      (fun ωs => |f (X ωs / Y ωs) - f (X ωs / max (Y ωs) c₂)|) ≤
+        fun ωs => C * (if ωs ∈ bad then (1 : ℝ) else 0) := by
+    intro ωs
+    by_cases hω : ωs ∈ bad
+    · have hfx : |f (X ωs / Y ωs)| ≤ ‖f‖ := by
+        simpa [Real.norm_eq_abs] using f.norm_coe_le_norm (X ωs / Y ωs)
+      have hfy : |f (X ωs / max (Y ωs) c₂)| ≤ ‖f‖ := by
+        simpa [Real.norm_eq_abs] using
+          f.norm_coe_le_norm (X ωs / max (Y ωs) c₂)
+      have hdiff_le :
+          |f (X ωs / Y ωs) - f (X ωs / max (Y ωs) c₂)| ≤ C := by
+        dsimp [C]
+        calc
+          |f (X ωs / Y ωs) - f (X ωs / max (Y ωs) c₂)|
+              = |f (X ωs / Y ωs) + -f (X ωs / max (Y ωs) c₂)| := by
+                ring_nf
+          _ ≤ |f (X ωs / Y ωs)| + |-f (X ωs / max (Y ωs) c₂)| := abs_add_le _ _
+          _ = |f (X ωs / Y ωs)| + |f (X ωs / max (Y ωs) c₂)| := by
+                rw [abs_neg]
+          _ ≤ ‖f‖ + ‖f‖ := add_le_add hfx hfy
+          _ = 2 * ‖f‖ := by ring
+      simpa [bad, C, hω] using hdiff_le
+    · have hY_ge : c₂ ≤ Y ωs := le_of_not_gt hω
+      have hmax : max (Y ωs) c₂ = Y ωs := max_eq_left hY_ge
+      simp [hmax, bad, hω]
+  have hbad_integral :
+      ∫ ωs, (if ωs ∈ bad then (1 : ℝ) else 0) ∂P = P.real bad := by
+    have hindicator_eq :
+        (fun ωs => if ωs ∈ bad then (1 : ℝ) else 0) =
+          bad.indicator (fun _ : Ωs => (1 : ℝ)) := by
+      funext ωs
+      by_cases hω : ωs ∈ bad <;> simp [Set.indicator, hω]
+    rw [hindicator_eq]
+    simpa using (integral_indicator_one (μ := P) (s := bad) hbad)
+  calc
+    |(∫ ωs, f (X ωs / Y ωs) ∂P) -
+        (∫ ωs, f (X ωs / max (Y ωs) c₂) ∂P)|
+        = |∫ ωs, f (X ωs / Y ωs) -
+            f (X ωs / max (Y ωs) c₂) ∂P| := by
+          rw [integral_sub hactual_int hclipped_int]
+    _ ≤ ∫ ωs, |f (X ωs / Y ωs) -
+          f (X ωs / max (Y ωs) c₂)| ∂P := abs_integral_le_integral_abs
+    _ ≤ ∫ ωs, C * (if ωs ∈ bad then (1 : ℝ) else 0) ∂P :=
+          integral_mono hdiff_int.norm hbound_int hpoint
+    _ = C * P.real bad := by
+          rw [integral_const_mul, hbad_integral]
+    _ = (2 * ‖f‖) * P.real {ωs | Y ωs < c₂} := by
+          rfl
+
+/-- Bootstrap studentization bridge for a scalar statistic.
+
+If the numerator and standard-error scale have a joint bootstrap weak limit
+`(X,c)`, the scale itself converges to the positive constant `c` in bootstrap
+probability, and the conditional bootstrap laws are probability laws, then the
+unclipped ratio has weak bootstrap limit `X / c`.  The proof clips the
+denominator at `c / 2` for the continuous-mapping step and removes the clip by
+the scale convergence premise. -/
+theorem chapter10_bootstrap_studentized_ratio_weakDistribution
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {ν : Measure Ωlim} {X : Ωlim → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs)) ν
+        (fun ωlim => (X ωlim, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) ν
+      (fun ωlim => X ωlim / c) := by
+  let c₂ : ℝ := c / 2
+  have hc₂ : 0 < c₂ := by
+    dsimp [c₂]
+    positivity
+  have hc₂_le_c : c₂ ≤ c := by
+    dsimp [c₂]
+    linarith
+  have hmax_c : max c c₂ = c := max_eq_left hc₂_le_c
+  let clipped : ℝ × ℝ → ℝ := fun p => p.1 / max p.2 c₂
+  have hclip_cont : Continuous clipped := by
+    refine continuous_fst.div (continuous_snd.max continuous_const) ?_
+    intro p
+    exact ne_of_gt (lt_of_lt_of_le hc₂ (le_max_right p.2 c₂))
+  have hclip :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => clipped (Xstar n ω ωs, Ystar n ω ωs)) ν
+        (fun ωlim => clipped (X ωlim, c)) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+      (ν := ν) (Z := fun ωlim => (X ωlim, c)) (g := clipped)
+      hpair hclip_cont
+  have hclip_ratio :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) ν
+        (fun ωlim => X ωlim / c) := by
+    simpa [clipped, hmax_c] using hclip
+  refine hclip_ratio.of_integral_difference_zero ?_
+  intro f
+  let C : ℝ := 2 * ‖f‖
+  have htail :
+      TendstoInMeasure μ
+        (fun n ω => C * bootstrapTailProb Pstar Ystar (fun _ => c) c₂ n ω)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) C (hY c₂ hc₂)
+  refine TendstoInMeasure.of_abs_le_zero_real htail ?_
+  intro n ω
+  let tail : ℝ := bootstrapTailProb Pstar Ystar (fun _ => c) c₂ n ω
+  have hbad_le_tail :
+      (Pstar n ω).real {ωs | Ystar n ω ωs < c₂} ≤ tail := by
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω)
+        {ωs | c₂ ≤ dist (Ystar n ω ωs) c}
+    · intro ωs hlt
+      have hlt_c : Ystar n ω ωs < c := lt_of_lt_of_le hlt hc₂_le_c
+      have habs : |Ystar n ω ωs - c| = c - Ystar n ω ωs := by
+        rw [abs_of_neg (sub_neg.mpr hlt_c)]
+        ring
+      change c₂ ≤ dist (Ystar n ω ωs) c
+      rw [Real.dist_eq, habs]
+      dsimp [c₂] at hlt ⊢
+      linarith
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hdiff_le_bad :
+      |bootstrapBoundedContinuousIntegral Pstar
+          (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) f n ω -
+        bootstrapBoundedContinuousIntegral Pstar
+          (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) f n ω| ≤
+        C * (Pstar n ω).real {ωs | Ystar n ω ωs < c₂} := by
+    simpa [bootstrapBoundedContinuousIntegral, C] using
+      abs_integral_boundedContinuous_ratio_sub_clipped_le
+        (P := Pstar n ω) (X := Xstar n ω) (Y := Ystar n ω)
+        (hXstar n ω) (hYstar n ω) f c₂
+  have hdiff_le_tail :
+      |bootstrapBoundedContinuousIntegral Pstar
+          (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) f n ω -
+        bootstrapBoundedContinuousIntegral Pstar
+          (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) f n ω| ≤
+        C * tail :=
+    hdiff_le_bad.trans (mul_le_mul_of_nonneg_left hbad_le_tail hC_nonneg)
+  have htail_nonneg : 0 ≤ tail := ENNReal.toReal_nonneg
+  have hCtail_nonneg : 0 ≤ C * tail := mul_nonneg hC_nonneg htail_nonneg
+  simpa [tail, C, abs_of_nonneg hCtail_nonneg] using hdiff_le_tail
+
+/-- Indexed bootstrap studentization bridge for sample-size-dependent
+bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_weakDistribution
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {ν : Measure Ωlim} {X : Ωlim → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs)) ν
+        (fun ωlim => (X ωlim, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) ν
+      (fun ωlim => X ωlim / c) := by
+  let c₂ : ℝ := c / 2
+  have hc₂ : 0 < c₂ := by
+    dsimp [c₂]
+    positivity
+  have hc₂_le_c : c₂ ≤ c := by
+    dsimp [c₂]
+    linarith
+  have hmax_c : max c c₂ = c := max_eq_left hc₂_le_c
+  let clipped : ℝ × ℝ → ℝ := fun p => p.1 / max p.2 c₂
+  have hclip_cont : Continuous clipped := by
+    refine continuous_fst.div (continuous_snd.max continuous_const) ?_
+    intro p
+    exact ne_of_gt (lt_of_lt_of_le hc₂ (le_max_right p.2 c₂))
+  have hclip :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => clipped (Xstar n ω ωs, Ystar n ω ωs)) ν
+        (fun ωlim => clipped (X ωlim, c)) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+      (ν := ν) (Z := fun ωlim => (X ωlim, c)) (g := clipped)
+      hpair hclip_cont
+  have hclip_ratio :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) ν
+        (fun ωlim => X ωlim / c) := by
+    simpa [clipped, hmax_c] using hclip
+  refine hclip_ratio.of_integral_difference_zero ?_
+  intro f
+  let C : ℝ := 2 * ‖f‖
+  have htail :
+      TendstoInMeasure μ
+        (fun n ω =>
+          C * bootstrapTailProbIndexed Pstar Ystar (fun _ => c) c₂ n ω)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real (μ := μ) C (hY c₂ hc₂)
+  refine TendstoInMeasure.of_abs_le_zero_real htail ?_
+  intro n ω
+  let tail : ℝ := bootstrapTailProbIndexed Pstar Ystar (fun _ => c) c₂ n ω
+  have hbad_le_tail :
+      (Pstar n ω).real {ωs | Ystar n ω ωs < c₂} ≤ tail := by
+    refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+    · letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      exact measure_ne_top (Pstar n ω)
+        {ωs | c₂ ≤ dist (Ystar n ω ωs) c}
+    · intro ωs hlt
+      have hlt_c : Ystar n ω ωs < c := lt_of_lt_of_le hlt hc₂_le_c
+      have habs : |Ystar n ω ωs - c| = c - Ystar n ω ωs := by
+        rw [abs_of_neg (sub_neg.mpr hlt_c)]
+        ring
+      change c₂ ≤ dist (Ystar n ω ωs) c
+      rw [Real.dist_eq, habs]
+      dsimp [c₂] at hlt ⊢
+      linarith
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hdiff_le_bad :
+      |bootstrapBoundedContinuousIntegralIndexed Pstar
+          (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) f n ω -
+        bootstrapBoundedContinuousIntegralIndexed Pstar
+          (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) f n ω| ≤
+        C * (Pstar n ω).real {ωs | Ystar n ω ωs < c₂} := by
+    simpa [bootstrapBoundedContinuousIntegralIndexed, C] using
+      abs_integral_boundedContinuous_ratio_sub_clipped_le
+        (P := Pstar n ω) (X := Xstar n ω) (Y := Ystar n ω)
+        (hXstar n ω) (hYstar n ω) f c₂
+  have hdiff_le_tail :
+      |bootstrapBoundedContinuousIntegralIndexed Pstar
+          (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs) f n ω -
+        bootstrapBoundedContinuousIntegralIndexed Pstar
+          (fun n ω ωs => Xstar n ω ωs / max (Ystar n ω ωs) c₂) f n ω| ≤
+        C * tail :=
+    hdiff_le_bad.trans (mul_le_mul_of_nonneg_left hbad_le_tail hC_nonneg)
+  have htail_nonneg : 0 ≤ tail := ENNReal.toReal_nonneg
+  have hCtail_nonneg : 0 ≤ C * tail := mul_nonneg hC_nonneg htail_nonneg
+  simpa [tail, C, abs_of_nonneg hCtail_nonneg] using hdiff_le_tail
+
+/-- Standard-normal face of the bootstrap studentization bridge. -/
+theorem chapter10_bootstrap_studentized_ratio_standardNormal
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) := by
+  have hratio :=
+    chapter10_bootstrap_studentized_ratio_weakDistribution
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (ν := gaussianReal 0 1) (X := fun z : ℝ => c * z) (c := c)
+      hc hpair hPstar hXstar hYstar hY
+  refine hratio.congr_limit ?_
+  intro z
+  field_simp [ne_of_gt hc]
+
+/-- Indexed standard-normal face of the bootstrap studentization bridge. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_standardNormal
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) := by
+  have hratio :=
+    chapter10_indexed_bootstrap_studentized_ratio_weakDistribution
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (ν := gaussianReal 0 1) (X := fun z : ℝ => c * z) (c := c)
+      hc hpair hPstar hXstar hYstar hY
+  refine hratio.congr_limit ?_
+  intro z
+  field_simp [ne_of_gt hc]
+
+end BootstrapStudentization
+
 section BootstrapRegression
 
 /-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
@@ -29613,6 +29964,60 @@ theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDe
     (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar) (Vβ := Vβ)
     R hVβ hβ hPstar hTbetaStar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+/-- Hansen Theorem 10.18, regression bootstrap t-statistic standard-normal
+wrapper.
+
+If the transformed regression numerator and feasible standard-error scale have
+joint bootstrap weak limit `(s Z, s)` with `Z ~ N(0,1)`, and the scale itself
+converges to the positive constant `s` in bootstrap probability, then the
+studentized transformed statistic has standard-normal bootstrap weak limit.
+Concrete regression applications supply the joint numerator/scale limit and
+scale consistency from the model-specific covariance estimator. -/
+theorem chapter10_bootstrap_regression_tstat_standardNormal
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_standardNormal
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
+
+/-- Indexed Hansen Theorem 10.18, regression bootstrap t-statistic
+standard-normal wrapper for sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_regression_tstat_standardNormal
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_standardNormal
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
 
 /-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
 
