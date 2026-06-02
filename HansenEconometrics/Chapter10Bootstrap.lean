@@ -1296,6 +1296,36 @@ theorem uniformOn_fun_univ_eq_pi_uniformOn_univ
     (ProbabilityTheory.uniformOn_pi (Ω := ι) (ι := κ)
       (f := fun _ : κ => (Set.univ : Set ι)))
 
+/-- Hansen equation (10.6): displayed probability that one fixed observation is
+included at least once in an `n`-draw bootstrap sample from `n` observations.
+
+The expression is totalized at `n = 0`; the asymptotic result below is the
+textbook statement. -/
+noncomputable def bootstrapObservationInclusionProbability (n : ℕ) : ℝ :=
+  1 - (1 - (n : ℝ)⁻¹) ^ n
+
+theorem bootstrapObservationInclusionProbability_eq (n : ℕ) :
+    bootstrapObservationInclusionProbability n =
+      1 - (1 - (1 : ℝ) / n) ^ n := by
+  simp [bootstrapObservationInclusionProbability, div_eq_mul_inv]
+
+/-- Hansen equation (10.6): `1 - (1 - 1/n)^n → 1 - e^{-1}`. -/
+theorem bootstrapObservationInclusionProbability_tendsto :
+    Tendsto bootstrapObservationInclusionProbability atTop
+      (𝓝 (1 - Real.exp (-1))) := by
+  have hpow :
+      Tendsto (fun n : ℕ => (1 - (n : ℝ)⁻¹) ^ n) atTop
+        (𝓝 (Real.exp (-1))) := by
+    simpa [sub_eq_add_neg, neg_div] using
+      (Real.tendsto_one_add_div_pow_exp (-1))
+  have hsub :
+      Tendsto (fun n : ℕ => (1 : ℝ) - (1 - (n : ℝ)⁻¹) ^ n) atTop
+        (𝓝 ((1 : ℝ) - Real.exp (-1))) := by
+    exact
+      (show Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) from
+        tendsto_const_nhds).sub hpow
+  simpa [bootstrapObservationInclusionProbability] using hsub
+
 omit [MeasurableSpace ι] [Fintype ι] [MeasurableSingletonClass ι] in
 /-- Coordinate projections of the finite ordinary-bootstrap resampling space
 are independent under the uniform law.
