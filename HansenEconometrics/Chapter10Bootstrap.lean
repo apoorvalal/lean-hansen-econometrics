@@ -669,6 +669,9 @@ used throughout the chapter:
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles`
   identifies those symmetric percentile-`t` endpoints as lower generalized
   inverses of conditional bootstrap CDFs.
+* `chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets`
+  specializes the indexed law-facing percentile-`t` route to the concrete
+  normalized scalar `Fin (n+1)` ordinary-bootstrap resample mean.
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`
   and its indexed counterpart compose the Theorem 10.18 regression t-statistic
   standard-normal bootstrap CDF route with the Theorem 10.14 percentile-`t`
@@ -47781,6 +47784,164 @@ chapter10_indexed_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob
       (q := q) (α := α)
       hse htstat hQlower hQupper hQlower_meas hQupper_meas hξ
       hq_nonneg hcdfLower hcdfUpper
+
+/-- Indexed ordinary nonparametric-bootstrap percentile-`t` coverage from the
+concrete normalized scalar `Fin (n+1)` resample-mean CLT.
+
+The bootstrap percentile-`t` critical values are the lower generalized
+inverses of the conditional CDF of `sqrt(n+1) (Ybar*_n - Ybar_n)` under the
+finite ordinary resampling law.  The sample-side t-ratio convergence,
+positive-standard-error premise, and endpoint calibration remain explicit, as
+in Hansen Theorem 10.14. -/
+theorem
+chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef)
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower : ∀ ε : ℝ, 0 < ε → cdf η (-q - ε) < α / 2)
+    (hrightLower : ∀ ε : ℝ, 0 < ε → α / 2 < cdf η (-q + ε))
+    (hleftUpper : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < 1 - α / 2)
+    (hrightUpper : ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf η (q + ε))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hZlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) η
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω))))
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  have hPstar :
+      ∀ n : ℕ, ∀ ω : Ω,
+        IsProbabilityMeasure
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    infer_instance
+  have hTmeas :
+      ∀ n : ℕ, ∀ ω : Ω,
+        AEMeasurable
+          (fun ωs =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    exact (measurable_of_finite _).aemeasurable
+  have hTstar :
+      TendstoInBootstrapDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs (_ : Unit) =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω)))
+        (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => (z : Unit → ℝ) ()) :=
+    chapter10_indexed_bootstrap_clt_scalar_finSucc_resampleMean_of_iIndep_tail_posDef
+      (μ := μ) Y hYmem hindep hident hS
+  exact
+    chapter10_indexed_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob_brackets
+      (μ := μ) (ν := ν)
+      (Ωstar := EuclideanSpace ℝ Unit) (η := η)
+      (νstar := multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (covMat μ (fun ω (_ : Unit) => Y 0 ω)))
+      (Zlim := fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ())
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Tstar := fun n ω ωs =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+      (θ := θ) (θhat := θhat) (se := se) (ξ := ξ) (q := q)
+      (α := α) hse htstat hPstar hTmeas hα_pos hα_lt_one
+      hleftLower hrightLower hleftUpper hrightUpper hTstar hZlaw hcont
+      hlower_meas hupper_meas hξ hq_nonneg hcdfLower hcdfUpper
 
 /-- Regression-facing percentile-`t` coverage from the Theorem 10.18
 bootstrap t-statistic route.
