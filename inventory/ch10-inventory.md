@@ -210,8 +210,11 @@
   null-frontier event, Hansen Definition 10.2 CDF, and positive-definite CDF conclusions. The
   compact-tail distance-envelope constructors additionally turn a pointwise bootstrap remainder
   bound plus vanishing conditional bootstrap tails into the same fixed/indexed Gaussian weak,
-  event, CDF, and positive-definite CDF conclusions. The remaining nonlinear work is model-specific
-  Taylor-envelope and compact-tail/tightness verification that supplies those premises.
+  event, CDF, and positive-definite CDF conclusions. Fixed/indexed quadratic remainder wrappers
+  now discharge that tail premise from `dist thetaStar (G Tstar) <= rho_n ||Tstar||^2`,
+  `rho_n^2 -> 0`, and conditional norm-fourth convergence of the linearized statistic. The
+  remaining nonlinear work is model-specific Taylor-envelope and compact-tail/tightness
+  verification that supplies those premises.
 - Theorem 10.7's smooth-function Gaussian wrappers now expose weak-distribution, null-frontier
   event-probability, and Hansen Definition 10.2 CDF faces, using either exact
   derivative-linearization identities or bounded-continuous integral-linearization premises.
@@ -279,10 +282,14 @@
   fixed/indexed fourth-moment-tail routes to moment-form and textbook-centered scalar finite
   replication variance. Fixed/indexed smooth exact-linearization norm-fourth wrappers now compose
   the Theorem 10.10 smooth variance route with the same Theorem 10.11 finite-replication transfer,
-  including `L²` simulation-error variants. The corresponding smooth covariance-matrix route now
-  feeds moment-form and Hansen-centered finite-replication covariance estimators, again with
-  fixed/indexed direct simulation-error and `L²` variants. Fixed/indexed Gaussian-limit wrappers
-  discharge the automatic coordinate `MemLp` premise in those finite-replication covariance routes.
+  including `L²` simulation-error variants. Fixed/indexed smooth compact-tail remainder
+  norm-fourth wrappers now feed the same moment-form and textbook-centered scalar finite-replication
+  variance transfers from the noncompact Theorem 10.10 route. The corresponding smooth
+  exact-linearization and compact-tail remainder covariance-matrix routes now feed moment-form and
+  Hansen-centered finite-replication covariance estimators, again with fixed/indexed direct
+  simulation-error and `L²` variants. Fixed/indexed
+  Gaussian-limit wrappers discharge the automatic coordinate `MemLp` premise in those
+  finite-replication covariance routes.
   Remaining concrete work is model-specific verification
   of those fourth-moment/threshold premises, such as the sample-mean fourth-moment route and the
   smooth-function bounded-derivative route.
