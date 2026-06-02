@@ -15893,6 +15893,58 @@ theorem
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω))
 
+/-- Indexed conditional variance convergence for the normalized scalar
+ordinary nonparametric-bootstrap mean from empirical one-draw variance
+convergence.
+
+This is the scalar Theorem 10.9 surface for the concrete
+`Fin (n+1) -> Fin (n+1)` resampling law: the exact finite identity above
+reduces the bootstrap conditional variance to the finite empirical variance. -/
+theorem
+    chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_empirical_variance
+    (Y : ℕ → Ω → ℝ) {v : ℝ}
+    (hvar :
+      TendstoInMeasure μ
+        (fun n ω =>
+          Var[fun i : Fin (n + 1) => Y i.val ω;
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))])
+        atTop (fun _ => v)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))
+      atTop (fun _ => v) := by
+  refine TendstoInMeasure.congr
+    (f := fun n ω =>
+      Var[fun i : Fin (n + 1) => Y i.val ω;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))])
+    (f' := bootstrapVarianceRealIndexed
+      (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+      (fun n _ =>
+        ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))
+    (g := fun _ : Ω => v) (g' := fun _ : Ω => v)
+    (fun n => ?_) EventuallyEq.rfl hvar
+  exact ae_of_all μ fun ω =>
+    (bootstrapVarianceRealIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_eq_variance
+      (Y := Y) n ω).symm
+
 /-- Pointwise bootstrap mean clipping error bound by an absolute-tail integral. -/
 theorem bootstrapMeanReal_abs_sub_realClip_le_two_mul_integral_tail_abs
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
@@ -20119,6 +20171,253 @@ theorem centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iIndep
             ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
         atTop (𝓝 0) :=
   centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Empirical scalar variance convergence from empirical first and second
+moments.
+
+This is the scalar counterpart of
+`covMat_uniformOn_finSucc_tendsto_of_mean_cross_moments`: once the empirical
+mean and raw second moment on `Fin (n+1)` converge, the finite empirical
+variance converges to the population variance. -/
+theorem variance_uniformOn_finSucc_tendsto_of_mean_second_moments
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hmean :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), Y i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, Y 0 ω ∂μ))
+    (hsecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), (Y i.val ω) ^ 2
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, (Y 0 ω) ^ 2 ∂μ)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        Var[fun i : Fin (n + 1) => Y i.val ω;
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))])
+      atTop (fun _ => Var[fun ω => Y 0 ω; μ]) := by
+  have hmean_sq :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (∫ i : Fin (n + 1), Y i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))) *
+            (∫ i : Fin (n + 1), Y i.val ω
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1)))))
+        atTop (fun _ => (∫ ω, Y 0 ω ∂μ) * (∫ ω, Y 0 ω ∂μ)) :=
+    TendstoInMeasure.mul_limits_real hmean hmean
+  have hentry :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (∫ i : Fin (n + 1), (Y i.val ω) ^ 2
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))) -
+            (∫ i : Fin (n + 1), Y i.val ω
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1)))) *
+              (∫ i : Fin (n + 1), Y i.val ω
+                ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                  Measure (Fin (n + 1)))))
+        atTop
+        (fun _ =>
+          (∫ ω, (Y 0 ω) ^ 2 ∂μ) -
+            (∫ ω, Y 0 ω ∂μ) * (∫ ω, Y 0 ω ∂μ)) := by
+    have hsecond0 := TendstoInMeasure.sub_limit_zero_real hsecond
+    have hmean_sq0 := TendstoInMeasure.sub_limit_zero_real hmean_sq
+    have hdiff0 :
+        TendstoInMeasure μ
+          (fun n ω =>
+            (((∫ i : Fin (n + 1), (Y i.val ω) ^ 2
+              ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                Measure (Fin (n + 1)))) -
+              (∫ i : Fin (n + 1), Y i.val ω
+                ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+                  Measure (Fin (n + 1)))) *
+                (∫ i : Fin (n + 1), Y i.val ω
+                  ∂(ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1))) :
+                      Measure (Fin (n + 1))))) -
+              ((∫ ω, (Y 0 ω) ^ 2 ∂μ) -
+                (∫ ω, Y 0 ω ∂μ) * (∫ ω, Y 0 ω ∂μ))))
+          atTop (fun _ => 0) := by
+      have hsub := TendstoInMeasure.sub_zero_real hsecond0 hmean_sq0
+      refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsub
+      exact ae_of_all μ fun ω => by ring
+    exact TendstoInMeasure.of_sub_limit_zero_real hdiff0
+  have hlimit :
+      Var[fun ω => Y 0 ω; μ] =
+        (∫ ω, (Y 0 ω) ^ 2 ∂μ) -
+          (∫ ω, Y 0 ω ∂μ) * (∫ ω, Y 0 ω ∂μ) := by
+    simpa [pow_two] using
+      (ProbabilityTheory.variance_eq_sub (μ := μ)
+        (X := fun ω => Y 0 ω) hYmem)
+  refine TendstoInMeasure.congr
+    (f := fun n ω =>
+      (∫ i : Fin (n + 1), (Y i.val ω) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))) -
+        (∫ i : Fin (n + 1), Y i.val ω
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))) *
+          (∫ i : Fin (n + 1), Y i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))))
+    (f' := fun n ω =>
+      Var[fun i : Fin (n + 1) => Y i.val ω;
+        (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+          Measure (Fin (n + 1)))])
+    (g := fun _ : Ω =>
+      (∫ ω, (Y 0 ω) ^ 2 ∂μ) -
+        (∫ ω, Y 0 ω ∂μ) * (∫ ω, Y 0 ω ∂μ))
+    (g' := fun _ : Ω => Var[fun ω => Y 0 ω; μ])
+    (fun n => ?_) ?_ hentry
+  · exact ae_of_all μ fun ω => by
+      let P : Measure (Fin (n + 1)) :=
+        ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1)))
+      haveI : IsProbabilityMeasure P := inferInstance
+      have hYi : MemLp (fun i : Fin (n + 1) => Y i.val ω) 2 P :=
+        memLp_two_uniformOn_univ
+          (Y := fun i : Fin (n + 1) => Y i.val ω)
+      have hsource :
+          Var[fun i : Fin (n + 1) => Y i.val ω; P] =
+            (∫ i : Fin (n + 1), (Y i.val ω) ^ 2 ∂P) -
+              (∫ i : Fin (n + 1), Y i.val ω ∂P) *
+                (∫ i : Fin (n + 1), Y i.val ω ∂P) := by
+        simpa [pow_two] using
+          (ProbabilityTheory.variance_eq_sub (μ := P)
+            (X := fun i : Fin (n + 1) => Y i.val ω) hYi)
+      simpa [P] using hsource.symm
+  · exact ae_of_all μ fun _ => hlimit.symm
+
+/-- Empirical scalar variance convergence for iid real observations. -/
+theorem variance_uniformOn_finSucc_tendsto_of_iid
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        Var[fun i : Fin (n + 1) => Y i.val ω;
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))])
+      atTop (fun _ => Var[fun ω => Y 0 ω; μ]) := by
+  have hmean :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), Y i.val ω
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, Y 0 ω ∂μ) := by
+    have hint : Integrable (fun ω => Y 0 ω) μ :=
+      memLp_one_iff_integrable.mp (hYmem.mono_exponent one_le_two)
+    exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
+      (μ := μ) (X := Y) hint hindep hident
+  have hsecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ i : Fin (n + 1), (Y i.val ω) ^ 2
+            ∂(ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1))))
+        atTop (fun _ => ∫ ω, (Y 0 ω) ^ 2 ∂μ) := by
+    let sqMap : ℝ → ℝ := fun x => x ^ 2
+    have hsq_meas : Measurable sqMap := by
+      dsimp [sqMap]
+      fun_prop
+    have hint : Integrable (fun ω => (Y 0 ω) ^ 2) μ := by
+      simpa [pow_two] using hYmem.integrable_mul hYmem
+    have hindep_sq :
+        Pairwise ((· ⟂ᵢ[μ] ·) on fun i ω => (Y i ω) ^ 2) := by
+      intro i j hij
+      simpa [sqMap] using IndepFun.comp (hindep hij) hsq_meas hsq_meas
+    have hident_sq :
+        ∀ i,
+          IdentDistrib
+            (fun ω => (Y i ω) ^ 2) (fun ω => (Y 0 ω) ^ 2) μ μ := by
+      intro i
+      simpa [sqMap] using (hident i).comp hsq_meas
+    exact integral_uniformOn_finSucc_tendstoInMeasure_wlln
+      (μ := μ) (X := fun i ω => (Y i ω) ^ 2)
+      hint hindep_sq hident_sq
+  exact variance_uniformOn_finSucc_tendsto_of_mean_second_moments
+    (μ := μ) Y hYmem hmean hsecond
+
+/-- Empirical scalar variance convergence for iid real observations with the
+textbook `iIndepFun` premise. -/
+theorem variance_uniformOn_finSucc_tendsto_of_iIndep
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        Var[fun i : Fin (n + 1) => Y i.val ω;
+          (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+            Measure (Fin (n + 1)))])
+      atTop (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  variance_uniformOn_finSucc_tendsto_of_iid
+    (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Iid-facing scalar ordinary nonparametric-bootstrap variance constructor.
+
+For the normalized bootstrap mean `sqrt (n+1) (Ybar* - Ybar)`, the conditional
+bootstrap variance converges in probability to the population variance. -/
+theorem chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_iid
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))
+      atTop (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_empirical_variance
+    (μ := μ) Y
+    (variance_uniformOn_finSucc_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
+
+/-- Iid-facing scalar ordinary nonparametric-bootstrap variance constructor
+with the textbook `iIndepFun` premise. -/
+theorem chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_iIndep
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed
+        (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n _ =>
+          ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))
+      atTop (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_iid
     (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
 
 /-- Empirical covariance convergence from empirical first and cross moments.
