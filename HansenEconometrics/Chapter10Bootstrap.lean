@@ -56420,6 +56420,166 @@ chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posD
       hrightUpper hcont hlower_meas hupper_meas hξ hZlaw hq_nonneg
       hcdfLower hcdfUpper
 
+/-- Hansen equation (10.22): finite-replication bootstrap median-bias share
+`p* = B^{-1} sum_b 1{theta*_b <= thetaHat}`. -/
+noncomputable def bootstrapMedianBiasShare
+    {B : Type*} [Fintype B] (thetaHat : ℝ) (thetaStar : B → ℝ) : ℝ :=
+  (Fintype.card B : ℝ)⁻¹ *
+    ∑ b, if thetaStar b ≤ thetaHat then (1 : ℝ) else 0
+
+/-- Hansen equation (10.23): normal-scale bias correction from a quantile
+function.  For the BC interval this quantile function is `Phi^{-1}`. -/
+noncomputable def bootstrapBiasCorrection
+    (normalQuantile : ℝ → ℝ) (pstar : ℝ) : ℝ :=
+  normalQuantile pstar
+
+/-- Hansen equation (10.24): BC adjusted percentile level
+`x(alpha) = Phi(z_alpha + 2 z0)`. -/
+noncomputable def biasCorrectedAdjustedLevel
+    (Phi normalQuantile : ℝ → ℝ) (z0 alpha : ℝ) : ℝ :=
+  Phi (normalQuantile alpha + 2 * z0)
+
+/-- Hansen equation (10.25): the bias-corrected percentile interval event
+formed from bootstrap quantiles at the adjusted endpoint levels. -/
+def biasCorrectedPercentileCIEvent
+    (theta : ℝ) (bootstrapQuantile : ℝ → ℝ)
+    (Phi normalQuantile : ℝ → ℝ) (z0 alpha : ℝ) : Prop :=
+  percentileCIEvent theta
+    (bootstrapQuantile
+      (biasCorrectedAdjustedLevel Phi normalQuantile z0 (alpha / 2)))
+    (bootstrapQuantile
+      (biasCorrectedAdjustedLevel Phi normalQuantile z0 (1 - alpha / 2)))
+
+/-- Hansen equation (10.21): transformed BC pivot
+`psi(thetaHat) - psi(theta) + z0`. -/
+noncomputable def biasCorrectedPivot
+    (psi : ℝ → ℝ) (theta z0 thetaHat : ℝ) : ℝ :=
+  psi thetaHat - psi theta + z0
+
+/-- The ideal transformed-endpoint BC event used in Hansen's exact-coverage
+proof after the adjusted bootstrap quantiles have been identified. -/
+def biasCorrectedIdealCIEvent
+    (psi : ℝ → ℝ) (theta thetaHat z0 zLower zUpper : ℝ) : Prop :=
+  psi thetaHat + z0 + zLower ≤ psi theta ∧
+    psi theta ≤ psi thetaHat + z0 + zUpper
+
+/-- Algebraic form of Hansen's BC exact-coverage argument: the transformed
+endpoint event is the same as the pivot lying between `-zUpper` and
+`-zLower`. -/
+theorem biasCorrectedIdealCIEvent_iff_pivot_mem_Icc
+    {psi : ℝ → ℝ} {theta thetaHat z0 zLower zUpper : ℝ} :
+    biasCorrectedIdealCIEvent psi theta thetaHat z0 zLower zUpper ↔
+      biasCorrectedPivot psi theta z0 thetaHat ∈ Set.Icc (-zUpper) (-zLower) := by
+  change
+    (psi thetaHat + z0 + zLower ≤ psi theta ∧
+        psi theta ≤ psi thetaHat + z0 + zUpper) ↔
+      -zUpper ≤ psi thetaHat - psi theta + z0 ∧
+        psi thetaHat - psi theta + z0 ≤ -zLower
+  constructor
+  · intro h
+    exact ⟨by linarith [h.2], by linarith [h.1]⟩
+  · intro h
+    exact ⟨by linarith [h.2], by linarith [h.1]⟩
+
+/-- Hansen BC exact-coverage bridge in CDF-increment form.
+
+Under the transformed pivotal model (10.21), the ideal BC interval coverage is
+the probability that the pivot lies in `[-zUpper, -zLower]`.  A non-atomic
+limit law reads this probability as a CDF increment. -/
+theorem biasCorrectedIdealCIEvent_probability_eq_cdf_sub
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta z0 zLower zUpper : ℝ} {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => biasCorrectedPivot psi theta z0 (thetaHat ω)) eta μ)
+    (hz : zLower ≤ zUpper) :
+    μ {ω | biasCorrectedIdealCIEvent psi theta (thetaHat ω) z0 zLower zUpper} =
+      ENNReal.ofReal (cdf eta (-zLower) - cdf eta (-zUpper)) := by
+  have hset :
+      {ω | biasCorrectedIdealCIEvent psi theta (thetaHat ω) z0 zLower zUpper} =
+        (fun ω => biasCorrectedPivot psi theta z0 (thetaHat ω)) ⁻¹'
+          Set.Icc (-zUpper) (-zLower) := by
+    ext ω
+    exact biasCorrectedIdealCIEvent_iff_pivot_mem_Icc
+  rw [hset]
+  exact HasLaw.preimage_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    (μ := μ) (ν := eta) hZ (by linarith)
+
+/-- Hansen BC exact coverage: if the pivot critical values have endpoint CDF
+masses `alpha / 2` and `1 - alpha / 2`, then the ideal BC interval has
+coverage `1 - alpha`. -/
+theorem biasCorrectedIdealCIEvent_probability_eq_one_sub_alpha
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta z0 zLower zUpper alpha : ℝ}
+    {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => biasCorrectedPivot psi theta z0 (thetaHat ω)) eta μ)
+    (hz : zLower ≤ zUpper)
+    (hcdfLower : cdf eta (-zUpper) = alpha / 2)
+    (hcdfUpper : cdf eta (-zLower) = 1 - alpha / 2) :
+    μ {ω | biasCorrectedIdealCIEvent psi theta (thetaHat ω) z0 zLower zUpper} =
+      ENNReal.ofReal (1 - alpha) := by
+  rw [biasCorrectedIdealCIEvent_probability_eq_cdf_sub
+    (μ := μ) (eta := eta) hZ hz]
+  congr 1
+  rw [hcdfLower, hcdfUpper]
+  ring
+
+/-- Symmetric-critical-value version of Hansen's BC exact coverage proof.
+
+This is the textbook specialization where `zLower = z_{alpha/2}`,
+`zUpper = z_{1-alpha/2}`, and symmetry gives `-zUpper = zLower` and
+`-zLower = zUpper`. -/
+theorem biasCorrectedIdealCIEvent_probability_eq_one_sub_alpha_of_symmetric
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta z0 zLower zUpper alpha : ℝ}
+    {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => biasCorrectedPivot psi theta z0 (thetaHat ω)) eta μ)
+    (hz : zLower ≤ zUpper)
+    (hsymLower : -zUpper = zLower)
+    (hsymUpper : -zLower = zUpper)
+    (hcdfLower : cdf eta zLower = alpha / 2)
+    (hcdfUpper : cdf eta zUpper = 1 - alpha / 2) :
+    μ {ω | biasCorrectedIdealCIEvent psi theta (thetaHat ω) z0 zLower zUpper} =
+      ENNReal.ofReal (1 - alpha) :=
+  biasCorrectedIdealCIEvent_probability_eq_one_sub_alpha
+    (μ := μ) (eta := eta) (psi := psi) (theta := theta) (z0 := z0)
+    (zLower := zLower) (zUpper := zUpper) (alpha := alpha)
+    (thetaHat := thetaHat) hZ hz
+    (by simpa [hsymLower] using hcdfLower)
+    (by simpa [hsymUpper] using hcdfUpper)
+
+/-- Hansen's BCa adjusted percentile level:
+`Phi(z0 + (z_alpha + z0) / (1 - a (z_alpha + z0)))`. -/
+noncomputable def bcaAdjustedLevel
+    (Phi normalQuantile : ℝ → ℝ) (z0 accel alpha : ℝ) : ℝ :=
+  Phi (z0 + (normalQuantile alpha + z0) /
+    (1 - accel * (normalQuantile alpha + z0)))
+
+/-- Hansen's jackknife acceleration estimate for the BCa interval. -/
+noncomputable def bcaJackknifeAcceleration
+    {ι : Type*} [Fintype ι] (thetaLeaveOneOut : ι → ℝ) : ℝ :=
+  let thetaBar : ℝ := (Fintype.card ι : ℝ)⁻¹ * ∑ i, thetaLeaveOneOut i
+  (∑ i, (thetaBar - thetaLeaveOneOut i) ^ 3) /
+    (6 * (∑ i, (thetaBar - thetaLeaveOneOut i) ^ 2) ^ ((3 : ℝ) / 2))
+
+/-- Hansen's BCa percentile interval event formed from bootstrap quantiles at
+the accelerated adjusted endpoint levels. -/
+def bcaPercentileCIEvent
+    (theta : ℝ) (bootstrapQuantile : ℝ → ℝ)
+    (Phi normalQuantile : ℝ → ℝ) (z0 accel alpha : ℝ) : Prop :=
+  percentileCIEvent theta
+    (bootstrapQuantile
+      (bcaAdjustedLevel Phi normalQuantile z0 accel (alpha / 2)))
+    (bootstrapQuantile
+      (bcaAdjustedLevel Phi normalQuantile z0 accel (1 - alpha / 2)))
+
 end PercentileIntervals
 
 section PercentileTIntervals
