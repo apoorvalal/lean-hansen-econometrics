@@ -31423,6 +31423,74 @@ chapter10_indexed_bootstrap_weakDistribution_prod_const_of_probability_tight
   · intro δ hδ
     simpa [bootstrapTailProbIndexed, Prod.dist_eq] using hY δ hδ
 
+/-- Scalar compact-tail constructor for eventually bounded bootstrap statistics.
+
+If `|Xₙ*|` is eventually bounded by a deterministic constant, then the
+conditional bootstrap mass outside that fixed compact interval is eventually
+identically zero.  This is a true compact-range route for bounded or trimmed
+statistics; it is stronger than ordinary tightness. -/
+theorem chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs} {Xstar : ℕ → Ω → Ωs → ℝ} {C : ℝ}
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C) :
+    ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0) := by
+  intro η hη
+  let Kx : Set ℝ := Set.Icc (-C) C
+  refine ⟨Kx, isCompact_Icc, ?_⟩
+  have hzero :
+      TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  refine TendstoInMeasure.congr'
+    (f := fun _ (_ : Ω) => (0 : ℝ))
+    (f' := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+    (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+    ?_ EventuallyEq.rfl hzero
+  filter_upwards [hbound] with n hn
+  exact ae_of_all μ fun ω => by
+    have hset : {ωs | Xstar n ω ωs ∉ Kx} = ∅ := by
+      ext ωs
+      have hxmem : Xstar n ω ωs ∈ Kx := by
+        dsimp [Kx]
+        exact abs_le.mp (hn ω ωs)
+      simp [hxmem]
+    simp [hset]
+
+/-- Indexed scalar compact-tail constructor for eventually bounded bootstrap
+statistics on sample-size-dependent bootstrap spaces. -/
+theorem chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar : ∀ n, Ω → Ωboot n → ℝ} {C : ℝ}
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C) :
+    ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0) := by
+  intro η hη
+  let Kx : Set ℝ := Set.Icc (-C) C
+  refine ⟨Kx, isCompact_Icc, ?_⟩
+  have hzero :
+      TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  refine TendstoInMeasure.congr'
+    (f := fun _ (_ : Ω) => (0 : ℝ))
+    (f' := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+    (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+    ?_ EventuallyEq.rfl hzero
+  filter_upwards [hbound] with n hn
+  exact ae_of_all μ fun ω => by
+    have hset : {ωs | Xstar n ω ωs ∉ Kx} = ∅ := by
+      ext ωs
+      have hxmem : Xstar n ω ωs ∈ Kx := by
+        dsimp [Kx]
+        exact abs_le.mp (hn ω ωs)
+      simp [hxmem]
+    simp [hset]
+
 private theorem one_le_dist_of_not_mem_Icc_one {c y : ℝ}
     (hy : y ∉ Set.Icc (c - 1) (c + 1)) :
     (1 : ℝ) ≤ dist y c := by
@@ -31658,6 +31726,55 @@ theorem chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
         _ =
             (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
               bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω := rfl
+
+/-- Product compact-tail constructor from an eventual deterministic numerator
+bound and bootstrap-probability scale consistency. -/
+theorem chapter10_bootstrap_pair_compactTail_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY : TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+          atTop (fun _ => 0) :=
+  chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hPstar
+    (chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Indexed product compact-tail constructor from an eventual deterministic
+numerator bound and bootstrap-probability scale consistency. -/
+theorem chapter10_indexed_bootstrap_pair_compactTail_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c C : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY : TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+          atTop (fun _ => 0) :=
+  chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hPstar
+    (chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
 
 /-- Standard-normal studentization from a marginal numerator bootstrap CLT,
 bootstrap-probability scale consistency, and explicit pair compact-tail
