@@ -534,14 +534,16 @@ used throughout the chapter:
   transfer from conditional fourth-moment convergence and eventual limit
   squared-tail bounds, with `MemLp` weak-limit variants discharging those bounds
   directly. Smooth exact-linearization norm-fourth wrappers now feed the same
-  finite-replication transfer through the Theorem 10.10 variance route. The moment-premise and
-  centered-scalar wrappers expose the same transfer directly from conditional
-  bootstrap mean/second-moment convergence and Hansen's displayed `1 / (B - 1)`
-  estimator. The fixed/indexed `*_of_l2_simulation_error` wrappers discharge
-  the finite-replication simulation-error premise from `O(n⁻¹)` mean-square
-  bounds, and the fixed/indexed `*_of_uniformSquareTail_l2` and
-  `*_of_eventualBound_l2` wrappers compose those bounds with the
-  weak/uniform-square-tail or bounded-statistic variance routes.
+  finite-replication transfer through the Theorem 10.10 variance route. The
+  moment-premise and centered-scalar wrappers expose the same transfer directly
+  from conditional bootstrap mean/second-moment convergence and Hansen's
+  displayed `1 / (B - 1)` estimator, including indexed zero-mean targets for
+  sample-size-dependent bootstrap spaces. The fixed/indexed
+  `*_of_l2_simulation_error` wrappers discharge the finite-replication
+  simulation-error premise from `O(n⁻¹)` mean-square bounds, and the
+  fixed/indexed `*_of_uniformSquareTail_l2` and `*_of_eventualBound_l2`
+  wrappers compose those bounds with the weak/uniform-square-tail or
+  bounded-statistic variance routes.
 * `chapter10_finiteReplicationCovarianceMat_tendsto_of_moments` is the
   finite-dimensional covariance-matrix bridge behind Hansen Theorem 10.11.
 * `chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_moments` is the
@@ -564,9 +566,9 @@ used throughout the chapter:
   covariance routes.
   Scalar and matrix moment-premise wrappers expose the same transfer directly
   from conditional bootstrap mean and cross-moment convergence, with indexed
-  mean-vector/cross-moment/covariance bridges and zero-mean specializations for
-  centered targets. The trimmed zero-mean wrapper exposes
-  the Theorem 10.12 target covariance directly, with indexed trimmed
+  scalar covariance, mean-vector, cross-moment, and covariance bridges and
+  zero-mean specializations for centered targets. The trimmed zero-mean wrapper
+  exposes the Theorem 10.12 target covariance directly, with indexed trimmed
   finite-replication counterparts; bounded-threshold and fourth-moment-tail
   variants compose that transfer with the direct trimmed covariance route,
   including `MemLp` weak-limit variants. The fixed/indexed trimmed
@@ -32484,6 +32486,36 @@ theorem
     (chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
       (μ := μ) hPstar hZ hmean hsecond)
 
+/-- Indexed zero-mean finite-replication centered-variance wrapper for Hansen
+Theorem 10.11. -/
+theorem
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_zero_mean_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    {σ2 : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar Zstar) atTop
+        (fun _ => 0))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar Zstar) atTop
+        (fun _ => σ2))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_moments
+      (μ := μ) (m := 0) (m₂ := σ2)
+      hPstar hZ hmean hsecond hfinite)
+
 /-- Indexed Hansen Theorem 10.9/10.11 finite-replication variance from
 bootstrap weak convergence and a named uniform-square-tail condition. -/
 theorem
@@ -35416,6 +35448,101 @@ theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_z
       atTop (fun _ => v) := by
   simpa using
     (chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_moments
+      (μ := μ) (mX := 0) (mY := 0) (mXY := v)
+      hmeanX hmeanY hcross hfinite)
+
+/-- Indexed Hansen Theorem 10.9/10.11 scalar centered finite-replication
+covariance from conditional bootstrap covariance consistency.
+
+This is the sample-size-dependent bootstrap-space counterpart of
+`chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance`. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {v : ℝ}
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+              (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]))
+        atTop (fun _ => 0))
+    (hboot :
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+            (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => v)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => v) :=
+  TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 scalar centered finite-replication
+covariance from conditional bootstrap moment convergence. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {mX mY mXY : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Xstar n ω])
+        atTop (fun _ => mX))
+    (hmeanY :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => mY))
+    (hcross :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs])
+        atTop (fun _ => mXY))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+              (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]))
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => mXY - mX * mY) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+    (μ := μ) hfinite
+    (chapter10_indexed_bootstrap_covarianceReal_tendsto_of_moments
+      (μ := μ) hmeanX hmeanY hcross)
+
+/-- Indexed zero-mean scalar finite-replication covariance wrapper for Hansen
+Theorem 10.11. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_zero_mean_moments
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {v : ℝ}
+    (hmeanX :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Xstar n ω])
+        atTop (fun _ => 0))
+    (hmeanY :
+      TendstoInMeasure μ (fun n ω => (Pstar n ω)[Ystar n ω])
+        atTop (fun _ => 0))
+    (hcross :
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs])
+        atTop (fun _ => v))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            ((Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+              (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]))
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => v) := by
+  simpa using
+    (chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_moments
       (μ := μ) (mX := 0) (mY := 0) (mXY := v)
       hmeanX hmeanY hcross hfinite)
 
