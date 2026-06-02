@@ -622,6 +622,11 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression t-statistic
   standard-normal bootstrap CDF route with the Theorem 10.14 percentile-`t`
   coverage theorem.
+  `chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`,
+  `chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`,
+  and their indexed counterparts specialize the actual sample interval to the
+  ordinary HC0/HC1 OLS scalar restriction, using Chapter 7 standard-normal OLS
+  inference theorems for the sample t-ratio side.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
@@ -41753,6 +41758,672 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one hstrict hTstar
       hcont hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
+
+private theorem tendstoInDistribution_congr_eventually
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X Y : ℕ → Ω → E} {Z : Ωlim → E}
+    (hY : ∀ n, AEMeasurable (Y n) μ)
+    (hXY : ∀ᶠ n in atTop, X n =ᵐ[μ] Y n)
+    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution Y atTop Z (fun _ => μ) ν where
+  forall_aemeasurable := hY
+  aemeasurable_limit := h.aemeasurable_limit
+  tendsto := by
+    refine Tendsto.congr' ?_ h.tendsto
+    exact hXY.mono fun n hn => Subtype.ext (Measure.map_congr hn)
+
+private theorem percentileTStatistic_linearRestriction_eq_olsLinearTStatOrZero
+    {ι k : Type*} [Fintype ι] [Fintype k] [DecidableEq k]
+    (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ)
+    (X : Matrix ι k ℝ) (y : ι → ℝ) (β : k → ℝ) (root : ℝ) :
+    percentileTStatistic (linearRestrictionEstimate R β)
+      (linearRestrictionEstimate R (olsBetaOrZero X y))
+      (linearRestrictionStdError R Vhat / root) =
+      olsLinearTStatOrZero R Vhat X y β root := by
+  dsimp [percentileTStatistic, olsLinearTStatOrZero,
+    olsLinearTNumeratorOrZero, linearRestrictionEstimate]
+  rw [linearMapUnit_smul_sub_dot_one]
+  by_cases hroot : root = 0
+  · simp [hroot]
+  · by_cases hse : linearRestrictionStdError R Vhat = 0
+    · simp [hse]
+    · field_simp [hroot, hse]
+
+private theorem olsPercentileTStdError_pos
+    [Fintype k]
+    {Vhat : ℕ → Ω → Matrix k k ℝ}
+    (R : Matrix Unit k ℝ)
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 → 0 < linearRestrictionStdError R (Vhat n ω)) :
+    ∀ n ω,
+      0 <
+        if n = 0 then 1
+        else linearRestrictionStdError R (Vhat n ω) / Real.sqrt (n : ℝ) := by
+  intro n ω
+  by_cases hn : n = 0
+  · simp [hn]
+  · have hnpos_nat : 0 < n := Nat.pos_of_ne_zero hn
+    have hnpos_real : (0 : ℝ) < n := by exact_mod_cast hnpos_nat
+    have hsqrt_pos : 0 < Real.sqrt (n : ℝ) := Real.sqrt_pos.mpr hnpos_real
+    simp [hn, div_pos (hsampleSe_pos n ω hn) hsqrt_pos]
+
+private theorem olsPercentileTStatistic_tendstoInDistribution_standardNormal
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hVhat : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω =>
+          olsLinearTStatOrZero R (Vhat n ω)
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1)) :
+    TendstoInDistribution
+      (fun n ω =>
+        percentileTStatistic (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R (Vhat n ω) / Real.sqrt (n : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+  have hmeas :
+      ∀ n,
+        AEMeasurable
+          (fun ω =>
+            percentileTStatistic (linearRestrictionEstimate R β)
+              (linearRestrictionEstimate R
+                (olsBetaOrZero
+                  (stackRegressors X n ω) (stackOutcomes y n ω)))
+              (if n = 0 then 1
+                else linearRestrictionStdError R (Vhat n ω) /
+                  Real.sqrt (n : ℝ))) μ := by
+    intro n
+    have hbeta :
+        AEStronglyMeasurable
+          (fun ω =>
+            olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      olsBetaOrZero_stack_aestronglyMeasurable
+        (μ := μ) (X := X) (e := e) (y := y) β
+        hm.toLeastSquaresConsistencyConditions hm.model n
+    have hθhat :
+        AEMeasurable
+          (fun ω =>
+            linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω))) μ := by
+      have hcont :
+          Continuous (fun b : k → ℝ => linearRestrictionEstimate R b) := by
+        have hmul : Continuous (fun b : k → ℝ => R *ᵥ b) :=
+          Continuous.matrix_mulVec
+            (continuous_const : Continuous (fun _ : k → ℝ => R))
+            (continuous_id : Continuous (fun b : k → ℝ => b))
+        have hone :
+            Continuous (fun _ : k → ℝ => (fun _ : Unit => (1 : ℝ))) :=
+          continuous_const
+        simpa [linearRestrictionEstimate] using
+          hmul.dotProduct hone
+      exact hcont.measurable.comp_aemeasurable hbeta.aemeasurable
+    have hseBase :
+        AEMeasurable
+          (fun ω => linearRestrictionStdError R (Vhat n ω)) μ := by
+      simpa [linearRestrictionStdError] using
+        linearCovarianceStdError_aemeasurable (μ := μ) R (hVhat n)
+    have hse :
+        AEMeasurable
+          (fun ω =>
+            if n = 0 then 1
+            else linearRestrictionStdError R (Vhat n ω) /
+              Real.sqrt (n : ℝ)) μ := by
+      by_cases hn : n = 0
+      · simp [hn]
+      · simpa [hn] using hseBase.div_const (Real.sqrt (n : ℝ))
+    simpa [percentileTStatistic] using
+      (hθhat.sub (aemeasurable_const :
+        AEMeasurable (fun _ : Ω => linearRestrictionEstimate R β) μ)).div hse
+  have hcongr :
+      ∀ᶠ n in atTop,
+        (fun ω =>
+          olsLinearTStatOrZero R (Vhat n ω)
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ))) =ᵐ[μ]
+        fun ω =>
+          percentileTStatistic (linearRestrictionEstimate R β)
+            (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)))
+            (if n = 0 then 1
+              else linearRestrictionStdError R (Vhat n ω) /
+                Real.sqrt (n : ℝ)) := by
+    filter_upwards [eventually_ge_atTop 1] with n hn
+    exact ae_of_all μ fun ω => by
+      have hnpos_nat : 0 < n := lt_of_lt_of_le Nat.zero_lt_one hn
+      have hn_ne : n ≠ 0 := Nat.ne_of_gt hnpos_nat
+      simpa only [hn_ne, if_false] using
+        (percentileTStatistic_linearRestriction_eq_olsLinearTStatOrZero
+          (R := R) (Vhat := Vhat n ω)
+          (X := stackRegressors X n ω)
+          (y := stackOutcomes y n ω) (β := β)
+          (root := Real.sqrt (n : ℝ))).symm
+  exact tendstoInDistribution_congr_eventually hmeas hcongr htstat
+
+private theorem
+chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hVhat : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 → 0 < linearRestrictionStdError R (Vhat n ω))
+    (htstat :
+      TendstoInDistribution
+        (fun n ω =>
+          olsLinearTStatOrZero R (Vhat n ω)
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R (Vhat n ω) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (θ := linearRestrictionEstimate R β)
+      (θhat := fun n ω =>
+        linearRestrictionEstimate R
+          (olsBetaOrZero
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+      (se := fun n ω =>
+        if n = 0 then 1
+        else linearRestrictionStdError R (Vhat n ω) / Real.sqrt (n : ℝ))
+      (seθ := seθ) (q := q) (α := α)
+      (olsPercentileTStdError_pos R hsampleSe_pos)
+      (olsPercentileTStatistic_tendstoInDistribution_standardNormal
+        β R hm hVhat htstat)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
+
+private theorem
+chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Vhat : ℕ → Ω → Matrix k k ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hVhat : ∀ n, AEStronglyMeasurable (Vhat n) μ)
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 → 0 < linearRestrictionStdError R (Vhat n ω))
+    (htstat :
+      TendstoInDistribution
+        (fun n ω =>
+          olsLinearTStatOrZero R (Vhat n ω)
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R (Vhat n ω) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (θ := linearRestrictionEstimate R β)
+      (θhat := fun n ω =>
+        linearRestrictionEstimate R
+          (olsBetaOrZero
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+      (se := fun n ω =>
+        if n = 0 then 1
+        else linearRestrictionStdError R (Vhat n ω) / Real.sqrt (n : ℝ))
+      (seθ := seθ) (q := q) (α := α)
+      (olsPercentileTStdError_pos R hsampleSe_pos)
+      (olsPercentileTStatistic_tendstoInDistribution_standardNormal
+        β R hm hVhat htstat)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
+
+/-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
+HC0 OLS scalar restriction.
+
+The displayed interval uses the ordinary OLS estimate and HC0 standard error
+scaled by `sqrt n`; the harmless `n = 0` branch keeps the totalized standard
+error positive while the proof identifies the statistic with the Chapter 7 HC0
+t-statistic eventually. -/
+theorem
+chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 →
+        0 < linearRestrictionStdError R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R
+              (olsHetCovStar
+                (stackRegressors X n ω) (stackOutcomes y n ω)) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (X := X) (e := e) (y := y)
+      (Vhat := fun n ω =>
+        olsHetCovStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (seθ := seθ) (q := q) (α := α)
+      β R hm
+      (fun n =>
+        olsHetCovStar_stack_aestronglyMeasurable_components
+          (μ := μ) (X := X) (e := e) (y := y)
+          hm.toSampleMomentAssumption71 β hm.model
+          hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n)
+      hsampleSe_pos
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
+
+/-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
+ordinary HC0 OLS scalar restriction. -/
+theorem
+chapter10_indexed_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 →
+        0 < linearRestrictionStdError R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R
+              (olsHetCovStar
+                (stackRegressors X n ω) (stackOutcomes y n ω)) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (X := X) (e := e) (y := y)
+      (Vhat := fun n ω =>
+        olsHetCovStar
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (seθ := seθ) (q := q) (α := α)
+      β R hm
+      (fun n =>
+        olsHetCovStar_stack_aestronglyMeasurable_components
+          (μ := μ) (X := X) (e := e) (y := y)
+          hm.toSampleMomentAssumption71 β hm.model
+          hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n)
+      hsampleSe_pos
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
+
+/-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
+HC1 OLS scalar restriction. -/
+theorem
+chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 →
+        0 < linearRestrictionStdError R
+          (olsHetCovHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R
+              (olsHetCovHC1Star
+                (stackRegressors X n ω) (stackOutcomes y n ω)) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (X := X) (e := e) (y := y)
+      (Vhat := fun n ω =>
+        olsHetCovHC1Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (seθ := seθ) (q := q) (α := α)
+      β R hm
+      (fun n =>
+        olsHC1CovarianceStar_stack_aestronglyMeasurable_components
+          (μ := μ) (X := X) (e := e) (y := y)
+          hm.toSampleMomentAssumption71 β hm.model
+          hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n)
+      hsampleSe_pos
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
+
+/-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
+ordinary HC1 OLS scalar restriction. -/
+theorem
+chapter10_indexed_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {seθ q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hsampleSe_pos :
+      ∀ n ω, n ≠ 0 →
+        0 < linearRestrictionStdError R
+          (olsHetCovHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω)))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+            (olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)))
+          (if n = 0 then 1
+            else linearRestrictionStdError R
+              (olsHetCovHC1Star
+                (stackRegressors X n ω) (stackOutcomes y n ω)) /
+              Real.sqrt (n : ℝ))
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  exact
+    chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (X := X) (e := e) (y := y)
+      (Vhat := fun n ω =>
+        olsHetCovHC1Star
+          (stackRegressors X n ω) (stackOutcomes y n ω))
+      (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (seθ := seθ) (q := q) (α := α)
+      β R hm
+      (fun n =>
+        olsHC1CovarianceStar_stack_aestronglyMeasurable_components
+          (μ := μ) (X := X) (e := e) (y := y)
+          hm.toSampleMomentAssumption71 β hm.model
+          hm.x_aestronglyMeasurable hm.e_aestronglyMeasurable n)
+      hsampleSe_pos
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hcdfLower hcdfUpper
 
 set_option linter.style.longLine true
 
