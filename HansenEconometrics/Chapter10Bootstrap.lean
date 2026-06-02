@@ -44992,6 +44992,99 @@ chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrapDistribution_l
       hstat hQlower hQupper hQlower_meas hQupper_meas hξ
       hq_nonneg hcdfLower hcdfUpper
 
+/-- Symmetric percentile-interval coverage from an auxiliary one-dimensional
+bootstrap limit, retaining local CDF bracketing at the lower generalized
+inverse endpoints.
+
+This is the law-facing counterpart of
+`chapter10_percentileCI_coverage_tendsto_one_sub_alpha_quantile_prob_brackets`:
+`HasLaw` identifies the auxiliary bootstrap limit's scalar CDF with `cdf η`,
+while local left/right CDF brackets replace any global strict-CDF premise. -/
+theorem
+chapter10_percentileCI_coverage_bootstrapDistribution_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {νstar : Measure Ωstar} {Zlim : Ωstar → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Tstar : ℕ → Ω → Ωs → ℝ}
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower : ∀ ε : ℝ, 0 < ε → cdf η (-q - ε) < α / 2)
+    (hrightLower : ∀ ε : ℝ, 0 < ε → α / 2 < cdf η (-q + ε))
+    (hleftUpper : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < 1 - α / 2)
+    (hrightUpper : ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf η (q + ε))
+    (hTstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Zlim ωstar))
+    (hZlaw : HasLaw Zlim η νstar)
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent θ
+          (θhat n ω +
+            bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n ω / a n)
+          (θhat n ω +
+            bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n ω / a n)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Qlower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (α / 2)
+  let Qupper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2)
+  have hQlower :
+      TendstoInMeasure μ Qlower atTop (fun _ => -q) := by
+    simpa [Qlower] using
+      bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := α / 2) (q := -q)
+        hPstar hTmeas (by linarith : 0 < α / 2)
+        (by linarith : α / 2 < 1)
+        hleftLower hrightLower hTstar hZlaw hcont
+  have hQupper :
+      TendstoInMeasure μ Qupper atTop (fun _ => q) := by
+    simpa [Qupper] using
+      bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := 1 - α / 2) (q := q)
+        hPstar hTmeas (by linarith : 0 < 1 - α / 2)
+        (by linarith : 1 - α / 2 < 1)
+        hleftUpper hrightUpper hTstar hZlaw hcont
+  have hQlower_meas : ∀ n, AEMeasurable (Qlower n) μ := by
+    intro n
+    simpa [Qlower] using hlower_meas n
+  have hQupper_meas : ∀ n, AEMeasurable (Qupper n) μ := by
+    intro n
+    simpa [Qupper] using hupper_meas n
+  exact
+    chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_scaled_quantiles
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (Qlower := Qlower) (Qupper := Qupper)
+      (ξ := ξ) (q := q) (α := α)
+      hstat hQlower hQupper hQlower_meas hQupper_meas hξ
+      hq_nonneg hcdfLower hcdfUpper
+
 /-- Symmetric percentile-interval coverage from one-dimensional bootstrap
 distribution convergence, with bootstrap-side probability-CDF bracketing
 discharged and local limit-CDF bracketing retained at `-q` and `q`. -/
@@ -45273,6 +45366,98 @@ chapter10_indexed_percentileCI_coverage_bootstrapDistribution_law_quantile_prob
     strictMono_cdf_brackets hstrict hcdfLower
   obtain ⟨hleftUpper, hrightUpper⟩ :=
     strictMono_cdf_brackets hstrict hcdfUpper
+  let Qlower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2)
+  let Qupper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2)
+  have hQlower :
+      TendstoInMeasure μ Qlower atTop (fun _ => -q) := by
+    simpa [Qlower] using
+      bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := α / 2) (q := -q)
+        hPstar hTmeas (by linarith : 0 < α / 2)
+        (by linarith : α / 2 < 1)
+        hleftLower hrightLower hTstar hZlaw hcont
+  have hQupper :
+      TendstoInMeasure μ Qupper atTop (fun _ => q) := by
+    simpa [Qupper] using
+      bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := 1 - α / 2) (q := q)
+        hPstar hTmeas (by linarith : 0 < 1 - α / 2)
+        (by linarith : 1 - α / 2 < 1)
+        hleftUpper hrightUpper hTstar hZlaw hcont
+  have hQlower_meas : ∀ n, AEMeasurable (Qlower n) μ := by
+    intro n
+    simpa [Qlower] using hlower_meas n
+  have hQupper_meas : ∀ n, AEMeasurable (Qupper n) μ := by
+    intro n
+    simpa [Qupper] using hupper_meas n
+  exact
+    chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_scaled_quantiles
+      (μ := μ) (ν := ν) (η := η) (a := a) ha
+      (θ := θ) (θhat := θhat) (Qlower := Qlower) (Qupper := Qupper)
+      (ξ := ξ) (q := q) (α := α)
+      hstat hQlower hQupper hQlower_meas hQupper_meas hξ
+      hq_nonneg hcdfLower hcdfUpper
+
+/-- Indexed symmetric percentile-interval coverage from an auxiliary
+one-dimensional bootstrap limit, retaining local CDF bracketing at the lower
+generalized-inverse endpoints.
+
+This sample-size-dependent law-facing wrapper is the indexed counterpart of
+`chapter10_percentileCI_coverage_bootstrapDistribution_law_quantile_prob_brackets`. -/
+theorem
+chapter10_indexed_percentileCI_coverage_bootstrapDistribution_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {νstar : Measure Ωstar} {Zlim : Ωstar → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → ℝ}
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower : ∀ ε : ℝ, 0 < ε → cdf η (-q - ε) < α / 2)
+    (hrightLower : ∀ ε : ℝ, 0 < ε → α / 2 < cdf η (-q + ε))
+    (hleftUpper : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < 1 - α / 2)
+    (hrightUpper : ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf η (q + ε))
+    (hTstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Zlim ωstar))
+    (hZlaw : HasLaw Zlim η νstar)
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent θ
+          (θhat n ω +
+            bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n ω / a n)
+          (θhat n ω +
+            bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n ω / a n)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
   let Qlower : ℕ → Ω → ℝ :=
     bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2)
   let Qupper : ℕ → Ω → ℝ :=
@@ -46444,6 +46629,97 @@ chapter10_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob
       hse htstat hQlower hQupper hQlower_meas hQupper_meas hξ
       hq_nonneg hcdfLower hcdfUpper
 
+/-- Symmetric percentile-`t` coverage from an auxiliary one-dimensional
+bootstrap limit, retaining local CDF bracketing at the lower generalized
+inverse endpoints.
+
+This law-facing variant is the local-bracketing counterpart of
+`chapter10_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob`:
+the bootstrap t-ratio limit may live on an auxiliary probability space, and
+`HasLaw` identifies its scalar CDF with `cdf η`. -/
+theorem
+chapter10_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {νstar : Measure Ωstar} {Zlim : Ωstar → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Tstar : ℕ → Ω → Ωs → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower : ∀ ε : ℝ, 0 < ε → cdf η (-q - ε) < α / 2)
+    (hrightLower : ∀ ε : ℝ, 0 < ε → α / 2 < cdf η (-q + ε))
+    (hleftUpper : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < 1 - α / 2)
+    (hrightUpper : ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf η (q + ε))
+    (hTstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Zlim ωstar))
+    (hZlaw : HasLaw Zlim η νstar)
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Qlower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (α / 2)
+  let Qupper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2)
+  have hQlower :
+      TendstoInMeasure μ Qlower atTop (fun _ => -q) := by
+    simpa [Qlower] using
+      bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := α / 2) (q := -q)
+        hPstar hTmeas (by linarith : 0 < α / 2)
+        (by linarith : α / 2 < 1)
+        hleftLower hrightLower hTstar hZlaw hcont
+  have hQupper :
+      TendstoInMeasure μ Qupper atTop (fun _ => q) := by
+    simpa [Qupper] using
+      bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := 1 - α / 2) (q := q)
+        hPstar hTmeas (by linarith : 0 < 1 - α / 2)
+        (by linarith : 1 - α / 2 < 1)
+        hleftUpper hrightUpper hTstar hZlaw hcont
+  have hQlower_meas : ∀ n, AEMeasurable (Qlower n) μ := by
+    intro n
+    simpa [Qlower] using hlower_meas n
+  have hQupper_meas : ∀ n, AEMeasurable (Qupper n) μ := by
+    intro n
+    simpa [Qupper] using hupper_meas n
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := Qlower) (qUpper := Qupper) (ξ := ξ)
+      (q := q) (α := α)
+      hse htstat hQlower hQupper hQlower_meas hQupper_meas hξ
+      hq_nonneg hcdfLower hcdfUpper
+
 /-- Symmetric percentile-`t` coverage from bootstrap-distribution convergence,
 with bootstrap-side probability-CDF bracketing discharged and local
 limit-CDF bracketing retained at `-q` and `q`. -/
@@ -46711,6 +46987,96 @@ chapter10_indexed_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob
     strictMono_cdf_brackets hstrict hcdfLower
   obtain ⟨hleftUpper, hrightUpper⟩ :=
     strictMono_cdf_brackets hstrict hcdfUpper
+  let Qlower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2)
+  let Qupper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2)
+  have hQlower :
+      TendstoInMeasure μ Qlower atTop (fun _ => -q) := by
+    simpa [Qlower] using
+      bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := α / 2) (q := -q)
+        hPstar hTmeas (by linarith : 0 < α / 2)
+        (by linarith : α / 2 < 1)
+        hleftLower hrightLower hTstar hZlaw hcont
+  have hQupper :
+      TendstoInMeasure μ Qupper atTop (fun _ => q) := by
+    simpa [Qupper] using
+      bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Tstar)
+        (ν := νstar) (Z := Zlim) (η := η)
+        (p := 1 - α / 2) (q := q)
+        hPstar hTmeas (by linarith : 0 < 1 - α / 2)
+        (by linarith : 1 - α / 2 < 1)
+        hleftUpper hrightUpper hTstar hZlaw hcont
+  have hQlower_meas : ∀ n, AEMeasurable (Qlower n) μ := by
+    intro n
+    simpa [Qlower] using hlower_meas n
+  have hQupper_meas : ∀ n, AEMeasurable (Qupper n) μ := by
+    intro n
+    simpa [Qupper] using hupper_meas n
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_components_symmetric_cdf
+      (μ := μ) (ν := ν) (η := η) (θ := θ) (θhat := θhat)
+      (se := se) (qLower := Qlower) (qUpper := Qupper) (ξ := ξ)
+      (q := q) (α := α)
+      hse htstat hQlower hQupper hQlower_meas hQupper_meas hξ
+      hq_nonneg hcdfLower hcdfUpper
+
+/-- Indexed symmetric percentile-`t` coverage from an auxiliary
+one-dimensional bootstrap limit, retaining local CDF bracketing at the lower
+generalized-inverse endpoints.
+
+This sample-size-dependent law-facing wrapper is the indexed counterpart of
+`chapter10_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob_brackets`. -/
+theorem
+chapter10_indexed_percentileTCI_coverage_bootstrapDistribution_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    {νstar : Measure Ωstar} {Zlim : Ωstar → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower : ∀ ε : ℝ, 0 < ε → cdf η (-q - ε) < α / 2)
+    (hrightLower : ∀ ε : ℝ, 0 < ε → α / 2 < cdf η (-q + ε))
+    (hleftUpper : ∀ ε : ℝ, 0 < ε → cdf η (q - ε) < 1 - α / 2)
+    (hrightUpper : ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf η (q + ε))
+    (hTstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Zlim ωstar))
+    (hZlaw : HasLaw Zlim η νstar)
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
   let Qlower : ℕ → Ω → ℝ :=
     bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2)
   let Qupper : ℕ → Ω → ℝ :=
@@ -48783,6 +49149,72 @@ chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob
       hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [crit] using hreject
 
+/-- Two-sided bootstrap-test calibration from an auxiliary
+absolute-statistic limit, retaining local CDF bracketing at the lower
+critical-value endpoint.
+
+This law-facing variant is the local-bracketing counterpart of
+`chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob`: `HasLaw`
+identifies the auxiliary absolute-statistic limit's scalar CDF with `cdf ηAbs`
+without requiring global strict monotonicity of that CDF. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {νstar : Measure Ωstar} {Alim : Ωstar → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε))
+    (hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Alim ωstar))
+    (hAlaw : HasLaw Alim ηAbs νstar)
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let crit : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantile Pstar Astar (1 - α)
+  have hcrit :
+      TendstoInMeasure μ crit atTop (fun _ => critLim) := by
+    simpa [crit] using
+      bootstrapScalarLowerQuantile_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Astar)
+        (ν := νstar) (Z := Alim) (η := ηAbs)
+        (p := 1 - α) (q := critLim)
+        hPstar hAmeas (by linarith : 0 < 1 - α)
+        (by linarith : 1 - α < 1)
+        hleft hright hAstar hAlaw hcontAbs
+  have hcrit_meas' : ∀ n, AEMeasurable (crit n) μ := by
+    intro n
+    simpa [crit] using hcrit_meas n
+  have hreject :=
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints
+      (μ := μ) (ν := ν) (η := η) (T := T) (crit := crit)
+      (ξ := ξ) (critLim := critLim) (α := α)
+      hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [crit] using hreject
+
 /-- Two-sided bootstrap-test calibration from bootstrap-distribution
 convergence of the absolute bootstrap statistic, with bootstrap-side
 probability-CDF bracketing discharged and local limit-CDF bracketing retained.
@@ -48997,6 +49429,71 @@ chapter10_indexed_abs_test_rejectionProb_law_quantile_prob
       atTop (𝓝 (ENNReal.ofReal α)) := by
   obtain ⟨hleft, hright⟩ :=
     strictMono_cdf_brackets hstrictAbs hcritLevel
+  let crit : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α)
+  have hcrit :
+      TendstoInMeasure μ crit atTop (fun _ => critLim) := by
+    simpa [crit] using
+      bootstrapScalarLowerQuantileIndexed_tendsto_of_bootstrapDistribution_unit_law_cdf_probability
+        (μ := μ) (Pstar := Pstar) (Zstar := Astar)
+        (ν := νstar) (Z := Alim) (η := ηAbs)
+        (p := 1 - α) (q := critLim)
+        hPstar hAmeas (by linarith : 0 < 1 - α)
+        (by linarith : 1 - α < 1)
+        hleft hright hAstar hAlaw hcontAbs
+  have hcrit_meas' : ∀ n, AEMeasurable (crit n) μ := by
+    intro n
+    simpa [crit] using hcrit_meas n
+  have hreject :=
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_components_law_cdf_endpoints
+      (μ := μ) (ν := ν) (η := η) (T := T) (crit := crit)
+      (ξ := ξ) (critLim := critLim) (α := α)
+      hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [crit] using hreject
+
+/-- Indexed two-sided bootstrap-test calibration from an auxiliary
+absolute-statistic limit, retaining local CDF bracketing at the lower
+critical-value endpoint.
+
+This sample-size-dependent law-facing wrapper is the indexed counterpart of
+`chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_brackets`. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {νstar : Measure Ωstar} {Alim : Ωstar → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Astar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε))
+    (hAstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Alim ωstar))
+    (hAlaw : HasLaw Alim ηAbs νstar)
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
   let crit : ℕ → Ω → ℝ :=
     bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α)
   have hcrit :
