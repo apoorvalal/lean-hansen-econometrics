@@ -54844,6 +54844,69 @@ private theorem mul_add_div_sub_eq {a θ q : ℝ} (ha : a ≠ 0) :
   field_simp [ha]
   ring
 
+/-- Hansen equation (10.20), algebraic endpoint form.
+
+If a bootstrap offset `Qstar` converges to the limiting quantile `q`, then the
+original-scale endpoint `θhat + Qstar / a` has the displayed scaled endpoint
+convergence `aₙ(q*ₙ - θhatₙ) →p q`. -/
+theorem chapter10_percentileEndpoint_scaled_sub_tendstoInMeasure
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θhat Qstar : ℕ → Ω → ℝ} {q : ℝ}
+    (hQstar : TendstoInMeasure μ Qstar atTop (fun _ => q)) :
+    TendstoInMeasure μ
+      (fun n ω => a n * ((θhat n ω + Qstar n ω / a n) - θhat n ω))
+      atTop (fun _ => q) := by
+  refine TendstoInMeasure.congr
+    (f := Qstar)
+    (f' := fun n ω => a n * ((θhat n ω + Qstar n ω / a n) - θhat n ω))
+    (g := fun _ : Ω => q)
+    (g' := fun _ : Ω => q)
+    (fun n => ?_) EventuallyEq.rfl hQstar
+  exact ae_of_all μ fun ω =>
+    (mul_add_div_sub_eq
+      (a := a n) (θ := θhat n ω) (q := Qstar n ω)
+      (ne_of_gt (ha n))).symm
+
+/-- Hansen equation (10.20), lower-generalized-inverse route.
+
+Pointwise conditional-CDF convergence identifies the bootstrap lower quantile;
+the original-scale endpoint then satisfies
+`aₙ(q*ₙ - θhatₙ) →p q`. -/
+theorem
+chapter10_percentileEndpoint_scaled_sub_tendstoInMeasure_of_lowerQuantile
+    {Pstar : ℕ → Ω → Measure Ωs} {Tstar : ℕ → Ω → Ωs → ℝ}
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θhat : ℕ → Ω → ℝ} {G : ℝ → ℝ} {p q : ℝ}
+    (hmono :
+      ∀ n ω, Monotone (fun x => bootstrapScalarCDF Pstar Tstar x n ω))
+    (hne :
+      ∀ n ω,
+        ({x : ℝ | p ≤ bootstrapScalarCDF Pstar Tstar x n ω} : Set ℝ).Nonempty)
+    (hbdd :
+      ∀ n ω, BddBelow {x : ℝ | p ≤ bootstrapScalarCDF Pstar Tstar x n ω})
+    (hlocal :
+      ∀ n ω x, bootstrapScalarCDF Pstar Tstar x n ω < p →
+        ∃ δ : ℝ, 0 < δ ∧ bootstrapScalarCDF Pstar Tstar (x + δ) n ω < p)
+    (hstrict : StrictMono G)
+    (hq : G q = p)
+    (hG :
+      ∀ x : ℝ,
+        TendstoInMeasure μ
+          (fun n ω => bootstrapScalarCDF Pstar Tstar x n ω)
+          atTop (fun _ => G x)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        a n * ((θhat n ω +
+          bootstrapScalarLowerQuantile Pstar Tstar p n ω / a n) -
+          θhat n ω))
+      atTop (fun _ => q) :=
+  chapter10_percentileEndpoint_scaled_sub_tendstoInMeasure
+    (μ := μ) (a := a) ha (θhat := θhat)
+    (Qstar := bootstrapScalarLowerQuantile Pstar Tstar p) (q := q)
+    (bootstrapScalarLowerQuantile_tendsto_of_strictMono_cdf
+      (μ := μ) (Pstar := Pstar) (Zstar := Tstar) (G := G)
+      (p := p) (q := q) hmono hne hbdd hlocal hstrict hq hG)
+
 /-- Symmetric percentile-interval coverage from abstract scaled endpoint
 quantiles.
 
