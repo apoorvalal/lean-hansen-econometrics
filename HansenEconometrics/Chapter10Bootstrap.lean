@@ -24731,6 +24731,232 @@ theorem
 
 end BootstrapCovariance
 
+section SmoothFunctionBootstrapVarianceCovarianceRoutes
+
+/-- Hansen Theorem 10.8, smooth plug-in covariance consistency from the
+Theorem 10.9 covariance-matrix route.
+
+If the plug-in Jacobian converges in ordinary probability and the underlying
+bootstrap statistic satisfies weak convergence plus Hansen's coordinate and
+coordinate-sum uniform-square-tail conditions, then the deterministic
+conditional covariance input `Cov* Zstar` can be inserted into the smooth
+functional `G'VG`. -/
+theorem
+    chapter10_bootstrap_smooth_variance_consistency_of_covarianceMat_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → d → ℝ}
+    {Z : Ωlim → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (bootstrapCovarianceMat Pstar Zstar n ω))
+      (fun _ =>
+        smoothFunctionVarianceFunctional G
+          (fun a c =>
+            (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+              (∫ ωlim, Z ωlim a ∂ν) *
+                (∫ ωlim, Z ωlim c ∂ν))) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := bootstrapCovarianceMat Pstar Zstar)
+    (G := G)
+    (V := fun a c =>
+      (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+        (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν))
+    hPstar hG
+    (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+      hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
+/-- Hansen Theorem 10.8, smooth plug-in covariance consistency from
+fourth-moment covariance premises.
+
+This wrapper composes the fourth-moment constructor for Hansen's
+uniform-square-tail covariance condition with the smooth `G'VG`
+continuous-mapping bridge. -/
+theorem
+    chapter10_bootstrap_smooth_variance_consistency_of_covarianceMat_fourthMoment_memLp
+    {d r : Type*} [Fintype d] [Fintype r] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → d → ℝ}
+    {Z : Ωlim → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {Bcoord : d → ℝ} {Bsum : d → d → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4)
+        (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (bootstrapCovarianceMat Pstar Zstar n ω))
+      (fun _ =>
+        smoothFunctionVarianceFunctional G
+          (fun a c =>
+            (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+              (∫ ωlim, Z ωlim a ∂ν) *
+                (∫ ωlim, Z ωlim c ∂ν))) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := bootstrapCovarianceMat Pstar Zstar)
+    (G := G)
+    (V := fun a c =>
+      (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+        (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν))
+    hPstar hG
+    (chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+      (Bcoord := Bcoord) (Bsum := Bsum)
+      hPstar hZmem hZlim hweak hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
+
+/-- Indexed Hansen Theorem 10.8, smooth plug-in covariance consistency from
+the indexed Theorem 10.9 covariance-matrix route. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_covarianceMat_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → d → ℝ}
+    {Z : Ωlim → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (bootstrapCovarianceMatIndexed Pstar Zstar n ω))
+      (fun _ =>
+        smoothFunctionVarianceFunctional G
+          (fun a c =>
+            (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+              (∫ ωlim, Z ωlim a ∂ν) *
+                (∫ ωlim, Z ωlim c ∂ν))) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := bootstrapCovarianceMatIndexed Pstar Zstar)
+    (G := G)
+    (V := fun a c =>
+      (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+        (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν))
+    hPstar hG
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+      hPstar hZmem hZlim hweak hTailCoord hTailSum)
+
+/-- Indexed Hansen Theorem 10.8, smooth plug-in covariance consistency from
+indexed fourth-moment covariance premises. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_covarianceMat_fourthMoment_memLp
+    {d r : Type*} [Fintype d] [Fintype r] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → d → ℝ}
+    {Z : Ωlim → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {Bcoord : d → ℝ} {Bsum : d → d → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoord :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω => ∫ ωs, (Zstar n ω ωs a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordInt :
+      ∀ n ω a, Integrable (fun ωs => (Zstar n ω ωs a) ^ 4)
+        (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSum :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs, (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs => (Zstar n ω ωs a + Zstar n ω ωs c) ^ 4)
+          (Pstar n ω)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (bootstrapCovarianceMatIndexed Pstar Zstar n ω))
+      (fun _ =>
+        smoothFunctionVarianceFunctional G
+          (fun a c =>
+            (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+              (∫ ωlim, Z ωlim a ∂ν) *
+                (∫ ωlim, Z ωlim c ∂ν))) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := bootstrapCovarianceMatIndexed Pstar Zstar)
+    (G := G)
+    (V := fun a c =>
+      (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+        (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν))
+    hPstar hG
+    (chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_fourthMoment_memLp_limit
+      (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z)
+      (Bcoord := Bcoord) (Bsum := Bsum)
+      hPstar hZmem hZlim hweak hBcoord hFourthCoord hFourthCoordInt
+      hBsum hFourthSum hFourthSumInt)
+
+end SmoothFunctionBootstrapVarianceCovarianceRoutes
+
 section BootstrapRegression
 
 /-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
