@@ -47213,6 +47213,108 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
 
 set_option linter.style.longLine false
 
+/-- Regression-facing percentile-`t` coverage from the Theorem 10.18
+bootstrap t-statistic route, using local standard-normal CDF bracketing.
+
+This is the local-bracketing counterpart of
+`chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`;
+it avoids requiring global strict monotonicity of the standard-normal CDF. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_brackets
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε → α / 2 < cdf (gaussianReal 0 1) (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Tstar : ℕ → Ω → Ωs → ℝ :=
+    fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  have hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω) := by
+    intro n ω
+    exact ((hTthetaStar n ω).div (hseThetaStar n ω)).aemeasurable
+  have hTstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs)
+        (gaussianReal 0 1) (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Tstar] using
+      chapter10_bootstrap_regression_tstat_distribution_standardNormal
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+  have hlower_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hlower_meas n
+  have hupper_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hupper_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hcoverage :=
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
+      (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
+      hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
+      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+  simpa [Tstar] using hcoverage
+
 /-- Indexed regression-facing percentile-`t` coverage from the Theorem 10.18
 bootstrap t-statistic route for sample-size-dependent bootstrap spaces. -/
 theorem
@@ -47302,6 +47404,105 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one hstrict hTstar
       hcont hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+  simpa [Tstar] using hcoverage
+
+/-- Indexed regression-facing percentile-`t` coverage from the Theorem 10.18
+bootstrap t-statistic route, using local standard-normal CDF bracketing. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_brackets
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε → α / 2 < cdf (gaussianReal 0 1) (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Tstar : ∀ n, Ω → Ωboot n → ℝ :=
+    fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  have hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω) := by
+    intro n ω
+    exact ((hTthetaStar n ω).div (hseThetaStar n ω)).aemeasurable
+  have hTstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs)
+        (gaussianReal 0 1) (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Tstar] using
+      chapter10_indexed_bootstrap_regression_tstat_distribution_standardNormal
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+  have hlower_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hlower_meas n
+  have hupper_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hupper_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hcoverage :=
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
+      (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
+      hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
+      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
 private theorem tendstoInDistribution_congr_eventually
