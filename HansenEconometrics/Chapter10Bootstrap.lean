@@ -712,12 +712,17 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
+  `chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat`
+  and its indexed counterpart discharge the local critical-value bracketing
+  premises from strict monotonicity of the absolute-statistic limit CDF.
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_numerator_tight`,
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail`,
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound`,
   and their indexed counterparts feed the pair compact-tail, scalar
   compact-tail, and bounded-numerator Theorem 10.18 routes into the same
   test-size theorem.
+  Their `*_strict_*` counterparts similarly expose strict-CDF calibration for
+  those specialized regression routes.
   `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef` and its
   `_brackets` counterpart specialize the indexed critical-value route to the
   concrete absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample
@@ -56568,6 +56573,489 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_eventually_bound
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
       hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
+
+/-- Strict-CDF counterpart of the regression-facing two-sided bootstrap-test
+calibration from the joint Theorem 10.18 t-statistic route. -/
+theorem chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hT :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hT hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Indexed strict-CDF counterpart of the regression-facing two-sided
+bootstrap-test calibration from the joint Theorem 10.18 t-statistic route. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hT :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hT hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Strict-CDF counterpart of the numerator-tight regression absolute-test
+route. -/
+theorem
+chapter10_abs_test_rejectionProb_strict_of_regression_tstat_numerator_tight
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (TthetaStar n ω ωs, seθ) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | (TthetaStar n ω ωs, seThetaStar n ω ωs) ∉ K})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_numerator_tight
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTail hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Indexed strict-CDF counterpart of the numerator-tight regression
+absolute-test route. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_numerator_tight
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (TthetaStar n ω ωs, seθ) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | (TthetaStar n ω ωs, seThetaStar n ω ωs) ∉ K})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_numerator_tight
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTail hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Strict-CDF counterpart of the scalar-tail regression absolute-test route. -/
+theorem chapter10_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Indexed strict-CDF counterpart of the scalar-tail regression absolute-test
+route. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_scalarTail
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Strict-CDF counterpart of the bounded-numerator regression absolute-test
+route. -/
+theorem
+chapter10_abs_test_rejectionProb_strict_of_regression_tstat_eventually_bound
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ C critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ) (C := C)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hbound hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Indexed strict-CDF counterpart of the bounded-numerator regression
+absolute-test route. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_eventually_bound
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ C critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs :
+      StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
+    (hcritLevel :
+      cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_eventually_bound
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (T := T) (seθ := seθ) (C := C)
+      (critLim := critLim) (α := α)
+      hTsample hseθ hT hPstar hTthetaStar hseThetaStar hbound hseStar
+      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Theorem 10.16 with the actual statistic specialized to the ordinary HC0
 OLS scalar t-statistic.
