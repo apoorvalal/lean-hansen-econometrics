@@ -20969,6 +20969,314 @@ theorem
       (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
       hPstar hcoordMem hlimMem hweakCoord hB hFourth hFourthInt
 
+/-- Hansen Theorem 10.10 smooth-function variance consistency from a
+noncompact compact-tail remainder linearization and a named uniform-square-tail
+premise.
+
+Theorem 10.7 supplies the Gaussian weak limit through the compact-tail
+pointwise remainder route; Theorem 10.9 supplies variance consistency from the
+coordinate uniform-square-tail condition. -/
+theorem
+    chapter10_smooth_bootstrap_variance_of_compact_tail_remainder_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {R : ℕ → Ω → Ωs → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hSqTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+      hthetaStar hCompactTail hR_tail hR_bound
+  exact
+    chapter10_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hSqTail
+
+/-- Hansen Theorem 10.10 smooth-function variance consistency from a
+noncompact compact-tail remainder linearization and conditional fourth-moment
+convergence. -/
+theorem
+    chapter10_smooth_bootstrap_variance_of_compact_tail_remainder_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {R : ℕ → Ω → Ωs → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs, ((thetaStar n ω ωs : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+      hthetaStar hCompactTail hR_tail hR_bound
+  exact
+    chapter10_smooth_bootstrap_variance_consistency_of_gaussian_fourthMoment
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hB
+      hFourth hFourthInt
+
+/-- Indexed Hansen Theorem 10.10 smooth-function variance consistency from a
+noncompact compact-tail remainder linearization and a named
+uniform-square-tail premise. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_of_tail_remainder_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {R : ∀ n, Ω → Ωboot n → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hSqTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+      hthetaStar hCompactTail hR_tail hR_bound
+  exact
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hSqTail
+
+/-- Indexed Hansen Theorem 10.10 smooth-function variance consistency from a
+noncompact compact-tail remainder linearization and conditional fourth-moment
+convergence. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_of_tail_remainder_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {R : ∀ n, Ω → Ωboot n → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hB : 0 ≤ B)
+    (hFourth :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs, ((thetaStar n ω ωs : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+      hthetaStar hCompactTail hR_tail hR_bound
+  exact
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_gaussian_fourthMoment
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hB
+      hFourth hFourthInt
+
 /-- Hansen Theorem 10.10, smooth-function variance consistency from exact
 derivative linearization and the Theorem 10.9 uniform-square-tail premise.
 
@@ -24824,6 +25132,242 @@ private theorem multivariateGaussian_covarianceIntegralMat_eq
     multivariateGaussian_covariance_eval
       (μ := (0 : EuclideanSpace ℝ r)) (S := S) hS a c
   simpa using hcovSub.symm.trans hcov
+
+/-- Hansen Theorem 10.10/10.12 smooth-function conditional covariance
+consistency from a noncompact compact-tail remainder linearization and named
+uniform-square-tail coordinate and coordinate-sum controls.
+
+Theorem 10.7 supplies the smooth Gaussian weak limit through the compact-tail
+pointwise remainder route; Theorem 10.9's covariance-matrix wrapper supplies
+the conditional covariance target from coordinate and coordinate-sum tails. -/
+theorem
+    chapter10_smooth_covarianceMat_tendsto_of_compact_tail_remainder_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {R : ℕ → Ω → Ωs → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+          (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs =>
+            (thetaStar n ω ωs : r → ℝ) a +
+              (thetaStar n ω ωs : r → ℝ) c)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+          (fun z : EuclideanSpace ℝ r =>
+            (z : r → ℝ) a + (z : r → ℝ) c)) :
+    TendstoInMeasure μ
+      (bootstrapCovarianceMat Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)))
+      atTop (fun _ => G * V * Gᵀ) := by
+  let S : Matrix r r ℝ := G * V * Gᵀ
+  have hS : S.PosSemidef := by
+    dsimp [S]
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      hV.mul_mul_conjTranspose_same G
+  have hGaussianEuclidean :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z) := by
+    dsimp [S]
+    exact
+      chapter10_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+        (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+        (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+        hthetaStar hCompactTail hR_tail hR_bound
+  have hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ)) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ))
+      hGaussianEuclidean (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hcov :
+      TendstoInMeasure μ
+        (bootstrapCovarianceMat Pstar
+          (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)))
+        atTop
+        (fun _ => fun a c =>
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a *
+              ((z : EuclideanSpace ℝ r) : r → ℝ) c
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) *
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) c
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S)) :=
+    chapter10_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+      (Z := fun z : EuclideanSpace ℝ r => (z : r → ℝ))
+      hPstar hcoordMem (by simpa [S] using hlimMem) hGaussian
+      (by simpa [S] using hTailCoord) (by simpa [S] using hTailSum)
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hcov
+  exact ae_of_all μ fun _ => by
+    simpa [S] using
+      (multivariateGaussian_covarianceIntegralMat_eq
+        (S := S) hS (by simpa [S] using hlimMem))
+
+/-- Indexed sample-size-dependent counterpart of
+`chapter10_smooth_covarianceMat_tendsto_of_compact_tail_remainder_uniformSquareTail`. -/
+theorem
+    chapter10_indexed_smooth_covarianceMat_tendsto_of_tail_remainder_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {R : ∀ n, Ω → Ωboot n → ℝ}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hTstar : ∀ n ω, Measurable (Tstar n ω))
+    (hthetaStar : ∀ n ω, Measurable (thetaStar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hCompactTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ r), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real
+              {ωs | matrixContinuousLinearMap G (Tstar n ω ωs) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | thetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hR_tail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω => (Pstar n ω).real {ωs | δ ≤ R n ω ωs})
+        atTop (fun _ => 0))
+    (hR_bound : ∀ n ω ωs,
+      dist (thetaStar n ω ωs) (matrixContinuousLinearMap G (Tstar n ω ωs)) ≤
+        R n ω ωs)
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+          (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs =>
+            (thetaStar n ω ωs : r → ℝ) a +
+              (thetaStar n ω ωs : r → ℝ) c)
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+          (fun z : EuclideanSpace ℝ r =>
+            (z : r → ℝ) a + (z : r → ℝ) c)) :
+    TendstoInMeasure μ
+      (bootstrapCovarianceMatIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)))
+      atTop (fun _ => G * V * Gᵀ) := by
+  let S : Matrix r r ℝ := G * V * Gᵀ
+  have hS : S.PosSemidef := by
+    dsimp [S]
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      hV.mul_mul_conjTranspose_same G
+  have hGaussianEuclidean :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => z) := by
+    dsimp [S]
+    exact
+      chapter10_indexed_bootstrap_smooth_function_gaussian_of_compact_tail_remainder_bound
+        (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+        (thetaStar := thetaStar) (R := R) (V := V) G hV hT hPstar hTstar
+        hthetaStar hCompactTail hR_tail hR_bound
+  have hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ)) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar) (Zstar := thetaStar)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Z := fun z : EuclideanSpace ℝ r => z)
+      (g := fun z : EuclideanSpace ℝ r => (z : r → ℝ))
+      hGaussianEuclidean (PiLp.continuous_ofLp 2 (fun _ : r => ℝ))
+  have hcov :
+      TendstoInMeasure μ
+        (bootstrapCovarianceMatIndexed Pstar
+          (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)))
+        atTop
+        (fun _ => fun a c =>
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a *
+              ((z : EuclideanSpace ℝ r) : r → ℝ) c
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S) *
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) c
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) S)) :=
+    chapter10_indexed_bootstrap_covarianceMat_tendsto_of_weak_distribution_uniformSquareTail
+      (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
+      (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+      (Z := fun z : EuclideanSpace ℝ r => (z : r → ℝ))
+      hPstar hcoordMem (by simpa [S] using hlimMem) hGaussian
+      (by simpa [S] using hTailCoord) (by simpa [S] using hTailSum)
+  refine TendstoInMeasure.congr (fun _ => EventuallyEq.rfl) ?_ hcov
+  exact ae_of_all μ fun _ => by
+    simpa [S] using
+      (multivariateGaussian_covarianceIntegralMat_eq
+        (S := S) hS (by simpa [S] using hlimMem))
 
 /-- Hansen Theorem 10.10/10.12 smooth-function conditional covariance
 consistency from exact derivative linearization and a norm fourth-moment
