@@ -1856,6 +1856,95 @@ theorem integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_
   rw [integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero (Y := Y)]
   simp
 
+/-- Scalar finite-sample central moment, Hansen's `\hat μ_r`.
+
+This is the one-draw empirical central moment used to state the sample
+cumulants in equation (10.14). -/
+noncomputable def empiricalCentralMoment (Y : ι → ℝ) (r : ℕ) : ℝ :=
+  ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
+    ∑ i, (Y i - empiricalMean Y) ^ r
+
+/-- Scalar sample cumulant `\hat κ_2`, equal to the empirical variance
+normalization used in Hansen's equation (10.14). -/
+noncomputable def empiricalCumulant2 (Y : ι → ℝ) : ℝ :=
+  empiricalCentralMoment Y 2
+
+/-- Scalar sample cumulant `\hat κ_3`. -/
+noncomputable def empiricalCumulant3 (Y : ι → ℝ) : ℝ :=
+  empiricalCentralMoment Y 3
+
+/-- Scalar sample cumulant `\hat κ_4 = \hat μ_4 - 3 \hat κ_2^2`. -/
+noncomputable def empiricalCumulant4 (Y : ι → ℝ) : ℝ :=
+  empiricalCentralMoment Y 4 - 3 * empiricalCumulant2 Y ^ 2
+
+/-- Scalar sample cumulant
+`\hat κ_5 = \hat μ_5 - 10 \hat κ_3 \hat κ_2`. -/
+noncomputable def empiricalCumulant5 (Y : ι → ℝ) : ℝ :=
+  empiricalCentralMoment Y 5 - 10 * empiricalCumulant3 Y * empiricalCumulant2 Y
+
+/-- Scalar sample cumulant
+`\hat κ_6 = \hat μ_6 - 15\hat κ_4\hat κ_2 - 10\hat κ_3^2 -
+15\hat κ_2^3`. -/
+noncomputable def empiricalCumulant6 (Y : ι → ℝ) : ℝ :=
+  empiricalCentralMoment Y 6 - 15 * empiricalCumulant4 Y * empiricalCumulant2 Y -
+    10 * empiricalCumulant3 Y ^ 2 - 15 * empiricalCumulant2 Y ^ 3
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+@[simp]
+theorem empiricalCentralMoment_three_eq_cumulant3 (Y : ι → ℝ) :
+    empiricalCentralMoment Y 3 = empiricalCumulant3 Y := rfl
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Fourth central moment in terms of sample cumulants. -/
+theorem empiricalCentralMoment_four_eq_cumulants (Y : ι → ℝ) :
+    empiricalCentralMoment Y 4 =
+      empiricalCumulant4 Y + 3 * empiricalCumulant2 Y ^ 2 := by
+  simp [empiricalCumulant4]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Fifth central moment in terms of sample cumulants. -/
+theorem empiricalCentralMoment_five_eq_cumulants (Y : ι → ℝ) :
+    empiricalCentralMoment Y 5 =
+      empiricalCumulant5 Y + 10 * empiricalCumulant3 Y * empiricalCumulant2 Y := by
+  simp [empiricalCumulant5]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Sixth central moment in terms of sample cumulants. -/
+theorem empiricalCentralMoment_six_eq_cumulants (Y : ι → ℝ) :
+    empiricalCentralMoment Y 6 =
+      empiricalCumulant6 Y + 15 * empiricalCumulant4 Y * empiricalCumulant2 Y +
+        10 * empiricalCumulant3 Y ^ 2 + 15 * empiricalCumulant2 Y ^ 3 := by
+  simp [empiricalCumulant6]
+  ring
+
+/-- Hansen equation (10.14), third-moment right-hand side after the
+normalized bootstrap-sum cumulant scaling has been identified. -/
+noncomputable def normalizedBootstrapMeanMoment3Formula
+    (sampleSize : ℝ) (Y : ι → ℝ) : ℝ :=
+  empiricalCumulant3 Y / Real.sqrt sampleSize
+
+/-- Hansen equation (10.14), fourth-moment right-hand side after the
+normalized bootstrap-sum cumulant scaling has been identified. -/
+noncomputable def normalizedBootstrapMeanMoment4Formula
+    (sampleSize : ℝ) (Y : ι → ℝ) : ℝ :=
+  empiricalCumulant4 Y / sampleSize + 3 * empiricalCumulant2 Y ^ 2
+
+/-- Hansen equation (10.14), fifth-moment right-hand side after the
+normalized bootstrap-sum cumulant scaling has been identified. -/
+noncomputable def normalizedBootstrapMeanMoment5Formula
+    (sampleSize : ℝ) (Y : ι → ℝ) : ℝ :=
+  empiricalCumulant5 Y / (sampleSize * Real.sqrt sampleSize) +
+    10 * empiricalCumulant3 Y * empiricalCumulant2 Y / Real.sqrt sampleSize
+
+/-- Hansen equation (10.14), sixth-moment right-hand side after the
+normalized bootstrap-sum cumulant scaling has been identified. -/
+noncomputable def normalizedBootstrapMeanMoment6Formula
+    (sampleSize : ℝ) (Y : ι → ℝ) : ℝ :=
+  empiricalCumulant6 Y / sampleSize ^ 2 +
+    (15 * empiricalCumulant4 Y * empiricalCumulant2 Y +
+      10 * empiricalCumulant3 Y ^ 2) / sampleSize +
+    15 * empiricalCumulant2 Y ^ 3
+
 /-- Finite empirical second-moment identity for one bootstrap draw.
 
 Under uniform resampling from a finite empirical support, the conditional
