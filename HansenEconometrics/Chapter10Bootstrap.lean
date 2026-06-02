@@ -526,6 +526,9 @@ used throughout the chapter:
   Slutsky's theorem.
   The fixed/indexed `*_of_scalarTail` variants further build that pair-tail
   premise from scalar numerator compact-tail control and scale consistency.
+  The fixed/indexed `*_of_eventually_bound` variants discharge that scalar-tail
+  premise from an eventual deterministic numerator bound, matching bounded or
+  trimmed compact-range statistic paths.
   `chapter10_bootstrap_regression_tstat_distribution_standardNormal` and its
   indexed counterpart give the corresponding Hansen Definition 10.2 CDF face.
   `chapter10_bootstrap_regression_abs_tstat_standardNormalAbs` and
@@ -32353,6 +32356,219 @@ theorem chapter10_indexed_bootstrap_studentized_abs_distribution_of_scalarTail
       (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
       (c := c) hc hX hPstar hXstar hYstar hTail hY
 
+/-- Standard-normal studentization from an eventually bounded numerator and
+feasible-scale consistency.
+
+This is the compact-range face of
+`chapter10_bootstrap_studentized_ratio_standardNormal_of_scalarTail`: the
+eventual deterministic bound supplies the scalar compact-tail premise directly. -/
+theorem chapter10_bootstrap_studentized_ratio_standardNormal_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Indexed standard-normal studentization from an eventually bounded numerator
+and feasible-scale consistency. -/
+theorem
+chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Hansen Definition 10.2 face of studentization from an eventually bounded
+numerator. -/
+theorem chapter10_bootstrap_studentized_ratio_distribution_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_ratio_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Indexed Hansen Definition 10.2 face of studentization from an eventually
+bounded numerator. -/
+theorem
+chapter10_indexed_bootstrap_studentized_ratio_distribution_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Absolute studentized statistic from an eventually bounded numerator and
+feasible-scale consistency. -/
+theorem chapter10_bootstrap_studentized_ratio_abs_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_abs_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Indexed absolute studentized statistic from an eventually bounded numerator
+and feasible-scale consistency. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_abs_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_abs_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Hansen Definition 10.2 face of the absolute studentized statistic from an
+eventually bounded numerator. -/
+theorem chapter10_bootstrap_studentized_abs_distribution_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_abs_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
+/-- Indexed Hansen Definition 10.2 face of the absolute studentized statistic
+from an eventually bounded numerator. -/
+theorem
+chapter10_indexed_bootstrap_studentized_abs_distribution_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c C : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |Xstar n ω ωs| ≤ C)
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_abs_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+    (c := c) hc hX hPstar hXstar hYstar
+    (chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) hbound)
+    hY
+
 end BootstrapStudentization
 
 section BootstrapRegression
@@ -33488,6 +33704,203 @@ theorem chapter10_indexed_bootstrap_regression_abs_tstat_distribution_of_scalarT
     (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
     (Ystar := seThetaStar) (c := seθ)
     hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Hansen Theorem 10.18 regression t-statistic route from an eventually bounded
+transformed numerator and feasible-scale consistency. -/
+theorem chapter10_bootstrap_regression_tstat_standardNormal_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_standardNormal_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Indexed Hansen Theorem 10.18 regression t-statistic route from an
+eventually bounded transformed numerator. -/
+theorem
+chapter10_indexed_bootstrap_regression_tstat_standardNormal_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Hansen Definition 10.2 face of the regression t-statistic route from an
+eventually bounded transformed numerator. -/
+theorem chapter10_bootstrap_regression_tstat_distribution_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_ratio_distribution_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Indexed Hansen Definition 10.2 face of the regression t-statistic route
+from an eventually bounded transformed numerator. -/
+theorem
+chapter10_indexed_bootstrap_regression_tstat_distribution_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_distribution_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Hansen Theorem 10.18 absolute regression t-statistic route from an
+eventually bounded transformed numerator. -/
+theorem chapter10_bootstrap_regression_abs_tstat_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_abs_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Indexed Hansen Theorem 10.18 absolute regression t-statistic route from an
+eventually bounded transformed numerator. -/
+theorem chapter10_indexed_bootstrap_regression_abs_tstat_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_abs_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Hansen Definition 10.2 face of the absolute regression t-statistic route
+from an eventually bounded transformed numerator. -/
+theorem chapter10_bootstrap_regression_abs_tstat_distribution_of_eventually_bound
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_abs_distribution_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
+
+/-- Indexed Hansen Definition 10.2 face of the absolute regression t-statistic
+route from an eventually bounded transformed numerator. -/
+theorem
+chapter10_indexed_bootstrap_regression_abs_tstat_distribution_of_eventually_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ C : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, |TthetaStar n ω ωs| ≤ C)
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_abs_distribution_of_eventually_bound
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ) (C := C)
+    hseθ hT hPstar hTthetaStar hseThetaStar hbound hse
 
 /-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
 
