@@ -504,6 +504,10 @@ used throughout the chapter:
   joint numerator/standard-error bootstrap weak limit plus scale consistency.
   `chapter10_bootstrap_regression_tstat_distribution_standardNormal` and its
   indexed counterpart give the corresponding Hansen Definition 10.2 CDF face.
+  `chapter10_bootstrap_regression_abs_tstat_standardNormalAbs` and
+  `chapter10_bootstrap_regression_abs_tstat_distribution_standardNormalAbs`,
+  with indexed counterparts, expose the absolute t-statistic law used by the
+  two-sided bootstrap-test critical-value route.
   `chapter10_bootstrap_regression_trimmedVariance_tendsto` is the corresponding
   variance wrapper for Hansen Theorem 10.19, with an indexed trimmed-covariance
   counterpart.
@@ -618,6 +622,10 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression t-statistic
   standard-normal bootstrap CDF route with the Theorem 10.14 percentile-`t`
   coverage theorem.
+* `chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`
+  and its indexed counterpart compose the Theorem 10.18 regression
+  absolute-t-statistic CDF route with the Theorem 10.16 two-sided
+  bootstrap-test critical-value theorem.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
@@ -29805,6 +29813,25 @@ private theorem standardNormal_unit_coordinateLE_frontier_null
   change (gaussianReal 0 1) {z : ℝ | z = x i} = 0
   exact measure_singleton (x i)
 
+private theorem standardNormalAbs_unit_coordinateLE_frontier_null
+    (x : Unit → ℝ) :
+    (((gaussianReal 0 1).map (fun z : ℝ => |z|)).map
+        (fun z : ℝ => fun _ : Unit => z))
+      (frontier {z : Unit → ℝ | coordinateLE z x}) = 0 := by
+  have hZ :
+      AEMeasurable (fun z : ℝ => fun _ : Unit => z)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|)) := by
+    refine aemeasurable_pi_lambda _ ?_
+    intro _
+    exact measurable_id.aemeasurable
+  refine map_measure_frontier_coordinateLE_eq_zero_of_coord_singletons
+    (ν := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+    (Z := fun z : ℝ => fun _ : Unit => z)
+    hZ x ?_
+  intro i
+  change ((gaussianReal 0 1).map (fun z : ℝ => |z|)) {z : ℝ | z = x i} = 0
+  simpa [frontier_Iic] using standardNormalAbs_frontier_Iic_null (x i)
+
 /-- Hansen Definition 10.2 face of the standard-normal bootstrap
 studentization bridge. -/
 theorem chapter10_bootstrap_studentized_ratio_distribution_standardNormal
@@ -29863,6 +29890,116 @@ theorem chapter10_bootstrap_studentized_ratio_distribution_standardNormal
       (ν := gaussianReal 0 1) (Z := fun z : ℝ => fun _ : Unit => z)
       hweakUnit hPfinite hZstar hZlim
       (fun x _hx => standardNormal_unit_coordinateLE_frontier_null x)
+
+/-- Absolute-value face of the standard-normal bootstrap studentization bridge.
+
+This rewrites the continuous-mapping limit as the push-forward
+`N(0,1).map abs`, which is the absolute-statistic law used by the
+two-sided bootstrap-test critical-value route. -/
+theorem chapter10_bootstrap_studentized_ratio_abs_standardNormalAbs
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) := by
+  intro f
+  have hweakAbs :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+        (gaussianReal 0 1) (fun z : ℝ => |z|) := by
+    exact
+      chapter10_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+        (ν := gaussianReal 0 1) (Z := fun z : ℝ => z)
+        (g := fun z : ℝ => |z|)
+        (chapter10_bootstrap_studentized_ratio_standardNormal
+          (μ := μ) (Pstar := Pstar) (Xstar := Xstar)
+          (Ystar := Ystar) (c := c) hc hpair hPstar hXstar hYstar hY)
+        continuous_abs
+  have htarget :
+      ∫ z, f z ∂((gaussianReal 0 1).map (fun z : ℝ => |z|)) =
+        ∫ z, f (|z|) ∂(gaussianReal 0 1) := by
+    exact integral_map continuous_abs.aemeasurable f.continuous.aestronglyMeasurable
+  simpa [htarget] using hweakAbs.tendsto_integral f
+
+/-- Hansen Definition 10.2 face of the absolute studentized-ratio bootstrap
+law. -/
+theorem chapter10_bootstrap_studentized_ratio_abs_distribution_standardNormalAbs
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) := by
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hweakScalar :=
+    chapter10_bootstrap_studentized_ratio_abs_standardNormalAbs
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hpair hPstar hXstar hYstar hY
+  have hmap_cont : Continuous (fun z : ℝ => fun _ : Unit => z) := by
+    refine continuous_pi ?_
+    intro _
+    exact continuous_id
+  have hweakUnit :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun z : ℝ => fun _ : Unit => z) :=
+    chapter10_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      (ν := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Z := fun z : ℝ => z) (g := fun z : ℝ => fun _ : Unit => z)
+      hweakScalar hmap_cont
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hZstar :
+      ∀ n ω,
+        Measurable
+          (fun ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|) := by
+    intro n ω
+    refine measurable_pi_lambda _ ?_
+    intro _
+    exact continuous_abs.measurable.comp ((hXstar n ω).div (hYstar n ω))
+  have hZlim :
+      AEMeasurable (fun z : ℝ => fun _ : Unit => z)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|)) := by
+    refine aemeasurable_pi_lambda _ ?_
+    intro _
+    exact measurable_id.aemeasurable
+  exact
+    TendstoInBootstrapDistribution.of_weakDistribution_null_frontiers
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|)
+      (ν := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Z := fun z : ℝ => fun _ : Unit => z)
+      hweakUnit hPfinite hZstar hZlim
+      (fun x _hx => standardNormalAbs_unit_coordinateLE_frontier_null x)
 
 /-- Indexed Hansen Definition 10.2 face of the standard-normal bootstrap
 studentization bridge. -/
@@ -29923,6 +30060,115 @@ theorem chapter10_indexed_bootstrap_studentized_ratio_distribution_standardNorma
       (ν := gaussianReal 0 1) (Z := fun z : ℝ => fun _ : Unit => z)
       hweakUnit hPfinite hZstar hZlim
       (fun x _hx => standardNormal_unit_coordinateLE_frontier_null x)
+
+/-- Indexed absolute-value face of the standard-normal bootstrap
+studentization bridge. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_abs_standardNormalAbs
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) := by
+  intro f
+  have hweakAbs :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+        (gaussianReal 0 1) (fun z : ℝ => |z|) := by
+    exact
+      chapter10_indexed_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+        (ν := gaussianReal 0 1) (Z := fun z : ℝ => z)
+        (g := fun z : ℝ => |z|)
+        (chapter10_indexed_bootstrap_studentized_ratio_standardNormal
+          (μ := μ) (Pstar := Pstar) (Xstar := Xstar)
+          (Ystar := Ystar) (c := c) hc hpair hPstar hXstar hYstar hY)
+        continuous_abs
+  have htarget :
+      ∫ z, f z ∂((gaussianReal 0 1).map (fun z : ℝ => |z|)) =
+        ∫ z, f (|z|) ∂(gaussianReal 0 1) := by
+    exact integral_map continuous_abs.aemeasurable f.continuous.aestronglyMeasurable
+  simpa [htarget] using hweakAbs.tendsto_integral f
+
+/-- Indexed Hansen Definition 10.2 face of the absolute studentized-ratio
+bootstrap law. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_abs_distribution_standardNormalAbs
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hpair :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (Xstar n ω ωs, Ystar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (c * z, c)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) := by
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hweakScalar :=
+    chapter10_indexed_bootstrap_studentized_ratio_abs_standardNormalAbs
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hpair hPstar hXstar hYstar hY
+  have hmap_cont : Continuous (fun z : ℝ => fun _ : Unit => z) := by
+    refine continuous_pi ?_
+    intro _
+    exact continuous_id
+  have hweakUnit :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun z : ℝ => fun _ : Unit => z) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      (ν := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Z := fun z : ℝ => z) (g := fun z : ℝ => fun _ : Unit => z)
+      hweakScalar hmap_cont
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hZstar :
+      ∀ n ω,
+        Measurable
+          (fun ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|) := by
+    intro n ω
+    refine measurable_pi_lambda _ ?_
+    intro _
+    exact continuous_abs.measurable.comp ((hXstar n ω).div (hYstar n ω))
+  have hZlim :
+      AEMeasurable (fun z : ℝ => fun _ : Unit => z)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|)) := by
+    refine aemeasurable_pi_lambda _ ?_
+    intro _
+    exact measurable_id.aemeasurable
+  exact
+    TendstoInBootstrapDistributionIndexed.of_weakDistribution_null_frontiers
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => fun _ : Unit => |Xstar n ω ωs / Ystar n ω ωs|)
+      (ν := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Z := fun z : ℝ => fun _ : Unit => z)
+      hweakUnit hPfinite hZstar hZlim
+      (fun x _hx => standardNormalAbs_unit_coordinateLE_frontier_null x)
 
 end BootstrapStudentization
 
@@ -30206,6 +30452,107 @@ theorem chapter10_indexed_bootstrap_regression_tstat_distribution_standardNormal
         TthetaStar n ω ωs / seThetaStar n ω ωs)
       (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
   chapter10_indexed_bootstrap_studentized_ratio_distribution_standardNormal
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
+
+/-- Hansen Theorem 10.18, absolute regression bootstrap t-statistic
+absolute-standard-normal wrapper.
+
+This is the weak bootstrap law for the absolute statistic used by the
+two-sided bootstrap-test critical-value route in Theorem 10.16. -/
+theorem chapter10_bootstrap_regression_abs_tstat_standardNormalAbs
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_abs_standardNormalAbs
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
+
+/-- Indexed Hansen Theorem 10.18, absolute regression bootstrap t-statistic
+absolute-standard-normal wrapper. -/
+theorem chapter10_indexed_bootstrap_regression_abs_tstat_standardNormalAbs
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_abs_standardNormalAbs
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
+
+/-- Hansen Definition 10.2 face of the absolute regression bootstrap
+t-statistic law. -/
+theorem chapter10_bootstrap_regression_abs_tstat_distribution_standardNormalAbs
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_ratio_abs_distribution_standardNormalAbs
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hjoint hPstar hTthetaStar hseThetaStar hse
+
+/-- Indexed Hansen Definition 10.2 face of the absolute regression bootstrap
+t-statistic law. -/
+theorem chapter10_indexed_bootstrap_regression_abs_tstat_distribution_standardNormalAbs
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_abs_distribution_standardNormalAbs
     (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
     (Ystar := seThetaStar) (c := seθ)
     hseθ hjoint hPstar hTthetaStar hseThetaStar hse
@@ -42343,6 +42690,193 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_bootstrapDistri
       (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
       (α := α) hT hPstar hAmeas hα_pos hα_lt_one hleft hright
       hAstar hcontAbs hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
+
+/-- Regression-facing two-sided bootstrap-test calibration from the Theorem
+10.18 t-statistic route.
+
+The bootstrap critical value is the lower generalized inverse of the
+conditional law of `|TthetaStar / seThetaStar|`.  The joint
+numerator/standard-error bootstrap weak limit and scale consistency give the
+absolute-standard-normal bootstrap CDF limit, and the existing Theorem 10.16
+quantile route then gives rejection probability `α`. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hT :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let Astar : ℕ → Ω → Ωs → ℝ :=
+    fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω) := by
+    intro n ω
+    exact
+      (continuous_abs.measurable.comp
+        ((hTthetaStar n ω).div (hseThetaStar n ω))).aemeasurable
+  have hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Astar] using
+      chapter10_bootstrap_regression_abs_tstat_distribution_standardNormalAbs
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+  have hcrit_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ := by
+    intro n
+    simpa [Astar] using hcrit_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hreject :=
+    chapter10_bootstrap_abs_test_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (ηAbs := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Pstar := Pstar) (Astar := Astar) (T := T)
+      (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
+      hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
+      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [Astar] using hreject
+
+/-- Indexed regression-facing two-sided bootstrap-test calibration from the
+Theorem 10.18 t-statistic route for sample-size-dependent bootstrap spaces. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hT :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let Astar : ∀ n, Ω → Ωboot n → ℝ :=
+    fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω) := by
+    intro n ω
+    exact
+      (continuous_abs.measurable.comp
+        ((hTthetaStar n ω).div (hseThetaStar n ω))).aemeasurable
+  have hAstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Astar] using
+      chapter10_indexed_bootstrap_regression_abs_tstat_distribution_standardNormalAbs
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
+  have hcrit_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ := by
+    intro n
+    simpa [Astar] using hcrit_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hreject :=
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (ηAbs := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Pstar := Pstar) (Astar := Astar) (T := T)
+      (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
+      hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
+      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [Astar] using hreject
 
 end BootstrapTests
 
