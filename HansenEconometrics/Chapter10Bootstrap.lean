@@ -15122,6 +15122,32 @@ theorem chapter10_bootstrap_smooth_variance_consistency_of_continuous_plugins
     (TendstoInBootstrapProbability.continuousAt_const_comp
       (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hV)
 
+/-- Hansen Theorem 10.8, deterministic continuous plug-in covariance bridge.
+
+This wrapper covers the common smooth-function case where the plug-in source
+statistic is non-random under the bootstrap law: ordinary convergence in
+probability of `U_n` to `u`, plus continuity of the Jacobian and covariance
+plug-in maps at `u`, implies bootstrap convergence of `G(U_n)' V(U_n) G(U_n)`. -/
+theorem chapter10_bootstrap_smooth_variance_consistency_of_deterministic_plugins
+    {d r A : Type*} [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Useq : ℕ → Ω → A} {u : A}
+    {Gfun : A → Matrix d r ℝ} {Vfun : A → Matrix d d ℝ}
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u) (hV : ContinuousAt Vfun u) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (Vfun (Useq n ω)))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (Vfun u)) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_continuous_plugins
+    (μ := μ) (Pstar := Pstar) (Ustar := fun n ω _ => Useq n ω) (u := u)
+    (Gfun := Gfun) (Vfun := Vfun) hPstar
+    (chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability
+      (μ := μ) (Pstar := Pstar) hPstar hU)
+    hG hV
+
 /-- Indexed Hansen Theorem 10.8, plug-in covariance continuous-mapping bridge
 for sample-size-dependent bootstrap spaces. -/
 theorem chapter10_indexed_bootstrap_smooth_variance_consistency
@@ -15213,6 +15239,30 @@ theorem
       (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hG)
     (TendstoInBootstrapProbabilityIndexed.continuousAt_const_comp
       (Pstar := Pstar) (Zstar := Ustar) (c := u) hPstar hU hV)
+
+/-- Indexed Hansen Theorem 10.8, deterministic continuous plug-in covariance
+bridge. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_deterministic_plugins
+    {d r A : Type*} [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Useq : ℕ → Ω → A} {u : A}
+    {Gfun : A → Matrix d r ℝ} {Vfun : A → Matrix d d ℝ}
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u) (hV : ContinuousAt Vfun u) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (Vfun (Useq n ω)))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (Vfun u)) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_continuous_plugins
+    (μ := μ) (Pstar := Pstar) (Ustar := fun n ω _ => Useq n ω) (u := u)
+    (Gfun := Gfun) (Vfun := Vfun) hPstar
+    (tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
+      (μ := μ) (Pstar := Pstar) hPstar hU)
+    hG hV
 
 end SmoothFunctionBootstrapVariance
 
