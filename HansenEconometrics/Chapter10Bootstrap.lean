@@ -534,7 +534,10 @@ used throughout the chapter:
   `*_of_linearization_secondMoment` variants discharge the trimming tail from
   a diverging threshold and conditional second moments. The fixed/indexed
   `*_gaussianLimit` wrappers discharge the Gaussian-limit coordinate `MemLp`
-  side conditions in those regression routes. The fixed/indexed
+  side conditions in those regression routes, and the fixed/indexed
+  `*_gaussianLimit_of_robustFeasibleHCMomentConditions` wrappers additionally
+  specialize them to `heteroAsymCov μ X e` under the Chapter 7 robust feasible
+  HC package. The fixed/indexed
   `chapter10_regression_finiteReplicationTrimmedVariance_l2` wrappers compose
   that regression target with Hansen's centered finite-replication covariance
   estimator under coordinatewise `L²` simulation-error bounds, with matching
@@ -32542,6 +32545,267 @@ theorem
     (τ := τ) (Vβ := Vβ) R hVβ hPstar hτpos hτinv hT hTbetaMeas
     hThetaMem hcoordMem (fun a => memLp_multivariateGaussian_coord_two a)
     hSecond hBfourth hNormFourth hNormFourthInt
+
+set_option linter.style.longLine false
+
+/-- Robust-feasible HC specialization of the Theorem 10.19 norm-fourth
+trimmed covariance route.
+
+This fixes `Vβ = heteroAsymCov μ X e` and discharges positive
+semidefiniteness from the Chapter 7 robust feasible HC condition package.  The
+coefficient-level bootstrap weak convergence and norm-fourth/trimming premises
+remain explicit. -/
+theorem
+chapter10_bootstrap_regression_trimmedVariance_normFourth_gaussianLimit_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [DecidableEq k] [Fintype q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} (β : k → ℝ) (R : Matrix k q ℝ) {B : ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω)
+            {ωs |
+              τ n <
+                ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                    EuclideanSpace ℝ q) : q → ℝ)‖}).toReal)
+        atTop (fun _ => 0))
+    (hB : 0 ≤ B)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMat Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ =>
+        smoothFunctionVarianceFunctional R (heteroAsymCov μ X e)) :=
+  chapter10_bootstrap_regression_trimmedVariance_normFourth_gaussianLimit
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hPstar hτ hT hTbetaMeas hcoordMem hTailProb hB hNormFourth
+    hNormFourthInt
+
+/-- Indexed robust-feasible HC specialization of the Theorem 10.19
+norm-fourth trimmed covariance route. -/
+theorem
+chapter10_indexed_bootstrap_regression_trimmedVariance_normFourth_gaussianLimit_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [DecidableEq k] [Fintype q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} (β : k → ℝ) (R : Matrix k q ℝ) {B : ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτ : ∀ n, 0 ≤ τ n)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hTailProb :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((Pstar n ω)
+            {ωs |
+              τ n <
+                ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                    EuclideanSpace ℝ q) : q → ℝ)‖}).toReal)
+        atTop (fun _ => 0))
+    (hB : 0 ≤ B)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMatIndexed Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ =>
+        smoothFunctionVarianceFunctional R (heteroAsymCov μ X e)) :=
+  chapter10_indexed_bootstrap_regression_trimmedVariance_normFourth_gaussianLimit
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hPstar hτ hT hTbetaMeas hcoordMem hTailProb hB hNormFourth
+    hNormFourthInt
+
+/-- Robust-feasible HC specialization of the Theorem 10.19
+second-moment/diverging-threshold trimmed covariance route.
+
+The conditional second-moment and norm-fourth premises remain explicit; this
+wrapper only supplies the heteroskedastic covariance positive-semidefinite
+premise from `RobustFeasibleHCMomentConditions`. -/
+theorem
+chapter10_bootstrap_regression_trimmedVariance_secondMoment_gaussianLimit_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [DecidableEq k] [Fintype q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} (β : k → ℝ) (R : Matrix k q ℝ)
+    {Bsecond Bfourth : ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMat Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ =>
+        smoothFunctionVarianceFunctional R (heteroAsymCov μ X e)) :=
+  chapter10_bootstrap_regression_trimmedVariance_secondMoment_gaussianLimit
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hPstar hτpos hτinv hT hTbetaMeas hThetaMem hcoordMem hSecond
+    hBfourth hNormFourth hNormFourthInt
+
+/-- Indexed robust-feasible HC specialization of the Theorem 10.19
+second-moment/diverging-threshold trimmed covariance route. -/
+theorem
+chapter10_indexed_bootstrap_regression_trimmedVariance_secondMoment_gaussianLimit_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [DecidableEq k] [Fintype q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} (β : k → ℝ) (R : Matrix k q ℝ)
+    {Bsecond Bfourth : ℝ}
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMatIndexed Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ =>
+        smoothFunctionVarianceFunctional R (heteroAsymCov μ X e)) :=
+  chapter10_indexed_bootstrap_regression_trimmedVariance_secondMoment_gaussianLimit
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hPstar hτpos hτinv hT hTbetaMeas hThetaMem hcoordMem hSecond
+    hBfourth hNormFourth hNormFourthInt
+
+set_option linter.style.longLine true
 
 end BootstrapRegression
 
