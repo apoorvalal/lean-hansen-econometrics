@@ -240,10 +240,15 @@
   noncompact Theorem 10.7 remainder-envelope route with Theorem 10.9 uniform-square-tail,
   bounded-statistic, fourth-moment, or nonlinear-statistic norm-fourth scalar variance consistency,
   and with coordinate/coordinate-sum uniform-square-tail, bounded-statistic, or nonlinear-statistic
-  norm-fourth covariance consistency, in both fixed and indexed bootstrap-space forms.
-  The remaining model-specific step is the bounded-derivative Taylor/Rosenthal/Marcinkiewicz
-  constructor that supplies that norm-fourth, coordinate fourth-moment, or tail premise in the
-  scalar smooth-function model.
+  norm-fourth covariance consistency, in both fixed and indexed bootstrap-space forms. Fixed/indexed
+  quadratic Taylor-remainder tail constructors now discharge the remainder-tail premise from a
+  pointwise bound `dist thetaStar (G Tstar) <= rho_n ||Tstar||^2`, `rho_n^2 -> 0`, and conditional
+  norm-fourth convergence of the linearized bootstrap statistic; theorem-facing
+  quadratic-remainder wrappers plug that constructor into the scalar variance and covariance-matrix
+  compact-tail routes. The remaining model-specific step is bounded-derivative
+  Taylor/Rosenthal/Marcinkiewicz verification that supplies the quadratic envelope, shrinking
+  derivative modulus, compact-tail/tightness, and the relevant norm-fourth or coordinate
+  fourth-moment assumptions in the scalar smooth-function model.
 - Theorem 10.9's variance-consistency moment bridge is formalized: convergence in probability of
   the conditional bootstrap first and second moments implies convergence of the conditional
   bootstrap variance functional.
