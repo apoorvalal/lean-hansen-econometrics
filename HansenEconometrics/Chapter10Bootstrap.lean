@@ -24863,6 +24863,53 @@ theorem
       (Zstar := trimmedBootstrapStatistic Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
 
+/-- Hansen Theorem 10.12 trimmed covariance from weak convergence,
+uniform-square-tail controls, and a second-moment Markov trimming-tail bound.
+
+This wrapper replaces the raw `P*(τ_n < ‖Z*_n‖) = oₚ(1)` premise in
+`chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail`
+with the standard sufficient condition: `τ_n` diverges and the conditional
+second moment of `Z*_n` converges in probability. -/
+theorem
+    chapter10_trimmedBootstrapVariance_tendsto_of_uniformSquareTail_integral_norm_sq
+    [Fintype k] [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmemVec : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMat Pstar Zstar τ) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z) (τ := τ)
+    hPstar (fun n => (hτpos n).le) hZmeas hZmem hZlim hweak
+    (trimmedTailProb_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZmemVec hτpos hτinv hSecond)
+    hTailCoord hTailSum
+
 /-- Hansen Theorem 10.12 trimmed covariance from weak convergence and an
 eventually bounded trim threshold.
 
@@ -25152,6 +25199,50 @@ theorem
       (μ := μ) (ν := ν) (Pstar := Pstar)
       (Zstar := trimmedBootstrapStatisticIndexed Zstar τ) (Z := Z)
       hPstar hTrimMem hZlim hweakTrim hTailCoordTrim hTailSumTrim
+
+/-- Indexed Hansen Theorem 10.12 trimmed covariance from weak convergence,
+uniform-square-tail controls, and a second-moment Markov trimming-tail bound. -/
+theorem
+    chapter10_indexed_trimmedBootstrapVariance_tendsto_of_uniformSquareTail_integral_norm_sq
+    [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmemVec : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c)) :
+    TendstoInMeasure μ (trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ)
+      atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
+    (μ := μ) (ν := ν) (Pstar := Pstar) (Zstar := Zstar) (Z := Z) (τ := τ)
+    hPstar (fun n => (hτpos n).le) hZmeas hZmem hZlim hweak
+    (trimmedTailProbIndexed_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZmemVec hτpos hτinv hSecond)
+    hTailCoord hTailSum
 
 /-- Indexed Hansen Theorem 10.12 trimmed covariance from weak convergence and
 an eventually bounded trim threshold. -/
