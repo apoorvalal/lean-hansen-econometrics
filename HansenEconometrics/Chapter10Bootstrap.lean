@@ -659,12 +659,16 @@ used throughout the chapter:
   `chapter10_percentileT_secondOrder_interval_expansion_of_transfer` transfer
   that refinement from fixed symmetric critical values to random/bootstrap
   percentile-`t` intervals when the replacement error is `o(n⁻¹)`.
+  `chapter10_percentileT_secondOrder_interval_event_expansion_of_transfer`
+  is the same transfer stated for the actual percentile-`t` interval event.
 * `chapter10_abs_test_secondOrder_rejection_expansion` gives the fixed-critical
   two-sided rejection-probability Edgeworth expansion used in Hansen Theorem
   10.17.
 * `chapter10_abs_test_secondOrder_rejection_expansion_of_transfer` transfers
   that fixed-critical refinement to random/bootstrap critical values when the
-  replacement error is `o(n⁻¹)`.
+  replacement error is `o(n⁻¹)`;
+  `chapter10_abs_test_secondOrder_rejection_event_expansion_of_transfer` is the
+  corresponding actual bootstrap-test rejection-event form.
 
 The concrete nonparametric-bootstrap sample-mean, CLT, variance, percentile,
 and regression results are built on top of this two-probability-space layer.
@@ -43020,6 +43024,45 @@ theorem chapter10_percentileT_secondOrder_interval_expansion_of_transfer
       h hp1 hp2 hdensity hcoverage)
     hreplacement
 
+/-- Hansen Theorem 10.15 transfer form for the actual percentile-`t` interval
+event.
+
+The only remaining premise is the theorem's higher-order bootstrap-quantile
+replacement step: the event probability of the random percentile-`t` interval
+differs from the fixed symmetric interval probability by `o(n⁻¹)`. -/
+theorem chapter10_percentileT_secondOrder_interval_event_expansion_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {c coverage : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = coverage)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                  (qLower n ω) (qUpper n ω)}).toReal) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                (qLower n ω) (qUpper n ω)}).toReal) -
+            coverage -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := p1) (p2 := p2) (c := c) (coverage := coverage)
+    (randomCoverage := fun n : ℕ =>
+      (μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+        (qLower n ω) (qUpper n ω)}).toReal)
+    h hp1 hp2 hdensity hcoverage hreplacement
+
 /-- Polynomial-shape specialization of
 `chapter10_percentileT_secondOrder_interval_expansion`.
 
@@ -43074,6 +43117,45 @@ theorem chapter10_percentileT_secondOrder_interval_expansion_polynomial_of_trans
     (p1 := edgeworthP1Polynomial a0 a2)
     (p2 := edgeworthP2Polynomial b1 b3 b5)
     (c := c) (coverage := coverage) (randomCoverage := randomCoverage)
+    h (edgeworthP1Polynomial_neg a0 a2 c)
+    (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
+    hreplacement
+
+/-- Polynomial-shape percentile-`t` interval event transfer. -/
+theorem
+chapter10_percentileT_secondOrder_interval_event_expansion_polynomial_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {a0 a2 b1 b3 b5 c coverage : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = coverage)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                  (qLower n ω) (qUpper n ω)}).toReal) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                (qLower n ω) (qUpper n ω)}).toReal) -
+            coverage -
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_event_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := edgeworthP1Polynomial a0 a2)
+    (p2 := edgeworthP2Polynomial b1 b3 b5)
+    (θ := θ) (θhat := θhat) (se := se)
+    (qLower := qLower) (qUpper := qUpper)
+    (c := c) (coverage := coverage)
     h (edgeworthP1Polynomial_neg a0 a2 c)
     (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
     hreplacement
@@ -43161,6 +43243,42 @@ theorem chapter10_abs_test_secondOrder_rejection_expansion_of_transfer
       h hp1 hp2 hdensity halpha)
     hreplacement
 
+/-- Hansen Theorem 10.17 transfer form for the actual two-sided bootstrap-test
+event.
+
+The replacement premise is the theorem's higher-order bootstrap critical-value
+step: replacing the fixed critical value `c` by the random/bootstrap critical
+value changes the rejection probability by `o(n⁻¹)`. -/
+theorem chapter10_abs_test_secondOrder_rejection_event_expansion_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {crit : ℕ → Ω → ℝ} {c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (halpha : 1 - (baseCDF c - baseCDF (-c)) = alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)}).toReal) -
+              ((1 : ℝ) -
+                (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)}).toReal) -
+            alpha +
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_abs_test_secondOrder_rejection_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := p1) (p2 := p2) (c := c) (alpha := alpha)
+    (randomReject := fun n : ℕ =>
+      (μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)}).toReal)
+    h hp1 hp2 hdensity halpha hreplacement
+
 /-- Polynomial-shape specialization of
 `chapter10_abs_test_secondOrder_rejection_expansion`. -/
 theorem chapter10_abs_test_secondOrder_rejection_expansion_polynomial
@@ -43220,6 +43338,41 @@ theorem chapter10_abs_test_secondOrder_rejection_expansion_polynomial_of_transfe
     (p1 := edgeworthP1Polynomial a0 a2)
     (p2 := edgeworthP2Polynomial b1 b3 b5)
     (c := c) (alpha := alpha) (randomReject := randomReject)
+    h (edgeworthP1Polynomial_neg a0 a2 c)
+    (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity halpha
+    hreplacement
+
+/-- Polynomial-shape two-sided bootstrap-test event transfer. -/
+theorem
+chapter10_abs_test_secondOrder_rejection_event_expansion_polynomial_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {crit : ℕ → Ω → ℝ} {a0 a2 b1 b3 b5 c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (halpha : 1 - (baseCDF c - baseCDF (-c)) = alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)}).toReal) -
+              ((1 : ℝ) -
+                (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | bootstrapAbsTestReject (T n ω) (crit n ω)}).toReal) -
+            alpha +
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_abs_test_secondOrder_rejection_event_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := edgeworthP1Polynomial a0 a2)
+    (p2 := edgeworthP2Polynomial b1 b3 b5)
+    (crit := crit) (c := c) (alpha := alpha)
     h (edgeworthP1Polynomial_neg a0 a2 c)
     (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity halpha
     hreplacement
