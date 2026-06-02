@@ -31356,6 +31356,112 @@ theorem
 
 end FiniteReplicationVariance
 
+section SmoothFunctionFiniteReplicationCovariance
+
+/-- Hansen Theorem 10.8/10.11 bridge for smooth plug-in covariance estimators
+using finite bootstrap replications.
+
+If the finite-replication covariance matrix converges in ordinary probability
+to `V`, and the plug-in Jacobian converges to `G`, then the deterministic
+finite-replication plug-in estimator `G_n' V_B G_n` converges in bootstrap
+probability to `G'VG`.  The concrete Theorem 10.11 routes supply `hV`. -/
+theorem chapter10_bootstrap_smooth_variance_of_finiteReplicationCovarianceMat
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV :
+      TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceMomentMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := finiteReplicationCovarianceMomentMat Zsim)
+    (G := G) (V := V) hPstar hG hV
+
+/-- Hansen Theorem 10.8/10.11 bridge for smooth plug-in covariance estimators
+using Hansen's centered finite-replication covariance matrix. -/
+theorem
+    chapter10_bootstrap_smooth_variance_of_finiteReplicationCovarianceCenteredMat
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV :
+      TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := finiteReplicationCovarianceCenteredMat Zsim)
+    (G := G) (V := V) hPstar hG hV
+
+/-- Indexed Hansen Theorem 10.8/10.11 bridge for smooth plug-in covariance
+estimators using finite bootstrap replications. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_of_finiteReplicationCovarianceMat
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV :
+      TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceMomentMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := finiteReplicationCovarianceMomentMat Zsim)
+    (G := G) (V := V) hPstar hG hV
+
+/-- Indexed Hansen Theorem 10.8/10.11 bridge for smooth plug-in covariance
+estimators using Hansen's centered finite-replication covariance matrix. -/
+theorem
+    chapter10_indexed_bootstrap_smooth_variance_of_finiteReplicationCovarianceCenteredMat
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hV :
+      TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_indexed_bootstrap_smooth_variance_consistency_of_tendstoInMeasure_components
+    (μ := μ) (Pstar := Pstar)
+    (Gseq := Gseq) (Vseq := finiteReplicationCovarianceCenteredMat Zsim)
+    (G := G) (V := V) hPstar hG hV
+
+end SmoothFunctionFiniteReplicationCovariance
+
 section QuantileConvergence
 
 /-- Bracketing property for a lower quantile selected from a random CDF.
