@@ -518,12 +518,15 @@ used throughout the chapter:
   variance wrapper for Hansen Theorem 10.19, with an indexed trimmed-covariance
   counterpart. The fixed/indexed `*_of_linearization_normFourth` wrappers
   specialize the smooth exact-linearization norm-fourth trimmed covariance
-  route to the regression transform `Rᵀ Tβ*`. The fixed/indexed
+  route to the regression transform `Rᵀ Tβ*`, while the
+  `*_of_linearization_secondMoment` variants discharge the trimming tail from
+  a diverging threshold and conditional second moments. The fixed/indexed
   `chapter10_regression_finiteReplicationTrimmedVariance_l2` wrappers compose
   that regression target with Hansen's centered finite-replication covariance
   estimator under coordinatewise `L²` simulation-error bounds, with matching
-  `*_of_linearization_normFourth` versions that also discharge the trimmed
-  moment premises from the coefficient-level route.
+  `*_of_linearization_normFourth` and `*_of_linearization_secondMoment`
+  versions that also discharge the trimmed moment premises from the
+  coefficient-level route.
 * `chapter10_finiteReplicationVariance_tendsto_of_moments` is the
   finite-replication variance moment bridge behind Hansen Theorem 10.11; the
   centered scalar wrapper states the same result for Hansen's displayed
@@ -31066,6 +31069,154 @@ theorem
   exact ae_of_all μ fun _ => by
     simp [smoothFunctionVarianceFunctional, Matrix.transpose_transpose]
 
+/-- Hansen Theorem 10.19 regression-facing trimmed covariance route with the
+trimming-tail probability discharged by conditional second moments and a
+diverging threshold. -/
+theorem
+    chapter10_bootstrap_regression_trimmedVariance_tendsto_of_linearization_secondMoment
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    [IsFiniteMeasure
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * Vβ * (Rᵀ)ᵀ))]
+    {Bsecond Bfourth : ℝ}
+    (hVβ : Vβ.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ q => (z : q → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * Vβ * (Rᵀ)ᵀ)))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMat Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_bootstrap_regression_trimmedVariance_tendsto_of_linearization_normFourth
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := Vβ) R hVβ hPstar (fun n => (hτpos n).le)
+    hT hTbetaMeas hcoordMem hlimMem
+    (trimmedTailProb_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (τ := τ) hPstar hThetaMem hτpos hτinv hSecond)
+    hBfourth hNormFourth hNormFourthInt
+
+/-- Indexed version of
+`chapter10_bootstrap_regression_trimmedVariance_tendsto_of_linearization_secondMoment`. -/
+theorem
+    chapter10_indexed_bootstrap_regression_trimmedVariance_tendsto_of_linearization_secondMoment
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    [IsFiniteMeasure
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * Vβ * (Rᵀ)ᵀ))]
+    {Bsecond Bfourth : ℝ}
+    (hVβ : Vβ.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ q => (z : q → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * Vβ * (Rᵀ)ᵀ)))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (trimmedBootstrapCovarianceMatIndexed Pstar
+        (fun n ω ωs =>
+          ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ)) τ)
+      atTop (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_indexed_bootstrap_regression_trimmedVariance_tendsto_of_linearization_normFourth
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (τ := τ) (Vβ := Vβ) R hVβ hPstar (fun n => (hτpos n).le)
+    hT hTbetaMeas hcoordMem hlimMem
+    (trimmedTailProbIndexed_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (τ := τ) hPstar hThetaMem hτpos hτinv hSecond)
+    hBfourth hNormFourth hNormFourthInt
+
 end BootstrapRegression
 
 section FiniteReplicationVariance
@@ -36335,6 +36486,190 @@ theorem
       (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
       (τ := τ) (Vβ := Vβ) R hVβ hPstar hτ hT hTbetaMeas
       hcoordMem hlimMem hTailProb hB hNormFourth hNormFourthInt)
+
+/-- Hansen Theorem 10.19 finite-replication regression trimmed covariance
+route with trimming-tail negligibility discharged by conditional second
+moments and a diverging threshold. -/
+theorem
+    chapter10_regression_finiteReplicationTrimmedVariance_l2_of_linearization_secondMoment
+    [IsFiniteMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Zsim : ℕ → ℕ → Ω → q → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    [IsFiniteMeasure
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * Vβ * (Rᵀ)ᵀ))]
+    {Bsecond Bfourth : ℝ} {Cfinite : q → q → ℝ}
+    (hVβ : Vβ.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ q => (z : q → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * Vβ * (Rᵀ)ᵀ)))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMat Pstar
+                (fun n ω ωs =>
+                  ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                    EuclideanSpace ℝ q) : q → ℝ)) τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMat Pstar
+                  (fun n ω ωs =>
+                    ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                      EuclideanSpace ℝ q) : q → ℝ)) τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_regression_finiteReplicationTrimmedVariance_l2_of_linearization_normFourth
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (TbetaStar := TbetaStar) (τ := τ) (Vβ := Vβ) R hVβ hPstar
+    (fun n => (hτpos n).le) hT hTbetaMeas hcoordMem hlimMem
+    (trimmedTailProb_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (τ := τ) hPstar hThetaMem hτpos hτinv hSecond)
+    hBfourth hNormFourth hNormFourthInt hfiniteInt hfiniteBound
+
+/-- Indexed finite-replication version of
+`chapter10_regression_finiteReplicationTrimmedVariance_l2_of_linearization_secondMoment`. -/
+theorem
+    chapter10_indexed_regression_finiteReplicationTrimmedVariance_l2_of_linearization_secondMoment
+    [IsFiniteMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → q → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    {τ : ℕ → ℝ} {Vβ : Matrix k k ℝ} (R : Matrix k q ℝ)
+    [IsFiniteMeasure
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * Vβ * (Rᵀ)ᵀ))]
+    {Bsecond Bfourth : ℝ} {Cfinite : q → q → ℝ}
+    (hVβ : Vβ.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) Vβ)
+        (fun z : EuclideanSpace ℝ k => z))
+    (hTbetaMeas : ∀ n ω, Measurable (TbetaStar n ω))
+    (hThetaMem :
+      ∀ n ω,
+        MemLp
+          (fun ωs =>
+            ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ))
+          2 (Pstar n ω))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp
+          (fun ωs =>
+            (((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                EuclideanSpace ℝ q) : q → ℝ) a))
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ q => (z : q → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * Vβ * (Rᵀ)ᵀ)))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            ‖((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+              EuclideanSpace ℝ q) : q → ℝ)‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => Bsecond))
+    (hBfourth : 0 ≤ Bfourth)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖TbetaStar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => Bfourth))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖TbetaStar n ω ωs‖ ^ 4)
+        (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMatIndexed Pstar
+                (fun n ω ωs =>
+                  ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                    EuclideanSpace ℝ q) : q → ℝ)) τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMatIndexed Pstar
+                  (fun n ω ωs =>
+                    ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+                      EuclideanSpace ℝ q) : q → ℝ)) τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => smoothFunctionVarianceFunctional R Vβ) :=
+  chapter10_indexed_regression_finiteReplicationTrimmedVariance_l2_of_linearization_normFourth
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (TbetaStar := TbetaStar) (τ := τ) (Vβ := Vβ) R hVβ hPstar
+    (fun n => (hτpos n).le) hT hTbetaMeas hcoordMem hlimMem
+    (trimmedTailProbIndexed_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (τ := τ) hPstar hThetaMem hτpos hτinv hSecond)
+    hBfourth hNormFourth hNormFourthInt hfiniteInt hfiniteBound
 
 /-- Hansen Theorem 10.11/10.12 smooth finite-replication trimmed covariance
 bridge from exact linearization and an underlying norm fourth moment.
