@@ -560,7 +560,9 @@ used throughout the chapter:
   `*_of_l2_simulation_error` wrappers discharge the simulation-error premise
   from coordinatewise
   `O(n⁻¹)` mean-square bounds, including Hansen's centered covariance estimator
-  and trimmed covariance transfer. The fixed/indexed
+  and trimmed covariance transfer. The fixed/indexed scalar centered covariance
+  `*_of_l2_simulation_error` wrappers provide the same real-coordinate
+  simulation-error discharge. The fixed/indexed
   `*_of_uniformSquareTail_l2` and `*_of_eventualBound_l2` covariance wrappers
   compose those bounds with the weak/uniform-square-tail or bounded-statistic
   covariance routes.
@@ -22208,6 +22210,13 @@ noncomputable def bootstrapCrossMomentMat
     (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
   fun a c => (Pstar n ω)[fun ωs => Zstar n ω ωs a * Zstar n ω ωs c]
 
+/-- Moment-form conditional bootstrap covariance of two real statistics. -/
+noncomputable def bootstrapCovarianceReal
+    (Pstar : ℕ → Ω → Measure Ωs)
+    (Xstar Ystar : ℕ → Ω → Ωs → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+    (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]
+
 /-- Moment-form conditional bootstrap covariance matrix. -/
 noncomputable def bootstrapCovarianceMomentMat
     (Pstar : ℕ → Ω → Measure Ωs) (Zstar : ℕ → Ω → Ωs → k → ℝ)
@@ -22253,6 +22262,15 @@ noncomputable def bootstrapCrossMomentMatIndexed
     (Zstar : ∀ n, Ω → Ωboot n → k → ℝ)
     (n : ℕ) (ω : Ω) : Matrix k k ℝ :=
   fun a c => (Pstar n ω)[fun ωs => Zstar n ω ωs a * Zstar n ω ωs c]
+
+/-- Indexed moment-form conditional bootstrap covariance of two real
+statistics. -/
+noncomputable def bootstrapCovarianceRealIndexed
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  (Pstar n ω)[fun ωs => Xstar n ω ωs * Ystar n ω ωs] -
+    (Pstar n ω)[Xstar n ω] * (Pstar n ω)[Ystar n ω]
 
 /-- Indexed moment-form conditional bootstrap covariance matrix. -/
 noncomputable def bootstrapCovarianceMomentMatIndexed
@@ -35388,6 +35406,52 @@ theorem chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_c
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
 
 /-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
+from an `L²` simulation-error bound.
+
+This discharges the direct `oₚ(1)` simulation-error premise of
+`chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance`
+from an `O(n⁻¹)` mean-square bound. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Xstar Ystar : ℕ → Ω → Ωs → ℝ}
+    {v Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceReal Pstar Xstar Ystar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceReal Pstar Xstar Ystar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceReal Pstar Xstar Ystar) atTop
+        (fun _ => v)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => v) := by
+  have hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceReal Pstar Xstar Ystar n ω)
+        atTop (fun _ => 0) :=
+    tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+          bootstrapCovarianceReal Pstar Xstar Ystar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound
+  exact
+    chapter10_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+      (μ := μ)
+      (by simpa [bootstrapCovarianceReal] using hfinite)
+      (by simpa [bootstrapCovarianceReal] using hboot)
+
+/-- Hansen Theorem 10.9/10.11 scalar centered finite-replication covariance
 from conditional bootstrap moment convergence.
 
 This packages the simulation-error bridge with the conditional bootstrap
@@ -35479,6 +35543,51 @@ theorem
     TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
       atTop (fun _ => v) :=
   TendstoInMeasure.of_sub_tendsto_zero_real hfinite hboot
+
+/-- Indexed Hansen Theorem 10.9/10.11 scalar centered finite-replication
+covariance from an `L²` simulation-error bound. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_l2_simulation_error
+    [IsFiniteMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Xsim Ysim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ}
+    {v Cfinite : ℝ}
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceRealIndexed Pstar Xstar Ystar n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceRealIndexed Pstar Xstar Ystar n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ
+        (bootstrapCovarianceRealIndexed Pstar Xstar Ystar) atTop
+        (fun _ => v)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredReal Xsim Ysim)
+      atTop (fun _ => v) := by
+  have hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+            bootstrapCovarianceRealIndexed Pstar Xstar Ystar n ω)
+        atTop (fun _ => 0) :=
+    tendstoInMeasure_zero_of_integral_sq_error_le_inv
+      (μ := μ)
+      (E := fun n ω =>
+        finiteReplicationCovarianceCenteredReal Xsim Ysim n ω -
+          bootstrapCovarianceRealIndexed Pstar Xstar Ystar n ω)
+      (C := Cfinite) hfiniteInt hfiniteBound
+  exact
+    chapter10_indexed_finiteReplicationCovarianceCenteredReal_tendsto_of_bootstrap_covariance
+      (μ := μ)
+      (by simpa [bootstrapCovarianceRealIndexed] using hfinite)
+      (by simpa [bootstrapCovarianceRealIndexed] using hboot)
 
 /-- Indexed Hansen Theorem 10.9/10.11 scalar centered finite-replication
 covariance from conditional bootstrap moment convergence. -/
