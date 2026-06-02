@@ -697,8 +697,9 @@ used throughout the chapter:
   standard-normal bootstrap CDF route with the Theorem 10.14 percentile-`t`
   coverage theorem; their `_brackets` counterparts use local standard-normal
   CDF endpoint bracketing instead of global strict CDF monotonicity.
-  The fixed/indexed `*_eventually_bound` variants feed the bounded-numerator
-  Theorem 10.18 route directly into the same percentile-`t` coverage theorem.
+  The fixed/indexed `*_scalarTail` and `*_eventually_bound` variants feed the
+  scalar compact-tail and bounded-numerator Theorem 10.18 routes directly into
+  the same percentile-`t` coverage theorem.
   `chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`,
@@ -710,9 +711,10 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
-  `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound`
-  and its indexed counterpart feed the bounded-numerator Theorem 10.18 route
-  into the same test-size theorem.
+  `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail`,
+  `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound`,
+  and their indexed counterparts feed the scalar compact-tail and
+  bounded-numerator Theorem 10.18 routes into the same test-size theorem.
   `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef` and its
   `_brackets` counterpart specialize the indexed critical-value route to the
   concrete absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample
@@ -51354,6 +51356,352 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
+/-- Regression-facing percentile-`t` coverage from scalar compact-tail control
+for the bootstrap numerator, using local standard-normal CDF bracketing.
+
+This composes Theorem 10.18's scalar-tail t-statistic CDF route directly with
+the Theorem 10.14 percentile-`t` lower-quantile theorem. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_scalarTail_brackets
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε → α / 2 < cdf (gaussianReal 0 1) (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Tstar : ℕ → Ω → Ωs → ℝ :=
+    fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  have hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω) := by
+    intro n ω
+    exact ((hTthetaStar n ω).div (hseThetaStar n ω)).aemeasurable
+  have hTstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs)
+        (gaussianReal 0 1) (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Tstar] using
+      chapter10_bootstrap_regression_tstat_distribution_of_scalarTail
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+  have hlower_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hlower_meas n
+  have hupper_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Tstar (1 - α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hupper_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hcoverage :=
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
+      (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
+      hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
+      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+  simpa [Tstar] using hcoverage
+
+/-- Strict-CDF counterpart of
+`chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_scalarTail_brackets`. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  obtain ⟨hleftLower, hrightLower⟩ :=
+    strictMono_cdf_brackets hstrict hcdfLower
+  obtain ⟨hleftUpper, hrightUpper⟩ :=
+    strictMono_cdf_brackets hstrict hcdfUpper
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat_scalarTail_brackets
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (θ := θ) (θhat := θhat)
+      (se := se) (seθ := seθ) (q := q) (α := α)
+      hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTtail
+      hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
+      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+
+/-- Indexed regression-facing percentile-`t` coverage from scalar compact-tail
+control for the bootstrap numerator, using local standard-normal CDF
+bracketing. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_scalarTail_brackets
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε → α / 2 < cdf (gaussianReal 0 1) (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let Tstar : ∀ n, Ω → Ωboot n → ℝ :=
+    fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  have hTmeas : ∀ n ω, AEMeasurable (Tstar n ω) (Pstar n ω) := by
+    intro n ω
+    exact ((hTthetaStar n ω).div (hseThetaStar n ω)).aemeasurable
+  have hTstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Tstar n ω ωs)
+        (gaussianReal 0 1) (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Tstar] using
+      chapter10_indexed_bootstrap_regression_tstat_distribution_of_scalarTail
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+  have hlower_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hlower_meas n
+  have hupper_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Tstar (1 - α / 2) n) μ := by
+    intro n
+    simpa [Tstar] using hupper_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hcoverage :=
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
+      (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
+      hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
+      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+  simpa [Tstar] using hcoverage
+
+/-- Strict-CDF counterpart of
+`chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_scalarTail_brackets`. -/
+theorem
+chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ} {seθ q α : ℝ}
+    (hsampleSe : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  obtain ⟨hleftLower, hrightLower⟩ :=
+    strictMono_cdf_brackets hstrict hcdfLower
+  obtain ⟨hleftUpper, hrightUpper⟩ :=
+    strictMono_cdf_brackets hstrict hcdfUpper
+  exact
+    chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_scalarTail_brackets
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar) (θ := θ) (θhat := θhat)
+      (se := se) (seθ := seθ) (q := q) (α := α)
+      hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTtail
+      hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
+      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+
 /-- Regression-facing percentile-`t` coverage from an eventually bounded
 bootstrap numerator, using local standard-normal CDF bracketing.
 
@@ -55265,6 +55613,199 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_re
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
+      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [Astar] using hreject
+
+/-- Regression-facing two-sided bootstrap-test calibration from scalar
+compact-tail control for the bootstrap numerator.
+
+The scalar-tail studentized absolute-t CDF route from Theorem 10.18 supplies
+the bootstrap critical-value convergence required by the Theorem 10.16
+test-size theorem. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let Astar : ℕ → Ω → Ωs → ℝ :=
+    fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω) := by
+    intro n ω
+    exact
+      (continuous_abs.measurable.comp
+        ((hTthetaStar n ω).div (hseThetaStar n ω))).aemeasurable
+  have hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Astar] using
+      chapter10_bootstrap_regression_abs_tstat_distribution_of_scalarTail
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+  have hcrit_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ := by
+    intro n
+    simpa [Astar] using hcrit_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hreject :=
+    chapter10_bootstrap_abs_test_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (ηAbs := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Pstar := Pstar) (Astar := Astar) (T := T)
+      (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
+      hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
+      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+  simpa [Astar] using hreject
+
+/-- Indexed regression-facing two-sided bootstrap-test calibration from scalar
+compact-tail control for the bootstrap numerator. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_scalarTail
+    [IsProbabilityMeasure μ]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {seθ critLim α : ℝ}
+    (hTsample :
+      TendstoInDistribution T atTop (fun x : ℝ => x) (fun _ => μ)
+        (gaussianReal 0 1))
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let Astar : ∀ n, Ω → Ωboot n → ℝ :=
+    fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  letI :
+      IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  have hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω) := by
+    intro n ω
+    exact
+      (continuous_abs.measurable.comp
+        ((hTthetaStar n ω).div (hseThetaStar n ω))).aemeasurable
+  have hAstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+        (fun x : ℝ => fun _ : Unit => x) := by
+    simpa [Astar] using
+      chapter10_indexed_bootstrap_regression_abs_tstat_distribution_of_scalarTail
+        (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+        (seThetaStar := seThetaStar) (seθ := seθ)
+        hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
+  have hcrit_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ := by
+    intro n
+    simpa [Astar] using hcrit_meas n
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hreject :=
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_brackets
+      (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+      (ηAbs := (gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (Pstar := Pstar) (Astar := Astar) (T := T)
+      (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
+      hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
       hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
