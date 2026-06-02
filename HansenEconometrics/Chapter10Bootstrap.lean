@@ -599,7 +599,10 @@ used throughout the chapter:
   together with their trimmed counterparts, insert the bounded
   finite-replication WLLN, ordinary simulation-error, and trimmed
   simulation-error routes directly into the smooth plug-in covariance
-  estimator. The fixed/indexed theorem-facing `*_smoothCov_gaussianLimit` and
+  estimator. The ordinary indexed `*_finSucc_l2_*` wrappers specialize that
+  route to `Fin (n+1)` resampling under iid or `iIndepFun` finite-second-moment
+  assumptions, including deterministic and stochastic continuous Jacobian
+  sources. The fixed/indexed theorem-facing `*_smoothCov_gaussianLimit` and
   `*_smoothTrimmed_*` plug-in wrappers compose the smooth exact-linearization
   Gaussian-limit finite-replication routes all the way into `G' V_B G`.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
@@ -35187,6 +35190,124 @@ theorem
       (C := Cfinite) hfiniteInt hfiniteBound)
     hboot
 
+/-- Theorem 10.11 ordinary nonparametric-bootstrap finite-replication
+covariance route for iid finite-dimensional observations.
+
+The conditional covariance target is the normalized `Fin (n+1)` ordinary
+bootstrap covariance from Theorem 10.4; coordinatewise `O(n⁻¹)` mean-square
+simulation error transfers Hansen's centered finite-replication covariance
+estimator to the same population covariance target. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_finSucc_l2_iid
+    [IsProbabilityMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ} {Cfinite : k → k → ℝ}
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => covMat μ (Y 0)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Zstar := fun n ω ωs a =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs a -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+    (V := covMat μ (Y 0)) (Cfinite := Cfinite)
+    hfiniteInt hfiniteBound
+    (bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
+
+/-- Theorem 10.11 ordinary nonparametric-bootstrap finite-replication
+covariance route with the textbook `iIndepFun` premise. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_finSucc_l2_iIndep
+    [IsProbabilityMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ} {Cfinite : k → k → ℝ}
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => covMat μ (Y 0)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_finSucc_l2_iid
+    (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hfiniteInt hfiniteBound
+
 /-- Hansen Theorem 10.10/10.11 finite-replication covariance matrix for a
 smooth function under exact derivative linearization and an underlying norm
 fourth-moment premise. -/
@@ -40254,6 +40375,312 @@ theorem chapter10_indexed_smoothVariance_finiteReplicationCentered_l2Simulation
     (chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
       (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar)
       hfiniteInt hfiniteBound hboot)
+
+/-- Theorem 10.8/10.11 ordinary-bootstrap finite-replication smooth plug-in
+route with a deterministic Jacobian source and iid observations.
+
+The normalized `Fin (n+1)` ordinary bootstrap covariance supplies the target
+conditional covariance; coordinatewise `O(n⁻¹)` simulation error transfers
+Hansen's centered finite-replication covariance estimator to that target before
+the smooth plug-in covariance CMT is applied. -/
+theorem
+    chapter10_indexed_smoothVariance_detJacobian_finSuccFiniteReplicationCovariance_l2_iid
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Useq : ℕ → Ω → A} {u : A} {Gfun : A → Matrix d r ℝ}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ} {Cfinite : d → d → ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) := by
+  have hPstar : ∀ n (ω : Ω),
+      IsProbabilityMeasure
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) := by
+    intro n ω
+    infer_instance
+  exact
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_deterministic_jacobian
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Useq := Useq) (u := u) (Gfun := Gfun)
+      (Vseq := finiteReplicationCovarianceCenteredMat Zsim)
+      (V := covMat μ (Y 0)) hPstar hU hG
+      (chapter10_indexed_finiteReplicationCovarianceCenteredMat_finSucc_l2_iid
+        (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+        hindep hident hfiniteInt hfiniteBound)
+
+/-- Theorem 10.8/10.11 ordinary-bootstrap finite-replication smooth plug-in
+route with a deterministic Jacobian source and the textbook `iIndepFun`
+premise. -/
+theorem
+    chapter10_indexed_smoothVariance_detJacobian_finSuccFiniteReplicationCovariance_l2_iIndep
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Useq : ℕ → Ω → A} {u : A} {Gfun : A → Matrix d r ℝ}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ} {Cfinite : d → d → ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) :=
+  chapter10_indexed_smoothVariance_detJacobian_finSuccFiniteReplicationCovariance_l2_iid
+    (μ := μ) (Useq := Useq) (u := u) (Gfun := Gfun)
+    (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hU hG
+    hfiniteInt hfiniteBound
+
+/-- Theorem 10.8/10.11 ordinary-bootstrap finite-replication smooth plug-in
+route with a stochastic continuous Jacobian source and iid observations. -/
+theorem
+    chapter10_indexed_smoothVariance_contJacobian_finSuccFiniteReplicationCovariance_l2_iid
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Ustar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → A}
+    {u : A} {Gfun : A → Matrix d r ℝ}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ} {Cfinite : d → d → ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        Ustar (fun _ => u))
+    (hG : ContinuousAt Gfun u)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gfun (Ustar n ω ωs))
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) := by
+  have hPstar : ∀ n (ω : Ω),
+      IsProbabilityMeasure
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) := by
+    intro n ω
+    infer_instance
+  exact
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_continuous_jacobian
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Ustar := Ustar) (u := u) (Gfun := Gfun)
+      (Vstar := fun n ω _ => finiteReplicationCovarianceCenteredMat Zsim n ω)
+      (V := covMat μ (Y 0)) hPstar hU hG
+      (tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
+        (μ := μ)
+        (Pstar := fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        hPstar
+        (chapter10_indexed_finiteReplicationCovarianceCenteredMat_finSucc_l2_iid
+          (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+          hindep hident hfiniteInt hfiniteBound))
+
+/-- Theorem 10.8/10.11 ordinary-bootstrap finite-replication smooth plug-in
+route with a stochastic continuous Jacobian source and the textbook
+`iIndepFun` premise. -/
+theorem
+    chapter10_indexed_smoothVariance_contJacobian_finSuccFiniteReplicationCovariance_l2_iIndep
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Ustar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → A}
+    {u : A} {Gfun : A → Matrix d r ℝ}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ} {Cfinite : d → d → ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        Ustar (fun _ => u))
+    (hG : ContinuousAt Gfun u)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        smoothFunctionVarianceFunctional (Gfun (Ustar n ω ωs))
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) :=
+  chapter10_indexed_smoothVariance_contJacobian_finSuccFiniteReplicationCovariance_l2_iid
+    (μ := μ) (Ustar := Ustar) (u := u) (Gfun := Gfun)
+    (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hU hG
+    hfiniteInt hfiniteBound
 
 /-- Hansen Theorem 10.8/10.11/10.12 plug-in covariance estimator from trimmed
 conditional covariance consistency and finite-replication `L²` simulation
