@@ -6,6 +6,7 @@ import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
 import HansenEconometrics.Chapter3Projections
+import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.Chapter7Asymptotics.Inference
 import HansenEconometrics.ProbabilityUtils
@@ -1009,6 +1010,219 @@ theorem jackknifeCovariance_leaveOneOutMean_eq_sampleMeanCovariance
   simp_rw [hterm]
   rw [← Finset.mul_sum]
   field_simp [hn, hn1]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Matrix form of the jackknife covariance definition. -/
+theorem jackknifeCovariance_eq_scaled_centered_outer
+    {k : Type*} [Fintype k] (theta : ι → k → ℝ) :
+    jackknifeCovariance theta =
+      (((Fintype.card ι : ℝ) - 1) / (Fintype.card ι : ℝ)) •
+        ∑ i, Matrix.vecMulVec (theta i - jackknifeMean theta)
+          (theta i - jackknifeMean theta) := by
+  ext a b
+  simp [jackknifeCovariance, Matrix.smul_apply, Matrix.sum_apply, Matrix.vecMulVec_apply,
+    Pi.sub_apply]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Centered outer-product expansion for finite empirical means, using the
+`mean - observation` orientation that appears in Hansen's jackknife algebra. -/
+theorem sum_vecMulVec_empiricalMean_sub_eq
+    [Nonempty ι] {k : Type*} [Fintype k] (Z : ι → k → ℝ) :
+    (∑ i, Matrix.vecMulVec (empiricalMean Z - Z i) (empiricalMean Z - Z i)) =
+      ∑ i, Matrix.vecMulVec (Z i) (Z i) -
+        (Fintype.card ι : ℝ) • Matrix.vecMulVec (empiricalMean Z) (empiricalMean Z) := by
+  classical
+  ext a b
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  have hsum_a : ∑ i : ι, Z i a = (Fintype.card ι : ℝ) * empiricalMean Z a := by
+    simp [empiricalMean, smul_eq_mul]
+  have hsum_b : ∑ i : ι, Z i b = (Fintype.card ι : ℝ) * empiricalMean Z b := by
+    simp [empiricalMean, smul_eq_mul]
+  calc
+    (∑ i, Matrix.vecMulVec (empiricalMean Z - Z i) (empiricalMean Z - Z i)) a b =
+        ∑ i, (empiricalMean Z a - Z i a) * (empiricalMean Z b - Z i b) := by
+          simp [Matrix.sum_apply, Matrix.vecMulVec_apply, Pi.sub_apply]
+    _ = ∑ i, (Z i a * Z i b - Z i a * empiricalMean Z b -
+          empiricalMean Z a * Z i b + empiricalMean Z a * empiricalMean Z b) := by
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          ring
+    _ = (∑ i, Z i a * Z i b) -
+          (∑ i, Z i a) * empiricalMean Z b -
+          empiricalMean Z a * (∑ i, Z i b) +
+          (Fintype.card ι : ℝ) * (empiricalMean Z a * empiricalMean Z b) := by
+          simp [Finset.sum_sub_distrib, Finset.sum_add_distrib, Finset.sum_mul,
+            Finset.mul_sum, Finset.sum_const, nsmul_eq_mul]
+    _ = (∑ i, Z i a * Z i b) -
+          (Fintype.card ι : ℝ) * (empiricalMean Z a * empiricalMean Z b) := by
+          rw [hsum_a, hsum_b]
+          ring
+    _ =
+        (∑ i, Matrix.vecMulVec (Z i) (Z i) -
+          (Fintype.card ι : ℝ) • Matrix.vecMulVec (empiricalMean Z) (empiricalMean Z)) a b := by
+          simp [Matrix.sum_apply, Matrix.vecMulVec_apply, Matrix.smul_apply,
+            Matrix.sub_apply]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen equation (10.5) score mean
+`\tilde\mu = n^{-1}\sum_i X_i \tilde e_i`, stated with the leave-one-out
+prediction errors from Chapter 3. -/
+noncomputable def olsLeaveOneOutScoreMean
+    [DecidableEq ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i)) : k → ℝ :=
+  empiricalMean fun i : ι =>
+    letI : Invertible (leaveOneOutGram X i) := hloo i
+    leaveOneOutResidual X y i • X i
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- The family of OLS coefficients obtained by deleting one observation. -/
+noncomputable def olsLeaveOneOutBetaFamily
+    [DecidableEq ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i)) : ι → k → ℝ :=
+  fun i =>
+    letI : Invertible (leaveOneOutGram X i) := hloo i
+    leaveOneOutBeta X y i
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Influence vector `(X'X)^{-1}X_i\tilde e_i` in Hansen's OLS jackknife
+calculation. -/
+noncomputable def olsLeaveOneOutInfluence
+    [DecidableEq ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i)) (i : ι) : k → ℝ :=
+  letI : Invertible (leaveOneOutGram X i) := hloo i
+  leaveOneOutResidual X y i • (⅟ (Xᵀ * X) *ᵥ X i)
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- The mean of the OLS leave-one-out influence vectors is
+`(X'X)^{-1}\tilde\mu`. -/
+theorem empiricalMean_olsLeaveOneOutInfluence_eq_invGram_mulVec_scoreMean
+    [DecidableEq ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i)) :
+    empiricalMean (olsLeaveOneOutInfluence X y hloo) =
+      ⅟ (Xᵀ * X) *ᵥ olsLeaveOneOutScoreMean X y hloo := by
+  simp only [empiricalMean, ENNReal.toReal_inv, ENNReal.toReal_natCast,
+    olsLeaveOneOutInfluence, olsLeaveOneOutScoreMean]
+  rw [Matrix.mulVec_smul, Matrix.mulVec_sum]
+  congr 1
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  letI : Invertible (leaveOneOutGram X i) := hloo i
+  rw [Matrix.mulVec_smul]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Leave-one-out coefficient deviations equal the centered influence
+deviations used in Hansen equation (10.5). -/
+theorem leaveOneOutBeta_sub_jackknifeMean_eq_influenceMean_sub
+    [DecidableEq ι] [Nontrivial ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i)) (i : ι) :
+    olsLeaveOneOutBetaFamily X y hloo i -
+        jackknifeMean (olsLeaveOneOutBetaFamily X y hloo) =
+      empiricalMean (olsLeaveOneOutInfluence X y hloo) -
+        olsLeaveOneOutInfluence X y hloo i := by
+  classical
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  ext a
+  simp only [Pi.sub_apply]
+  have hbeta (j : ι) :
+      olsLeaveOneOutBetaFamily X y hloo j =
+        olsBeta X y - olsLeaveOneOutInfluence X y hloo j := by
+    letI : Invertible (leaveOneOutGram X j) := hloo j
+    unfold olsLeaveOneOutBetaFamily olsLeaveOneOutInfluence
+    rw [leaveOneOutBeta_eq_olsBeta_sub_invGram_mulVec]
+  simp only [jackknifeMean, empiricalMean, ENNReal.toReal_inv, ENNReal.toReal_natCast]
+  rw [hbeta i]
+  have hsum :
+      ∑ j : ι, olsLeaveOneOutBetaFamily X y hloo j =
+        (Fintype.card ι : ℝ) • olsBeta X y -
+          ∑ j : ι, olsLeaveOneOutInfluence X y hloo j := by
+    calc
+      ∑ j : ι, olsLeaveOneOutBetaFamily X y hloo j =
+          ∑ j : ι, (olsBeta X y - olsLeaveOneOutInfluence X y hloo j) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _
+            rw [hbeta j]
+      _ = (Fintype.card ι : ℝ) • olsBeta X y -
+            ∑ j : ι, olsLeaveOneOutInfluence X y hloo j := by
+            simp [Finset.sum_sub_distrib, Finset.sum_const,
+              ← Nat.cast_smul_eq_nsmul ℝ (Fintype.card ι)]
+  rw [hsum]
+  simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  field_simp [hn]
+  ring_nf
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- The uncentered OLS leave-one-out influence outer-product sum is the HC3
+covariance estimator when the leave-one-out residuals are written as prediction
+errors. -/
+theorem sum_vecMulVec_olsLeaveOneOutInfluence_eq_HC3
+    [DecidableEq ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i))
+    (hdenom : ∀ i : ι, 1 - leverageValue X i ≠ 0) :
+    (∑ i, Matrix.vecMulVec (olsLeaveOneOutInfluence X y hloo i)
+        (olsLeaveOneOutInfluence X y hloo i)) =
+      olsHuberWhiteHC3VarianceEstimator X y := by
+  classical
+  ext a b
+  rw [olsHuberWhiteHC3VarianceEstimator]
+  rw [olsConditionalVarianceMatrix_diagonal_apply]
+  simp only [Matrix.sum_apply, Matrix.vecMulVec_apply]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  letI : Invertible (leaveOneOutGram X i) := hloo i
+  have hdenom' : 1 - hatMatrix X i i ≠ 0 := by
+    simpa [leverageValue] using hdenom i
+  rw [show olsLeaveOneOutInfluence X y hloo i =
+      leaveOneOutResidual X y i • (⅟ (Xᵀ * X) *ᵥ X i) by rfl]
+  rw [leaveOneOutResidual_eq_inv_one_sub_leverage_mul_residual X y i (hdenom i)]
+  simp [leverageValue, smul_eq_mul, Matrix.mulVec, Matrix.mul_apply,
+    Matrix.transpose_apply, dotProduct]
+  field_simp [hdenom']
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen equation (10.5): the OLS leave-one-out jackknife covariance equals
+the HC3 covariance estimator less the finite-sample mean-adjustment outer
+product. -/
+theorem jackknifeCovariance_leaveOneOutBeta_eq_HC3_sub_meanAdjustment
+    [DecidableEq ι] [Nontrivial ι] {k : Type*} [Fintype k] [DecidableEq k]
+    (X : Matrix ι k ℝ) (y : ι → ℝ)
+    [Invertible (Xᵀ * X)]
+    (hloo : ∀ i : ι, Invertible (leaveOneOutGram X i))
+    (hdenom : ∀ i : ι, 1 - leverageValue X i ≠ 0) :
+    jackknifeCovariance (olsLeaveOneOutBetaFamily X y hloo) =
+      (((Fintype.card ι : ℝ) - 1) / (Fintype.card ι : ℝ)) •
+          olsHuberWhiteHC3VarianceEstimator X y -
+        ((Fintype.card ι : ℝ) - 1) •
+          Matrix.vecMulVec (empiricalMean (olsLeaveOneOutInfluence X y hloo))
+            (empiricalMean (olsLeaveOneOutInfluence X y hloo)) := by
+  classical
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  rw [jackknifeCovariance_eq_scaled_centered_outer]
+  have hdev (i : ι) :
+      olsLeaveOneOutBetaFamily X y hloo i -
+          jackknifeMean (olsLeaveOneOutBetaFamily X y hloo) =
+        empiricalMean (olsLeaveOneOutInfluence X y hloo) -
+          olsLeaveOneOutInfluence X y hloo i :=
+    leaveOneOutBeta_sub_jackknifeMean_eq_influenceMean_sub X y hloo i
+  simp_rw [hdev]
+  rw [sum_vecMulVec_empiricalMean_sub_eq]
+  rw [sum_vecMulVec_olsLeaveOneOutInfluence_eq_HC3 X y hloo hdenom]
+  ext a b
+  simp [Matrix.smul_apply, Matrix.sub_apply, Matrix.vecMulVec_apply]
+  field_simp [hn]
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Dot-product projection of a finite empirical mean. -/
