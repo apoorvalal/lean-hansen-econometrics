@@ -5,6 +5,7 @@ import Mathlib.Probability.UniformOn
 import HansenEconometrics.AsymptoticUtils
 import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
+import HansenEconometrics.Chapter3Projections
 import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.Chapter7Asymptotics.Inference
 import HansenEconometrics.ProbabilityUtils
@@ -832,6 +833,182 @@ noncomputable def empiricalBootstrapResampleMean
     [NormedAddCommGroup E] [NormedSpace ℝ E]
     (Y : ι → E) (I : Ωs → κ → ι) (ωs : Ωs) : E :=
   ((Fintype.card κ : ℝ)⁻¹) • ∑ t, Y (I ωs t)
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Leave-one-out sample mean for Hansen's jackknife discussion.
+
+For observation `i`, this is the empirical mean of the sample with `i`
+deleted, matching equation (10.2). -/
+noncomputable def jackknifeLeaveOneOutMean
+    [DecidableEq ι] [NormedAddCommGroup E] [NormedSpace ℝ E]
+    (Y : ι → E) (i : ι) : E :=
+  ((Fintype.card (LeaveOneOutIndex i) : ℝ≥0∞)⁻¹).toReal •
+    ∑ j : LeaveOneOutIndex i, Y j
+
+/-- Mean of jackknife pseudo-sample estimators. -/
+noncomputable def jackknifeMean
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (theta : ι → E) : E :=
+  empiricalMean theta
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen equation (10.1): Tukey's jackknife covariance estimator. -/
+noncomputable def jackknifeCovariance
+    {k : Type*} [Fintype k] (theta : ι → k → ℝ) : Matrix k k ℝ :=
+  fun a b =>
+    (((Fintype.card ι : ℝ) - 1) / (Fintype.card ι : ℝ)) *
+      ∑ i, (theta i a - jackknifeMean theta a) *
+        (theta i b - jackknifeMean theta b)
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Cardinality of the row-deleted jackknife index. -/
+theorem card_leaveOneOutIndex [DecidableEq ι] (i : ι) :
+    Fintype.card (LeaveOneOutIndex i) = Fintype.card ι - 1 :=
+  Set.card_ne_eq i
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen equation (10.2): the leave-one-out mean written in terms of the
+full-sample mean and the deleted observation. -/
+theorem jackknifeLeaveOneOutMean_eq
+    [DecidableEq ι] [Nontrivial ι]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) (i : ι) :
+    jackknifeLeaveOneOutMean Y i =
+      ((Fintype.card ι : ℝ) / ((Fintype.card ι : ℝ) - 1)) • empiricalMean Y -
+        (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i := by
+  classical
+  have hsum := Fintype.sum_eq_add_sum_subtype_ne Y i
+  have hcard := card_leaveOneOutIndex (ι := ι) i
+  have hlt : (1 : ℕ) < Fintype.card ι := Fintype.one_lt_card
+  have hle : (1 : ℕ) ≤ Fintype.card ι := hlt.le
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  have hn1 : (Fintype.card ι : ℝ) - 1 ≠ 0 := by
+    have hltR : (1 : ℝ) < Fintype.card ι := by exact_mod_cast hlt
+    linarith
+  simp only [jackknifeLeaveOneOutMean, empiricalMean, hcard,
+    ENNReal.toReal_inv, ENNReal.toReal_natCast]
+  rw [Nat.cast_sub hle]
+  simp only [Nat.cast_one]
+  calc
+    (((Fintype.card ι : ℝ) - 1)⁻¹) • ∑ j : LeaveOneOutIndex i, Y j =
+        (((Fintype.card ι : ℝ) - 1)⁻¹) • ((∑ j : ι, Y j) - Y i) := by
+          rw [hsum]
+          simp [add_sub_cancel_left]
+    _ =
+        ((Fintype.card ι : ℝ) / ((Fintype.card ι : ℝ) - 1)) •
+            (((Fintype.card ι : ℝ)⁻¹) • ∑ j : ι, Y j) -
+          (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i := by
+          rw [smul_sub, smul_smul]
+          congr 1
+          field_simp [hn, hn1]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- The average of the leave-one-out sample means is the full-sample mean. -/
+theorem jackknifeMean_leaveOneOutMean_eq_empiricalMean
+    [DecidableEq ι] [Nontrivial ι]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) :
+    jackknifeMean (fun i => jackknifeLeaveOneOutMean Y i) = empiricalMean Y := by
+  classical
+  have hlt : (1 : ℕ) < Fintype.card ι := Fintype.one_lt_card
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  have hn1 : (Fintype.card ι : ℝ) - 1 ≠ 0 := by
+    have hltR : (1 : ℝ) < Fintype.card ι := by exact_mod_cast hlt
+    linarith
+  simp only [jackknifeMean, empiricalMean, ENNReal.toReal_inv,
+    ENNReal.toReal_natCast]
+  calc
+    ((Fintype.card ι : ℝ)⁻¹) •
+        ∑ i : ι, jackknifeLeaveOneOutMean Y i =
+        ((Fintype.card ι : ℝ)⁻¹) •
+          ∑ i : ι,
+            (((Fintype.card ι : ℝ) / ((Fintype.card ι : ℝ) - 1)) •
+              (((Fintype.card ι : ℝ)⁻¹) • ∑ j : ι, Y j) -
+                (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i) := by
+          congr 1
+          refine Finset.sum_congr rfl ?_
+          intro i _hi
+          rw [jackknifeLeaveOneOutMean_eq (Y := Y) i]
+          simp [empiricalMean, ENNReal.toReal_inv, ENNReal.toReal_natCast]
+    _ = ((Fintype.card ι : ℝ)⁻¹) • ∑ j : ι, Y j := by
+          rw [Finset.sum_sub_distrib, Finset.sum_const, ← Finset.smul_sum,
+            Finset.card_univ, ← Nat.cast_smul_eq_nsmul ℝ (Fintype.card ι)]
+          simp only [smul_smul]
+          rw [← sub_smul]
+          rw [← one_smul ℝ (∑ j : ι, Y j)]
+          congr 1
+          field_simp [hn, hn1]
+          simp
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen's displayed identity after (10.2): each leave-one-out mean differs
+from the full-sample mean by `(Ybar - Yᵢ)/(n-1)`. -/
+theorem jackknifeLeaveOneOutMean_sub_empiricalMean_eq
+    [DecidableEq ι] [Nontrivial ι]
+    [NormedAddCommGroup E] [NormedSpace ℝ E] (Y : ι → E) (i : ι) :
+    jackknifeLeaveOneOutMean Y i - empiricalMean Y =
+      (((Fintype.card ι : ℝ) - 1)⁻¹) • (empiricalMean Y - Y i) := by
+  classical
+  have hlt : (1 : ℕ) < Fintype.card ι := Fintype.one_lt_card
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  have hn1 : (Fintype.card ι : ℝ) - 1 ≠ 0 := by
+    have hltR : (1 : ℝ) < Fintype.card ι := by exact_mod_cast hlt
+    linarith
+  rw [jackknifeLeaveOneOutMean_eq (Y := Y) i]
+  calc
+    ((Fintype.card ι : ℝ) / ((Fintype.card ι : ℝ) - 1)) • empiricalMean Y -
+        (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i - empiricalMean Y =
+      (((Fintype.card ι : ℝ) / ((Fintype.card ι : ℝ) - 1)) • empiricalMean Y -
+        empiricalMean Y) - (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i := by
+        abel
+    _ = (((Fintype.card ι : ℝ) - 1)⁻¹) • empiricalMean Y -
+        (((Fintype.card ι : ℝ) - 1)⁻¹) • Y i := by
+        congr 1
+        rw [← one_smul ℝ (empiricalMean Y)]
+        simp only [smul_smul]
+        rw [← sub_smul]
+        congr 1
+        field_simp [hn, hn1]
+        ring
+    _ = (((Fintype.card ι : ℝ) - 1)⁻¹) • (empiricalMean Y - Y i) :=
+        (smul_sub _ _ _).symm
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Hansen equation (10.3): for the sample mean, Tukey's jackknife covariance
+equals the conventional covariance estimator for the variance of the mean. -/
+theorem jackknifeCovariance_leaveOneOutMean_eq_sampleMeanCovariance
+    [DecidableEq ι] [Nontrivial ι] {k : Type*} [Fintype k]
+    (Y : ι → k → ℝ) :
+    jackknifeCovariance (fun i => jackknifeLeaveOneOutMean Y i) =
+      fun a b =>
+        ((Fintype.card ι : ℝ)⁻¹ * ((Fintype.card ι : ℝ) - 1)⁻¹) *
+          ∑ i, (empiricalMean Y a - Y i a) * (empiricalMean Y b - Y i b) := by
+  classical
+  have hlt : (1 : ℕ) < Fintype.card ι := Fintype.one_lt_card
+  have hn : (Fintype.card ι : ℝ) ≠ 0 := by
+    exact_mod_cast Fintype.card_ne_zero
+  have hn1 : (Fintype.card ι : ℝ) - 1 ≠ 0 := by
+    have hltR : (1 : ℝ) < Fintype.card ι := by exact_mod_cast hlt
+    linarith
+  ext a b
+  have hmean :=
+    jackknifeMean_leaveOneOutMean_eq_empiricalMean (Y := Y)
+  simp only [jackknifeCovariance, hmean]
+  have hdiff (i : ι) (c : k) :
+      jackknifeLeaveOneOutMean Y i c - empiricalMean Y c =
+        (((Fintype.card ι : ℝ) - 1)⁻¹) * (empiricalMean Y c - Y i c) := by
+    simpa [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] using
+      congr_fun (jackknifeLeaveOneOutMean_sub_empiricalMean_eq (Y := Y) i) c
+  simp_rw [hdiff]
+  have hterm (i : ι) :
+      (((Fintype.card ι : ℝ) - 1)⁻¹ * (empiricalMean Y a - Y i a)) *
+          (((Fintype.card ι : ℝ) - 1)⁻¹ * (empiricalMean Y b - Y i b)) =
+        (((Fintype.card ι : ℝ) - 1)⁻¹ * ((Fintype.card ι : ℝ) - 1)⁻¹) *
+          ((empiricalMean Y a - Y i a) * (empiricalMean Y b - Y i b)) := by
+    ring
+  simp_rw [hterm]
+  rw [← Finset.mul_sum]
+  field_simp [hn, hn1]
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Dot-product projection of a finite empirical mean. -/
