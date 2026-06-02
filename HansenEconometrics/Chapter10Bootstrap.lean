@@ -1856,6 +1856,60 @@ theorem integral_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_
   rw [integral_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_zero (Y := Y)]
   simp
 
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Pointwise centered-sum form of the normalized scalar ordinary-bootstrap
+sample mean.
+
+This is the finite algebra behind Hansen equation (10.14): the normalized
+bootstrap mean is the sum of centered empirical draws scaled by
+`1 / sqrt (#κ)`. -/
+theorem normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_sum
+    {κ : Type*} [Fintype κ] [Nonempty κ] (Y : ι → ℝ) (ωs : κ → ι) :
+    Real.sqrt (Fintype.card κ : ℝ) *
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y) =
+      (Real.sqrt (Fintype.card κ : ℝ))⁻¹ *
+        ∑ t : κ, (Y (ωs t) - empiricalMean Y) := by
+  classical
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hcard_ne : (Fintype.card κ : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hsqrt_ne : Real.sqrt (Fintype.card κ : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hcard_pos).ne'
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  have hcoef :
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (Fintype.card κ : ℝ)⁻¹ =
+        (Real.sqrt (Fintype.card κ : ℝ))⁻¹ := by
+    calc
+      Real.sqrt (Fintype.card κ : ℝ) * (Fintype.card κ : ℝ)⁻¹ =
+          Real.sqrt (Fintype.card κ : ℝ) *
+            (Real.sqrt (Fintype.card κ : ℝ) ^ 2)⁻¹ := by
+            rw [hsqrt_sq]
+      _ = (Real.sqrt (Fintype.card κ : ℝ))⁻¹ := by
+            field_simp [hsqrt_ne]
+  have hsum :
+      ∑ t : κ, (Y (ωs t) - empiricalMean Y) =
+        ∑ t : κ, Y (ωs t) - (Fintype.card κ : ℝ) * empiricalMean Y := by
+    simp [Finset.sum_sub_distrib]
+  calc
+    Real.sqrt (Fintype.card κ : ℝ) *
+        (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs - empiricalMean Y) =
+        Real.sqrt (Fintype.card κ : ℝ) *
+          ((Fintype.card κ : ℝ)⁻¹ * ∑ t : κ, Y (ωs t) - empiricalMean Y) := by
+          simp [empiricalBootstrapResampleMean, smul_eq_mul]
+    _ =
+        (Real.sqrt (Fintype.card κ : ℝ) *
+            (Fintype.card κ : ℝ)⁻¹) *
+          (∑ t : κ, Y (ωs t) - (Fintype.card κ : ℝ) * empiricalMean Y) := by
+          field_simp [hcard_ne]
+    _ =
+        (Real.sqrt (Fintype.card κ : ℝ))⁻¹ *
+          ∑ t : κ, (Y (ωs t) - empiricalMean Y) := by
+          rw [hcoef, hsum]
+
 /-- Scalar finite-sample central moment, Hansen's `\hat μ_r`.
 
 This is the one-draw empirical central moment used to state the sample
@@ -1863,6 +1917,38 @@ cumulants in equation (10.14). -/
 noncomputable def empiricalCentralMoment (Y : ι → ℝ) (r : ℕ) : ℝ :=
   ((Fintype.card ι : ℝ≥0∞)⁻¹).toReal •
     ∑ i, (Y i - empiricalMean Y) ^ r
+
+/-- Empirical central moments are one-draw moments under the finite empirical
+uniform law. -/
+theorem integral_pow_sub_empiricalMean_uniformOn_univ_eq_empiricalCentralMoment
+    (Y : ι → ℝ) (r : ℕ) :
+    ∫ i, (Y i - empiricalMean Y) ^ r
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) =
+      empiricalCentralMoment Y r := by
+  rw [integral_uniformOn_univ_eq_card_inv_smul_sum]
+  rfl
+
+/-- A single centered coordinate of the ordinary finite bootstrap resample has
+the empirical central moments. -/
+theorem integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+    {κ : Type*} [Finite κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (t : κ) (r : ℕ) :
+    ∫ ωs : κ → ι, (Y (ωs t) - empiricalMean Y) ^ r
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      empiricalCentralMoment Y r := by
+  classical
+  have hident :=
+    (identDistrib_uniformOn_fun_eval (κ := κ) (ι := ι) t).comp
+      (measurable_of_finite (fun i : ι => (Y i - empiricalMean Y) ^ r))
+  calc
+    ∫ ωs : κ → ι, (Y (ωs t) - empiricalMean Y) ^ r
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        ∫ i : ι, (Y i - empiricalMean Y) ^ r
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set ι) : Measure ι) := by
+          simpa using hident.integral_eq
+    _ = empiricalCentralMoment Y r :=
+          integral_pow_sub_empiricalMean_uniformOn_univ_eq_empiricalCentralMoment Y r
 
 /-- Scalar sample cumulant `\hat κ_2`, equal to the empirical variance
 normalization used in Hansen's equation (10.14). -/
@@ -1893,6 +1979,285 @@ omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 @[simp]
 theorem empiricalCentralMoment_three_eq_cumulant3 (Y : ι → ℝ) :
     empiricalCentralMoment Y 3 = empiricalCumulant3 Y := rfl
+
+/-- Triple product of centered ordinary-bootstrap coordinates.
+
+For three centered resampled observations, the only nonzero conditional
+third-moment term is the all-equal index case. -/
+theorem integral_mul_mul_uniformOn_fun_eval_sub_empiricalMean_eq
+    {κ : Type*} [Finite κ] [DecidableEq κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (a b c : κ) :
+    ∫ ωs : κ → ι,
+        (Y (ωs a) - empiricalMean Y) *
+          (Y (ωs b) - empiricalMean Y) *
+          (Y (ωs c) - empiricalMean Y)
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      if a = b ∧ a = c then empiricalCumulant3 Y else 0 := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  have hIndep : iIndepFun X Pκ := by
+    simpa [X, Pκ] using
+      (iIndepFun_uniformOn_fun_eval_sub_empiricalMean
+        (κ := κ) (ι := ι) (E := ℝ) Y)
+  have hMeas : ∀ t : κ, Measurable (X t) := fun t =>
+    measurable_of_finite (X t)
+  have hAEStrong : ∀ t : κ, AEStronglyMeasurable (X t) Pκ := fun t =>
+    (hMeas t).aestronglyMeasurable
+  have hmean : ∀ t : κ, ∫ ωs, X t ωs ∂Pκ = 0 := by
+    intro t
+    have hbase :
+        ∫ ωs : κ → ι, Y (ωs t) ∂Pκ = empiricalMean Y := by
+      simpa [Pκ] using
+        (integral_uniformOn_fun_eval_eq_empiricalMean
+          (κ := κ) (Y := Y) t)
+    have hInt : Integrable (fun ωs : κ → ι => Y (ωs t)) Pκ :=
+      Integrable.of_finite
+    calc
+      ∫ ωs, X t ωs ∂Pκ =
+          ∫ ωs : κ → ι, Y (ωs t) - empiricalMean Y ∂Pκ := rfl
+      _ = ∫ ωs : κ → ι, Y (ωs t) ∂Pκ - ∫ _ωs : κ → ι, empiricalMean Y ∂Pκ := by
+          rw [integral_sub hInt (integrable_const _)]
+      _ = 0 := by
+          rw [hbase]
+          simp [Pκ]
+  have hthird : ∀ t : κ, ∫ ωs, X t ωs ^ 3 ∂Pκ = empiricalCumulant3 Y := by
+    intro t
+    change
+      ∫ ωs : κ → ι, (Y (ωs t) - empiricalMean Y) ^ 3
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        empiricalCumulant3 Y
+    rw [← empiricalCentralMoment_three_eq_cumulant3 Y]
+    exact
+      (integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+        (κ := κ) (Y := Y) t 3)
+  by_cases hab : a = b
+  · by_cases hac : a = c
+    · subst b
+      subst c
+      rw [if_pos ⟨rfl, rfl⟩]
+      change ∫ ωs, X a ωs * X a ωs * X a ωs ∂Pκ = empiricalCumulant3 Y
+      calc
+        ∫ ωs, X a ωs * X a ωs * X a ωs ∂Pκ =
+            ∫ ωs, X a ωs ^ 3 ∂Pκ := by
+              congr with ωs
+              ring
+        _ = empiricalCumulant3 Y := hthird a
+    · have hbc : b ≠ c := by
+        simpa [hab] using hac
+      have hmul :
+          ∫ ωs, (X a * X b) ωs * X c ωs ∂Pκ =
+            (∫ ωs, (X a * X b) ωs ∂Pκ) * ∫ ωs, X c ωs ∂Pκ :=
+        (hIndep.indepFun_mul_left hMeas a b c hac hbc).integral_mul_eq_mul_integral
+          ((hAEStrong a).mul (hAEStrong b)) (hAEStrong c)
+      have hz :
+          ∫ ωs, X a ωs * X b ωs * X c ωs ∂Pκ = 0 := by
+        calc
+          ∫ ωs, X a ωs * X b ωs * X c ωs ∂Pκ =
+              ∫ ωs, (X a * X b) ωs * X c ωs ∂Pκ := rfl
+          _ = (∫ ωs, (X a * X b) ωs ∂Pκ) * ∫ ωs, X c ωs ∂Pκ := hmul
+          _ = 0 := by rw [hmean c, mul_zero]
+      rw [if_neg (by intro h; exact hac h.2)]
+      simpa [X, Pκ] using hz
+  · by_cases hac : a = c
+    · subst c
+      have hmul :
+          ∫ ωs, (X a * X a) ωs * X b ωs ∂Pκ =
+            (∫ ωs, (X a * X a) ωs ∂Pκ) * ∫ ωs, X b ωs ∂Pκ :=
+        (hIndep.indepFun_mul_left hMeas a a b hab hab).integral_mul_eq_mul_integral
+          ((hAEStrong a).mul (hAEStrong a)) (hAEStrong b)
+      have hz :
+          ∫ ωs, X a ωs * X b ωs * X a ωs ∂Pκ = 0 := by
+        calc
+          ∫ ωs, X a ωs * X b ωs * X a ωs ∂Pκ =
+              ∫ ωs, (X a * X a) ωs * X b ωs ∂Pκ := by
+                congr with ωs
+                change X a ωs * X b ωs * X a ωs =
+                  (X a ωs * X a ωs) * X b ωs
+                ring
+          _ = (∫ ωs, (X a * X a) ωs ∂Pκ) * ∫ ωs, X b ωs ∂Pκ := hmul
+          _ = 0 := by rw [hmean b, mul_zero]
+      rw [if_neg (by intro h; exact hab h.1)]
+      simpa [X, Pκ] using hz
+    · have hmul :
+          ∫ ωs, X a ωs * (X b * X c) ωs ∂Pκ =
+            (∫ ωs, X a ωs ∂Pκ) * ∫ ωs, (X b * X c) ωs ∂Pκ :=
+        (hIndep.indepFun_mul_right hMeas a b c hab hac).integral_mul_eq_mul_integral
+          (hAEStrong a) ((hAEStrong b).mul (hAEStrong c))
+      have hz :
+          ∫ ωs, X a ωs * X b ωs * X c ωs ∂Pκ = 0 := by
+        calc
+          ∫ ωs, X a ωs * X b ωs * X c ωs ∂Pκ =
+              ∫ ωs, X a ωs * (X b * X c) ωs ∂Pκ := by
+                congr with ωs
+                change X a ωs * X b ωs * X c ωs =
+                  X a ωs * (X b ωs * X c ωs)
+                ring
+          _ = (∫ ωs, X a ωs ∂Pκ) * ∫ ωs, (X b * X c) ωs ∂Pκ := hmul
+          _ = 0 := by rw [hmean a, zero_mul]
+      rw [if_neg (by intro h; exact hab h.1)]
+      simpa [X, Pκ] using hz
+
+/-- Cube of the centered ordinary-bootstrap sum.
+
+This is the finite iid expansion behind the third-moment line in Hansen
+equation (10.14), before applying the `sqrt (#κ)` normalization. -/
+theorem integral_cube_centered_uniformOn_fun_sum_eq_card_mul_empiricalCumulant3
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι, (∑ t : κ, (Y (ωs t) - empiricalMean Y)) ^ 3
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      (Fintype.card κ : ℝ) * empiricalCumulant3 Y := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  have hcube : ∀ ωs : κ → ι,
+      (∑ t : κ, X t ωs) ^ 3 =
+        ∑ a : κ, ∑ b : κ, ∑ c : κ, X a ωs * X b ωs * X c ωs := by
+    intro ωs
+    simp [pow_succ, Finset.mul_sum, mul_comm]
+  have htriple : ∀ a b c : κ,
+      ∫ ωs, X a ωs * X b ωs * X c ωs ∂Pκ =
+        if a = b ∧ a = c then empiricalCumulant3 Y else 0 := by
+    intro a b c
+    simpa [X, Pκ] using
+      (integral_mul_mul_uniformOn_fun_eval_sub_empiricalMean_eq
+        (κ := κ) (Y := Y) a b c)
+  have hinner : ∀ a : κ,
+      (∑ b : κ, ∑ c : κ,
+          (if a = b ∧ a = c then empiricalCumulant3 Y else 0)) =
+        empiricalCumulant3 Y := by
+    intro a
+    rw [Finset.sum_eq_single a]
+    · rw [Finset.sum_eq_single a]
+      · simp
+      · intro c _hc_mem hc
+        have hca : a ≠ c := fun h => hc h.symm
+        simp [hca]
+      · intro ha
+        exact (ha (Finset.mem_univ a)).elim
+    · intro b _hb_mem hb
+      have hab : a ≠ b := fun h => hb h.symm
+      simp [hab]
+    · intro ha
+      exact (ha (Finset.mem_univ a)).elim
+  calc
+    ∫ ωs : κ → ι, (∑ t : κ, (Y (ωs t) - empiricalMean Y)) ^ 3 ∂Pκ =
+        ∫ ωs : κ → ι, ∑ a : κ, ∑ b : κ, ∑ c : κ,
+          X a ωs * X b ωs * X c ωs ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          simpa [X] using hcube ωs
+    _ = ∑ a : κ, ∑ b : κ, ∑ c : κ,
+          ∫ ωs : κ → ι, X a ωs * X b ωs * X c ωs ∂Pκ := by
+          rw [integral_finset_sum (s := Finset.univ)
+            (f := fun a ωs => ∑ b : κ, ∑ c : κ,
+              X a ωs * X b ωs * X c ωs)
+            (μ := Pκ)
+            (hf := by
+              intro a _ha
+              exact integrable_finset_sum (s := Finset.univ)
+                (f := fun b ωs => ∑ c : κ, X a ωs * X b ωs * X c ωs)
+                (fun b _hb =>
+                  integrable_finset_sum (s := Finset.univ)
+                    (f := fun c ωs => X a ωs * X b ωs * X c ωs)
+                    (fun c _hc => Integrable.of_finite)))]
+          congr with a
+          rw [integral_finset_sum (s := Finset.univ)
+            (f := fun b ωs => ∑ c : κ, X a ωs * X b ωs * X c ωs)
+            (μ := Pκ)
+            (hf := by
+              intro b _hb
+              exact integrable_finset_sum (s := Finset.univ)
+                (f := fun c ωs => X a ωs * X b ωs * X c ωs)
+                (fun c _hc => Integrable.of_finite))]
+          congr with b
+          rw [integral_finset_sum (s := Finset.univ)
+            (f := fun c ωs => X a ωs * X b ωs * X c ωs)
+            (μ := Pκ)
+            (hf := by
+              intro c _hc
+              exact Integrable.of_finite)]
+    _ = ∑ a : κ, ∑ b : κ, ∑ c : κ,
+          (if a = b ∧ a = c then empiricalCumulant3 Y else 0) := by
+          simp [htriple]
+    _ = (Fintype.card κ : ℝ) * empiricalCumulant3 Y := by
+          simp [hinner]
+
+/-- Hansen equation (10.14), third conditional moment of the normalized
+ordinary-bootstrap sample mean. -/
+theorem integral_cube_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 3
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      empiricalCumulant3 Y / Real.sqrt (Fintype.card κ : ℝ) := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let c : ℝ := (Real.sqrt (Fintype.card κ : ℝ))⁻¹
+  let S : (κ → ι) → ℝ :=
+    fun ωs => ∑ t : κ, (Y (ωs t) - empiricalMean Y)
+  have hpoint : ∀ ωs : κ → ι,
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y) =
+        c * S ωs := by
+    intro ωs
+    simpa [c, S] using
+      normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_sum
+        (κ := κ) (Y := Y) ωs
+  have hsum :
+      ∫ ωs : κ → ι, S ωs ^ 3 ∂Pκ =
+        (Fintype.card κ : ℝ) * empiricalCumulant3 Y := by
+    simpa [S, Pκ] using
+      integral_cube_centered_uniformOn_fun_sum_eq_card_mul_empiricalCumulant3
+        (κ := κ) (Y := Y)
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hsqrt_ne : Real.sqrt (Fintype.card κ : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hcard_pos).ne'
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  have hcoef :
+      c ^ 3 * (Fintype.card κ : ℝ) =
+        (Real.sqrt (Fintype.card κ : ℝ))⁻¹ := by
+    calc
+      c ^ 3 * (Fintype.card κ : ℝ) =
+          (Real.sqrt (Fintype.card κ : ℝ))⁻¹ ^ 3 *
+            Real.sqrt (Fintype.card κ : ℝ) ^ 2 := by
+            dsimp [c]
+            rw [hsqrt_sq]
+      _ = (Real.sqrt (Fintype.card κ : ℝ))⁻¹ := by
+            field_simp [hsqrt_ne]
+  calc
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 3 ∂Pκ =
+        ∫ ωs : κ → ι, (c * S ωs) ^ 3 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hpoint ωs]
+    _ = c ^ 3 * ∫ ωs : κ → ι, S ωs ^ 3 ∂Pκ := by
+          simp [mul_pow, integral_const_mul]
+    _ = c ^ 3 * ((Fintype.card κ : ℝ) * empiricalCumulant3 Y) := by
+          rw [hsum]
+    _ = empiricalCumulant3 Y / Real.sqrt (Fintype.card κ : ℝ) := by
+          rw [← mul_assoc, hcoef]
+          rw [div_eq_mul_inv]
+          ring
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Fourth central moment in terms of sample cumulants. -/
@@ -1944,6 +2309,22 @@ noncomputable def normalizedBootstrapMeanMoment6Formula
     (15 * empiricalCumulant4 Y * empiricalCumulant2 Y +
       10 * empiricalCumulant3 Y ^ 2) / sampleSize +
     15 * empiricalCumulant2 Y ^ 3
+
+/-- Hansen equation (10.14), third conditional moment in the named formula
+surface. -/
+theorem integral_cube_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_formula
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 3
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      normalizedBootstrapMeanMoment3Formula (Fintype.card κ : ℝ) Y := by
+  simpa [normalizedBootstrapMeanMoment3Formula] using
+    integral_cube_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq
+      (κ := κ) (Y := Y)
 
 /-- Finite empirical second-moment identity for one bootstrap draw.
 
