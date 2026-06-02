@@ -23276,6 +23276,124 @@ theorem
           rw [integral_indicator_const (2 * ‖f‖) htail_meas]
           simp [tail, measureReal_def, smul_eq_mul, mul_comm, mul_assoc]
 
+/-- Markov bound for a strict large-norm tail.
+
+This is the trimming-tail form used by Hansen Theorem 10.12: if the trimming
+threshold is positive, the conditional probability of `τ < ‖Z*‖` is bounded by
+`τ⁻² E*[‖Z*‖²]`. -/
+theorem measure_strict_norm_gt_le_inv_sq_mul_integral_norm_sq
+    [NormedAddCommGroup E]
+    {P : Measure Ωs} {Z : Ωs → E} (hP : IsProbabilityMeasure P)
+    (hZ : MemLp Z 2 P) {τ : ℝ} (hτ : 0 < τ) :
+    (P {ωs | τ < ‖Z ωs‖}).toReal ≤
+      (τ ^ 2)⁻¹ * ∫ ωs, ‖Z ωs‖ ^ 2 ∂P := by
+  haveI : IsProbabilityMeasure P := hP
+  let A : Set Ωs := {ωs | τ < ‖Z ωs‖}
+  let B : Set Ωs := {ωs | τ ^ 2 ≤ ‖Z ωs‖ ^ 2}
+  have hAB : A ⊆ B := by
+    intro ωs hωs
+    have hnorm : τ ≤ ‖Z ωs‖ := le_of_lt hωs
+    exact pow_le_pow_left₀ hτ.le hnorm 2
+  have hA_le_B : P.real A ≤ P.real B := measureReal_mono hAB
+  have hInt : Integrable (fun ωs => ‖Z ωs‖ ^ 2) P :=
+    (memLp_two_iff_integrable_sq_norm hZ.1).1 hZ
+  have hmarkov :
+      τ ^ 2 * P.real B ≤ ∫ ωs, ‖Z ωs‖ ^ 2 ∂P := by
+    simpa [B] using
+      (mul_meas_ge_le_integral_of_nonneg
+        (μ := P) (f := fun ωs => ‖Z ωs‖ ^ 2)
+        (ae_of_all _ fun ωs => pow_nonneg (norm_nonneg (Z ωs)) 2)
+        hInt (τ ^ 2))
+  have hB_le :
+      P.real B ≤ (τ ^ 2)⁻¹ * ∫ ωs, ‖Z ωs‖ ^ 2 ∂P :=
+    (le_inv_mul_iff₀ (sq_pos_of_pos hτ)).2 (by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using hmarkov)
+  calc
+    (P {ωs | τ < ‖Z ωs‖}).toReal = P.real A := by
+      simp [A, measureReal_def]
+    _ ≤ P.real B := hA_le_B
+    _ ≤ (τ ^ 2)⁻¹ * ∫ ωs, ‖Z ωs‖ ^ 2 ∂P := hB_le
+
+/-- Fixed-space trimming-tail constructor from a diverging threshold and a
+bounded conditional second moment.
+
+The deterministic premise `((τ n)^2)⁻¹ -> 0` is the formal diverging-threshold
+input.  Conditional second-moment convergence then makes the large-norm tail
+probability `P*(τ_n < ‖Z*_n‖)` vanish in ordinary probability. -/
+theorem trimmedTailProb_tendsto_zero_of_integral_norm_sq
+    [NormedAddCommGroup E]
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → E}
+    {τ : ℕ → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B)) :
+    TendstoInMeasure μ
+      (fun n ω => ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+      atTop (fun _ => 0) := by
+  have hscale :
+      TendstoInMeasure μ (fun n (_ : Ω) => ((τ n) ^ 2)⁻¹)
+        atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) hτinv
+  have hprod :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((τ n) ^ 2)⁻¹ *
+            ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.mul_limits_real hscale hSecond
+  refine tendstoInMeasure_zero_of_nonneg_le (μ := μ) ?_ ?_ hprod
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    exact
+      measure_strict_norm_gt_le_inv_sq_mul_integral_norm_sq
+        (P := Pstar n ω) (Z := Zstar n ω) (hPstar n ω)
+        (hZ n ω) (hτpos n)
+
+/-- Indexed trimming-tail constructor from a diverging threshold and a bounded
+conditional second moment. -/
+theorem trimmedTailProbIndexed_tendsto_zero_of_integral_norm_sq
+    [NormedAddCommGroup E]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    {τ : ℕ → ℝ} {B : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B)) :
+    TendstoInMeasure μ
+      (fun n ω => ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal)
+      atTop (fun _ => 0) := by
+  have hscale :
+      TendstoInMeasure μ (fun n (_ : Ω) => ((τ n) ^ 2)⁻¹)
+        atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) hτinv
+  have hprod :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((τ n) ^ 2)⁻¹ *
+            ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.mul_limits_real hscale hSecond
+  refine tendstoInMeasure_zero_of_nonneg_le (μ := μ) ?_ ?_ hprod
+  · intro n ω
+    exact ENNReal.toReal_nonneg
+  · intro n ω
+    exact
+      measure_strict_norm_gt_le_inv_sq_mul_integral_norm_sq
+        (P := Pstar n ω) (Z := Zstar n ω) (hPstar n ω)
+        (hZ n ω) (hτpos n)
+
 /-- If the original large-norm trimming tail has conditional probability
 `oₚ(1)`, weak bootstrap convergence transfers from `Z*` to `Z**`. -/
 theorem TendstoInBootstrapWeakDistribution.trimmedBootstrapStatistic_of_tailProb
@@ -23318,6 +23436,30 @@ theorem TendstoInBootstrapWeakDistribution.trimmedBootstrapStatistic_of_tailProb
           ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal :=
     mul_nonneg (mul_nonneg (by norm_num) (norm_nonneg f)) ENNReal.toReal_nonneg
   simpa [abs_of_nonneg htail_nonneg] using hbound
+
+/-- Fixed-space weak-transfer constructor for Hansen's trimmed statistic from
+conditional second moments and a diverging trim threshold. -/
+theorem TendstoInBootstrapWeakDistribution.trimmed_of_integral_norm_sq
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → k → ℝ} {B : ℝ}
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (trimmedBootstrapStatistic Zstar τ) ν Z :=
+  hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas
+    (trimmedTailProb_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZmem hτpos hτinv hSecond)
 
 /-- Indexed version of
 `TendstoInBootstrapWeakDistribution.trimmedBootstrapStatistic_of_tailProb`. -/
@@ -23363,6 +23505,31 @@ theorem
           ((Pstar n ω) {ωs | τ n < ‖Zstar n ω ωs‖}).toReal :=
     mul_nonneg (mul_nonneg (by norm_num) (norm_nonneg f)) ENNReal.toReal_nonneg
   simpa [abs_of_nonneg htail_nonneg] using hbound
+
+/-- Indexed weak-transfer constructor for Hansen's trimmed statistic from
+conditional second moments and a diverging trim threshold. -/
+theorem TendstoInBootstrapWeakDistributionIndexed.trimmed_of_integral_norm_sq
+    {k : Type*} [Fintype k]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ} {τ : ℕ → ℝ}
+    {ν : Measure Ωlim} {Z : Ωlim → k → ℝ} {B : ℝ}
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmem : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (trimmedBootstrapStatisticIndexed Zstar τ) ν Z :=
+  hweak.trimmedBootstrapStatistic_of_tailProb hPstar hZmeas
+    (trimmedTailProbIndexed_tendsto_zero_of_integral_norm_sq
+      (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+      hPstar hZmem hτpos hτinv hSecond)
 
 /-- The norm of Hansen's trimmed bootstrap statistic is bounded by
 `max (τ n) 0` pointwise. -/
