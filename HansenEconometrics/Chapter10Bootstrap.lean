@@ -447,6 +447,9 @@ used throughout the chapter:
   counterpart transfer that condition across conditional squared-tail
   domination; the trimmed-statistic wrappers apply this to coordinates,
   coordinate sums, and coordinate products of Hansen's `Z**`.
+  `bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure` and its indexed
+  counterpart discharge the same condition from a conditional dominating moment
+  converging in probability to a finite limit.
 * `chapter10_bootstrap_mean_tendsto_of_weak_distribution_uniform_square_tail`
   and `chapter10_bootstrap_secondMoment_tendsto_of_weak_distribution_uniform_square_tail`
   expose the conditional moment convergence pieces used by the Theorem 10.9
@@ -464,7 +467,9 @@ used throughout the chapter:
   fourth-moment variance routes, including indexed sample-size-dependent
   bootstrap spaces.  Exact-linearization wrappers compose the Theorem 10.7
   derivative-linearized Gaussian route with the coordinate uniform-square-tail
-  and fourth-moment variance theorems.
+  and fourth-moment variance theorems, and norm-fourth variants reduce those
+  coordinate tail premises to a finite-dimensional norm fourth-moment premise
+  on the underlying derivative-linearized statistic.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
@@ -16259,6 +16264,118 @@ private theorem inv_sq_mul_add_one_lt_of_div_add_one_le
     nlinarith
   simpa [div_eq_inv_mul, mul_comm, mul_left_comm, mul_assoc] using hdiv_lt
 
+/-- Uniform square-tail constructor from a convergent dominating moment.
+
+The usual fourth-moment constructor is the special case where
+`M n ω = ∫ Z*⁴ dP*`.  This more flexible form is useful when a linear map or
+Taylor bound dominates the conditional squared tail by a different moment
+sequence that has a finite probability limit. -/
+theorem bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω)
+    (hChoose :
+      ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+        R⁻¹ ^ 2 * (B + 1) < ε ∧
+        (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+          (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hRbound, hlimTail⟩ := hChoose ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  have hMomentTail :
+      Tendsto
+        (fun n => μ {ω | 1 ≤ dist (M n ω) B})
+        atTop (𝓝 0) := by
+    simpa using (tendstoInMeasure_iff_dist.mp hMoment) 1 (by norm_num)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hMomentTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let tailSq : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+        (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have htailSq_nonneg : 0 ≤ tailSq := by
+    dsimp [tailSq]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+  have htail_large : ε ≤ tailSq := by
+    simpa [Real.dist_eq, tailSq, abs_of_nonneg htailSq_nonneg] using hω
+  by_contra hsmall_not
+  have hsmall : dist (M n ω) B < 1 := not_le.mp hsmall_not
+  have hM_lt : M n ω < B + 1 := by
+    rw [Real.dist_eq] at hsmall
+    have hle_abs : M n ω - B ≤ |M n ω - B| := le_abs_self _
+    linarith
+  have hscale_nonneg : 0 ≤ R⁻¹ ^ 2 := sq_nonneg R⁻¹
+  have htail_lt : tailSq < ε := by
+    have hmul_le :
+        R⁻¹ ^ 2 * M n ω ≤ R⁻¹ ^ 2 * (B + 1) :=
+      mul_le_mul_of_nonneg_left hM_lt.le hscale_nonneg
+    exact lt_of_le_of_lt ((hTailLe n ω R hR).trans hmul_le) hRbound
+  exact not_lt_of_ge htail_large htail_lt
+
+/-- Dominating-moment uniform square-tail constructor with an eventual
+limit-tail threshold premise. -/
+theorem bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure_of_eventual_limit_tail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hB : 0 ≤ B)
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω)
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hMoment hTailLe
+    (fun ε hε => by
+      obtain ⟨R₀, hR₀, hlimTail⟩ := hLimitTail ε hε
+      let R : ℝ := max R₀ ((B + 1) / ε + 1)
+      have hR₀_le : R₀ ≤ R := le_max_left _ _
+      have hRlarge : (B + 1) / ε + 1 ≤ R := le_max_right _ _
+      exact ⟨R, hR₀.trans hR₀_le,
+        inv_sq_mul_add_one_lt_of_div_add_one_le hB hε hRlarge,
+        hlimTail R hR₀_le⟩)
+
+/-- Dominating-moment uniform square-tail constructor with the limit-tail
+premise discharged by square integrability of the weak limit. -/
+theorem bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure_of_memLp_limit
+    [IsFiniteMeasure ν]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → ℝ} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hB : 0 ≤ B)
+    (hZlim : MemLp Z 2 ν)
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω) :
+    BootstrapUniformSquareTail μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure_of_eventual_limit_tail
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (B := B) hB hMoment hTailLe
+    (integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim)
+
 /-- Uniform square-tail constructor from a fourth-moment convergence premise.
 
 The conditional fourth moment controls the conditional squared tail by
@@ -16876,6 +16993,118 @@ def BootstrapUniformSquareTailIndexed
             0})
       atTop (𝓝 0)
 
+/-- Indexed uniform square-tail constructor from a convergent dominating
+moment for sample-size-dependent bootstrap spaces. -/
+theorem bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω)
+    (hChoose :
+      ∀ ε : ℝ, 0 < ε → ∃ R : ℝ, 1 ≤ R ∧
+        R⁻¹ ^ 2 * (B + 1) < ε ∧
+        (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+          (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z := by
+  intro ε hε
+  obtain ⟨R, hR, hRbound, hlimTail⟩ := hChoose ε hε
+  refine ⟨R, hR, hlimTail, ?_⟩
+  have hMomentTail :
+      Tendsto
+        (fun n => μ {ω | 1 ≤ dist (M n ω) B})
+        atTop (𝓝 0) := by
+    simpa using (tendstoInMeasure_iff_dist.mp hMoment) 1 (by norm_num)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds
+    hMomentTail (fun _ => zero_le _) ?_
+  intro n
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  let tailSq : ℝ :=
+    ∫ ωs,
+      Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+        (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω
+  have htailSq_nonneg : 0 ≤ tailSq := by
+    dsimp [tailSq]
+    exact integral_nonneg fun ωs =>
+      Set.indicator_nonneg (fun ωs _ => sq_nonneg (Zstar n ω ωs)) ωs
+  have htail_large : ε ≤ tailSq := by
+    simpa [Real.dist_eq, tailSq, abs_of_nonneg htailSq_nonneg] using hω
+  by_contra hsmall_not
+  have hsmall : dist (M n ω) B < 1 := not_le.mp hsmall_not
+  have hM_lt : M n ω < B + 1 := by
+    rw [Real.dist_eq] at hsmall
+    have hle_abs : M n ω - B ≤ |M n ω - B| := le_abs_self _
+    linarith
+  have hscale_nonneg : 0 ≤ R⁻¹ ^ 2 := sq_nonneg R⁻¹
+  have htail_lt : tailSq < ε := by
+    have hmul_le :
+        R⁻¹ ^ 2 * M n ω ≤ R⁻¹ ^ 2 * (B + 1) :=
+      mul_le_mul_of_nonneg_left hM_lt.le hscale_nonneg
+    exact lt_of_le_of_lt ((hTailLe n ω R hR).trans hmul_le) hRbound
+  exact not_lt_of_ge htail_large htail_lt
+
+/-- Indexed dominating-moment uniform square-tail constructor with an eventual
+limit-tail threshold premise. -/
+theorem
+    bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure_of_eventual_limit_tail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {ν : Measure Ωlim} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hB : 0 ≤ B)
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω)
+    (hLimitTail :
+      ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+        ∀ R : ℝ, R₀ ≤ R →
+          (∫ ωlim, Set.indicator {ωlim | R ≤ |Z ωlim|}
+            (fun ωlim => (Z ωlim) ^ 2) ωlim ∂ν) ≤ ε) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    hMoment hTailLe
+    (fun ε hε => by
+      obtain ⟨R₀, hR₀, hlimTail⟩ := hLimitTail ε hε
+      let R : ℝ := max R₀ ((B + 1) / ε + 1)
+      have hR₀_le : R₀ ≤ R := le_max_left _ _
+      have hRlarge : (B + 1) / ε + 1 ≤ R := le_max_right _ _
+      exact ⟨R, hR₀.trans hR₀_le,
+        inv_sq_mul_add_one_lt_of_div_add_one_le hB hε hRlarge,
+        hlimTail R hR₀_le⟩)
+
+/-- Indexed dominating-moment uniform square-tail constructor with the
+limit-tail premise discharged by square integrability of the weak limit. -/
+theorem bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure_of_memLp_limit
+    [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ} {Z : Ωlim → ℝ}
+    {M : ℕ → Ω → ℝ} {B : ℝ}
+    (hB : 0 ≤ B)
+    (hZlim : MemLp Z 2 ν)
+    (hMoment : TendstoInMeasure μ M atTop (fun _ => B))
+    (hTailLe : ∀ n ω R, 1 ≤ R →
+      (∫ ωs,
+        Set.indicator {ωs | R ≤ |Zstar n ω ωs|}
+          (fun ωs => (Zstar n ω ωs) ^ 2) ωs ∂Pstar n ω) ≤
+        R⁻¹ ^ 2 * M n ω) :
+    BootstrapUniformSquareTailIndexed μ Pstar Zstar ν Z :=
+  bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure_of_eventual_limit_tail
+    (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
+    (B := B) hB hMoment hTailLe
+    (integral_tail_sq_eventual_le_of_memLp_two (μ := ν) hZlim)
+
 /-- Indexed uniform square-tail constructor from a fourth-moment convergence
 premise for sample-size-dependent bootstrap spaces. -/
 theorem bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure
@@ -17463,6 +17692,181 @@ theorem
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       hZlim hbound)
 
+/-- Coordinate norm bound for a matrix-linear map between Euclidean spaces. -/
+theorem abs_matrixContinuousLinearMap_coord_le_opNorm_mul_norm
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d]
+    (G : Matrix r d ℝ) (a : r) (x : EuclideanSpace ℝ d) :
+    |(((matrixContinuousLinearMap G x : EuclideanSpace ℝ r) : r → ℝ) a)| ≤
+      ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ) (β := fun _ : r => ℝ) a‖ *
+        (‖matrixContinuousLinearMap G‖ * ‖x‖) := by
+  have hproj :=
+    (PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ) (β := fun _ : r => ℝ) a).le_opNorm
+      (matrixContinuousLinearMap G x)
+  have hlin := (matrixContinuousLinearMap G).le_opNorm x
+  have hproj_nonneg :
+      0 ≤ ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+        (β := fun _ : r => ℝ) a‖ :=
+    norm_nonneg _
+  calc
+    |(((matrixContinuousLinearMap G x : EuclideanSpace ℝ r) : r → ℝ) a)| ≤
+        ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+          (β := fun _ : r => ℝ) a‖ *
+          ‖matrixContinuousLinearMap G x‖ := by
+          simpa [Real.norm_eq_abs] using hproj
+    _ ≤ ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+          (β := fun _ : r => ℝ) a‖ *
+          (‖matrixContinuousLinearMap G‖ * ‖x‖) :=
+        mul_le_mul_of_nonneg_left hlin hproj_nonneg
+
+/-- A norm fourth moment of the underlying statistic dominates every
+coordinate squared tail of its matrix-linear image.
+
+This is the finite-dimensional moment bridge used in the exact-linearization
+face of Hansen Theorem 10.10: the deterministic operator/projection norm
+constant is kept explicit. -/
+theorem integral_tail_sq_matrixContinuousLinearMap_coord_le_norm_fourth
+    {α d r : Type*} [MeasurableSpace α]
+    [Fintype d] [Fintype r] [DecidableEq d]
+    {P : Measure α} {T : α → EuclideanSpace ℝ d}
+    (G : Matrix r d ℝ) (a : r) {R : ℝ} (hR : 0 < R)
+    (hT4 : Integrable (fun x => ‖T x‖ ^ 4) P) :
+    (∫ x,
+      Set.indicator
+        {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+          EuclideanSpace ℝ r) : r → ℝ) a)|}
+        (fun x =>
+          (((matrixContinuousLinearMap G (T x) :
+            EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) x ∂P) ≤
+      R⁻¹ ^ 2 *
+        ((‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+          (β := fun _ : r => ℝ) a‖ * ‖matrixContinuousLinearMap G‖) ^ 4 *
+          ∫ x, ‖T x‖ ^ 4 ∂P) := by
+  let C : ℝ :=
+    ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+      (β := fun _ : r => ℝ) a‖ * ‖matrixContinuousLinearMap G‖
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (norm_nonneg _) (norm_nonneg _)
+  have hright_int :
+      Integrable (fun x => (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4)) P := by
+    exact (hT4.const_mul ((R ^ 2)⁻¹ * C ^ 4)).congr
+      (ae_of_all P fun x => by ring)
+  have hleft_nonneg :
+      0 ≤ᶠ[ae P]
+        fun x =>
+          Set.indicator
+            {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+              EuclideanSpace ℝ r) : r → ℝ) a)|}
+            (fun x =>
+              (((matrixContinuousLinearMap G (T x) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) x := by
+    exact ae_of_all P fun x =>
+      Set.indicator_nonneg
+        (fun x _ =>
+          sq_nonneg
+            (((matrixContinuousLinearMap G (T x) :
+              EuclideanSpace ℝ r) : r → ℝ) a)) x
+  have hpoint :
+      (fun x =>
+          Set.indicator
+            {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+              EuclideanSpace ℝ r) : r → ℝ) a)|}
+            (fun x =>
+              (((matrixContinuousLinearMap G (T x) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) x) ≤ᶠ[ae P]
+        fun x => (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4) := by
+    refine ae_of_all P fun x => ?_
+    let y : ℝ :=
+      (((matrixContinuousLinearMap G (T x) :
+        EuclideanSpace ℝ r) : r → ℝ) a)
+    have hy_abs_le : |y| ≤ C * ‖T x‖ := by
+      simpa [C, y, mul_assoc] using
+        abs_matrixContinuousLinearMap_coord_le_opNorm_mul_norm G a (T x)
+    have hCnorm_nonneg : 0 ≤ C * ‖T x‖ :=
+      mul_nonneg hC_nonneg (norm_nonneg _)
+    have hy4_le : y ^ 4 ≤ C ^ 4 * ‖T x‖ ^ 4 := by
+      have hpow := pow_le_pow_left₀ (abs_nonneg y) hy_abs_le 4
+      have hy4_nonneg : 0 ≤ y ^ 4 := by
+        nlinarith [sq_nonneg (y ^ 2)]
+      have habs4 : |y| ^ 4 = y ^ 4 := by
+        rw [← abs_of_nonneg hy4_nonneg, abs_pow]
+      calc
+        y ^ 4 = |y| ^ 4 := habs4.symm
+        _ ≤ (C * ‖T x‖) ^ 4 := hpow
+        _ = C ^ 4 * ‖T x‖ ^ 4 := by ring
+    by_cases hx : R ≤ |y|
+    · have hR_sq_le : R ^ 2 ≤ y ^ 2 := by
+        simpa [sq_abs] using pow_le_pow_left₀ hR.le hx 2
+      have hy_sq_nonneg : 0 ≤ y ^ 2 := sq_nonneg y
+      have hmul :
+          R ^ 2 * y ^ 2 ≤ y ^ 2 * y ^ 2 :=
+        mul_le_mul_of_nonneg_right hR_sq_le hy_sq_nonneg
+      have hscale_nonneg : 0 ≤ (R ^ 2)⁻¹ :=
+        inv_nonneg.mpr (sq_nonneg R)
+      have hscaled :
+          (R ^ 2)⁻¹ * (R ^ 2 * y ^ 2) ≤
+            (R ^ 2)⁻¹ * (y ^ 2 * y ^ 2) :=
+        mul_le_mul_of_nonneg_left hmul hscale_nonneg
+      have hy_sq_le : y ^ 2 ≤ (R ^ 2)⁻¹ * y ^ 4 := by
+        calc
+          y ^ 2 = (R ^ 2)⁻¹ * (R ^ 2 * y ^ 2) := by
+            field_simp [hR.ne']
+          _ ≤ (R ^ 2)⁻¹ * (y ^ 2 * y ^ 2) := hscaled
+          _ = (R ^ 2)⁻¹ * y ^ 4 := by ring
+      have hscaled_fourth :
+          (R ^ 2)⁻¹ * y ^ 4 ≤
+            (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4) :=
+        mul_le_mul_of_nonneg_left hy4_le hscale_nonneg
+      have hxmem :
+          x ∈ {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+            EuclideanSpace ℝ r) : r → ℝ) a)|} := by
+        simpa [y] using hx
+      change
+        Set.indicator
+          {x | R ≤ |((matrixContinuousLinearMap G) (T x)).ofLp a|}
+          (fun x => ((matrixContinuousLinearMap G) (T x)).ofLp a ^ 2) x ≤
+            (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4)
+      rw [Set.indicator_of_mem hxmem]
+      simpa [y] using hy_sq_le.trans hscaled_fourth
+    · have hxnot :
+          x ∉ {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+            EuclideanSpace ℝ r) : r → ℝ) a)|} := by
+        simpa [y] using hx
+      have hC4_nonneg : 0 ≤ C ^ 4 := by
+        nlinarith [sq_nonneg (C ^ 2)]
+      have hnorm4_nonneg : 0 ≤ ‖T x‖ ^ 4 := by
+        nlinarith [sq_nonneg (‖T x‖ ^ 2)]
+      have hright_nonneg :
+          0 ≤ (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4) :=
+        mul_nonneg (inv_nonneg.mpr (sq_nonneg R))
+          (mul_nonneg hC4_nonneg hnorm4_nonneg)
+      change
+        Set.indicator
+          {x | R ≤ |((matrixContinuousLinearMap G) (T x)).ofLp a|}
+          (fun x => ((matrixContinuousLinearMap G) (T x)).ofLp a ^ 2) x ≤
+            (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4)
+      rw [Set.indicator_of_notMem hxnot]
+      exact hright_nonneg
+  calc
+    (∫ x,
+      Set.indicator
+        {x | R ≤ |(((matrixContinuousLinearMap G (T x) :
+          EuclideanSpace ℝ r) : r → ℝ) a)|}
+        (fun x =>
+          (((matrixContinuousLinearMap G (T x) :
+            EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) x ∂P) ≤
+        ∫ x, (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4) ∂P :=
+      integral_mono_of_nonneg hleft_nonneg hright_int hpoint
+    _ = R⁻¹ ^ 2 *
+        (C ^ 4 * ∫ x, ‖T x‖ ^ 4 ∂P) := by
+      have hfun :
+          (fun x => (R ^ 2)⁻¹ * (C ^ 4 * ‖T x‖ ^ 4)) =
+            fun x => ((R ^ 2)⁻¹ * C ^ 4) * ‖T x‖ ^ 4 := by
+        funext x
+        ring
+      rw [hfun, integral_const_mul]
+      ring
+
 /-- Hansen Theorem 10.10, smooth-function Gaussian coordinate variance
 consistency from the Theorem 10.9 uniform-square-tail premise.
 
@@ -18009,6 +18413,228 @@ theorem
       (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
       (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hB
       hFourthTheta hFourthThetaInt
+
+/-- Hansen Theorem 10.10, smooth-function variance consistency from exact
+derivative linearization and a norm fourth-moment premise on the underlying
+bootstrap statistic.
+
+The norm fourth moment of `T*` dominates each coordinate squared tail of
+`G T*`; exact linearization transfers that tail control to the smooth statistic
+coordinate. This removes the coordinate-specific fourth-moment premise while
+leaving the genuinely nonlinear Taylor remainder step explicit. -/
+theorem
+    chapter10_smooth_bootstrap_variance_consistency_of_linearization_normFourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hB : 0 ≤ B)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖Tstar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  let C : ℝ :=
+    ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+      (β := fun _ : r => ℝ) a‖ * ‖matrixContinuousLinearMap G‖
+  have hC4_nonneg : 0 ≤ C ^ 4 := by
+    nlinarith [sq_nonneg (C ^ 2)]
+  have hCB_nonneg : 0 ≤ C ^ 4 * B :=
+    mul_nonneg hC4_nonneg hB
+  have hC4 :
+      TendstoInMeasure μ (fun _ (_ : Ω) => C ^ 4) atTop
+        (fun _ => C ^ 4) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  have hMoment :
+      TendstoInMeasure μ
+        (fun n ω => C ^ 4 *
+          ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => C ^ 4 * B) :=
+    TendstoInMeasure.mul_limits_real hC4 hNormFourth
+  have hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    bootstrapUniformSquareTail_of_tail_sq_le_tendstoInMeasure_of_memLp_limit
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (Z := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      (M := fun n ω => C ^ 4 *
+        ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+      (B := C ^ 4 * B) hCB_nonneg hlimMem hMoment
+      (fun n ω R hR => by
+        have hbound :=
+          integral_tail_sq_matrixContinuousLinearMap_coord_le_norm_fourth
+            (P := Pstar n ω) (T := Tstar n ω) G a
+            (zero_lt_one.trans_le hR) (hNormFourthInt n ω)
+        have hfun :
+            (fun ωs =>
+              Set.indicator
+                {ωs | R ≤ |((thetaStar n ω ωs : r → ℝ) a)|}
+                (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 2) ωs) =
+              fun ωs =>
+                Set.indicator
+                  {ωs | R ≤
+                    |(((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                      EuclideanSpace ℝ r) : r → ℝ) a)|}
+                  (fun ωs =>
+                    (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                      EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) ωs := by
+          funext ωs
+          have hcoord :
+              ((thetaStar n ω ωs : r → ℝ) a) =
+                (G *ᵥ (Tstar n ω ωs).ofLp) a := by
+            simpa [matrixContinuousLinearMap_apply] using
+              congrArg (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+                (hlinearization n ω ωs)
+          simp [Set.indicator, hcoord, matrixContinuousLinearMap_apply]
+        simpa [hfun, C] using hbound)
+  exact
+    chapter10_smooth_bootstrap_variance_consistency_of_linearization_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G a hV hPstar hT hcoordMem hlimMem
+      hlinearization hTail
+
+/-- Indexed Hansen Theorem 10.10, smooth-function variance consistency from
+exact derivative linearization and an indexed norm fourth-moment premise on
+the underlying bootstrap statistic. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_linearization_normFourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hB : 0 ≤ B)
+    (hNormFourth :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hNormFourthInt :
+      ∀ n ω, Integrable (fun ωs => ‖Tstar n ω ωs‖ ^ 4)
+        (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  let C : ℝ :=
+    ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+      (β := fun _ : r => ℝ) a‖ * ‖matrixContinuousLinearMap G‖
+  have hC4_nonneg : 0 ≤ C ^ 4 := by
+    nlinarith [sq_nonneg (C ^ 2)]
+  have hCB_nonneg : 0 ≤ C ^ 4 * B :=
+    mul_nonneg hC4_nonneg hB
+  have hC4 :
+      TendstoInMeasure μ (fun _ (_ : Ω) => C ^ 4) atTop
+        (fun _ => C ^ 4) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  have hMoment :
+      TendstoInMeasure μ
+        (fun n ω => C ^ 4 *
+          ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+        atTop (fun _ => C ^ 4 * B) :=
+    TendstoInMeasure.mul_limits_real hC4 hNormFourth
+  have hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) :=
+    bootstrapUniformSquareTailIndexed_of_tail_sq_le_tendstoInMeasure_of_memLp_limit
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+      (Z := fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+      (M := fun n ω => C ^ 4 *
+        ∫ ωs, ‖Tstar n ω ωs‖ ^ 4 ∂Pstar n ω)
+      (B := C ^ 4 * B) hCB_nonneg hlimMem hMoment
+      (fun n ω R hR => by
+        have hbound :=
+          integral_tail_sq_matrixContinuousLinearMap_coord_le_norm_fourth
+            (P := Pstar n ω) (T := Tstar n ω) G a
+            (zero_lt_one.trans_le hR) (hNormFourthInt n ω)
+        have hfun :
+            (fun ωs =>
+              Set.indicator
+                {ωs | R ≤ |((thetaStar n ω ωs : r → ℝ) a)|}
+                (fun ωs => ((thetaStar n ω ωs : r → ℝ) a) ^ 2) ωs) =
+              fun ωs =>
+                Set.indicator
+                  {ωs | R ≤
+                    |(((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                      EuclideanSpace ℝ r) : r → ℝ) a)|}
+                  (fun ωs =>
+                    (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                      EuclideanSpace ℝ r) : r → ℝ) a) ^ 2) ωs := by
+          funext ωs
+          have hcoord :
+              ((thetaStar n ω ωs : r → ℝ) a) =
+                (G *ᵥ (Tstar n ω ωs).ofLp) a := by
+            simpa [matrixContinuousLinearMap_apply] using
+              congrArg (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)
+                (hlinearization n ω ωs)
+          simp [Set.indicator, hcoord, matrixContinuousLinearMap_apply]
+        simpa [hfun, C] using hbound)
+  exact
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_linearization_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G a hV hPstar hT hcoordMem hlimMem
+      hlinearization hTail
 
 end BootstrapVariance
 
