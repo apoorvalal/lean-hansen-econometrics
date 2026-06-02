@@ -626,6 +626,11 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
+  `chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
+  `chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
+  and their indexed counterparts specialize the actual sample test statistic
+  to the ordinary HC0/HC1 OLS scalar t-statistic, using the Chapter 7
+  standard-normal OLS inference theorems for that side of the argument.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
@@ -42881,6 +42886,310 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_re
       hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
       hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
+
+/-- Theorem 10.16 with the actual statistic specialized to the ordinary HC0
+OLS scalar t-statistic.
+
+The conditional bootstrap side remains the regression t-statistic route from
+Theorem 10.18; this wrapper discharges the ordinary sample-statistic
+standard-normal premise using the Chapter 7 HC0 inference theorem. -/
+theorem
+chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {seθ critLim α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject
+          (olsLinearTStatOrZero R
+            (olsHetCovStar
+              (stackRegressors X n ω) (stackOutcomes y n ω))
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (T := fun n ω =>
+        olsLinearTStatOrZero R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      (seθ := seθ) (critLim := critLim) (α := α)
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hcdfLower hcdfUpper
+
+/-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
+HC0 OLS scalar t-statistic. -/
+theorem
+chapter10_indexed_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {seθ critLim α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject
+          (olsLinearTStatOrZero R
+            (olsHetCovStar
+              (stackRegressors X n ω) (stackOutcomes y n ω))
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (T := fun n ω =>
+        olsLinearTStatOrZero R
+          (olsHetCovStar
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      (seθ := seθ) (critLim := critLim) (α := α)
+      (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hcdfLower hcdfUpper
+
+/-- Theorem 10.16 with the actual statistic specialized to the ordinary HC1
+OLS scalar t-statistic.
+
+The conditional bootstrap side remains the regression t-statistic route from
+Theorem 10.18; this wrapper discharges the ordinary sample-statistic
+standard-normal premise using the Chapter 7 HC1 inference theorem. -/
+theorem
+chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ}
+    {seθ critLim α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistribution μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject
+          (olsLinearTStatOrZero R
+            (olsHetCovHC1Star
+              (stackRegressors X n ω) (stackOutcomes y n ω))
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+          (bootstrapScalarLowerQuantile Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (T := fun n ω =>
+        olsLinearTStatOrZero R
+          (olsHetCovHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      (seθ := seθ) (critLim := critLim) (α := α)
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hcdfLower hcdfUpper
+
+/-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
+HC1 OLS scalar t-statistic. -/
+theorem
+chapter10_indexed_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat
+    [IsProbabilityMeasure μ] [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    {seθ critLim α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hse_pos : 0 <
+      linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hseθ : 0 < seθ)
+    (hjoint :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => (TthetaStar n ω ωs, seThetaStar n ω ωs))
+        (gaussianReal 0 1) (fun z : ℝ => (seθ * z, seθ)))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hseStar :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε →
+        cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim - ε) <
+          1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α <
+          cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
+    (hcontAbs :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n) μ)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf (gaussianReal 0 1) (-critLim) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject
+          (olsLinearTStatOrZero R
+            (olsHetCovHC1Star
+              (stackRegressors X n ω) (stackOutcomes y n ω))
+            (stackRegressors X n ω) (stackOutcomes y n ω) β
+            (Real.sqrt (n : ℝ)))
+          (bootstrapScalarLowerQuantileIndexed Pstar
+            (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_regression_tstat
+      (μ := μ) (Pstar := Pstar) (TthetaStar := TthetaStar)
+      (seThetaStar := seThetaStar)
+      (T := fun n ω =>
+        olsLinearTStatOrZero R
+          (olsHetCovHC1Star
+            (stackRegressors X n ω) (stackOutcomes y n ω))
+          (stackRegressors X n ω) (stackOutcomes y n ω) β
+          (Real.sqrt (n : ℝ)))
+      (seθ := seθ) (critLim := critLim) (α := α)
+      (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
+        (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
+      hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
+      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hcdfLower hcdfUpper
 
 end BootstrapTests
 
