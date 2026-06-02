@@ -524,6 +524,8 @@ used throughout the chapter:
   from the marginal numerator bootstrap CLT, bootstrap-probability scale
   consistency, and the explicit noncompact pair-tail premise needed for
   Slutsky's theorem.
+  The fixed/indexed `*_of_scalarTail` variants further build that pair-tail
+  premise from scalar numerator compact-tail control and scale consistency.
   `chapter10_bootstrap_regression_tstat_distribution_standardNormal` and its
   indexed counterpart give the corresponding Hansen Definition 10.2 CDF face.
   `chapter10_bootstrap_regression_abs_tstat_standardNormalAbs` and
@@ -31421,6 +31423,242 @@ chapter10_indexed_bootstrap_weakDistribution_prod_const_of_probability_tight
   · intro δ hδ
     simpa [bootstrapTailProbIndexed, Prod.dist_eq] using hY δ hδ
 
+private theorem one_le_dist_of_not_mem_Icc_one {c y : ℝ}
+    (hy : y ∉ Set.Icc (c - 1) (c + 1)) :
+    (1 : ℝ) ≤ dist y c := by
+  by_cases hleft : c - 1 ≤ y
+  · have hright : ¬ y ≤ c + 1 := by
+      intro hle
+      exact hy ⟨hleft, hle⟩
+    have hgt : c + 1 < y := not_le.mp hright
+    rw [Real.dist_eq]
+    have hnonneg : 0 ≤ y - c := by linarith
+    rw [abs_of_nonneg hnonneg]
+    linarith
+  · have hlt : y < c - 1 := not_le.mp hleft
+    rw [Real.dist_eq]
+    have hnonpos : y - c ≤ 0 := by linarith
+    rw [abs_of_nonpos hnonpos]
+    linarith
+
+/-- Construct the product compact-tail premise used by the marginal
+studentization Slutsky bridge from scalar numerator compact-tail control and
+bootstrap-probability scale consistency.
+
+For each compact set `Kx` controlling the numerator, the proof uses the compact
+rectangle `Kx × [c - 1, c + 1]`.  The constant-scale pair can leave this
+rectangle only when the numerator leaves `Kx`; the random-scale pair can leave
+only when either the numerator leaves `Kx` or the feasible scale is at least
+distance `1` from `c`. -/
+theorem chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY : TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+          atTop (fun _ => 0) := by
+  intro η hη
+  rcases hXtail η hη with ⟨Kx, hKx, hXK⟩
+  let Ky : Set ℝ := Set.Icc (c - 1) (c + 1)
+  let K : Set (ℝ × ℝ) := Kx ×ˢ Ky
+  have hcKy : c ∈ Ky := by
+    dsimp [Ky]
+    constructor <;> linarith
+  refine ⟨K, hKx.prod isCompact_Icc, ?_, ?_⟩
+  · refine tendstoInMeasure_zero_of_nonneg_le
+      (μ := μ)
+      (f := fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+      (g := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+      ?_ ?_ hXK
+    · intro n ω
+      exact measureReal_nonneg
+    · intro n ω
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+      · exact measure_ne_top (Pstar n ω) {ωs | Xstar n ω ωs ∉ Kx}
+      · intro ωs hωs
+        by_contra hx
+        have hxmem : Xstar n ω ωs ∈ Kx := by
+          by_contra hxmem
+          exact hx hxmem
+        exact hωs (by exact ⟨hxmem, hcKy⟩)
+  · have hYtail :
+        TendstoInMeasure μ
+          (fun n ω => bootstrapTailProb Pstar Ystar (fun _ => c) 1 n ω)
+          atTop (fun _ => 0) :=
+      hY 1 zero_lt_one
+    have hsum :
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+              bootstrapTailProb Pstar Ystar (fun _ => c) 1 n ω)
+          atTop (fun _ => 0) :=
+      tendstoInMeasure_add_nonneg_zero
+        (μ := μ)
+        (f := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+        (g := fun n ω => bootstrapTailProb Pstar Ystar (fun _ => c) 1 n ω)
+        (fun _ _ => measureReal_nonneg)
+        (fun _ _ => ENNReal.toReal_nonneg)
+        hXK hYtail
+    refine tendstoInMeasure_zero_of_nonneg_le
+      (μ := μ)
+      (f := fun n ω =>
+        (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+      (g := fun n ω =>
+        (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+          bootstrapTailProb Pstar Ystar (fun _ => c) 1 n ω)
+      ?_ ?_ hsum
+    · intro n ω
+      exact measureReal_nonneg
+    · intro n ω
+      let C : Set Ωs := {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K}
+      let A : Set Ωs := {ωs | Xstar n ω ωs ∉ Kx}
+      let B : Set Ωs := {ωs | (1 : ℝ) ≤ dist (Ystar n ω ωs) c}
+      have hsubset : C ⊆ A ∪ B := by
+        intro ωs hωs
+        by_cases hx : Xstar n ω ωs ∈ Kx
+        · right
+          have hyKy : Ystar n ω ωs ∉ Ky := by
+            intro hy
+            exact hωs ⟨hx, hy⟩
+          exact one_le_dist_of_not_mem_Icc_one hyKy
+        · exact Or.inl hx
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      calc
+        (Pstar n ω).real C = ((Pstar n ω) C).toReal := rfl
+        _ ≤ ((Pstar n ω) (A ∪ B)).toReal :=
+            ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (A ∪ B))
+              (measure_mono hsubset)
+        _ ≤ ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+            ENNReal.toReal_mono
+              (ENNReal.add_ne_top.2
+                ⟨measure_ne_top (Pstar n ω) A, measure_ne_top (Pstar n ω) B⟩)
+              (measure_union_le A B)
+        _ ≤ ((Pstar n ω) A).toReal + ((Pstar n ω) B).toReal :=
+            ENNReal.toReal_add_le
+        _ =
+            (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+              bootstrapTailProb Pstar Ystar (fun _ => c) 1 n ω := rfl
+
+/-- Indexed product compact-tail constructor from scalar numerator compact
+tails and bootstrap-probability scale consistency. -/
+theorem chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY : TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+          atTop (fun _ => 0) := by
+  intro η hη
+  rcases hXtail η hη with ⟨Kx, hKx, hXK⟩
+  let Ky : Set ℝ := Set.Icc (c - 1) (c + 1)
+  let K : Set (ℝ × ℝ) := Kx ×ˢ Ky
+  have hcKy : c ∈ Ky := by
+    dsimp [Ky]
+    constructor <;> linarith
+  refine ⟨K, hKx.prod isCompact_Icc, ?_, ?_⟩
+  · refine tendstoInMeasure_zero_of_nonneg_le
+      (μ := μ)
+      (f := fun n ω => (Pstar n ω).real {ωs | (Xstar n ω ωs, c) ∉ K})
+      (g := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+      ?_ ?_ hXK
+    · intro n ω
+      exact measureReal_nonneg
+    · intro n ω
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      refine ENNReal.toReal_mono ?_ (measure_mono ?_)
+      · exact measure_ne_top (Pstar n ω) {ωs | Xstar n ω ωs ∉ Kx}
+      · intro ωs hωs
+        by_contra hx
+        have hxmem : Xstar n ω ωs ∈ Kx := by
+          by_contra hxmem
+          exact hx hxmem
+        exact hωs (by exact ⟨hxmem, hcKy⟩)
+  · have hYtail :
+        TendstoInMeasure μ
+          (fun n ω =>
+            bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω)
+          atTop (fun _ => 0) :=
+      hY 1 zero_lt_one
+    have hsum :
+        TendstoInMeasure μ
+          (fun n ω =>
+            (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+              bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω)
+          atTop (fun _ => 0) :=
+      tendstoInMeasure_add_nonneg_zero
+        (μ := μ)
+        (f := fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+        (g := fun n ω =>
+          bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω)
+        (fun _ _ => measureReal_nonneg)
+        (fun _ _ => ENNReal.toReal_nonneg)
+        hXK hYtail
+    refine tendstoInMeasure_zero_of_nonneg_le
+      (μ := μ)
+      (f := fun n ω =>
+        (Pstar n ω).real {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K})
+      (g := fun n ω =>
+        (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+          bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω)
+      ?_ ?_ hsum
+    · intro n ω
+      exact measureReal_nonneg
+    · intro n ω
+      let C : Set (Ωboot n) := {ωs | (Xstar n ω ωs, Ystar n ω ωs) ∉ K}
+      let A : Set (Ωboot n) := {ωs | Xstar n ω ωs ∉ Kx}
+      let B : Set (Ωboot n) := {ωs | (1 : ℝ) ≤ dist (Ystar n ω ωs) c}
+      have hsubset : C ⊆ A ∪ B := by
+        intro ωs hωs
+        by_cases hx : Xstar n ω ωs ∈ Kx
+        · right
+          have hyKy : Ystar n ω ωs ∉ Ky := by
+            intro hy
+            exact hωs ⟨hx, hy⟩
+          exact one_le_dist_of_not_mem_Icc_one hyKy
+        · exact Or.inl hx
+      haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      calc
+        (Pstar n ω).real C = ((Pstar n ω) C).toReal := rfl
+        _ ≤ ((Pstar n ω) (A ∪ B)).toReal :=
+            ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (A ∪ B))
+              (measure_mono hsubset)
+        _ ≤ ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+            ENNReal.toReal_mono
+              (ENNReal.add_ne_top.2
+                ⟨measure_ne_top (Pstar n ω) A, measure_ne_top (Pstar n ω) B⟩)
+              (measure_union_le A B)
+        _ ≤ ((Pstar n ω) A).toReal + ((Pstar n ω) B).toReal :=
+            ENNReal.toReal_add_le
+        _ =
+            (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx} +
+              bootstrapTailProbIndexed Pstar Ystar (fun _ => c) 1 n ω := rfl
+
 /-- Standard-normal studentization from a marginal numerator bootstrap CLT,
 bootstrap-probability scale consistency, and explicit pair compact-tail
 control. -/
@@ -31742,6 +31980,261 @@ chapter10_indexed_bootstrap_studentized_abs_distribution_of_numerator_tight
     chapter10_indexed_bootstrap_studentized_ratio_abs_distribution_standardNormalAbs
       (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
       (c := c) hc hpair hPstar hXstar hYstar hY
+
+/-- Standard-normal studentization from marginal numerator weak convergence,
+scalar numerator compact-tail control, and feasible-scale consistency. -/
+theorem chapter10_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) := by
+  have hTail :=
+    chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_bootstrap_studentized_ratio_standardNormal_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Indexed standard-normal studentization from marginal numerator weak
+convergence, scalar numerator compact-tail control, and feasible-scale
+consistency. -/
+theorem
+chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) := by
+  have hTail :=
+    chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Hansen Definition 10.2 face of studentization from scalar numerator
+compact-tail control. -/
+theorem chapter10_bootstrap_studentized_ratio_distribution_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) := by
+  have hTail :=
+    chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_bootstrap_studentized_ratio_distribution_standardNormal_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Indexed Hansen Definition 10.2 face of studentization from scalar numerator
+compact-tail control. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_distribution_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) => Xstar n ω ωs / Ystar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) := by
+  have hTail :=
+    chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_indexed_bootstrap_studentized_ratio_distribution_standardNormal_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Absolute studentized statistic from scalar numerator compact-tail control. -/
+theorem chapter10_bootstrap_studentized_ratio_abs_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) := by
+  have hTail :=
+    chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_bootstrap_studentized_ratio_abs_standardNormalAbs_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Indexed absolute studentized statistic from scalar numerator compact-tail
+control. -/
+theorem chapter10_indexed_bootstrap_studentized_ratio_abs_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) := by
+  have hTail :=
+    chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_indexed_bootstrap_studentized_ratio_abs_standardNormalAbs_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Hansen Definition 10.2 face of the absolute studentized statistic from
+scalar numerator compact-tail control. -/
+theorem chapter10_bootstrap_studentized_abs_distribution_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Xstar Ystar : ℕ → Ω → Ωs → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistribution μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbability μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) := by
+  have hTail :=
+    chapter10_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_bootstrap_studentized_abs_distribution_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
+
+/-- Indexed Hansen Definition 10.2 face of the absolute studentized statistic
+from scalar numerator compact-tail control. -/
+theorem chapter10_indexed_bootstrap_studentized_abs_distribution_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Xstar Ystar : ∀ n, Ω → Ωboot n → ℝ} {c : ℝ}
+    (hc : 0 < c)
+    (hX :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Xstar
+        (gaussianReal 0 1) (fun z : ℝ => c * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hXstar : ∀ n ω, Measurable (Xstar n ω))
+    (hYstar : ∀ n ω, Measurable (Ystar n ω))
+    (hXtail : ∀ η : ℝ, 0 < η →
+      ∃ Kx : Set ℝ, IsCompact Kx ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Xstar n ω ωs ∉ Kx})
+          atTop (fun _ => 0))
+    (hY :
+      TendstoInBootstrapProbabilityIndexed μ Pstar Ystar (fun _ => c)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) => |Xstar n ω ωs / Ystar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) := by
+  have hTail :=
+    chapter10_indexed_bootstrap_pair_compactTail_of_scalar_compactTail
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hPstar hXtail hY
+  exact
+    chapter10_indexed_bootstrap_studentized_abs_distribution_of_numerator_tight
+      (μ := μ) (Pstar := Pstar) (Xstar := Xstar) (Ystar := Ystar)
+      (c := c) hc hX hPstar hXstar hYstar hTail hY
 
 end BootstrapStudentization
 
@@ -32651,6 +33144,233 @@ chapter10_indexed_bootstrap_regression_abs_tstat_distribution_standardNormalAbs_
     (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
     (Ystar := seThetaStar) (c := seθ)
     hseθ hT hPstar hTthetaStar hseThetaStar hTail hse
+
+/-- Hansen Theorem 10.18 regression t-statistic route from a marginal
+numerator CLT, scalar numerator compact-tail control, and feasible-scale
+consistency. -/
+theorem chapter10_bootstrap_regression_tstat_standardNormal_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Indexed Hansen Theorem 10.18 regression t-statistic route from scalar
+numerator compact-tail control. -/
+theorem chapter10_indexed_bootstrap_regression_tstat_standardNormal_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Hansen Definition 10.2 face of the regression t-statistic route from
+scalar numerator compact-tail control. -/
+theorem chapter10_bootstrap_regression_tstat_distribution_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_ratio_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Indexed Hansen Definition 10.2 face of the regression t-statistic route
+from scalar numerator compact-tail control. -/
+theorem chapter10_indexed_bootstrap_regression_tstat_distribution_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        TthetaStar n ω ωs / seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Hansen Theorem 10.18 absolute regression t-statistic route from scalar
+numerator compact-tail control. -/
+theorem chapter10_bootstrap_regression_abs_tstat_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_bootstrap_studentized_ratio_abs_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Indexed Hansen Theorem 10.18 absolute regression t-statistic route from
+scalar numerator compact-tail control. -/
+theorem chapter10_indexed_bootstrap_regression_abs_tstat_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_abs_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Hansen Definition 10.2 face of the absolute regression t-statistic route
+from scalar numerator compact-tail control. -/
+theorem chapter10_bootstrap_regression_abs_tstat_distribution_of_scalarTail
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TthetaStar seThetaStar : ℕ → Ω → Ωs → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_bootstrap_studentized_abs_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
+
+/-- Indexed Hansen Definition 10.2 face of the absolute regression t-statistic
+route from scalar numerator compact-tail control. -/
+theorem chapter10_indexed_bootstrap_regression_abs_tstat_distribution_of_scalarTail
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TthetaStar seThetaStar : ∀ n, Ω → Ωboot n → ℝ} {seθ : ℝ}
+    (hseθ : 0 < seθ)
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TthetaStar
+        (gaussianReal 0 1) (fun z : ℝ => seθ * z))
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hTthetaStar : ∀ n ω, Measurable (TthetaStar n ω))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | TthetaStar n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs (_ : Unit) =>
+        |TthetaStar n ω ωs / seThetaStar n ω ωs|)
+      ((gaussianReal 0 1).map (fun z : ℝ => |z|))
+      (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_abs_distribution_of_scalarTail
+    (μ := μ) (Pstar := Pstar) (Xstar := TthetaStar)
+    (Ystar := seThetaStar) (c := seθ)
+    hseθ hT hPstar hTthetaStar hseThetaStar hTtail hse
 
 /-- Hansen Theorem 10.19, regression-facing trimmed bootstrap variance bridge.
 
