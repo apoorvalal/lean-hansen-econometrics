@@ -31623,6 +31623,64 @@ theorem
       hTailCoord hTailSum)
 
 /-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
+weak convergence, uniform-square-tail controls, a second-moment trimming-tail
+bound, and coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_finiteReplicationCenteredTrimmedCovariance_tendsto_of_integral_norm_sq_l2
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {B : ℝ}
+    {Cfinite : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmemVec : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistribution μ Pstar Zstar ν Z)
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTail μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMat Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+    hfiniteInt hfiniteBound
+    (chapter10_trimmedBootstrapVariance_tendsto_of_uniformSquareTail_integral_norm_sq
+      (μ := μ) (ν := ν) hPstar hτpos hτinv hZmeas hZmemVec hZmem
+      hZlim hweak hSecond hTailCoord hTailSum)
+
+/-- Hansen Theorem 10.11/10.12 finite-replication trimmed covariance from
 weak convergence, an eventually bounded trim threshold, and coordinatewise `L²`
 simulation-error bounds. -/
 theorem
@@ -31873,6 +31931,65 @@ theorem
     (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_weak_distribution_uniformSquareTail
       (μ := μ) (ν := ν) hPstar hτ hZmeas hZmem hZlim hweak hTailProb
       hTailCoord hTailSum)
+
+/-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
+from weak convergence, uniform-square-tail controls, a second-moment
+trimming-tail bound, and coordinatewise `L²` simulation-error bounds. -/
+theorem
+    chapter10_indexed_finiteReplicationCenteredTrimmedCovariance_tendsto_of_integral_norm_sq_l2
+    [IsFiniteMeasure μ] {k : Type*} [Fintype k] [IsFiniteMeasure ν]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → k → ℝ}
+    {Z : Ωlim → k → ℝ} {τ : ℕ → ℝ} {B : ℝ}
+    {Cfinite : k → k → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hτpos : ∀ n, 0 < τ n)
+    (hτinv : Tendsto (fun n => ((τ n) ^ 2)⁻¹) atTop (𝓝 0))
+    (hZmeas : ∀ n ω, Measurable (Zstar n ω))
+    (hZmemVec : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hZmem : ∀ n ω a, MemLp (fun ωs => Zstar n ω ωs a) 2 (Pstar n ω))
+    (hZlim : ∀ a, MemLp (fun ωlim => Z ωlim a) 2 ν)
+    (hweak : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Z)
+    (hSecond :
+      TendstoInMeasure μ
+        (fun n ω => ∫ ωs, ‖Zstar n ω ωs‖ ^ 2 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hTailCoord :
+      ∀ a,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a) ν
+          (fun ωlim => Z ωlim a))
+    (hTailSum :
+      ∀ a c,
+        BootstrapUniformSquareTailIndexed μ Pstar
+          (fun n ω ωs => Zstar n ω ωs a + Zstar n ω ωs c) ν
+          (fun ωlim => Z ωlim a + Z ωlim c))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                trimmedBootstrapCovarianceMatIndexed Pstar Zstar τ n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => fun a c =>
+        (∫ ωlim, Z ωlim a * Z ωlim c ∂ν) -
+          (∫ ωlim, Z ωlim a ∂ν) * (∫ ωlim, Z ωlim c ∂ν)) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_trimmed_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar) (τ := τ)
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_trimmedBootstrapVariance_tendsto_of_uniformSquareTail_integral_norm_sq
+      (μ := μ) (ν := ν) hPstar hτpos hτinv hZmeas hZmemVec hZmem
+      hZlim hweak hSecond hTailCoord hTailSum)
 
 /-- Indexed Hansen Theorem 10.11/10.12 finite-replication trimmed covariance
 from weak convergence, an eventually bounded trim threshold, and coordinatewise
