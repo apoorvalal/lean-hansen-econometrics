@@ -222,7 +222,11 @@
   the corresponding fixed/indexed weak, event, CDF, and positive-definite CDF smooth-function
   Gaussian conclusions for noncompact paths once closeness and asymptotic compact-tail controls
   are supplied. Compact-tail distance-envelope wrappers now give the same noncompact route from a
-  pointwise remainder bound whose conditional bootstrap tails vanish.
+  pointwise remainder bound whose conditional bootstrap tails vanish. Fixed/indexed quadratic
+  Taylor-remainder wrappers now discharge that remainder-tail premise from
+  `dist thetaStar (G Tstar) <= rho_n ||Tstar||^2`, `rho_n^2 -> 0`, and conditional norm-fourth
+  convergence of the linearized bootstrap statistic, covering the weak, event, CDF, and
+  positive-definite CDF smooth Gaussian faces.
 - Theorem 10.10 now has fixed and indexed smooth-function Gaussian coordinate variance wrappers:
   a Theorem 10.7 Gaussian weak limit for the smooth statistic, projected to a scalar coordinate,
   feeds the Theorem 10.9 uniform-square-tail or fourth-moment variance routes directly. Fixed and
