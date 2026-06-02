@@ -463,8 +463,8 @@ used throughout the chapter:
   Hansen Theorem 10.7 with the Theorem 10.9 uniform-square-tail or
   fourth-moment variance routes, including indexed sample-size-dependent
   bootstrap spaces.  Exact-linearization wrappers compose the Theorem 10.7
-  derivative-linearized Gaussian route with the coordinate fourth-moment
-  variance theorem.
+  derivative-linearized Gaussian route with the coordinate uniform-square-tail
+  and fourth-moment variance theorems.
 * `chapter10_trimmedBootstrapVariance_tendsto_of_moments` is the trimmed
   conditional covariance bridge behind Hansen Theorem 10.12.
 * `norm_trimmedBootstrapStatistic_le_of_nonneg` and its indexed counterpart
@@ -17705,6 +17705,118 @@ theorem
     chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_fourthMoment_memLp_limit
       (μ := μ) (ν := multivariateGaussian (0 : EuclideanSpace ℝ r) S)
       hPstar hcoordMem hlimMem hweakCoord hB hFourth hFourthInt
+
+/-- Hansen Theorem 10.10, smooth-function variance consistency from exact
+derivative linearization and the Theorem 10.9 uniform-square-tail premise.
+
+The exact linearization supplies the smooth Gaussian weak limit from Hansen
+Theorem 10.7. The scalar coordinate tail premise is still stated on the smooth
+statistic itself, so the model-specific Taylor/Rosenthal step remains explicit. -/
+theorem
+    chapter10_smooth_bootstrap_variance_consistency_of_linearization_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hTail :
+      BootstrapUniformSquareTail μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistribution μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_bootstrap_smooth_function_gaussian_of_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  exact
+    chapter10_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hTail
+
+/-- Indexed Hansen Theorem 10.10, smooth-function variance consistency from
+exact derivative linearization and the indexed Theorem 10.9
+uniform-square-tail premise. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_linearization_uniformSquareTail
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hTail :
+      BootstrapUniformSquareTailIndexed μ Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a)
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  have hGaussian :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar thetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))
+        (fun z : EuclideanSpace ℝ r => z) :=
+    chapter10_indexed_bootstrap_smooth_function_gaussian_of_linearization
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hT hlinearization
+  exact
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_gaussian_uniformSquareTail
+      (μ := μ) (Pstar := Pstar) (thetaStar := thetaStar)
+      (S := G * V * Gᵀ) a hPstar hcoordMem hlimMem hGaussian hTail
 
 /-- Hansen Theorem 10.10, smooth-function variance consistency from exact
 derivative linearization and a linearized fourth-moment premise.
