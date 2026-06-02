@@ -571,9 +571,11 @@ used throughout the chapter:
   wrappers discharge the finite-replication simulation-error premise from
   coordinatewise `O(n⁻¹)` mean-square bounds. The fixed/indexed
   `chapter10_smoothVariance_finiteReplicationCentered_l2Bounds` and
-  `chapter10_smoothVariance_finiteReplicationCentered_trimmedL2` wrappers
-  insert the bounded finite-replication WLLN and trimmed simulation-error
-  routes directly into the smooth plug-in covariance estimator.
+  `chapter10_smoothVariance_finiteReplicationCentered_l2Simulation` wrappers,
+  together with their trimmed counterparts, insert the bounded
+  finite-replication WLLN, ordinary simulation-error, and trimmed
+  simulation-error routes directly into the smooth plug-in covariance
+  estimator.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
   coverage bridge behind Hansen Theorem 10.13.
 * `percentileCoverageVector_tendstoInDistribution_of_components` assembles the
@@ -37287,6 +37289,92 @@ theorem chapter10_indexed_smoothVariance_finiteReplicationCentered_l2Bounds
       (μ := μ) (Z := Z) (m := m) (M₂ := M₂)
       (Cmean := Cmean) (Ccross := Ccross)
       hmeanInt hmeanBound hcrossInt hcrossBound)
+
+/-- Hansen Theorem 10.8/10.11 plug-in covariance estimator from conditional
+covariance consistency and finite-replication `L²` simulation error.
+
+This is the smooth plug-in version of the centered finite-replication
+simulation-error transfer against the ordinary conditional bootstrap covariance
+matrix. -/
+theorem chapter10_smoothVariance_finiteReplicationCentered_l2Simulation
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Zstar : ℕ → Ω → Ωs → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ} {Cfinite : d → d → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMat Pstar Zstar n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMat Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbability μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_bootstrap_smooth_variance_of_finiteReplicationCovarianceCenteredMat
+    (μ := μ) (Pstar := Pstar) hPstar hG
+    (chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar)
+      hfiniteInt hfiniteBound hboot)
+
+/-- Indexed Hansen Theorem 10.8/10.11 plug-in covariance estimator from
+conditional covariance consistency and finite-replication `L²` simulation
+error. -/
+theorem chapter10_indexed_smoothVariance_finiteReplicationCentered_l2Simulation
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zsim : ℕ → ℕ → Ω → d → ℝ}
+    {Zstar : ∀ n, Ω → Ωboot n → d → ℝ}
+    {Gseq : ℕ → Ω → Matrix d r ℝ} {G : Matrix d r ℝ}
+    {V : Matrix d d ℝ} {Cfinite : d → d → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hG : TendstoInMeasure μ Gseq atTop (fun _ => G))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^
+            (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar Zstar n ω) a c‖ ^
+              (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ))
+    (hboot :
+      TendstoInMeasure μ (bootstrapCovarianceMatIndexed Pstar Zstar) atTop
+        (fun _ => V)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gseq n ω)
+          (finiteReplicationCovarianceCenteredMat Zsim n ω))
+      (fun _ => smoothFunctionVarianceFunctional G V) :=
+  chapter10_indexed_bootstrap_smooth_variance_of_finiteReplicationCovarianceCenteredMat
+    (μ := μ) (Pstar := Pstar) hPstar hG
+    (chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar) (Zstar := Zstar)
+      hfiniteInt hfiniteBound hboot)
 
 /-- Hansen Theorem 10.8/10.11/10.12 plug-in covariance estimator from trimmed
 conditional covariance consistency and finite-replication `L²` simulation
