@@ -639,9 +639,10 @@ used throughout the chapter:
 * `chapter10_percentileCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles`
   identifies those symmetric percentile endpoints as original-scale shifts of
   lower generalized inverses of conditional bootstrap CDFs.
-* `chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posDef_brackets`
-  specializes the indexed law-facing percentile route to the concrete
-  normalized scalar `Fin (n+1)` ordinary-bootstrap resample mean.
+* `chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posDef`
+  and its `_brackets` counterpart specialize the indexed law-facing percentile
+  route to the concrete normalized scalar `Fin (n+1)` ordinary-bootstrap
+  resample mean.
 * `chapter10_percentileTCI_coverage_tendsto_of_joint_quantile_limit` is the
   percentile-`t` coverage bridge behind Hansen Theorem 10.14.
 * `percentileTCoverageVector_tendstoInDistribution_of_components` assembles
@@ -669,9 +670,10 @@ used throughout the chapter:
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_lowerQuantiles`
   identifies those symmetric percentile-`t` endpoints as lower generalized
   inverses of conditional bootstrap CDFs.
-* `chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets`
-  specializes the indexed law-facing percentile-`t` route to the concrete
-  normalized scalar `Fin (n+1)` ordinary-bootstrap resample mean.
+* `chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean` and its
+  `_brackets` counterpart specialize the indexed law-facing percentile-`t`
+  route to the concrete normalized scalar `Fin (n+1)` ordinary-bootstrap
+  resample mean.
 * `chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_tstat`
   and its indexed counterpart compose the Theorem 10.18 regression t-statistic
   standard-normal bootstrap CDF route with the Theorem 10.14 percentile-`t`
@@ -688,9 +690,10 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
-  `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets`
-  specializes the indexed local-CDF critical-value route to the concrete
-  absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample mean.
+  `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef` and its
+  `_brackets` counterpart specialize the indexed critical-value route to the
+  concrete absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample
+  mean.
   `chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
@@ -46166,6 +46169,111 @@ chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posD
       hleftLower hrightLower hleftUpper hrightUpper hTstar hZlaw hcont
       hlower_meas hupper_meas hξ hq_nonneg hcdfLower hcdfUpper
 
+/-- Strict-CDF counterpart of
+`chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posDef_brackets`.
+
+The strict monotonicity of the scalar limit CDF supplies the local endpoint
+bracketing needed by the concrete ordinary-bootstrap percentile constructor. -/
+theorem
+chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posDef
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef)
+    {a : ℕ → ℝ} (ha : ∀ n, 0 < a n)
+    {θ : ℝ} {θhat : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hstat :
+      TendstoInDistribution
+        (fun n ω => a n * (θhat n ω - θ))
+        atTop ξ (fun _ => μ) ν)
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hZlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) η
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω))))
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent θ
+          (θhat n ω +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              (α / 2) n ω / a n)
+          (θhat n ω +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              (1 - α / 2) n ω / a n)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  obtain ⟨hleftLower, hrightLower⟩ :=
+    strictMono_cdf_brackets hstrict hcdfLower
+  obtain ⟨hleftUpper, hrightUpper⟩ :=
+    strictMono_cdf_brackets hstrict hcdfUpper
+  exact
+    chapter10_percentileCI_coverage_indexed_finSucc_resampleMean_of_iIndep_tail_posDef_brackets
+      (μ := μ) (ν := ν) (η := η) Y hYmem hindep hident hS ha
+      (θ := θ) (θhat := θhat) (ξ := ξ) (q := q) (α := α)
+      hstat hα_pos hα_lt_one hleftLower hrightLower hleftUpper
+      hrightUpper hcont hlower_meas hupper_meas hξ hZlaw hq_nonneg
+      hcdfLower hcdfUpper
+
 end PercentileIntervals
 
 section PercentileTIntervals
@@ -47942,6 +48050,110 @@ chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets
       (α := α) hse htstat hPstar hTmeas hα_pos hα_lt_one
       hleftLower hrightLower hleftUpper hrightUpper hTstar hZlaw hcont
       hlower_meas hupper_meas hξ hq_nonneg hcdfLower hcdfUpper
+
+/-- Strict-CDF counterpart of
+`chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets`.
+
+The strict monotonicity of the scalar t-ratio limit CDF supplies the local
+endpoint bracketing needed by the concrete ordinary-bootstrap percentile-`t`
+constructor. -/
+theorem
+chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef)
+    {θ : ℝ} {θhat se : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {q α : ℝ}
+    (hse : ∀ n ω, 0 < se n ω)
+    (htstat :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhat n ω) (se n ω))
+        atTop ξ (fun _ => μ) ν)
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf η x))
+    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf η y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (1 - α / 2) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hZlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) η
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω))))
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf η (-q) = α / 2)
+    (hcdfUpper : cdf η q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (α / 2) n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+            (1 - α / 2) n ω)})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  obtain ⟨hleftLower, hrightLower⟩ :=
+    strictMono_cdf_brackets hstrict hcdfLower
+  obtain ⟨hleftUpper, hrightUpper⟩ :=
+    strictMono_cdf_brackets hstrict hcdfUpper
+  exact
+    chapter10_percentileTCI_coverage_indexed_finSucc_resampleMean_brackets
+      (μ := μ) (ν := ν) (η := η) Y hYmem hindep hident hS
+      (θ := θ) (θhat := θhat) (se := se) (ξ := ξ) (q := q)
+      (α := α) hse htstat hα_pos hα_lt_one hleftLower hrightLower
+      hleftUpper hrightUpper hcont hlower_meas hupper_meas hξ hZlaw
+      hq_nonneg hcdfLower hcdfUpper
 
 /-- Regression-facing percentile-`t` coverage from the Theorem 10.18
 bootstrap t-statistic route.
@@ -51655,6 +51867,79 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
       hAstarDist hAlaw hcontAbs hcrit_meas' hξ hcrit_nonneg
       hcdfLower hcdfUpper
   simpa [Pstar, Astar, scalarStat] using hreject
+
+/-- Strict-CDF counterpart of
+`chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets`.
+
+The strict monotonicity of the absolute-statistic limit CDF supplies the local
+critical-value bracketing needed by the concrete ordinary-bootstrap two-sided
+test constructor. -/
+theorem
+chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs] [NoAtoms ηAbs]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef)
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs : StrictMono (fun x => cdf ηAbs x))
+    (hcritLevel : cdf ηAbs critLim = 1 - α)
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              |Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))|)
+            (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hAlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
+        ηAbs
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω))))
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              |Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    strictMono_cdf_brackets hstrictAbs hcritLevel
+  exact
+    chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs)
+      Y hYmem hindep hident hS
+      (T := T) (ξ := ξ) (critLim := critLim) (α := α)
+      hT hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas hξ hAlaw
+      hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Regression-facing two-sided bootstrap-test calibration from the Theorem
 10.18 t-statistic route.
