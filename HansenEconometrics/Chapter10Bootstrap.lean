@@ -56562,6 +56562,14 @@ noncomputable def bcaAdjustedLevel
   Phi (z0 + (normalQuantile alpha + z0) /
     (1 - accel * (normalQuantile alpha + z0)))
 
+@[simp]
+theorem bcaAdjustedLevel_accel_zero
+    {Phi normalQuantile : ℝ → ℝ} {z0 alpha : ℝ} :
+    bcaAdjustedLevel Phi normalQuantile z0 0 alpha =
+      biasCorrectedAdjustedLevel Phi normalQuantile z0 alpha := by
+  simp [bcaAdjustedLevel, biasCorrectedAdjustedLevel]
+  ring_nf
+
 /-- Hansen's jackknife acceleration estimate for the BCa interval. -/
 noncomputable def bcaJackknifeAcceleration
     {ι : Type*} [Fintype ι] (thetaLeaveOneOut : ι → ℝ) : ℝ :=
@@ -56579,6 +56587,235 @@ def bcaPercentileCIEvent
       (bcaAdjustedLevel Phi normalQuantile z0 accel (alpha / 2)))
     (bootstrapQuantile
       (bcaAdjustedLevel Phi normalQuantile z0 accel (1 - alpha / 2)))
+
+/-- Hansen equation (10.28): BCa transformed pivot
+`(psi(thetaHat) - psi(theta)) / (1 + a * psi(theta)) + z0`. -/
+noncomputable def bcaPivot
+    (psi : ℝ → ℝ) (theta accel z0 thetaHat : ℝ) : ℝ :=
+  (psi thetaHat - psi theta) / (1 + accel * psi theta) + z0
+
+/-- Hansen equation (10.29): the bootstrap analogue of the BCa transformed
+pivot, centered at the sample estimate. -/
+noncomputable def bcaBootstrapPivot
+    (psi : ℝ → ℝ) (thetaHat accel z0 thetaStar : ℝ) : ℝ :=
+  (psi thetaStar - psi thetaHat) / (1 + accel * psi thetaHat) + z0
+
+/-- A law-facing form of Hansen equation (10.29): if the BCa bootstrap pivot
+has law `eta`, then its lower-tail probability is `cdf eta x`. -/
+theorem bcaBootstrapPivot_probability_le_eq_cdf
+    {eta : Measure ℝ} [IsProbabilityMeasure eta]
+    {psi : ℝ → ℝ} {thetaHat accel z0 x : ℝ}
+    {thetaStar : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => bcaBootstrapPivot psi thetaHat accel z0 (thetaStar ω))
+        eta μ) :
+    μ.real {ω | bcaBootstrapPivot psi thetaHat accel z0 (thetaStar ω) ≤ x} =
+      cdf eta x := by
+  change
+    μ.real
+      ((fun ω => bcaBootstrapPivot psi thetaHat accel z0 (thetaStar ω)) ⁻¹'
+        Set.Iic x) = cdf eta x
+  exact HasLaw.real_preimage_Iic_eq_cdf hZ x
+
+/-- Ideal BCa transformed endpoint used in Hansen's exact-coverage proof:
+`(psi(thetaHat) + z + z0) / (1 - a * (z + z0))`. -/
+noncomputable def bcaIdealEndpoint
+    (psiThetaHat accel z0 z : ℝ) : ℝ :=
+  (psiThetaHat + z + z0) / (1 - accel * (z + z0))
+
+/-- The ideal transformed-endpoint BCa interval event used after the adjusted
+bootstrap quantiles have been identified through (10.29). -/
+def bcaIdealCIEvent
+    (psi : ℝ → ℝ) (theta thetaHat accel z0 zLower zUpper : ℝ) : Prop :=
+  bcaIdealEndpoint (psi thetaHat) accel z0 zLower ≤ psi theta ∧
+    psi theta ≤ bcaIdealEndpoint (psi thetaHat) accel z0 zUpper
+
+private theorem bcaIdealEndpoint_le_iff_pivot_le_neg
+    {psiTheta psiThetaHat accel z0 z : ℝ}
+    (hden : 0 < 1 - accel * (z + z0))
+    (hpivot : 0 < 1 + accel * psiTheta) :
+    bcaIdealEndpoint psiThetaHat accel z0 z ≤ psiTheta ↔
+      (psiThetaHat - psiTheta) / (1 + accel * psiTheta) + z0 ≤ -z := by
+  constructor
+  · intro h
+    have hmul :
+        psiThetaHat + z + z0 ≤
+          psiTheta * (1 - accel * (z + z0)) := by
+      simpa [bcaIdealEndpoint] using (div_le_iff₀ hden).1 h
+    have htarget :
+        psiThetaHat - psiTheta ≤
+          (-z - z0) * (1 + accel * psiTheta) := by
+      nlinarith
+    have hdiv :
+        (psiThetaHat - psiTheta) / (1 + accel * psiTheta) ≤
+          -z - z0 :=
+      (div_le_iff₀ hpivot).2 htarget
+    linarith
+  · intro h
+    have hdiv :
+        (psiThetaHat - psiTheta) / (1 + accel * psiTheta) ≤
+          -z - z0 := by
+      linarith
+    have hmul :
+        psiThetaHat - psiTheta ≤
+          (-z - z0) * (1 + accel * psiTheta) :=
+      (div_le_iff₀ hpivot).1 hdiv
+    have htarget :
+        psiThetaHat + z + z0 ≤
+          psiTheta * (1 - accel * (z + z0)) := by
+      nlinarith
+    exact (div_le_iff₀ hden).2 (by
+      simpa [bcaIdealEndpoint] using htarget)
+
+private theorem le_bcaIdealEndpoint_iff_neg_le_pivot
+    {psiTheta psiThetaHat accel z0 z : ℝ}
+    (hden : 0 < 1 - accel * (z + z0))
+    (hpivot : 0 < 1 + accel * psiTheta) :
+    psiTheta ≤ bcaIdealEndpoint psiThetaHat accel z0 z ↔
+      -z ≤ (psiThetaHat - psiTheta) / (1 + accel * psiTheta) + z0 := by
+  constructor
+  · intro h
+    have hmul :
+        psiTheta * (1 - accel * (z + z0)) ≤
+          psiThetaHat + z + z0 := by
+      simpa [bcaIdealEndpoint] using (le_div_iff₀ hden).1 h
+    have htarget :
+        (-z - z0) * (1 + accel * psiTheta) ≤
+          psiThetaHat - psiTheta := by
+      nlinarith
+    have hdiv :
+        -z - z0 ≤
+          (psiThetaHat - psiTheta) / (1 + accel * psiTheta) :=
+      (le_div_iff₀ hpivot).2 htarget
+    linarith
+  · intro h
+    have hdiv :
+        -z - z0 ≤
+          (psiThetaHat - psiTheta) / (1 + accel * psiTheta) := by
+      linarith
+    have hmul :
+        (-z - z0) * (1 + accel * psiTheta) ≤
+          psiThetaHat - psiTheta :=
+      (le_div_iff₀ hpivot).1 hdiv
+    have htarget :
+        psiTheta * (1 - accel * (z + z0)) ≤
+          psiThetaHat + z + z0 := by
+      nlinarith
+    exact (le_div_iff₀ hden).2 (by
+      simpa [bcaIdealEndpoint] using htarget)
+
+/-- Algebraic form of Hansen's BCa exact-coverage argument: the transformed
+endpoint event is equivalent to the BCa pivot lying between `-zUpper` and
+`-zLower`.  The denominator assumptions are the well-definedness conditions
+for the BCa transformation and adjusted endpoint levels. -/
+theorem bcaIdealCIEvent_iff_pivot_mem_Icc
+    {psi : ℝ → ℝ} {theta thetaHat accel z0 zLower zUpper : ℝ}
+    (hpivot : 0 < 1 + accel * psi theta)
+    (hdenLower : 0 < 1 - accel * (zLower + z0))
+    (hdenUpper : 0 < 1 - accel * (zUpper + z0)) :
+    bcaIdealCIEvent psi theta thetaHat accel z0 zLower zUpper ↔
+      bcaPivot psi theta accel z0 thetaHat ∈ Set.Icc (-zUpper) (-zLower) := by
+  constructor
+  · intro h
+    constructor
+    · simpa [bcaPivot] using
+        (le_bcaIdealEndpoint_iff_neg_le_pivot
+          (psiTheta := psi theta) (psiThetaHat := psi thetaHat)
+          hdenUpper hpivot).1 h.2
+    · simpa [bcaPivot] using
+        (bcaIdealEndpoint_le_iff_pivot_le_neg
+          (psiTheta := psi theta) (psiThetaHat := psi thetaHat)
+          hdenLower hpivot).1 h.1
+  · intro h
+    constructor
+    · exact
+        (bcaIdealEndpoint_le_iff_pivot_le_neg
+          (psiTheta := psi theta) (psiThetaHat := psi thetaHat)
+          hdenLower hpivot).2 (by simpa [bcaPivot] using h.2)
+    · exact
+        (le_bcaIdealEndpoint_iff_neg_le_pivot
+          (psiTheta := psi theta) (psiThetaHat := psi thetaHat)
+          hdenUpper hpivot).2 (by simpa [bcaPivot] using h.1)
+
+/-- Hansen BCa exact-coverage bridge in CDF-increment form.
+
+Under the transformed pivotal model (10.28), the ideal BCa interval coverage is
+the probability that the BCa pivot lies in `[-zUpper, -zLower]`. -/
+theorem bcaIdealCIEvent_probability_eq_cdf_sub
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta accel z0 zLower zUpper : ℝ}
+    {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => bcaPivot psi theta accel z0 (thetaHat ω)) eta μ)
+    (hpivot : 0 < 1 + accel * psi theta)
+    (hdenLower : 0 < 1 - accel * (zLower + z0))
+    (hdenUpper : 0 < 1 - accel * (zUpper + z0))
+    (hz : zLower ≤ zUpper) :
+    μ {ω | bcaIdealCIEvent psi theta (thetaHat ω) accel z0 zLower zUpper} =
+      ENNReal.ofReal (cdf eta (-zLower) - cdf eta (-zUpper)) := by
+  have hset :
+      {ω | bcaIdealCIEvent psi theta (thetaHat ω) accel z0 zLower zUpper} =
+        (fun ω => bcaPivot psi theta accel z0 (thetaHat ω)) ⁻¹'
+          Set.Icc (-zUpper) (-zLower) := by
+    ext ω
+    exact bcaIdealCIEvent_iff_pivot_mem_Icc hpivot hdenLower hdenUpper
+  rw [hset]
+  exact HasLaw.preimage_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    (μ := μ) (ν := eta) hZ (by linarith)
+
+/-- Hansen BCa exact coverage: endpoint CDF masses `alpha / 2` and
+`1 - alpha / 2` imply coverage `1 - alpha`. -/
+theorem bcaIdealCIEvent_probability_eq_one_sub_alpha
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta accel z0 zLower zUpper alpha : ℝ}
+    {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => bcaPivot psi theta accel z0 (thetaHat ω)) eta μ)
+    (hpivot : 0 < 1 + accel * psi theta)
+    (hdenLower : 0 < 1 - accel * (zLower + z0))
+    (hdenUpper : 0 < 1 - accel * (zUpper + z0))
+    (hz : zLower ≤ zUpper)
+    (hcdfLower : cdf eta (-zUpper) = alpha / 2)
+    (hcdfUpper : cdf eta (-zLower) = 1 - alpha / 2) :
+    μ {ω | bcaIdealCIEvent psi theta (thetaHat ω) accel z0 zLower zUpper} =
+      ENNReal.ofReal (1 - alpha) := by
+  rw [bcaIdealCIEvent_probability_eq_cdf_sub
+    (μ := μ) (eta := eta) hZ hpivot hdenLower hdenUpper hz]
+  congr 1
+  rw [hcdfLower, hcdfUpper]
+  ring
+
+/-- Symmetric-critical-value version of Hansen's BCa exact coverage proof. -/
+theorem bcaIdealCIEvent_probability_eq_one_sub_alpha_of_symmetric
+    [IsProbabilityMeasure μ]
+    {eta : Measure ℝ} [IsProbabilityMeasure eta] [NoAtoms eta]
+    {psi : ℝ → ℝ} {theta accel z0 zLower zUpper alpha : ℝ}
+    {thetaHat : Ω → ℝ}
+    (hZ :
+      HasLaw
+        (fun ω => bcaPivot psi theta accel z0 (thetaHat ω)) eta μ)
+    (hpivot : 0 < 1 + accel * psi theta)
+    (hdenLower : 0 < 1 - accel * (zLower + z0))
+    (hdenUpper : 0 < 1 - accel * (zUpper + z0))
+    (hz : zLower ≤ zUpper)
+    (hsymLower : -zUpper = zLower)
+    (hsymUpper : -zLower = zUpper)
+    (hcdfLower : cdf eta zLower = alpha / 2)
+    (hcdfUpper : cdf eta zUpper = 1 - alpha / 2) :
+    μ {ω | bcaIdealCIEvent psi theta (thetaHat ω) accel z0 zLower zUpper} =
+      ENNReal.ofReal (1 - alpha) :=
+  bcaIdealCIEvent_probability_eq_one_sub_alpha
+    (μ := μ) (eta := eta) (psi := psi) (theta := theta)
+    (accel := accel) (z0 := z0) (zLower := zLower)
+    (zUpper := zUpper) (alpha := alpha) (thetaHat := thetaHat)
+    hZ hpivot hdenLower hdenUpper hz
+    (by simpa [hsymLower] using hcdfLower)
+    (by simpa [hsymUpper] using hcdfUpper)
 
 end PercentileIntervals
 
