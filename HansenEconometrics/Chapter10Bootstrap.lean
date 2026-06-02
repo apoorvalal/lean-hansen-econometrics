@@ -554,6 +554,9 @@ used throughout the chapter:
   sample-size-dependent bootstrap spaces. The fixed/indexed
   `*_of_l2_simulation_error` wrappers discharge the finite-replication
   simulation-error premise from `O(n⁻¹)` mean-square bounds, and the
+  ordinary indexed `*_finSucc_l2_*` wrappers specialize that transfer to the
+  normalized `Fin (n+1)` bootstrap mean under iid or `iIndepFun`
+  finite-second-moment assumptions. The
   fixed/indexed `*_of_uniformSquareTail_l2` and `*_of_eventualBound_l2`
   wrappers compose those bounds with the weak/uniform-square-tail or
   bounded-statistic variance routes.
@@ -33352,6 +33355,230 @@ theorem
           bootstrapVarianceRealIndexed Pstar Zstar n ω)
       (C := Cfinite) hfiniteInt hfiniteBound)
     hboot
+
+/-- Theorem 10.9/10.11 ordinary nonparametric-bootstrap finite-replication
+scalar variance route for iid observations.
+
+The conditional variance target is the normalized `Fin (n+1)` ordinary
+bootstrap variance.  Coordinatewise `O(n⁻¹)` mean-square simulation error
+transfers the moment-form finite-replication variance estimator to the
+population variance target. -/
+theorem chapter10_indexed_finiteReplicationVariance_finSucc_l2_iid
+    [IsProbabilityMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ} {Cfinite : ℝ}
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_finiteReplicationVariance_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Zstar := fun n ω ωs =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+    (σ2 := Var[fun ω => Y 0 ω; μ]) (Cfinite := Cfinite)
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
+
+/-- Theorem 10.9/10.11 ordinary nonparametric-bootstrap finite-replication
+scalar variance route with the textbook `iIndepFun` premise. -/
+theorem chapter10_indexed_finiteReplicationVariance_finSucc_l2_iIndep
+    [IsProbabilityMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ} {Cfinite : ℝ}
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceMomentReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceMomentReal Zsim) atTop
+      (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_finiteReplicationVariance_finSucc_l2_iid
+    (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hfiniteInt hfiniteBound
+
+/-- Theorem 10.9/10.11 ordinary nonparametric-bootstrap centered
+finite-replication scalar variance route for iid observations. -/
+theorem chapter10_indexed_finiteReplicationVarianceCenteredReal_finSucc_l2_iid
+    [IsProbabilityMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ} {Cfinite : ℝ}
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Zstar := fun n ω ωs =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+    (σ2 := Var[fun ω => Y 0 ω; μ]) (Cfinite := Cfinite)
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_bootstrap_variance_finSucc_resampleMean_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
+
+/-- Theorem 10.9/10.11 ordinary nonparametric-bootstrap centered
+finite-replication scalar variance route with the textbook `iIndepFun`
+premise. -/
+theorem chapter10_indexed_finiteReplicationVarianceCenteredReal_finSucc_l2_iIndep
+    [IsProbabilityMeasure μ]
+    {Zsim : ℕ → ℕ → Ω → ℝ} {Cfinite : ℝ}
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (fun ω => Y 0 ω) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ n, Integrable
+        (fun ω =>
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ᶠ n in atTop,
+        (∫ ω,
+          ‖finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceRealIndexed
+              (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+              (fun n _ =>
+                ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+              n ω‖ ^ (2 : ℝ) ∂μ) ≤
+          Cfinite / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => Var[fun ω => Y 0 ω; μ]) :=
+  chapter10_indexed_finiteReplicationVarianceCenteredReal_finSucc_l2_iid
+    (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hfiniteInt hfiniteBound
 
 /-- Indexed Hansen Theorem 10.9/10.11 centered finite-replication variance
 from conditional bootstrap moment convergence. -/
