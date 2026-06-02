@@ -109,9 +109,11 @@ used throughout the chapter:
   `*_of_iIndep_covMat_remainder*`, `*_of_iid_covMat_tail*`, and
   `*_of_iIndep_covMat_tail*` variants discharge the theorem-facing covariance
   routes from iid finite-second-moment assumptions.
+  `chapter10_indexed_bootstrap_weak_clt_scalar_finSucc_resampleMean_of_iIndep_tail_posDef`
+  and
   `chapter10_indexed_bootstrap_clt_scalar_finSucc_resampleMean_of_iIndep_tail_posDef`
-  exposes the same ordinary-bootstrap CLT route in the one-coordinate scalar
-  form used by percentile and critical-value constructors.
+  expose the same ordinary-bootstrap CLT route in the one-coordinate scalar
+  weak and CDF forms used by percentile and critical-value constructors.
 * `bootstrapBoundedContinuousIntegral_uniformOn_univ_aestronglyMeasurable`,
   `bootstrapBoundedContinuousIntegralIndexed_uniformOn_univ_aestronglyMeasurable`,
   `normalized_finSucc_resampleMean_sub_empiricalMean_measurable`,
@@ -683,6 +685,9 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
+  `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets`
+  specializes the indexed local-CDF critical-value route to the concrete
+  absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample mean.
   `chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
@@ -24086,6 +24091,417 @@ theorem
       (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) :=
   chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_iid_covMat_tail_posDef
     (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident hS
+
+/-- Weak ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure characteristic-function convergence for projected bootstrap means.
+
+This is the bounded-continuous-test-function version of
+`chapter10_indexed_bootstrap_clt_gaussian_finSucc_resampleMean_of_ae_charFun`;
+it is the reusable input for continuous mappings such as absolute values. -/
+theorem
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_charFun
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hchar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ,
+      Tendsto
+        (fun n =>
+          charFun
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))).map
+              (fun ωs =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                      (fun ωs t => ωs t) ωs -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a))))
+            t)
+        atTop
+        (𝓝 (charFun
+          ((multivariateGaussian 0 S).map
+            (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a))
+          t))) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  letI : ∀ n, Ω → IsProbabilityMeasure
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))) := fun n _ => by
+    infer_instance
+  have hmeas :
+      ∀ f : BoundedContinuousFunction (k → ℝ) ℝ, ∀ n,
+        AEStronglyMeasurable
+          (fun ω =>
+            bootstrapBoundedContinuousIntegralIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs a =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs a -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+              f n ω) μ :=
+    bootstrapBoundedContinuousIntegralIndexed_normalized_finSucc_resampleMean_aestronglyMeasurable
+      (μ := μ) (Y := Y) hY
+  refine
+    TendstoInBootstrapWeakDistributionIndexed.of_ae_tendstoInDistribution
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Zstar := fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+      hmeas ?_
+  refine hchar.mono ?_
+  intro ω hω
+  have hclt :
+      MultivariateIndexedLindebergCLTConditions
+        (fun n => Fin (n + 1) → Fin (n + 1))
+        (fun n =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+        S := by
+    refine
+      { aemeasurable := fun n =>
+          (normalized_finSucc_resampleMean_sub_empiricalMean_measurable
+            (Y := Y) n ω).aemeasurable
+        projection_clt := ?_ }
+    intro a
+    have hscalar :
+        TendstoInDistribution
+          (fun n (ωs : Fin (n + 1) → Fin (n + 1)) =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)
+                  (fun ωs t => ωs t) ωs -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω ⬝ᵥ a)))
+          atTop
+          (fun z : EuclideanSpace ℝ k => z.ofLp ⬝ᵥ a)
+          (fun n =>
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))))
+          (multivariateGaussian 0 S) := by
+      refine TendstoInDistribution.of_tendsto_charFun_indexed ?_ ?_ (hω a)
+      · intro n
+        have hvec : AEMeasurable
+            (fun ωs : Fin (n + 1) → Fin (n + 1) => fun b =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs b -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b))
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))) :=
+          (normalized_finSucc_resampleMean_sub_empiricalMean_measurable
+            (Y := Y) n ω).aemeasurable
+        have hdot : AEMeasurable
+            (fun ωs : Fin (n + 1) → Fin (n + 1) =>
+              (fun b =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => Y i.val ω)
+                      (fun ωs t => ωs t) ωs b -
+                    empiricalMean (fun i : Fin (n + 1) => Y i.val ω) b)) ⬝ᵥ a)
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))) :=
+          ((continuous_id.dotProduct continuous_const).measurable.comp_aemeasurable hvec)
+        exact hdot.congr
+          (ae_of_all
+            (ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1))) fun ωs =>
+            dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+              (Y := Y) n ω ωs a)
+      · exact ((continuous_id.dotProduct continuous_const).measurable.comp_aemeasurable
+          ((PiLp.continuous_ofLp 2 (fun _ : k => ℝ)).measurable.aemeasurable))
+    refine TendstoInDistribution.congr ?_ EventuallyEq.rfl hscalar
+    intro n
+    exact ae_of_all
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))) (fun ωs =>
+        (dotProduct_normalized_finSucc_resampleMean_sub_empiricalMean_eq
+          (Y := Y) n ω ωs a).symm)
+  have hEuclid := multivariateIndexedLindebergCLT_tendstoInDistribution hclt
+  have hMap := TendstoInDistribution.continuous_comp
+    (g := (WithLp.ofLp : EuclideanSpace ℝ k → k → ℝ))
+    (PiLp.continuous_ofLp 2 (fun _ : k => ℝ)) hEuclid
+  simpa [Function.comp_def] using hMap
+
+/-- Weak ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure empirical variance convergence and centered Lindeberg tails. -/
+theorem
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosSemidef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hvar : ∀ᵐ ω ∂μ, ∀ a : k → ℝ,
+      Tendsto
+        (fun n : ℕ =>
+          empiricalVarianceFinSucc (fun i => Y i ω ⬝ᵥ a) n)
+        atTop (𝓝 (a ⬝ᵥ (S *ᵥ a))))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_charFun
+      (μ := μ) (Y := Y) (S := S) hY ?_
+  filter_upwards [hvar, htail] with ω hvarω htailω
+  intro a t
+  have hrem :=
+    centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_tendsto_tail
+      (Y := fun i => Y i ω ⬝ᵥ a) (hvarω a) t (htailω a t)
+  have hchar :=
+    charFun_normalized_finSucc_resampleMean_sub_empiricalMean_tendsto_of_variance_tendsto
+      (Y := fun i ω => Y i ω ⬝ᵥ a) (ω := ω)
+      (σ2 := a ⬝ᵥ (S *ᵥ a)) (hvarω a) t hrem
+  simpa [charFun_map_multivariateGaussian_zero_dotProduct_eq_exp hS a t] using hchar
+
+/-- Weak ordinary nonparametric-bootstrap Hansen Theorem 10.4 Gaussian CLT from
+almost-sure empirical covariance convergence and centered Lindeberg tails. -/
+theorem
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail
+    [Fintype k] [DecidableEq k] [IsFiniteMeasure μ]
+    {Y : ℕ → Ω → k → ℝ} {S : Matrix k k ℝ}
+    (hS : S.PosSemidef)
+    (hY : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ)
+    (hcov : ∀ᵐ ω ∂μ,
+      Tendsto
+        (fun n : ℕ =>
+          covMat
+            (ProbabilityTheory.uniformOn (Set.univ : Set (Fin (n + 1))) :
+              Measure (Fin (n + 1)))
+            (fun i a => Y i.val ω a))
+        atTop (𝓝 S))
+    (htail : ∀ᵐ ω ∂μ, ∀ a : k → ℝ, ∀ t : ℝ, ∀ δ : ℝ, 0 < δ →
+      Tendsto
+        (fun n : ℕ =>
+          centeredEmpiricalTailSqFinSucc (fun i => Y i ω ⬝ᵥ a) n
+            ((Real.sqrt (n + 1 : ℝ))⁻¹ * t) δ)
+        atTop (𝓝 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) S)
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  refine
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_charFun_tail
+      (μ := μ) (Y := Y) (S := S) hS hY ?_ htail
+  filter_upwards [hcov] with ω hcovω
+  intro a
+  exact empiricalVarianceFinSucc_dotProduct_tendsto_of_covMat_tendsto
+    (Y := fun i a => Y i ω a) hcovω a
+
+/-- Weak positive-definite iid-facing ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the covariance-tail route, with the textbook
+`iIndepFun` premise. -/
+theorem
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_tail_posDef
+    [Fintype k] [DecidableEq k] [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (Y 0)).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (covMat μ (Y 0)))
+      (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+  have hYae : ∀ i a, AEMeasurable (fun ω => Y i ω a) μ := by
+    intro i a
+    let evalA : (k → ℝ) → ℝ := fun y => y a
+    have heval : Measurable evalA := by
+      dsimp [evalA]
+      fun_prop
+    have hcoord :
+        IdentDistrib (fun ω => Y i ω a) (fun ω => Y 0 ω a) μ μ := by
+      simpa [evalA] using (hident i).comp heval
+    exact hcoord.aemeasurable_fst
+  exact
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_ae_covMat_tail
+      (μ := μ) (Y := Y) (S := covMat μ (Y 0))
+      hS.posSemidef hYae
+      (covMat_uniformOn_finSucc_tendsto_ae_of_iIndep
+        (μ := μ) Y hYmem hindep hident)
+      (centeredEmpiricalTailSqFinSucc_dotProduct_tendsto_ae_of_iIndep
+        (μ := μ) Y hYmem hindep hident)
+
+/-- Weak scalar `Unit`-coordinate ordinary nonparametric-bootstrap Hansen
+Theorem 10.4 Gaussian CLT through the iid covariance-tail route.
+
+This bounded-continuous-test-function face feeds continuous transformations of
+the concrete scalar `Fin (n+1)` resample-mean statistic, such as the absolute
+value used by two-sided bootstrap critical values. -/
+theorem
+    chapter10_indexed_bootstrap_weak_clt_scalar_finSucc_resampleMean_of_iIndep_tail_posDef
+    [IsProbabilityMeasure μ]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (covMat μ (fun ω (_ : Unit) => Y 0 ω)))
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+  let Yunit : ℕ → Ω → Unit → ℝ := fun i ω _ => Y i ω
+  have hYmemUnit : ∀ a : Unit, MemLp (fun ω => Yunit 0 ω a) 2 μ := by
+    intro a
+    simpa [Yunit] using hYmem
+  let embed : ℝ → Unit → ℝ := fun x _ => x
+  have hembed : Measurable embed := by
+    dsimp [embed]
+    fun_prop
+  have hindepUnit : iIndepFun Yunit μ := by
+    simpa [Yunit, embed] using
+      hindep.comp (fun _ x => embed x) (fun _ => hembed)
+  have hidentUnit : ∀ i, IdentDistrib (Yunit i) (Yunit 0) μ μ := by
+    intro i
+    simpa [Yunit, embed] using (hident i).comp hembed
+  have hSUnit : (covMat μ (Yunit 0)).PosDef := by
+    simpa [Yunit] using hS
+  have hvec :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Yunit i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean (fun i : Fin (n + 1) => Yunit i.val ω) a))
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) (covMat μ (Yunit 0)))
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ)) :=
+    chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_tail_posDef
+      (μ := μ) Yunit hYmemUnit hindepUnit hidentUnit hSUnit
+  have hcoord :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          (fun a =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Yunit i.val ω)
+                  (fun ωs t => ωs t) ωs a -
+                empiricalMean (fun i : Fin (n + 1) => Yunit i.val ω) a)) ())
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) (covMat μ (Yunit 0)))
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Zstar := fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Yunit i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean (fun i : Fin (n + 1) => Yunit i.val ω) a))
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ Unit) (covMat μ (Yunit 0)))
+      (Z := fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ))
+      (g := fun z : Unit → ℝ => z ()) hvec (continuous_apply ())
+  have hscalar :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) (covMat μ (Yunit 0)))
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+    refine hcoord.congr ?_ ?_
+    · intro n ω ωs
+      simp [Yunit, empiricalBootstrapResampleMean, empiricalMean]
+    · intro z
+      rfl
+  simpa [Yunit] using hscalar
 
 /-- Scalar `Unit`-coordinate ordinary nonparametric-bootstrap Hansen Theorem
 10.4 Gaussian CLT through the iid covariance-tail route.
@@ -50889,6 +51305,195 @@ chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets
       (ξ := ξ) (critLim := critLim) (α := α)
       hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [crit] using hreject
+
+/-- Indexed ordinary nonparametric-bootstrap two-sided critical-value test from
+the concrete normalized scalar `Fin (n+1)` resample-mean CLT.
+
+The bootstrap critical value is the lower generalized inverse of the
+conditional CDF of `|sqrt(n+1) (Ybar*_n - Ybar_n)|` under the finite ordinary
+resampling law.  The sample-side statistic convergence and endpoint
+calibration are kept explicit, matching Hansen Theorem 10.16. -/
+theorem
+chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs] [NoAtoms ηAbs]
+    (Y : ℕ → Ω → ℝ)
+    (hYmem : MemLp (Y 0) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hS : (covMat μ (fun ω (_ : Unit) => Y 0 ω)).PosDef)
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleft :
+      ∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α)
+    (hright :
+      ∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε))
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              |Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))|)
+            (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hAlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
+        ηAbs
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (covMat μ (fun ω (_ : Unit) => Y 0 ω))))
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              |Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω))|)
+            (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  let Pstar : ∀ n, Ω → Measure (Fin (n + 1) → Fin (n + 1)) :=
+    fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1)))
+  let scalarStat : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ :=
+    fun n ω ωs =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω))
+  let Astar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ :=
+    fun n ω ωs => |scalarStat n ω ωs|
+  let νstar : Measure (EuclideanSpace ℝ Unit) :=
+    multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+      (covMat μ (fun ω (_ : Unit) => Y 0 ω))
+  let Alim : EuclideanSpace ℝ Unit → ℝ :=
+    fun z => |(z : Unit → ℝ) ()|
+  have hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω) := by
+    intro n ω
+    dsimp [Pstar]
+    infer_instance
+  have hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω) := by
+    intro n ω
+    exact (measurable_of_finite _).aemeasurable
+  have hweakScalar :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar scalarStat νstar
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+    simpa [Pstar, scalarStat, νstar] using
+      chapter10_indexed_bootstrap_weak_clt_scalar_finSucc_resampleMean_of_iIndep_tail_posDef
+        (μ := μ) Y hYmem hindep hident hS
+  have hweakAbsScalar :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Astar νstar Alim := by
+    have hmap :=
+      chapter10_indexed_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar) (Zstar := scalarStat) (ν := νstar)
+        (Z := fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ())
+        (g := fun x : ℝ => |x|) hweakScalar continuous_abs
+    simpa [Astar, Alim] using hmap
+  have hunitCont : Continuous (fun x : ℝ => fun _ : Unit => x) := by
+    refine continuous_pi ?_
+    intro _
+    exact continuous_id
+  have hweakUnit :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => fun _ : Unit => Astar n ω ωs)
+        νstar
+        (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z) := by
+    exact
+      chapter10_indexed_bootstrap_continuous_mapping_distribution
+        (μ := μ) (Pstar := Pstar) (Zstar := Astar) (ν := νstar)
+        (Z := Alim) (g := fun x : ℝ => fun _ : Unit => x)
+        hweakAbsScalar hunitCont
+  have hPfinite : ∀ n ω, IsFiniteMeasure (Pstar n ω) := by
+    intro n ω
+    haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+    infer_instance
+  have hZstar :
+      ∀ n ω, Measurable (fun ωs => fun _ : Unit => Astar n ω ωs) := by
+    intro n ω
+    exact measurable_of_finite _
+  have hZlim :
+      AEMeasurable
+        (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z)
+        νstar := by
+    refine aemeasurable_pi_lambda _ ?_
+    intro _
+    simpa [νstar, Alim] using hAlaw.aemeasurable
+  have hfrontier :
+      ∀ x : Unit → ℝ,
+        ContinuousAt
+          (fun y =>
+            vectorCDF νstar
+              (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z) y) x →
+        (νstar.map
+          (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z))
+          (frontier {z : Unit → ℝ | coordinateLE z x}) = 0 := by
+    intro x _hx
+    refine map_measure_frontier_coordinateLE_eq_zero_of_coord_singletons
+      (ν := νstar)
+      (Z := fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z)
+      hZlim x ?_
+    intro i
+    have hpre :
+        {z : EuclideanSpace ℝ Unit |
+          (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z) z i =
+            x i} =
+          Alim ⁻¹' {x i} := by
+      ext z
+      simp
+    rw [hpre, HasLaw.preimage_eq hAlaw (measurableSet_singleton (x i))]
+    exact measure_singleton (x i)
+  have hAstarDist :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        νstar
+        (fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z) := by
+    exact
+      TendstoInBootstrapDistributionIndexed.of_weakDistribution_null_frontiers
+        (μ := μ) (Pstar := Pstar)
+        (Zstar := fun n ω ωs (_ : Unit) => Astar n ω ωs)
+        (ν := νstar)
+        (Z := fun z : EuclideanSpace ℝ Unit => fun _ : Unit => Alim z)
+        hweakUnit hPfinite hZstar hZlim hfrontier
+  have hcrit_meas' :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ := by
+    intro n
+    simpa [Pstar, Astar, scalarStat] using hcrit_meas n
+  have hreject :=
+    chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets
+      (μ := μ) (ν := ν)
+      (Ωstar := EuclideanSpace ℝ Unit)
+      (η := η) (ηAbs := ηAbs) (νstar := νstar) (Alim := Alim)
+      (Pstar := Pstar) (Astar := Astar) (T := T) (ξ := ξ)
+      (critLim := critLim) (α := α)
+      hT hPstar hAmeas hα_pos hα_lt_one hleft hright
+      hAstarDist hAlaw hcontAbs hcrit_meas' hξ hcrit_nonneg
+      hcdfLower hcdfUpper
+  simpa [Pstar, Astar, scalarStat] using hreject
 
 /-- Regression-facing two-sided bootstrap-test calibration from the Theorem
 10.18 t-statistic route.
