@@ -513,6 +513,10 @@ used throughout the chapter:
   `chapter10_bootstrap_regression_theta_gaussian_distribution` are
   regression-facing weak and CDF Gaussian wrappers for Hansen Theorem 10.18;
   indexed counterparts cover sample-size-dependent bootstrap spaces.
+  The fixed/indexed `*_of_robustFeasibleHCMomentConditions` wrappers specialize
+  those Gaussian faces to `heteroAsymCov μ X e`, discharging covariance
+  positive semidefiniteness from the Chapter 7 robust feasible HC package while
+  keeping the coefficient-level bootstrap CLT explicit.
   `chapter10_bootstrap_regression_tstat_standardNormal` and its indexed
   counterpart expose the Assumption 7.4 studentized t-statistic route from a
   joint numerator/standard-error bootstrap weak limit plus scale consistency.
@@ -31310,6 +31314,22 @@ end BootstrapStudentization
 
 section BootstrapRegression
 
+private theorem heteroAsymCov_posSemidef_of_scoreCLTConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e) :
+    (heteroAsymCov μ X e).PosSemidef := by
+  let A : Matrix k k ℝ := (popGram μ X)⁻¹
+  have hΩ := scoreCovMat_posSemidef (μ := μ) (X := X) (e := e)
+    h.toSampleCLTAssumption72
+  have hA : Aᵀ = A := by
+    simpa [A] using (popGram_inv_isSymm (μ := μ) (X := X)
+      h.toSampleMomentAssumption71.int_outer).eq
+  have hpsd : (A * scoreCovMat μ X e * Aᵀ).PosSemidef := by
+    simpa [Matrix.conjTranspose] using Matrix.PosSemidef.mul_mul_conjTranspose_same hΩ A
+  simpa [heteroAsymCov, A, hA] using hpsd
+
 /-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
 
 If the bootstrap regression coefficient statistic converges weakly to
@@ -31405,6 +31425,119 @@ theorem chapter10_bootstrap_regression_theta_gaussian_distribution_posDef
     R hVβ hβ hPstar hTbetaStar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
 
+set_option linter.style.longLine false
+
+/-- Hansen Theorem 10.18 regression Gaussian wrapper under the Chapter 7
+robust feasible HC condition package.
+
+This discharges positive semidefiniteness of the heteroskedastic coefficient
+covariance from `RobustFeasibleHCMomentConditions`.  The coefficient-level
+bootstrap CLT remains the model-specific premise. -/
+theorem
+chapter10_bootstrap_regression_theta_gaussian_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z)) :
+    TendstoInBootstrapWeakDistribution μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_bootstrap_regression_theta_gaussian
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hβ
+
+/-- Hansen Definition 10.2 face of
+`chapter10_bootstrap_regression_theta_gaussian_of_robustFeasibleHCMomentConditions`.
+
+The transformed Gaussian frontier premise is left explicit; use the `_posDef`
+variant when `R' Vβ R` is positive definite. -/
+theorem
+chapter10_bootstrap_regression_theta_gaussian_distribution_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_bootstrap_regression_theta_gaussian_distribution
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hβ hPstar hTbetaStar hfrontier
+
+/-- Positive-definite transformed-covariance version of
+`chapter10_bootstrap_regression_theta_gaussian_distribution_of_robustFeasibleHCMomentConditions`. -/
+theorem
+chapter10_bootstrap_regression_theta_gaussian_distribution_posDef_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {TbetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hβ :
+      TendstoInBootstrapWeakDistribution μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω)) :
+    TendstoInBootstrapDistribution μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_bootstrap_regression_theta_gaussian_distribution_posDef
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hRVR hβ hPstar hTbetaStar
+
 /-- Indexed Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian
 wrapper for sample-size-dependent bootstrap spaces. -/
 theorem chapter10_indexed_bootstrap_regression_theta_gaussian
@@ -31488,6 +31621,118 @@ theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDe
     (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar) (Vβ := Vβ)
     R hVβ hβ hPstar hTbetaStar
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+/-- Indexed Hansen Theorem 10.18 regression Gaussian wrapper under the Chapter
+7 robust feasible HC condition package.
+
+This discharges positive semidefiniteness of `heteroAsymCov μ X e`; the
+indexed coefficient-level bootstrap CLT remains explicit. -/
+theorem
+chapter10_indexed_bootstrap_regression_theta_gaussian_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hβ
+
+/-- Indexed Hansen Definition 10.2 face of
+`chapter10_indexed_bootstrap_regression_theta_gaussian_of_robustFeasibleHCMomentConditions`. -/
+theorem
+chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hβ hPstar hTbetaStar hfrontier
+
+/-- Positive-definite transformed-covariance version of
+`chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_of_robustFeasibleHCMomentConditions`. -/
+theorem
+chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {TbetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hβ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar TbetaStar
+        (multivariateGaussian (0 : EuclideanSpace ℝ k)
+          (heteroAsymCov μ X e))
+        (fun z : EuclideanSpace ℝ k => z))
+    (hPstar : ∀ n ω, IsFiniteMeasure (Pstar n ω))
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω)) :
+    TendstoInBootstrapDistributionIndexed μ Pstar
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef
+    (μ := μ) (Pstar := Pstar) (TbetaStar := TbetaStar)
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions)
+    hRVR hβ hPstar hTbetaStar
+
+set_option linter.style.longLine true
 
 /-- Hansen Theorem 10.18, regression bootstrap t-statistic standard-normal
 wrapper.
