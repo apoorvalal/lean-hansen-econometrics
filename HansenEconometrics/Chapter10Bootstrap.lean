@@ -352,7 +352,12 @@ used throughout the chapter:
   `bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid`
   discharge the same covariance-convergence path from iid finite-second-moment
   assumptions through the shifted empirical-uniform WLLN, with `iIndepFun`
-  wrappers for the textbook independence premise.  The corresponding
+  wrappers for the textbook independence premise.
+  `chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iid` and
+  `chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iIndep`
+  feed that ordinary-bootstrap covariance matrix directly into the Theorem 10.8
+  smooth plug-in covariance route when the Jacobian source is deterministic and
+  continuous.  The corresponding
   `integral_uniformOn_finSucc_tendsto_ae_wlln` and
   `covMat_uniformOn_finSucc_tendsto_ae_of_iid` variants keep this convergence
   path almost sure for the characteristic-function route.
@@ -24297,6 +24302,111 @@ theorem bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iIndep
       atTop (fun _ => covMat μ (Y 0)) :=
   bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
     (μ := μ) Y hYmem (fun _ _ hij => hindep.indepFun hij) hident
+
+/-- Theorem 10.8 ordinary-bootstrap covariance-input route with a deterministic
+Jacobian plug-in and iid finite-dimensional observations.
+
+The `Fin (n+1)` ordinary nonparametric-bootstrap covariance matrix supplies the
+covariance input `V*`; ordinary convergence of the deterministic Jacobian source
+supplies `G*`.  The smooth plug-in covariance CMT then gives convergence of
+`G*' V* G*` to `G' V G`. -/
+theorem
+    chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iid
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Useq : ℕ → Ω → A} {u : A} {Gfun : A → Matrix d r ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (bootstrapCovarianceMatIndexed
+            (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+            (fun n _ =>
+              ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs a =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs a -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+            n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) := by
+  have hPstar : ∀ n (ω : Ω),
+      IsProbabilityMeasure
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))) := by
+    intro n ω
+    infer_instance
+  exact
+    chapter10_indexed_bootstrap_smooth_variance_consistency_of_deterministic_jacobian
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Useq := Useq) (u := u) (Gfun := Gfun)
+      (Vseq := fun n ω =>
+        bootstrapCovarianceMatIndexed
+          (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+          (fun n _ =>
+            ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+          (fun n ω ωs a =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs a -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+          n ω)
+      (V := covMat μ (Y 0)) hPstar hU hG
+      (bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
+        (μ := μ) Y hYmem hindep hident)
+
+/-- Theorem 10.8 ordinary-bootstrap covariance-input route with a deterministic
+Jacobian plug-in and the textbook `iIndepFun` premise. -/
+theorem
+    chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iIndep
+    [IsProbabilityMeasure μ] [Fintype d] [Fintype r] [PseudoMetricSpace A]
+    {Useq : ℕ → Ω → A} {u : A} {Gfun : A → Matrix d r ℝ}
+    (Y : ℕ → Ω → d → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hU : TendstoInMeasure μ Useq atTop (fun _ => u))
+    (hG : ContinuousAt Gfun u) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω _ =>
+        smoothFunctionVarianceFunctional (Gfun (Useq n ω))
+          (bootstrapCovarianceMatIndexed
+            (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+            (fun n _ =>
+              ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs a =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => Y i.val ω)
+                    (fun ωs t => ωs t) ωs a -
+                  empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+            n ω))
+      (fun _ => smoothFunctionVarianceFunctional (Gfun u) (covMat μ (Y 0))) :=
+  chapter10_indexed_smoothVariance_detJacobian_finSuccCovariance_iid
+    (μ := μ) (Useq := Useq) (u := u) (Gfun := Gfun) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hU hG
 
 /-- Hansen Theorem 10.9 finite-dimensional mean-vector wrapper.
 
