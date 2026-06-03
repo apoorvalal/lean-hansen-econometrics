@@ -723,7 +723,8 @@ used throughout the chapter:
   bootstrap-test critical-value theorem.
   `chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat`
   and its indexed counterpart discharge the local critical-value bracketing
-  premises from strict monotonicity of the absolute-statistic limit CDF.
+  premises from standard-normal strictness and symmetric endpoint CDF
+  calibration of the absolute-standard-normal critical value.
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_numerator_tight`,
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail`,
   `chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound`,
@@ -735,7 +736,8 @@ used throughout the chapter:
   `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef` and its
   `_brackets` counterpart specialize the indexed critical-value route to the
   concrete absolute normalized scalar `Fin (n+1)` ordinary-bootstrap resample
-  mean.
+  mean; the strict wrapper only requires strictness on the nonnegative support
+  of the identified absolute-coordinate law.
   `chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
   `chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_tstat`,
@@ -744,8 +746,8 @@ used throughout the chapter:
   to the ordinary HC0-HC3 OLS scalar t-statistic, using the Chapter 7
   standard-normal OLS inference theorems for that side of the argument.
   Their `*_strict_of_bootstrap_regression_tstat` counterparts discharge the
-  local critical-value bracketing premises from strict monotonicity of the
-  absolute-statistic limit CDF and the critical-value level equation.
+  local critical-value bracketing premises from standard-normal strictness and
+  symmetric endpoint CDF calibration.
 * `chapter10_bootstrap_abs_test_rejectionProb_tendsto_of_joint_critical_value_limit`
   is the bootstrap-test critical-value bridge behind Hansen Theorem 10.16.
 * `bootstrapAbsTestVector_tendstoInDistribution_of_components` assembles the
@@ -83336,12 +83338,67 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
       hcdfLower hcdfUpper
   simpa [Pstar, Astar, scalarStat] using hreject
 
+/-- A law identified as the absolute value of a `Unit` Gaussian coordinate has
+zero CDF on negative arguments. -/
+private theorem cdf_abs_unit_coordinate_law_eq_zero_of_neg
+    {νstar : Measure (EuclideanSpace ℝ Unit)} {ηAbs : Measure ℝ}
+    [IsProbabilityMeasure ηAbs]
+    (hAlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
+        ηAbs νstar)
+    {x : ℝ} (hx : x < 0) :
+    cdf ηAbs x = 0 := by
+  rw [← HasLaw.real_preimage_Iic_eq_cdf hAlaw x]
+  have hpre :
+      (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|) ⁻¹'
+          Set.Iic x =
+        (∅ : Set (EuclideanSpace ℝ Unit)) := by
+    ext z
+    constructor
+    · intro hz
+      have hz_le : |(z : Unit → ℝ) ()| ≤ x := hz
+      exact False.elim (not_le_of_gt hx (le_trans (abs_nonneg _) hz_le))
+    · intro hz
+      exact False.elim hz
+  rw [hpre]
+  simp [Measure.real]
+
+/-- Local critical-value bracketing for an absolute `Unit`-coordinate law from
+strictness on its nonnegative support. -/
+private theorem abs_unit_coordinate_law_cdf_brackets_of_nonneg_strict
+    {νstar : Measure (EuclideanSpace ℝ Unit)} {ηAbs : Measure ℝ}
+    [IsProbabilityMeasure ηAbs]
+    (hAlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
+        ηAbs νstar)
+    {critLim α : ℝ}
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
+    (hα_lt_one : α < 1)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcritLevel : cdf ηAbs critLim = 1 - α) :
+    (∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α) ∧
+      (∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε)) := by
+  constructor
+  · intro ε hε
+    by_cases hq_nonneg : 0 ≤ critLim - ε
+    · rw [← hcritLevel]
+      exact hstrictAbs_nonneg hq_nonneg (by linarith)
+    · have hq_neg : critLim - ε < 0 := lt_of_not_ge hq_nonneg
+      rw [cdf_abs_unit_coordinate_law_eq_zero_of_neg hAlaw hq_neg]
+      linarith
+  · intro ε hε
+    rw [← hcritLevel]
+    exact hstrictAbs_nonneg hcrit_nonneg (by linarith)
+
 /-- Strict-CDF counterpart of
 `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets`.
 
-The strict monotonicity of the absolute-statistic limit CDF supplies the local
-critical-value bracketing needed by the concrete ordinary-bootstrap two-sided
-test constructor. -/
+Strict monotonicity on the nonnegative support of the absolute-statistic limit
+CDF supplies the local critical-value bracketing needed by the concrete
+ordinary-bootstrap two-sided test constructor. -/
 theorem
 chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef
     [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
@@ -83355,7 +83412,8 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef
     {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
     (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
-    (hstrictAbs : StrictMono (fun x => cdf ηAbs x))
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
     (hcritLevel : cdf ηAbs critLim = 1 - α)
     (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
     (hcrit_meas :
@@ -83400,7 +83458,8 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef
             (1 - α) n ω)})
       atTop (𝓝 (ENNReal.ofReal α)) := by
   obtain ⟨hleft, hright⟩ :=
-    strictMono_cdf_brackets hstrictAbs hcritLevel
+    abs_unit_coordinate_law_cdf_brackets_of_nonneg_strict
+      hAlaw hstrictAbs_nonneg hα_lt_one hcrit_nonneg hcritLevel
   exact
     chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
       (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs)
