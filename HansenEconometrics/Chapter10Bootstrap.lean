@@ -40351,6 +40351,79 @@ theorem chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
       simp [hxmem]
     simp [hset]
 
+/-- Euclidean compact-tail constructor for eventually deterministically
+norm-bounded bootstrap statistics.
+
+If `‖Zₙ*‖` is eventually bounded by a deterministic constant, then the
+conditional bootstrap mass outside a fixed compact ball is eventually
+identically zero. -/
+theorem chapter10_bootstrap_euclidean_compactTail_of_eventually_norm_bound
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar : ℕ → Ω → Ωs → EuclideanSpace ℝ k} {C : ℝ}
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, ‖Zstar n ω ωs‖ ≤ C) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+          atTop (fun _ => 0) := by
+  intro η hη
+  let K : Set (EuclideanSpace ℝ k) :=
+    Metric.closedBall (0 : EuclideanSpace ℝ k) C
+  refine ⟨K, isCompact_closedBall (0 : EuclideanSpace ℝ k) C, ?_⟩
+  have hzero :
+      TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  refine TendstoInMeasure.congr'
+    (f := fun _ (_ : Ω) => (0 : ℝ))
+    (f' := fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+    (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+    ?_ EventuallyEq.rfl hzero
+  filter_upwards [hbound] with n hn
+  exact ae_of_all μ fun ω => by
+    have hset : {ωs | Zstar n ω ωs ∉ K} = ∅ := by
+      ext ωs
+      have hzmem : Zstar n ω ωs ∈ K := by
+        dsimp [K]
+        simpa [Metric.mem_closedBall, dist_zero_right] using hn ω ωs
+      simp [hzmem]
+    simp [hset]
+
+/-- Indexed Euclidean compact-tail constructor for eventually
+deterministically norm-bounded bootstrap statistics. -/
+theorem chapter10_indexed_bootstrap_euclidean_compactTail_of_eventually_norm_bound
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {k : Type*} [Fintype k]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ k} {C : ℝ}
+    (hbound : ∀ᶠ n in atTop, ∀ ω ωs, ‖Zstar n ω ωs‖ ≤ C) :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+          atTop (fun _ => 0) := by
+  intro η hη
+  let K : Set (EuclideanSpace ℝ k) :=
+    Metric.closedBall (0 : EuclideanSpace ℝ k) C
+  refine ⟨K, isCompact_closedBall (0 : EuclideanSpace ℝ k) C, ?_⟩
+  have hzero :
+      TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+    tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+  refine TendstoInMeasure.congr'
+    (f := fun _ (_ : Ω) => (0 : ℝ))
+    (f' := fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+    (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+    ?_ EventuallyEq.rfl hzero
+  filter_upwards [hbound] with n hn
+  exact ae_of_all μ fun ω => by
+    have hset : {ωs | Zstar n ω ωs ∉ K} = ∅ := by
+      ext ωs
+      have hzmem : Zstar n ω ωs ∈ K := by
+        dsimp [K]
+        simpa [Metric.mem_closedBall, dist_zero_right] using hn ω ωs
+      simp [hzmem]
+    simp [hset]
+
 /-- Euclidean compact-tail constructor for a pair of eventually
 deterministically norm-bounded bootstrap statistics.
 
