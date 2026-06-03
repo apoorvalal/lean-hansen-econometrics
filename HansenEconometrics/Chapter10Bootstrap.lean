@@ -19,7 +19,7 @@ methods.  The initial public surface covers the bootstrap convergence notions
 used throughout the chapter:
 
 * `chapter10_bootstrap_convergence_in_probability_of_convergence_in_probability`
-  is Hansen Theorem 10.1.
+  and its indexed counterpart are Hansen Theorem 10.1.
 * `chapter10_bootstrap_continuous_mapping_probability` is Hansen Theorem 10.3.
 * `chapter10_bootstrap_lipschitz_mapping_probability` is the reusable
   Lipschitz mapping bridge used by Slutsky and Delta-method theorem wrappers.
@@ -8523,6 +8523,20 @@ theorem tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure
       ext ωs
       simp [htail]
     simp [bootstrapTailProbIndexed, A, hω, hset]
+
+/-- Indexed Hansen Theorem 10.1, chapter-facing name.
+
+Ordinary convergence in probability implies indexed bootstrap convergence in
+probability when the sequence is non-random under the bootstrap resampling law
+and the bootstrap sample space may vary with `n`. -/
+theorem chapter10_indexed_bootstrap_convergence_in_probability_of_convergence_in_probability
+    [PseudoMetricSpace E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {Zseq : ℕ → Ω → E} {Z : Ω → E}
+    (hZ : TendstoInMeasure μ Zseq atTop Z) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar (fun n ω _ => Zseq n ω) Z :=
+  tendstoInBootstrapProbabilityIndexed_of_tendstoInMeasure hPstar hZ
 
 namespace TendstoInBootstrapProbabilityIndexed
 
