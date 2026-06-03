@@ -38,7 +38,8 @@ used throughout the chapter:
   scalar conditional-Chebyshev constructor for the same Theorem 10.2 step, with
   an indexed counterpart for sample-size-dependent bootstrap spaces.
 * `chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound` is the vector-valued
-  conditional Markov constructor from a bootstrap `L²` seminorm bound.
+  conditional Markov constructor from a bootstrap `L²` seminorm bound, also in
+  indexed form.
 * `bootstrapTailProb_zero_le_integral_norm_sq_div` and
   `chapter10_bootstrap_wlln_centered_of_integral_norm_sq_bound` are the
   textbook-facing vector second-moment bridges for Theorem 10.2.
@@ -8530,6 +8531,59 @@ theorem bootstrapTailProbIndexed_centered_real_le_variance_div_sq
   have hreal := ENNReal.toReal_mono ENNReal.ofReal_ne_top hmeasure
   simpa [bootstrapTailProbIndexed, ENNReal.toReal_ofReal hnonneg] using hreal
 
+/-- Indexed version of the bootstrap `L²` seminorm tail bound. -/
+noncomputable def bootstrapL2ENNTailBoundIndexed
+    [NormedAddCommGroup E]
+    (Pstar : ∀ n, Ω → Measure (Ωboot n))
+    (Zstar : ∀ n, Ω → Ωboot n → E)
+    (η : ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  ((ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+    eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ)).toReal
+
+/-- Indexed conditional Markov inequality for vector-valued bootstrap
+statistics. -/
+theorem bootstrapTailProbIndexed_zero_le_l2_eLpNorm_bound
+    [NormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → E}
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProbIndexed Pstar Zstar (fun _ => 0) η n ω ≤
+      bootstrapL2ENNTailBoundIndexed Pstar Zstar η n ω := by
+  have htail :
+      (Pstar n ω)
+          {ωs : Ωboot n | ENNReal.ofReal η ≤ ‖Zstar n ω ωs‖ₑ} ≤
+        (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) := by
+    simpa using
+      (MeasureTheory.meas_ge_le_mul_pow_eLpNorm_enorm
+        (μ := Pstar n ω) (p := (2 : ℝ≥0∞)) (f := Zstar n ω)
+        (by norm_num) (by simp) (hZ n ω).1
+        (ε := ENNReal.ofReal η) (by simp [hη])
+        (by intro htop; exact (ENNReal.ofReal_ne_top htop).elim))
+  have hset :
+      {ωs : Ωboot n | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : E)) ω)} =
+        {ωs : Ωboot n | ENNReal.ofReal η ≤ ‖Zstar n ω ωs‖ₑ} := by
+    ext ωs
+    simp only [Set.mem_setOf_eq]
+    rw [dist_eq_norm, sub_zero, ← ofReal_norm_eq_enorm]
+    exact (ENNReal.ofReal_le_ofReal_iff (norm_nonneg _)).symm
+  have hmeasure :
+      (Pstar n ω)
+          {ωs : Ωboot n | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : E)) ω)} ≤
+        (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) := by
+    rw [hset]
+    exact htail
+  have hrhs_ne_top :
+      (ENNReal.ofReal η)⁻¹ ^ (2 : ℝ) *
+          eLpNorm (Zstar n ω) 2 (Pstar n ω) ^ (2 : ℝ) ≠ ∞ := by
+    have hnorm_ne_top : eLpNorm (Zstar n ω) 2 (Pstar n ω) ≠ ∞ :=
+      (hZ n ω).eLpNorm_ne_top
+    finiteness
+  have hreal := ENNReal.toReal_mono hrhs_ne_top hmeasure
+  simpa [bootstrapTailProbIndexed, bootstrapL2ENNTailBoundIndexed] using hreal
+
 /-- Indexed Hansen Theorem 10.2, centered WLLN from a conditional tail bound.
 
 This is the sample-size-dependent bootstrap-space version of
@@ -8573,6 +8627,34 @@ theorem chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
     (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω)
     (fun η hη => bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη)
     hle
+
+/-- Indexed Hansen Theorem 10.2, vector centered WLLN from a bootstrap `L²`
+seminorm bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_of_l2_eLpNorm_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapL2ENNTailBoundIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) η n ω ≤
+            bootstrapWLLNSecondMomentBound u η n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  exact (bootstrapTailProbIndexed_zero_le_l2_eLpNorm_bound
+    (Pstar := Pstar)
+    (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+    hZ hη n ω).trans (hbound η hη n ω)
 
 /-- Indexed Hansen Theorem 10.2, scalar centered WLLN from a conditional
 variance bound.
@@ -9744,6 +9826,33 @@ theorem chapter10_indexed_bootstrap_wlln_level_of_second_moment_bound
     (chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
       (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
       (u := u) hu hle)
+    hYbar
+
+/-- Indexed Hansen Theorem 10.2, vector level WLLN from a bootstrap `L²`
+seminorm bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_level_of_l2_eLpNorm_bound
+    [NormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hbound :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapL2ENNTailBoundIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) η n ω ≤
+            bootstrapWLLNSecondMomentBound u η n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_indexed_bootstrap_wlln_centered_of_l2_eLpNorm_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hu hZ hbound)
     hYbar
 
 /-- Indexed Hansen Theorem 10.2, scalar level WLLN from a conditional
