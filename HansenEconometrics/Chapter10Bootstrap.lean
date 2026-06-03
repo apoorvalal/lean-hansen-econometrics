@@ -632,10 +632,12 @@ used throughout the chapter:
   together with their trimmed counterparts, insert the bounded
   finite-replication WLLN, ordinary simulation-error, and trimmed
   simulation-error routes directly into the smooth plug-in covariance
-  estimator. The ordinary indexed `*_finSucc_l2_*` wrappers specialize that
-  route to `Fin (n+1)` resampling under iid or `iIndepFun` finite-second-moment
+  estimator. The ordinary indexed `*_finSucc_l2_*` wrappers specialize the
+  moment-form and Hansen-centered finite-replication covariance routes to
+  `Fin (n+1)` resampling under iid or `iIndepFun` finite-second-moment
   assumptions, including deterministic and stochastic continuous Jacobian
-  sources. The fixed/indexed theorem-facing `*_smoothCov_gaussianLimit` and
+  sources for the plug-in estimator. The fixed/indexed theorem-facing
+  `*_smoothCov_gaussianLimit` and
   `*_smoothTrimmed_*` plug-in wrappers compose the smooth exact-linearization
   Gaussian-limit finite-replication routes all the way into `G' V_B G`.
 * `chapter10_percentileCI_coverage_tendsto_of_joint_quantile_limit` is the
@@ -9027,6 +9029,98 @@ theorem integral_fourth_normalized_finSucc_resampleMean_sub_empiricalMean_eq_for
     (integral_fourth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_formula
       (κ := Fin (n + 1)) (ι := Fin (n + 1))
       (Y := fun i : Fin (n + 1) => Y i.val ω))
+
+/-- Fourth conditional moment convergence for the ordinary `Fin (n+1)`
+bootstrap sample mean from Hansen's cumulant formula.
+
+If the empirical variance converges to `σ2` and the scaled fourth cumulant is
+negligible, the exact equation (10.14) formula gives
+`E*[(sqrt (n+1) (Ybar* - Ybar))^4] ->p 3 σ2^2`. This is the sample-mean
+fourth-moment route behind Hansen equation (10.17). -/
+theorem
+    integral_fourth_normalized_finSucc_resampleMean_sub_empiricalMean_tendstoInMeasure_of_cumulants
+    (Y : ℕ → Ω → ℝ) {σ2 : ℝ}
+    (hCumulant2 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => σ2))
+    (hScaledCumulant4 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant4 (fun i : Fin (n + 1) => Y i.val ω) /
+            (n + 1 : ℝ))
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        ∫ ωs : Fin (n + 1) → Fin (n + 1),
+          (Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))) ^ 4
+          ∂(ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+      atTop (fun _ => 3 * σ2 ^ 2) := by
+  have hCumulant2Sq :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) *
+            empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => σ2 * σ2) :=
+    TendstoInMeasure.mul_limits_real hCumulant2 hCumulant2
+  have hCumulant2Sq0 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) *
+            empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) -
+              σ2 * σ2)
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.sub_limit_zero_real hCumulant2Sq
+  have hCumulant2SqScaled :
+      TendstoInMeasure μ
+        (fun n ω =>
+          3 *
+            (empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) *
+              empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) -
+                σ2 * σ2))
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.const_mul_zero_real 3 hCumulant2Sq0
+  have hcenterFormula :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant4 (fun i : Fin (n + 1) => Y i.val ω) /
+              (n + 1 : ℝ) +
+            3 *
+              (empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) *
+                empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω) -
+                  σ2 * σ2))
+        atTop (fun _ => 0) :=
+    TendstoInMeasure.add_zero_real hScaledCumulant4 hCumulant2SqScaled
+  have hformula0 :
+      TendstoInMeasure μ
+        (fun (n : ℕ) ω =>
+          normalizedBootstrapMeanMoment4Formula (n + 1 : ℝ)
+              (fun i : Fin (n + 1) => Y i.val ω) -
+            3 * σ2 ^ 2)
+        atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hcenterFormula
+    exact ae_of_all μ fun ω => by
+      simp [normalizedBootstrapMeanMoment4Formula, pow_two]
+      ring
+  have hformula :
+      TendstoInMeasure μ
+        (fun (n : ℕ) ω =>
+          normalizedBootstrapMeanMoment4Formula (n + 1 : ℝ)
+            (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => 3 * σ2 ^ 2) :=
+    TendstoInMeasure.of_sub_limit_zero_real hformula0
+  refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hformula
+  exact ae_of_all μ fun ω => by
+    simpa [Nat.cast_add, Nat.cast_one] using
+      (integral_fourth_normalized_finSucc_resampleMean_sub_empiricalMean_eq_formula
+        (Y := Y) n ω).symm
 
 /-- Scalar `Fin (n+1)` CLT-scale fifth conditional moment formula for the
 ordinary nonparametric bootstrap.
@@ -26355,6 +26449,163 @@ theorem
     (bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_memLp_limit
       (μ := μ) (Pstar := Pstar) (Zstar := Zstar) (ν := ν) (Z := Z)
       (B := B) hB hZlim hFourth hFourthInt)
+
+/-- Indexed ordinary-bootstrap uniform-square-tail route from Hansen's
+fourth-moment cumulant formula.
+
+For the concrete `Fin (n+1)` ordinary resampling space, convergence of the
+empirical variance and negligibility of the scaled fourth cumulant supply the
+conditional fourth-moment premise in the indexed uniform-square-tail
+constructor. -/
+theorem
+    bootstrapUniformSquareTailIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_of_cumulants
+    [IsFiniteMeasure ν]
+    (Y : ℕ → Ω → ℝ) {Z : Ωlim → ℝ} {σ2 : ℝ}
+    (hZlim : MemLp Z 2 ν)
+    (hCumulant2 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => σ2))
+    (hScaledCumulant4 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant4 (fun i : Fin (n + 1) => Y i.val ω) /
+            (n + 1 : ℝ))
+        atTop (fun _ => 0)) :
+    BootstrapUniformSquareTailIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+      ν Z := by
+  have hB : 0 ≤ 3 * σ2 ^ 2 := by
+    nlinarith [sq_nonneg σ2]
+  have hFourth :=
+    integral_fourth_normalized_finSucc_resampleMean_sub_empiricalMean_tendstoInMeasure_of_cumulants
+      (μ := μ) (Y := Y) hCumulant2 hScaledCumulant4
+  exact
+    bootstrapUniformSquareTailIndexed_of_fourthMoment_tendstoInMeasure_of_memLp_limit
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Zstar := fun n ω ωs =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+      (ν := ν) (Z := Z) (B := 3 * σ2 ^ 2)
+      hB hZlim hFourth
+      (fun n ω => Integrable.of_finite)
+
+/-- Indexed Hansen Theorem 10.9 for the concrete ordinary bootstrap sample
+mean, using Hansen's fourth-moment cumulant formula to discharge uniform square
+integrability.
+
+This is the sample-mean fourth-moment route behind equation (10.17): once the
+ordinary normalized bootstrap mean has the indexed weak limit and the empirical
+cumulants satisfy the exact-formula convergence premises, the conditional
+bootstrap variance is consistent. -/
+theorem
+    chapter10_indexed_bootstrap_variance_finSucc_resampleMean_of_weak_distribution_cumulants
+    [IsFiniteMeasure ν]
+    (Y : ℕ → Ω → ℝ) {Z : Ωlim → ℝ} {σ2 : ℝ}
+    (hZlim : MemLp Z 2 ν)
+    (hweak :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        ν Z)
+    (hCumulant2 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant2 (fun i : Fin (n + 1) => Y i.val ω))
+        atTop (fun _ => σ2))
+    (hScaledCumulant4 :
+      TendstoInMeasure μ
+        (fun n ω =>
+          empiricalCumulant4 (fun i : Fin (n + 1) => Y i.val ω) /
+            (n + 1 : ℝ))
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω))))
+      atTop
+        (fun _ => ∫ ωlim, (Z ωlim) ^ 2 ∂ν - (∫ ωlim, Z ωlim ∂ν) ^ 2) := by
+  have hPstar :
+      ∀ n (_ω : Ω),
+        IsProbabilityMeasure
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n _ω
+    infer_instance
+  have hZmem :
+      ∀ n ω,
+        MemLp
+          (fun ωs : Fin (n + 1) → Fin (n + 1) =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => Y i.val ω)
+                  (fun ωs t => ωs t) ωs -
+                empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+          2
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))) := by
+    intro n ω
+    exact memLp_two_uniformOn_univ
+      (Y := fun ωs : Fin (n + 1) → Fin (n + 1) =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => Y i.val ω)
+              (fun ωs t => ωs t) ωs -
+            empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+  have hTail :
+      BootstrapUniformSquareTailIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => Y i.val ω)
+                (fun ωs t => ωs t) ωs -
+              empiricalMean (fun i : Fin (n + 1) => Y i.val ω)))
+        ν Z :=
+    bootstrapUniformSquareTailIndexed_normalized_finSucc_resampleMean_sub_empiricalMean_of_cumulants
+      (μ := μ) (ν := ν) (Y := Y) (Z := Z) hZlim hCumulant2
+      hScaledCumulant4
+  exact
+    chapter10_indexed_bootstrap_variance_consistency_of_weak_distribution_of_uniformSquareTail
+      (μ := μ) (ν := ν) hPstar hZmem hZlim hweak hTail
 
 /-- Indexed Hansen Theorem 10.9 from bootstrap weak convergence and an
 eventual deterministic bootstrap bound. -/
@@ -49506,6 +49757,124 @@ theorem
           bootstrapCovarianceMatIndexed Pstar Zstar n ω)
       (C := Cfinite) hfiniteInt hfiniteBound)
     hboot
+
+/-- Theorem 10.11 ordinary nonparametric-bootstrap finite-replication
+moment-form covariance route for iid finite-dimensional observations.
+
+The conditional covariance target is the normalized `Fin (n+1)` ordinary
+bootstrap covariance from Theorem 10.4; coordinatewise `O(n⁻¹)` mean-square
+simulation error transfers the moment-form finite-replication covariance
+estimator to the same population covariance target. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_finSucc_l2_iid
+    [IsProbabilityMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ} {Cfinite : k → k → ℝ}
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on Y))
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => covMat μ (Y 0)) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Zstar := fun n ω ωs a =>
+      Real.sqrt (n + 1 : ℝ) *
+        (empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) => Y i.val ω)
+            (fun ωs t => ωs t) ωs a -
+          empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+    (V := covMat μ (Y 0)) (Cfinite := Cfinite)
+    hfiniteInt hfiniteBound
+    (bootstrapCovarianceMatIndexed_normalized_finSucc_tendsto_of_iid
+      (μ := μ) Y hYmem hindep hident)
+
+/-- Theorem 10.11 ordinary nonparametric-bootstrap finite-replication
+moment-form covariance route with the textbook `iIndepFun` premise. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_finSucc_l2_iIndep
+    [IsProbabilityMeasure μ] {k : Type*} [Fintype k]
+    {Zsim : ℕ → ℕ → Ω → k → ℝ} {Cfinite : k → k → ℝ}
+    (Y : ℕ → Ω → k → ℝ)
+    (hYmem : ∀ a, MemLp (fun ω => Y 0 ω a) 2 μ)
+    (hindep : iIndepFun Y μ)
+    (hident : ∀ i, IdentDistrib (Y i) (Y 0) μ μ)
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMatIndexed
+                (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                (fun n _ =>
+                  ProbabilityTheory.uniformOn
+                    (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                (fun n ω ωs a =>
+                  Real.sqrt (n + 1 : ℝ) *
+                    (empiricalBootstrapResampleMean
+                        (fun i : Fin (n + 1) => Y i.val ω)
+                        (fun ωs t => ωs t) ωs a -
+                      empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                n ω) a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMatIndexed
+                  (Ωboot := fun n => Fin (n + 1) → Fin (n + 1))
+                  (fun n _ =>
+                    ProbabilityTheory.uniformOn
+                      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+                  (fun n ω ωs a =>
+                    Real.sqrt (n + 1 : ℝ) *
+                      (empiricalBootstrapResampleMean
+                          (fun i : Fin (n + 1) => Y i.val ω)
+                          (fun ωs t => ωs t) ωs a -
+                        empiricalMean (fun i : Fin (n + 1) => Y i.val ω) a))
+                  n ω) a c‖ ^ (2 : ℝ) ∂μ) ≤
+              Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => covMat μ (Y 0)) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_finSucc_l2_iid
+    (μ := μ) (Zsim := Zsim) (Cfinite := Cfinite) Y hYmem
+    (fun _ _ hij => hindep.indepFun hij) hident hfiniteInt hfiniteBound
 
 /-- Theorem 10.11 ordinary nonparametric-bootstrap finite-replication
 covariance route for iid finite-dimensional observations.
