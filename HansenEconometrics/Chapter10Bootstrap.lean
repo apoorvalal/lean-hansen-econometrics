@@ -2001,6 +2001,156 @@ private theorem sum_ne_eq_card_sub_one_mul
   norm_num
 
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Sum over all elements of a finite set except one fixed member. -/
+private theorem sum_finset_ne_eq_card_sub_one_mul
+    {κ : Type*} [DecidableEq κ] (s : Finset κ) (a : κ) (ha : a ∈ s) (x : ℝ) :
+    (∑ b ∈ s, if a ≠ b then x else 0) =
+      ((s.card : ℝ) - 1) * x := by
+  rw [← Finset.sum_filter]
+  rw [show (s.filter fun b : κ => a ≠ b) = s.erase a by
+    ext b
+    by_cases hba : b = a
+    · simp [hba]
+    · have hab : a ≠ b := fun h => hba h.symm
+      simp [hba, hab]]
+  rw [Finset.sum_const, Finset.card_erase_of_mem ha]
+  rw [nsmul_eq_mul]
+  change ((s.card - 1 : ℕ) : ℝ) * x = ((s.card : ℝ) - 1) * x
+  have hcard_one : 1 ≤ s.card := Finset.card_pos.mpr ⟨a, ha⟩
+  rw [Nat.cast_sub hcard_one]
+  norm_num
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Count the all-equal pattern in an ordered quadruple over a finite set. -/
+private theorem sum_finset_allEqual4_eq_card_mul
+    {κ : Type*} [DecidableEq κ] (s : Finset κ) (x : ℝ) :
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+      if a = b ∧ a = c ∧ a = d then x else 0) =
+      (s.card : ℝ) * x := by
+  have hinner : ∀ a ∈ s,
+      (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = b ∧ a = c ∧ a = d then x else 0) = x := by
+    intro a ha
+    rw [Finset.sum_eq_single a]
+    · rw [Finset.sum_eq_single a]
+      · rw [Finset.sum_eq_single a]
+        · simp
+        · intro d hd hda
+          have had : a ≠ d := fun h => hda h.symm
+          simp [had]
+        · intro hdnone
+          exact (hdnone ha).elim
+      · intro c hc hca
+        have hac : a ≠ c := fun h => hca h.symm
+        simp [hac]
+      · intro hcnone
+        exact (hcnone ha).elim
+    · intro b hb hba
+      have hab : a ≠ b := fun h => hba h.symm
+      simp [hab]
+    · intro hbnone
+      exact (hbnone ha).elim
+  calc
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = b ∧ a = c ∧ a = d then x else 0) =
+        ∑ _a ∈ s, x := by
+          apply Finset.sum_congr rfl
+          intro a ha
+          exact hinner a ha
+    _ = (s.card : ℝ) * x := by
+          simp
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Count one ordered two-pair partition in a quadruple over a finite set. -/
+private theorem sum_finset_pairPattern_eq_card_mul_card_sub_one_mul
+    {κ : Type*} [DecidableEq κ] (s : Finset κ) (x : ℝ) :
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+      if a = b ∧ c = d ∧ a ≠ c then x else 0) =
+      (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+  have hinner : ∀ a ∈ s,
+      (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = b ∧ c = d ∧ a ≠ c then x else 0) =
+        ((s.card : ℝ) - 1) * x := by
+    intro a ha
+    rw [Finset.sum_eq_single a]
+    · have hc :
+        (∑ c ∈ s, ∑ d ∈ s, if a = a ∧ c = d ∧ a ≠ c then x else 0) =
+          ∑ c ∈ s, if a ≠ c then x else 0 := by
+        apply Finset.sum_congr rfl
+        intro c hc
+        rw [Finset.sum_eq_single c]
+        · by_cases hac : a ≠ c <;> simp [hac]
+        · intro d hd hdc
+          have hcd : c ≠ d := fun h => hdc h.symm
+          simp [hcd]
+        · intro hcnone
+          exact (hcnone hc).elim
+      rw [hc]
+      exact sum_finset_ne_eq_card_sub_one_mul s a ha x
+    · intro b hb hba
+      have hab : a ≠ b := fun h => hba h.symm
+      simp [hab]
+    · intro hanone
+      exact (hanone ha).elim
+  calc
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = b ∧ c = d ∧ a ≠ c then x else 0) =
+        ∑ a ∈ s, ((s.card : ℝ) - 1) * x := by
+          apply Finset.sum_congr rfl
+          intro a ha
+          exact hinner a ha
+    _ = (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+          simp [mul_assoc]
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Count the `a = c`, `b = d` pair partition over a finite set. -/
+private theorem sum_finset_pairPattern_ac_bd_eq_card_mul_card_sub_one_mul
+    {κ : Type*} [DecidableEq κ] (s : Finset κ) (x : ℝ) :
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+      if a = c ∧ b = d ∧ a ≠ b then x else 0) =
+      (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+  calc
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = c ∧ b = d ∧ a ≠ b then x else 0) =
+        ∑ a ∈ s, ∑ c ∈ s, ∑ b ∈ s, ∑ d ∈ s,
+          if a = c ∧ b = d ∧ a ≠ b then x else 0 := by
+          apply Finset.sum_congr rfl
+          intro a ha
+          rw [Finset.sum_comm]
+    _ = (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+          simpa [and_assoc] using
+            sum_finset_pairPattern_eq_card_mul_card_sub_one_mul s x
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
+/-- Count the `a = d`, `b = c` pair partition over a finite set. -/
+private theorem sum_finset_pairPattern_ad_bc_eq_card_mul_card_sub_one_mul
+    {κ : Type*} [DecidableEq κ] (s : Finset κ) (x : ℝ) :
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+      if a = d ∧ b = c ∧ a ≠ b then x else 0) =
+      (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+  calc
+    (∑ a ∈ s, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if a = d ∧ b = c ∧ a ≠ b then x else 0) =
+        ∑ a ∈ s, ∑ d ∈ s, ∑ b ∈ s, ∑ c ∈ s,
+          if a = d ∧ b = c ∧ a ≠ b then x else 0 := by
+          apply Finset.sum_congr rfl
+          intro a ha
+          calc
+            (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+                if a = d ∧ b = c ∧ a ≠ b then x else 0) =
+                ∑ b ∈ s, ∑ d ∈ s, ∑ c ∈ s,
+                  if a = d ∧ b = c ∧ a ≠ b then x else 0 := by
+                  apply Finset.sum_congr rfl
+                  intro b hb
+                  rw [Finset.sum_comm]
+            _ = ∑ d ∈ s, ∑ b ∈ s, ∑ c ∈ s,
+                  if a = d ∧ b = c ∧ a ≠ b then x else 0 := by
+                  rw [Finset.sum_comm]
+    _ = (s.card : ℝ) * ((s.card : ℝ) - 1) * x := by
+          simpa [and_assoc] using
+            sum_finset_pairPattern_eq_card_mul_card_sub_one_mul s x
+
+omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Count one ordered pair partition in a quadruple index sum. -/
 private theorem sum_pairPattern_eq_card_mul_card_sub_one_mul
     {κ : Type*} [Fintype κ] [DecidableEq κ] [Nonempty κ] (x : ℝ) :
@@ -3470,6 +3620,414 @@ theorem integral_mul_mul_mul_mul_uniformOn_fun_eval_sub_empiricalMean_eq
                                         ring
                                   _ = 0 := hsingleton e a b c d he.1 he.2.1 he.2.2.1 he.2.2.2
 
+/-- Second moment of the centered ordinary-bootstrap sum with one coordinate
+removed. -/
+private theorem integral_sq_centered_uniformOn_fun_sum_erase_eq
+    {κ : Type*} [Fintype κ] [DecidableEq κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (a : κ) :
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 2
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      ((Fintype.card κ : ℝ) - 1) * empiricalCumulant2 Y := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  let s : Finset κ := Finset.univ.erase a
+  have hsquare : ∀ ωs : κ → ι,
+      (∑ t ∈ s, X t ωs) ^ 2 =
+        ∑ b ∈ s, ∑ c ∈ s, X b ωs * X c ωs := by
+    intro ωs
+    simp [pow_succ, Finset.mul_sum, mul_comm]
+  have hpair : ∀ b c : κ,
+      ∫ ωs, X b ωs * X c ωs ∂Pκ =
+        if b = c then empiricalCumulant2 Y else 0 := by
+    intro b c
+    simpa [X, Pκ] using
+      integral_mul_uniformOn_fun_eval_sub_empiricalMean_eq
+        (κ := κ) (Y := Y) b c
+  have hdiag :
+      (∑ b ∈ s, ∑ c ∈ s, if b = c then empiricalCumulant2 Y else 0) =
+        (s.card : ℝ) * empiricalCumulant2 Y := by
+    calc
+      (∑ b ∈ s, ∑ c ∈ s, if b = c then empiricalCumulant2 Y else 0) =
+          ∑ b ∈ s, empiricalCumulant2 Y := by
+          apply Finset.sum_congr rfl
+          intro b hb
+          rw [Finset.sum_eq_single b]
+          · simp
+          · intro c hc hcb
+            have hbc : b ≠ c := fun h => hcb h.symm
+            simp [hbc]
+          · intro hbnone
+            exact (hbnone hb).elim
+      _ = (s.card : ℝ) * empiricalCumulant2 Y := by
+          simp
+  calc
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 2 ∂Pκ =
+        ∫ ωs : κ → ι, (∑ t ∈ s, X t ωs) ^ 2 ∂Pκ := by
+          simp [s, X]
+    _ = ∫ ωs : κ → ι, ∑ b ∈ s, ∑ c ∈ s, X b ωs * X c ωs ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hsquare]
+    _ = ∑ b ∈ s, ∑ c ∈ s,
+          ∫ ωs : κ → ι, X b ωs * X c ωs ∂Pκ := by
+          rw [integral_finset_sum (s := s)
+            (f := fun b ωs => ∑ c ∈ s, X b ωs * X c ωs)
+            (μ := Pκ)
+            (hf := by
+              intro b _hb
+              exact integrable_finset_sum (s := s)
+                (f := fun c ωs => X b ωs * X c ωs)
+                (fun c _hc => Integrable.of_finite))]
+          congr with b
+          rw [integral_finset_sum (s := s)
+            (f := fun c ωs => X b ωs * X c ωs)
+            (μ := Pκ)
+            (hf := by
+              intro c _hc
+              exact Integrable.of_finite)]
+    _ = ∑ b ∈ s, ∑ c ∈ s, if b = c then empiricalCumulant2 Y else 0 := by
+          simp [hpair]
+    _ = (s.card : ℝ) * empiricalCumulant2 Y := hdiag
+    _ = ((Fintype.card κ : ℝ) - 1) * empiricalCumulant2 Y := by
+          have hcard_one : 1 ≤ Fintype.card κ :=
+            Nat.succ_le_of_lt Fintype.card_pos
+          dsimp [s]
+          rw [Finset.card_erase_of_mem (Finset.mem_univ a)]
+          rw [Finset.card_univ]
+          rw [Nat.cast_sub hcard_one]
+          norm_num
+
+/-- Third moment of the centered ordinary-bootstrap sum with one coordinate
+removed. -/
+private theorem integral_cube_centered_uniformOn_fun_sum_erase_eq
+    {κ : Type*} [Fintype κ] [DecidableEq κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (a : κ) :
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 3
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      ((Fintype.card κ : ℝ) - 1) * empiricalCumulant3 Y := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  let s : Finset κ := Finset.univ.erase a
+  have hcube : ∀ ωs : κ → ι,
+      (∑ t ∈ s, X t ωs) ^ 3 =
+        ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+          X b ωs * X c ωs * X d ωs := by
+    intro ωs
+    simp [pow_succ, Finset.mul_sum, mul_comm]
+  have htriple : ∀ b c d : κ,
+      ∫ ωs, X b ωs * X c ωs * X d ωs ∂Pκ =
+        if b = c ∧ b = d then empiricalCumulant3 Y else 0 := by
+    intro b c d
+    simpa [X, Pκ] using
+      integral_mul_mul_uniformOn_fun_eval_sub_empiricalMean_eq
+        (κ := κ) (Y := Y) b c d
+  have hdiag :
+      (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+        if b = c ∧ b = d then empiricalCumulant3 Y else 0) =
+        (s.card : ℝ) * empiricalCumulant3 Y := by
+    have hinner : ∀ b ∈ s,
+        (∑ c ∈ s, ∑ d ∈ s,
+          if b = c ∧ b = d then empiricalCumulant3 Y else 0) =
+          empiricalCumulant3 Y := by
+      intro b hb
+      rw [Finset.sum_eq_single b]
+      · rw [Finset.sum_eq_single b]
+        · simp
+        · intro d hd hdb
+          have hbd : b ≠ d := fun h => hdb h.symm
+          simp [hbd]
+        · intro hbnone
+          exact (hbnone hb).elim
+      · intro c hc hcb
+        have hbc : b ≠ c := fun h => hcb h.symm
+        simp [hbc]
+      · intro hbnone
+        exact (hbnone hb).elim
+    calc
+      (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+          if b = c ∧ b = d then empiricalCumulant3 Y else 0) =
+          ∑ b ∈ s, empiricalCumulant3 Y := by
+          apply Finset.sum_congr rfl
+          intro b hb
+          exact hinner b hb
+      _ = (s.card : ℝ) * empiricalCumulant3 Y := by
+          simp
+  calc
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 3 ∂Pκ =
+        ∫ ωs : κ → ι, (∑ t ∈ s, X t ωs) ^ 3 ∂Pκ := by
+          simp [s, X]
+    _ = ∫ ωs : κ → ι, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+          X b ωs * X c ωs * X d ωs ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hcube]
+    _ = ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+          ∫ ωs : κ → ι, X b ωs * X c ωs * X d ωs ∂Pκ := by
+          rw [integral_finset_sum (s := s)
+            (f := fun b ωs => ∑ c ∈ s, ∑ d ∈ s, X b ωs * X c ωs * X d ωs)
+            (μ := Pκ)
+            (hf := by
+              intro b _hb
+              exact integrable_finset_sum (s := s)
+                (f := fun c ωs => ∑ d ∈ s, X b ωs * X c ωs * X d ωs)
+                (fun c _hc =>
+                  integrable_finset_sum (s := s)
+                    (f := fun d ωs => X b ωs * X c ωs * X d ωs)
+                    (fun d _hd => Integrable.of_finite)))]
+          congr with b
+          rw [integral_finset_sum (s := s)
+            (f := fun c ωs => ∑ d ∈ s, X b ωs * X c ωs * X d ωs)
+            (μ := Pκ)
+            (hf := by
+              intro c _hc
+              exact integrable_finset_sum (s := s)
+                (f := fun d ωs => X b ωs * X c ωs * X d ωs)
+                (fun d _hd => Integrable.of_finite))]
+          congr with c
+          rw [integral_finset_sum (s := s)
+            (f := fun d ωs => X b ωs * X c ωs * X d ωs)
+            (μ := Pκ)
+            (hf := by
+              intro d _hd
+              exact Integrable.of_finite)]
+    _ = ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s,
+          if b = c ∧ b = d then empiricalCumulant3 Y else 0 := by
+          simp [htriple]
+    _ = (s.card : ℝ) * empiricalCumulant3 Y := hdiag
+    _ = ((Fintype.card κ : ℝ) - 1) * empiricalCumulant3 Y := by
+          have hcard_one : 1 ≤ Fintype.card κ :=
+            Nat.succ_le_of_lt Fintype.card_pos
+          dsimp [s]
+          rw [Finset.card_erase_of_mem (Finset.mem_univ a)]
+          rw [Finset.card_univ]
+          rw [Nat.cast_sub hcard_one]
+          norm_num
+
+/-- Fourth moment of the centered ordinary-bootstrap sum with one coordinate
+removed. -/
+private theorem integral_fourth_centered_uniformOn_fun_sum_erase_eq
+    {κ : Type*} [Fintype κ] [DecidableEq κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (a : κ) :
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 4
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      ((Fintype.card κ : ℝ) - 1) * empiricalCentralMoment Y 4 +
+        3 * ((Fintype.card κ : ℝ) - 1) * ((Fintype.card κ : ℝ) - 2) *
+          empiricalCumulant2 Y ^ 2 := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  let s : Finset κ := Finset.univ.erase a
+  let μ4 : ℝ := empiricalCentralMoment Y 4
+  let v : ℝ := empiricalCumulant2 Y ^ 2
+  have hfour : ∀ ωs : κ → ι,
+      (∑ t ∈ s, X t ωs) ^ 4 =
+        ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          X b ωs * X c ωs * X d ωs * X e ωs := by
+    intro ωs
+    simp [pow_succ, Finset.mul_sum, mul_assoc, mul_comm]
+  have hquad : ∀ b c d e : κ,
+      ∫ ωs, X b ωs * X c ωs * X d ωs * X e ωs ∂Pκ =
+        if b = c ∧ b = d ∧ b = e then μ4
+        else if b = c ∧ d = e ∧ b ≠ d then v
+        else if b = d ∧ c = e ∧ b ≠ c then v
+        else if b = e ∧ c = d ∧ b ≠ c then v
+        else 0 := by
+    intro b c d e
+    simpa [X, Pκ, μ4, v] using
+      integral_mul_mul_mul_uniformOn_fun_eval_sub_empiricalMean_eq
+        (κ := κ) (Y := Y) b c d e
+  have hsplit : ∀ b c d e : κ,
+      (if b = c ∧ b = d ∧ b = e then μ4
+        else if b = c ∧ d = e ∧ b ≠ d then v
+        else if b = d ∧ c = e ∧ b ≠ c then v
+        else if b = e ∧ c = d ∧ b ≠ c then v
+        else 0) =
+        (if b = c ∧ b = d ∧ b = e then μ4 else 0) +
+          (if b = c ∧ d = e ∧ b ≠ d then v else 0) +
+          (if b = d ∧ c = e ∧ b ≠ c then v else 0) +
+          (if b = e ∧ c = d ∧ b ≠ c then v else 0) := by
+    intro b c d e
+    by_cases hAll : b = c ∧ b = d ∧ b = e
+    · rcases hAll with ⟨hbc, hbd, hbe⟩
+      subst c
+      subst d
+      subst e
+      simp
+    · by_cases hABCD : b = c ∧ d = e ∧ b ≠ d
+      · rcases hABCD with ⟨hbc, hde, hbd⟩
+        subst c
+        subst e
+        simp [hbd]
+      · by_cases hACBD : b = d ∧ c = e ∧ b ≠ c
+        · rcases hACBD with ⟨hbd, hce, hbc⟩
+          subst d
+          subst e
+          simp [hbc]
+        · by_cases hADBC : b = e ∧ c = d ∧ b ≠ c
+          · rcases hADBC with ⟨hbe, hcd, hbc⟩
+            subst e
+            subst d
+            simp [hbc]
+          · simp [hAll, hABCD, hACBD, hADBC]
+  have hscard :
+      (s.card : ℝ) = (Fintype.card κ : ℝ) - 1 := by
+    have hcard_one : 1 ≤ Fintype.card κ :=
+      Nat.succ_le_of_lt Fintype.card_pos
+    dsimp [s]
+    rw [Finset.card_erase_of_mem (Finset.mem_univ a)]
+    rw [Finset.card_univ]
+    rw [Nat.cast_sub hcard_one]
+    norm_num
+  calc
+    ∫ ωs : κ → ι,
+        (∑ t ∈ Finset.univ.erase a, (Y (ωs t) - empiricalMean Y)) ^ 4 ∂Pκ =
+        ∫ ωs : κ → ι, (∑ t ∈ s, X t ωs) ^ 4 ∂Pκ := by
+          simp [s, X]
+    _ = ∫ ωs : κ → ι, ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          X b ωs * X c ωs * X d ωs * X e ωs ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hfour]
+    _ = ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          ∫ ωs : κ → ι, X b ωs * X c ωs * X d ωs * X e ωs ∂Pκ := by
+          rw [integral_finset_sum (s := s)
+            (f := fun b ωs => ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+              X b ωs * X c ωs * X d ωs * X e ωs)
+            (μ := Pκ)
+            (hf := by
+              intro b _hb
+              exact integrable_finset_sum (s := s)
+                (f := fun c ωs => ∑ d ∈ s, ∑ e ∈ s,
+                  X b ωs * X c ωs * X d ωs * X e ωs)
+                (fun c _hc =>
+                  integrable_finset_sum (s := s)
+                    (f := fun d ωs => ∑ e ∈ s,
+                      X b ωs * X c ωs * X d ωs * X e ωs)
+                    (fun d _hd =>
+                      integrable_finset_sum (s := s)
+                        (f := fun e ωs => X b ωs * X c ωs * X d ωs * X e ωs)
+                        (fun e _he => Integrable.of_finite))))]
+          congr with b
+          rw [integral_finset_sum (s := s)
+            (f := fun c ωs => ∑ d ∈ s, ∑ e ∈ s,
+              X b ωs * X c ωs * X d ωs * X e ωs)
+            (μ := Pκ)
+            (hf := by
+              intro c _hc
+              exact integrable_finset_sum (s := s)
+                (f := fun d ωs => ∑ e ∈ s,
+                  X b ωs * X c ωs * X d ωs * X e ωs)
+                (fun d _hd =>
+                  integrable_finset_sum (s := s)
+                    (f := fun e ωs => X b ωs * X c ωs * X d ωs * X e ωs)
+                    (fun e _he => Integrable.of_finite)))]
+          congr with c
+          rw [integral_finset_sum (s := s)
+            (f := fun d ωs => ∑ e ∈ s,
+              X b ωs * X c ωs * X d ωs * X e ωs)
+            (μ := Pκ)
+            (hf := by
+              intro d _hd
+              exact integrable_finset_sum (s := s)
+                (f := fun e ωs => X b ωs * X c ωs * X d ωs * X e ωs)
+                (fun e _he => Integrable.of_finite))]
+          congr with d
+          rw [integral_finset_sum (s := s)
+            (f := fun e ωs => X b ωs * X c ωs * X d ωs * X e ωs)
+            (μ := Pκ)
+            (hf := by
+              intro e _he
+              exact Integrable.of_finite)]
+    _ = ∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          (if b = c ∧ b = d ∧ b = e then μ4
+          else if b = c ∧ d = e ∧ b ≠ d then v
+          else if b = d ∧ c = e ∧ b ≠ c then v
+          else if b = e ∧ c = d ∧ b ≠ c then v
+          else 0) := by
+          simp [hquad]
+    _ =
+        (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          if b = c ∧ b = d ∧ b = e then μ4 else 0) +
+        (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          if b = c ∧ d = e ∧ b ≠ d then v else 0) +
+        (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          if b = d ∧ c = e ∧ b ≠ c then v else 0) +
+        (∑ b ∈ s, ∑ c ∈ s, ∑ d ∈ s, ∑ e ∈ s,
+          if b = e ∧ c = d ∧ b ≠ c then v else 0) := by
+          simp [hsplit, Finset.sum_add_distrib]
+    _ = ((Fintype.card κ : ℝ) - 1) * empiricalCentralMoment Y 4 +
+        3 * ((Fintype.card κ : ℝ) - 1) * ((Fintype.card κ : ℝ) - 2) *
+          empiricalCumulant2 Y ^ 2 := by
+          rw [sum_finset_allEqual4_eq_card_mul]
+          rw [sum_finset_pairPattern_eq_card_mul_card_sub_one_mul]
+          rw [sum_finset_pairPattern_ac_bd_eq_card_mul_card_sub_one_mul]
+          rw [sum_finset_pairPattern_ad_bc_eq_card_mul_card_sub_one_mul]
+          rw [hscard]
+          dsimp [μ4, v]
+          ring
+
+/-- A selected centered ordinary-bootstrap coordinate is independent of the
+centered sum over all other coordinates. -/
+private theorem indepFun_centered_uniformOn_fun_eval_sum_erase
+    {κ : Type*} [Fintype κ] [DecidableEq κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) (a : κ) :
+    IndepFun
+      (fun ωs : κ → ι => Y (ωs a) - empiricalMean Y)
+      (fun ωs : κ → ι =>
+        ∑ t : {t // t ∈ Finset.univ.erase a}, (Y (ωs t.1) - empiricalMean Y))
+      (ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  let A : Finset κ := {a}
+  let B : Finset κ := Finset.univ.erase a
+  have hIndep : iIndepFun X Pκ := by
+    simpa [X, Pκ] using
+      (iIndepFun_uniformOn_fun_eval_sub_empiricalMean
+        (κ := κ) (ι := ι) (E := ℝ) Y)
+  have hMeas : ∀ t : κ, Measurable (X t) := fun t =>
+    measurable_of_finite (X t)
+  have hAB : Disjoint A B := by
+    rw [Finset.disjoint_left]
+    intro x hxA hxB
+    have hxa : x = a := by
+      simpa [A] using hxA
+    subst x
+    simp [B] at hxB
+  let φ : (A → ℝ) → ℝ := fun z => z ⟨a, by simp [A]⟩
+  let ψ : (B → ℝ) → ℝ := fun z => ∑ t : B, z t
+  have hφ : Measurable φ := by
+    dsimp [φ]
+    exact measurable_pi_apply (X := fun _ : A => ℝ) (⟨a, by simp [A]⟩ : A)
+  have hψ : Measurable ψ := by
+    dsimp [ψ]
+    exact Finset.measurable_fun_sum Finset.univ
+      (fun t _ht => measurable_pi_apply (X := fun _ : B => ℝ) t)
+  refine IndepFun.congr ((hIndep.indepFun_finset A B hAB hMeas).comp hφ hψ) ?_ ?_
+  · filter_upwards with ωs
+    simp [φ, A, X]
+  · filter_upwards with ωs
+    dsimp [ψ, X, B, Function.comp_def]
+
 /-- Cube of the centered ordinary-bootstrap sum.
 
 This is the finite iid expansion behind the third-moment line in Hansen
@@ -3895,6 +4453,307 @@ theorem integral_fifth_centered_uniformOn_fun_sum_eq
           dsimp [μ5, m32]
           ring
 
+/-- Sixth power of the centered ordinary-bootstrap sum.
+
+This is the finite iid expansion behind the sixth-moment line in Hansen
+equation (10.14), before applying the `sqrt (#κ)` normalization. The proof
+uses the decomposition of the full centered sum into one selected coordinate
+plus the centered sum over all other bootstrap coordinates. -/
+theorem integral_sixth_centered_uniformOn_fun_sum_eq
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι, (∑ t : κ, (Y (ωs t) - empiricalMean Y)) ^ 6
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      (Fintype.card κ : ℝ) * empiricalCentralMoment Y 6 +
+        15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          empiricalCentralMoment Y 4 * empiricalCumulant2 Y +
+        10 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          empiricalCumulant3 Y ^ 2 +
+        15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          ((Fintype.card κ : ℝ) - 2) * empiricalCumulant2 Y ^ 3 := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let X : κ → (κ → ι) → ℝ :=
+    fun t ωs => Y (ωs t) - empiricalMean Y
+  let S : (κ → ι) → ℝ := fun ωs => ∑ t : κ, X t ωs
+  let T : κ → (κ → ι) → ℝ :=
+    fun a ωs => ∑ t : {t // t ∈ Finset.univ.erase a}, X t.1 ωs
+  let n : ℝ := Fintype.card κ
+  let μ2 : ℝ := empiricalCumulant2 Y
+  let μ3 : ℝ := empiricalCumulant3 Y
+  let μ4 : ℝ := empiricalCentralMoment Y 4
+  let μ6 : ℝ := empiricalCentralMoment Y 6
+  have hT_finset : ∀ a : κ, ∀ ωs : κ → ι,
+      T a ωs = ∑ t ∈ Finset.univ.erase a, X t ωs := by
+    intro a ωs
+    simpa [T] using
+      (Finset.sum_coe_sort (s := Finset.univ.erase a) (f := fun t => X t ωs))
+  have hSsplit : ∀ a : κ, ∀ ωs : κ → ι, S ωs = X a ωs + T a ωs := by
+    intro a ωs
+    have h := Finset.sum_erase_add (s := (Finset.univ : Finset κ)) (a := a)
+      (f := fun t => X t ωs) (Finset.mem_univ a)
+    calc
+      S ωs = ∑ t : κ, X t ωs := rfl
+      _ = X a ωs + ∑ t ∈ Finset.univ.erase a, X t ωs := by
+          rw [h.symm]
+          rw [add_comm]
+      _ = X a ωs + T a ωs := by
+          rw [(hT_finset a ωs).symm]
+  have hXmean : ∀ a : κ, ∫ ωs, X a ωs ∂Pκ = 0 := by
+    intro a
+    have hbase :
+        ∫ ωs : κ → ι, Y (ωs a) ∂Pκ = empiricalMean Y := by
+      simpa [Pκ] using
+        (integral_uniformOn_fun_eval_eq_empiricalMean
+          (κ := κ) (Y := Y) a)
+    have hInt : Integrable (fun ωs : κ → ι => Y (ωs a)) Pκ :=
+      Integrable.of_finite
+    calc
+      ∫ ωs, X a ωs ∂Pκ =
+          ∫ ωs : κ → ι, Y (ωs a) - empiricalMean Y ∂Pκ := rfl
+      _ = ∫ ωs : κ → ι, Y (ωs a) ∂Pκ -
+            ∫ _ωs : κ → ι, empiricalMean Y ∂Pκ := by
+          rw [integral_sub hInt (integrable_const _)]
+      _ = 0 := by
+          rw [hbase]
+          simp [Pκ]
+  have hX2 : ∀ a : κ, ∫ ωs, X a ωs ^ 2 ∂Pκ = μ2 := by
+    intro a
+    change
+      ∫ ωs : κ → ι, (Y (ωs a) - empiricalMean Y) ^ 2
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        μ2
+    simpa [μ2] using
+      integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+        (κ := κ) (Y := Y) a 2
+  have hX3 : ∀ a : κ, ∫ ωs, X a ωs ^ 3 ∂Pκ = μ3 := by
+    intro a
+    change
+      ∫ ωs : κ → ι, (Y (ωs a) - empiricalMean Y) ^ 3
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        μ3
+    simpa [μ3, empiricalCentralMoment_three_eq_cumulant3] using
+      integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+        (κ := κ) (Y := Y) a 3
+  have hX4 : ∀ a : κ, ∫ ωs, X a ωs ^ 4 ∂Pκ = μ4 := by
+    intro a
+    change
+      ∫ ωs : κ → ι, (Y (ωs a) - empiricalMean Y) ^ 4
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        μ4
+    exact
+      integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+        (κ := κ) (Y := Y) a 4
+  have hX6 : ∀ a : κ, ∫ ωs, X a ωs ^ 6 ∂Pκ = μ6 := by
+    intro a
+    change
+      ∫ ωs : κ → ι, (Y (ωs a) - empiricalMean Y) ^ 6
+          ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+        μ6
+    exact
+      integral_pow_uniformOn_fun_eval_sub_empiricalMean_eq_empiricalCentralMoment
+        (κ := κ) (Y := Y) a 6
+  have hTmean : ∀ a : κ, ∫ ωs, T a ωs ∂Pκ = 0 := by
+    intro a
+    calc
+      ∫ ωs, T a ωs ∂Pκ =
+          ∫ ωs : κ → ι, ∑ t : {t // t ∈ Finset.univ.erase a}, X t.1 ωs ∂Pκ := rfl
+      _ = ∑ t : {t // t ∈ Finset.univ.erase a}, ∫ ωs : κ → ι, X t.1 ωs ∂Pκ := by
+          rw [integral_finset_sum
+            (s := (Finset.univ : Finset {t // t ∈ Finset.univ.erase a}))
+            (f := fun t ωs => X t.1 ωs)
+            (μ := Pκ)
+            (hf := by
+              intro t _ht
+              exact Integrable.of_finite)]
+      _ = 0 := by
+          simp [hXmean]
+  have hT2 : ∀ a : κ, ∫ ωs, T a ωs ^ 2 ∂Pκ = (n - 1) * μ2 := by
+    intro a
+    calc
+      ∫ ωs, T a ωs ^ 2 ∂Pκ =
+          ∫ ωs : κ → ι, (∑ t ∈ Finset.univ.erase a, X t ωs) ^ 2 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hT_finset a ωs]
+      _ = (n - 1) * μ2 := by
+          simpa [X, Pκ, n, μ2] using
+            integral_sq_centered_uniformOn_fun_sum_erase_eq
+              (κ := κ) (Y := Y) a
+  have hT3 : ∀ a : κ, ∫ ωs, T a ωs ^ 3 ∂Pκ = (n - 1) * μ3 := by
+    intro a
+    calc
+      ∫ ωs, T a ωs ^ 3 ∂Pκ =
+          ∫ ωs : κ → ι, (∑ t ∈ Finset.univ.erase a, X t ωs) ^ 3 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hT_finset a ωs]
+      _ = (n - 1) * μ3 := by
+          simpa [X, Pκ, n, μ3] using
+            integral_cube_centered_uniformOn_fun_sum_erase_eq
+              (κ := κ) (Y := Y) a
+  have hT4 : ∀ a : κ,
+      ∫ ωs, T a ωs ^ 4 ∂Pκ =
+        (n - 1) * μ4 + 3 * (n - 1) * (n - 2) * μ2 ^ 2 := by
+    intro a
+    calc
+      ∫ ωs, T a ωs ^ 4 ∂Pκ =
+          ∫ ωs : κ → ι, (∑ t ∈ Finset.univ.erase a, X t ωs) ^ 4 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hT_finset a ωs]
+      _ = (n - 1) * μ4 + 3 * (n - 1) * (n - 2) * μ2 ^ 2 := by
+          simpa [X, Pκ, n, μ2, μ4] using
+            integral_fourth_centered_uniformOn_fun_sum_erase_eq
+              (κ := κ) (Y := Y) a
+  have hIndepXT : ∀ a : κ, IndepFun (X a) (T a) Pκ := by
+    intro a
+    simpa [X, T, Pκ] using
+      indepFun_centered_uniformOn_fun_eval_sum_erase
+        (κ := κ) (Y := Y) a
+  have hfactor : ∀ a : κ, ∀ r q : ℕ,
+      ∫ ωs, X a ωs ^ r * T a ωs ^ q ∂Pκ =
+        (∫ ωs, X a ωs ^ r ∂Pκ) * ∫ ωs, T a ωs ^ q ∂Pκ := by
+    intro a r q
+    have hind :
+        IndepFun (fun ωs : κ → ι => X a ωs ^ r)
+          (fun ωs : κ → ι => T a ωs ^ q) Pκ :=
+      (hIndepXT a).comp (measurable_id.pow_const r) (measurable_id.pow_const q)
+    exact hind.integral_mul_eq_mul_integral
+      (measurable_of_finite (fun ωs : κ → ι => X a ωs ^ r)).aestronglyMeasurable
+      (measurable_of_finite (fun ωs : κ → ι => T a ωs ^ q)).aestronglyMeasurable
+  have hcontrib : ∀ a : κ,
+      ∫ ωs, X a ωs * S ωs ^ 5 ∂Pκ =
+        μ6 + 15 * (n - 1) * μ4 * μ2 +
+          10 * (n - 1) * μ3 ^ 2 +
+          15 * (n - 1) * (n - 2) * μ2 ^ 3 := by
+    intro a
+    have h51 :
+        ∫ ωs, X a ωs ^ 5 * T a ωs ∂Pκ = 0 := by
+      calc
+        ∫ ωs, X a ωs ^ 5 * T a ωs ∂Pκ =
+            ∫ ωs, X a ωs ^ 5 * T a ωs ^ 1 ∂Pκ := by
+            simp
+        _ = (∫ ωs, X a ωs ^ 5 ∂Pκ) * ∫ ωs, T a ωs ^ 1 ∂Pκ :=
+            hfactor a 5 1
+        _ = 0 := by
+            rw [show (∫ ωs, T a ωs ^ 1 ∂Pκ) = 0 by simpa using hTmean a]
+            ring
+    have h42 :
+        ∫ ωs, X a ωs ^ 4 * T a ωs ^ 2 ∂Pκ =
+          μ4 * ((n - 1) * μ2) := by
+      calc
+        ∫ ωs, X a ωs ^ 4 * T a ωs ^ 2 ∂Pκ =
+            (∫ ωs, X a ωs ^ 4 ∂Pκ) * ∫ ωs, T a ωs ^ 2 ∂Pκ :=
+            hfactor a 4 2
+        _ = μ4 * ((n - 1) * μ2) := by
+            rw [hX4 a, hT2 a]
+    have h33 :
+        ∫ ωs, X a ωs ^ 3 * T a ωs ^ 3 ∂Pκ =
+          μ3 * ((n - 1) * μ3) := by
+      calc
+        ∫ ωs, X a ωs ^ 3 * T a ωs ^ 3 ∂Pκ =
+            (∫ ωs, X a ωs ^ 3 ∂Pκ) * ∫ ωs, T a ωs ^ 3 ∂Pκ :=
+            hfactor a 3 3
+        _ = μ3 * ((n - 1) * μ3) := by
+            rw [hX3 a, hT3 a]
+    have h24 :
+        ∫ ωs, X a ωs ^ 2 * T a ωs ^ 4 ∂Pκ =
+          μ2 * ((n - 1) * μ4 + 3 * (n - 1) * (n - 2) * μ2 ^ 2) := by
+      calc
+        ∫ ωs, X a ωs ^ 2 * T a ωs ^ 4 ∂Pκ =
+            (∫ ωs, X a ωs ^ 2 ∂Pκ) * ∫ ωs, T a ωs ^ 4 ∂Pκ :=
+            hfactor a 2 4
+        _ = μ2 * ((n - 1) * μ4 + 3 * (n - 1) * (n - 2) * μ2 ^ 2) := by
+            rw [hX2 a, hT4 a]
+    have h15 :
+        ∫ ωs, X a ωs * T a ωs ^ 5 ∂Pκ = 0 := by
+      calc
+        ∫ ωs, X a ωs * T a ωs ^ 5 ∂Pκ =
+            ∫ ωs, X a ωs ^ 1 * T a ωs ^ 5 ∂Pκ := by
+            simp
+        _ = (∫ ωs, X a ωs ^ 1 ∂Pκ) * ∫ ωs, T a ωs ^ 5 ∂Pκ :=
+            hfactor a 1 5
+        _ = 0 := by
+            rw [show (∫ ωs, X a ωs ^ 1 ∂Pκ) = 0 by simpa using hXmean a]
+            ring
+    have hpoly : ∀ ωs : κ → ι,
+        X a ωs * S ωs ^ 5 =
+          X a ωs ^ 6 +
+            5 * (X a ωs ^ 5 * T a ωs) +
+            10 * (X a ωs ^ 4 * T a ωs ^ 2) +
+            10 * (X a ωs ^ 3 * T a ωs ^ 3) +
+            5 * (X a ωs ^ 2 * T a ωs ^ 4) +
+            X a ωs * T a ωs ^ 5 := by
+      intro ωs
+      rw [hSsplit a ωs]
+      ring
+    calc
+      ∫ ωs, X a ωs * S ωs ^ 5 ∂Pκ =
+          ∫ ωs,
+            X a ωs ^ 6 +
+              5 * (X a ωs ^ 5 * T a ωs) +
+              10 * (X a ωs ^ 4 * T a ωs ^ 2) +
+              10 * (X a ωs ^ 3 * T a ωs ^ 3) +
+              5 * (X a ωs ^ 2 * T a ωs ^ 4) +
+              X a ωs * T a ωs ^ 5 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          exact hpoly ωs
+      _ =
+          ∫ ωs, X a ωs ^ 6 ∂Pκ +
+            5 * ∫ ωs, X a ωs ^ 5 * T a ωs ∂Pκ +
+            10 * ∫ ωs, X a ωs ^ 4 * T a ωs ^ 2 ∂Pκ +
+            10 * ∫ ωs, X a ωs ^ 3 * T a ωs ^ 3 ∂Pκ +
+            5 * ∫ ωs, X a ωs ^ 2 * T a ωs ^ 4 ∂Pκ +
+            ∫ ωs, X a ωs * T a ωs ^ 5 ∂Pκ := by
+          simp [integral_add, integral_const_mul]
+      _ = μ6 + 15 * (n - 1) * μ4 * μ2 +
+          10 * (n - 1) * μ3 ^ 2 +
+          15 * (n - 1) * (n - 2) * μ2 ^ 3 := by
+          rw [hX6 a, h51, h42, h33, h24, h15]
+          ring
+  have hsix : ∀ ωs : κ → ι,
+      S ωs ^ 6 = ∑ a : κ, X a ωs * S ωs ^ 5 := by
+    intro ωs
+    calc
+      S ωs ^ 6 = S ωs * S ωs ^ 5 := by
+          ring
+      _ = (∑ a : κ, X a ωs) * S ωs ^ 5 := rfl
+      _ = ∑ a : κ, X a ωs * S ωs ^ 5 := by
+          rw [Finset.sum_mul]
+  calc
+    ∫ ωs : κ → ι, (∑ t : κ, (Y (ωs t) - empiricalMean Y)) ^ 6 ∂Pκ =
+        ∫ ωs : κ → ι, S ωs ^ 6 ∂Pκ := by
+        simp [S, X]
+    _ = ∫ ωs : κ → ι, ∑ a : κ, X a ωs * S ωs ^ 5 ∂Pκ := by
+        refine integral_congr_ae ?_
+        filter_upwards with ωs
+        rw [hsix ωs]
+    _ = ∑ a : κ, ∫ ωs : κ → ι, X a ωs * S ωs ^ 5 ∂Pκ := by
+        rw [integral_finset_sum (s := Finset.univ)
+          (f := fun a ωs => X a ωs * S ωs ^ 5)
+          (μ := Pκ)
+          (hf := by
+            intro a _ha
+            exact Integrable.of_finite)]
+    _ = ∑ _a : κ,
+          (μ6 + 15 * (n - 1) * μ4 * μ2 +
+            10 * (n - 1) * μ3 ^ 2 +
+            15 * (n - 1) * (n - 2) * μ2 ^ 3) := by
+        simp [hcontrib]
+    _ = (Fintype.card κ : ℝ) * empiricalCentralMoment Y 6 +
+        15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          empiricalCentralMoment Y 4 * empiricalCumulant2 Y +
+        10 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          empiricalCumulant3 Y ^ 2 +
+        15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+          ((Fintype.card κ : ℝ) - 2) * empiricalCumulant2 Y ^ 3 := by
+        simp [n, μ2, μ3, μ4, μ6]
+        ring
+
 /-- Hansen equation (10.14), third conditional moment of the normalized
 ordinary-bootstrap sample mean. -/
 theorem integral_cube_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq
@@ -4152,6 +5011,117 @@ theorem integral_fifth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_s
           empiricalCumulant3 Y * empiricalCumulant2 Y := by
           simpa [μ5, m32, mul_assoc] using hcoef
 
+/-- Hansen equation (10.14), sixth conditional moment of the normalized
+ordinary-bootstrap sample mean, before rewriting central moments as sample
+cumulants. -/
+theorem integral_sixth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 6
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      empiricalCentralMoment Y 6 / (Fintype.card κ : ℝ) ^ 2 +
+        15 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 *
+          empiricalCentralMoment Y 4 * empiricalCumulant2 Y +
+        10 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 *
+          empiricalCumulant3 Y ^ 2 +
+        15 * ((Fintype.card κ : ℝ) - 1) * ((Fintype.card κ : ℝ) - 2) /
+          (Fintype.card κ : ℝ) ^ 2 * empiricalCumulant2 Y ^ 3 := by
+  classical
+  let Pκ : Measure (κ → ι) :=
+    ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι))
+  let c : ℝ := (Real.sqrt (Fintype.card κ : ℝ))⁻¹
+  let S : (κ → ι) → ℝ :=
+    fun ωs => ∑ t : κ, (Y (ωs t) - empiricalMean Y)
+  let μ2 : ℝ := empiricalCumulant2 Y
+  let μ3 : ℝ := empiricalCumulant3 Y
+  let μ4 : ℝ := empiricalCentralMoment Y 4
+  let μ6 : ℝ := empiricalCentralMoment Y 6
+  have hpoint : ∀ ωs : κ → ι,
+      Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y) =
+        c * S ωs := by
+    intro ωs
+    simpa [c, S] using
+      normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_sum
+        (κ := κ) (Y := Y) ωs
+  have hsum :
+      ∫ ωs : κ → ι, S ωs ^ 6 ∂Pκ =
+        (Fintype.card κ : ℝ) * μ6 +
+          15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ4 * μ2 +
+          10 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ3 ^ 2 +
+          15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+            ((Fintype.card κ : ℝ) - 2) * μ2 ^ 3 := by
+    simpa [S, Pκ, μ2, μ3, μ4, μ6, mul_assoc] using
+      integral_sixth_centered_uniformOn_fun_sum_eq
+        (κ := κ) (Y := Y)
+  have hcard_ne : (Fintype.card κ : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hcard_pos : 0 < (Fintype.card κ : ℝ) :=
+    Nat.cast_pos.mpr Fintype.card_pos
+  have hsqrt_ne : Real.sqrt (Fintype.card κ : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hcard_pos).ne'
+  have hsqrt_sq :
+      Real.sqrt (Fintype.card κ : ℝ) ^ 2 = (Fintype.card κ : ℝ) :=
+    Real.sq_sqrt hcard_pos.le
+  have hc6 : c ^ 6 = ((Fintype.card κ : ℝ) ^ 3)⁻¹ := by
+    calc
+      c ^ 6 = ((Real.sqrt (Fintype.card κ : ℝ))⁻¹) ^ 6 := rfl
+      _ = (Real.sqrt (Fintype.card κ : ℝ) ^ 6)⁻¹ := by
+          rw [inv_pow]
+      _ = ((Fintype.card κ : ℝ) ^ 3)⁻¹ := by
+          congr 1
+          calc
+            Real.sqrt (Fintype.card κ : ℝ) ^ 6 =
+                (Real.sqrt (Fintype.card κ : ℝ) ^ 2) ^ 3 := by
+                ring
+            _ = (Fintype.card κ : ℝ) ^ 3 := by
+                rw [hsqrt_sq]
+  have hcoef :
+      c ^ 6 *
+          ((Fintype.card κ : ℝ) * μ6 +
+            15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ4 * μ2 +
+            10 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ3 ^ 2 +
+            15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+              ((Fintype.card κ : ℝ) - 2) * μ2 ^ 3) =
+        μ6 / (Fintype.card κ : ℝ) ^ 2 +
+          15 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 * μ4 * μ2 +
+          10 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 * μ3 ^ 2 +
+          15 * ((Fintype.card κ : ℝ) - 1) * ((Fintype.card κ : ℝ) - 2) /
+            (Fintype.card κ : ℝ) ^ 2 * μ2 ^ 3 := by
+    rw [hc6]
+    field_simp [hcard_ne]
+  calc
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 6 ∂Pκ =
+        ∫ ωs : κ → ι, (c * S ωs) ^ 6 ∂Pκ := by
+          refine integral_congr_ae ?_
+          filter_upwards with ωs
+          rw [hpoint ωs]
+    _ = c ^ 6 * ∫ ωs : κ → ι, S ωs ^ 6 ∂Pκ := by
+          simp [mul_pow, integral_const_mul]
+    _ = c ^ 6 *
+          ((Fintype.card κ : ℝ) * μ6 +
+            15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ4 * μ2 +
+            10 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) * μ3 ^ 2 +
+            15 * (Fintype.card κ : ℝ) * ((Fintype.card κ : ℝ) - 1) *
+              ((Fintype.card κ : ℝ) - 2) * μ2 ^ 3) := by
+          rw [hsum]
+    _ = empiricalCentralMoment Y 6 / (Fintype.card κ : ℝ) ^ 2 +
+        15 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 *
+          empiricalCentralMoment Y 4 * empiricalCumulant2 Y +
+        10 * ((Fintype.card κ : ℝ) - 1) / (Fintype.card κ : ℝ) ^ 2 *
+          empiricalCumulant3 Y ^ 2 +
+        15 * ((Fintype.card κ : ℝ) - 1) * ((Fintype.card κ : ℝ) - 2) /
+          (Fintype.card κ : ℝ) ^ 2 * empiricalCumulant2 Y ^ 3 := by
+          simpa [μ2, μ3, μ4, μ6, mul_assoc] using hcoef
+
 omit [MeasurableSpace ι] [MeasurableSingletonClass ι] in
 /-- Fourth central moment in terms of sample cumulants. -/
 theorem empiricalCentralMoment_four_eq_cumulants (Y : ι → ℝ) :
@@ -4263,6 +5233,28 @@ theorem integral_fifth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_s
   rw [empiricalCentralMoment_five_eq_cumulants]
   simp [normalizedBootstrapMeanMoment5Formula]
   field_simp [hcard_ne, hsqrt_ne]
+  ring
+
+/-- Hansen equation (10.14), sixth conditional moment in the named formula
+surface. -/
+theorem integral_sixth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq_formula
+    {κ : Type*} [Fintype κ] [Nonempty κ] [Nonempty ι]
+    [MeasurableSingletonClass (κ → ι)]
+    (Y : ι → ℝ) :
+    ∫ ωs : κ → ι,
+        (Real.sqrt (Fintype.card κ : ℝ) *
+          (empiricalBootstrapResampleMean Y (fun ωs t => ωs t) ωs -
+            empiricalMean Y)) ^ 6
+        ∂(ProbabilityTheory.uniformOn (Set.univ : Set (κ → ι)) : Measure (κ → ι)) =
+      normalizedBootstrapMeanMoment6Formula (Fintype.card κ : ℝ) Y := by
+  have hcard_ne : (Fintype.card κ : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  rw [integral_sixth_normalized_empiricalBootstrapResampleMean_uniformOn_fun_sub_eq
+    (κ := κ) (Y := Y)]
+  rw [empiricalCentralMoment_six_eq_cumulants]
+  rw [empiricalCentralMoment_four_eq_cumulants]
+  simp [normalizedBootstrapMeanMoment6Formula]
+  field_simp [hcard_ne]
   ring
 
 /-- Finite empirical second-moment identity for one bootstrap draw.
