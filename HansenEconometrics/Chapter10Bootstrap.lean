@@ -43822,6 +43822,328 @@ theorem
     β R hm.model hm.toScoreCLTConditions hΩ hLinBound hBetaBound hGapTail
 
 set_option linter.style.longLine false in
+/-- Concrete ordinary-bootstrap OLS t-statistic transfer from the finite
+gap-envelope numerator route and scalar compact-tail control.
+
+The numerator is Hansen's one-row `sqrt(n+1)(R βhat* - R βhat)`, and the
+scale is left as a model-specific feasible bootstrap standard error. -/
+theorem
+    chapter10_indexed_bootstrap_regression_tstat_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {seThetaStar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hseθ : 0 < linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs |
+                regressionBootstrapLinearRestrictionStatisticFinSucc
+                  R X y n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        seThetaStar
+        (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e))) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs /
+          seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_standardNormal_of_scalarTail
+    (μ := μ)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Xstar := fun n ω ωs =>
+      regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+    (Ystar := seThetaStar)
+    (c := linearRestrictionStdError R (heteroAsymCov μ X e))
+    hseθ
+    (chapter10_indexed_bootstrap_regression_linearRestriction_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+      (μ := μ) (X := X) (e := e) (y := y)
+      β R hmodel h hΩ hTail hGapTail)
+    (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
+    hseThetaStar hTtail hse
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the concrete finite OLS
+t-statistic transfer from scalar compact-tail control. -/
+theorem
+    chapter10_indexed_bootstrap_regression_tstat_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {seThetaStar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hseθ : 0 < linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs |
+                regressionBootstrapLinearRestrictionStatisticFinSucc
+                  R X y n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        seThetaStar
+        (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e))) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs /
+          seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => z) :=
+  chapter10_indexed_bootstrap_regression_tstat_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail
+    (μ := μ) (X := X) (e := e) (y := y)
+    β R hseθ hm.model hm.toScoreCLTConditions hΩ hTail hGapTail
+    hseThetaStar hTtail hse
+
+set_option linter.style.longLine false in
+/-- Hansen Definition 10.2 face of the concrete finite OLS t-statistic
+transfer from the gap-envelope numerator route and scalar compact-tail
+control. -/
+theorem
+    chapter10_indexed_bootstrap_regression_tstat_distribution_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {seThetaStar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hseθ : 0 < linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs |
+                regressionBootstrapLinearRestrictionStatisticFinSucc
+                  R X y n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        seThetaStar
+        (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs (_ : Unit) =>
+        regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs /
+          seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_studentized_ratio_distribution_of_scalarTail
+    (μ := μ)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (Xstar := fun n ω ωs =>
+      regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+    (Ystar := seThetaStar)
+    (c := linearRestrictionStdError R (heteroAsymCov μ X e))
+    hseθ
+    (chapter10_indexed_bootstrap_regression_linearRestriction_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+      (μ := μ) (X := X) (e := e) (y := y)
+      β R hmodel h hΩ hTail hGapTail)
+    (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
+    hseThetaStar hTtail hse
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the Definition 10.2 concrete finite
+OLS t-statistic transfer from scalar compact-tail control. -/
+theorem
+    chapter10_indexed_bootstrap_regression_tstat_distribution_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {seThetaStar : ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hseθ : 0 < linearRestrictionStdError R (heteroAsymCov μ X e))
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hseThetaStar : ∀ n ω, Measurable (seThetaStar n ω))
+    (hTtail : ∀ η : ℝ, 0 < η →
+      ∃ Kt : Set ℝ, IsCompact Kt ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs |
+                regressionBootstrapLinearRestrictionStatisticFinSucc
+                  R X y n ω ωs ∉ Kt})
+          atTop (fun _ => 0))
+    (hse :
+      TendstoInBootstrapProbabilityIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        seThetaStar
+        (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e))) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs (_ : Unit) =>
+        regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs /
+          seThetaStar n ω ωs)
+      (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
+  chapter10_indexed_bootstrap_regression_tstat_distribution_standardNormal_finSucc_olsBetaOrZero_of_gapEnvelope_scalarTail
+    (μ := μ) (X := X) (e := e) (y := y)
+    β R hseθ hm.model hm.toScoreCLTConditions hΩ hTail hGapTail
+    hseThetaStar hTtail hse
+
+set_option linter.style.longLine false in
 /-- Concrete transformed ordinary-bootstrap OLS statistic transfer with
 compact-tail control discharged by deterministic eventual norm bounds.
 
