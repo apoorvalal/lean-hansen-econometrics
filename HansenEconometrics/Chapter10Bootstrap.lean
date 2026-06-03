@@ -473,12 +473,13 @@ used throughout the chapter:
 * `chapter10_bootstrap_crossMomentMat_tendsto_of_weak_distribution_of_uniformSquareTail`
   derives finite-dimensional conditional cross-moment convergence from scalar
   uniform-square-tail conditions on coordinates and coordinate sums.
-* `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` is
-  the smooth-function variance-consistency wrapper for Hansen Theorem 10.10.
-  The Gaussian coordinate wrappers compose the smooth-function weak limit from
-  Hansen Theorem 10.7 with the Theorem 10.9 uniform-square-tail or
-  fourth-moment variance routes, including indexed sample-size-dependent
-  bootstrap spaces.  Exact-linearization wrappers compose the Theorem 10.7
+* `chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence` and
+  its indexed counterpart are the smooth-function variance-consistency wrappers
+  for Hansen Theorem 10.10.  The Gaussian coordinate wrappers compose the
+  smooth-function weak limit from Hansen Theorem 10.7 with the Theorem 10.9
+  uniform-square-tail or fourth-moment variance routes, including indexed
+  sample-size-dependent bootstrap spaces.  Exact-linearization wrappers compose
+  the Theorem 10.7
   derivative-linearized Gaussian route with the coordinate uniform-square-tail
   and fourth-moment variance theorems; bounded-statistic variants discharge
   those coordinate or coordinate-sum tail premises from eventual deterministic
@@ -22720,6 +22721,28 @@ theorem chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence
     TendstoInMeasure μ (bootstrapVarianceReal Pstar ZthetaStar) atTop
       (fun _ => m₂ - m ^ 2) :=
   chapter10_bootstrap_variance_consistency_of_moment_convergence
+    hPstar hZ hmean hsecond
+
+/-- Indexed Hansen Theorem 10.10, smooth-function variance-consistency wrapper.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_smooth_bootstrap_variance_consistency_of_moment_convergence`. -/
+theorem chapter10_indexed_smooth_bootstrap_variance_consistency_of_moment_convergence
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {ZthetaStar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (ZthetaStar n ω) 2 (Pstar n ω))
+    {m m₂ : ℝ}
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanRealIndexed Pstar ZthetaStar) atTop
+        (fun _ => m))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentRealIndexed Pstar ZthetaStar) atTop
+        (fun _ => m₂)) :
+    TendstoInMeasure μ (bootstrapVarianceRealIndexed Pstar ZthetaStar) atTop
+      (fun _ => m₂ - m ^ 2) :=
+  chapter10_indexed_bootstrap_variance_consistency_of_moment_convergence
     hPstar hZ hmean hsecond
 
 /-- Hansen Theorem 10.9, weak-distribution plus UI/tail variance bridge.
