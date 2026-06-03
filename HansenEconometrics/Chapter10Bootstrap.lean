@@ -721,6 +721,9 @@ used throughout the chapter:
   and its indexed counterpart compose the Theorem 10.18 regression
   absolute-t-statistic CDF route with the Theorem 10.16 two-sided
   bootstrap-test critical-value theorem.
+  The fixed/indexed `*_nonneg_strict` quantile and law-facing routes discharge
+  local absolute-law bracketing from nonnegative support and strictness on that
+  support, avoiding global strictness assumptions for absolute-statistic laws.
   `chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat`
   and its indexed counterpart discharge the local critical-value bracketing
   premises from standard-normal strictness and symmetric endpoint CDF
@@ -82458,6 +82461,68 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuant
       (ξ := ξ) (critLim := critLim) (α := α)
       hT hcrit hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
 
+/-- If a probability law is supported on `[0, ∞)`, its CDF is zero at every
+negative argument. -/
+theorem cdf_eq_zero_of_ae_nonneg
+    {η : Measure ℝ} [IsProbabilityMeasure η]
+    (hsupport : ∀ᵐ x ∂η, 0 ≤ x) {x : ℝ} (hx : x < 0) :
+    cdf η x = 0 := by
+  rw [ProbabilityTheory.cdf_eq_real]
+  have hnot : ∀ᵐ y ∂η, y ∉ Set.Iic x := by
+    filter_upwards [hsupport] with y hy hmem
+    exact not_le_of_gt hx (le_trans hy hmem)
+  have hnull : η (Set.Iic x) = 0 := by
+    exact compl_mem_ae_iff.mp hnot
+  rw [Measure.real, hnull]
+  simp
+
+/-- Local lower-quantile bracketing for a nonnegative-support law from
+strictness on its nonnegative support. -/
+theorem cdf_brackets_of_ae_nonneg_strict
+    {η : Measure ℝ} [IsProbabilityMeasure η]
+    (hsupport : ∀ᵐ x ∂η, 0 ≤ x)
+    {critLim α : ℝ}
+    (hstrict_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf η x < cdf η y)
+    (hα_lt_one : α < 1)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcritLevel : cdf η critLim = 1 - α) :
+    (∀ ε : ℝ, 0 < ε → cdf η (critLim - ε) < 1 - α) ∧
+      (∀ ε : ℝ, 0 < ε → 1 - α < cdf η (critLim + ε)) := by
+  constructor
+  · intro ε hε
+    by_cases hq_nonneg : 0 ≤ critLim - ε
+    · rw [← hcritLevel]
+      exact hstrict_nonneg hq_nonneg (by linarith)
+    · have hq_neg : critLim - ε < 0 := lt_of_not_ge hq_nonneg
+      rw [cdf_eq_zero_of_ae_nonneg hsupport hq_neg]
+      linarith
+  · intro ε hε
+    rw [← hcritLevel]
+    exact hstrict_nonneg hcrit_nonneg (by linarith)
+
+/-- Local lower-quantile bracketing for a law identified by a nonnegative
+random variable on an auxiliary probability space. -/
+theorem cdf_brackets_of_hasLaw_ae_nonneg_strict
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {νstar : Measure Ωstar} {η : Measure ℝ} [IsProbabilityMeasure η]
+    {Alim : Ωstar → ℝ}
+    (hAlaw : HasLaw Alim η νstar)
+    (hAlim_nonneg : ∀ᵐ ω ∂νstar, 0 ≤ Alim ω)
+    {critLim α : ℝ}
+    (hstrict_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf η x < cdf η y)
+    (hα_lt_one : α < 1)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcritLevel : cdf η critLim = 1 - α) :
+    (∀ ε : ℝ, 0 < ε → cdf η (critLim - ε) < 1 - α) ∧
+      (∀ ε : ℝ, 0 < ε → 1 - α < cdf η (critLim + ε)) := by
+  have hsupport : ∀ᵐ x ∂η, 0 ≤ x :=
+    (hAlaw.ae_iff (p := fun x : ℝ => 0 ≤ x) (by fun_prop)).1 hAlim_nonneg
+  exact
+    cdf_brackets_of_ae_nonneg_strict hsupport hstrict_nonneg hα_lt_one
+      hcrit_nonneg hcritLevel
+
 /-- Two-sided bootstrap-test calibration from a bootstrap lower critical
 quantile.
 
@@ -82848,6 +82913,61 @@ chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_brackets
       hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [crit] using hreject
 
+/-- Fixed-space law-facing two-sided bootstrap-test calibration for an
+absolute-statistic limit that is nonnegative almost surely.
+
+This is the support-aware strict-CDF counterpart of
+`chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_brackets`.
+It uses `HasLaw` to transport nonnegative support from the auxiliary limit
+variable to `ηAbs`, then only requires strictness of `cdf ηAbs` on that support. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_nonneg_strict
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {νstar : Measure Ωstar} {Alim : Ωstar → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
+    (hcritLevel : cdf ηAbs critLim = 1 - α)
+    (hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Alim ωstar))
+    (hAlaw : HasLaw Alim ηAbs νstar)
+    (hAlim_nonneg : ∀ᵐ ωstar ∂νstar, 0 ≤ Alim ωstar)
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    cdf_brackets_of_hasLaw_ae_nonneg_strict hAlaw hAlim_nonneg
+      hstrictAbs_nonneg hα_lt_one hcrit_nonneg hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_law_quantile_prob_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs)
+      (νstar := νstar) (Alim := Alim) (Pstar := Pstar)
+      (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
+      (α := α) hT hPstar hAmeas hα_pos hα_lt_one hleft hright
+      hAstar hAlaw hcontAbs hcrit_meas hξ hcrit_nonneg hcdfLower
+      hcdfUpper
+
 /-- Two-sided bootstrap-test calibration from bootstrap-distribution
 convergence of the absolute bootstrap statistic, with bootstrap-side
 probability-CDF bracketing discharged and local limit-CDF bracketing retained.
@@ -82908,6 +83028,56 @@ chapter10_bootstrap_abs_test_quantile_prob_brackets
         (Pstar := Pstar) (Zstar := Astar) hPstar hAmeas)
       hleft hright hAstar hcontAbs hcrit_meas hξ hcrit_nonneg
       hcdfLower hcdfUpper
+
+/-- Fixed-space two-sided bootstrap-test calibration for a limiting absolute
+bootstrap statistic whose law is supported on `[0, ∞)`.
+
+This support-aware strict-CDF route is the absolute-statistic counterpart of
+`chapter10_bootstrap_abs_test_quantile_prob_brackets`: it replaces global
+strict monotonicity of `cdf ηAbs` by strictness on the nonnegative support and
+the critical-value level equation. -/
+theorem
+chapter10_bootstrap_abs_test_quantile_prob_nonneg_strict
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {Pstar : ℕ → Ω → Measure Ωs} {Astar : ℕ → Ω → Ωs → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hsupportAbs : ∀ᵐ x ∂ηAbs, 0 ≤ x)
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
+    (hcritLevel : cdf ηAbs critLim = 1 - α)
+    (hAstar :
+      TendstoInBootstrapDistribution μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) ηAbs
+        (fun x (_ : Unit) => x))
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantile Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    cdf_brackets_of_ae_nonneg_strict hsupportAbs hstrictAbs_nonneg
+      hα_lt_one hcrit_nonneg hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_quantile_prob_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs) (Pstar := Pstar)
+      (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
+      (α := α) hT hPstar hAmeas hα_pos hα_lt_one hleft hright
+      hAstar hcontAbs hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
 
 variable {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
 
@@ -82971,6 +83141,56 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_b
       (ξ := ξ) (critLim := critLim) (α := α)
       hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [crit] using hreject
+
+/-- Indexed two-sided bootstrap-test calibration for a limiting absolute
+bootstrap statistic whose law is supported on `[0, ∞)`.
+
+This support-aware strict-CDF route replaces global strict monotonicity of
+`cdf ηAbs` by strictness on the nonnegative support and the critical-value
+level equation. -/
+theorem
+chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_nonneg_strict
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Astar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hsupportAbs : ∀ᵐ x ∂ηAbs, 0 ≤ x)
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
+    (hcritLevel : cdf ηAbs critLim = 1 - α)
+    (hAstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) ηAbs
+        (fun x (_ : Unit) => x))
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    cdf_brackets_of_ae_nonneg_strict hsupportAbs hstrictAbs_nonneg
+      hα_lt_one hcrit_nonneg hcritLevel
+  exact
+    chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_quantile_prob_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs) (Pstar := Pstar)
+      (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
+      (α := α) hT hPstar hAmeas hα_pos hα_lt_one hleft hright
+      hAstar hcontAbs hcrit_meas hξ hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Indexed two-sided bootstrap-test calibration from bootstrap-distribution
 convergence of the absolute bootstrap statistic, with probability-CDF
@@ -83148,6 +83368,62 @@ chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets
       (ξ := ξ) (critLim := critLim) (α := α)
       hT hcrit hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
   simpa [crit] using hreject
+
+/-- Indexed law-facing two-sided bootstrap-test calibration for an
+absolute-statistic limit that is nonnegative almost surely.
+
+This is the support-aware strict-CDF counterpart of
+`chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets`.
+It uses `HasLaw` to transport nonnegative support from the auxiliary limit
+variable to `ηAbs`, then only requires strictness of `cdf ηAbs` on that support. -/
+theorem
+chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_nonneg_strict
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {Ωstar : Type*} [MeasurableSpace Ωstar]
+    {η ηAbs : Measure ℝ} [IsProbabilityMeasure η] [NoAtoms η]
+    [IsProbabilityMeasure ηAbs]
+    {νstar : Measure Ωstar} {Alim : Ωstar → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Astar : ∀ n, Ω → Ωboot n → ℝ}
+    {T : ℕ → Ω → ℝ} {ξ : Ωlim → ℝ} {critLim α : ℝ}
+    (hT : TendstoInDistribution T atTop ξ (fun _ => μ) ν)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hAmeas : ∀ n ω, AEMeasurable (Astar n ω) (Pstar n ω))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrictAbs_nonneg :
+      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
+    (hcritLevel : cdf ηAbs critLim = 1 - α)
+    (hAstar :
+      TendstoInBootstrapDistributionIndexed μ Pstar
+        (fun n ω ωs (_ : Unit) => Astar n ω ωs) νstar
+        (fun ωstar (_ : Unit) => Alim ωstar))
+    (hAlaw : HasLaw Alim ηAbs νstar)
+    (hAlim_nonneg : ∀ᵐ ωstar ∂νstar, 0 ≤ Alim ωstar)
+    (hcontAbs : ∀ x : ℝ, ContinuousAt (fun y => cdf ηAbs y) x)
+    (hcrit_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n) μ)
+    (hξ : HasLaw ξ η ν)
+    (hcrit_nonneg : 0 ≤ critLim)
+    (hcdfLower : cdf η (-critLim) = α / 2)
+    (hcdfUpper : cdf η critLim = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | bootstrapAbsTestReject (T n ω)
+          (bootstrapScalarLowerQuantileIndexed Pstar Astar (1 - α) n ω)})
+      atTop (𝓝 (ENNReal.ofReal α)) := by
+  obtain ⟨hleft, hright⟩ :=
+    cdf_brackets_of_hasLaw_ae_nonneg_strict hAlaw hAlim_nonneg
+      hstrictAbs_nonneg hα_lt_one hcrit_nonneg hcritLevel
+  exact
+    chapter10_indexed_abs_test_rejectionProb_law_quantile_prob_brackets
+      (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs)
+      (νstar := νstar) (Alim := Alim) (Pstar := Pstar)
+      (Astar := Astar) (T := T) (ξ := ξ) (critLim := critLim)
+      (α := α) hT hPstar hAmeas hα_pos hα_lt_one hleft hright
+      hAstar hAlaw hcontAbs hcrit_meas hξ hcrit_nonneg hcdfLower
+      hcdfUpper
 
 /-- Indexed ordinary nonparametric-bootstrap two-sided critical-value test from
 the concrete normalized scalar `Fin (n+1)` resample-mean CLT.
@@ -83338,61 +83614,6 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
       hcdfLower hcdfUpper
   simpa [Pstar, Astar, scalarStat] using hreject
 
-/-- A law identified as the absolute value of a `Unit` Gaussian coordinate has
-zero CDF on negative arguments. -/
-private theorem cdf_abs_unit_coordinate_law_eq_zero_of_neg
-    {νstar : Measure (EuclideanSpace ℝ Unit)} {ηAbs : Measure ℝ}
-    [IsProbabilityMeasure ηAbs]
-    (hAlaw :
-      HasLaw
-        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
-        ηAbs νstar)
-    {x : ℝ} (hx : x < 0) :
-    cdf ηAbs x = 0 := by
-  rw [← HasLaw.real_preimage_Iic_eq_cdf hAlaw x]
-  have hpre :
-      (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|) ⁻¹'
-          Set.Iic x =
-        (∅ : Set (EuclideanSpace ℝ Unit)) := by
-    ext z
-    constructor
-    · intro hz
-      have hz_le : |(z : Unit → ℝ) ()| ≤ x := hz
-      exact False.elim (not_le_of_gt hx (le_trans (abs_nonneg _) hz_le))
-    · intro hz
-      exact False.elim hz
-  rw [hpre]
-  simp [Measure.real]
-
-/-- Local critical-value bracketing for an absolute `Unit`-coordinate law from
-strictness on its nonnegative support. -/
-private theorem abs_unit_coordinate_law_cdf_brackets_of_nonneg_strict
-    {νstar : Measure (EuclideanSpace ℝ Unit)} {ηAbs : Measure ℝ}
-    [IsProbabilityMeasure ηAbs]
-    (hAlaw :
-      HasLaw
-        (fun z : EuclideanSpace ℝ Unit => |(z : Unit → ℝ) ()|)
-        ηAbs νstar)
-    {critLim α : ℝ}
-    (hstrictAbs_nonneg :
-      ∀ {x y : ℝ}, 0 ≤ x → x < y → cdf ηAbs x < cdf ηAbs y)
-    (hα_lt_one : α < 1)
-    (hcrit_nonneg : 0 ≤ critLim)
-    (hcritLevel : cdf ηAbs critLim = 1 - α) :
-    (∀ ε : ℝ, 0 < ε → cdf ηAbs (critLim - ε) < 1 - α) ∧
-      (∀ ε : ℝ, 0 < ε → 1 - α < cdf ηAbs (critLim + ε)) := by
-  constructor
-  · intro ε hε
-    by_cases hq_nonneg : 0 ≤ critLim - ε
-    · rw [← hcritLevel]
-      exact hstrictAbs_nonneg hq_nonneg (by linarith)
-    · have hq_neg : critLim - ε < 0 := lt_of_not_ge hq_nonneg
-      rw [cdf_abs_unit_coordinate_law_eq_zero_of_neg hAlaw hq_neg]
-      linarith
-  · intro ε hε
-    rw [← hcritLevel]
-    exact hstrictAbs_nonneg hcrit_nonneg (by linarith)
-
 /-- Strict-CDF counterpart of
 `chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets`.
 
@@ -83458,8 +83679,9 @@ chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef
             (1 - α) n ω)})
       atTop (𝓝 (ENNReal.ofReal α)) := by
   obtain ⟨hleft, hright⟩ :=
-    abs_unit_coordinate_law_cdf_brackets_of_nonneg_strict
-      hAlaw hstrictAbs_nonneg hα_lt_one hcrit_nonneg hcritLevel
+    cdf_brackets_of_hasLaw_ae_nonneg_strict hAlaw
+      (ae_of_all _ fun z => abs_nonneg ((z : Unit → ℝ) ()))
+      hstrictAbs_nonneg hα_lt_one hcrit_nonneg hcritLevel
   exact
     chapter10_indexed_abs_test_resampleMean_of_iIndep_tail_posDef_brackets
       (μ := μ) (ν := ν) (η := η) (ηAbs := ηAbs)
