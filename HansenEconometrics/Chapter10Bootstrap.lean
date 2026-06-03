@@ -49680,6 +49680,90 @@ theorem
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
 
+/-- Hansen Theorem 10.10/10.11 finite-replication covariance matrix for a
+smooth function under exact derivative linearization and coordinate plus
+coordinate-sum fourth-moment premises. -/
+theorem
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMat Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) hfinite
+    (chapter10_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
+
 /-- Textbook-centered finite-replication covariance version of the smooth
 norm-fourth finite-replication covariance bridge. -/
 theorem
@@ -49733,6 +49817,89 @@ theorem
       (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
+
+/-- Textbook-centered finite-replication covariance version of the smooth
+coordinate-fourth-moment finite-replication covariance bridge. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMat Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) hfinite
+    (chapter10_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
 
 /-- Hansen Theorem 10.10/10.11 finite-replication covariance matrix from the
 compact-tail remainder route and a norm fourth-moment premise on the nonlinear
@@ -50255,6 +50422,100 @@ theorem
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
 
+/-- `L²` simulation-error version of the smooth coordinate-fourth-moment
+finite-replication covariance matrix bridge. -/
+theorem
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMat Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMat Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_finiteReplicationCovarianceMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+    hfiniteInt hfiniteBound
+    (chapter10_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
+
 /-- Textbook-centered `L²` simulation-error version of the smooth
 finite-replication covariance bridge. -/
 theorem
@@ -50319,6 +50580,100 @@ theorem
       (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
+
+/-- Textbook-centered `L²` simulation-error version of the smooth
+coordinate-fourth-moment finite-replication covariance bridge. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMat Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMat Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+    hfiniteInt hfiniteBound
+    (chapter10_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
 
 /-- Hansen Theorem 10.10/10.11 finite-replication covariance matrix for a
 smooth function under exact derivative linearization and eventual
@@ -50610,6 +50965,91 @@ theorem
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
 
+/-- Indexed finite-replication covariance matrix for a smooth function under
+exact derivative linearization and coordinate plus coordinate-sum fourth-moment
+premises. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_bootstrap_covariance
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) hfinite
+    (chapter10_indexed_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
+
 /-- Indexed textbook-centered smooth finite-replication covariance bridge. -/
 theorem
     chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_normFourth
@@ -50663,6 +51103,90 @@ theorem
       (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
+
+/-- Indexed textbook-centered finite-replication covariance version of the
+smooth coordinate-fourth-moment finite-replication covariance bridge. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_bootstrap_covariance
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) hfinite
+    (chapter10_indexed_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
 
 /-- Indexed finite-replication covariance matrix from the compact-tail
 remainder route and an indexed norm fourth-moment premise on the nonlinear
@@ -51191,6 +51715,101 @@ theorem
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
 
+/-- Indexed `L²` simulation-error version of the smooth
+coordinate-fourth-moment finite-replication covariance matrix bridge. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
+
 /-- Indexed textbook-centered `L²` simulation-error version of the smooth
 finite-replication covariance bridge. -/
 theorem
@@ -51256,6 +51875,101 @@ theorem
       (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
       (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
       hlimMem hlinearization hB hNormFourth hNormFourthInt)
+
+/-- Indexed textbook-centered `L²` simulation-error version of the smooth
+coordinate-fourth-moment finite-replication covariance bridge. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlimMem :
+      ∀ a,
+        MemLp (fun z : EuclideanSpace ℝ r => (z : r → ℝ) a) 2
+          (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) :=
+  chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_l2_simulation_error
+    (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+    (Zstar := fun n ω ωs => (thetaStar n ω ωs : r → ℝ))
+    hfiniteInt hfiniteBound
+    (chapter10_indexed_smooth_bootstrap_covarianceMat_tendsto_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G hV hPstar hT hcoordMem
+      hlimMem hlinearization hBcoord hFourthCoordLinear
+      hFourthCoordLinearInt hBsum hFourthSumLinear hFourthSumLinearInt)
 
 /-- Indexed smooth finite-replication covariance matrix bridge under exact
 derivative linearization and eventual deterministic coordinate and
@@ -51949,6 +52663,697 @@ theorem
       hV hPstar hT hcoordMem
       (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
       hlinearization hB hNormFourth hNormFourthInt hfiniteInt hfiniteBound
+
+/-- Smooth coordinate-fourth-moment finite-replication covariance bridge with
+Gaussian-limit coordinate `MemLp 2` premises discharged automatically. -/
+theorem
+    chapter10_finiteReplicationCovarianceMat_smooth_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMat Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfinite
+
+/-- Textbook-centered smooth coordinate-fourth-moment finite-replication
+covariance bridge with Gaussian-limit coordinate `MemLp 2` premises discharged
+automatically. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_smooth_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMat Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfinite
+
+/-- `L²` simulation-error smooth coordinate-fourth-moment finite-replication
+covariance bridge with Gaussian-limit coordinate `MemLp 2` premises discharged
+automatically. -/
+theorem
+    chapter10_finiteReplicationCovarianceMat_smooth_fourthMoment_gaussianLimit_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMat Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMat Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment_l2
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfiniteInt hfiniteBound
+
+/-- Textbook-centered `L²` simulation-error smooth coordinate-fourth-moment
+finite-replication covariance bridge with Gaussian-limit coordinate `MemLp 2`
+premises discharged automatically. -/
+theorem
+    chapter10_finiteReplicationCovarianceCenteredMat_smooth_fourthMoment_gaussianLimit_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMat Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMat Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment_l2
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfiniteInt hfiniteBound
+
+/-- Indexed smooth coordinate-fourth-moment finite-replication covariance
+bridge with Gaussian-limit coordinate `MemLp 2` premises discharged
+automatically. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_smooth_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceMomentMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfinite
+
+/-- Indexed textbook-centered smooth coordinate-fourth-moment finite-replication
+covariance bridge with Gaussian-limit coordinate `MemLp 2` premises discharged
+automatically. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_smooth_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationCovarianceCenteredMat Zsim n ω -
+            bootstrapCovarianceMatIndexed Pstar
+              (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfinite
+
+/-- Indexed `L²` simulation-error smooth coordinate-fourth-moment
+finite-replication covariance bridge with Gaussian-limit coordinate `MemLp 2`
+premises discharged automatically. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceMat_smooth_fourthMoment_gaussianLimit_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceMomentMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceMomentMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_indexed_finiteReplicationCovarianceMat_tendsto_of_smooth_fourthMoment_l2
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfiniteInt hfiniteBound
+
+/-- Indexed textbook-centered `L²` simulation-error smooth
+coordinate-fourth-moment finite-replication covariance bridge with
+Gaussian-limit coordinate `MemLp 2` premises discharged automatically. -/
+theorem
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_smooth_fourthMoment_gaussianLimit_l2
+    [IsFiniteMeasure μ]
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Zsim : ℕ → ℕ → Ω → r → ℝ}
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    [IsFiniteMeasure (multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ))]
+    {Bcoord : r → ℝ} {Bsum : r → r → ℝ} {Cfinite : r → r → ℝ}
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω a,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hBcoord : ∀ a, 0 ≤ Bcoord a)
+    (hFourthCoordLinear :
+      ∀ a,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bcoord a))
+    (hFourthCoordLinearInt :
+      ∀ n ω a,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω))
+    (hBsum : ∀ a c, 0 ≤ Bsum a c)
+    (hFourthSumLinear :
+      ∀ a c,
+        TendstoInMeasure μ
+          (fun n ω =>
+            ∫ ωs,
+              ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) a) +
+                (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                  EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4 ∂Pstar n ω)
+          atTop (fun _ => Bsum a c))
+    (hFourthSumLinearInt :
+      ∀ n ω a c,
+        Integrable
+          (fun ωs =>
+            ((((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) +
+              (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+                EuclideanSpace ℝ r) : r → ℝ) c)) ^ 4)
+          (Pstar n ω))
+    (hfiniteInt :
+      ∀ a c n, Integrable
+        (fun ω =>
+          ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+              bootstrapCovarianceMatIndexed Pstar
+                (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+              a c‖ ^ (2 : ℝ)) μ)
+    (hfiniteBound :
+      ∀ a c,
+        ∀ᶠ n in atTop,
+          (∫ ω,
+            ‖(finiteReplicationCovarianceCenteredMat Zsim n ω -
+                bootstrapCovarianceMatIndexed Pstar
+                  (fun n ω ωs => (thetaStar n ω ωs : r → ℝ)) n ω)
+                a c‖ ^ (2 : ℝ) ∂μ) ≤
+            Cfinite a c / (n : ℝ)) :
+    TendstoInMeasure μ (finiteReplicationCovarianceCenteredMat Zsim) atTop
+      (fun _ => G * V * Gᵀ) := by
+  classical
+  exact
+    chapter10_indexed_finiteReplicationCovarianceCenteredMat_tendsto_of_smooth_fourthMoment_l2
+      (μ := μ) (Zsim := Zsim) (Pstar := Pstar)
+      (Tstar := Tstar) (thetaStar := thetaStar) (V := V) G
+      hV hPstar hT hcoordMem
+      (fun a => memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hBcoord hFourthCoordLinear hFourthCoordLinearInt
+      hBsum hFourthSumLinear hFourthSumLinearInt hfiniteInt hfiniteBound
 
 /-- Hansen Theorem 10.9/10.11 centered finite-replication covariance from
 bootstrap weak convergence and uniform-square-tail controls.
