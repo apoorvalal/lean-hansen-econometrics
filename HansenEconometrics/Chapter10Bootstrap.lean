@@ -41759,6 +41759,83 @@ theorem regressionBootstrapBetaStatisticFinSucc_sub_linearizedScore_ofLp_eq
     regressionLinearizedScoreFinSucc_ofLp_eq_popGramInv_sqrt_smul_sampleCrossMoment_sub]
   rw [Matrix.mulVec_smul, ← smul_sub]
 
+/-- Named finite-resample vector gap between Hansen's concrete OLS bootstrap
+coefficient statistic and its population-inverse linearized score.
+
+The first two blocks are the bootstrap and original-sample `olsBetaOrZero`
+sample-Gram-inverse score decompositions, including the singular-design
+totalization remainders.  The final block subtracts the population-inverse
+linearized score. -/
+noncomputable def regressionBootstrapBetaLinearizedGapVectorFinSucc
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (β : k → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    k → ℝ :=
+  Real.sqrt (n + 1 : ℝ) •
+    (((((sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *
+            sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs) - 1) *ᵥ β +
+          (sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *ᵥ
+            sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+              (regressionBootstrapErrorsFinSucc e n ω ωs)) -
+        (((sampleGram (stackRegressors X (n + 1) ω))⁻¹ *
+              sampleGram (stackRegressors X (n + 1) ω) - 1) *ᵥ β +
+          (sampleGram (stackRegressors X (n + 1) ω))⁻¹ *ᵥ
+            sampleCrossMoment (stackRegressors X (n + 1) ω)
+              (stackErrors e (n + 1) ω))) -
+      (popGram μ X)⁻¹ *ᵥ
+        (sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+            (regressionBootstrapErrorsFinSucc e n ω ωs) -
+          sampleCrossMoment (stackRegressors X (n + 1) ω)
+            (stackErrors e (n + 1) ω)))
+
+/-- Euclidean norm envelope for the finite-resample OLS-linearization gap. -/
+noncomputable def regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ) (β : k → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    ℝ :=
+  ‖(WithLp.toLp 2
+      (regressionBootstrapBetaLinearizedGapVectorFinSucc μ X e β n ω ωs) :
+      EuclideanSpace ℝ k)‖
+
+/-- The exact `.ofLp` OLS-linearization difference is the named finite
+gap vector. -/
+theorem regressionBootstrapBetaStatisticFinSucc_sub_linearizedScore_ofLp_eq_gapVector
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    (regressionBootstrapBetaStatisticFinSucc X y n ω ωs).ofLp -
+        (regressionLinearizedScoreFinSucc μ X e n ω ωs).ofLp =
+      regressionBootstrapBetaLinearizedGapVectorFinSucc μ X e β n ω ωs := by
+  rw [regressionBootstrapBetaLinearizedGapVectorFinSucc]
+  exact regressionBootstrapBetaStatisticFinSucc_sub_linearizedScore_ofLp_eq
+    μ X e y β hmodel n ω ωs
+
+/-- The named gap envelope pointwise bounds the distance from Hansen's concrete
+OLS bootstrap coefficient statistic to the population-inverse linearized
+score. -/
+theorem regressionBootstrapBetaStatisticFinSucc_dist_linearizedScore_le_gapEnvelope
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+        (regressionLinearizedScoreFinSucc μ X e n ω ωs) ≤
+      regressionBootstrapBetaLinearizedGapEnvelopeFinSucc μ X e β n ω ωs := by
+  have hvec :=
+    regressionBootstrapBetaStatisticFinSucc_sub_linearizedScore_ofLp_eq_gapVector
+      μ X e y β hmodel n ω ωs
+  have hdiff :
+      regressionBootstrapBetaStatisticFinSucc X y n ω ωs -
+          regressionLinearizedScoreFinSucc μ X e n ω ωs =
+        (WithLp.toLp 2
+          (regressionBootstrapBetaLinearizedGapVectorFinSucc μ X e β n ω ωs) :
+          EuclideanSpace ℝ k) := by
+    apply WithLp.ofLp_injective (p := (2 : ℝ≥0∞))
+    simpa using hvec
+  rw [dist_eq_norm, hdiff, regressionBootstrapBetaLinearizedGapEnvelopeFinSucc]
+
 set_option linter.style.longLine false in
 /-- Hansen Theorem 10.18 score-level ordinary-bootstrap CLT.
 
@@ -42071,6 +42148,123 @@ theorem
     (TbetaStar := fun n ω ωs =>
       regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
     h hΩ (fun _ _ => measurable_of_finite _) hTail hclose
+
+set_option linter.style.longLine false in
+/-- Concrete ordinary-bootstrap OLS coefficient transfer from the explicit
+finite OLS-linearization gap envelope.
+
+This wrapper replaces the raw conditional-closeness premise by the tail
+condition for `regressionBootstrapBetaLinearizedGapEnvelopeFinSucc`, whose
+pointwise bound is supplied by the finite matrix decomposition above. -/
+theorem
+    chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y) h hΩ hTail
+    (TendstoInBootstrapWeakDistributionIndexed.bootstrap_dist_tendsto_zero_of_dist_bound
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Zstar := fun n ω ωs => regressionLinearizedScoreFinSucc μ X e n ω ωs)
+      (Zstar' := fun n ω ωs => regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      (R := fun n ω ωs =>
+        regressionBootstrapBetaLinearizedGapEnvelopeFinSucc μ X e β n ω ωs)
+      (fun n ω => by infer_instance)
+      hGapTail
+      (fun n ω ωs =>
+        regressionBootstrapBetaStatisticFinSucc_dist_linearizedScore_le_gapEnvelope
+          μ X e y β hmodel n ω ωs))
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the explicit gap-envelope concrete
+ordinary-bootstrap OLS coefficient transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+    (μ := μ) (X := X) (e := e) (y := y)
+    β hm.model hm.toScoreCLTConditions hΩ hTail hGapTail
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the concrete ordinary-bootstrap OLS
