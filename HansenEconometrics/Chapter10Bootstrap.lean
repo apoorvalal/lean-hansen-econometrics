@@ -41708,6 +41708,56 @@ theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply
     dotProduct]
 
 omit [MeasurableSpace Ω] in
+/-- The scalar ordinary-bootstrap restriction statistic is bounded by the
+operator norm of the one-row restriction applied to the coefficient statistic.
+
+This bridge turns bounded concrete coefficient-statistic paths into the
+scalar numerator bound required by the bounded studentization and
+critical-value wrappers. -/
+theorem regressionBootstrapLinearRestrictionStatisticFinSucc_abs_le_beta_norm
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    |regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs| ≤
+      ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+          (β := fun _ : Unit => ℝ) ()‖ *
+        (‖matrixContinuousLinearMap R‖ *
+          ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖) := by
+  rw [regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply]
+  simpa [regressionBootstrapThetaStatisticFinSucc] using
+    abs_matrixContinuousLinearMap_coord_le_opNorm_mul_norm
+      (G := R) () (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+
+omit [MeasurableSpace Ω] in
+/-- Eventual boundedness of the concrete coefficient statistic supplies the
+scalar numerator bound for the one-row ordinary-bootstrap restriction. -/
+theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_bound_of_beta_bound
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (R : Matrix Unit k ℝ) {Cbeta : ℝ}
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta) :
+    ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        |regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs| ≤
+          ‖PiLp.proj (p := (2 : ℝ≥0∞)) (𝕜 := ℝ)
+              (β := fun _ : Unit => ℝ) ()‖ *
+            (‖matrixContinuousLinearMap R‖ * Cbeta) := by
+  filter_upwards [hBetaBound] with n hn
+  intro ω ωs
+  have hbase :=
+    regressionBootstrapLinearRestrictionStatisticFinSucc_abs_le_beta_norm
+      (R := R) (X := X) (y := y) n ω ωs
+  have hlin :
+      ‖matrixContinuousLinearMap R‖ *
+          ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤
+        ‖matrixContinuousLinearMap R‖ * Cbeta :=
+    mul_le_mul_of_nonneg_left (hn ω ωs) (norm_nonneg _)
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_left hlin (norm_nonneg _))
+
+omit [MeasurableSpace Ω] in
 /-- The scalar ordinary-bootstrap restriction statistic is exactly the Chapter
 7 totalized OLS linear-restriction numerator on the resampled design, centered
 at the original-sample `olsBetaOrZero`. -/
