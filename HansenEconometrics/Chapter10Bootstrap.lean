@@ -67993,6 +67993,42 @@ theorem continuousAt_cdf_standardNormal (x : ℝ) :
     ContinuousAt (fun y : ℝ => cdf (gaussianReal 0 1) y) x :=
   continuousAt_cdf_gaussianReal (m := 0) (v := 1) (by norm_num) x
 
+/-- Mapping a non-atomic real law through absolute value remains non-atomic. -/
+theorem noAtoms_map_abs_of_noAtoms (η : Measure ℝ) [NoAtoms η] :
+    NoAtoms (η.map (fun x : ℝ => |x|)) := by
+  refine ⟨?_⟩
+  intro y
+  rw [Measure.map_apply continuous_abs.measurable (measurableSet_singleton y)]
+  have hpre_subset :
+      (fun x : ℝ => |x|) ⁻¹' ({y} : Set ℝ) ⊆
+        ({y} ∪ {-y} : Set ℝ) := by
+    intro x hx
+    simp only [Set.mem_preimage, Set.mem_singleton_iff] at hx
+    simp only [Set.mem_union, Set.mem_singleton_iff]
+    by_cases hx_nonneg : 0 ≤ x
+    · left
+      simpa [abs_of_nonneg hx_nonneg] using hx
+    · right
+      have hx_neg : x < 0 := lt_of_not_ge hx_nonneg
+      have hneg : -x = y := by
+        simpa [abs_of_neg hx_neg] using hx
+      linarith
+  exact measure_mono_null hpre_subset
+    (measure_union_null (measure_singleton y) (measure_singleton (-y)))
+
+/-- The absolute-standard-normal CDF is continuous. -/
+theorem continuousAt_cdf_standardNormalAbs (x : ℝ) :
+    ContinuousAt
+      (fun y : ℝ => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x := by
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  haveI : IsProbabilityMeasure ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    Measure.isProbabilityMeasure_map continuous_abs.aemeasurable
+  haveI : NoAtoms ((gaussianReal 0 1).map (fun z : ℝ => |z|)) :=
+    noAtoms_map_abs_of_noAtoms (gaussianReal 0 1)
+  exact continuousAt_cdf_of_noAtoms
+    ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x
+
 /-- A scalar limit statistic with law `η` has scalar CDF equal to the CDF of
 `η`.
 
@@ -83315,10 +83351,6 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83372,7 +83404,8 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Indexed regression-facing two-sided bootstrap-test calibration from the
@@ -83406,10 +83439,6 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_re
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83463,7 +83492,8 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_indexed_of_bootstrap_re
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hT hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Regression-facing two-sided bootstrap-test calibration from a marginal
@@ -83509,10 +83539,6 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_numerator_tight
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83566,7 +83592,8 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_numerator_tight
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 set_option linter.style.longLine false in
@@ -83611,10 +83638,6 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_numerator_tight
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83668,7 +83691,8 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_numerator_tight
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Regression-facing two-sided bootstrap-test calibration from scalar
@@ -83709,10 +83733,6 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83766,7 +83786,8 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_scalarTail
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Indexed regression-facing two-sided bootstrap-test calibration from scalar
@@ -83804,10 +83825,6 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_scalarTail
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83861,7 +83878,8 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_scalarTail
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Regression-facing two-sided bootstrap-test calibration from an eventually
@@ -83898,10 +83916,6 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -83955,7 +83969,8 @@ chapter10_bootstrap_abs_test_rejectionProb_of_regression_tstat_eventually_bound
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Indexed regression-facing two-sided bootstrap-test calibration from an
@@ -83989,10 +84004,6 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_eventually_bound
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84046,7 +84057,8 @@ chapter10_indexed_abs_test_rejectionProb_of_regression_tstat_eventually_bound
       (Pstar := Pstar) (Astar := Astar) (T := T)
       (ξ := fun x : ℝ => x) (critLim := critLim) (α := α)
       hTsample hPstar hAmeas hα_pos hα_lt_one hleft hright hAstar
-      hcontAbs hcrit_meas' hξ hcrit_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormalAbs x) hcrit_meas' hξ
+      hcrit_nonneg hcdfLower hcdfUpper
   simpa [Astar] using hreject
 
 /-- Strict-CDF counterpart of the regression-facing two-sided bootstrap-test
@@ -84074,10 +84086,6 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regressio
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84102,7 +84110,7 @@ theorem chapter10_bootstrap_abs_test_rejectionProb_strict_of_bootstrap_regressio
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hT hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of the regression-facing two-sided
@@ -84132,10 +84140,6 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84160,7 +84164,7 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hT hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of the numerator-tight regression absolute-test
@@ -84198,10 +84202,6 @@ chapter10_abs_test_rejectionProb_strict_of_regression_tstat_numerator_tight
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84226,7 +84226,7 @@ chapter10_abs_test_rejectionProb_strict_of_regression_tstat_numerator_tight
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTail hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of the numerator-tight regression
@@ -84265,10 +84265,6 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_numerator_ti
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84293,7 +84289,7 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_numerator_ti
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTail hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of the scalar-tail regression absolute-test route. -/
@@ -84324,10 +84320,6 @@ theorem chapter10_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84352,7 +84344,7 @@ theorem chapter10_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of the scalar-tail regression absolute-test
@@ -84386,10 +84378,6 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84414,7 +84402,7 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_scalarTail
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hTtail hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of the bounded-numerator regression absolute-test
@@ -84443,10 +84431,6 @@ chapter10_abs_test_rejectionProb_strict_of_regression_tstat_eventually_bound
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84471,7 +84455,7 @@ chapter10_abs_test_rejectionProb_strict_of_regression_tstat_eventually_bound
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ) (C := C)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hbound hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of the bounded-numerator regression
@@ -84501,10 +84485,6 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_eventually_b
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84529,7 +84509,7 @@ chapter10_indexed_abs_test_rejectionProb_strict_of_regression_tstat_eventually_b
       (seThetaStar := seThetaStar) (T := T) (seθ := seθ) (C := C)
       (critLim := critLim) (α := α)
       hTsample hseθ hT hPstar hTthetaStar hseThetaStar hbound hseStar
-      hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+      hα_pos hα_lt_one hleft hright hcrit_meas
       hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -84611,10 +84591,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84660,7 +84636,7 @@ theorem
       β R hmodel h hΩ hTail hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hTtail hseStar hα_pos hα_lt_one hleft hright
-    hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+     hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed concrete finite OLS
@@ -84734,10 +84710,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84770,7 +84742,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ hTail
     hGapTail hseThetaStar hTtail hseStar hα_pos hα_lt_one
-    hleft hright hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hleft hright hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Indexed strict-CDF two-sided bootstrap-test calibration with the bootstrap
@@ -84847,10 +84819,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -84896,7 +84864,7 @@ theorem
       β R hmodel h hΩ hTail hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hTtail hseStar hα_pos hα_lt_one hstrictAbs
-    hcritLevel hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed concrete finite OLS
@@ -84966,10 +84934,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85002,7 +84966,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ hTail
     hGapTail hseThetaStar hTtail hseStar hα_pos hα_lt_one
-    hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg hcdfLower
+    hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower
     hcdfUpper
 
 set_option linter.style.longLine false in
@@ -85062,10 +85026,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85111,7 +85071,7 @@ theorem
       β R hmodel h hΩ hLinBound hBetaBound hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hNumBound hseStar hα_pos hα_lt_one hleft hright
-    hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+     hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed concrete bounded finite
@@ -85168,10 +85128,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85204,7 +85160,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hNumBound hseStar
-    hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+    hα_pos hα_lt_one hleft hright hcrit_meas hcrit_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -85260,10 +85216,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85309,7 +85261,7 @@ theorem
       β R hmodel h hΩ hLinBound hBetaBound hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hNumBound hseStar hα_pos hα_lt_one hstrictAbs
-    hcritLevel hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed concrete bounded finite
@@ -85362,10 +85314,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85398,7 +85346,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hNumBound hseStar
-    hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas
+    hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -85455,10 +85403,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85508,7 +85452,7 @@ theorem
     hseThetaStar
     (regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_bound_of_beta_bound
       (R := R) (X := X) (y := y) hBetaBound)
-    hseStar hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+    hseStar hα_pos hα_lt_one hleft hright hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -85562,10 +85506,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85598,7 +85538,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ hLinBound
     hBetaBound hGapTail hseThetaStar hseStar hα_pos hα_lt_one
-    hleft hright hcontAbs hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hleft hright hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Indexed strict-CDF two-sided bootstrap-test calibration with the bootstrap
@@ -85650,10 +85590,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85690,8 +85626,7 @@ theorem
     hseThetaStar
     (regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_bound_of_beta_bound
       (R := R) (X := X) (y := y) hBetaBound)
-    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs
-    hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed concrete beta-bound
@@ -85740,10 +85675,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85776,7 +85707,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hTsample hseθ hm.model hm.toScoreCLTConditions hΩ hLinBound
     hBetaBound hGapTail hseThetaStar hseStar hα_pos hα_lt_one
-    hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg hcdfLower
+    hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower
     hcdfUpper
 
 /-- Theorem 10.16 with the actual statistic specialized to the ordinary HC0
@@ -85815,10 +85746,6 @@ chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85854,7 +85781,7 @@ chapter10_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
@@ -85889,10 +85816,6 @@ chapter10_indexed_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -85928,7 +85851,7 @@ chapter10_indexed_olsHC0_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.16 with the actual statistic specialized to the ordinary HC1
@@ -85967,10 +85890,6 @@ chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86006,7 +85925,7 @@ chapter10_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
@@ -86041,10 +85960,6 @@ chapter10_indexed_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86080,7 +85995,7 @@ chapter10_indexed_olsHC1_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.16 with the actual statistic specialized to the ordinary HC2
@@ -86115,10 +86030,6 @@ chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86154,7 +86065,7 @@ chapter10_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
@@ -86189,10 +86100,6 @@ chapter10_indexed_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86228,7 +86135,7 @@ chapter10_indexed_olsHC2_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.16 with the actual statistic specialized to the ordinary HC3
@@ -86263,10 +86170,6 @@ chapter10_olsHC3_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86302,7 +86205,7 @@ chapter10_olsHC3_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regression_ts
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.16 with the actual statistic specialized to the ordinary
@@ -86337,10 +86240,6 @@ chapter10_indexed_olsHC3_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86376,7 +86275,7 @@ chapter10_indexed_olsHC3_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_regre
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleft hright hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hleft hright hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86407,10 +86306,6 @@ chapter10_olsHC0_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86446,7 +86341,7 @@ chapter10_olsHC0_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86477,10 +86372,6 @@ chapter10_indexed_olsHC0_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86516,7 +86407,7 @@ chapter10_indexed_olsHC0_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86547,10 +86438,6 @@ chapter10_olsHC1_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86586,7 +86473,7 @@ chapter10_olsHC1_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86617,10 +86504,6 @@ chapter10_indexed_olsHC1_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86656,7 +86539,7 @@ chapter10_indexed_olsHC1_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86687,10 +86570,6 @@ chapter10_olsHC2_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86726,7 +86605,7 @@ chapter10_olsHC2_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86757,10 +86636,6 @@ chapter10_indexed_olsHC2_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86796,7 +86671,7 @@ chapter10_indexed_olsHC2_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86827,10 +86702,6 @@ chapter10_olsHC3_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86866,7 +86737,7 @@ chapter10_olsHC3_abs_test_rejectionProb_strict_of_bootstrap_regression_tstat
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed strict-CDF counterpart of Theorem 10.16 with the actual statistic
@@ -86897,10 +86768,6 @@ chapter10_indexed_olsHC3_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -86936,7 +86803,7 @@ chapter10_indexed_olsHC3_abs_test_rejectionProb_strict_of_bootstrap_regression_t
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrictAbs hcritLevel hcontAbs hcrit_meas hcrit_nonneg
+      hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg
       hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -86990,10 +86857,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87033,7 +86896,7 @@ theorem
     (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+    hseStar hα_pos hα_lt_one hleft hright hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -87080,10 +86943,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87123,8 +86982,7 @@ theorem
     (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs
-    hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Indexed local-CDF two-sided bootstrap-test calibration with the actual
@@ -87176,10 +87034,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87219,7 +87073,7 @@ theorem
     (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+    hseStar hα_pos hα_lt_one hleft hright hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -87266,10 +87120,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87309,8 +87159,7 @@ theorem
     (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs
-    hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Indexed local-CDF two-sided bootstrap-test calibration with the actual
@@ -87362,10 +87211,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87405,7 +87250,7 @@ theorem
     (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+    hseStar hα_pos hα_lt_one hleft hright hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -87452,10 +87297,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87495,8 +87336,7 @@ theorem
     (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs
-    hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Indexed local-CDF two-sided bootstrap-test calibration with the actual
@@ -87548,10 +87388,6 @@ theorem
       ∀ ε : ℝ, 0 < ε →
         1 - α <
           cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) (critLim + ε))
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87591,7 +87427,7 @@ theorem
     (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hleft hright hcontAbs hcrit_meas
+    hseStar hα_pos hα_lt_one hleft hright hcrit_meas
     hcrit_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -87638,10 +87474,6 @@ theorem
       StrictMono (fun x => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) x))
     (hcritLevel :
       cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) critLim = 1 - α)
-    (hcontAbs :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y => cdf ((gaussianReal 0 1).map (fun z : ℝ => |z|)) y) x)
     (hcrit_meas :
       ∀ n,
         AEMeasurable
@@ -87681,8 +87513,7 @@ theorem
     (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hm hΩ hLinBound hBetaBound hGapTail hseThetaStar
-    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcontAbs
-    hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
+    hseStar hα_pos hα_lt_one hstrictAbs hcritLevel hcrit_meas hcrit_nonneg hcdfLower hcdfUpper
 
 end BootstrapTests
 
