@@ -41895,6 +41895,89 @@ theorem chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_linearized
     (chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean
       (μ := μ) (X := X) (e := e) h hΩ)
 
+/-- Hansen Definition 10.2 face of the ordinary-bootstrap linearized
+regression score route.
+
+This is the CDF counterpart of
+`chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_linearizedScore`:
+the finite ordinary-bootstrap score CLT is mapped through the population Gram
+inverse and `Rᵀ`, then converted to coordinate CDF convergence at transformed
+Gaussian continuity points. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_linearizedScore
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) := by
+  simpa [Matrix.transpose_transpose] using
+    chapter10_indexed_bootstrap_delta_method_gaussian_distribution
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Tstar := fun n ω ωs =>
+        regressionLinearizedScoreFinSucc μ X e n ω ωs)
+      (V := heteroAsymCov μ X e) (G := Rᵀ)
+      (heteroAsymCov_posSemidef_of_scoreCLTConditions
+        (μ := μ) (X := X) (e := e) h)
+      (chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean
+        (μ := μ) (X := X) (e := e) h hΩ)
+      (fun n ω => inferInstance) (fun n ω => measurable_of_finite _)
+      (by simpa [Matrix.transpose_transpose] using hfrontier)
+
+/-- Positive-definite transformed-covariance CDF face of the
+ordinary-bootstrap linearized regression score route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_linearizedScore
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_linearizedScore
+    (μ := μ) R h hΩ
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
 /-- Hansen Theorem 10.18 transformed-regression ordinary-bootstrap CLT after
 nonlinear coefficient inversion.
 
