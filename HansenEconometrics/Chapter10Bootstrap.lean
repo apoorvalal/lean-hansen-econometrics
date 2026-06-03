@@ -35,7 +35,8 @@ used throughout the chapter:
   Chebyshev/Marcinkiewicz bridge that turns Hansen's empirical second-moment
   bound into the centered conclusion of Theorem 10.2.
 * `chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound` is the
-  scalar conditional-Chebyshev constructor for the same Theorem 10.2 step.
+  scalar conditional-Chebyshev constructor for the same Theorem 10.2 step, with
+  an indexed counterpart for sample-size-dependent bootstrap spaces.
 * `chapter10_bootstrap_wlln_centered_of_l2_eLpNorm_bound` is the vector-valued
   conditional Markov constructor from a bootstrap `L²` seminorm bound.
 * `bootstrapTailProb_zero_le_integral_norm_sq_div` and
@@ -45,7 +46,8 @@ used throughout the chapter:
   `chapter10_bootstrap_wlln_level_of_l2_eLpNorm_bound` package centered
   constructors with the ordinary WLLN to give the level conclusion of Theorem
   10.2; `chapter10_bootstrap_wlln_level_of_integral_norm_sq_bound` is the
-  corresponding vector second-moment level wrapper.
+  corresponding vector second-moment level wrapper. Indexed scalar and
+  second-moment level wrappers mirror the same structure.
 * `TendstoInBootstrapProbabilityIndexed` and
   `chapter10_indexed_bootstrap_wlln_centered_finSucc_resampleMean` provide the
   sample-size-indexed ordinary nonparametric-bootstrap version with resampling
@@ -8491,6 +8493,43 @@ theorem tendstoInBootstrapProbabilityIndexed_of_tail_bound
     (hle η hη)
     (hbound η hη)
 
+/-- Indexed conditional Chebyshev inequality for centered scalar bootstrap
+statistics.
+
+This is the sample-size-dependent bootstrap-space version of
+`bootstrapTailProb_centered_real_le_variance_div_sq`. -/
+theorem bootstrapTailProbIndexed_centered_real_le_variance_div_sq
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar : ∀ n, Ω → Ωboot n → ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean : ∀ n ω, (Pstar n ω)[Zstar n ω] = 0)
+    {η : ℝ} (hη : 0 < η) (n : ℕ) (ω : Ω) :
+    bootstrapTailProbIndexed Pstar Zstar (fun _ => 0) η n ω ≤
+      Var[Zstar n ω; Pstar n ω] / η ^ 2 := by
+  haveI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+  have hcheb :=
+    ProbabilityTheory.meas_ge_le_variance_div_sq
+      (μ := Pstar n ω) (X := Zstar n ω) (hZ n ω) hη
+  have hset :
+      {ωs : Ωboot n | η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : ℝ)) ω)} =
+        {ωs : Ωboot n | η ≤ |Zstar n ω ωs - (Pstar n ω)[Zstar n ω]|} := by
+    ext ωs
+    simp [hmean n ω]
+  have hmeasure :
+      (Pstar n ω)
+          {ωs : Ωboot n |
+            η ≤ dist (Zstar n ω ωs) ((fun _ : Ω => (0 : ℝ)) ω)} ≤
+        ENNReal.ofReal (Var[Zstar n ω; Pstar n ω] / η ^ 2) := by
+    rw [hset]
+    exact hcheb
+  have hnonneg :
+      0 ≤ Var[Zstar n ω; Pstar n ω] / η ^ 2 :=
+    div_nonneg (ProbabilityTheory.variance_nonneg (Zstar n ω) (Pstar n ω))
+      (sq_nonneg η)
+  have hreal := ENNReal.toReal_mono ENNReal.ofReal_ne_top hmeasure
+  simpa [bootstrapTailProbIndexed, ENNReal.toReal_ofReal hnonneg] using hreal
+
 /-- Indexed Hansen Theorem 10.2, centered WLLN from a conditional tail bound.
 
 This is the sample-size-dependent bootstrap-space version of
@@ -8534,6 +8573,45 @@ theorem chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
     (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω)
     (fun η hη => bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη)
     hle
+
+/-- Indexed Hansen Theorem 10.2, scalar centered WLLN from a conditional
+variance bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_centered_real_of_conditional_variance_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_real_of_conditional_variance_bound
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → ℝ} {Ybar : ℕ → Ω → ℝ}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hmean :
+      ∀ n ω, (Pstar n ω)[fun ωs => YbarStar n ω ωs - Ybar n ω] = 0)
+    (hvar :
+      ∀ n ω,
+        Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
+  refine chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  calc
+    bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+        ≤ Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] / η ^ 2 :=
+          bootstrapTailProbIndexed_centered_real_le_variance_div_sq
+            (Pstar := Pstar)
+            (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+            hPstar hZ hmean hη n ω
+    _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+          div_le_div_of_nonneg_right (hvar n ω) (sq_nonneg η)
+    _ = bootstrapWLLNSecondMomentBound u η n ω := by
+          rw [bootstrapWLLNSecondMomentBound]
+          field_simp [hη.ne']
 
 /-- Indexed-space version of Hansen Theorem 10.1.
 
@@ -9642,6 +9720,60 @@ theorem chapter10_indexed_bootstrap_wlln_level_from_centered
     (fun n ω ωs => by simp)
     (fun ω => by simp)
 
+/-- Indexed Hansen Theorem 10.2, level WLLN from Hansen's textbook
+second-moment bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_level_of_second_moment_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_level_of_second_moment_bound
+    [SeminormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E} {μY : E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0)
+          η n ω ≤ bootstrapWLLNSecondMomentBound u η n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hu hle)
+    hYbar
+
+/-- Indexed Hansen Theorem 10.2, scalar level WLLN from a conditional
+variance bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_level_real_of_conditional_variance_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_level_real_of_conditional_variance_bound
+    [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    {YbarStar : ∀ n, Ω → Ωboot n → ℝ} {Ybar : ℕ → Ω → ℝ} {μY : ℝ}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hZ : ∀ n ω, MemLp (fun ωs => YbarStar n ω ωs - Ybar n ω) 2 (Pstar n ω))
+    (hmean :
+      ∀ n ω, (Pstar n ω)[fun ωs => YbarStar n ω ωs - Ybar n ω] = 0)
+    (hvar :
+      ∀ n ω,
+        Var[fun ωs => YbarStar n ω ωs - Ybar n ω; Pstar n ω] ≤
+          marcinkiewiczWLLNStatisticNat u 2 n ω)
+    (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) :=
+  chapter10_indexed_bootstrap_wlln_level_from_centered
+    (μ := μ) hPstar
+    (chapter10_indexed_bootstrap_wlln_centered_real_of_conditional_variance_bound
+      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+      (u := u) hPstar hu hZ hmean hvar)
+    hYbar
+
 /-- Indexed-space Hansen Theorem 10.2 level WLLN from a conditional
 second-moment bound.
 
@@ -9664,11 +9796,23 @@ theorem chapter10_indexed_bootstrap_wlln_level_of_integral_norm_sq_bound
           marcinkiewiczWLLNStatisticNat u 2 n ω)
     (hYbar : TendstoInMeasure μ Ybar atTop (fun _ => μY)) :
     TendstoInBootstrapProbabilityIndexed μ Pstar YbarStar (fun _ => μY) :=
-  chapter10_indexed_bootstrap_wlln_level_from_centered
-    (μ := μ) hPstar
-    (chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
-      (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
-      (u := u) hPstar hu hZ hbound)
+  chapter10_indexed_bootstrap_wlln_level_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hPstar hu
+    (fun η hη n ω => by
+      calc
+        bootstrapTailProbIndexed Pstar
+            (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+            ≤ (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
+              bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+                (Pstar := Pstar)
+                (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+                hPstar hZ hη n ω
+        _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+              div_le_div_of_nonneg_right (hbound n ω) (sq_nonneg η)
+        _ = bootstrapWLLNSecondMomentBound u η n ω := by
+              rw [bootstrapWLLNSecondMomentBound]
+              field_simp [hη.ne'])
     hYbar
 
 /-- Ordinary finite nonparametric-bootstrap centered WLLN for `Fin (n+1)`
