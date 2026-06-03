@@ -72233,6 +72233,343 @@ theorem
     hBetaBound hGapTail hα_pos hα_lt_one hstrict hcont hlower_meas
     hupper_meas hξ hZlaw hq_nonneg hcdfLower hcdfUpper
 
+private theorem tendstoInDistribution_congr_eventually
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X Y : ℕ → Ω → E} {Z : Ωlim → E}
+    (hY : ∀ n, AEMeasurable (Y n) μ)
+    (hXY : ∀ᶠ n in atTop, X n =ᵐ[μ] Y n)
+    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution Y atTop Z (fun _ => μ) ν where
+  forall_aemeasurable := hY
+  aemeasurable_limit := h.aemeasurable_limit
+  tendsto := by
+    refine Tendsto.congr' ?_ h.tendsto
+    exact hXY.mono fun n hn => Subtype.ext (Measure.map_congr hn)
+
+private theorem
+    olsLinearRestrictionEstimate_tendstoInDistribution_gaussian_posRoot
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    {ξ : Ωlim → ℝ}
+    (h : ScoreCLTConditions μ X e)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hξ :
+      HasLaw ξ
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) ν) :
+    TendstoInDistribution
+      (fun (n : ℕ) ω =>
+        (if n = 0 then 1 else Real.sqrt (n : ℝ)) *
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) -
+            linearRestrictionEstimate R β))
+      atTop ξ (fun _ => μ) ν := by
+  let Xsample : ℕ → Ω → ℝ := fun n ω =>
+    (Real.sqrt (n : ℝ) •
+      (R *ᵥ
+        (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω) - β))) ⬝ᵥ
+        (fun _ : Unit => 1)
+  let Ysample : ℕ → Ω → ℝ := fun n ω =>
+    (if n = 0 then 1 else Real.sqrt (n : ℝ)) *
+      (linearRestrictionEstimate R
+          (olsBetaOrZero (stackRegressors X n ω) (stackOutcomes y n ω)) -
+        linearRestrictionEstimate R β)
+  have hraw :
+      TendstoInDistribution Xsample atTop ξ (fun _ => μ) ν := by
+    simpa [Xsample] using
+      scoreProj_linMap_olsBetaOrZero_tendstoInDistribution_gaussian_cov
+        (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+        h.toSampleCLTAssumption72 β R (fun _ : Unit => 1) hmodel hξ
+  have hmeas : ∀ n, AEMeasurable (Ysample n) μ := by
+    intro n
+    have hbeta :
+        AEStronglyMeasurable
+          (fun ω =>
+            olsBetaOrZero
+              (stackRegressors X n ω) (stackOutcomes y n ω)) μ :=
+      olsBetaOrZero_stack_aestronglyMeasurable
+        (μ := μ) (X := X) (e := e) (y := y) β
+        h.toLeastSquaresConsistencyConditions hmodel n
+    have hθhat :
+        AEMeasurable
+          (fun ω =>
+            linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω))) μ := by
+      have hcont :
+          Continuous (fun b : k → ℝ => linearRestrictionEstimate R b) := by
+        have hmul : Continuous (fun b : k → ℝ => R *ᵥ b) :=
+          Continuous.matrix_mulVec
+            (continuous_const : Continuous (fun _ : k → ℝ => R))
+            (continuous_id : Continuous (fun b : k → ℝ => b))
+        have hone :
+            Continuous (fun _ : k → ℝ => (fun _ : Unit => (1 : ℝ))) :=
+          continuous_const
+        simpa [linearRestrictionEstimate] using
+          hmul.dotProduct hone
+      exact hcont.measurable.comp_aemeasurable hbeta.aemeasurable
+    have hθ :
+        AEMeasurable
+          (fun _ : Ω => linearRestrictionEstimate R β) μ :=
+      aemeasurable_const
+    simpa [Ysample] using
+      (hθhat.sub hθ).const_mul
+        (if n = 0 then 1 else Real.sqrt (n : ℝ))
+  have hcongr : ∀ᶠ n in atTop, Xsample n =ᵐ[μ] Ysample n := by
+    filter_upwards [eventually_ne_atTop 0] with n hn
+    refine ae_of_all μ fun ω => ?_
+    dsimp [Xsample, Ysample, linearRestrictionEstimate]
+    simp only [hn, if_false]
+    rw [linearMapUnit_smul_sub_dot_one]
+  simpa [Ysample] using
+    tendstoInDistribution_congr_eventually
+      (μ := μ) (ν := ν) (hY := hmeas) hcongr hraw
+
+private theorem
+    olsLinearRestriction_multivariateGaussian_coord_hasLaw
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (R : Matrix Unit k ℝ)
+    (h : ScoreCLTConditions μ X e) :
+    HasLaw
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ())
+      (gaussianReal 0
+        (olsProjectionAsymVar μ X e
+          (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (R * heteroAsymCov μ X e * Rᵀ)) := by
+  let S : Matrix Unit Unit ℝ := R * heteroAsymCov μ X e * Rᵀ
+  have hS : S.PosSemidef := by
+    have hVβ :
+        (heteroAsymCov μ X e).PosSemidef :=
+      heteroAsymCov_posSemidef_of_scoreCLTConditions
+        (μ := μ) (X := X) (e := e) h
+    simpa [S, Matrix.conjTranspose] using
+      Matrix.PosSemidef.conjTranspose_mul_mul_same hVβ Rᵀ
+  have hcoord :
+      HasLaw (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ())
+        (gaussianReal 0 (S () ()).toNNReal)
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit) S) := by
+    simpa using
+      (multivariateGaussian_eval_hasLaw (μ := (0 : EuclideanSpace ℝ Unit))
+        (S := S) hS ())
+  have hvar :
+      S () () =
+        olsProjectionAsymVar μ X e
+          (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+    simpa [S] using
+      linMapCov_unit_apply_eq_olsProjectionAsymVar
+        (μ := μ) (X := X) (e := e) h.int_outer R
+  simpa [S, hvar] using hcoord
+
+set_option linter.style.longLine false in
+/-- Finite OLS percentile-interval wrapper with the sample-side OLS
+linear-restriction CLT discharged by Chapter 7.
+
+The scale is `if n = 0 then 1 else sqrt n`: it is positive for every `n`, as
+required by the percentile endpoint API, and agrees eventually with Hansen's
+usual `sqrt n` scaling. -/
+theorem
+    chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_brackets
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {ξ : Ωlim → ℝ} {Clin Cbeta q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hξ :
+      HasLaw ξ
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) ν)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (R * heteroAsymCov μ X e * Rᵀ).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε →
+        α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (q + ε))
+    (hcont :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y =>
+            cdf
+              (gaussianReal 0
+                (olsProjectionAsymVar μ X e
+                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (-q) = α / 2)
+    (hcdfUpper :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (1 - α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let a : ℕ → ℝ := fun n => if n = 0 then 1 else Real.sqrt (n : ℝ)
+  have ha : ∀ n, 0 < a n := by
+    intro n
+    by_cases hn : n = 0
+    · simp [a, hn]
+    · have hnpos : 0 < (n : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero hn
+      simp [a, hn, Real.sqrt_pos.2 hnpos]
+  have hstat :
+      TendstoInDistribution
+        (fun n ω =>
+          a n *
+            (linearRestrictionEstimate R
+                (olsBetaOrZero
+                  (stackRegressors X n ω) (stackOutcomes y n ω)) -
+              linearRestrictionEstimate R β))
+        atTop ξ (fun _ => μ) ν := by
+    simpa [a] using
+      olsLinearRestrictionEstimate_tendstoInDistribution_gaussian_posRoot
+        (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
+        β R h hmodel hξ
+  have hZlaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ())
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          (R * heteroAsymCov μ X e * Rᵀ)) :=
+    olsLinearRestriction_multivariateGaussian_coord_hasLaw
+      (μ := μ) (X := X) (e := e) R h
+  have hvar_pos :
+      0 <
+        olsProjectionAsymVar μ X e
+          (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+    have hentry : 0 < (R * heteroAsymCov μ X e * Rᵀ) () () :=
+      hRVR.diag_pos
+    have hvar_eq :
+        (R * heteroAsymCov μ X e * Rᵀ) () () =
+          olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1)) := by
+      exact linMapCov_unit_apply_eq_olsProjectionAsymVar
+        (μ := μ) (X := X) (e := e) h.int_outer R
+    simpa [hvar_eq] using hentry
+  haveI :
+      NoAtoms
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) :=
+    noAtoms_gaussianReal (ne_of_gt (Real.toNNReal_pos.mpr hvar_pos))
+  exact
+    chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_brackets
+      (μ := μ) (ν := ν)
+      (η := gaussianReal 0
+        (olsProjectionAsymVar μ X e
+          (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      (X := X) (e := e) (y := y)
+      (a := a) ha β R hstat hmodel h hΩ hRVR hLinBound hBetaBound
+      hGapTail hα_pos hα_lt_one hleftLower hrightLower hleftUpper
+      hrightUpper hcont hlower_meas hupper_meas hξ hZlaw hq_nonneg
+      hcdfLower hcdfUpper
+
 /-- Hansen equation (10.22): finite-replication bootstrap median-bias share
 `p* = B^{-1} sum_b 1{theta*_b <= thetaHat}`. -/
 noncomputable def bootstrapMedianBiasShare
@@ -77423,20 +77760,6 @@ theorem
     hLinBound hBetaBound hGapTail hseThetaStar hseStar hα_pos
     hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg hcdfLower
     hcdfUpper
-
-private theorem tendstoInDistribution_congr_eventually
-    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
-    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
-    {X Y : ℕ → Ω → E} {Z : Ωlim → E}
-    (hY : ∀ n, AEMeasurable (Y n) μ)
-    (hXY : ∀ᶠ n in atTop, X n =ᵐ[μ] Y n)
-    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
-    TendstoInDistribution Y atTop Z (fun _ => μ) ν where
-  forall_aemeasurable := hY
-  aemeasurable_limit := h.aemeasurable_limit
-  tendsto := by
-    refine Tendsto.congr' ?_ h.tendsto
-    exact hXY.mono fun n hn => Subtype.ext (Measure.map_congr hn)
 
 private theorem percentileTStatistic_linearRestriction_eq_olsLinearTStatOrZero
     {ι k : Type*} [Fintype ι] [Fintype k] [DecidableEq k]
