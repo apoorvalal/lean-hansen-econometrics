@@ -40351,6 +40351,68 @@ theorem chapter10_indexed_bootstrap_scalar_compactTail_of_eventually_bound
       simp [hxmem]
     simp [hset]
 
+/-- Euclidean compact-tail constructor for a pair of eventually
+deterministically norm-bounded bootstrap statistics.
+
+The two statistics share the same compact ball, so this discharges the exact
+pair compact-tail premise used by noncompact weak-transfer bridges. -/
+theorem chapter10_bootstrap_euclidean_pair_compactTail_of_eventually_norm_bound
+    {k : Type*} [Fintype k]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Zstar Zstar' : ℕ → Ω → Ωs → EuclideanSpace ℝ k}
+    {C C' : ℝ}
+    (hZ : ∀ᶠ n in atTop, ∀ ω ωs, ‖Zstar n ω ωs‖ ≤ C)
+    (hZ' : ∀ᶠ n in atTop, ∀ ω ωs, ‖Zstar' n ω ωs‖ ≤ C') :
+    ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω => (Pstar n ω).real {ωs | Zstar' n ω ωs ∉ K})
+          atTop (fun _ => 0) := by
+  intro η hη
+  let M : ℝ := max C C'
+  let K : Set (EuclideanSpace ℝ k) :=
+    Metric.closedBall (0 : EuclideanSpace ℝ k) M
+  refine ⟨K, isCompact_closedBall (0 : EuclideanSpace ℝ k) M, ?_, ?_⟩
+  · have hzero :
+        TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+      tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+    refine TendstoInMeasure.congr'
+      (f := fun _ (_ : Ω) => (0 : ℝ))
+      (f' := fun n ω => (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K})
+      (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+      ?_ EventuallyEq.rfl hzero
+    filter_upwards [hZ] with n hn
+    exact ae_of_all μ fun ω => by
+      have hset : {ωs | Zstar n ω ωs ∉ K} = ∅ := by
+        ext ωs
+        have hzmem : Zstar n ω ωs ∈ K := by
+          dsimp [K, M]
+          simpa [Metric.mem_closedBall, dist_zero_right] using
+            (hn ω ωs).trans (le_max_left C C')
+        simp [hzmem]
+      simp [hset]
+  · have hzero :
+        TendstoInMeasure μ (fun _ (_ : Ω) => (0 : ℝ)) atTop (fun _ => 0) :=
+      tendstoInMeasure_const_real (μ := μ) tendsto_const_nhds
+    refine TendstoInMeasure.congr'
+      (f := fun _ (_ : Ω) => (0 : ℝ))
+      (f' := fun n ω => (Pstar n ω).real {ωs | Zstar' n ω ωs ∉ K})
+      (g := fun _ : Ω => (0 : ℝ)) (g' := fun _ : Ω => 0)
+      ?_ EventuallyEq.rfl hzero
+    filter_upwards [hZ'] with n hn
+    exact ae_of_all μ fun ω => by
+      have hset : {ωs | Zstar' n ω ωs ∉ K} = ∅ := by
+        ext ωs
+        have hzmem : Zstar' n ω ωs ∈ K := by
+          dsimp [K, M]
+          simpa [Metric.mem_closedBall, dist_zero_right] using
+            (hn ω ωs).trans (le_max_right C C')
+        simp [hzmem]
+      simp [hset]
+
 /-- Indexed Euclidean compact-tail constructor for a pair of eventually
 deterministically norm-bounded bootstrap statistics.
 
