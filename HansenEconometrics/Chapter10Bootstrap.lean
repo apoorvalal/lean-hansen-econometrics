@@ -41383,6 +41383,155 @@ private theorem heteroAsymCov_posSemidef_of_scoreCLTConditions
     simpa [Matrix.conjTranspose] using Matrix.PosSemidef.mul_mul_conjTranspose_same hΩ A
   simpa [heteroAsymCov, A, hA] using hpsd
 
+set_option linter.style.longLine false in
+/-- Hansen Theorem 10.18 score-level ordinary-bootstrap CLT.
+
+The ordinary `Fin (n+1)` nonparametric bootstrap CLT applied to the regression
+score vectors `e_i X_i` gives a Euclidean score Gaussian with covariance
+`scoreCovMat`. -/
+theorem chapter10_indexed_bootstrap_score_gaussian_finSucc_resampleMean
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        WithLp.toLp 2
+          (fun a =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                  (fun ωs t => ωs t) ωs a -
+                empiricalMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a)))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (scoreCovMat μ X e))
+      (fun z : EuclideanSpace ℝ k => z) := by
+  have hVec :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs a =>
+          Real.sqrt (n + 1 : ℝ) *
+            (empiricalBootstrapResampleMean
+                (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                (fun ωs t => ωs t) ωs a -
+              empiricalMean
+                (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) (scoreCovMat μ X e))
+        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) := by
+    simpa [scoreCovMat] using
+      (chapter10_indexed_bootstrap_weak_clt_gaussian_finSucc_resampleMean_of_iIndep_covMat_tail_posDef
+        (μ := μ) (Y := fun i ω => e i ω • X i ω)
+        (fun a =>
+          scoreCoordinate_memLp_two (μ := μ) (X := X) (e := e)
+            h.toSampleCLTAssumption72 a)
+        h.iIndep_cross h.ident_cross
+        (by simpa [scoreCovMat] using hΩ))
+  have hEuclid :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs =>
+          WithLp.toLp 2
+            (fun a =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                    (fun ωs t => ωs t) ωs a -
+                  empiricalMean
+                    (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a)))
+        (multivariateGaussian (0 : EuclideanSpace ℝ k) (scoreCovMat μ X e))
+        (fun z : EuclideanSpace ℝ k =>
+          WithLp.toLp 2 ((z : EuclideanSpace ℝ k) : k → ℝ)) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Zstar := fun n ω ωs a =>
+        Real.sqrt (n + 1 : ℝ) *
+          (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+              (fun ωs t => ωs t) ωs a -
+            empiricalMean
+              (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a))
+      (ν := multivariateGaussian (0 : EuclideanSpace ℝ k) (scoreCovMat μ X e))
+      (Z := fun z : EuclideanSpace ℝ k => (z : k → ℝ))
+      (g := (WithLp.toLp 2 : (k → ℝ) → EuclideanSpace ℝ k))
+      hVec (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
+  refine hEuclid.congr (fun _ _ _ => rfl) ?_
+  intro z
+  simp
+
+/-- Hansen Theorem 10.18 linearized ordinary-bootstrap coefficient CLT.
+
+Applying the population Gram inverse to the ordinary bootstrap score CLT gives
+the linearized regression coefficient statistic with covariance
+`heteroAsymCov`. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        matrixContinuousLinearMap ((popGram μ X)⁻¹)
+          (WithLp.toLp 2
+            (fun a =>
+              Real.sqrt (n + 1 : ℝ) *
+                (empiricalBootstrapResampleMean
+                    (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                    (fun ωs t => ωs t) ωs a -
+                  empiricalMean
+                    (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a))))
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) := by
+  have hScore :=
+    chapter10_indexed_bootstrap_score_gaussian_finSucc_resampleMean
+      (μ := μ) (X := X) (e := e) h hΩ
+  have hDelta :=
+    chapter10_indexed_bootstrap_delta_method_gaussian
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Tstar := fun n ω ωs =>
+        WithLp.toLp 2
+          (fun a =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                  (fun ωs t => ωs t) ωs a -
+                empiricalMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a)))
+      (V := scoreCovMat μ X e) ((popGram μ X)⁻¹) hΩ.posSemidef hScore
+  have hQinv_transpose : ((popGram μ X)⁻¹)ᵀ = (popGram μ X)⁻¹ := by
+    simpa using
+      (popGram_inv_isSymm (μ := μ) (X := X)
+        h.toSampleMomentAssumption71.int_outer).eq
+  have hcov :
+      (popGram μ X)⁻¹ * scoreCovMat μ X e * ((popGram μ X)⁻¹)ᵀ =
+        heteroAsymCov μ X e := by
+    simp [heteroAsymCov, hQinv_transpose]
+  simpa [hcov] using hDelta
+
 /-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
 
 If the bootstrap regression coefficient statistic converges weakly to
@@ -41612,6 +41761,60 @@ theorem chapter10_indexed_bootstrap_regression_theta_gaussian
     chapter10_indexed_bootstrap_delta_method_gaussian
       (μ := μ) (Pstar := Pstar) (Tstar := TbetaStar) (V := Vβ)
       (G := Rᵀ) hVβ hβ
+
+/-- Hansen Theorem 10.18 transformed-regression ordinary-bootstrap CLT from the
+linearized score route.
+
+This composes the concrete ordinary bootstrap score CLT with the population
+Gram inverse and the regression delta map `Rᵀ`, yielding the transformed
+statistic covariance `Rᵀ Vβ R` with `Vβ = heteroAsymCov`. -/
+theorem chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_linearizedScore
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        matrixContinuousLinearMap Rᵀ
+          (matrixContinuousLinearMap ((popGram μ X)⁻¹)
+            (WithLp.toLp 2
+              (fun a =>
+                Real.sqrt (n + 1 : ℝ) *
+                  (empiricalBootstrapResampleMean
+                      (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                      (fun ωs t => ωs t) ωs a -
+                    empiricalMean
+                      (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a)))))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian
+    (μ := μ)
+    (Pstar := fun n _ =>
+      (ProbabilityTheory.uniformOn
+        (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+          Measure (Fin (n + 1) → Fin (n + 1))))
+    (TbetaStar := fun n ω ωs =>
+      matrixContinuousLinearMap ((popGram μ X)⁻¹)
+        (WithLp.toLp 2
+          (fun a =>
+            Real.sqrt (n + 1 : ℝ) *
+              (empiricalBootstrapResampleMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω)
+                  (fun ωs t => ωs t) ωs a -
+                empiricalMean
+                  (fun i : Fin (n + 1) => e i.val ω • X i.val ω) a))))
+    (Vβ := heteroAsymCov μ X e) R
+    (heteroAsymCov_posSemidef_of_scoreCLTConditions
+      (μ := μ) (X := X) (e := e) h)
+    (chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean
+      (μ := μ) (X := X) (e := e) h hΩ)
 
 /-- Indexed Hansen Theorem 10.18, regression Gaussian CDF wrapper. -/
 theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
