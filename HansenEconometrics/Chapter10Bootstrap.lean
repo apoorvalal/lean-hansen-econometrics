@@ -41554,6 +41554,55 @@ theorem
   simpa [regressionLinearizedScoreFinSucc, regressionBootstrapScoreFinSucc, hcov]
     using hDelta
 
+set_option linter.style.longLine false in
+/-- Robust-feasible HC face of the ordinary finite-resample regression score
+bootstrap CLT.
+
+The Chapter 7 robust-feasible condition package supplies the score CLT
+conditions; positive definiteness of the score covariance remains explicit. -/
+theorem
+    chapter10_indexed_bootstrap_score_gaussian_finSucc_resampleMean_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        regressionBootstrapScoreFinSucc (Ω := Ω) X e n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (scoreCovMat μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_score_gaussian_finSucc_resampleMean
+    (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions hΩ
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC face of the ordinary finite-resample linearized
+regression coefficient CLT. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        regressionLinearizedScoreFinSucc μ X e n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_linearizedScore_gaussian_finSucc_resampleMean
+    (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions hΩ
+
 /-- Hansen Theorem 10.18 nonlinear ordinary-bootstrap coefficient CLT from the
 linearized score route.
 
