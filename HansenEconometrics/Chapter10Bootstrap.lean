@@ -41417,6 +41417,59 @@ noncomputable def regressionLinearizedScoreFinSucc
   matrixContinuousLinearMap ((popGram μ X)⁻¹)
     (regressionBootstrapScoreFinSucc (Ω := Ω) X e n ω ωs)
 
+/-- Ordinary finite-resample bootstrap regression design matrix.
+
+For a fixed sample path `ω` and resampling map
+`ωs : Fin (n+1) → Fin (n+1)`, this stacks the resampled regressors
+`X_{ωs(t)}` into the bootstrap design matrix. -/
+def regressionBootstrapRegressorsFinSucc
+    {k : Type*}
+    (X : ℕ → Ω → (k → ℝ))
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    Matrix (Fin (n + 1)) k ℝ :=
+  Matrix.of fun i j => X (ωs i).val ω j
+
+/-- Ordinary finite-resample bootstrap regression outcome vector. -/
+def regressionBootstrapOutcomesFinSucc
+    (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    Fin (n + 1) → ℝ :=
+  fun i => y (ωs i).val ω
+
+/-- Ordinary finite-resample bootstrap OLS coefficient, totalized by
+`olsBetaOrZero`. -/
+noncomputable def regressionBootstrapBetaFinSucc
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    k → ℝ :=
+  olsBetaOrZero (regressionBootstrapRegressorsFinSucc X n ω ωs)
+    (regressionBootstrapOutcomesFinSucc y n ω ωs)
+
+/-- Hansen Theorem 10.18 concrete ordinary-bootstrap coefficient statistic:
+`sqrt(n+1) (β̂* - β̂)`, using the project-wide `olsBetaOrZero`
+totalization for both the resampled and original sample coefficients. -/
+noncomputable def regressionBootstrapBetaStatisticFinSucc
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    EuclideanSpace ℝ k :=
+  WithLp.toLp 2
+    (Real.sqrt (n + 1 : ℝ) •
+      (regressionBootstrapBetaFinSucc X y n ω ωs -
+        olsBetaOrZero (stackRegressors X (n + 1) ω)
+          (stackOutcomes y (n + 1) ω)))
+
+/-- Transformed concrete ordinary-bootstrap regression statistic
+`Rᵀ sqrt(n+1) (β̂* - β̂)`. -/
+noncomputable def regressionBootstrapThetaStatisticFinSucc
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    (R : Matrix k q ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    EuclideanSpace ℝ q :=
+  matrixContinuousLinearMap Rᵀ
+    (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+
 set_option linter.style.longLine false in
 /-- Hansen Theorem 10.18 score-level ordinary-bootstrap CLT.
 
@@ -41675,6 +41728,109 @@ theorem
     (fun n ω => inferInstance) ?_ hTbetaStar hTail hclose
   intro n ω
   exact measurable_of_finite _
+
+set_option linter.style.longLine false in
+/-- Concrete ordinary-bootstrap OLS coefficient version of
+`chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight`.
+
+The statistic is Hansen's `sqrt(n+1) (β̂* - β̂)` with `olsBetaOrZero`
+totalization.  The model-specific work remains the conditional closeness to
+`regressionLinearizedScoreFinSucc` and the shared compact-tail control. -/
+theorem
+    chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e)
+    (TbetaStar := fun n ω ωs =>
+      regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+    h hΩ (fun _ _ => measurable_of_finite _) hTail hclose
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the concrete ordinary-bootstrap OLS
+coefficient transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y)
+    hm.toScoreCLTConditions hΩ hTail hclose
 
 /-- Hansen Theorem 10.18, nonlinear-regression delta-method Gaussian wrapper.
 
@@ -42093,6 +42249,109 @@ theorem
     (chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight
       (μ := μ) (X := X) (e := e) h hΩ hTbetaStar hTail hclose)
 
+set_option linter.style.longLine false in
+/-- Concrete transformed ordinary-bootstrap OLS statistic version of Hansen
+Theorem 10.18. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) := by
+  simpa [regressionBootstrapThetaStatisticFinSucc] using
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_of_linearizedScore_tight
+      (μ := μ) (X := X) (e := e)
+      (TbetaStar := fun n ω ωs =>
+        regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      R h hΩ (fun _ _ => measurable_of_finite _) hTail hclose
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the concrete transformed
+ordinary-bootstrap OLS statistic route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y)
+    R hm.toScoreCLTConditions hΩ hTail hclose
+
 /-- Hansen Definition 10.2 face of the ordinary-bootstrap nonlinear
 regression coefficient-transfer route.
 
@@ -42236,6 +42495,241 @@ theorem
   chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight
     (μ := μ) R h hΩ hTbetaStar hTail hclose
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+set_option linter.style.longLine false in
+/-- Hansen Definition 10.2 face of the concrete ordinary-bootstrap OLS
+coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) := by
+  simpa [regressionBootstrapThetaStatisticFinSucc] using
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight
+      (μ := μ) (X := X) (e := e)
+      (TbetaStar := fun n ω ωs =>
+        regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+      R h hΩ (fun _ _ => measurable_of_finite _) hTail hclose hfrontier
+
+set_option linter.style.longLine false in
+/-- Positive-definite transformed-covariance CDF face of the concrete
+ordinary-bootstrap OLS coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y) R h hΩ hTail hclose
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC Hansen Definition 10.2 face of the concrete
+ordinary-bootstrap OLS coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y)
+    R hm.toScoreCLTConditions hΩ hTail hclose hfrontier
+
+set_option linter.style.longLine false in
+/-- Positive-definite transformed-covariance robust-feasible HC CDF face of
+the concrete ordinary-bootstrap OLS coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) (y := y) R hm.toScoreCLTConditions
+    hΩ hRVR hTail hclose
 
 /-- Robust-feasible HC face of the finite ordinary-bootstrap linearized score
 route.
@@ -76159,6 +76653,93 @@ theorem chapter10_percentileT_secondOrder_interval_event_expansion_of_transfer
         (qLower n ω) (qUpper n ω)}).toReal)
     h hp1 hp2 hdensity hcoverage hreplacement
 
+/-- Hansen Theorem 10.15, percentile-`t` second-order interval expansion in
+the textbook `1 - α` coverage form. -/
+theorem chapter10_percentileT_secondOrder_interval_expansion_one_sub_alpha
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          ((statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)) -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_expansion
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := p1) (p2 := p2) (c := c)
+    (coverage := (1 : ℝ) - alpha) h hp1 hp2 hdensity hcoverage
+
+/-- Hansen Theorem 10.15 transfer form in the textbook `1 - α` coverage
+normalization. -/
+theorem chapter10_percentileT_secondOrder_interval_expansion_one_sub_alpha_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {c alpha : ℝ} {randomCoverage : ℕ → ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (randomCoverage n -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (randomCoverage n -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := p1) (p2 := p2) (c := c)
+    (coverage := (1 : ℝ) - alpha) (randomCoverage := randomCoverage)
+    h hp1 hp2 hdensity hcoverage hreplacement
+
+/-- Event-probability form of Hansen Theorem 10.15 with limiting coverage
+`1 - α`. -/
+theorem
+chapter10_percentileT_secondOrder_interval_event_expansion_one_sub_alpha_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density p1 p2 : ℝ → ℝ}
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density p1 p2)
+    (hp1 : p1 (-c) = p1 c) (hp2 : p2 (-c) = -p2 c)
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                  (qLower n ω) (qUpper n ω)}).toReal) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                (qLower n ω) (qUpper n ω)}).toReal) -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ * (2 * (p2 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_event_expansion_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := p1) (p2 := p2) (θ := θ) (θhat := θhat) (se := se)
+    (qLower := qLower) (qUpper := qUpper) (c := c)
+    (coverage := (1 : ℝ) - alpha)
+    h hp1 hp2 hdensity hcoverage hreplacement
+
 /-- Polynomial-shape specialization of
 `chapter10_percentileT_secondOrder_interval_expansion`.
 
@@ -76252,6 +76833,107 @@ chapter10_percentileT_secondOrder_interval_event_expansion_polynomial_of_transfe
     (θ := θ) (θhat := θhat) (se := se)
     (qLower := qLower) (qUpper := qUpper)
     (c := c) (coverage := coverage)
+    h (edgeworthP1Polynomial_neg a0 a2 c)
+    (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
+    hreplacement
+
+/-- Polynomial-shape specialization of
+`chapter10_percentileT_secondOrder_interval_expansion_one_sub_alpha`. -/
+theorem chapter10_percentileT_secondOrder_interval_expansion_polynomial_one_sub_alpha
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {a0 a2 b1 b3 b5 c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          ((statisticCDFReal μ T n c - statisticCDFReal μ T n (-c)) -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_expansion_one_sub_alpha
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := edgeworthP1Polynomial a0 a2)
+    (p2 := edgeworthP2Polynomial b1 b3 b5)
+    (c := c) (alpha := alpha)
+    h (edgeworthP1Polynomial_neg a0 a2 c)
+    (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
+
+/-- Polynomial-shape specialization of the `1 - α` transfer form for Hansen
+Theorem 10.15. -/
+theorem
+chapter10_percentileT_secondOrder_interval_expansion_polynomial_one_sub_alpha_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {a0 a2 b1 b3 b5 c alpha : ℝ} {randomCoverage : ℕ → ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (randomCoverage n -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (randomCoverage n -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_expansion_one_sub_alpha_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := edgeworthP1Polynomial a0 a2)
+    (p2 := edgeworthP2Polynomial b1 b3 b5)
+    (c := c) (alpha := alpha) (randomCoverage := randomCoverage)
+    h (edgeworthP1Polynomial_neg a0 a2 c)
+    (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
+    hreplacement
+
+/-- Polynomial-shape event-probability form of Hansen Theorem 10.15 with
+limiting coverage `1 - α`. -/
+theorem
+chapter10_percentileT_secondOrder_interval_event_expansion_polynomial_one_sub_alpha_of_transfer
+    [IsProbabilityMeasure μ]
+    {T : ℕ → Ω → ℝ} {baseCDF density : ℝ → ℝ}
+    {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
+    {a0 a2 b1 b3 b5 c alpha : ℝ}
+    (h : SecondOrderEdgeworthExpansion μ T baseCDF density
+      (edgeworthP1Polynomial a0 a2) (edgeworthP2Polynomial b1 b3 b5))
+    (hdensity : density (-c) = density c)
+    (hcoverage : baseCDF c - baseCDF (-c) = (1 : ℝ) - alpha)
+    (hreplacement :
+      Tendsto
+        (fun n : ℕ =>
+          (n : ℝ) *
+            (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                  (qLower n ω) (qUpper n ω)}).toReal) -
+              (statisticCDFReal μ T n c - statisticCDFReal μ T n (-c))))
+        atTop (𝓝 0)) :
+    Tendsto
+      (fun n : ℕ =>
+        (n : ℝ) *
+          (((μ {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+                (qLower n ω) (qUpper n ω)}).toReal) -
+            ((1 : ℝ) - alpha) -
+            (n : ℝ)⁻¹ *
+              (2 * (edgeworthP2Polynomial b1 b3 b5 c * density c))))
+      atTop (𝓝 0) :=
+  chapter10_percentileT_secondOrder_interval_event_expansion_one_sub_alpha_of_transfer
+    (μ := μ) (T := T) (baseCDF := baseCDF) (density := density)
+    (p1 := edgeworthP1Polynomial a0 a2)
+    (p2 := edgeworthP2Polynomial b1 b3 b5)
+    (θ := θ) (θhat := θhat) (se := se)
+    (qLower := qLower) (qUpper := qUpper)
+    (c := c) (alpha := alpha)
     h (edgeworthP1Polynomial_neg a0 a2 c)
     (edgeworthP2Polynomial_neg b1 b3 b5 c) hdensity hcoverage
     hreplacement
