@@ -41623,6 +41623,53 @@ noncomputable def regressionBootstrapThetaStatisticFinSucc
   matrixContinuousLinearMap Rᵀ
     (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
 
+/-- Scalar ordinary-bootstrap linear-restriction numerator
+`sqrt(n+1) (R βhat* - R βhat)` in the Chapter 7 one-row restriction
+notation. -/
+noncomputable def regressionBootstrapLinearRestrictionStatisticFinSucc
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) : ℝ :=
+  Real.sqrt (n + 1 : ℝ) *
+    (linearRestrictionEstimate R (regressionBootstrapBetaFinSucc X y n ω ωs) -
+      linearRestrictionEstimate R
+        (olsBetaOrZero (stackRegressors X (n + 1) ω)
+          (stackOutcomes y (n + 1) ω)))
+
+omit [MeasurableSpace Ω] in
+/-- The scalar ordinary-bootstrap restriction statistic is the `Unit`
+coordinate of the transformed coefficient statistic. -/
+theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs =
+      ((regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs :
+        EuclideanSpace ℝ Unit) : Unit → ℝ) () := by
+  simp [regressionBootstrapLinearRestrictionStatisticFinSucc,
+    regressionBootstrapThetaStatisticFinSucc, regressionBootstrapBetaStatisticFinSucc,
+    linearRestrictionEstimate, matrixContinuousLinearMap_apply, smul_eq_mul,
+    dotProduct]
+
+omit [MeasurableSpace Ω] in
+/-- The scalar ordinary-bootstrap restriction statistic is exactly the Chapter
+7 totalized OLS linear-restriction numerator on the resampled design, centered
+at the original-sample `olsBetaOrZero`. -/
+theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eq_olsLinearTNumeratorOrZero
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs =
+      olsLinearTNumeratorOrZero R
+        (regressionBootstrapRegressorsFinSucc X n ω ωs)
+        (regressionBootstrapOutcomesFinSucc y n ω ωs)
+        (olsBetaOrZero (stackRegressors X (n + 1) ω)
+          (stackOutcomes y (n + 1) ω))
+        (Real.sqrt (n + 1 : ℝ)) := by
+  rw [regressionBootstrapLinearRestrictionStatisticFinSucc,
+    olsLinearTNumeratorOrZero, linearMapUnit_smul_sub_dot_one]
+  rfl
+
 theorem regressionLinearizedScoreFinSucc_ofLp_eq_popGramInv_sqrt_smul_sampleCrossMoment_sub
     {k : Type*} [Fintype k] [DecidableEq k]
     (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
