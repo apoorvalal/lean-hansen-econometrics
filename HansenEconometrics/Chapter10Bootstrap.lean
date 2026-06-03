@@ -25,6 +25,9 @@ used throughout the chapter:
   Lipschitz mapping bridge used by Slutsky and Delta-method theorem wrappers.
 * `chapter10_bootstrap_wlln_centered_of_tail_bound` is the reusable
   conditional-Markov bridge for the centered conclusion of Hansen Theorem 10.2.
+  `chapter10_indexed_bootstrap_wlln_centered_of_tail_bound` and
+  `chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound` give the
+  sample-size-indexed analogues.
 * `chapter10_bootstrap_wlln_level_from_centered` is the Slutsky/addition step
   in Hansen Theorem 10.2: centered bootstrap WLLN plus the ordinary WLLN gives
   bootstrap convergence of the sample mean to the population mean.
@@ -8488,6 +8491,50 @@ theorem tendstoInBootstrapProbabilityIndexed_of_tail_bound
     (hle η hη)
     (hbound η hη)
 
+/-- Indexed Hansen Theorem 10.2, centered WLLN from a conditional tail bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_centered_of_tail_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_of_tail_bound
+    [SeminormedAddCommGroup E]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E}
+    {bound : ℝ → ℕ → Ω → ℝ}
+    (hbound :
+      ∀ η : ℝ, 0 < η →
+        TendstoInMeasure μ (fun n ω => bound η n ω) atTop (fun _ => 0))
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0)
+          η n ω ≤ bound η n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) :=
+  tendstoInBootstrapProbabilityIndexed_of_tail_bound hbound hle
+
+/-- Indexed Hansen Theorem 10.2, centered WLLN from Hansen's textbook
+second-moment bound.
+
+This is the sample-size-dependent bootstrap-space version of
+`chapter10_bootstrap_wlln_centered_of_second_moment_bound`. -/
+theorem chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
+    [SeminormedAddCommGroup E] [IsFiniteMeasure μ]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {YbarStar : ∀ n, Ω → Ωboot n → E} {Ybar : ℕ → Ω → E}
+    {u : ℕ → Ω → ℝ}
+    (hu : UniformIntegrable u 1 μ)
+    (hle :
+      ∀ η : ℝ, 0 < η → ∀ n ω,
+        bootstrapTailProbIndexed Pstar
+          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0)
+          η n ω ≤ bootstrapWLLNSecondMomentBound u η n ω) :
+    TendstoInBootstrapProbabilityIndexed μ Pstar
+      (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) :=
+  chapter10_indexed_bootstrap_wlln_centered_of_tail_bound
+    (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω)
+    (fun η hη => bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη)
+    hle
+
 /-- Indexed-space version of Hansen Theorem 10.1.
 
 If `Zₙ ->p Z` under the original-sample law, then the same statistic, viewed as
@@ -9552,24 +9599,23 @@ theorem chapter10_indexed_bootstrap_wlln_centered_of_integral_norm_sq_bound
           marcinkiewiczWLLNStatisticNat u 2 n ω) :
     TendstoInBootstrapProbabilityIndexed μ Pstar
       (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) := by
-  refine tendstoInBootstrapProbabilityIndexed_of_tail_bound
-    (bound := fun η n ω => bootstrapWLLNSecondMomentBound u η n ω) ?_ ?_
-  · intro η hη
-    exact bootstrapWLLNSecondMomentBound_tendsto_zero (μ := μ) (η := η) hu hη
-  · intro η hη n ω
-    calc
-      bootstrapTailProbIndexed Pstar
-          (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
-          ≤ (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
-            bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
-              (Pstar := Pstar)
-              (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
-              hPstar hZ hη n ω
-      _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
-            div_le_div_of_nonneg_right (hbound n ω) (sq_nonneg η)
-      _ = bootstrapWLLNSecondMomentBound u η n ω := by
-            rw [bootstrapWLLNSecondMomentBound]
-            field_simp [hη.ne']
+  refine chapter10_indexed_bootstrap_wlln_centered_of_second_moment_bound
+    (μ := μ) (Pstar := Pstar) (YbarStar := YbarStar) (Ybar := Ybar)
+    (u := u) hu ?_
+  intro η hη n ω
+  calc
+    bootstrapTailProbIndexed Pstar
+        (fun n ω ωs => YbarStar n ω ωs - Ybar n ω) (fun _ => 0) η n ω
+        ≤ (∫ ωs, ‖YbarStar n ω ωs - Ybar n ω‖ ^ 2 ∂Pstar n ω) / η ^ 2 :=
+          bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+            (Pstar := Pstar)
+            (Zstar := fun n ω ωs => YbarStar n ω ωs - Ybar n ω)
+            hPstar hZ hη n ω
+    _ ≤ marcinkiewiczWLLNStatisticNat u 2 n ω / η ^ 2 :=
+          div_le_div_of_nonneg_right (hbound n ω) (sq_nonneg η)
+    _ = bootstrapWLLNSecondMomentBound u η n ω := by
+          rw [bootstrapWLLNSecondMomentBound]
+          field_simp [hη.ne']
 
 /-- Indexed-space Hansen Theorem 10.2 level WLLN from the centered conclusion.
 
