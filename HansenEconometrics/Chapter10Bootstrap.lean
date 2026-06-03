@@ -41757,6 +41757,55 @@ theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_boun
   exact hbase.trans
     (mul_le_mul_of_nonneg_left hlin (norm_nonneg _))
 
+/-- Eventual boundedness of the linearized coefficient statistic supplies an
+eventual bound after applying the transformed-regression linear map `Rᵀ`. -/
+theorem regressionLinearizedScoreFinSucc_transformed_eventually_norm_bound_of_bound
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ) {Clin : ℝ}
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin) :
+    ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs)‖ ≤
+          ‖matrixContinuousLinearMap Rᵀ‖ * Clin := by
+  filter_upwards [hLinBound] with n hn
+  intro ω ωs
+  have hbase :=
+    (matrixContinuousLinearMap Rᵀ).le_opNorm
+      (regressionLinearizedScoreFinSucc μ X e n ω ωs)
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_left (hn ω ωs) (norm_nonneg _))
+
+omit [MeasurableSpace Ω] in
+/-- Eventual boundedness of the concrete coefficient statistic supplies an
+eventual bound for the transformed ordinary-bootstrap statistic. -/
+theorem regressionBootstrapThetaStatisticFinSucc_eventually_norm_bound_of_beta_bound
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (R : Matrix k q ℝ) {Cbeta : ℝ}
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta) :
+    ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapThetaStatisticFinSucc R X y n ω ωs‖ ≤
+          ‖matrixContinuousLinearMap Rᵀ‖ * Cbeta := by
+  filter_upwards [hBetaBound] with n hn
+  intro ω ωs
+  have hbase :=
+    (matrixContinuousLinearMap Rᵀ).le_opNorm
+      (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
+  have hstep :
+      ‖matrixContinuousLinearMap Rᵀ
+          (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)‖ ≤
+        ‖matrixContinuousLinearMap Rᵀ‖ * Cbeta :=
+    hbase.trans
+      (mul_le_mul_of_nonneg_left (hn ω ωs) (norm_nonneg _))
+  simpa [regressionBootstrapThetaStatisticFinSucc] using hstep
+
 omit [MeasurableSpace Ω] in
 /-- The scalar ordinary-bootstrap restriction statistic is exactly the Chapter
 7 totalized OLS linear-restriction numerator on the resampled design, centered
@@ -45827,6 +45876,310 @@ theorem
   chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_bounds
     (μ := μ) (X := X) (e := e) (y := y) R hm.toScoreCLTConditions
     hΩ hRVR hLinBound hThetaBound hclose
+
+set_option linter.style.longLine false in
+/-- Coefficient-bound face of the concrete transformed ordinary-bootstrap OLS
+statistic transfer.
+
+This variant asks for deterministic bounds on the linearized and concrete
+coefficient statistics; the operator-norm bridge supplies the transformed
+compact-tail bounds required by
+`chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_bounds`. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    (Clin := ‖matrixContinuousLinearMap Rᵀ‖ * Clin)
+    (Ctheta := ‖matrixContinuousLinearMap Rᵀ‖ * Cbeta)
+    R h hΩ
+    (regressionLinearizedScoreFinSucc_transformed_eventually_norm_bound_of_bound
+      (μ := μ) (X := X) (e := e) R hLinBound)
+    (regressionBootstrapThetaStatisticFinSucc_eventually_norm_bound_of_beta_bound
+      (X := X) (y := y) R hBetaBound)
+    hclose
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the coefficient-bound concrete
+transformed ordinary-bootstrap OLS statistic transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    R hm.toScoreCLTConditions hΩ hLinBound hBetaBound hclose
+
+set_option linter.style.longLine false in
+/-- Hansen Definition 10.2 face of the coefficient-bound transformed
+ordinary-bootstrap OLS statistic transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    (Clin := ‖matrixContinuousLinearMap Rᵀ‖ * Clin)
+    (Ctheta := ‖matrixContinuousLinearMap Rᵀ‖ * Cbeta)
+    R h hΩ
+    (regressionLinearizedScoreFinSucc_transformed_eventually_norm_bound_of_bound
+      (μ := μ) (X := X) (e := e) R hLinBound)
+    (regressionBootstrapThetaStatisticFinSucc_eventually_norm_bound_of_beta_bound
+      (X := X) (y := y) R hBetaBound)
+    hclose hfrontier
+
+set_option linter.style.longLine false in
+/-- Positive-definite transformed-covariance CDF face of the coefficient-bound
+transformed ordinary-bootstrap OLS statistic transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    R h hΩ hLinBound hBetaBound hclose
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC Hansen Definition 10.2 face of the coefficient-bound
+transformed ordinary-bootstrap OLS statistic transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    R hm.toScoreCLTConditions hΩ hLinBound hBetaBound hclose hfrontier
+
+set_option linter.style.longLine false in
+/-- Positive-definite transformed-covariance robust-feasible HC CDF face of
+the coefficient-bound transformed ordinary-bootstrap OLS statistic transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (regressionBootstrapThetaStatisticFinSucc R X y n ω ωs)
+                (matrixContinuousLinearMap Rᵀ
+                  (regressionLinearizedScoreFinSucc μ X e n ω ωs))})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((regressionBootstrapThetaStatisticFinSucc R X y n ω ωs :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_olsBetaOrZero_of_linearizedScore_coefficient_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    R hm.toScoreCLTConditions hΩ hRVR hLinBound hBetaBound hclose
 
 /-- Hansen Definition 10.2 face of the ordinary-bootstrap nonlinear
 regression coefficient-transfer route.
