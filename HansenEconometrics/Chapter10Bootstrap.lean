@@ -34432,6 +34432,119 @@ theorem
       (memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
       hlinearization hB hNormFourth hNormFourthInt
 
+/-- Smooth exact-linearization scalar variance route from a linearized
+coordinate fourth-moment premise, with the automatic Gaussian-limit coordinate
+`MemLp 2` premise discharged. -/
+theorem
+    chapter10_smooth_bootstrap_variance_linearization_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Pstar : ℕ → Ω → Measure Ωs}
+    {Tstar : ℕ → Ω → Ωs → EuclideanSpace ℝ d}
+    {thetaStar : ℕ → Ω → Ωs → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistribution μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a) 2
+          (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hB : 0 ≤ B)
+    (hFourthLinear :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthLinearInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceReal Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  classical
+  exact
+    chapter10_smooth_bootstrap_variance_consistency_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G a hV hPstar hT hcoordMem
+      (memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hB hFourthLinear hFourthLinearInt
+
+/-- Indexed smooth exact-linearization scalar variance route from a
+linearized coordinate fourth-moment premise, with the automatic Gaussian-limit
+coordinate `MemLp 2` premise discharged. -/
+theorem
+    chapter10_indexed_smooth_bootstrap_variance_linearization_fourthMoment_gaussianLimit
+    {d r : Type*} [Fintype d] [Fintype r] [DecidableEq d] [DecidableEq r]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Tstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ d}
+    {thetaStar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ r}
+    {V : Matrix d d ℝ} (G : Matrix r d ℝ)
+    {B : ℝ} (a : r)
+    (hV : V.PosSemidef)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hT :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar Tstar
+        (multivariateGaussian (0 : EuclideanSpace ℝ d) V)
+        (fun z : EuclideanSpace ℝ d => z))
+    (hcoordMem :
+      ∀ n ω,
+        MemLp (fun ωs => (thetaStar n ω ωs : r → ℝ) a)
+          2 (Pstar n ω))
+    (hlinearization :
+      ∀ n ω ωs, thetaStar n ω ωs =
+        matrixContinuousLinearMap G (Tstar n ω ωs))
+    (hB : 0 ≤ B)
+    (hFourthLinear :
+      TendstoInMeasure μ
+        (fun n ω =>
+          ∫ ωs,
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4 ∂Pstar n ω)
+        atTop (fun _ => B))
+    (hFourthLinearInt :
+      ∀ n ω,
+        Integrable
+          (fun ωs =>
+            (((matrixContinuousLinearMap G (Tstar n ω ωs) :
+              EuclideanSpace ℝ r) : r → ℝ) a) ^ 4)
+          (Pstar n ω)) :
+    TendstoInMeasure μ
+      (bootstrapVarianceRealIndexed Pstar
+        (fun n ω ωs => (thetaStar n ω ωs : r → ℝ) a))
+      atTop
+        (fun _ =>
+          ∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a ^ 2
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ) -
+          (∫ z, ((z : EuclideanSpace ℝ r) : r → ℝ) a
+            ∂multivariateGaussian (0 : EuclideanSpace ℝ r) (G * V * Gᵀ)) ^ 2) := by
+  classical
+  exact
+    chapter10_indexed_smooth_bootstrap_variance_consistency_of_linearization_fourthMoment
+      (μ := μ) (Pstar := Pstar) (Tstar := Tstar)
+      (thetaStar := thetaStar) (V := V) G a hV hPstar hT hcoordMem
+      (memLp_multivariateGaussian_coord_two (S := G * V * Gᵀ) a)
+      hlinearization hB hFourthLinear hFourthLinearInt
+
 /-- Hansen's trimmed bootstrap statistic `Z** = Z* 1{‖Z*‖ ≤ τ}`. -/
 noncomputable def trimmedBootstrapStatistic
     {k : Type*} [Fintype k]
