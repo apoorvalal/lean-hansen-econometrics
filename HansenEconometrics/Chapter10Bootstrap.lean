@@ -43282,6 +43282,258 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hm.model hm.toScoreCLTConditions hΩ hLinBound hBetaBound hGapTail
 
+private theorem regressionBootstrapLinearRestrictionStatisticFinSucc_tendsto_of_theta
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {y : ℕ → Ω → ℝ}
+    (R : Matrix Unit k ℝ)
+    {Pstar : ∀ n, Ω → Measure (Fin (n + 1) → Fin (n + 1))}
+    {ν : Measure (EuclideanSpace ℝ Unit)}
+    (hθ :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs)
+        ν (fun z : EuclideanSpace ℝ Unit => z)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar
+      (fun n ω ωs => regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+      ν (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+  have hcoord :
+      TendstoInBootstrapWeakDistributionIndexed μ Pstar
+        (fun n ω ωs =>
+          ((regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs :
+            EuclideanSpace ℝ Unit) : Unit → ℝ) ())
+        ν (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) :=
+    chapter10_indexed_bootstrap_continuous_mapping_distribution
+      (μ := μ) (Pstar := Pstar)
+      (Zstar := fun n ω ωs => regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs)
+      (ν := ν) (Z := fun z : EuclideanSpace ℝ Unit => z)
+      (g := fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) hθ
+      (by
+        simpa using
+          ((continuous_apply ()).comp
+            (PiLp.continuous_ofLp 2 (fun _ : Unit => ℝ))))
+  refine hcoord.congr ?_ ?_
+  · intro n ω ωs
+    exact (regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply
+      R X y n ω ωs).symm
+  intro z
+  rfl
+
+set_option linter.style.longLine false in
+/-- Scalar one-row ordinary-bootstrap OLS restriction transfer from the
+explicit finite OLS-linearization gap envelope.
+
+This is the `Unit`-coordinate face of the transformed-statistic theorem, in
+the Chapter 7 scalar restriction notation
+`sqrt(n+1) (R βhat* - R βhat)`. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (R * heteroAsymCov μ X e * Rᵀ))
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+  have hθ :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs)
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          ((Rᵀ)ᵀ * heteroAsymCov μ X e * Rᵀ))
+        (fun z : EuclideanSpace ℝ Unit => z) :=
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+      (μ := μ) (X := X) (e := e) (y := y)
+      β Rᵀ hmodel h hΩ hTail hGapTail
+  have hscalar :=
+    regressionBootstrapLinearRestrictionStatisticFinSucc_tendsto_of_theta
+      (μ := μ) (X := X) (y := y) R hθ
+  simpa [Matrix.transpose_transpose] using hscalar
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the scalar one-row OLS
+gap-envelope transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionBootstrapBetaStatisticFinSucc X y n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (R * heteroAsymCov μ X e * Rᵀ))
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) :=
+  chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_tight
+    (μ := μ) (X := X) (e := e) (y := y)
+    β R hm.model hm.toScoreCLTConditions hΩ hTail hGapTail
+
+set_option linter.style.longLine false in
+/-- Scalar one-row ordinary-bootstrap OLS restriction transfer with
+coefficient compact-tail control discharged by deterministic eventual norm
+bounds. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_bounds
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (R * heteroAsymCov μ X e * Rᵀ))
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) := by
+  have hθ :
+      TendstoInBootstrapWeakDistributionIndexed μ
+        (fun n _ =>
+          (ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1))))
+        (fun n ω ωs => regressionBootstrapThetaStatisticFinSucc Rᵀ X y n ω ωs)
+        (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+          ((Rᵀ)ᵀ * heteroAsymCov μ X e * Rᵀ))
+        (fun z : EuclideanSpace ℝ Unit => z) :=
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_bounds
+      (μ := μ) (X := X) (e := e) (y := y)
+      β Rᵀ hmodel h hΩ hLinBound hBetaBound hGapTail
+  have hscalar :=
+    regressionBootstrapLinearRestrictionStatisticFinSucc_tendsto_of_theta
+      (μ := μ) (X := X) (y := y) R hθ
+  simpa [Matrix.transpose_transpose] using hscalar
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the bounded scalar one-row OLS
+gap-envelope transfer. -/
+theorem
+    chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_bounds_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ Unit)
+        (R * heteroAsymCov μ X e * Rᵀ))
+      (fun z : EuclideanSpace ℝ Unit => (z : Unit → ℝ) ()) :=
+  chapter10_indexed_bootstrap_regression_linearRestriction_gaussian_finSucc_olsBetaOrZero_of_gapEnvelope_bounds
+    (μ := μ) (X := X) (e := e) (y := y)
+    β R hm.model hm.toScoreCLTConditions hΩ hLinBound hBetaBound hGapTail
+
 set_option linter.style.longLine false in
 /-- Concrete transformed ordinary-bootstrap OLS statistic transfer with
 compact-tail control discharged by deterministic eventual norm bounds.
