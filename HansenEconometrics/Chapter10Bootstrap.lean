@@ -72571,6 +72571,167 @@ theorem
       hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
+/-- Direct Gaussian-law version of the local-CDF finite OLS
+percentile-interval wrapper whose sample-side OLS linear-restriction CLT is
+supplied by Chapter 7.
+
+This fixes the auxiliary limit space to the Gaussian law itself and the limit
+random variable to the identity map, while retaining local CDF bracketing at
+the percentile endpoints. -/
+theorem
+    chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_brackets_gaussian
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (R * heteroAsymCov μ X e * Rᵀ).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε →
+        α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (q + ε))
+    (hcont :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y =>
+            cdf
+              (gaussianReal 0
+                (olsProjectionAsymVar μ X e
+                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (-q) = α / 2)
+    (hcdfUpper :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (1 - α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  have hξ :
+      HasLaw (fun x : ℝ => x)
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) := by
+    simpa [id] using
+      (HasLaw.id
+        (μ := gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal))
+  exact
+    chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_brackets
+      (μ := μ)
+      (ν := gaussianReal 0
+        (olsProjectionAsymVar μ X e
+          (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+      (X := X) (e := e) (y := y)
+      β R hξ hmodel h hΩ hRVR hLinBound hBetaBound hGapTail
+      hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
+      hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+
+set_option linter.style.longLine false in
 /-- Strict-CDF version of the finite OLS percentile-interval wrapper whose
 sample-side OLS linear-restriction CLT is supplied by Chapter 7. -/
 theorem
@@ -72838,6 +72999,145 @@ theorem
     hBetaBound hGapTail hα_pos hα_lt_one hleftLower hrightLower
     hleftUpper hrightUpper hcont hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
+
+set_option linter.style.longLine false in
+/-- Robust-feasible HC specialization of the direct Gaussian-law local-CDF
+finite OLS percentile-interval wrapper whose sample-side OLS
+linear-restriction CLT is supplied by Chapter 7. -/
+theorem
+    chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_brackets_gaussian_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {Clin Cbeta q α : ℝ}
+    (β : k → ℝ) (R : Matrix Unit k ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (R * heteroAsymCov μ X e * Rᵀ).PosDef)
+    (hLinBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionLinearizedScoreFinSucc μ X e n ω ωs‖ ≤ Clin)
+    (hBetaBound : ∀ᶠ n in atTop,
+      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
+        ‖regressionBootstrapBetaStatisticFinSucc X y n ω ωs‖ ≤ Cbeta)
+    (hGapTail : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ regressionBootstrapBetaLinearizedGapEnvelopeFinSucc
+                μ X e β n ω ωs})
+        atTop (fun _ => 0))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hleftLower :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (-q - ε) < α / 2)
+    (hrightLower :
+      ∀ ε : ℝ, 0 < ε →
+        α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (-q + ε))
+    (hleftUpper :
+      ∀ ε : ℝ, 0 < ε →
+        cdf
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (q - ε) < 1 - α / 2)
+    (hrightUpper :
+      ∀ ε : ℝ, 0 < ε →
+        1 - α / 2 <
+          cdf
+            (gaussianReal 0
+              (olsProjectionAsymVar μ X e
+                (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+            (q + ε))
+    (hcont :
+      ∀ x : ℝ,
+        ContinuousAt
+          (fun y =>
+            cdf
+              (gaussianReal 0
+                (olsProjectionAsymVar μ X e
+                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (fun n _ =>
+              (ProbabilityTheory.uniformOn
+                (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                  Measure (Fin (n + 1) → Fin (n + 1))))
+            (fun n ω ωs =>
+              regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        (-q) = α / 2)
+    (hcdfUpper :
+      cdf
+        (gaussianReal 0
+          (olsProjectionAsymVar μ X e
+            (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+        q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω | percentileCIEvent (linearRestrictionEstimate R β)
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))
+          (linearRestrictionEstimate R
+              (olsBetaOrZero
+                (stackRegressors X n ω) (stackOutcomes y n ω)) +
+            bootstrapScalarLowerQuantileIndexed
+              (fun n _ =>
+                (ProbabilityTheory.uniformOn
+                  (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                    Measure (Fin (n + 1) → Fin (n + 1))))
+              (fun n ω ωs =>
+                regressionBootstrapLinearRestrictionStatisticFinSucc R X y n ω ωs)
+              (1 - α / 2) n ω /
+                (if n = 0 then 1 else Real.sqrt (n : ℝ)))})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) :=
+  chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_brackets_gaussian
+    (μ := μ) (X := X) (e := e) (y := y)
+    β R hm.model hm.toScoreCLTConditions hΩ hRVR hLinBound hBetaBound
+    hGapTail hα_pos hα_lt_one hleftLower hrightLower hleftUpper
+    hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower
+    hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the strict-CDF finite OLS
