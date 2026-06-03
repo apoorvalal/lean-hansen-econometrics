@@ -67981,6 +67981,18 @@ theorem continuousAt_cdf_of_noAtoms
     (cdf η).right_continuous x
   exact continuousAt_iff_continuous_left_right.2 ⟨hleft, hright⟩
 
+/-- Gaussian real laws with nonzero variance have continuous CDFs. -/
+theorem continuousAt_cdf_gaussianReal
+    {m : ℝ} {v : NNReal} (hv : v ≠ 0) (x : ℝ) :
+    ContinuousAt (fun y : ℝ => cdf (gaussianReal m v) y) x := by
+  haveI : NoAtoms (gaussianReal m v) := noAtoms_gaussianReal hv
+  exact continuousAt_cdf_of_noAtoms (gaussianReal m v) x
+
+/-- The standard-normal CDF is continuous. -/
+theorem continuousAt_cdf_standardNormal (x : ℝ) :
+    ContinuousAt (fun y : ℝ => cdf (gaussianReal 0 1) y) x :=
+  continuousAt_cdf_gaussianReal (m := 0) (v := 1) (by norm_num) x
+
 /-- A scalar limit statistic with law `η` has scalar CDF equal to the CDF of
 `η`.
 
@@ -72598,10 +72610,12 @@ theorem
       hGapTail hα_pos hα_lt_one hleftLower hrightLower hleftUpper
       hrightUpper
       (fun x =>
-        continuousAt_cdf_of_noAtoms
-          (gaussianReal 0
+        continuousAt_cdf_gaussianReal
+          (m := 0)
+          (v :=
             (olsProjectionAsymVar μ X e
-              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x)
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
+          (ne_of_gt (Real.toNNReal_pos.mpr hvar_pos)) x)
       hlower_meas hupper_meas hξ hZlaw hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
