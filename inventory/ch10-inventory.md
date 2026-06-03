@@ -532,7 +532,11 @@
   into this two-sided bootstrap-test theorem; concrete indexed finite OLS wrappers now specialize
   the scalar-tail and bounded-numerator bootstrap critical values to
   `|regressionBootstrapLinearRestrictionStatisticFinSucc / seThetaStar|`; fixed/indexed HC0-HC3 OLS
-  wrappers now discharge the ordinary sample t-statistic convergence premise from Chapter 7.
+  wrappers now discharge the ordinary sample t-statistic convergence premise from Chapter 7. Indexed
+  HC0-HC3 concrete finite-OLS beta-bound wrappers now combine both sides, specializing the actual
+  sample statistic and the `Fin (n+1)` ordinary-bootstrap critical value in local-CDF and strict-CDF
+  forms while keeping the gap-envelope tail, coefficient bound, feasible-scale consistency, and
+  critical-value measurability premises explicit.
 - Theorems 10.15 and 10.17 now have second-order transfer wrappers: once the bootstrap quantile or
   critical-value argument supplies an `o(n⁻¹)` replacement error relative to the fixed symmetric
   interval/test probability, the fixed-critical Edgeworth expansion transfers to the random
