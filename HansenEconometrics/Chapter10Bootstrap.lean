@@ -42188,6 +42188,319 @@ theorem
     (μ := μ) R h hΩ hTbetaStar hTail hclose
     (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
 
+/-- Robust-feasible HC face of the finite ordinary-bootstrap linearized score
+route.
+
+The Chapter 7 robust-feasible condition package supplies the score CLT
+conditions; positive definiteness of the score covariance remains explicit. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_linearizedScore_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_linearizedScore
+    (μ := μ) R hm.toScoreCLTConditions hΩ
+
+/-- Hansen Definition 10.2 robust-feasible HC face of the finite
+ordinary-bootstrap linearized score route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_linearizedScore_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_linearizedScore
+    (μ := μ) R hm.toScoreCLTConditions hΩ hfrontier
+
+/-- Positive-definite transformed-covariance robust-feasible HC CDF face of
+the finite ordinary-bootstrap linearized score route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_linearizedScore_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ
+          (regressionLinearizedScoreFinSucc μ X e n ω ωs) :
+            EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_linearizedScore
+    (μ := μ) R hm.toScoreCLTConditions hΩ hRVR
+
+/-- Robust-feasible HC face of the finite ordinary-bootstrap nonlinear
+coefficient-transfer route.
+
+The robust-feasible condition package supplies the score CLT conditions; the
+model-specific nonlinear OLS work remains the conditional closeness and
+compact-tail premise for `TbetaStar`. -/
+theorem
+    chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k : Type*} [Fintype k] [DecidableEq k]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (β : k → ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      TbetaStar
+      (multivariateGaussian (0 : EuclideanSpace ℝ k) (heteroAsymCov μ X e))
+      (fun z : EuclideanSpace ℝ k => z) :=
+  chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight
+    (μ := μ) (X := X) (e := e) hm.toScoreCLTConditions hΩ
+    hTbetaStar hTail hclose
+
+/-- Robust-feasible HC face of the finite ordinary-bootstrap transformed
+nonlinear coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs => matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => z) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_of_linearizedScore_tight
+    (μ := μ) R hm.toScoreCLTConditions hΩ hTbetaStar hTail hclose
+
+/-- Hansen Definition 10.2 robust-feasible HC face of the finite
+ordinary-bootstrap nonlinear coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight
+    (μ := μ) R hm.toScoreCLTConditions hΩ hTbetaStar hTail hclose hfrontier
+
+/-- Positive-definite transformed-covariance robust-feasible HC CDF face of
+the finite ordinary-bootstrap nonlinear coefficient-transfer route. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_of_linearizedScore_tight_of_robustFeasibleHCMomentConditions
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e y : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (β : k → ℝ) (R : Matrix k q ℝ)
+    (hm : RobustFeasibleHCMomentConditions μ X e y β)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_of_linearizedScore_tight
+    (μ := μ) R hm.toScoreCLTConditions hΩ hRVR hTbetaStar hTail hclose
+
 /-- Indexed Hansen Theorem 10.18, regression Gaussian CDF wrapper. -/
 theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
     {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
