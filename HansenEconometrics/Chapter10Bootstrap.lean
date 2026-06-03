@@ -588,8 +588,8 @@ used throughout the chapter:
   the same scalar finite-replication transfer. The
   moment-premise and centered-scalar wrappers expose the same transfer directly
   from conditional bootstrap mean/second-moment convergence and Hansen's
-  displayed `1 / (B - 1)` estimator, including indexed zero-mean targets for
-  sample-size-dependent bootstrap spaces. The fixed/indexed
+  displayed `1 / (B - 1)` estimator, including fixed and indexed zero-mean
+  targets. The fixed/indexed
   `*_of_l2_simulation_error` wrappers discharge the finite-replication
   simulation-error premise from `O(n⁻¹)` mean-square bounds, and the
   ordinary indexed `*_finSucc_l2_*` wrappers specialize that transfer to the
@@ -51335,6 +51335,33 @@ theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_mom
     (chapter10_bootstrap_variance_consistency_of_moment_convergence
       (μ := μ) hPstar hZ hmean hsecond)
 
+/-- Zero-mean finite-replication centered-variance wrapper for Hansen Theorem
+10.11. -/
+theorem chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_zero_mean_moments
+    {Zsim : ℕ → ℕ → Ω → ℝ}
+    {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
+    {σ2 : ℝ}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZ : ∀ n ω, MemLp (Zstar n ω) 2 (Pstar n ω))
+    (hmean :
+      TendstoInMeasure μ (bootstrapMeanReal Pstar Zstar) atTop
+        (fun _ => 0))
+    (hsecond :
+      TendstoInMeasure μ (bootstrapSecondMomentReal Pstar Zstar) atTop
+        (fun _ => σ2))
+    (hfinite :
+      TendstoInMeasure μ
+        (fun n ω =>
+          finiteReplicationVarianceCenteredReal Zsim n ω -
+            bootstrapVarianceReal Pstar Zstar n ω)
+        atTop (fun _ => 0)) :
+    TendstoInMeasure μ (finiteReplicationVarianceCenteredReal Zsim) atTop
+      (fun _ => σ2) := by
+  simpa using
+    (chapter10_finiteReplicationVarianceCenteredReal_tendsto_of_bootstrap_moments
+      (μ := μ) (m := 0) (m₂ := σ2)
+      hPstar hZ hmean hsecond hfinite)
+
 /-- Hansen Theorem 10.9/10.11 finite-replication variance from bootstrap weak
 convergence and a uniform-square-tail condition.
 
@@ -53316,11 +53343,12 @@ theorem
       (μ := μ) (ν := ν) (Y := Y) hZlim hweak hCumulant2
       hScaledCumulant4)
 
+set_option linter.style.longLine false in
 /-- Theorem 10.9/10.11 ordinary nonparametric-bootstrap centered
 finite-replication scalar variance route from Hansen's fourth-moment cumulant
 formula. -/
 theorem
-    chapter10_indexed_finiteReplicationVarianceCentered_finSucc_l2_cumulants
+    chapter10_indexed_finiteReplicationVarianceCenteredReal_finSucc_l2_of_weak_distribution_cumulants
     [IsFiniteMeasure μ] [IsFiniteMeasure ν]
     {Zsim : ℕ → ℕ → Ω → ℝ} {Z : Ωlim → ℝ} {σ2 Cfinite : ℝ}
     (Y : ℕ → Ω → ℝ)
