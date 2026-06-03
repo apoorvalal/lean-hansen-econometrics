@@ -41623,6 +41623,142 @@ noncomputable def regressionBootstrapThetaStatisticFinSucc
   matrixContinuousLinearMap Rᵀ
     (regressionBootstrapBetaStatisticFinSucc X y n ω ωs)
 
+theorem regressionLinearizedScoreFinSucc_ofLp_eq_popGramInv_sqrt_smul_sampleCrossMoment_sub
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    (regressionLinearizedScoreFinSucc μ X e n ω ωs).ofLp =
+      (popGram μ X)⁻¹ *ᵥ
+        (Real.sqrt (n + 1 : ℝ) •
+          (sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+              (regressionBootstrapErrorsFinSucc e n ω ωs) -
+            sampleCrossMoment (stackRegressors X (n + 1) ω)
+              (stackErrors e (n + 1) ω))) := by
+  rw [regressionLinearizedScoreFinSucc, matrixContinuousLinearMap_apply,
+    regressionBootstrapScoreFinSucc_eq_sqrt_smul_sampleCrossMoment_sub]
+
+omit [MeasurableSpace Ω] in
+/-- Bootstrap OLS coefficient error as sample-Gram-inverse score plus the
+singular-design totalization remainder. -/
+theorem regressionBootstrapBetaFinSucc_sub_beta_eq_sampleGramInv_score_add_remainder
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    regressionBootstrapBetaFinSucc X y n ω ωs - β =
+      ((sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *
+          sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs) - 1) *ᵥ β +
+        (sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *ᵥ
+          sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+            (regressionBootstrapErrorsFinSucc e n ω ωs) := by
+  unfold regressionBootstrapBetaFinSucc
+  rw [regressionBootstrapOutcomesFinSucc_linear_model X e y β hmodel]
+  have hident := olsBetaOrZero_sub_identity_matrix
+    (X := regressionBootstrapRegressorsFinSucc X n ω ωs)
+    (β := β) (e := regressionBootstrapErrorsFinSucc e n ω ωs)
+  rw [← hident]
+  abel
+
+omit [MeasurableSpace Ω] in
+/-- Original-sample OLS coefficient error in the same sample-Gram-inverse score
+plus singular-remainder form used for bootstrap centering. -/
+theorem olsBetaOrZero_stack_finSucc_sub_beta_eq_sampleGramInv_score_add_remainder
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) :
+    olsBetaOrZero (stackRegressors X (n + 1) ω)
+        (stackOutcomes y (n + 1) ω) - β =
+      ((sampleGram (stackRegressors X (n + 1) ω))⁻¹ *
+          sampleGram (stackRegressors X (n + 1) ω) - 1) *ᵥ β +
+        (sampleGram (stackRegressors X (n + 1) ω))⁻¹ *ᵥ
+          sampleCrossMoment (stackRegressors X (n + 1) ω)
+            (stackErrors e (n + 1) ω) := by
+  rw [stack_linear_model X e y β hmodel]
+  have hident := olsBetaOrZero_sub_identity_matrix
+    (X := stackRegressors X (n + 1) ω)
+    (β := β) (e := stackErrors e (n + 1) ω)
+  rw [← hident]
+  abel
+
+omit [MeasurableSpace Ω] in
+/-- Exact finite-resample decomposition of Hansen's concrete
+`sqrt(n+1) (β̂* - β̂)` ordinary-bootstrap statistic.
+
+The leading pieces are the bootstrap and original sample-Gram-inverse score
+terms. The remaining two terms are the singular-design totalization remainders
+from `olsBetaOrZero`. -/
+theorem regressionBootstrapBetaStatisticFinSucc_ofLp_eq_sqrt_smul_decomposition
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    (regressionBootstrapBetaStatisticFinSucc X y n ω ωs).ofLp =
+      Real.sqrt (n + 1 : ℝ) •
+        ((((sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *
+              sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs) - 1) *ᵥ β +
+            (sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *ᵥ
+              sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+                (regressionBootstrapErrorsFinSucc e n ω ωs)) -
+          (((sampleGram (stackRegressors X (n + 1) ω))⁻¹ *
+                sampleGram (stackRegressors X (n + 1) ω) - 1) *ᵥ β +
+            (sampleGram (stackRegressors X (n + 1) ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X (n + 1) ω)
+                (stackErrors e (n + 1) ω))) := by
+  change
+    Real.sqrt (n + 1 : ℝ) •
+        (regressionBootstrapBetaFinSucc X y n ω ωs -
+          olsBetaOrZero (stackRegressors X (n + 1) ω)
+            (stackOutcomes y (n + 1) ω)) =
+      Real.sqrt (n + 1 : ℝ) •
+        ((((sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *
+              sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs) - 1) *ᵥ β +
+            (sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *ᵥ
+              sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+                (regressionBootstrapErrorsFinSucc e n ω ωs)) -
+          (((sampleGram (stackRegressors X (n + 1) ω))⁻¹ *
+                sampleGram (stackRegressors X (n + 1) ω) - 1) *ᵥ β +
+            (sampleGram (stackRegressors X (n + 1) ω))⁻¹ *ᵥ
+              sampleCrossMoment (stackRegressors X (n + 1) ω)
+                (stackErrors e (n + 1) ω)))
+  rw [← regressionBootstrapBetaFinSucc_sub_beta_eq_sampleGramInv_score_add_remainder
+      X e y β hmodel n ω ωs,
+    ← olsBetaOrZero_stack_finSucc_sub_beta_eq_sampleGramInv_score_add_remainder
+      X e y β hmodel n ω]
+  congr 1
+  abel
+
+/-- Exact difference between the concrete bootstrap OLS statistic and the
+population-inverse linearized score. This is the deterministic algebra behind
+the remaining Theorem 10.18 conditional-closeness premise. -/
+theorem regressionBootstrapBetaStatisticFinSucc_sub_linearizedScore_ofLp_eq
+    {k : Type*} [Fintype k] [DecidableEq k]
+    (μ : Measure Ω) (X : ℕ → Ω → (k → ℝ)) (e y : ℕ → Ω → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω, y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
+    (regressionBootstrapBetaStatisticFinSucc X y n ω ωs).ofLp -
+        (regressionLinearizedScoreFinSucc μ X e n ω ωs).ofLp =
+      Real.sqrt (n + 1 : ℝ) •
+        (((((sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *
+                sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs) - 1) *ᵥ β +
+              (sampleGram (regressionBootstrapRegressorsFinSucc X n ω ωs))⁻¹ *ᵥ
+                sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+                  (regressionBootstrapErrorsFinSucc e n ω ωs)) -
+            (((sampleGram (stackRegressors X (n + 1) ω))⁻¹ *
+                  sampleGram (stackRegressors X (n + 1) ω) - 1) *ᵥ β +
+              (sampleGram (stackRegressors X (n + 1) ω))⁻¹ *ᵥ
+                sampleCrossMoment (stackRegressors X (n + 1) ω)
+                  (stackErrors e (n + 1) ω))) -
+          (popGram μ X)⁻¹ *ᵥ
+            (sampleCrossMoment (regressionBootstrapRegressorsFinSucc X n ω ωs)
+                (regressionBootstrapErrorsFinSucc e n ω ωs) -
+              sampleCrossMoment (stackRegressors X (n + 1) ω)
+                (stackErrors e (n + 1) ω))) := by
+  rw [regressionBootstrapBetaStatisticFinSucc_ofLp_eq_sqrt_smul_decomposition
+      X e y β hmodel,
+    regressionLinearizedScoreFinSucc_ofLp_eq_popGramInv_sqrt_smul_sampleCrossMoment_sub]
+  rw [Matrix.mulVec_smul, ← smul_sub]
+
 set_option linter.style.longLine false in
 /-- Hansen Theorem 10.18 score-level ordinary-bootstrap CLT.
 
