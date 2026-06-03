@@ -75810,7 +75810,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -75872,7 +75871,8 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one hstrict hTstar
-      hcont hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormal x)
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
 set_option linter.style.longLine false
@@ -75913,7 +75913,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -75975,7 +75974,8 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar
+      (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76005,7 +76005,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76067,7 +76066,8 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one hstrict hTstar
-      hcont hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
+      (fun x => continuousAt_cdf_standardNormal x)
+      hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
 /-- Indexed regression-facing percentile-`t` coverage from the Theorem 10.18
@@ -76103,7 +76103,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76165,7 +76164,8 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar
+      (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76214,7 +76214,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76276,7 +76275,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76314,7 +76313,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76351,7 +76349,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (se := se) (seθ := seθ) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTail
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed regression-facing percentile-`t` coverage from a marginal
 numerator CLT and explicit numerator/standard-error compact-tail control,
@@ -76396,7 +76394,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76458,7 +76455,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76497,7 +76494,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76534,7 +76530,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (se := se) (seθ := seθ) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTail
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Regression-facing percentile-`t` coverage from scalar compact-tail control
 for the bootstrap numerator, using local standard-normal CDF bracketing.
@@ -76575,7 +76571,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76637,7 +76632,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76670,7 +76665,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76707,7 +76701,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (se := se) (seθ := seθ) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTtail
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed regression-facing percentile-`t` coverage from scalar compact-tail
 control for the bootstrap numerator, using local standard-normal CDF
@@ -76747,7 +76741,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76809,7 +76802,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -76843,7 +76836,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -76880,7 +76872,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (se := se) (seθ := seθ) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hTtail
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Local-CDF bracketing face of indexed percentile-`t` coverage with the
@@ -76963,7 +76955,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77031,7 +77022,7 @@ theorem
       β R hmodel h hΩ hTail hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hTtail hseStar hα_pos hα_lt_one hleftLower
-    hrightLower hleftUpper hrightUpper hcont hlower_meas hupper_meas
+      hrightLower hleftUpper hrightUpper hlower_meas hupper_meas
     hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -77108,7 +77099,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77162,7 +77152,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ hTail
     hGapTail hseThetaStar hTtail hseStar hα_pos hα_lt_one
-    hleftLower hrightLower hleftUpper hrightUpper hcont hlower_meas
+      hleftLower hrightLower hleftUpper hrightUpper hlower_meas
     hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -77238,7 +77228,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77305,7 +77294,7 @@ theorem
       (μ := μ) (X := X) (e := e) (y := y)
       β R hmodel h hΩ hTail hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
-    hseThetaStar hTtail hseStar hα_pos hα_lt_one hstrict hcont
+    hseThetaStar hTtail hseStar hα_pos hα_lt_one hstrict
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -77375,7 +77364,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77428,7 +77416,7 @@ theorem
   chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regression_tstat_finSucc_olsBetaOrZero_gapEnvelope_scalarTail
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ hTail
-    hGapTail hseThetaStar hTtail hseStar hα_pos hα_lt_one hstrict hcont
+    hGapTail hseThetaStar hTtail hseStar hα_pos hα_lt_one hstrict
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Regression-facing percentile-`t` coverage from an eventually bounded
@@ -77468,7 +77456,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77530,7 +77517,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -77559,7 +77546,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77596,7 +77582,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regression_t
       (se := se) (seθ := seθ) (C := C) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hbound
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed regression-facing percentile-`t` coverage from an eventually
 bounded bootstrap numerator, using local standard-normal CDF bracketing. -/
@@ -77631,7 +77617,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77693,7 +77678,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (Pstar := Pstar) (Tstar := Tstar) (θ := θ) (θhat := θhat)
       (se := se) (ξ := fun x : ℝ => x) (q := q) (α := α)
       hsampleSe htstat hPstar hTmeas hα_pos hα_lt_one
-      hleftLower hrightLower hleftUpper hrightUpper hTstar hcont
+      hleftLower hrightLower hleftUpper hrightUpper hTstar (fun x => continuousAt_cdf_standardNormal x)
       hlower_meas' hupper_meas' hξ hq_nonneg hcdfLower hcdfUpper
   simpa [Tstar] using hcoverage
 
@@ -77723,7 +77708,6 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77760,7 +77744,7 @@ chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_of_bootstrap_regr
       (se := se) (seθ := seθ) (C := C) (q := q) (α := α)
       hsampleSe htstat hseθ hT hPstar hTthetaStar hseThetaStar hbound
       hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Local-CDF bracketing face of indexed percentile-`t` coverage with the
@@ -77821,7 +77805,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -77889,7 +77872,7 @@ theorem
       β R hmodel h hΩ hLinBound hBetaBound hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
     hseThetaStar hNumBound hseStar hα_pos hα_lt_one hleftLower
-    hrightLower hleftUpper hrightUpper hcont hlower_meas hupper_meas
+      hrightLower hleftUpper hrightUpper hlower_meas hupper_meas
     hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -77949,7 +77932,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78003,7 +77985,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hNumBound hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -78063,7 +78045,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78130,7 +78111,7 @@ theorem
       (μ := μ) (X := X) (e := e) (y := y)
       β R hmodel h hΩ hLinBound hBetaBound hGapTail)
     (fun _ _ => inferInstance) (fun _ _ => measurable_of_finite _)
-    hseThetaStar hNumBound hseStar hα_pos hα_lt_one hstrict hcont
+    hseThetaStar hNumBound hseStar hα_pos hα_lt_one hstrict
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -78183,7 +78164,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78237,7 +78217,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hNumBound hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -78294,7 +78274,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78367,7 +78346,7 @@ theorem
     (regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_bound_of_beta_bound
       (R := R) (X := X) (y := y) hBetaBound)
     hseStar hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-    hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the indexed beta-bound local-CDF
@@ -78422,7 +78401,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78476,7 +78454,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hseStar hα_pos
-    hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -78528,7 +78506,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78586,7 +78563,7 @@ theorem
     hseThetaStar
     (regressionBootstrapLinearRestrictionStatisticFinSucc_eventually_abs_bound_of_beta_bound
       (R := R) (X := X) (y := y) hBetaBound)
-    hseStar hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas
+      hseStar hα_pos hα_lt_one hstrict hlower_meas hupper_meas
     hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -78635,7 +78612,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78689,7 +78665,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hsampleSe htstat hseθ hm.model hm.toScoreCLTConditions hΩ
     hLinBound hBetaBound hGapTail hseThetaStar hseStar hα_pos
-    hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg hcdfLower
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg hcdfLower
     hcdfUpper
 
 private theorem percentileTStatistic_linearRestriction_eq_olsLinearTStatOrZero
@@ -78776,7 +78752,7 @@ private theorem olsPercentileTStatistic_tendstoInDistribution_standardNormal
             linearRestrictionEstimate R
               (olsBetaOrZero
                 (stackRegressors X n ω) (stackOutcomes y n ω))) μ := by
-      have hcont :
+      have  :
           Continuous (fun b : k → ℝ => linearRestrictionEstimate R b) := by
         have hmul : Continuous (fun b : k → ℝ => R *ᵥ b) :=
           Continuous.matrix_mulVec
@@ -78787,7 +78763,7 @@ private theorem olsPercentileTStatistic_tendstoInDistribution_standardNormal
           continuous_const
         simpa [linearRestrictionEstimate] using
           hmul.dotProduct hone
-      exact hcont.measurable.comp_aemeasurable hbeta.aemeasurable
+      exact this.measurable.comp_aemeasurable hbeta.aemeasurable
     have hseBase :
         AEMeasurable
           (fun ω => linearRestrictionStdError R (Vhat n ω)) μ := by
@@ -78863,7 +78839,6 @@ chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regressi
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78912,7 +78887,7 @@ chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regressi
       (olsPercentileTStatistic_tendstoInDistribution_standardNormal
         β R hm hVhat htstat)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 private theorem
@@ -78947,7 +78922,6 @@ chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -78996,7 +78970,7 @@ chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_
       (olsPercentileTStatistic_tendstoInDistribution_standardNormal
         β R hm hVhat htstat)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 private theorem
@@ -79038,7 +79012,6 @@ chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regressi
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79087,7 +79060,7 @@ chapter10_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regressi
       (olsPercentileTStatistic_tendstoInDistribution_standardNormal
         β R hm hVhat htstat)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 private theorem
@@ -79129,7 +79102,6 @@ chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79178,7 +79150,7 @@ chapter10_indexed_ols_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_
       (olsPercentileTStatistic_tendstoInDistribution_standardNormal
         β R hm hVhat htstat)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -79216,7 +79188,6 @@ chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79268,7 +79239,7 @@ chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -79301,7 +79272,6 @@ chapter10_indexed_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79353,7 +79323,7 @@ chapter10_indexed_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -79386,7 +79356,6 @@ chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79438,7 +79407,7 @@ chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -79471,7 +79440,6 @@ chapter10_indexed_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79523,7 +79491,7 @@ chapter10_indexed_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -79556,7 +79524,6 @@ chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79608,7 +79575,7 @@ chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -79641,7 +79608,6 @@ chapter10_indexed_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79693,7 +79659,7 @@ chapter10_indexed_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -79726,7 +79692,6 @@ chapter10_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       TendstoInBootstrapProbability μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79778,7 +79743,7 @@ chapter10_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -79811,7 +79776,6 @@ chapter10_indexed_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       TendstoInBootstrapProbabilityIndexed μ Pstar seThetaStar (fun _ => seθ))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79863,7 +79827,7 @@ chapter10_indexed_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
       hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -79903,7 +79867,6 @@ chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -79955,7 +79918,7 @@ chapter10_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -79996,7 +79959,6 @@ chapter10_indexed_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80048,7 +80010,7 @@ chapter10_indexed_olsHC0_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -80088,7 +80050,6 @@ chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80140,7 +80101,7 @@ chapter10_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -80181,7 +80142,6 @@ chapter10_indexed_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80233,7 +80193,7 @@ chapter10_indexed_olsHC1_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -80273,7 +80233,6 @@ chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80325,7 +80284,7 @@ chapter10_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -80366,7 +80325,6 @@ chapter10_indexed_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80418,7 +80376,7 @@ chapter10_indexed_olsHC2_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Theorem 10.14 with the actual sample statistic specialized to the ordinary
@@ -80458,7 +80416,6 @@ chapter10_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80510,7 +80467,7 @@ chapter10_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstrap_regre
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 /-- Indexed Theorem 10.14 with the actual sample statistic specialized to the
@@ -80551,7 +80508,6 @@ chapter10_indexed_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80603,7 +80559,7 @@ chapter10_indexed_olsHC3_percentileTCI_coverage_tendsto_one_sub_alpha_of_bootstr
       (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
         (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
       hseθ hjoint hPstar hTthetaStar hseThetaStar hseStar hα_pos
-      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+      hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
       hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -80655,7 +80611,6 @@ private theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80725,7 +80680,7 @@ private theorem
     (olsPercentileTStatistic_tendstoInDistribution_standardNormal
       β R hm hVhat htstat)
     hseθ hm hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -80784,7 +80739,6 @@ private theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80854,7 +80808,7 @@ private theorem
     (olsPercentileTStatistic_tendstoInDistribution_standardNormal
       β R hm hVhat htstat)
     hseθ hm hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -80904,7 +80858,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -80977,7 +80930,7 @@ theorem
     (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81033,7 +80986,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81106,7 +81058,7 @@ theorem
     (olsHC0LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81156,7 +81108,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81229,7 +81180,7 @@ theorem
     (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81285,7 +81236,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81358,7 +81308,7 @@ theorem
     (olsHC1LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81408,7 +81358,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81481,7 +81430,7 @@ theorem
     (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81537,7 +81486,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81610,7 +81558,7 @@ theorem
     (olsHC2LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81660,7 +81608,6 @@ theorem
         (fun _ => linearRestrictionStdError R (heteroAsymCov μ X e)))
     (hα_pos : 0 < α) (hα_lt_one : α < 1)
     (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81733,7 +81680,7 @@ theorem
     (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
     hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
@@ -81789,7 +81736,6 @@ theorem
       ∀ ε : ℝ, 0 < ε → cdf (gaussianReal 0 1) (q - ε) < 1 - α / 2)
     (hrightUpper :
       ∀ ε : ℝ, 0 < ε → 1 - α / 2 < cdf (gaussianReal 0 1) (q + ε))
-    (hcont : ∀ x : ℝ, ContinuousAt (fun y => cdf (gaussianReal 0 1) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -81862,7 +81808,7 @@ theorem
     (olsHC3LinTStatOrZero_tendstoInDistribution_standardNormal_of_robustFeasibleHCMomentConditions
       (μ := μ) (X := X) (e := e) (y := y) β R hm hse_pos)
     hse_pos hΩ hLinBound hBetaBound hGapTail hseThetaStar hseStar
-    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper hcont
+    hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
     hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine true
