@@ -67944,6 +67944,43 @@ theorem scalarCDF_id_eq_cdf
   simpa [scalarCDF, Set.Iic, Measure.real] using
     (ProbabilityTheory.cdf_eq_real η x).symm
 
+/-- A non-atomic real probability measure has a continuous CDF.
+
+The proof uses Mathlib's Stieltjes-function representation of CDFs: right
+continuity is part of the structure, while no atoms kill the jump
+`cdf η x - leftLim (cdf η) x`. -/
+theorem continuousAt_cdf_of_noAtoms
+    (η : Measure ℝ) [IsProbabilityMeasure η] [NoAtoms η] (x : ℝ) :
+    ContinuousAt (fun y : ℝ => cdf η y) x := by
+  have hleftLim : Function.leftLim (fun y : ℝ => cdf η y) x = cdf η x := by
+    have hzero :
+        ENNReal.ofReal (cdf η x - Function.leftLim (fun y : ℝ => cdf η y) x) = 0 := by
+      calc
+        ENNReal.ofReal (cdf η x - Function.leftLim (fun y : ℝ => cdf η y) x)
+            = (cdf η).measure {x} := by
+              rw [StieltjesFunction.measure_singleton]
+        _ = 0 := by
+              rw [measure_cdf η]
+              simp
+    have hle :
+        cdf η x - Function.leftLim (fun y : ℝ => cdf η y) x ≤ 0 := by
+      simpa [ENNReal.ofReal_eq_zero] using hzero
+    have hnonneg :
+        0 ≤ cdf η x - Function.leftLim (fun y : ℝ => cdf η y) x := by
+      exact sub_nonneg.mpr ((cdf η).mono.leftLim_le le_rfl)
+    have hdiff :
+        cdf η x - Function.leftLim (fun y : ℝ => cdf η y) x = 0 :=
+      le_antisymm hle hnonneg
+    linarith
+  have hleft :
+      ContinuousWithinAt (fun y : ℝ => cdf η y) (Set.Iic x) x := by
+    rw [← continuousWithinAt_Iio_iff_Iic]
+    exact (Monotone.continuousWithinAt_Iio_iff_leftLim_eq (monotone_cdf η)).2 hleftLim
+  have hright :
+      ContinuousWithinAt (fun y : ℝ => cdf η y) (Set.Ici x) x :=
+    (cdf η).right_continuous x
+  exact continuousAt_iff_continuous_left_right.2 ⟨hleft, hright⟩
+
 /-- A scalar limit statistic with law `η` has scalar CDF equal to the CDF of
 `η`.
 
@@ -72438,14 +72475,6 @@ theorem
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
             (q + ε))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -72567,8 +72596,13 @@ theorem
       (X := X) (e := e) (y := y)
       (a := a) ha β R hstat hmodel h hΩ hRVR hLinBound hBetaBound
       hGapTail hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-      hrightUpper hcont hlower_meas hupper_meas hξ hZlaw hq_nonneg
-      hcdfLower hcdfUpper
+      hrightUpper
+      (fun x =>
+        continuousAt_cdf_of_noAtoms
+          (gaussianReal 0
+            (olsProjectionAsymVar μ X e
+              (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x)
+      hlower_meas hupper_meas hξ hZlaw hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Direct Gaussian-law version of the local-CDF finite OLS
@@ -72636,14 +72670,6 @@ theorem
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
             (q + ε))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -72729,7 +72755,7 @@ theorem
       (X := X) (e := e) (y := y)
       β R hξ hmodel h hΩ hRVR hLinBound hBetaBound hGapTail
       hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
-      hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Strict-CDF version of the finite OLS percentile-interval wrapper whose
@@ -72774,14 +72800,6 @@ theorem
             (gaussianReal 0
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -72854,7 +72872,7 @@ theorem
       (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
       β R hξ hmodel h hΩ hRVR hLinBound hBetaBound hGapTail
       hα_pos hα_lt_one hleftLower hrightLower hleftUpper hrightUpper
-      hcont hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
+      hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the local-CDF finite OLS
@@ -72922,14 +72940,6 @@ theorem
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
             (q + ε))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -72997,8 +73007,8 @@ theorem
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
     β R hξ hm.model hm.toScoreCLTConditions hΩ hRVR hLinBound
     hBetaBound hGapTail hα_pos hα_lt_one hleftLower hrightLower
-    hleftUpper hrightUpper hcont hlower_meas hupper_meas hq_nonneg
-    hcdfLower hcdfUpper
+    hleftUpper hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower
+    hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the direct Gaussian-law local-CDF
@@ -73061,14 +73071,6 @@ theorem
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
             (q + ε))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -73136,8 +73138,7 @@ theorem
     (μ := μ) (X := X) (e := e) (y := y)
     β R hm.model hm.toScoreCLTConditions hΩ hRVR hLinBound hBetaBound
     hGapTail hα_pos hα_lt_one hleftLower hrightLower hleftUpper
-    hrightUpper hcont hlower_meas hupper_meas hq_nonneg hcdfLower
-    hcdfUpper
+    hrightUpper hlower_meas hupper_meas hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the strict-CDF finite OLS
@@ -73182,14 +73183,6 @@ theorem
             (gaussianReal 0
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -73256,8 +73249,8 @@ theorem
   chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT
     (μ := μ) (ν := ν) (X := X) (e := e) (y := y)
     β R hξ hm.model hm.toScoreCLTConditions hΩ hRVR hLinBound
-    hBetaBound hGapTail hα_pos hα_lt_one hstrict hcont hlower_meas
-    hupper_meas hq_nonneg hcdfLower hcdfUpper
+    hBetaBound hGapTail hα_pos hα_lt_one hstrict hlower_meas hupper_meas
+    hq_nonneg hcdfLower hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Direct Gaussian-law version of the strict-CDF finite OLS percentile-interval
@@ -73300,14 +73293,6 @@ theorem
             (gaussianReal 0
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -73392,8 +73377,8 @@ theorem
           (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal)
       (X := X) (e := e) (y := y)
       β R hξ hmodel h hΩ hRVR hLinBound hBetaBound hGapTail
-      hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas hq_nonneg
-      hcdfLower hcdfUpper
+      hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg hcdfLower
+      hcdfUpper
 
 set_option linter.style.longLine false in
 /-- Robust-feasible HC specialization of the direct Gaussian-law strict-CDF
@@ -73433,14 +73418,6 @@ theorem
             (gaussianReal 0
               (olsProjectionAsymVar μ X e
                 (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) x))
-    (hcont :
-      ∀ x : ℝ,
-        ContinuousAt
-          (fun y =>
-            cdf
-              (gaussianReal 0
-                (olsProjectionAsymVar μ X e
-                  (Rᵀ *ᵥ (fun _ : Unit => 1))).toNNReal) y) x)
     (hlower_meas :
       ∀ n,
         AEMeasurable
@@ -73507,8 +73484,8 @@ theorem
   chapter10_percentileCI_coverage_indexed_finSucc_olsBetaOrZero_gapEnvelope_bounds_sampleCLT_gaussian
     (μ := μ) (X := X) (e := e) (y := y)
     β R hm.model hm.toScoreCLTConditions hΩ hRVR hLinBound hBetaBound
-    hGapTail hα_pos hα_lt_one hstrict hcont hlower_meas hupper_meas
-    hq_nonneg hcdfLower hcdfUpper
+    hGapTail hα_pos hα_lt_one hstrict hlower_meas hupper_meas hq_nonneg
+    hcdfLower hcdfUpper
 
 /-- Hansen equation (10.22): finite-replication bootstrap median-bias share
 `p* = B^{-1} sum_b 1{theta*_b <= thetaHat}`. -/
