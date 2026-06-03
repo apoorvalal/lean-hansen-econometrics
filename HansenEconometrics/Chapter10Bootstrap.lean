@@ -41961,6 +41961,150 @@ theorem
     (chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight
       (μ := μ) (X := X) (e := e) h hΩ hTbetaStar hTail hclose)
 
+/-- Hansen Definition 10.2 face of the ordinary-bootstrap nonlinear
+regression coefficient-transfer route.
+
+This is the CDF counterpart of
+`chapter10_indexed_bootstrap_regression_theta_gaussian_finSucc_of_linearizedScore_tight`:
+conditional closeness and compact-tail control transfer the ordinary-bootstrap
+linearized score CLT to the concrete transformed statistic, and the usual
+Gaussian lower-orthant null-frontier premise converts weak convergence to
+Definition 10.2 distribution convergence. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0))
+    (hfrontier : ∀ x : q → ℝ,
+      ContinuousAt
+          (fun y =>
+            vectorCDF
+              (multivariateGaussian (0 : EuclideanSpace ℝ q)
+                (Rᵀ * heteroAsymCov μ X e * R))
+              (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) y) x →
+        ((multivariateGaussian (0 : EuclideanSpace ℝ q)
+            (Rᵀ * heteroAsymCov μ X e * R)).map
+            (fun z : EuclideanSpace ℝ q => (z : q → ℝ)))
+          (frontier {z : q → ℝ | coordinateLE z x}) = 0) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) := by
+  simpa [Matrix.transpose_transpose] using
+    chapter10_indexed_bootstrap_delta_method_gaussian_distribution
+      (μ := μ)
+      (Pstar := fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (Tstar := TbetaStar)
+      (V := heteroAsymCov μ X e) (G := Rᵀ)
+      (heteroAsymCov_posSemidef_of_scoreCLTConditions
+        (μ := μ) (X := X) (e := e) h)
+      (chapter10_indexed_bootstrap_regression_beta_gaussian_finSucc_of_linearizedScore_tight
+        (μ := μ) (X := X) (e := e) h hΩ hTbetaStar hTail hclose)
+      (fun n ω => inferInstance) hTbetaStar
+      (by simpa [Matrix.transpose_transpose] using hfrontier)
+
+/-- Positive-definite transformed-covariance CDF face of the
+ordinary-bootstrap nonlinear regression coefficient-transfer route.
+
+When `R' heteroAsymCov R` is positive definite, the transformed Gaussian
+lower-orthant frontier premise in
+`chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight`
+is automatic. -/
+theorem
+    chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_posDef_finSucc_of_linearizedScore_tight
+    [IsProbabilityMeasure μ]
+    {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
+    {TbetaStar :
+      ∀ n, Ω → (Fin (n + 1) → Fin (n + 1)) → EuclideanSpace ℝ k}
+    (R : Matrix k q ℝ)
+    (h : ScoreCLTConditions μ X e)
+    (hΩ : (scoreCovMat μ X e).PosDef)
+    (hRVR : (Rᵀ * heteroAsymCov μ X e * R).PosDef)
+    (hTbetaStar : ∀ n ω, Measurable (TbetaStar n ω))
+    (hTail : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ k), IsCompact K ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | regressionLinearizedScoreFinSucc μ X e n ω ωs ∉ K})
+          atTop (fun _ => 0) ∧
+        TendstoInMeasure μ
+          (fun n ω =>
+            ((ProbabilityTheory.uniformOn
+              (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+                Measure (Fin (n + 1) → Fin (n + 1)))).real
+              {ωs | TbetaStar n ω ωs ∉ K})
+          atTop (fun _ => 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          ((ProbabilityTheory.uniformOn
+            (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+              Measure (Fin (n + 1) → Fin (n + 1)))).real
+            {ωs |
+              δ ≤ dist (TbetaStar n ω ωs)
+                (regressionLinearizedScoreFinSucc μ X e n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapDistributionIndexed μ
+      (fun n _ =>
+        (ProbabilityTheory.uniformOn
+          (Set.univ : Set (Fin (n + 1) → Fin (n + 1))) :
+            Measure (Fin (n + 1) → Fin (n + 1))))
+      (fun n ω ωs =>
+        ((matrixContinuousLinearMap Rᵀ (TbetaStar n ω ωs) :
+          EuclideanSpace ℝ q) : q → ℝ))
+      (multivariateGaussian (0 : EuclideanSpace ℝ q)
+        (Rᵀ * heteroAsymCov μ X e * R))
+      (fun z : EuclideanSpace ℝ q => (z : q → ℝ)) :=
+  chapter10_indexed_bootstrap_regression_theta_gaussian_distribution_finSucc_of_linearizedScore_tight
+    (μ := μ) R h hΩ hTbetaStar hTail hclose
+    (fun x _hx => multivariateGaussian_coordinateLE_frontier_null_of_posDef hRVR x)
+
 /-- Indexed Hansen Theorem 10.18, regression Gaussian CDF wrapper. -/
 theorem chapter10_indexed_bootstrap_regression_theta_gaussian_distribution
     {k q : Type*} [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
