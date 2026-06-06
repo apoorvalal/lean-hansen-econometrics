@@ -37,7 +37,7 @@ Source of truth for all rules: **AGENTS.md** at the repository root.
 > "Prefer composing results already proved in this repo over duplicating algebra in a later chapter."
 > "If a later theorem is really just a corollary or a notation bridge, write it as such."
 
-**§4 — No parallel theorem stacks** (AGENTS.md "Core principles" §4):
+**§4 — Use bridge lemmas instead of duplicating proof ideas** (AGENTS.md "Core principles" §4):
 > "Bridge lemmas should translate notation, not introduce a parallel theorem stack unless that stack is genuinely reusable."
 > "`_of_...` bridge lemmas are usually proof infrastructure. Make them private unless downstream files should cite them directly."
 
@@ -105,7 +105,7 @@ Source of truth for all rules: **AGENTS.md** at the repository root.
 ### Counts as a finding
 
 - A helper theorem that is only used in the file where it is defined but is not `private`.
-- A module larger than ~100 lines with no module-level docstring.
+- A large module with no module-level docstring (AGENTS.md: "Give large modules a docstring"; use judgment on what counts as large — there is no fixed line threshold).
 - An assumption structure whose name encodes a Hansen number (e.g., `Assumption3`) rather than describing the mathematical content, with no docstring explaining the correspondence.
 - An identity that appears repeatedly rewritten inline across several proofs but is not tagged `@[simp]`.
 - An `import Mathlib` wildcard with no accompanying comment justifying the temporary exception.
@@ -157,9 +157,9 @@ A formalization is *faithful* when:
 
 - A conclusion weaker than what Hansen states (e.g., Hansen states a.s. convergence but the Lean theorem only gives convergence in probability, without documentation).
 - A hypothesis that is strictly stronger than Hansen's (e.g., Hansen assumes i.i.d. but the Lean statement additionally requires boundedness without justification).
-- A vacuous statement (hypothesis set is contradictory, making the theorem trivially true with no mathematical content).
+- A vacuous statement (hypothesis set is contradictory, making the theorem trivially true with no mathematical content). This operationalizes the harness design's faithfulness definition ("not vacuously true, not silently weakened"), not a literal AGENTS.md rule — require concrete evidence that the hypotheses are contradictory before filing.
 - A theorem named after a Hansen result whose statement does not correspond to that result, with no crosswalk note explaining the discrepancy.
-- `sorry` used to close a proof obligation that is not marked as a known gap in the inventory.
+- `sorry` used to close a proof obligation that is not marked as a known gap in the inventory. (Undocumented `sorry` is filed under `faithfulness` only — do NOT also file it under `proof-quality`.)
 
 ### Does NOT count as a finding
 
@@ -208,20 +208,18 @@ A proof has good quality when:
 - A multi-step proof that a single `exact`, `simp [...]`, `linarith`, `ring`, `norm_num`, or analogous tactic would close.
 - A manual rewrite of a Hilbert-space or matrix-algebra argument when `Mathlib.Analysis` or `Mathlib.LinearAlgebra` already has the relevant theorem.
 - A proof that copies-and-pastes a block from an earlier proof rather than citing the earlier theorem.
-- An assumption listed in the hypothesis that is never used in the proof (dead hypothesis).
-- A declaration marked `noncomputable` without any explanation when computability is not obviously blocked by Mathlib types.
+- An assumption listed in the hypothesis that is never used anywhere in the proof (dead hypothesis) — this makes the theorem needlessly stronger than necessary, violating AGENTS.md's "State assumptions explicitly and only as strongly as needed." Only file with concrete evidence the hypothesis is genuinely unused (e.g. it never appears in the proof term and removing it would still compile).
 
 ### Does NOT count as a finding
 
 - A proof that is longer than the shortest possible but that mirrors Hansen's argument closely and is clearly intentional (chapter-native style is explicitly allowed by AGENTS.md).
 - Minor tactic-level choices (e.g., `exact h` vs. `assumption`) that have no effect on reuse or readability at scale.
 - A proof that uses an intermediate `have` to name a sub-goal for readability, even if the sub-goal could be inlined.
-- `noncomputable` on definitions that involve `ℝ`, `MeasureTheory`, or other Mathlib types that are definitionally noncomputable — this is expected.
+- A declaration marked `noncomputable` — this is routine and expected throughout the codebase (Mathlib's `ℝ`, `MeasureTheory`, etc. are definitionally noncomputable). AGENTS.md has no rule about `noncomputable`, so never file it as a finding.
 - A proof that is technically longer because it covers a strictly more general statement than Hansen's (generality is a feature, not a quality defect).
 
 ### Severity guidance
 
-- `blocker`: a `sorry` used to discharge a non-trivial goal that is not recorded as an open gap.
 - `major`: a multi-step proof that manually redoes available Mathlib infrastructure, creating a real maintenance burden.
 - `minor`: a proof golfable to a single tactic; a dead hypothesis.
 - `nit`: cosmetic tactic style differences with no impact on correctness or reuse.
