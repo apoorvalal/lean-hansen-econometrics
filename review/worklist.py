@@ -8,6 +8,46 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((REPO / "review" / "finding-schema.json").read_text())
 
+# Regex to detect a declaration keyword line (anchored so substrings like
+# "definition_like_word" in comments never match).
+KW = re.compile(
+    r"^\s*(?:@\[[^\]]*\]\s*)?"
+    r"(?:(?P<vis>private|protected)\s+)?"
+    r"(?:noncomputable\s+|scoped\s+|unsafe\s+)*"
+    r"(?:theorem|lemma|def|abbrev|instance)\b"
+    r"\s*(?P<name>[^\s:({\[]+)?"
+)
+IDENT = re.compile(r"^\s*(?P<name>[A-Za-z_][^\s:({\[]*)")
+
+
+def _extract_decls(path: str) -> list[dict]:
+    """Return a list of {name, line, private} dicts for declarations in the file."""
+    p = Path(path)
+    if not p.is_file():
+        return []
+    lines = p.read_text(encoding="utf-8").splitlines()
+    decls = []
+    i = 0
+    while i < len(lines):
+        m = KW.match(lines[i])
+        if m:
+            kw_line = i + 1  # 1-based
+            name = m.group("name")
+            is_private = m.group("vis") == "private"
+            if not name:
+                # Name is on the next non-blank line
+                j = i + 1
+                while j < len(lines) and not lines[j].strip():
+                    j += 1
+                if j < len(lines):
+                    nm = IDENT.match(lines[j])
+                    if nm:
+                        name = nm.group("name")
+            if name:
+                decls.append({"name": name, "line": kw_line, "private": is_private})
+        i += 1
+    return decls
+
 def _check(obj, schema, path=""):
     """Tiny validator for the subset of JSON Schema we use. Returns error str or None."""
     t = schema.get("type")
@@ -68,7 +108,7 @@ def resolve_paths(files: list[str]) -> list[dict]:
                 "chapter": n,
                 "excerpt_path": f"textbook/ch{n:02d}/ch{n}_excerpt.txt",
                 "inventory_path": f"inventory/ch{n}-inventory.md",
-                "decls": [],
+                "decls": _extract_decls(path),
             }
         else:
             entry = {
@@ -76,7 +116,7 @@ def resolve_paths(files: list[str]) -> list[dict]:
                 "chapter": None,
                 "excerpt_path": None,
                 "inventory_path": None,
-                "decls": [],
+                "decls": _extract_decls(path),
             }
         results.append(entry)
     return results

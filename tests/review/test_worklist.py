@@ -75,5 +75,26 @@ class TestResolvePaths(unittest.TestCase):
         self.assertIsNone(out[1]["chapter"])
 
 
+class TestDeclExtraction(unittest.TestCase):
+    def test_extracts_decls_with_lines_and_visibility(self):
+        fixture = "tests/review/fixtures/Sample.lean"
+        out = json.loads(run("resolve", fixture).stdout)[0]
+        names = {d["name"]: d for d in out["decls"]}
+        self.assertIn("foo_same_line", names)
+        self.assertIn("bar_after_attr", names)
+        self.assertIn("name_on_next_line", names)      # name on the next line
+        self.assertIn("combo_name", names)             # attr + bare kw + next-line name
+        self.assertIn("myDef", names)                  # name follows `noncomputable def`
+        self.assertIn("qux_lemma", names)
+        self.assertTrue(names["baz_private"]["private"])
+        self.assertFalse(names["foo_same_line"]["private"])
+        self.assertFalse(names["combo_name"]["private"])
+        # negative: a comment mentioning "definition_like_word" is not a decl
+        self.assertNotIn("definition_like_word", names)
+        # line numbers are 1-based and point at the decl KEYWORD line (not the name line)
+        self.assertEqual(names["foo_same_line"]["line"], 1)
+        self.assertEqual(names["name_on_next_line"]["line"], 10)  # `theorem` keyword line
+
+
 if __name__ == "__main__":
     unittest.main()
