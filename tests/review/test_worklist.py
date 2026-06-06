@@ -108,5 +108,21 @@ class TestRubricAsset(unittest.TestCase):
         self.assertIn("AGENTS.md", text)
 
 
+class TestPromptAssets(unittest.TestCase):
+    P = REPO / "review" / "prompts"
+    def test_reviewer_prompt(self):
+        t = (self.P / "reviewer.md").read_text()
+        self.assertIn("finding-schema.json", t)   # must emit schema-valid findings
+        self.assertIn("rg", t)                     # fallback tool named
+    def test_verifier_is_refute_biased(self):
+        t = (self.P / "verifier.md").read_text().lower()
+        self.assertIn("refute", t)
+        self.assertIn("uncertain", t)              # default-to-refuted-if-uncertain
+    def test_fixer_is_mechanical_only(self):
+        t = (self.P / "fixer.md").read_text().lower()
+        self.assertIn("mechanical", t)
+        self.assertIn("lake build", t)             # must rebuild green
+
+
 if __name__ == "__main__":
     unittest.main()
