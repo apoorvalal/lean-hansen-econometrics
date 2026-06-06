@@ -8,7 +8,9 @@
 
 The repo is a ~131k-line Lean 4 formalization of Hansen's *Econometrics* (≈50
 files, 0 sorries, 2 axioms). Chapter 10 (Bootstrap) alone is ~80k lines and
-holds most of the recent work. `AGENTS.md` already codifies strong
+holds most of the recent work. (The "2 axioms" figure is from `#print axioms`
+— kernel axioms like `propext`/`Classical.choice` — not project-declared
+`axiom`s; the source has none.) `AGENTS.md` already codifies strong
 anti-redundancy and API-hygiene rules (reuse Mathlib → reuse repo theorems →
 one canonical public API → thin wrappers only). What's missing is a *systematic,
 adversarial* way to check the written Lean against that rubric and against the
@@ -65,6 +67,13 @@ up the deterministic pipeline. Saved to disk so it is re-runnable via
 `{scriptPath}` and editable across sessions. Other harnesses replace *only* this
 file with their own ~30-line orchestrator over the same Layer-1 assets.
 
+It targets the Claude Code `Workflow` primitives: `agent(prompt, {schema})` for
+structured subagent calls, `pipeline(items, ...stages)` for the
+review→verify-per-item flow (no barrier), `parallel(thunks)` for the dedup
+barrier, `phase()`/`log()` for progress, and `isolation: 'worktree'` for the
+draft-PR fix agents. Findings pass between stages as plain JS objects validated
+against `finding-schema.json` via the `schema` option.
+
 ## The four review dimensions
 
 Each maps to concrete `AGENTS.md` rules so findings cite a rule, not a vibe.
@@ -92,11 +101,42 @@ Each maps to concrete `AGENTS.md` rules so findings cite a rule, not a vibe.
 
 **Severity scale:** `blocker` > `major` > `minor` > `nit`.
 
+## Prerequisites / tool dependencies
+
+- **Required:** `ripgrep` (`rg`) and `git` (worktrees). These are the guaranteed
+  baseline — every dimension's reviewer and verifier must be able to do its job
+  with grep alone.
+- **Preferred (optional):** the Lean LSP MCP tools `leansearch`, `loogle`,
+  `lean_goal`. They make redundancy and faithfulness checks far stronger. The
+  repo currently has no MCP config; provisioning them is a setup step, not an
+  assumption. If they are unavailable, the workflow degrades gracefully to
+  `rg`-based search and the report notes which checks ran in degraded mode.
+- **Lean toolchain:** `lake build` for the draft-PR green check (expensive — see
+  constraints).
+
+## Source-text lookup (excerpt mapping)
+
+Chapter excerpts are **monolithic** (e.g. `textbook/ch10/ch10_excerpt.txt` is
+~4600 lines covering the whole chapter), and `inventory/chN-inventory.md` maps
+Hansen equations to *declaration* links that may span several files. There is no
+file-to-excerpt-section mapping, so the harness does not try to pre-slice the
+excerpt. Instead, for a target file the faithfulness reviewer is given:
+
+1. the full chapter excerpt (`textbook/ch{NN}/*_excerpt.*`), and
+2. the inventory rows whose decl-links resolve into the target file
+   (`inventory/ch{N}-inventory.md`),
+
+and is responsible for locating the relevant passage and quoting it. Note the
+two path namespaces differ: excerpt dirs are zero-padded two-digit
+(`textbook/ch01/` … `textbook/ch29/`); inventory files are **not** padded
+(`inventory/ch1-inventory.md` … `inventory/ch10-inventory.md`). A literal glob
+must handle both.
+
 ## Finding schema
 
 ```json
 {
-  "id": "string",
+  "id": "stable: sha1(file:line:decl:dimension) — used for dedup + run-to-run comparison",
   "file": "path/to/File.lean",
   "line": 123,
   "decl": "theoremOrDefName",
@@ -117,9 +157,10 @@ Each maps to concrete `AGENTS.md` rules so findings cite a rule, not a vibe.
    For each, attach its Hansen source excerpt located from `textbook/<chXX>/`
    and the relevant `inventory/chXX-inventory.md` entry.
 
-2. **Review** (pipeline, fan-out per file × dimension) — reviewer agent armed
-   with `leansearch` / `loogle` / `lean_goal` MCP tools plus the excerpt emits
-   structured findings against the rubric.
+2. **Review** (pipeline, fan-out per file × dimension — **dimension-level, not
+   per-decl**, to bound agent count to `files × 4`) — reviewer agent armed with
+   the preferred MCP tools (or `rg` fallback) plus the excerpt/inventory rows
+   emits structured findings against the rubric.
 
 3. **Verify** (per finding, adversarial — the false-positive killer) — an
    independent skeptic tries to *refute* the finding; **default to refuted if
@@ -133,23 +174,33 @@ Each maps to concrete `AGENTS.md` rules so findings cite a rule, not a vibe.
    - *Proof-quality*: must confirm the statement is genuinely trivial/golfable
      (e.g. inspect hypotheses for vacuity) or it's refuted.
 
-4. **Dedup** (barrier) — merge confirmed findings across dimensions by
-   `file:line`/decl before any downstream work.
+4. **Dedup** (barrier) — merge confirmed findings by `id` (i.e.
+   `file:line:decl:dimension`). When two findings collapse, keep the higher
+   severity and union their evidence; findings in *different* dimensions at the
+   same `file:line` are kept separate (the dimension is part of identity).
 
 5. **Report** — write `review/reports/YYYY-MM-DD-<scope>.md`, grouped by file and
    dimension, severity-sorted, with evidence and suggested fixes. Date stamped by
    the caller (workflow scripts can't read the clock).
 
-6. **Draft PRs** — group confirmed **mechanical** fixes (make private, dedup a
-   lemma, add docstring, add `@[simp]`) into per-file/per-dimension commits inside
-   a git **worktree**; run `lake build` **once per group** to confirm green.
-   Non-mechanical items remain report-only. PRs are for human approval; nothing
-   auto-merges.
+6. **Draft PRs** — group confirmed **mechanical** fixes into per-file/per-dimension
+   commits inside a git **worktree**; run `lake build` **once per group** to
+   confirm green. The mechanical whitelist is deliberately narrow — only edits
+   that are local to one declaration and cannot cascade: **make `private`, add a
+   docstring, add `@[simp]`, rename within file**. **Lemma dedup is explicitly
+   report-only** (it deletes a decl and repoints call sites, which can cascade
+   across files and break the build) *unless* the duplicate has zero external
+   usages, in which case its removal is treated as mechanical. Non-mechanical
+   items remain report-only. PRs are for human approval; nothing auto-merges.
 
 ## Key constraints
 
 - **Build cost.** ~131k lines makes `lake build` expensive. Fixes are batched and
   built once per group; the pilot runs on small files to keep the loop fast.
+- **Fan-out bounds.** Reviewers are dimension-level (`files × 4`); each finding
+  spawns one verifier. The workflow takes an explicit stop budget; on reviewer/
+  verifier error the affected item drops to `null` and is logged, not retried
+  indefinitely. The report logs any files/dimensions skipped due to budget.
 - **False positives.** The adversarial verify stage is mandatory and
   refute-biased; nothing reaches a report's "confirmed" section or a PR unverified.
 - **Cross-harness.** Codex/Gemini reuse all of Layer 1 and write their own thin
@@ -167,8 +218,13 @@ prompts and rubric thresholds, then scale to whole chapters.
   confirmed findings are all genuinely actionable (low false-positive rate when
   spot-checked by a human).
 - At least one confirmed mechanical fix flows end-to-end into a green draft commit.
-- Re-running on the same files with no code changes reproduces the same confirmed
-  findings (determinism of the rubric).
-- A second harness (Codex) can, in principle, run the review using only the
-  Layer-1 assets plus a small orchestrator — verified by the `review/README.md`
-  instructions being complete and self-contained.
+- Re-running on the same files with no code changes yields a **stable**
+  high-confidence finding set: the LLM reviewers/verifiers are nondeterministic,
+  so the bar is high overlap of `blocker`/`major` findings across two runs
+  (compared by `id`), not byte-identical output. A large run-to-run swing in the
+  confirmed set signals an under-specified rubric to tighten.
+- A second harness (Codex) can run the review using only the Layer-1 assets plus
+  a small orchestrator. `review/README.md` includes a concrete self-containment
+  checklist (rubric path, prompt paths, schema path, worklist procedure, tool
+  prerequisites + fallback, output location) that a Codex runner can follow
+  without reading the CC workflow script.
