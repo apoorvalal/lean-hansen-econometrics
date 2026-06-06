@@ -98,5 +98,15 @@ class TestDeclExtraction(unittest.TestCase):
         self.assertEqual(names["name_on_next_line"]["line"], 10)  # `theorem` keyword line
 
 
+class TestRubricAsset(unittest.TestCase):
+    def test_rubric_covers_all_dimensions_and_severities(self):
+        text = (REPO / "review" / "rubric.md").read_text()
+        for dim in ["redundancy", "hygiene", "faithfulness", "proof-quality"]:
+            self.assertIn(dim, text)
+        for sev in ["blocker", "major", "minor", "nit"]:
+            self.assertIn(sev, text)
+        self.assertIn("AGENTS.md", text)
+
+
 if __name__ == "__main__":
     unittest.main()
