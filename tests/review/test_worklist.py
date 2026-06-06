@@ -35,5 +35,33 @@ class TestSchemaValidation(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("severity", r.stderr)
 
+class TestResolvePaths(unittest.TestCase):
+    def resolve(self, path):
+        r = run("resolve", path)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads(r.stdout)[0]
+
+    def test_padded_excerpt_unpadded_inventory_ch10(self):
+        out = self.resolve("HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean")
+        self.assertEqual(out["chapter"], 10)
+        self.assertEqual(out["excerpt_path"], "textbook/ch10/ch10_excerpt.txt")
+        self.assertEqual(out["inventory_path"], "inventory/ch10-inventory.md")
+
+    def test_single_digit_chapter_padding_split(self):
+        out = self.resolve("HansenEconometrics/Chapter7Asymptotics.lean")
+        self.assertEqual(out["chapter"], 7)
+        self.assertEqual(out["excerpt_path"], "textbook/ch07/ch07_excerpt.txt")  # padded
+        self.assertEqual(out["inventory_path"], "inventory/ch7-inventory.md")    # unpadded
+
+    def test_nested_module_file(self):
+        out = self.resolve("HansenEconometrics/Chapter7Asymptotics/Normality.lean")
+        self.assertEqual(out["chapter"], 7)
+
+    def test_non_chapter_file_has_null_chapter(self):
+        out = self.resolve("HansenEconometrics/ProbabilityUtils.lean")
+        self.assertIsNone(out["chapter"])
+        self.assertIsNone(out["excerpt_path"])
+
+
 if __name__ == "__main__":
     unittest.main()

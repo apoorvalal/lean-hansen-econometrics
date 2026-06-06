@@ -2,7 +2,7 @@
 # requires-python = ">=3.10"
 # ///
 """Worklist resolver + finding-schema validator for the Lean review harness."""
-import json, sys, argparse   # hashlib, re added in Tasks 2-3
+import json, sys, argparse, re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -56,14 +56,44 @@ def validate_schema(stream) -> int:
             return 1
     return 0
 
+def resolve_paths(files: list[str]) -> list[dict]:
+    """Resolve a list of Lean file paths to their chapter metadata."""
+    results = []
+    for path in files:
+        m = re.search(r"Chapter(\d+)", path)
+        if m:
+            n = int(m.group(1))
+            entry = {
+                "file": path,
+                "chapter": n,
+                "excerpt_path": f"textbook/ch{n:02d}/ch{n:02d}_excerpt.txt",
+                "inventory_path": f"inventory/ch{n}-inventory.md",
+                "decls": [],
+            }
+        else:
+            entry = {
+                "file": path,
+                "chapter": None,
+                "excerpt_path": None,
+                "inventory_path": None,
+                "decls": [],
+            }
+        results.append(entry)
+    return results
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--validate-schema", action="store_true")
-    # (resolve subcommand added in Task 2/3)
-    p.add_argument("files", nargs="*")
+    sub = p.add_subparsers(dest="command")
+    resolve_p = sub.add_parser("resolve", help="Resolve chapter/path metadata for Lean files")
+    resolve_p.add_argument("files", nargs="+")
     args = p.parse_args(argv)
     if args.validate_schema:
         return validate_schema(sys.stdin)
+    if args.command == "resolve":
+        print(json.dumps(resolve_paths(args.files)))
+        return 0
     p.error("no command given")
 
 if __name__ == "__main__":
