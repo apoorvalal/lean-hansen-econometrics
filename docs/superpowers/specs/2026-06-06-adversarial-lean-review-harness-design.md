@@ -154,8 +154,9 @@ must handle both.
 ## Pipeline (Layer 2)
 
 1. **Worklist** — enumerate target `.lean` files (pilot: 1–2 passed via `args`).
-   For each, attach its Hansen source excerpt located from `textbook/<chXX>/`
-   and the relevant `inventory/chXX-inventory.md` entry.
+   For each, attach its Hansen source excerpt located from `textbook/ch{NN}/`
+   (padded) and the relevant `inventory/ch{N}-inventory.md` (unpadded) rows — see
+   "Source-text lookup" for the namespace split.
 
 2. **Review** (pipeline, fan-out per file × dimension — **dimension-level, not
    per-decl**, to bound agent count to `files × 4`) — reviewer agent armed with
