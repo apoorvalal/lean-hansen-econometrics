@@ -14,7 +14,7 @@
 - Use `uv run` for all Python (never bare `python`/`pip`). Tests use stdlib `unittest` so no deps are needed.
 - Use `rg` (ripgrep), not `grep -r`/`find`, for any searching.
 - Commit after every task. Keep commits scoped to the task's files.
-- Path-namespace rule (critical, easy to get wrong): excerpt dirs are **zero-padded** (`textbook/ch07/`, `textbook/ch10/`); inventory files are **unpadded** (`inventory/ch7-inventory.md`, `inventory/ch10-inventory.md`). The excerpt filename is `ch{NN}_excerpt.txt`.
+- Path-namespace rule (critical, easy to get wrong): excerpt **dirs** are **zero-padded** (`textbook/ch07/`, `textbook/ch10/`) but the excerpt **filename inside** is **unpadded** (`textbook/ch07/ch7_excerpt.txt`, `textbook/ch10/ch10_excerpt.txt`); inventory files are also **unpadded** (`inventory/ch7-inventory.md`, `inventory/ch10-inventory.md`). So the excerpt path is `textbook/ch{NN}/ch{N}_excerpt.txt` — padded dir, unpadded file.
 - Test discovery relies on Python ≥3.3 implicit namespace packages: create `tests/review/__init__.py` but do **not** add a `tests/__init__.py` (there is no `pyproject.toml`, so `uv run` puts cwd on `sys.path` and `uv run python -m unittest tests.review.test_worklist -v` works as-is). Don't "fix" the missing parent `__init__.py`.
 
 ---
@@ -243,7 +243,7 @@ class TestResolvePaths(unittest.TestCase):
     def test_single_digit_chapter_padding_split(self):
         out = self.resolve("HansenEconometrics/Chapter7Asymptotics.lean")
         self.assertEqual(out["chapter"], 7)
-        self.assertEqual(out["excerpt_path"], "textbook/ch07/ch07_excerpt.txt")  # padded
+        self.assertEqual(out["excerpt_path"], "textbook/ch07/ch7_excerpt.txt")  # padded dir, unpadded file
         self.assertEqual(out["inventory_path"], "inventory/ch7-inventory.md")    # unpadded
 
     def test_nested_module_file(self):
@@ -265,7 +265,7 @@ Expected: FAIL (no `resolve` subcommand).
 
 Add a `resolve` subcommand that takes one or more file paths and prints a JSON
 array. For each file, extract the chapter with `re.search(r"Chapter(\d+)", path)`.
-If found: `chapter=int(n)`, `excerpt_path=f"textbook/ch{n:02d}/ch{n:02d}_excerpt.txt"`,
+If found: `chapter=int(n)`, `excerpt_path=f"textbook/ch{n:02d}/ch{n}_excerpt.txt"` (padded dir, **unpadded** file),
 `inventory_path=f"inventory/ch{n}-inventory.md"`. If not found, all three are
 `None`. (Do **not** require the files to exist on disk — keep the resolver pure so
 tests need no fixtures; existence is checked separately in the workflow.) Emit

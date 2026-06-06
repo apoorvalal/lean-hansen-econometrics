@@ -50,7 +50,8 @@ class TestResolvePaths(unittest.TestCase):
     def test_single_digit_chapter_padding_split(self):
         out = self.resolve("HansenEconometrics/Chapter7Asymptotics.lean")
         self.assertEqual(out["chapter"], 7)
-        self.assertEqual(out["excerpt_path"], "textbook/ch07/ch07_excerpt.txt")  # padded
+        # asymmetric: dir is zero-padded (ch07) but the filename is NOT (ch7_excerpt.txt)
+        self.assertEqual(out["excerpt_path"], "textbook/ch07/ch7_excerpt.txt")
         self.assertEqual(out["inventory_path"], "inventory/ch7-inventory.md")    # unpadded
 
     def test_nested_module_file(self):
@@ -61,6 +62,17 @@ class TestResolvePaths(unittest.TestCase):
         out = self.resolve("HansenEconometrics/ProbabilityUtils.lean")
         self.assertIsNone(out["chapter"])
         self.assertIsNone(out["excerpt_path"])
+        self.assertIsNone(out["inventory_path"])
+
+    def test_multiple_files_preserve_order(self):
+        r = run("resolve",
+                "HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean",
+                "HansenEconometrics/ProbabilityUtils.lean")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(len(out), 2)
+        self.assertEqual(out[0]["chapter"], 10)
+        self.assertIsNone(out[1]["chapter"])
 
 
 if __name__ == "__main__":

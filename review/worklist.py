@@ -66,7 +66,7 @@ def resolve_paths(files: list[str]) -> list[dict]:
             entry = {
                 "file": path,
                 "chapter": n,
-                "excerpt_path": f"textbook/ch{n:02d}/ch{n:02d}_excerpt.txt",
+                "excerpt_path": f"textbook/ch{n:02d}/ch{n}_excerpt.txt",
                 "inventory_path": f"inventory/ch{n}-inventory.md",
                 "decls": [],
             }
