@@ -33,6 +33,7 @@ class TestSchemaValidation(unittest.TestCase):
         bad = {**VALID_FINDING, "severity": "catastrophic"}
         r = run("--validate-schema", stdin=json.dumps([bad]))
         self.assertEqual(r.returncode, 1)
+        self.assertIn("severity", r.stderr)
 
 if __name__ == "__main__":
     unittest.main()
