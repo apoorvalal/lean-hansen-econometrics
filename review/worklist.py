@@ -8,16 +8,23 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((REPO / "review" / "finding-schema.json").read_text())
 
+# Declaration keywords we extract. Includes type-like decls (structure/class/
+# inductive) since they carry public API surface the hygiene/redundancy review
+# dimensions care about.
+_DECL_KEYWORDS = frozenset(
+    {"theorem", "lemma", "def", "abbrev", "instance", "structure", "class", "inductive"}
+)
 # Regex to detect a declaration keyword line (anchored so substrings like
-# "definition_like_word" in comments never match).
+# "definition_like_word" in comments never match). The name char class is
+# Unicode-transparent so names like `μ_eq_zero` are captured.
 KW = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?"
     r"(?:(?P<vis>private|protected)\s+)?"
     r"(?:noncomputable\s+|scoped\s+|unsafe\s+)*"
-    r"(?:theorem|lemma|def|abbrev|instance)\b"
+    r"(?:theorem|lemma|def|abbrev|instance|structure|class|inductive)\b"
     r"\s*(?P<name>[^\s:({\[]+)?"
 )
-IDENT = re.compile(r"^\s*(?P<name>[A-Za-z_][^\s:({\[]*)")
+IDENT = re.compile(r"^\s*(?P<name>[^\s:({\[]+)")
 
 
 def _extract_decls(path: str) -> list[dict]:
@@ -41,12 +48,14 @@ def _extract_decls(path: str) -> list[dict]:
                     j += 1
                 if j < len(lines):
                     nm = IDENT.match(lines[j])
-                    if nm:
+                    # Guard against a following bare keyword line being read as a name.
+                    if nm and nm.group("name") not in _DECL_KEYWORDS:
                         name = nm.group("name")
             if name:
                 decls.append({"name": name, "line": kw_line, "private": is_private})
         i += 1
     return decls
+
 
 def _check(obj, schema, path=""):
     """Tiny validator for the subset of JSON Schema we use. Returns error str or None."""

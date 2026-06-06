@@ -17,3 +17,8 @@ theorem
 lemma qux_lemma : True := trivial
 
 -- definition_like_word should not be parsed as a decl
+
+structure MyStruct where
+  field : Nat
+
+theorem μ_same_line : True := trivial

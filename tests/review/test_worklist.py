@@ -91,6 +91,8 @@ class TestDeclExtraction(unittest.TestCase):
         self.assertFalse(names["combo_name"]["private"])
         # negative: a comment mentioning "definition_like_word" is not a decl
         self.assertNotIn("definition_like_word", names)
+        self.assertIn("MyStruct", names)               # structure decls are extracted
+        self.assertIn("μ_same_line", names)            # Unicode-initial name (same line)
         # line numbers are 1-based and point at the decl KEYWORD line (not the name line)
         self.assertEqual(names["foo_same_line"]["line"], 1)
         self.assertEqual(names["name_on_next_line"]["line"], 10)  # `theorem` keyword line
