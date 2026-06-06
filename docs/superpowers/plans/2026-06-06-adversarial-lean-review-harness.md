@@ -15,6 +15,7 @@
 - Use `rg` (ripgrep), not `grep -r`/`find`, for any searching.
 - Commit after every task. Keep commits scoped to the task's files.
 - Path-namespace rule (critical, easy to get wrong): excerpt dirs are **zero-padded** (`textbook/ch07/`, `textbook/ch10/`); inventory files are **unpadded** (`inventory/ch7-inventory.md`, `inventory/ch10-inventory.md`). The excerpt filename is `ch{NN}_excerpt.txt`.
+- Test discovery relies on Python ≥3.3 implicit namespace packages: create `tests/review/__init__.py` but do **not** add a `tests/__init__.py` (there is no `pyproject.toml`, so `uv run` puts cwd on `sys.path` and `uv run python -m unittest tests.review.test_worklist -v` works as-is). Don't "fix" the missing parent `__init__.py`.
 
 ---
 
@@ -136,7 +137,7 @@ field name to stderr and exits 1 on any violation, else exits 0.
 # requires-python = ">=3.10"
 # ///
 """Worklist resolver + finding-schema validator for the Lean review harness."""
-import json, sys, argparse, hashlib, re
+import json, sys, argparse   # hashlib, re added in Tasks 2-3
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -176,7 +177,11 @@ def _check(obj, schema, path=""):
     return None
 
 def validate_schema(stream) -> int:
-    findings = json.load(stream)
+    try:
+        findings = json.load(stream)
+    except json.JSONDecodeError as e:
+        print(f"invalid JSON on stdin: {e}", file=sys.stderr)
+        return 2
     if not isinstance(findings, list):
         findings = [findings]
     for i, f in enumerate(findings):
@@ -309,7 +314,13 @@ noncomputable def myDef : Nat := 0
 theorem
     name_on_next_line : True := trivial
 
+@[simp]
+theorem
+    combo_name : True := trivial
+
 lemma qux_lemma : True := trivial
+
+-- definition_like_word should not be parsed as a decl
 ```
 
 - [ ] **Step 2: Write the failing test** (append a class)
@@ -323,12 +334,17 @@ class TestDeclExtraction(unittest.TestCase):
         self.assertIn("foo_same_line", names)
         self.assertIn("bar_after_attr", names)
         self.assertIn("name_on_next_line", names)      # name on the next line
-        self.assertIn("myDef", names)
+        self.assertIn("combo_name", names)             # attr + bare kw + next-line name
+        self.assertIn("myDef", names)                  # name follows `noncomputable def`
         self.assertIn("qux_lemma", names)
         self.assertTrue(names["baz_private"]["private"])
         self.assertFalse(names["foo_same_line"]["private"])
-        # line numbers are 1-based and point at the decl keyword/name
+        self.assertFalse(names["combo_name"]["private"])
+        # negative: a comment mentioning "definition_like_word" is not a decl
+        self.assertNotIn("definition_like_word", names)
+        # line numbers are 1-based and point at the decl KEYWORD line (not the name line)
         self.assertEqual(names["foo_same_line"]["line"], 1)
+        self.assertEqual(names["name_on_next_line"]["line"], 10)  # `theorem` keyword line
 ```
 
 - [ ] **Step 3: Run the test to verify it fails**
@@ -338,14 +354,25 @@ Expected: FAIL (`decls` is empty).
 
 - [ ] **Step 4: Implement decl extraction**
 
-In `resolve`, when the file exists on disk, scan lines for declarations.
-Recognize keywords `theorem|lemma|def|abbrev|instance` optionally preceded by
-`private`/`protected`/`noncomputable`/`scoped`/`@[...]` on the same line. The name
-is the next identifier token; if the keyword line has no following token (name is
-on the next non-blank line), read forward to find it. Skip attribute-only lines
-(`@[...]` with nothing after). Record `{"name", "line", "private": bool}` with
-1-based `line` at the keyword. If the file does not exist, leave `decls` empty
-(keeps Task 2's pure-path tests valid).
+In `resolve`, when the file exists on disk, scan lines for declarations using an
+**anchored** keyword regex so substrings like `definition_like_word` never match:
+
+```python
+KW = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)?"
+                r"(?:(?P<vis>private|protected)\s+)?"
+                r"(?:noncomputable\s+|scoped\s+|unsafe\s+)*"
+                r"(?:theorem|lemma|def|abbrev|instance)\b"
+                r"\s*(?P<name>[^\s:({\[]+)?")
+IDENT = re.compile(r"^\s*(?P<name>[A-Za-z_][^\s:({\[]*)")
+```
+
+For each line, if `KW` matches: the name is the `name` group if present; otherwise
+the keyword is alone on its line, so read forward to the next non-blank line and
+take its leading identifier via `IDENT`. Record `{"name", "line", "private":
+bool}` where `line` is the 1-based line of the **keyword** (not the name line) and
+`private` is true iff the `vis` group is `private`. Skip pure attribute lines
+(`@[...]` with no keyword) — they won't match `KW`. If the file does not exist,
+leave `decls` empty (keeps Task 2's pure-path tests valid).
 
 - [ ] **Step 5: Run the test to verify it passes**
 
@@ -621,11 +648,16 @@ git commit -m "Add Claude Code Workflow orchestrator for review harness"
 > headless TDD subagent — it requires judgment about finding quality and uses the
 > Workflow tool interactively.
 
-- [ ] **Step 1: Dry-resolve the pilot files**
+- [ ] **Step 1: Dry-resolve the pilot files, then smoke-test the validator separately**
 
-Run: `uv run review/worklist.py resolve HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean HansenEconometrics/Chapter10Bootstrap/Quantiles.lean | uv run review/worklist.py --validate-schema || true`
-Expected: two worklist entries with correct ch10 paths and non-empty `decls`.
-(The `--validate-schema` here just confirms the validator runs; worklist output is not a finding array, so ignore its schema verdict — this step only checks resolution.)
+Resolve (inspect the output visually):
+`uv run review/worklist.py resolve HansenEconometrics/Chapter10Bootstrap/HigherOrder.lean HansenEconometrics/Chapter10Bootstrap/Quantiles.lean`
+Expected: two worklist entries with `chapter: 10`, `excerpt_path: textbook/ch10/ch10_excerpt.txt`, `inventory_path: inventory/ch10-inventory.md`, and non-empty `decls`.
+
+Then a separate validator smoke test on a known-good finding (do NOT pipe the
+worklist into it — worklist entries are not findings):
+`echo '[]' | uv run review/worklist.py --validate-schema && echo "validator OK"`
+Expected: prints `validator OK` (empty finding list is trivially valid).
 
 - [ ] **Step 2: Run the workflow on the two pilot files**
 
@@ -652,9 +684,19 @@ spot-check is clean (max ~3 iterations, then surface to human).
 
 Confirm at least one `mechanical` confirmed finding produced a green draft commit
 in a worktree (or, if none were mechanical in the pilot, document that and
-manually apply one to confirm the fixer path builds green).
+manually apply one to confirm the fixer path builds green). Note: `lake build` on
+this repo is slow — budget several minutes for the green check and don't treat a
+long build as a failure.
 
-- [ ] **Step 7: Commit the pilot report and any tuning**
+- [ ] **Step 7: Stability check (spec success gate)**
+
+Run the workflow a second time on the same two files with no code changes. Compare
+the confirmed `blocker`/`major` finding `id`s across the two runs and record the
+overlap in the report (e.g. "run-to-run blocker/major overlap: 9/10"). A large
+swing signals an under-specified rubric — tighten and note it. (LLM agents are
+nondeterministic, so exact equality is not expected; high overlap is the bar.)
+
+- [ ] **Step 8: Commit the pilot report and any tuning**
 
 ```bash
 git add review/reports/2026-06-06-pilot-ch10.md review/rubric.md review/prompts/
