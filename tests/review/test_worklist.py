@@ -124,5 +124,15 @@ class TestPromptAssets(unittest.TestCase):
         self.assertIn("lake build", t)             # must rebuild green
 
 
+class TestDocsAssets(unittest.TestCase):
+    def test_readme_self_containment_checklist(self):
+        t = (REPO / "review" / "README.md").read_text()
+        for token in ["rubric.md", "finding-schema.json", "worklist.py",
+                      "prompts/reviewer.md", "review/reports", "Codex"]:
+            self.assertIn(token, t)
+    def test_reports_dir_exists(self):
+        self.assertTrue((REPO / "review" / "reports").is_dir())
+
+
 if __name__ == "__main__":
     unittest.main()
