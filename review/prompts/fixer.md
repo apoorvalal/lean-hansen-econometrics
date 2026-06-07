@@ -12,7 +12,11 @@ content. When in doubt, do nothing and downgrade the finding to report-only.
 
 | Placeholder | Description |
 |---|---|
-| `{{finding_json}}` | A single confirmed-finding JSON object (from the verifier, `verdict: "confirmed"`) conforming to `review/finding-schema.json` |
+| `{{finding_json}}` | Confirmed mechanical findings for **one file** — a JSON array of finding objects (each `verdict: "confirmed"`, `mechanical: true`) conforming to `review/finding-schema.json`. Often a single-element array, but may contain several findings for the same file. |
+
+Process the findings **one at a time** in the steps below, applying each edit and rebuilding before
+moving to the next. All findings in the array share the same target file (the orchestrator groups by
+file so one worktree handles one file).
 
 ---
 
@@ -42,15 +46,15 @@ You may apply **only** the following edits. Any edit not in this list is forbidd
 
 Work through these steps in order. Do not skip steps.
 
-### Step 1 — Confirm the finding is mechanical
+### Step 1 — Confirm each finding is mechanical
 
-Read `{{finding_json}}`. Check the `mechanical` field. In the steps below, `<file>`, `<line>`, and
-`<decl>` refer to the corresponding fields of the parsed finding (the orchestrator injects only
-`{{finding_json}}` — these are not separate placeholders).
+Parse `{{finding_json}}` (a JSON array). For the finding you are currently processing, check its
+`mechanical` field. In the steps below, `<file>`, `<line>`, and `<decl>` refer to the corresponding
+fields of that finding (the orchestrator injects only `{{finding_json}}` — these are not separate
+placeholders).
 
-- If `mechanical` is `false`, **stop immediately**. Output a downgrade report (see below). Do not
-  touch the file.
-- If `mechanical` is `true`, continue to Step 2.
+- If `mechanical` is `false`, skip that finding and record it as `report_only`. Do not touch the file.
+- If `mechanical` is `true`, continue to Step 2 for that finding.
 
 ### Step 2 — Confirm you are in a git worktree
 
@@ -101,28 +105,30 @@ Do not include anything beyond the mechanical edit in the commit.
 
 ## Output Format
 
-### On success (edit applied and lake build green)
+Return a JSON array with one outcome object per input finding (same order as the input array).
 
 ```json
-{
-  "status": "applied",
-  "edit_type": "<one of: make_private|add_docstring|add_simp|in_file_rename|remove_duplicate>",
-  "file": "<file path>",
-  "decl": "<declaration name>",
-  "diff_summary": "<brief description of exactly what was changed>",
-  "build": "green"
-}
+[
+  {
+    "status": "applied",
+    "edit_type": "<one of: make_private|add_docstring|add_simp|in_file_rename|remove_duplicate>",
+    "file": "<file path>",
+    "decl": "<declaration name>",
+    "diff_summary": "<brief description of exactly what was changed>",
+    "build": "green"
+  },
+  {
+    "status": "report_only",
+    "decl": "<declaration name>",
+    "reason": "<why the fix was not applied: not mechanical | forbidden edit type | lake build failed>",
+    "build_error": "<captured stderr from lake build, or null if build was not attempted>"
+  }
+]
 ```
 
-### On downgrade (not mechanical, or forbidden edit, or lake build failed)
-
-```json
-{
-  "status": "report_only",
-  "reason": "<why the fix was not applied: not mechanical | forbidden edit type | lake build failed>",
-  "build_error": "<captured stderr from lake build, or null if build was not attempted>"
-}
-```
+- Use `"status": "applied"` for each finding whose edit was applied and left the build green.
+- Use `"status": "report_only"` for each finding that was skipped, forbidden, or whose edit broke
+  the build (after reverting it).
 
 ---
 

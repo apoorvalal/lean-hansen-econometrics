@@ -19,10 +19,6 @@ reports to `review/reports/`.
 
 ## (a) Running with Claude Code
 
-> **Note:** `scripts/review.workflow.js` is the planned Claude Code entry point and is created in
-> Task 7 of the implementation plan. Until that lands, use the Codex/manual procedure in section (b)
-> below (the portable Layer-1 assets are fully usable without the workflow script).
-
 The Claude Code orchestrator is `scripts/review.workflow.js`. Invoke it via the Workflow
 tool, passing the list of Lean files to review as `args`:
 
@@ -65,7 +61,9 @@ For each `(file, dimension)` pair, fill in the placeholders in
 - `{{excerpt_path}}` / `{{inventory_path}}` — from Step 1 output (empty string if null)
 - `{{decls_json}}` — the `decls` array from Step 1 output as a JSON string
 
-The reviewer outputs a JSON array of findings conforming to `review/finding-schema.json`.
+The reviewer outputs a JSON object `{"findings": [...]}` whose array elements each conform to
+`review/finding-schema.json`. Validate the array with
+`echo '<findings-array>' | uv run review/worklist.py --validate-schema`.
 
 ### Step 3 — Run verifier pass
 

@@ -94,29 +94,34 @@ finding. Use Python's `hashlib.sha1` semantics: encode as UTF-8, take the hex di
 
 ## Output Format
 
-Output a **JSON array** of finding objects. Each object must conform to `review/finding-schema.json`
-and include all required fields:
+Output a single **JSON object** with one key, `findings`, whose value is an array of finding objects.
+Each finding must conform to `review/finding-schema.json` and include all required fields:
 
 ```json
-[
-  {
-    "id": "<sha1(file:line:decl:dimension)>",
-    "file": "{{file}}",
-    "line": <1-based line number of the declaration keyword>,
-    "decl": "<declaration name>",
-    "dimension": "{{dimension}}",
-    "severity": "<blocker|major|minor|nit>",
-    "rule": "<short AGENTS.md citation, e.g. 'AGENTS.md §1 reuse-Mathlib-first'>",
-    "claim": "<one-sentence description of what is wrong and why>",
-    "evidence": "<quoted lines, declaration names, or rg output that proves the claim>",
-    "suggested_fix": "<concrete, actionable fix — name the exact lemma, keyword, or edit>",
-    "mechanical": <true if a script can apply the fix without human judgment, else false>,
-    "confidence": "<high|medium|low>"
-  }
-]
+{
+  "findings": [
+    {
+      "id": "<sha1(file:line:decl:dimension)>",
+      "file": "{{file}}",
+      "line": <1-based line number of the declaration keyword>,
+      "decl": "<declaration name>",
+      "dimension": "{{dimension}}",
+      "severity": "<blocker|major|minor|nit>",
+      "rule": "<short AGENTS.md citation, e.g. 'AGENTS.md §1 reuse-Mathlib-first'>",
+      "claim": "<one-sentence description of what is wrong and why>",
+      "evidence": "<quoted lines, declaration names, or rg output that proves the claim>",
+      "suggested_fix": "<concrete, actionable fix — name the exact lemma, keyword, or edit>",
+      "mechanical": <true if a script can apply the fix without human judgment, else false>,
+      "confidence": "<high|medium|low>"
+    }
+  ]
+}
 ```
 
-If there are no findings for this dimension, output an empty array: `[]`
+If there are no findings for this dimension, output `{"findings": []}`.
+
+(Note: the individual objects inside `findings` are what `worklist.py --validate-schema` checks — pipe
+just the array to it: `... | uv run review/worklist.py --validate-schema`.)
 
 **Do not include speculative findings.** A finding with `confidence: "low"` is allowed only when
 you have real (not inferred) evidence but genuine uncertainty about rule applicability; explain
