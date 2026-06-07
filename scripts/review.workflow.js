@@ -69,18 +69,26 @@ const REVIEW_SCHEMA = {
   },
 };
 
-// One worklist entry per resolved file.
+// The worklist agent returns {worklist: [<entry>, ...]}. The root MUST be an
+// object (StructuredOutput rejects a root-level array schema).
 const WORKLIST_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["file", "chapter", "excerpt_path", "inventory_path", "decls"],
-    properties: {
-      file: { type: "string" },
-      chapter: {}, // integer or null
-      excerpt_path: {}, // string or null
-      inventory_path: {}, // string or null
-      decls: { type: "array" },
+  type: "object",
+  additionalProperties: false,
+  required: ["worklist"],
+  properties: {
+    worklist: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["file", "chapter", "excerpt_path", "inventory_path", "decls"],
+        properties: {
+          file: { type: "string" },
+          chapter: { type: ["integer", "null"] },
+          excerpt_path: { type: ["string", "null"] },
+          inventory_path: { type: ["string", "null"] },
+          decls: { type: "array" },
+        },
+      },
     },
   },
 };
@@ -130,7 +138,7 @@ function normalizeArgs(a) {
 const targets = normalizeArgs(args).filter(Boolean);
 log(`Resolving worklist for ${targets.length} file(s).`);
 
-const worklist = await agent(
+const worklistResult = await agent(
   [
     "You resolve a review worklist. Using your Bash tool, run exactly:",
     "",
@@ -138,11 +146,13 @@ const worklist = await agent(
     "",
     "from the repository root. The command prints a JSON array to stdout, one",
     "entry per file with fields {file, chapter, excerpt_path, inventory_path,",
-    "decls}. Parse that stdout and return it verbatim as the structured result.",
+    "decls}. Parse that stdout and return it as the structured result under the",
+    'key "worklist" (i.e. {"worklist": [ ...the array verbatim... ]}).',
     "Do not invent entries; return exactly what review/worklist.py emits.",
   ].join("\n"),
   { label: "worklist", phase: "Worklist", schema: WORKLIST_SCHEMA },
 );
+const worklist = (worklistResult && worklistResult.worklist) || [];
 
 if (!worklist || worklist.length === 0) {
   log("Worklist is empty; nothing to review.");
