@@ -328,8 +328,6 @@ if (findings.length === 0) {
   lines.push("");
 }
 
-const report = lines.join("\n");
-
 // ---------------------------------------------------------------------------
 // Phase 6 — Draft fixes
 //
@@ -366,7 +364,7 @@ if (mechanical.length > 0 && budget.remaining() > 0) {
         label: `fix:${file}`,
         phase: "Draft fixes",
         isolation: "worktree", // draft-PR fixers run isolated
-        agentType: "fixer",
+        // No agentType: the default workflow agent + fixer.md prompt define the role.
       },
     );
   });
@@ -376,6 +374,23 @@ if (mechanical.length > 0 && budget.remaining() > 0) {
   log("No mechanical fixes to draft (or budget exhausted).");
 }
 
+// Append a draft-fixes summary so the returned report reflects fixer outcomes.
+lines.push("## Draft fixes");
+lines.push("");
+if (mechanical.length === 0) {
+  lines.push("No mechanical findings were eligible for draft fixes.");
+} else {
+  lines.push(`${mechanical.length} mechanical finding(s) sent to ${fixResults.length} fixer worktree(s). Per-file outcomes:`);
+  lines.push("");
+  for (const r of fixResults) {
+    // Each fixer returns free-form text (no schema); record it verbatim.
+    lines.push("```");
+    lines.push(typeof r === "string" ? r : JSON.stringify(r, null, 2));
+    lines.push("```");
+  }
+}
+lines.push("");
+
 // The workflow returns the markdown report; the caller persists it under
 // review/reports/<date>-<scope>.md (the script cannot read the clock).
-return report;
+return lines.join("\n");
