@@ -279,6 +279,39 @@ Good pattern:
 - Prefer stable simplifier support for canonical identities. If several proofs manually rewrite the
   same identity, consider whether the identity should be tagged `@[simp]`.
 
+## Reviewing code with the review harness
+
+This repo ships an adversarial review harness that checks Lean files against the rules in *this*
+file across four dimensions (`redundancy`, `hygiene`, `faithfulness`, `proof-quality`), verifies
+each finding with a refute-biased second pass, and writes schema-validated reports to
+`review/reports/`. Full instructions: [review/README.md](./review/README.md).
+
+**Two layers.** Layer 1 (`review/`) is harness-agnostic — rubric, prompt templates, finding schema,
+the `worklist.py` resolver. Layer 2 is the orchestrator. Claude Code uses
+[scripts/review.workflow.js](./scripts/review.workflow.js); **any other agent (Codex, etc.) reuses
+all of Layer 1 and writes its own small orchestrator** over the same assets — see section (b) of
+[review/README.md](./review/README.md). Do not hard-code review logic into the orchestrator; keep it
+in the Layer-1 assets so every runner stays consistent.
+
+**Codex recipe (no Workflow tool needed):**
+
+1. `uv run review/worklist.py resolve <files...>` → per-file `{file, chapter, excerpt_path,
+   inventory_path, decls}` (padded excerpt *dir*, unpadded excerpt *file* — `worklist.py` handles it).
+2. For each `(file, dimension)` of the 4 dimensions: fill the placeholders in
+   `review/prompts/reviewer.md` (including the matching `review/rubric.md` section) and run a reviewer
+   agent → `{"findings": [...]}`.
+3. For each finding: run a verifier agent with `review/prompts/verifier.md` (defaults to *refuted*
+   when uncertain); keep only `verdict: "confirmed"`.
+4. Validate: `echo '<findings-array>' | uv run review/worklist.py --validate-schema` (exit 0 = valid;
+   no `jq` needed). Then write to `review/reports/`.
+5. Optional: for `mechanical: true` findings, run `review/prompts/fixer.md` in an isolated checkout,
+   apply the edit, and keep it only if `lake build` is green.
+
+Findings must cite a rule from this file; the rubric's "Does NOT count" lists exist to suppress
+false positives. Keep the reviewer's `mechanical` flag aligned with the fixer whitelist (make
+`private`, add docstring, add `@[simp]`, in-file rename, remove a zero-usage duplicate) — proof-body
+or cross-file edits are never `mechanical`.
+
 ## Current examples
 
 - [HansenEconometrics/ProbabilityUtils.lean](./HansenEconometrics/ProbabilityUtils.lean)

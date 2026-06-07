@@ -18,3 +18,7 @@ site/_generated/
 .plans/
 .claude/
 .workflow/
+
+# Python
+__pycache__/
+*.pyc

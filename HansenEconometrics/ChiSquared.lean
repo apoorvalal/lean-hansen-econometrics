@@ -747,7 +747,7 @@ theorem hasLaw_sum_sq_chiSquared
 `Fin (card ι)`. This is convenient when the standard-normal coordinates are naturally indexed by a
 finite subtype rather than by `Fin k`. -/
 theorem hasLaw_sum_sq_chiSquared_fintype
-    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {ι : Type*} [Fintype ι]
     (hk : 0 < Fintype.card ι)
     {Ω : Type*} [MeasureSpace Ω]
     {W : ι → Ω → ℝ}
@@ -837,6 +837,58 @@ theorem hasLaw_quadForm_symmIdem_chiSquared
   rw [hTarget]
   simpa [sumSquaresRV] using hasLaw_sumSquaresRV_chiSquared hr hLawW hIndepW
 
+/-- Finite-index version of `hasLaw_quadForm_symmIdem_chiSquared`. -/
+theorem hasLaw_quadForm_symmIdem_chiSquared_fintype
+    {ι Ω : Type*} [Fintype ι]
+    [MeasureSpace Ω] [IsProbabilityMeasure (volume : Measure Ω)]
+    {Z : Ω → EuclideanSpace ℝ ι}
+    {M : Matrix ι ι ℝ}
+    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ ι)))
+    (hH : M.IsHermitian) (hI : IsIdempotentElem M) (hr : 0 < M.rank) :
+    HasLaw (fun ω => (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ))) (chiSquared M.rank) := by
+  classical
+  obtain ⟨hLaw, hIndep⟩ := hasLaw_coords_of_stdGaussian_fintype hH.eigenvectorBasis hZ
+  set b := hH.eigenvectorBasis with hb_def
+  have hQF : ∀ ω, (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ))
+      = ∑ i, hH.eigenvalues i * (b.repr (Z ω) i) ^ 2 :=
+    fun ω => quadForm_eq_sum_eigenvalues_fintype hH (Z ω)
+  have heig : ∀ i : ι, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
+    simpa using hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
+  set S : Finset ι := Finset.univ.filter (fun i => hH.eigenvalues i = 1) with hS_def
+  have hS_card : S.card = M.rank :=
+    card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype hH hI
+  have hQF' : ∀ ω, (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ))
+      = ∑ i ∈ S, (b.repr (Z ω) i) ^ 2 := by
+    intro ω
+    rw [hQF ω]
+    have htransform : (∑ i, hH.eigenvalues i * (b.repr (Z ω) i) ^ 2)
+        = ∑ i, if hH.eigenvalues i = 1 then (b.repr (Z ω) i) ^ 2 else 0 := by
+      refine Finset.sum_congr rfl (fun i _ => ?_)
+      rcases heig i with h0 | h1
+      · rw [h0, if_neg (by norm_num : (0 : ℝ) ≠ 1)]; ring
+      · rw [h1, if_pos rfl]; ring
+    rw [htransform, ← Finset.sum_filter]
+  let eqn : Fin M.rank ≃ { x // x ∈ S } :=
+    (finCongr hS_card.symm).trans S.equivFin.symm
+  let σ : Fin M.rank → ι := fun i => (eqn i).val
+  have hσ_inj : Function.Injective σ := fun i j h =>
+    eqn.injective (Subtype.ext h)
+  let W : Fin M.rank → Ω → ℝ := fun i ω => b.repr (Z ω) (σ i)
+  have hLawW : ∀ i, HasLaw (W i) (gaussianReal 0 1) := fun i => hLaw (σ i)
+  have hIndepW : iIndepFun W := hIndep.precomp hσ_inj
+  have hSumReindex : ∀ ω, ∑ i ∈ S, (b.repr (Z ω) i) ^ 2
+      = ∑ i : Fin M.rank, (W i ω) ^ 2 := by
+    intro ω
+    rw [← Finset.sum_attach S (fun j => (b.repr (Z ω) j) ^ 2)]
+    symm
+    exact Fintype.sum_equiv eqn (fun i => (W i ω) ^ 2)
+      (fun j => (b.repr (Z ω) j.val) ^ 2) (fun _ => rfl)
+  have hTarget : (fun ω => (Z ω : ι → ℝ) ⬝ᵥ (M *ᵥ (Z ω : ι → ℝ)))
+      = (fun ω => ∑ i : Fin M.rank, (W i ω) ^ 2) := by
+    funext ω; rw [hQF' ω, hSumReindex ω]
+  rw [hTarget]
+  simpa [sumSquaresRV] using hasLaw_sumSquaresRV_chiSquared hr hLawW hIndepW
+
 /-- The squared Euclidean norm of a `Fin n`-dimensional standard Gaussian vector has a
 `χ²(n)` law. This is the full-rank special case of
 `hasLaw_quadForm_symmIdem_chiSquared` with the identity quadratic form. -/
@@ -849,6 +901,22 @@ theorem hasLaw_stdGaussian_normSq_chiSquared
   have h := hasLaw_quadForm_symmIdem_chiSquared
     (Z := Z) (M := (1 : Matrix (Fin n) (Fin n) ℝ)) hZ
     Matrix.isHermitian_one IsIdempotentElem.one (by simpa [Matrix.rank_one] using hn)
+  simpa [Matrix.one_mulVec, Matrix.rank_one] using h
+
+/-- Finite-index version of `hasLaw_stdGaussian_normSq_chiSquared`. -/
+theorem hasLaw_stdGaussian_normSq_chiSquared_fintype
+    {ι Ω : Type*} [Fintype ι]
+    (hn : 0 < Fintype.card ι) [MeasureSpace Ω]
+    [IsProbabilityMeasure (volume : Measure Ω)]
+    {Z : Ω → EuclideanSpace ℝ ι}
+    (hZ : HasLaw Z (stdGaussian (EuclideanSpace ℝ ι))) :
+    HasLaw (fun ω => (Z ω : ι → ℝ) ⬝ᵥ (Z ω : ι → ℝ))
+      (chiSquared (Fintype.card ι)) := by
+  classical
+  have h := hasLaw_quadForm_symmIdem_chiSquared_fintype
+    (Z := Z) (M := (1 : Matrix ι ι ℝ)) hZ
+    Matrix.isHermitian_one IsIdempotentElem.one
+    (by simpa [Matrix.rank_one] using hn)
   simpa [Matrix.one_mulVec, Matrix.rank_one] using h
 
 /-- Whitening identity for a positive-definite covariance matrix. If `S = sqrt V`, then the
@@ -886,6 +954,43 @@ lemma cfcSqrt_mahalanobis_mulVec_eq_normSq
     _ = ((x ᵥ* ((S * V⁻¹) * S)) ⬝ᵥ x) := by rw [Matrix.vecMul_vecMul]
     _ = ((x ᵥ* (S * (V⁻¹ * S))) ⬝ᵥ x) := by rw [Matrix.mul_assoc]
     _ = ((x ᵥ* (1 : Matrix (Fin n) (Fin n) ℝ)) ⬝ᵥ x) := by rw [hMid]
+    _ = x ⬝ᵥ x := by simp
+
+/-- Finite-index version of `cfcSqrt_mahalanobis_mulVec_eq_normSq`. -/
+lemma cfcSqrt_mahalanobis_mulVec_eq_normSq_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {V : Matrix ι ι ℝ} (hV : V.PosDef)
+    (x : ι → ℝ) :
+    let S : Matrix ι ι ℝ := CFC.sqrt V
+    (S *ᵥ x) ⬝ᵥ (V⁻¹ *ᵥ (S *ᵥ x)) = x ⬝ᵥ x := by
+  intro S
+  have hSdet : IsUnit S.det := by
+    have hS : S.PosDef := by simpa [S] using hV.isStrictlyPositive.sqrt.posDef
+    exact S.isUnit_iff_isUnit_det.mp hS.isUnit
+  have hSS : S * S = V := by
+    simpa [S] using CFC.sqrt_mul_sqrt_self V hV.posSemidef.nonneg
+  have hS_trans : Sᵀ = S := by
+    have hS : S.PosDef := by simpa [S] using hV.isStrictlyPositive.sqrt.posDef
+    have hHerm : S.IsHermitian := hS.1
+    simpa [Matrix.conjTranspose] using hHerm.eq
+  have hMid : S * (V⁻¹ * S) = (1 : Matrix ι ι ℝ) := by
+    calc
+      S * (V⁻¹ * S) = S * (((S * S)⁻¹) * S) := by rw [hSS]
+      _ = S * ((S⁻¹ * S⁻¹) * S) := by rw [Matrix.mul_inv_rev]
+      _ = S * (S⁻¹ * (S⁻¹ * S)) := by rw [Matrix.mul_assoc]
+      _ = S * (S⁻¹ * 1) := by rw [Matrix.nonsing_inv_mul S hSdet]
+      _ = S * S⁻¹ := by rw [Matrix.mul_one]
+      _ = 1 := by rw [Matrix.mul_nonsing_inv S hSdet]
+  calc
+    (S *ᵥ x) ⬝ᵥ (V⁻¹ *ᵥ (S *ᵥ x))
+        = ((S *ᵥ x) ᵥ* V⁻¹) ⬝ᵥ (S *ᵥ x) := by rw [Matrix.dotProduct_mulVec]
+    _ = (((x ᵥ* Sᵀ) ᵥ* V⁻¹) ⬝ᵥ (S *ᵥ x)) := by rw [Matrix.vecMul_transpose]
+    _ = ((x ᵥ* (Sᵀ * V⁻¹)) ⬝ᵥ (S *ᵥ x)) := by rw [Matrix.vecMul_vecMul]
+    _ = ((x ᵥ* (S * V⁻¹)) ⬝ᵥ (S *ᵥ x)) := by rw [hS_trans]
+    _ = (((x ᵥ* (S * V⁻¹)) ᵥ* S) ⬝ᵥ x) := by rw [Matrix.dotProduct_mulVec]
+    _ = ((x ᵥ* ((S * V⁻¹) * S)) ⬝ᵥ x) := by rw [Matrix.vecMul_vecMul]
+    _ = ((x ᵥ* (S * (V⁻¹ * S))) ⬝ᵥ x) := by rw [Matrix.mul_assoc]
+    _ = ((x ᵥ* (1 : Matrix ι ι ℝ)) ⬝ᵥ x) := by rw [hMid]
     _ = x ⬝ᵥ x := by simp
 
 /-- The Mahalanobis quadratic form of a centered positive-definite multivariate Gaussian has a
@@ -944,6 +1049,146 @@ theorem hasLaw_gaussian_mahalanobis_chiSquared
   simpa [Function.comp_def] using
     (hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared
       (n := n) hn hV).comp hZ
+
+/-- Finite-index version of `hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared`. -/
+theorem hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (hn : 0 < Fintype.card ι) {V : Matrix ι ι ℝ} (hV : V.PosDef) :
+    HasLaw (fun z : EuclideanSpace ℝ ι =>
+        (z : ι → ℝ) ⬝ᵥ (V⁻¹ *ᵥ (z : ι → ℝ)))
+      (chiSquared (Fintype.card ι)) (multivariateGaussian 0 V) := by
+  let q : EuclideanSpace ℝ ι → ℝ := fun z =>
+    (z : ι → ℝ) ⬝ᵥ (V⁻¹ *ᵥ (z : ι → ℝ))
+  let normSq : EuclideanSpace ℝ ι → ℝ := fun z =>
+    (z : ι → ℝ) ⬝ᵥ (z : ι → ℝ)
+  have hNormMap : HasLaw normSq (chiSquared (Fintype.card ι))
+      (stdGaussian (EuclideanSpace ℝ ι)) := by
+    letI : MeasureSpace (EuclideanSpace ℝ ι) :=
+      ⟨stdGaussian (EuclideanSpace ℝ ι)⟩
+    haveI : IsProbabilityMeasure (volume : Measure (EuclideanSpace ℝ ι)) := by
+      change IsProbabilityMeasure (stdGaussian (EuclideanSpace ℝ ι))
+      infer_instance
+    have hId : HasLaw (fun z : EuclideanSpace ℝ ι => z)
+        (stdGaussian (EuclideanSpace ℝ ι)) := by
+      simpa [id] using (HasLaw.id (μ := stdGaussian (EuclideanSpace ℝ ι)))
+    simpa [normSq] using
+      hasLaw_stdGaussian_normSq_chiSquared_fintype (ι := ι) hn hId
+  have hWhitened : HasLaw
+      (fun x : EuclideanSpace ℝ ι => q ((toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt V)) x))
+      (chiSquared (Fintype.card ι)) (stdGaussian (EuclideanSpace ℝ ι)) := by
+    refine hNormMap.congr ?_
+    filter_upwards with x
+    dsimp [q, normSq]
+    have h := cfcSqrt_mahalanobis_mulVec_eq_normSq_fintype hV (x : ι → ℝ)
+    simpa [Matrix.mulVec_mulVec] using h
+  refine ⟨by fun_prop, ?_⟩
+  rw [multivariateGaussian]
+  change Measure.map q
+      (Measure.map
+        (fun x : EuclideanSpace ℝ ι =>
+          0 + toEuclideanCLM (𝕜 := ℝ) (CFC.sqrt V) x)
+        (stdGaussian (EuclideanSpace ℝ ι))) =
+    chiSquared (Fintype.card ι)
+  rw [Measure.map_map]
+  · simpa [q, Function.comp_def] using hWhitened.map_eq
+  · fun_prop
+  · fun_prop
+
+/-- Random-variable finite-index form of
+`hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared_fintype`. -/
+theorem hasLaw_gaussian_mahalanobis_chiSquared_fintype
+    {ι Ω : Type*} [Fintype ι] [DecidableEq ι]
+    (hn : 0 < Fintype.card ι) [MeasurableSpace Ω] {μ : Measure Ω}
+    {Z : Ω → EuclideanSpace ℝ ι}
+    {V : Matrix ι ι ℝ}
+    (hV : V.PosDef)
+    (hZ : HasLaw Z (multivariateGaussian 0 V) μ) :
+    HasLaw (fun ω => (Z ω : ι → ℝ) ⬝ᵥ (V⁻¹ *ᵥ (Z ω : ι → ℝ)))
+      (chiSquared (Fintype.card ι)) μ := by
+  simpa [Function.comp_def] using
+    (hasLaw_multivariateGaussian_zero_mahalanobis_chiSquared_fintype
+      (ι := ι) hn hV).comp hZ
+
+/-- If a centered Gaussian is represented as a fixed square linear image of a standard Gaussian,
+then a quadratic form whose pullback matrix is symmetric idempotent has the corresponding
+chi-square law. This is a reusable singular-covariance bridge built from
+`hasLaw_quadForm_symmIdem_chiSquared_fintype`. -/
+theorem hasLaw_multivariateGaussian_zero_quadratic_of_factor_symmIdem
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {B A : Matrix ι ι ℝ}
+    (hH : (Bᵀ * A * B).IsHermitian)
+    (hI : IsIdempotentElem (Bᵀ * A * B))
+    (hr : 0 < (Bᵀ * A * B).rank) :
+    HasLaw
+      (fun z : EuclideanSpace ℝ ι => (z : ι → ℝ) ⬝ᵥ (A *ᵥ (z : ι → ℝ)))
+      (chiSquared (Bᵀ * A * B).rank)
+      (multivariateGaussian 0 (B * Bᵀ)) := by
+  let P : Matrix ι ι ℝ := Bᵀ * A * B
+  let q : EuclideanSpace ℝ ι → ℝ := fun z =>
+    (z : ι → ℝ) ⬝ᵥ (A *ᵥ (z : ι → ℝ))
+  let Bmap : EuclideanSpace ℝ ι → EuclideanSpace ℝ ι := fun x =>
+    WithLp.toLp 2 (B *ᵥ (x : ι → ℝ))
+  have hProj : HasLaw
+      (fun x : EuclideanSpace ℝ ι => (x : ι → ℝ) ⬝ᵥ (P *ᵥ (x : ι → ℝ)))
+      (chiSquared P.rank) (stdGaussian (EuclideanSpace ℝ ι)) := by
+    letI : MeasureSpace (EuclideanSpace ℝ ι) :=
+      ⟨stdGaussian (EuclideanSpace ℝ ι)⟩
+    haveI : IsProbabilityMeasure (volume : Measure (EuclideanSpace ℝ ι)) := by
+      change IsProbabilityMeasure (stdGaussian (EuclideanSpace ℝ ι))
+      infer_instance
+    have hStdId : HasLaw (fun x : EuclideanSpace ℝ ι => x)
+        (stdGaussian (EuclideanSpace ℝ ι)) := by
+      simpa [id] using (HasLaw.id (μ := stdGaussian (EuclideanSpace ℝ ι)))
+    simpa [P] using
+      hasLaw_quadForm_symmIdem_chiSquared_fintype
+        (Z := fun x : EuclideanSpace ℝ ι => x)
+        hStdId hH hI (by simpa [P] using hr)
+  have hPullback : HasLaw (fun x : EuclideanSpace ℝ ι => q (Bmap x))
+      (chiSquared P.rank) (stdGaussian (EuclideanSpace ℝ ι)) := by
+    refine hProj.congr ?_
+    filter_upwards with x
+    dsimp [q, Bmap, P]
+    calc
+      (B *ᵥ (x : ι → ℝ)) ⬝ᵥ (A *ᵥ (B *ᵥ (x : ι → ℝ)))
+          = ((B *ᵥ (x : ι → ℝ)) ᵥ* A) ⬝ᵥ (B *ᵥ (x : ι → ℝ)) := by
+        rw [Matrix.dotProduct_mulVec]
+      _ = ((((x : ι → ℝ) ᵥ* Bᵀ) ᵥ* A) ⬝ᵥ (B *ᵥ (x : ι → ℝ))) := by
+        rw [Matrix.vecMul_transpose]
+      _ = (((x : ι → ℝ) ᵥ* (Bᵀ * A)) ⬝ᵥ (B *ᵥ (x : ι → ℝ))) := by
+        rw [Matrix.vecMul_vecMul]
+      _ = ((((x : ι → ℝ) ᵥ* (Bᵀ * A)) ᵥ* B) ⬝ᵥ (x : ι → ℝ)) := by
+        rw [Matrix.dotProduct_mulVec]
+      _ = (((x : ι → ℝ) ᵥ* ((Bᵀ * A) * B)) ⬝ᵥ (x : ι → ℝ)) := by
+        rw [Matrix.vecMul_vecMul]
+      _ = (x : ι → ℝ) ⬝ᵥ ((Bᵀ * A * B) *ᵥ (x : ι → ℝ)) := by
+        rw [← Matrix.dotProduct_mulVec]
+  have hBmap : HasLaw Bmap (multivariateGaussian 0 (B * Bᵀ))
+      (stdGaussian (EuclideanSpace ℝ ι)) := by
+    have hraw := hasLaw_multivariateGaussian_zero_linearMap
+      (n := ι) (q := ι) (S := (1 : Matrix ι ι ℝ)) Matrix.PosSemidef.one B
+    simpa [Bmap, Matrix.mul_one] using hraw
+  refine ⟨by fun_prop, ?_⟩
+  rw [← hBmap.map_eq]
+  rw [Measure.map_map]
+  · simpa [q, Bmap, Function.comp_def, P] using hPullback.map_eq
+  · fun_prop
+  · fun_prop
+
+/-- Random-variable form of `hasLaw_multivariateGaussian_zero_quadratic_of_factor_symmIdem`. -/
+theorem hasLaw_gaussian_quadratic_of_factor_symmIdem
+    {ι Ω : Type*} [Fintype ι] [DecidableEq ι] [MeasurableSpace Ω] {μ : Measure Ω}
+    {Z : Ω → EuclideanSpace ℝ ι}
+    {B A : Matrix ι ι ℝ}
+    (hH : (Bᵀ * A * B).IsHermitian)
+    (hI : IsIdempotentElem (Bᵀ * A * B))
+    (hr : 0 < (Bᵀ * A * B).rank)
+    (hZ : HasLaw Z (multivariateGaussian 0 (B * Bᵀ)) μ) :
+    HasLaw
+      (fun ω => (Z ω : ι → ℝ) ⬝ᵥ (A *ᵥ (Z ω : ι → ℝ)))
+      (chiSquared (Bᵀ * A * B).rank) μ := by
+  simpa [Function.comp_def] using
+    (hasLaw_multivariateGaussian_zero_quadratic_of_factor_symmIdem
+      (B := B) (A := A) hH hI hr).comp hZ
 
 end QuadraticFormChiSquared
 

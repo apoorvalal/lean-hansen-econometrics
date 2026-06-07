@@ -409,6 +409,72 @@ theorem olsBeta_sub_eq_sampleGram_inv_sampleCrossMoment
   rw [Matrix.smul_mulVec, Matrix.mulVec_smul,
       smul_smul, mul_inv_cancel₀ hne, one_smul]
 
+omit [DecidableEq k] in
+/-- **Linear-model decomposition of a finite sample cross moment.**
+
+For any finite design matrix, the cross moment of fitted outcomes splits as
+`ĝ(Xβ + e) = Q̂ β + ĝ(e)`. This matrix-level bridge is the reusable version of
+the stacked-process identity used in the Chapter 7 consistency proof. -/
+theorem sampleCrossMoment_linear_model
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) :
+    sampleCrossMoment X (X *ᵥ β + e) =
+      sampleGram X *ᵥ β + sampleCrossMoment X e := by
+  unfold sampleCrossMoment sampleGram
+  rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, smul_add, ← Matrix.smul_mulVec]
+
+/-- **Unconditional finite-sample form of `olsBetaStar`.**
+
+On every nonempty finite sample, the totalized estimator is the nonsingular
+inverse of the normalized Gram matrix times the normalized cross moment:
+`β̂* = Q̂⁻¹ ĝ(y)`. The statement uses `Matrix.nonsingInv`, so it remains valid on
+singular designs. -/
+theorem olsBetaStar_eq_sampleGramInv_sampleCrossMoment
+    (X : Matrix n k ℝ) (y : n → ℝ) [Nonempty n] :
+    olsBetaStar X y = (sampleGram X)⁻¹ *ᵥ sampleCrossMoment X y := by
+  have hne : (Fintype.card n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  unfold olsBetaStar sampleGram sampleCrossMoment
+  rw [nonsingInv_smul, Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul,
+      inv_inv, mul_inv_cancel₀ hne, one_smul]
+
+/-- **Finite-sample residual identity for totalized OLS.**
+
+Under `y = Xβ + e`, the difference between the totalized OLS error and the
+sample-Gram-inverse score equals the singular-design totalization remainder.
+On nonsingular normalized Gram matrices this remainder vanishes. -/
+theorem olsBetaStar_sub_identity_matrix
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Nonempty n] :
+    olsBetaStar X (X *ᵥ β + e) - β -
+        (sampleGram X)⁻¹ *ᵥ sampleCrossMoment X e =
+      ((sampleGram X)⁻¹ * sampleGram X - 1) *ᵥ β := by
+  rw [olsBetaStar_eq_sampleGramInv_sampleCrossMoment,
+      sampleCrossMoment_linear_model,
+      Matrix.mulVec_add, Matrix.mulVec_mulVec,
+      Matrix.sub_mulVec, Matrix.one_mulVec]
+  abel
+
+/-- Ordinary-wrapper version of `olsBetaStar_sub_identity_matrix`. -/
+theorem olsBetaOrZero_sub_identity_matrix
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Nonempty n] :
+    olsBetaOrZero X (X *ᵥ β + e) - β -
+        (sampleGram X)⁻¹ *ᵥ sampleCrossMoment X e =
+      ((sampleGram X)⁻¹ * sampleGram X - 1) *ᵥ β := by
+  rw [olsBetaOrZero_eq_olsBetaStar]
+  exact olsBetaStar_sub_identity_matrix X β e
+
+/-- On nonsingular normalized Gram matrices, the ordinary wrapper has the
+textbook sample-score representation. -/
+theorem olsBetaOrZero_sub_eq_sampleGramInv_sampleCrossMoment_of_isUnit
+    (X : Matrix n k ℝ) (β : k → ℝ) (e : n → ℝ) [Nonempty n]
+    (hunit : IsUnit (sampleGram X).det) :
+    olsBetaOrZero X (X *ᵥ β + e) - β =
+      (sampleGram X)⁻¹ *ᵥ sampleCrossMoment X e := by
+  have hident := olsBetaOrZero_sub_identity_matrix X β e
+  have hzero :
+      ((sampleGram X)⁻¹ * sampleGram X - 1) *ᵥ β = 0 := by
+    rw [Matrix.nonsing_inv_mul _ hunit, sub_self, Matrix.zero_mulVec]
+  rw [hzero] at hident
+  exact sub_eq_zero.mp hident
+
 section Stacking
 
 variable {Ω : Type*} {k : Type*} [Fintype k] [DecidableEq k]
@@ -554,8 +620,7 @@ theorem sampleCrossMoment_stackOutcomes_linear_model
       sampleGram (stackRegressors X n ω) *ᵥ β +
         sampleCrossMoment (stackRegressors X n ω) (stackErrors e n ω) := by
   rw [stack_linear_model X e y β hmodel]
-  unfold sampleCrossMoment sampleGram
-  rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, smul_add, ← Matrix.smul_mulVec]
+  exact sampleCrossMoment_linear_model (stackRegressors X n ω) β (stackErrors e n ω)
 
 /-- **Theorem 7.4 `σ̂²` decomposition for stacked samples.**
 
@@ -586,17 +651,15 @@ theorem olsBetaStar_stack_eq_sampleGramInv_sampleCrossMoment
     olsBetaStar (stackRegressors X n ω) (stackOutcomes y n ω) =
       (sampleGram (stackRegressors X n ω))⁻¹ *ᵥ
         sampleCrossMoment (stackRegressors X n ω) (stackOutcomes y n ω) := by
-  unfold olsBetaStar sampleGram sampleCrossMoment
-  rw [nonsingInv_smul, Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul,
-      Fintype.card_fin]
-  by_cases hn : n = 0
-  · subst hn
-    have h0 : ((stackRegressors X 0 ω)ᵀ *ᵥ (stackOutcomes y 0 ω)) = 0 := by
-      funext j
-      simp [Matrix.mulVec, dotProduct]
-    rw [h0, Matrix.mulVec_zero, smul_zero]
-  · have hne : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hn
-    rw [inv_inv, mul_inv_cancel₀ hne, one_smul]
+  by_cases hn0 : n = 0
+  · subst hn0
+    unfold olsBetaStar sampleGram sampleCrossMoment
+    rw [nonsingInv_smul]
+    simp
+  · have hnpos : 0 < n := Nat.pos_of_ne_zero hn0
+    haveI : Nonempty (Fin n) := ⟨⟨0, hnpos⟩⟩
+    exact olsBetaStar_eq_sampleGramInv_sampleCrossMoment
+      (stackRegressors X n ω) (stackOutcomes y n ω)
 
 /-- **Unconditional residual identity.** Under `yᵢ = Xᵢ·β + eᵢ`,
 `β̂ₙ − β − Q̂ₙ⁻¹ *ᵥ ĝₙ(e) = (Q̂ₙ⁻¹ * Q̂ₙ − 1) *ᵥ β`. On the event

@@ -26,6 +26,21 @@ Mathlib does not currently provide as named lemmas:
   continuous-map case, wrapping Mathlib's distributional CMT.
 * `tendstoInDistribution_ae_continuous_comp` — Hansen Theorem 6.7 in its
   textbook a.s.-continuity form, proved from a Portmanteau closed-set argument.
+* `tendstoInDistribution_ae_continuous_comp_indexed` — the same
+  a.s.-continuity CMT when the source probability spaces vary with the sequence
+  index.
+* `TendstoInDistribution.tendsto_measure_preimage_of_null_frontier` — a
+  reusable Portmanteau event-probability bridge for coverage and critical-region
+  arguments.
+* `TendstoInDistribution.integral_boundedContinuous_tendsto_indexed` — the
+  bounded-continuous integral face of weak convergence when source spaces and
+  laws vary with the sequence index.
+* `TendstoInDistribution.of_tendsto_charFun` and
+  `TendstoInDistribution.of_tendsto_charFun_indexed` — Lévy
+  characteristic-function constructors for fixed and indexed source spaces.
+* `cramerWold_tendstoInDistribution_indexed` — Cramér-Wold convergence for
+  finite-dimensional statistics whose source spaces and laws vary with the
+  sequence index.
 
 Both are stated for general Banach-space codomains, so they specialize
 directly to scalar, vector, and matrix random variables.
@@ -204,6 +219,48 @@ theorem tendstoInDistribution_ae_continuous_comp
     [HasOuterApproxClosed E]
     [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F]
     {X : ℕ → Ω → E} {Z : Ω' → E} {g : E → F}
+    (hX : TendstoInDistribution X atTop Z P ν)
+    (hg : Measurable g) {D : Set E}
+    (hD : (ν.map Z) D = 0)
+    (hcont : ∀ x, x ∉ D → ContinuousAt g x) :
+    TendstoInDistribution (fun n ω => g (X n ω)) atTop (fun ω => g (Z ω)) P ν := by
+  have hcomp :
+      TendstoInDistribution (fun n => g ∘ X n) atTop (g ∘ Z) P ν := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro n
+      exact hg.comp_aemeasurable (hX.forall_aemeasurable n)
+    · exact hg.comp_aemeasurable hX.aemeasurable_limit
+    let law : ℕ → ProbabilityMeasure E := fun n =>
+      ⟨(P n).map (X n), Measure.isProbabilityMeasure_map (hX.forall_aemeasurable n)⟩
+    let lawZ : ProbabilityMeasure E :=
+      ⟨ν.map Z, Measure.isProbabilityMeasure_map hX.aemeasurable_limit⟩
+    have hmap :=
+      probabilityMeasure_tendsto_map_of_tendsto_of_ae_continuous
+        (νs := law) (ν := lawZ) (L := atTop) hX.tendsto hg
+        (by simpa [lawZ] using hD) hcont
+    convert hmap with n
+    · simp only [law, ProbabilityMeasure.map, ProbabilityMeasure.coe_mk, Subtype.mk.injEq]
+      rw [AEMeasurable.map_map_of_aemeasurable hg.aemeasurable (hX.forall_aemeasurable n)]
+    · apply ProbabilityMeasure.toMeasure_injective
+      simp only [lawZ, ProbabilityMeasure.map, ProbabilityMeasure.coe_mk]
+      rw [AEMeasurable.map_map_of_aemeasurable hg.aemeasurable hX.aemeasurable_limit]
+  simpa [Function.comp_def] using hcomp
+
+/-- **Indexed Hansen Theorem 6.7, a.s.-continuity CMT in distribution.**
+
+This is the sample-size-dependent source-space counterpart of
+`tendstoInDistribution_ae_continuous_comp`. If `Xₙ ⇒ Z` and each `Xₙ` may live
+on its own probability space, then a measurable map `g` that is continuous off a
+`(ν.map Z)`-null set preserves convergence in distribution. -/
+theorem tendstoInDistribution_ae_continuous_comp_indexed
+    {Ω : ℕ → Type*} {Ω' E F : Type*}
+    {mΩ : ∀ n, MeasurableSpace (Ω n)} {mΩ' : MeasurableSpace Ω'}
+    {P : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    [HasOuterApproxClosed E]
+    [TopologicalSpace F] [MeasurableSpace F] [BorelSpace F]
+    {X : ∀ n, Ω n → E} {Z : Ω' → E} {g : E → F}
     (hX : TendstoInDistribution X atTop Z P ν)
     (hg : Measurable g) {D : Set E}
     (hD : (ν.map Z) D = 0)
@@ -645,6 +702,91 @@ theorem abs_integral_sub_realClip_le_two_mul_integral_tail_abs
     _ = 2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|) ω ∂μ := by
       rw [integral_const_mul]
 
+/-- The squared clipping error is supported on the large-tail event, up to a factor two. -/
+theorem abs_sq_sub_realClip_sq_le_two_mul_tail_sq (R x : ℝ) (hR : 0 ≤ R) :
+    |x ^ 2 - (realClip R x) ^ 2| ≤
+      2 * Set.indicator {y : ℝ | R ≤ |y|} (fun y => y ^ 2) x := by
+  by_cases htail : x ∈ {y : ℝ | R ≤ |y|}
+  · rw [Set.indicator_of_mem htail]
+    have htri :
+        |x ^ 2 - (realClip R x) ^ 2| ≤ |x ^ 2| + |(realClip R x) ^ 2| := by
+      simpa only [sub_eq_add_neg, abs_neg] using
+        abs_add_le (x ^ 2) (-((realClip R x) ^ 2))
+    have hclip_abs : |realClip R x| ≤ |x| := abs_realClip_le_abs R x hR
+    have hclip_sq : (realClip R x) ^ 2 ≤ x ^ 2 := by
+      have hpow := pow_le_pow_left₀ (abs_nonneg _) hclip_abs 2
+      simpa [sq_abs] using hpow
+    calc
+      |x ^ 2 - (realClip R x) ^ 2| ≤ |x ^ 2| + |(realClip R x) ^ 2| := htri
+      _ = x ^ 2 + (realClip R x) ^ 2 := by
+        rw [abs_of_nonneg (sq_nonneg x), abs_of_nonneg (sq_nonneg (realClip R x))]
+      _ ≤ x ^ 2 + x ^ 2 := by nlinarith
+      _ = 2 * x ^ 2 := by ring
+  · rw [Set.indicator_of_notMem htail]
+    have hx : |x| ≤ R := le_of_not_ge htail
+    rw [realClip_eq_self_of_abs_le hx, sub_self, abs_zero, mul_zero]
+
+/-- Integral tail bound for replacing a square-integrable real variable's
+second moment by its clipped second moment. -/
+theorem abs_integral_sq_sub_realClip_sq_le_two_mul_integral_tail_sq
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) {R : ℝ} (hR : 0 ≤ R) :
+    |(∫ ω, (Y ω) ^ 2 ∂μ) - ∫ ω, (realClip R (Y ω)) ^ 2 ∂μ| ≤
+      2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+  let clipSq := (realClipBoundedContinuousFunction R hR) ^ (2 : ℕ)
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ := hY.integrable_sq
+  have hclip_int : Integrable (fun ω => (realClip R (Y ω)) ^ 2) μ := by
+    have hmap : Integrable clipSq (μ.map Y) := clipSq.integrable (μ := μ.map Y)
+    simpa [clipSq, Function.comp_def, realClipBoundedContinuousFunction_apply] using
+      hmap.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable
+  have htail_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable)
+  have htail_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ htail_null
+  have hmono :
+      ∫ ω, |(Y ω) ^ 2 - (realClip R (Y ω)) ^ 2| ∂μ ≤
+        ∫ ω, 2 * Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+    refine integral_mono (hYsq_int.sub hclip_int).norm (htail_int.const_mul 2) ?_
+    intro ω
+    exact abs_sq_sub_realClip_sq_le_two_mul_tail_sq R (Y ω) hR
+  calc
+    |(∫ ω, (Y ω) ^ 2 ∂μ) - ∫ ω, (realClip R (Y ω)) ^ 2 ∂μ| =
+        |∫ ω, (Y ω) ^ 2 - (realClip R (Y ω)) ^ 2 ∂μ| := by
+      rw [integral_sub hYsq_int hclip_int]
+    _ ≤ ∫ ω, |(Y ω) ^ 2 - (realClip R (Y ω)) ^ 2| ∂μ := abs_integral_le_integral_abs
+    _ ≤ ∫ ω, 2 * Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := hmono
+    _ = 2 * ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+      rw [integral_const_mul]
+
+/-- For thresholds at least one, the absolute tail integral is bounded by the
+squared tail integral. -/
+theorem integral_tail_abs_le_integral_tail_sq_of_one_le
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) {R : ℝ} (hR : 1 ≤ R) :
+    ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|) ω ∂μ ≤
+      ∫ ω, Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω ∂μ := by
+  have hY_int : Integrable Y μ :=
+    memLp_one_iff_integrable.mp (hY.mono_exponent one_le_two)
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ := hY.integrable_sq
+  have htail_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable hY.aestronglyMeasurable.aemeasurable)
+  have htail_abs_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => |Y ω|)) μ := by
+    simpa [Real.norm_eq_abs] using hY_int.norm.indicator₀ htail_null
+  have htail_sq_int :
+      Integrable (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ htail_null
+  refine integral_mono htail_abs_int htail_sq_int ?_
+  intro ω
+  by_cases htail : R ≤ |Y ω|
+  · have hone : 1 ≤ |Y ω| := hR.trans htail
+    have hle : |Y ω| ≤ (Y ω) ^ 2 := by
+      have hmul := mul_le_mul_of_nonneg_right hone (abs_nonneg (Y ω))
+      simpa [sq_abs, pow_two] using hmul
+    simp [htail, hle]
+  · simp [htail]
+
 /-- Raising the tail threshold can only reduce the real absolute-tail integral. -/
 theorem integral_tail_abs_mono_threshold
     [IsFiniteMeasure μ] {Y : α → ℝ} (hY : Integrable Y μ) {C R : ℝ} (hCR : C ≤ R) :
@@ -712,6 +854,85 @@ theorem integral_tail_abs_le_of_eLpNorm_tail
   rw [hreal_eq]
   exact ENNReal.toReal_le_of_le_ofReal hε hTail
 
+/-- Square integrability makes the squared tail small for all sufficiently
+large thresholds. -/
+theorem integral_tail_sq_eventual_le_of_memLp_two
+    [IsFiniteMeasure μ] {Y : α → ℝ} (hY : MemLp Y 2 μ) :
+    ∀ ε : ℝ, 0 < ε → ∃ R₀ : ℝ, 1 ≤ R₀ ∧
+      ∀ R : ℝ, R₀ ≤ R →
+        (∫ ω, Set.indicator {ω | R ≤ |Y ω|}
+          (fun ω => (Y ω) ^ 2) ω ∂μ) ≤ ε := by
+  intro ε hε
+  have hYsq_int : Integrable (fun ω => (Y ω) ^ 2) μ :=
+    hY.integrable_sq
+  have hYsq_mem : MemLp (fun ω => (Y ω) ^ 2) 1 μ :=
+    memLp_one_iff_integrable.mpr hYsq_int
+  obtain ⟨M, hM_nonneg, hMtail⟩ :=
+    MemLp.integral_indicator_norm_ge_nonneg_le
+      (μ := μ) (f := fun ω => (Y ω) ^ 2) hYsq_mem hε
+  let C : ℝ≥0 := ⟨M, hM_nonneg⟩
+  have hMtail_e :
+      eLpNorm
+        ({ω | C ≤ ‖(Y ω) ^ 2‖₊}.indicator
+          (fun ω => (Y ω) ^ 2)) 1 μ ≤ ENNReal.ofReal ε := by
+    have hset :
+        {ω | C ≤ ‖Y ω‖₊ ^ 2} =
+          {ω | M ≤ (Y ω) ^ 2} := by
+      ext ω
+      simp only [Set.mem_setOf_eq]
+      rw [← NNReal.coe_le_coe]
+      simp [C]
+    simpa [eLpNorm_one_eq_lintegral_enorm, hset] using hMtail
+  have hMtail_real :
+      ∫ ω,
+        Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2) ω ∂μ ≤ ε := by
+    simpa [C] using
+      integral_tail_abs_le_of_eLpNorm_tail
+        (μ := μ) (Y := fun ω => (Y ω) ^ 2)
+        hYsq_int hε.le hMtail_e
+  refine ⟨max 1 M, le_max_left _ _, fun R hR => ?_⟩
+  have hR_null : NullMeasurableSet {ω | R ≤ |Y ω|} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      (continuous_abs.measurable.comp_aemeasurable
+        hY.aestronglyMeasurable.aemeasurable)
+  have hR_int :
+      Integrable
+        (Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ hR_null
+  have hM_null : NullMeasurableSet {ω | M ≤ (Y ω) ^ 2} μ :=
+    nullMeasurableSet_le aemeasurable_const
+      hYsq_int.aemeasurable
+  have hM_int :
+      Integrable
+        (Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2)) μ :=
+    hYsq_int.indicator₀ hM_null
+  have hmono :
+      (∫ ω, Set.indicator {ω | R ≤ |Y ω|}
+        (fun ω => (Y ω) ^ 2) ω ∂μ) ≤
+      ∫ ω,
+        Set.indicator {ω | M ≤ (Y ω) ^ 2}
+          (fun ω => (Y ω) ^ 2) ω ∂μ := by
+    refine integral_mono hR_int hM_int ?_
+    intro ω
+    by_cases htail : R ≤ |Y ω|
+    · have hR₀_tail : max 1 M ≤ |Y ω| := hR.trans htail
+      have hone_tail : 1 ≤ |Y ω| := (le_max_left 1 M).trans hR₀_tail
+      have hM_tail_abs : M ≤ |Y ω| := (le_max_right 1 M).trans hR₀_tail
+      have habs_le_sq : |Y ω| ≤ (Y ω) ^ 2 := by
+        have hmul := mul_le_mul_of_nonneg_right hone_tail (abs_nonneg (Y ω))
+        simpa [sq_abs, pow_two] using hmul
+      have hM_tail_sq : M ≤ (Y ω) ^ 2 :=
+        hM_tail_abs.trans habs_le_sq
+      simp [htail, hM_tail_sq]
+    · have hleft_zero :
+          Set.indicator {ω | R ≤ |Y ω|} (fun ω => (Y ω) ^ 2) ω = 0 := by
+        simp [Set.indicator, htail]
+      exact hleft_zero.trans_le
+        (Set.indicator_nonneg (fun ω _ => sq_nonneg (Y ω)) ω)
+  exact hmono.trans hMtail_real
+
 /-- **Hansen Theorem 6.15, bounded continuous weak-moment face.**
 
 Weak convergence is exactly convergence of expectations for bounded continuous
@@ -743,6 +964,42 @@ theorem TendstoInDistribution.integral_boundedContinuous_tendsto
   have hseq :
       (fun n => ∫ x, f x ∂(μ.map (X n))) =
         fun n => ∫ ω, f (X n ω) ∂μ := by
+    funext n
+    rw [integral_map (hX.forall_aemeasurable n) (by fun_prop)]
+  simpa [hlimit, hseq] using hmap
+
+/-- Bounded-continuous integral convergence from weak convergence with
+sample-size-dependent source spaces.
+
+This is the indexed-space form of
+`TendstoInDistribution.integral_boundedContinuous_tendsto`. It is useful for
+ordinary nonparametric bootstrap laws, where the resampling space varies with
+`n`. -/
+theorem TendstoInDistribution.integral_boundedContinuous_tendsto_indexed
+    {Ω : ℕ → Type*} {mΩ : ∀ n, MeasurableSpace (Ω n)}
+    {Ω' E : Type*} {mΩ' : MeasurableSpace Ω'}
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hX : TendstoInDistribution X atTop Z μ ν)
+    (f : BoundedContinuousFunction E ℝ) :
+    Tendsto (fun n => ∫ ω, f (X n ω) ∂μ n) atTop
+      (𝓝 (∫ ω, f (Z ω) ∂ν)) := by
+  have hmap :
+      Tendsto (fun n => ∫ x, f x ∂((μ n).map (X n))) atTop
+        (𝓝 (∫ x, f x ∂(ν.map Z))) := by
+    let lawZ : ProbabilityMeasure E :=
+      ⟨ν.map Z, Measure.isProbabilityMeasure_map hX.aemeasurable_limit⟩
+    have hcont :=
+      (ProbabilityMeasure.continuous_integral_boundedContinuousFunction f).tendsto lawZ
+    simpa [lawZ] using hcont.comp hX.tendsto
+  have hlimit :
+      ∫ x, f x ∂(ν.map Z) = ∫ ω, f (Z ω) ∂ν := by
+    rw [integral_map hX.aemeasurable_limit (by fun_prop)]
+  have hseq :
+      (fun n => ∫ x, f x ∂((μ n).map (X n))) =
+        fun n => ∫ ω, f (X n ω) ∂μ n := by
     funext n
     rw [integral_map (hX.forall_aemeasurable n) (by fun_prop)]
   simpa [hlimit, hseq] using hmap
@@ -1078,6 +1335,54 @@ theorem charFun_map_eq_charFun_dualMap_one
   · exact (InnerProductSpace.toDualMap ℝ E t).continuous.aemeasurable
   · exact hX
 
+/-- Lévy characteristic-function constructor for convergence in distribution.
+
+If the characteristic functions of the pushforward laws converge pointwise to
+the characteristic function of the limit law, then the random variables converge
+in distribution. -/
+theorem TendstoInDistribution.of_tendsto_charFun
+    {Ω Ω' E : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ℕ → Ω → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) μ)
+    (hZ : AEMeasurable Z ν)
+    (hchar : ∀ t : E,
+      Tendsto (fun n => charFun (μ.map (T n)) t) atTop
+        (𝓝 (charFun (ν.map Z) t))) :
+    TendstoInDistribution T atTop Z (fun _ => μ) ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  simpa using hchar t
+
+/-- Indexed Lévy characteristic-function constructor for convergence in
+distribution.
+
+This is the source-space-indexed analogue of
+`TendstoInDistribution.of_tendsto_charFun`: the source probability space and
+law may vary with the sequence index. -/
+theorem TendstoInDistribution.of_tendsto_charFun_indexed
+    {Ω : ℕ → Type*} {Ω' E : Type*}
+    [∀ n, MeasurableSpace (Ω n)] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) (μ n))
+    (hZ : AEMeasurable Z ν)
+    (hchar : ∀ t : E,
+      Tendsto (fun n => charFun ((μ n).map (T n)) t) atTop
+        (𝓝 (charFun (ν.map Z) t))) :
+    TendstoInDistribution T atTop Z μ ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  simpa using hchar t
+
 /-- **Cramér-Wold convergence bridge for finite-dimensional inner-product spaces.**
 
 If every fixed inner-product projection of `T n` converges in distribution to
@@ -1105,6 +1410,39 @@ theorem cramerWold_tendstoInDistribution
   convert hscalar using 1
   · ext n
     exact charFun_map_eq_charFun_dualMap_one (hT n) t
+  · change 𝓝 (charFun (ν.map Z) t) =
+      𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
+    exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
+
+/-- Indexed Cramér-Wold convergence bridge for finite-dimensional inner-product
+spaces.
+
+This is the source-space-indexed analogue of
+`cramerWold_tendstoInDistribution`: if every fixed inner-product projection
+converges in distribution and the measures/source spaces may vary with the
+sequence index, then the vector statistic converges in distribution. -/
+theorem cramerWold_tendstoInDistribution_indexed
+    {Ω : ℕ → Type*} {Ω' E : Type*}
+    [∀ n, MeasurableSpace (Ω n)] [MeasurableSpace Ω']
+    [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
+    [MeasurableSpace E] [OpensMeasurableSpace E] [BorelSpace E]
+    {μ : ∀ n, Measure (Ω n)} [∀ n, IsProbabilityMeasure (μ n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {T : ∀ n, Ω n → E} {Z : Ω' → E}
+    (hT : ∀ n, AEMeasurable (T n) (μ n))
+    (hZ : AEMeasurable Z ν)
+    (hproj : ∀ t : E,
+      TendstoInDistribution
+        (fun n ω => (InnerProductSpace.toDualMap ℝ E t) (T n ω)) atTop
+        (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω)) μ ν) :
+    TendstoInDistribution T atTop Z μ ν := by
+  refine ⟨hT, hZ, ?_⟩
+  rw [ProbabilityMeasure.tendsto_iff_tendsto_charFun]
+  intro t
+  have hscalar := (ProbabilityMeasure.tendsto_iff_tendsto_charFun.mp (hproj t).tendsto) 1
+  convert hscalar using 1
+  · ext i
+    exact charFun_map_eq_charFun_dualMap_one (hT i) t
   · change 𝓝 (charFun (ν.map Z) t) =
       𝓝 (charFun (ν.map (fun ω => (InnerProductSpace.toDualMap ℝ E t) (Z ω))) 1)
     exact congrArg 𝓝 (charFun_map_eq_charFun_dualMap_one hZ t)
@@ -1318,6 +1656,8 @@ end MulVec
 
 section StochasticOrder
 
+open scoped Matrix.Norms.Elementwise
+
 /-- Sum of two real-valued `oₚ(1)` sequences is `oₚ(1)`.
 
 This direct scalar version avoids extra measurability hypotheses, using only the
@@ -1518,6 +1858,53 @@ theorem TendstoInMeasure.of_sub_limit_zero_real
   intro ε hε
   simpa [Real.dist_eq] using hX ε hε
 
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p c`, then `Xₙ ->p c`. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_real
+    {X Y : ℕ → α → ℝ} {c : ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => c)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  have hY0 := TendstoInMeasure.sub_limit_zero_real hY
+  have hsum := TendstoInMeasure.add_zero_real hXY hY0
+  have hX0 :
+      TendstoInMeasure μ (fun n ω => X n ω - c) atTop (fun _ => 0) := by
+    refine TendstoInMeasure.congr (fun n => ?_) EventuallyEq.rfl hsum
+    exact ae_of_all μ fun ω => by ring
+  exact TendstoInMeasure.of_sub_limit_zero_real hX0
+
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p c`, then `Xₙ ->p c` for
+finite-dimensional real vectors. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_vector
+    {k : Type*} [Fintype k]
+    {X Y : ℕ → α → k → ℝ} {c : k → ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => c)) :
+    TendstoInMeasure μ X atTop (fun _ => c) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  have hXYa :
+      TendstoInMeasure μ (fun n ω => X n ω a - Y n ω a)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.pi_apply hXY a
+  exact TendstoInMeasure.of_sub_tendsto_zero_real hXYa
+    (TendstoInMeasure.pi_apply hY a)
+
+/-- If `Xₙ - Yₙ = oₚ(1)` and `Yₙ ->p C`, then `Xₙ ->p C` for
+finite-dimensional real matrices. -/
+theorem TendstoInMeasure.of_sub_tendsto_zero_matrix
+    {r c : Type*} [Fintype r] [Fintype c]
+    {X Y : ℕ → α → Matrix r c ℝ} {C : Matrix r c ℝ}
+    (hXY : TendstoInMeasure μ (fun n ω => X n ω - Y n ω) atTop (fun _ => 0))
+    (hY : TendstoInMeasure μ Y atTop (fun _ => C)) :
+    TendstoInMeasure μ X atTop (fun _ => C) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  have hXYab :
+      TendstoInMeasure μ (fun n ω => X n ω a b - Y n ω a b)
+        atTop (fun _ => 0) := by
+    simpa using TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hXY a) b
+  exact TendstoInMeasure.of_sub_tendsto_zero_real hXYab
+    (TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hY a) b)
+
 /-- Product of two real-valued sequences converging in measure to scalar limits
 converges in measure to the product of the limits. -/
 theorem TendstoInMeasure.mul_limits_real
@@ -1630,6 +2017,28 @@ there is a positive deterministic bound `M` such that the tail event
 def BoundedInProbability (μ : Measure α) (X : ℕ → α → ℝ) : Prop :=
   ∀ δ : ℝ≥0∞, 0 < δ → ∃ M : ℝ, 0 < M ∧
     ∀ᶠ n in atTop, μ {ω | M ≤ ‖X n ω‖} ≤ δ
+
+/-- Uniform integrability of real random variables passes to absolute values.
+
+Mathlib's probability-theory `UniformIntegrable` is norm-based, so this is a
+thin real-valued bridge used when textbook arguments write averages of
+`|Xᵢ|`. -/
+theorem uniformIntegrable_abs
+    {p : ℝ≥0∞} {X : ℕ → α → ℝ}
+    (hX : UniformIntegrable X p μ) :
+    UniformIntegrable (fun n ω => |X n ω|) p μ := by
+  refine ⟨fun n => continuous_abs.comp_aestronglyMeasurable (hX.aestronglyMeasurable n), ?_, ?_⟩
+  · intro ε hε
+    obtain ⟨δ, hδ, hsmall⟩ := hX.unifIntegrable hε
+    refine ⟨δ, hδ, fun n s hs hμs => ?_⟩
+    refine (eLpNorm_mono_ae (p := p) (μ := μ) ?_).trans (hsmall n s hs hμs)
+    refine ae_of_all μ fun ω => ?_
+    by_cases hω : ω ∈ s <;> simp [hω, Real.norm_eq_abs]
+  · obtain ⟨C, hC⟩ := hX.2.2
+    refine ⟨C, fun n => ?_⟩
+    refine (eLpNorm_mono_ae (p := p) (μ := μ) ?_).trans (hC n)
+    refine ae_of_all μ fun ω => ?_
+    simp [Real.norm_eq_abs]
 
 /-- Real convergence in distribution implies boundedness in probability.
 
@@ -1756,6 +2165,32 @@ theorem BoundedInProbability.of_eventually_integral_norm_bound
     rw [ENNReal.ofReal_le_iff_le_toReal hδtop]
     exact hratio
   exact htail_ofReal.trans htail_delta
+
+/-- A uniformly integrable real sequence is bounded in probability.
+
+For `p = 1`, Mathlib's `UniformIntegrable` includes a uniform `L¹` bound; the
+claim is the Markov-inequality `Oₚ(1)` consequence of that bound. -/
+theorem BoundedInProbability.of_uniformIntegrable_one
+    [IsFiniteMeasure μ] {X : ℕ → α → ℝ}
+    (hX : UniformIntegrable X 1 μ) :
+    BoundedInProbability μ X := by
+  obtain ⟨C, hC⟩ := hX.2.2
+  refine BoundedInProbability.of_eventually_integral_norm_bound
+    (C := (C : ℝ)) (NNReal.coe_nonneg C) ?_ ?_
+  · intro n
+    exact (memLp_one_iff_integrable.mp (hX.memLp n)).norm
+  · refine Eventually.of_forall fun n => ?_
+    have hIntX : Integrable (X n) μ :=
+      memLp_one_iff_integrable.mp (hX.memLp n)
+    have hEq :
+        ENNReal.ofReal (∫ ω, ‖X n ω‖ ∂μ) = eLpNorm (X n) 1 μ := by
+      rw [eLpNorm_one_eq_lintegral_enorm]
+      exact ofReal_integral_norm_eq_lintegral_enorm hIntX
+    have hInt_nonneg : 0 ≤ ∫ ω, ‖X n ω‖ ∂μ :=
+      integral_nonneg_of_ae (ae_of_all μ fun ω => norm_nonneg (X n ω))
+    have hleReal := ENNReal.toReal_mono ENNReal.coe_ne_top (hC n)
+    rw [← hEq, ENNReal.toReal_ofReal hInt_nonneg] at hleReal
+    simpa using hleReal
 
 /-- An eventual higher natural-moment bound implies scalar `Oₚ(1)`.
 
@@ -2182,6 +2617,42 @@ theorem BoundedInProbability.mul
     _ ≤ μ {ω | MX ≤ ‖X n ω‖} + μ {ω | MY ≤ ‖Y n ω‖} := measure_union_le _ _
     _ ≤ δ / 2 + δ / 2 := add_le_add hnX hnY
     _ = δ := ENNReal.add_halves δ
+
+/-- **Portmanteau event-probability bridge for distributional limits.**
+
+If `Xₙ ⇒ Z` and `E` is a Borel set whose frontier has zero mass under the
+limit law, then the probabilities of the events `{Xₙ ∈ E}` converge to the
+limit-law probability of `E`. This is the reusable coverage/critical-region
+bridge for events in arbitrary spaces where Mathlib's portmanteau theorem
+applies. -/
+theorem TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+    {Ω Ω' E₀ : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+    {mE₀ : MeasurableSpace E₀} [TopologicalSpace E₀] [OpensMeasurableSpace E₀]
+    [HasOuterApproxClosed E₀]
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → E₀} {Z : Ω' → E₀} {E : Set E₀}
+    (h : TendstoInDistribution X atTop Z P ν)
+    (hE : MeasurableSet E)
+    (hfrontier : (ν.map Z) (frontier E) = 0) :
+    Tendsto (fun n => P n {ω | X n ω ∈ E})
+      atTop (𝓝 ((ν.map Z) E)) := by
+  let law : ℕ → ProbabilityMeasure E₀ := fun n =>
+    ⟨(P n).map (X n), Measure.isProbabilityMeasure_map (h.forall_aemeasurable n)⟩
+  let lawZ : ProbabilityMeasure E₀ :=
+    ⟨ν.map Z, Measure.isProbabilityMeasure_map h.aemeasurable_limit⟩
+  have hlaw : Tendsto law atTop (𝓝 lawZ) := by
+    simpa [law, lawZ] using h.tendsto
+  have hport := ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto'
+    (μ := lawZ) (μs := law) hlaw (by simpa [lawZ] using hfrontier)
+  have hseq_eq :
+      (fun n => ((law n : ProbabilityMeasure E₀) : Measure E₀) E) =
+        fun n => P n {ω | X n ω ∈ E} := by
+    funext n
+    change (Measure.map (X n) (P n)) E = P n {ω | X n ω ∈ E}
+    rw [Measure.map_apply_of_aemeasurable (h.forall_aemeasurable n) hE]
+    rfl
+  simpa [hseq_eq, lawZ] using hport
 
 /-- **Portmanteau event-probability bridge for real distributional limits.**
 

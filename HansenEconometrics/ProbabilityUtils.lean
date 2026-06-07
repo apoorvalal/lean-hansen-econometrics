@@ -155,6 +155,13 @@ theorem measureReal_Icc_eq_cdf_sub_of_noAtoms
     exact le_antisymm hleft_le hcdf_le
   rw [measureReal_Icc_eq_cdf_sub_leftLim (ν := ν) hab, hleft]
 
+/-- ENNReal-valued form of `measureReal_Icc_eq_cdf_sub_of_noAtoms`. -/
+theorem measure_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν] {a b : ℝ} (hab : a ≤ b) :
+    ν (Set.Icc a b) = ENNReal.ofReal (cdf ν b - cdf ν a) := by
+  rw [← ENNReal.ofReal_toReal (measure_ne_top ν (Set.Icc a b)), ← Measure.real_def,
+    measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
 /-- If `X` has an atomless real probability law `ν`, then closed-interval events for `X` can be
 read off directly from the cdf increment of `ν`. -/
 theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
@@ -162,6 +169,14 @@ theorem HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms
     (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
     μ.real (X ⁻¹' Set.Icc a b) = cdf ν b - cdf ν a := by
   rw [HasLaw.real_preimage_Icc_eq hX, measureReal_Icc_eq_cdf_sub_of_noAtoms (ν := ν) hab]
+
+/-- ENNReal-valued form of `HasLaw.real_preimage_Icc_eq_cdf_sub_of_noAtoms`. -/
+theorem HasLaw.preimage_Icc_eq_ofReal_cdf_sub_of_noAtoms
+    [IsProbabilityMeasure ν] [NoAtoms ν]
+    (hX : HasLaw X ν μ) {a b : ℝ} (hab : a ≤ b) :
+    μ (X ⁻¹' Set.Icc a b) = ENNReal.ofReal (cdf ν b - cdf ν a) := by
+  rw [HasLaw.preimage_eq hX measurableSet_Icc,
+    measure_Icc_eq_ofReal_cdf_sub_of_noAtoms (ν := ν) hab]
 
 end RealDistributionHelpers
 
@@ -326,6 +341,50 @@ theorem variance_dotProduct_eq_dotProduct_covMat_mulVec
           simpa [covVec, mul_comm] using congrArg (fun x => x * b i) hcov
     _ = b ⬝ᵥ (covMat μ X *ᵥ b) := by
           simp [dotProduct, mul_comm]
+
+/-- On a finite probability space, the expected squared Euclidean deviation
+from the mean is the trace of the coordinate covariance matrix. -/
+theorem integral_norm_sq_sub_mean_eq_trace_covMat_euclidean_of_finite
+    [Finite Ω] [MeasurableSingletonClass Ω] [IsProbabilityMeasure μ]
+    (X : Ω → EuclideanSpace ℝ k) :
+    ∫ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 ∂μ =
+      Matrix.trace (covMat μ (fun ω i => X ω i)) := by
+  classical
+  have hX_int : Integrable X μ := Integrable.of_finite
+  have hmean_apply :
+      ∀ i, (∫ ω, X ω ∂μ) i = ∫ ω, X ω i ∂μ := by
+    intro i
+    have h := (EuclideanSpace.proj i).integral_comp_comm hX_int
+    simpa using h.symm
+  have hnorm :
+      ∀ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 =
+        ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 := by
+    intro ω
+    calc
+      ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 =
+          ∑ i, ((X ω - ∫ ω, X ω ∂μ) i) ^ 2 :=
+            EuclideanSpace.real_norm_sq_eq (X ω - ∫ ω, X ω ∂μ)
+      _ = ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 := by
+            simp [hmean_apply]
+  calc
+    ∫ ω, ‖X ω - ∫ ω, X ω ∂μ‖ ^ 2 ∂μ =
+        ∫ ω, ∑ i, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 ∂μ := by
+          exact integral_congr_ae (ae_of_all _ hnorm)
+    _ = ∑ i, ∫ ω, (X ω i - ∫ ω, X ω i ∂μ) ^ 2 ∂μ := by
+          rw [integral_finset_sum]
+          intro i _hi
+          exact Integrable.of_finite
+    _ = ∑ i, Var[fun ω => X ω i; μ] := by
+          refine Finset.sum_congr rfl ?_
+          intro i _hi
+          exact (ProbabilityTheory.variance_eq_integral
+            (measurable_of_finite (fun ω => X ω i)).aemeasurable).symm
+    _ = Matrix.trace (covMat μ (fun ω i => X ω i)) := by
+          rw [Matrix.trace]
+          refine Finset.sum_congr rfl ?_
+          intro i _hi
+          exact (ProbabilityTheory.covariance_self
+            (measurable_of_finite (fun ω => X ω i)).aemeasurable).symm
 
 /-- Covariances in an affine linear model decompose into the fitted part and the residual part. -/
 theorem covVec_affineModel
@@ -703,6 +762,28 @@ lemma hasLaw_coords_of_stdGaussian
   congr 1
   funext i
   exact ((hLaw i).map_eq).symm
+
+/-- Finite-index version of `hasLaw_coords_of_stdGaussian`.
+
+The core proof is the `Fin n` theorem above; this wrapper reindexes an arbitrary finite
+orthonormal basis through `Fintype.equivFin`, which is the natural shape of matrix eigenbases in
+the chapter files. -/
+lemma hasLaw_coords_of_stdGaussian_fintype
+    {ι : Type*} [Fintype ι]
+    (b : OrthonormalBasis ι ℝ E)
+    {Z : Ω → E} (hZ : HasLaw Z (stdGaussian E)) :
+    (∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1)) ∧
+      iIndepFun (fun i ω => b.repr (Z ω) i) := by
+  let e : ι ≃ Fin (Fintype.card ι) := Fintype.equivFin ι
+  let bFin : OrthonormalBasis (Fin (Fintype.card ι)) ℝ E := b.reindex e
+  obtain ⟨hLawFin, hIndepFin⟩ := hasLaw_coords_of_stdGaussian bFin hZ
+  have hLaw : ∀ i, HasLaw (fun ω => b.repr (Z ω) i) (gaussianReal 0 1) := by
+    intro i
+    simpa [bFin, OrthonormalBasis.repr_reindex] using hLawFin (e i)
+  have hIndep : iIndepFun (fun i ω => b.repr (Z ω) i) := by
+    have hpre := hIndepFin.precomp e.injective
+    simpa [bFin, OrthonormalBasis.repr_reindex] using hpre
+  exact ⟨hLaw, hIndep⟩
 
 end GaussianCoordinates
 
