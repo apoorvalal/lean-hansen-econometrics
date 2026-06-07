@@ -1,5 +1,14 @@
+import HansenEconometrics.Chapter8Asymptotics
 import HansenEconometrics.Chapter10Bootstrap.Covariance
 import HansenEconometrics.Chapter10Bootstrap.Studentization
+
+/-!
+# Chapter 10 — Bootstrap regression
+
+Finite-resample OLS score bootstrap statistics, linearized coefficient
+statistics, and linear-restriction test statistics, with the finite OLS
+bootstrap regression CLT wrappers (Hansen Theorem 10.18).
+-/
 
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
@@ -19,16 +28,10 @@ theorem heteroAsymCov_posSemidef_of_scoreCLTConditions
     {k : Type*} [Fintype k] [DecidableEq k]
     {X : ℕ → Ω → (k → ℝ)} {e : ℕ → Ω → ℝ}
     (h : ScoreCLTConditions μ X e) :
-    (heteroAsymCov μ X e).PosSemidef := by
-  let A : Matrix k k ℝ := (popGram μ X)⁻¹
-  have hΩ := scoreCovMat_posSemidef (μ := μ) (X := X) (e := e)
-    h.toSampleCLTAssumption72
-  have hA : Aᵀ = A := by
-    simpa [A] using (popGram_inv_isSymm (μ := μ) (X := X)
-      h.toSampleMomentAssumption71.int_outer).eq
-  have hpsd : (A * scoreCovMat μ X e * Aᵀ).PosSemidef := by
-    simpa [Matrix.conjTranspose] using Matrix.PosSemidef.mul_mul_conjTranspose_same hΩ A
-  simpa [heteroAsymCov, A, hA] using hpsd
+    (heteroAsymCov μ X e).PosSemidef :=
+  -- Reuse Chapter 8's canonical OLS sandwich PosSemidef result rather than
+  -- re-proving it (the inline proof was byte-for-byte identical).
+  heteroAsymCov_posSemidef h
 
 /-- Ordinary finite-resample regression score bootstrap statistic.
 
@@ -109,7 +112,7 @@ theorem regressionBootstrapOutcomesFinSucc_linear_model
 omit [MeasurableSpace Ω] in
 /-- The resampled score cross moment is the bootstrap resample mean of
 `e_i X_i`. -/
-theorem regressionBootstrap_sampleCrossMoment_errors_finSucc_eq_resampleMean
+private theorem regressionBootstrap_sampleCrossMoment_errors_finSucc_eq_resampleMean
     {k : Type*} [Fintype k]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
     (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
@@ -125,7 +128,7 @@ theorem regressionBootstrap_sampleCrossMoment_errors_finSucc_eq_resampleMean
 
 omit [MeasurableSpace Ω] in
 /-- The original-sample score cross moment is the empirical mean of `e_i X_i`. -/
-theorem sampleCrossMoment_stackRegressors_stackErrors_finSucc_eq_empiricalMean
+private theorem sampleCrossMoment_stackRegressors_stackErrors_finSucc_eq_empiricalMean
     {k : Type*} [Fintype k]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
     (n : ℕ) (ω : Ω) :
@@ -141,7 +144,7 @@ theorem sampleCrossMoment_stackRegressors_stackErrors_finSucc_eq_empiricalMean
 omit [MeasurableSpace Ω] in
 /-- The ordinary finite-resample score statistic is exactly the centered
 resampled score cross moment, scaled by `sqrt(n+1)`. -/
-theorem regressionBootstrapScoreFinSucc_eq_sqrt_smul_sampleCrossMoment_sub
+private theorem regressionBootstrapScoreFinSucc_eq_sqrt_smul_sampleCrossMoment_sub
     {k : Type*} [Fintype k]
     (X : ℕ → Ω → (k → ℝ)) (e : ℕ → Ω → ℝ)
     (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
@@ -223,7 +226,7 @@ noncomputable def regressionBootstrapLinearRestrictionStatisticFinSucc
 omit [MeasurableSpace Ω] in
 /-- The scalar ordinary-bootstrap restriction statistic is the `Unit`
 coordinate of the transformed coefficient statistic. -/
-theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply
+private theorem regressionBootstrapLinearRestrictionStatisticFinSucc_eq_theta_apply
     {k : Type*} [Fintype k] [DecidableEq k]
     (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
     (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :
@@ -242,7 +245,7 @@ operator norm of the one-row restriction applied to the coefficient statistic.
 This bridge turns bounded concrete coefficient-statistic paths into the
 scalar numerator bound required by the bounded studentization and
 critical-value wrappers. -/
-theorem regressionBootstrapLinearRestrictionStatisticFinSucc_abs_le_beta_norm
+private theorem regressionBootstrapLinearRestrictionStatisticFinSucc_abs_le_beta_norm
     {k : Type*} [Fintype k] [DecidableEq k]
     (R : Matrix Unit k ℝ) (X : ℕ → Ω → (k → ℝ)) (y : ℕ → Ω → ℝ)
     (n : ℕ) (ω : Ω) (ωs : Fin (n + 1) → Fin (n + 1)) :

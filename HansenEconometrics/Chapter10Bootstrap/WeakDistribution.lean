@@ -1,6 +1,14 @@
 import HansenEconometrics.Chapter10Bootstrap.Distribution
 import HansenEconometrics.Chapter10Bootstrap.WLLN
 
+/-!
+# Chapter 10 — Bootstrap weak convergence
+
+Bootstrap weak convergence and the Gaussian CLT capstones: bounded-continuous
+weak convergence, Portmanteau sandwiches, coordinate-orthant frontier nullity,
+continuous-mapping theorems, and the event/CDF bridges.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function

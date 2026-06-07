@@ -1,6 +1,13 @@
 import HansenEconometrics.Chapter7Asymptotics.Inference
 import HansenEconometrics.Chapter10Bootstrap.WeakDistribution
 
+/-!
+# Chapter 10 — Studentization
+
+Studentized bootstrap statistics: the studentization maps and the wrappers
+transferring bootstrap weak convergence to the studentized scale.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function

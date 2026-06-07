@@ -1,6 +1,13 @@
 import HansenEconometrics.Chapter10Bootstrap.Quantiles
 import HansenEconometrics.Chapter10Bootstrap.Regression
 
+/-!
+# Chapter 10 — Bootstrap tests
+
+Bootstrap hypothesis tests: rejection-set characterizations, CDF bracketing
+under almost-everywhere nonnegativity, and the bootstrap test coverage results.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -82,7 +89,7 @@ private theorem isOpen_bootstrapAbsRejectionSet : IsOpen bootstrapAbsRejectionSe
   simpa [bootstrapAbsRejectionSet] using
     isOpen_lt (continuous_apply 1) ((continuous_apply 0).abs)
 
-theorem bootstrapAbsTestVector_mem_rejectionSet_iff
+private theorem bootstrapAbsTestVector_mem_rejectionSet_iff
     {T crit : ℕ → Ω → ℝ} {n : ℕ} {ω : Ω} :
     bootstrapAbsTestVector T crit n ω ∈ bootstrapAbsRejectionSet ↔
       bootstrapAbsTestReject (T n ω) (crit n ω) := by
@@ -525,7 +532,7 @@ chapter10_bootstrap_abs_test_rejectionProb_tendsto_alpha_of_bootstrap_lowerQuant
 
 /-- If a probability law is supported on `[0, ∞)`, its CDF is zero at every
 negative argument. -/
-theorem cdf_eq_zero_of_ae_nonneg
+private theorem cdf_eq_zero_of_ae_nonneg
     {η : Measure ℝ} [IsProbabilityMeasure η]
     (hsupport : ∀ᵐ x ∂η, 0 ≤ x) {x : ℝ} (hx : x < 0) :
     cdf η x = 0 := by
@@ -540,7 +547,7 @@ theorem cdf_eq_zero_of_ae_nonneg
 
 /-- Local lower-quantile bracketing for a nonnegative-support law from
 strictness on its nonnegative support. -/
-theorem cdf_brackets_of_ae_nonneg_strict
+private theorem cdf_brackets_of_ae_nonneg_strict
     {η : Measure ℝ} [IsProbabilityMeasure η]
     (hsupport : ∀ᵐ x ∂η, 0 ≤ x)
     {critLim α : ℝ}
@@ -565,7 +572,7 @@ theorem cdf_brackets_of_ae_nonneg_strict
 
 /-- Local lower-quantile bracketing for a law identified by a nonnegative
 random variable on an auxiliary probability space. -/
-theorem cdf_brackets_of_hasLaw_ae_nonneg_strict
+private theorem cdf_brackets_of_hasLaw_ae_nonneg_strict
     {Ωstar : Type*} [MeasurableSpace Ωstar]
     {νstar : Measure Ωstar} {η : Measure ℝ} [IsProbabilityMeasure η]
     {Alim : Ωstar → ℝ}

@@ -1,5 +1,14 @@
 import HansenEconometrics.Chapter10Bootstrap.DeltaMethod
 
+/-!
+# Chapter 10 — Bootstrap variance
+
+Bootstrap variance consistency for resampled means and smooth functions:
+moment-convergence, weak-distribution, uniform-square-tail, and Lindeberg-tail
+routes, their indexed variants, and the delta-method Gaussian variance
+capstones.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -25,7 +34,7 @@ noncomputable def smoothFunctionVarianceFunctional
 
 /-- The smooth-function plug-in covariance map is continuous in its Jacobian
 and covariance inputs. -/
-theorem smoothFunctionVarianceFunctional_continuous
+private theorem smoothFunctionVarianceFunctional_continuous
     {d r : Type*} [Fintype d] [Fintype r] :
     Continuous (fun p : Matrix d r ℝ × Matrix d d ℝ =>
       smoothFunctionVarianceFunctional p.1 p.2) := by
@@ -1584,7 +1593,7 @@ private theorem integral_tail_sq_eq_zero_of_abs_le_lt
 For `R > 0`, the tail identity
 `Y² 1{|Y| ≥ R} ≤ R⁻² Y⁴` gives the conditional tail bound used to discharge
 Hansen's uniform square-tail premise from a fourth-moment calculation. -/
-theorem integral_tail_sq_le_inv_sq_mul_integral_fourth
+private theorem integral_tail_sq_le_inv_sq_mul_integral_fourth
     {α : Type*} [MeasurableSpace α] {P : Measure α}
     {Y : α → ℝ} {R : ℝ} (hR : 0 < R)
     (hY4 : Integrable (fun x => (Y x) ^ 4) P) :
@@ -1642,7 +1651,7 @@ For the ordinary `Fin (n+1)` empirical law, the conditional Lindeberg tail of
 the `sqrt (n+1)`-normalized one-draw summand is bounded by `ε^{-2}` times the
 scaled empirical fourth moment. This is the finite inequality used before the
 shifted Marcinkiewicz step sends the right side to zero in probability. -/
-theorem lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth
+private theorem lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_le_scaled_fourth
     [NormedAddCommGroup E] [NormedSpace ℝ E]
     (Y : Fin (n + 1) → E) {ε : ℝ} (hε : 0 < ε) :
     ((n + 1 : ℕ) : ℝ) *
@@ -1725,7 +1734,7 @@ summands in Hansen Theorem 10.4.
 The finite Lindeberg inequality reduces the tail term to the scaled empirical
 fourth moment. The shifted Marcinkiewicz bridge then sends that right side to
 zero in probability under finite second moments and identical distribution. -/
-theorem
+private theorem
     lindeberg_norm_sq_tail_normalized_uniformOn_finSucc_tendsto_zero_of_identDistrib_memLp_two
     [NormedAddCommGroup E] [NormedSpace ℝ E] [MeasurableSpace E] [BorelSpace E]
     [IsFiniteMeasure μ]
@@ -5337,7 +5346,7 @@ coordinate squared tail of its matrix-linear image.
 This is the finite-dimensional moment bridge used in the exact-linearization
 face of Hansen Theorem 10.10: the deterministic operator/projection norm
 constant is kept explicit. -/
-theorem integral_tail_sq_matrixContinuousLinearMap_coord_le_norm_fourth
+private theorem integral_tail_sq_matrixContinuousLinearMap_coord_le_norm_fourth
     {α d r : Type*} [MeasurableSpace α]
     [Fintype d] [Fintype r] [DecidableEq d]
     {P : Measure α} {T : α → EuclideanSpace ℝ d}

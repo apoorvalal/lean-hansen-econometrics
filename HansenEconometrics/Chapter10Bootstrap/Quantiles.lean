@@ -2,6 +2,14 @@ import Mathlib.Probability.CDF
 import HansenEconometrics.Chapter10Bootstrap.Distribution
 import HansenEconometrics.ProbabilityUtils
 
+/-!
+# Chapter 10 — Bootstrap quantiles
+
+Scalar, bootstrap, and indexed CDFs and lower-quantile convergence: the
+`lowerCDFQuantile` bracketing API and the quantile-convergence wrappers used by
+the percentile and percentile-`t` interval modules.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -32,7 +40,7 @@ noncomputable def lowerCDFQuantile (G : ℝ → ℝ) (p : ℝ) : ℝ :=
 
 /-- A point where the CDF-like function has reached level `p` lies weakly above
 the lower generalized inverse. -/
-theorem lowerCDFQuantile_le
+private theorem lowerCDFQuantile_le
     {G : ℝ → ℝ} {p x : ℝ}
     (hbdd : BddBelow {y : ℝ | p ≤ G y})
     (hx : p ≤ G x) :
@@ -42,7 +50,7 @@ theorem lowerCDFQuantile_le
 
 /-- If a monotone CDF-like function remains below `p` just to the right of
 `x`, then `x` lies strictly below the lower generalized inverse. -/
-theorem lt_lowerCDFQuantile_of_exists_right_lt
+private theorem lt_lowerCDFQuantile_of_exists_right_lt
     {G : ℝ → ℝ} {p x : ℝ}
     (hmono : Monotone G)
     (hne : ({y : ℝ | p ≤ G y} : Set ℝ).Nonempty)
@@ -64,7 +72,7 @@ theorem lt_lowerCDFQuantile_of_exists_right_lt
 /-- Lower generalized inverses bracket their CDF levels when the random CDFs
 are monotone and locally stay below `p` immediately to the right of any point
 where they are below `p`. -/
-theorem lowerCDFQuantile_bracket_of_local_right_lt
+private theorem lowerCDFQuantile_bracket_of_local_right_lt
     {Gseq : ℕ → Ω → ℝ → ℝ} {p : ℝ}
     (hmono : ∀ n ω, Monotone (Gseq n ω))
     (hne : ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
@@ -106,7 +114,7 @@ private theorem stieltjesFunction_exists_right_lt_of_lt
 
 /-- Stieltjes-function CDFs supply the right-local persistence premise for the
 lower generalized inverse through right-continuity. -/
-theorem lowerCDFQuantile_bracket_of_stieltjesFunction
+private theorem lowerCDFQuantile_bracket_of_stieltjesFunction
     {Gseq : ℕ → Ω → StieltjesFunction ℝ} {p : ℝ}
     (hne :
       ∀ n ω, ({x : ℝ | p ≤ Gseq n ω x} : Set ℝ).Nonempty)
@@ -582,7 +590,7 @@ theorem bootstrapScalarCDF_mono
   exact measure_mono fun ωs hωs => le_trans hωs hxy
 
 /-- Conditional bootstrap scalar CDF as Mathlib's CDF of the push-forward law. -/
-theorem bootstrapScalarCDF_eq_cdf_map
+private theorem bootstrapScalarCDF_eq_cdf_map
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
     {n : ℕ} {ω : Ω}
     (hPstar : IsProbabilityMeasure (Pstar n ω))
@@ -602,7 +610,7 @@ of any point where they are strictly below it.
 
 This is the standard right-continuity bracketing premise for lower generalized
 inverse arguments, derived from Mathlib's CDF of the push-forward law. -/
-theorem bootstrapScalarCDF_exists_right_lt_of_lt
+private theorem bootstrapScalarCDF_exists_right_lt_of_lt
     {Pstar : ℕ → Ω → Measure Ωs} {Zstar : ℕ → Ω → Ωs → ℝ}
     {n : ℕ} {ω : Ω}
     (hPstar : IsProbabilityMeasure (Pstar n ω))

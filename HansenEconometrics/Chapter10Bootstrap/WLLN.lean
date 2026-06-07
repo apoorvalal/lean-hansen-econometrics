@@ -2,6 +2,13 @@ import HansenEconometrics.AsymptoticUtils.MaxBounds
 import HansenEconometrics.BootstrapUtils
 import HansenEconometrics.Chapter10Bootstrap.Empirical
 
+/-!
+# Chapter 10 — Bootstrap weak law of large numbers
+
+Bootstrap convergence in probability: Marcinkiewicz WLLN support and the fixed
+and indexed bootstrap WLLN wrappers.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -1615,7 +1622,7 @@ theorem chapter10_indexed_bootstrap_smul_probability
 
 /-- Indexed-space conditional Markov inequality, stated with a concrete
 second moment. -/
-theorem bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
+private theorem bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
     [NormedAddCommGroup E]
     {Pstar : ∀ n, Ω → Measure (Ωboot n)}
     {Zstar : ∀ n, Ω → Ωboot n → E}
@@ -1637,7 +1644,7 @@ theorem bootstrapTailProbIndexed_zero_le_integral_norm_sq_div
 
 The ordinary `Fin (n+1)` empirical bootstrap avoids the empty sample-size-zero
 case while preserving the same `atTop` asymptotics. -/
-theorem bootstrapWLLNSecondMomentBound_succ_tendsto_zero
+private theorem bootstrapWLLNSecondMomentBound_succ_tendsto_zero
     [IsFiniteMeasure μ] {u : ℕ → Ω → ℝ}
     (hu : UniformIntegrable u 1 μ) {η : ℝ} (hη : 0 < η) :
     TendstoInMeasure μ
