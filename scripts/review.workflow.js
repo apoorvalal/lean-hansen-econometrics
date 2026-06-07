@@ -136,23 +136,18 @@ function normalizeArgs(a) {
   return [];
 }
 const targets = normalizeArgs(args).filter(Boolean);
-log(`Resolving worklist for ${targets.length} file(s).`);
+log(`Building worklist for ${targets.length} file(s).`);
 
-const worklistResult = await agent(
-  [
-    "You resolve a review worklist. Using your Bash tool, run exactly:",
-    "",
-    `    uv run review/worklist.py resolve ${targets.join(" ")}`,
-    "",
-    "from the repository root. The command prints a JSON array to stdout, one",
-    "entry per file with fields {file, chapter, excerpt_path, inventory_path,",
-    "decls}. Parse that stdout and return it as the structured result under the",
-    'key "worklist" (i.e. {"worklist": [ ...the array verbatim... ]}).',
-    "Do not invent entries; return exactly what review/worklist.py emits.",
-  ].join("\n"),
-  { label: "worklist", phase: "Worklist", schema: WORKLIST_SCHEMA },
-);
-const worklist = (worklistResult && worklistResult.worklist) || [];
+// We intentionally do NOT dispatch a single agent to resolve and echo the whole
+// worklist. For large chapters (e.g. Chapter 10) the resolved JSON contains
+// thousands of declarations across all files, and forcing one agent to re-emit
+// that array verbatim into a single StructuredOutput call does not scale — it
+// stalls. Instead the script builds a minimal worklist (just the file path) and
+// each reviewer agent resolves its OWN file's metadata + decls by running
+// `uv run review/worklist.py resolve <file>`. The resolve cost is tiny per file
+// and rides along the existing per-(file,dimension) parallel fan-out, and each
+// reviewer reads the target file in full anyway.
+const worklist = targets.map((file) => ({ file }));
 
 if (!worklist || worklist.length === 0) {
   log("Worklist is empty; nothing to review.");
@@ -197,11 +192,14 @@ const pipelineResults = await pipeline(
         "",
         `Target file:    ${entry.file}`,
         `Dimension:      ${dimension}`,
-        `Excerpt path:   ${entry.excerpt_path || "(none — not a chapter file)"}`,
-        `Inventory path: ${entry.inventory_path || "(none — not a chapter file)"}`,
         "",
-        "Declarations (JSON, fields name/line/private):",
-        JSON.stringify(entry.decls),
+        "Resolve this file's metadata yourself: using your Bash tool, run",
+        `    uv run review/worklist.py resolve ${entry.file}`,
+        "from the repo root. It prints a one-element JSON array whose entry has",
+        "fields {file, chapter, excerpt_path, inventory_path, decls}. Use",
+        "excerpt_path and inventory_path (may be null for non-chapter files) as the",
+        "textbook excerpt and inventory crosswalk, and use decls (fields",
+        "name/line/private) as the declaration map for this file.",
         "",
         "Read the target file in full, gather concrete evidence (prefer the Lean",
         "LSP/leansearch/loogle tools, fall back to `rg`), apply the rubric's",
