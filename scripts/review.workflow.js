@@ -111,7 +111,23 @@ const SEVERITY_RANK = { nit: 0, minor: 1, major: 2, blocker: 3 };
 // ---------------------------------------------------------------------------
 
 phase("Worklist");
-const targets = (args || []).filter(Boolean);
+// `args` may arrive as a real array, a JSON-encoded string, or a space-separated
+// string depending on how the workflow was invoked — normalize all three.
+function normalizeArgs(a) {
+  if (Array.isArray(a)) return a;
+  if (typeof a === "string") {
+    const s = a.trim();
+    if (s.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (_e) { /* fall through to whitespace split */ }
+    }
+    return s.length ? s.split(/\s+/) : [];
+  }
+  return [];
+}
+const targets = normalizeArgs(args).filter(Boolean);
 log(`Resolving worklist for ${targets.length} file(s).`);
 
 const worklist = await agent(
