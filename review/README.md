@@ -31,6 +31,13 @@ The workflow calls `worklist.py resolve` internally, fans out reviewer/verifier/
 per file per dimension, validates output against the schema, and writes reports to
 `review/reports/`.
 
+> **Known limitation (draft-fix stage):** the fixer agents run under Workflow `isolation:
+> 'worktree'`, which provisions each worktree from the repository's **default branch (`main`)**.
+> If you review files that exist only on an unmerged feature branch, the fixer worktree will not
+> contain them and every mechanical fix downgrades to report-only. The review/verify/report stages
+> are unaffected (they run in the main checkout). To exercise auto-fixes, run on files present on
+> `main`, or merge the branch first.
+
 ---
 
 ## (b) Running with Codex or another agent

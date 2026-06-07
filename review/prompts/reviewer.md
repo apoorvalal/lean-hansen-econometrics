@@ -111,7 +111,7 @@ Each finding must conform to `review/finding-schema.json` and include all requir
       "claim": "<one-sentence description of what is wrong and why>",
       "evidence": "<quoted lines, declaration names, or rg output that proves the claim>",
       "suggested_fix": "<concrete, actionable fix — name the exact lemma, keyword, or edit>",
-      "mechanical": <true if a script can apply the fix without human judgment, else false>,
+      "mechanical": <true ONLY if the fix is exactly one of the fixer whitelist edits: add `private`, add a docstring, add `@[simp]`, in-file rename, or remove a zero-external-usage duplicate. Any proof-body change (e.g. dropping a `by`/`exact` wrapper), statement change, or cross-file edit is NOT mechanical — set false.>,
       "confidence": "<high|medium|low>"
     }
   ]

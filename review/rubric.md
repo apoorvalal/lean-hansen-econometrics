@@ -234,7 +234,7 @@ When generating a finding, a reviewer agent should:
 2. **State the claim** concisely: what is wrong and why.
 3. **Provide evidence**: quote the relevant line(s) or declaration name(s) from the Lean file.
 4. **Propose a concrete fix**: e.g., "Replace with `exact Mathlib.Foo.bar`" or "Add `private` keyword".
-5. **Set `mechanical`** to `true` only if the fix can be applied by a script without human judgment.
+5. **Set `mechanical`** to `true` ONLY when the fix is exactly one of the fixer's whitelisted edits — add `private`, add a docstring, add `@[simp]`, in-file rename, or remove a zero-external-usage duplicate. A proof-body change (e.g. dropping a `by`/`exact` wrapper), any statement change, or any cross-file edit is NOT mechanical, even if it looks trivial. So "make this `private`" and "add a module docstring" are `mechanical: true`; "drop the `by exact` wrapper" and "delegate this proof to scalarCDF_mono" are `mechanical: false`.
 6. **Set `confidence`** honestly: `high` if the rule clearly applies, `medium` if context is needed, `low` if it is a heuristic guess.
 
 A finding that cannot be grounded in a specific AGENTS.md rule should not be filed. When in doubt, use `confidence: "low"` and explain the uncertainty in the `claim` field.
