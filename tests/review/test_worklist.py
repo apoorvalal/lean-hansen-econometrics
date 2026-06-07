@@ -134,5 +134,18 @@ class TestDocsAssets(unittest.TestCase):
         self.assertTrue((REPO / "review" / "reports").is_dir())
 
 
+class TestWorkflowScript(unittest.TestCase):
+    def test_workflow_wires_assets_and_pipeline(self):
+        t = (REPO / "scripts" / "review.workflow.js").read_text()
+        self.assertIn("export const meta", t)
+        for asset in ["review/worklist.py", "review/rubric.md",
+                      "review/prompts/reviewer.md", "review/prompts/verifier.md",
+                      "finding-schema.json"]:
+            self.assertIn(asset, t)
+        for prim in ["pipeline(", "parallel(", "agent("]:
+            self.assertIn(prim, t)
+        self.assertIn("worktree", t)   # draft-PR fixers run isolated
+
+
 if __name__ == "__main__":
     unittest.main()
