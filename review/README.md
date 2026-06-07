@@ -11,7 +11,7 @@ reports to `review/reports/`.
 
 | Runner | Entry point |
 |---|---|
-| Claude Code | `scripts/review.workflow.js` (Task-7 Workflow tool) |
+| Claude Code | `scripts/review.workflow.js` (via the Workflow tool) |
 | Codex / other agent | `review/worklist.py` + prompt templates (see below) |
 | Human / manual | Follow the manual procedure in this file |
 
@@ -43,7 +43,24 @@ per file per dimension, validates output against the schema, and writes reports 
 ## (b) Running with Codex or another agent
 
 Codex and other code-generation agents that have no built-in workflow runner can execute the
-harness layer by layer using the CLI tools and prompt templates directly.
+harness layer by layer using the CLI tools and prompt templates directly. A Codex runner reuses
+**all** of Layer 1 (this directory) and only re-implements the orchestration glue — there is no need
+to port `scripts/review.workflow.js`.
+
+**Orchestration shape** (what `scripts/review.workflow.js` does, for you to mirror):
+
+```
+resolve worklist (1 call)
+  └─ for each file × each of the 4 dimensions:        # the review fan-out
+       reviewer agent  -> {findings: [...]}
+         └─ for each finding: verifier agent -> keep only verdict=="confirmed"
+  dedup confirmed findings by id (keep higher severity, union evidence)
+  write report grouped by file -> dimension, severity-sorted, to review/reports/
+  (optional) for mechanical==true findings: fixer agent in an isolated checkout + lake build
+```
+
+Run reviewers per `(file, dimension)` rather than per declaration — that keeps the agent count at
+`files × 4`. Each finding gets its own independent verifier (the false-positive killer).
 
 ### Step 1 — Resolve worklist metadata
 
@@ -69,7 +86,9 @@ For each `(file, dimension)` pair, fill in the placeholders in
 - `{{decls_json}}` — the `decls` array from Step 1 output as a JSON string
 
 The reviewer outputs a JSON object `{"findings": [...]}` whose array elements each conform to
-`review/finding-schema.json`. Validate the array with
+`review/finding-schema.json`. Each finding's `id` is `sha1("<file>:<line>:<decl>:<dimension>")`
+(hex digest of the UTF-8 string) — this id is what the dedup step keys on, so compute it
+consistently. Validate the array with
 `echo '<findings-array>' | uv run review/worklist.py --validate-schema`.
 
 ### Step 3 — Run verifier pass
