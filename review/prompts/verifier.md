@@ -24,12 +24,14 @@ Work through these steps in order.
 ### Step 1 — Read the finding
 
 Parse `{{finding_json}}`. Note the `dimension`, `decl`, `file`, `line`, `evidence`, `rule`, and
-`claim`.
+`claim`. In the steps below, `<file>`, `<line>`, and `<decl>` refer to the corresponding fields of
+this parsed finding object (the orchestrator injects only `{{finding_json}}` — these are not separate
+placeholders).
 
 ### Step 2 — Re-examine the source file
 
-Open `{{file}}` and read the declaration at line `{{line}}`. Read enough surrounding context to
-understand the proof strategy and visibility.
+Open the finding's `<file>` and read the declaration at its `<line>`. Read enough surrounding context
+to understand the proof strategy and visibility.
 
 ### Step 3 — Apply the dimension-specific proof burden
 
@@ -41,16 +43,20 @@ the finding is **refuted**.
 - Find the exact Mathlib or repo declaration that allegedly duplicates the finding's `decl`.
 - Use `loogle` or `leansearch` to search Mathlib by type or name. Use `rg` as fallback.
 - The duplicating declaration must have a statement that is equal to or strictly more general than
-  the `decl` under review.
+  the `<decl>` under review.
 - If you cannot name the exact duplicating declaration, refute the finding.
 - A thin Hansen-facing wrapper that delegates to Mathlib is NOT redundancy. Confirm only if the
-  finding's `decl` genuinely re-proves the mathematics from scratch.
+  finding's `<decl>` genuinely re-proves the mathematics from scratch.
+- **Usage check for the fixer:** also run `rg -l '<decl>' --include='*.lean'` across the repo and
+  record in `evidence` whether `<decl>` has any callers outside its own `<file>`. The fixer's
+  "remove duplicate" edit is only safe when there are zero external callers, so this fact must be
+  captured here even when you confirm the finding.
 
 #### `hygiene`
 
-- For "should be private" findings: run `rg -l '<declName>' --include='*.lean'` across the entire
-  repo. If the declaration name appears in any file other than `{{file}}`, the finding is refuted
-  because the helper has out-of-file callers.
+- For "should be private" findings: run `rg -l '<decl>' --include='*.lean'` across the entire
+  repo. If the declaration name appears in any file other than the finding's `<file>`, the finding is
+  refuted because the helper has out-of-file callers.
 - For "missing @[simp]" findings: confirm the identity appears in at least two separate proofs via
   `rg`. If it appears only once, refute.
 - For "missing docstring" findings: check that the module is genuinely large (multiple public

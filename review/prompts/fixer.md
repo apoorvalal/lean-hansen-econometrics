@@ -26,7 +26,7 @@ You may apply **only** the following edits. Any edit not in this list is forbidd
 | **Add docstring** | Insert a `/-- ... -/` docstring on the line immediately before the declaration keyword |
 | **Add `@[simp]`** | Insert `@[simp]` as an attribute on the declaration |
 | **In-file rename** | Rename a declaration and update all its call-sites **within the same file only** |
-| **Remove duplicate** | Delete a declaration that has zero external usages (confirmed by the verifier via `rg`) and that duplicates an existing canonical declaration |
+| **Remove duplicate** | Delete a declaration that duplicates an existing canonical declaration **and** whose `evidence` (from the verifier) records zero callers outside its own file. If the verifier's evidence does not explicitly establish zero external callers, do NOT remove — downgrade to report-only. |
 
 **Forbidden edits:**
 
@@ -44,7 +44,9 @@ Work through these steps in order. Do not skip steps.
 
 ### Step 1 — Confirm the finding is mechanical
 
-Read `{{finding_json}}`. Check the `mechanical` field.
+Read `{{finding_json}}`. Check the `mechanical` field. In the steps below, `<file>`, `<line>`, and
+`<decl>` refer to the corresponding fields of the parsed finding (the orchestrator injects only
+`{{finding_json}}` — these are not separate placeholders).
 
 - If `mechanical` is `false`, **stop immediately**. Output a downgrade report (see below). Do not
   touch the file.
@@ -68,7 +70,7 @@ If the required edit is not in the allowed list, downgrade to report-only and st
 
 ### Step 4 — Apply the edit
 
-Apply the single mechanical edit to `{{file}}` at line `{{line}}` for declaration `{{decl}}`.
+Apply the single mechanical edit to the finding's `<file>` at its `<line>` for declaration `<decl>`.
 Make only the minimum change required. Do not reformat surrounding code.
 
 ### Step 5 — Run `lake build`
