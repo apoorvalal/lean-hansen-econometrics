@@ -1,5 +1,13 @@
 import HansenEconometrics.Chapter10Bootstrap.Regression
 
+/-!
+# Chapter 10 — Finite replication estimators
+
+Finite simulation (`B`-replication) bootstrap variance and covariance estimators
+and their consistency transfers to the ideal bootstrap quantities (Hansen
+Theorem 10.11). This is the chapter-facing finite-replication estimator API.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function

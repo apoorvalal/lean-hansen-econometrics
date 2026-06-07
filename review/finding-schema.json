@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lean review finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "file", "line", "decl", "dimension", "severity",
+               "rule", "claim", "evidence", "suggested_fix", "mechanical", "confidence"],
+  "properties": {
+    "id":        {"type": "string", "description": "sha1(file:line:decl:dimension)"},
+    "file":      {"type": "string"},
+    "line":      {"type": "integer", "minimum": 1},
+    "decl":      {"type": "string"},
+    "dimension": {"enum": ["redundancy", "hygiene", "faithfulness", "proof-quality"]},
+    "severity":  {"enum": ["blocker", "major", "minor", "nit"]},
+    "rule":      {"type": "string"},
+    "claim":     {"type": "string"},
+    "evidence":  {"type": "string"},
+    "suggested_fix": {"type": "string"},
+    "mechanical": {"type": "boolean"},
+    "confidence": {"enum": ["high", "medium", "low"]}
+  }
+}

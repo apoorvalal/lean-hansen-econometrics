@@ -1,5 +1,14 @@
 import HansenEconometrics.Chapter10Bootstrap.Variance
 
+/-!
+# Chapter 10 — Bootstrap covariance
+
+Bootstrap covariance consistency for resampled statistics: moment-form and
+covariance-form estimators, their indexed variants, the trimmed-statistic API
+layer, and the `chapter10_*` consistency/CLT results that form this module's
+chapter-facing public surface.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -574,7 +583,7 @@ theorem centeredEmpiricalTailSqFinSucc_tendsto_ae_of_iIndep
 
 /-- A finite-dimensional dot product is bounded by the `L¹` coefficient norm
 times the ambient sup norm. -/
-theorem abs_dotProduct_le_l1_mul_norm
+private theorem abs_dotProduct_le_l1_mul_norm
     {k : Type*} [Fintype k] (x a : k → ℝ) :
     |x ⬝ᵥ a| ≤ (∑ j : k, |a j|) * ‖x‖ := by
   have hsum_abs :
@@ -6948,7 +6957,7 @@ theorem
 This is the trimming-tail form used by Hansen Theorem 10.12: if the trimming
 threshold is positive, the conditional probability of `τ < ‖Z*‖` is bounded by
 `τ⁻² E*[‖Z*‖²]`. -/
-theorem measure_strict_norm_gt_le_inv_sq_mul_integral_norm_sq
+private theorem measure_strict_norm_gt_le_inv_sq_mul_integral_norm_sq
     [NormedAddCommGroup E]
     {P : Measure Ωs} {Z : Ωs → E} (hP : IsProbabilityMeasure P)
     (hZ : MemLp Z 2 P) {τ : ℝ} (hτ : 0 < τ) :

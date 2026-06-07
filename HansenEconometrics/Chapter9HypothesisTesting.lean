@@ -146,12 +146,8 @@ theorem hasLaw_gaussian_mahalanobis_noncentralChiSquared
     (z : Fin q → ℝ) ⬝ᵥ (V⁻¹ *ᵥ (z : Fin q → ℝ))
   have hcoord : Continuous (fun z : EuclideanSpace ℝ (Fin q) => (z : Fin q → ℝ)) :=
     PiLp.continuous_ofLp 2 (fun _ : Fin q => ℝ)
-  have hdot : Continuous (fun p : (Fin q → ℝ) × (Fin q → ℝ) => p.1 ⬝ᵥ p.2) := by
-    classical
-    simpa [dotProduct] using
-      (continuous_finset_sum Finset.univ (fun i _ =>
-        (((continuous_apply i).comp continuous_fst).mul
-          ((continuous_apply i).comp continuous_snd))))
+  have hdot : Continuous (fun p : (Fin q → ℝ) × (Fin q → ℝ) => p.1 ⬝ᵥ p.2) :=
+    Continuous.dotProduct continuous_fst continuous_snd
   have hmulVec : Continuous (fun z : EuclideanSpace ℝ (Fin q) =>
       V⁻¹ *ᵥ (z : Fin q → ℝ)) :=
     Continuous.matrix_mulVec continuous_const hcoord
@@ -328,7 +324,7 @@ omit [Fintype k] [DecidableEq k] in
 If `Tₙ ⇒ Z` and `Ahatₙ →ₚ A`, then
 `Tₙ' Ahatₙ Tₙ ⇒ Z' A Z`. This is the statistic-level CMT used by the
 nonlinear Hausman layer. -/
-theorem quadraticForm_tendstoInDistribution_of_vector_and_matrix
+private theorem quadraticForm_tendstoInDistribution_of_vector_and_matrix
     {Ω Ω' : Type*} [MeasurableSpace Ω] [MeasurableSpace Ω']
     {μ : Measure Ω} [IsProbabilityMeasure μ]
     {ν : Measure Ω'} [IsProbabilityMeasure ν]
@@ -344,12 +340,8 @@ theorem quadraticForm_tendstoInDistribution_of_vector_and_matrix
   letI : BorelSpace (Matrix q q ℝ) := ⟨rfl⟩
   have hA_meas' : ∀ n, AEMeasurable (Ahat n) μ :=
     fun n => (hA_meas n).aemeasurable
-  have hdot : Continuous (fun p : (q → ℝ) × (q → ℝ) => p.1 ⬝ᵥ p.2) := by
-    classical
-    simpa [dotProduct] using
-      (continuous_finset_sum Finset.univ (fun i _ =>
-        (((continuous_apply i).comp continuous_fst).mul
-          ((continuous_apply i).comp continuous_snd))))
+  have hdot : Continuous (fun p : (q → ℝ) × (q → ℝ) => p.1 ⬝ᵥ p.2) :=
+    Continuous.dotProduct continuous_fst continuous_snd
   have hmulVec : Continuous
       (fun p : (q → ℝ) × Matrix q q ℝ => p.2 *ᵥ p.1) :=
     Continuous.matrix_mulVec continuous_snd continuous_fst

@@ -1,5 +1,13 @@
 import HansenEconometrics.Chapter10Bootstrap.Percentile
 
+/-!
+# Chapter 10 — Percentile-t intervals
+
+Percentile-`t` (studentized bootstrap) confidence intervals and their coverage:
+the rejection/coverage event characterizations and the percentile-`t` coverage
+convergence results.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -121,7 +129,7 @@ private theorem isClosed_percentileTCoverageSet : IsClosed percentileTCoverageSe
 
 /-- Positive standard errors turn Hansen's percentile-`t` interval event into
 the t-ratio event `qLower <= T <= qUpper`. -/
-theorem percentileTCIEvent_iff_tstat_between
+private theorem percentileTCIEvent_iff_tstat_between
     {θ θhat se qLower qUpper : ℝ} (hse : 0 < se) :
     percentileTCIEvent θ θhat se qLower qUpper ↔
       qLower ≤ percentileTStatistic θ θhat se ∧
@@ -142,7 +150,7 @@ theorem percentileTCIEvent_iff_tstat_between
         simpa [percentileTStatistic, mul_comm] using (le_div_iff₀ hse).1 h.1
       nlinarith
 
-theorem percentileTCoverageVector_mem_set_iff
+private theorem percentileTCoverageVector_mem_set_iff
     {θ : ℝ} {θhat se qLower qUpper : ℕ → Ω → ℝ}
     {n : ℕ} {ω : Ω} (hse : 0 < se n ω) :
     percentileTCoverageVector θ θhat se qLower qUpper n ω ∈

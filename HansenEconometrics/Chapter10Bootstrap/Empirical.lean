@@ -8,6 +8,14 @@ import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter6Asymptotics
 import HansenEconometrics.ProbabilityUtils
 
+/-!
+# Chapter 10 — Finite empirical distributions
+
+Finite empirical distributions, jackknife identities, bootstrap inclusion
+probabilities, and exact finite-resampling moments, together with the centered
+empirical characteristic-function expansions used downstream.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -5259,7 +5267,7 @@ characteristic-function remainder is bounded by the empirical integral of the
 pointwise second-order exponential remainder.  The right side is split into a
 small quadratic term and a large-tail quadratic term, matching the Lindeberg
 calculation used in Hansen Theorem 10.4. -/
-theorem centeredEmpiricalCharFunFinSucc_remainder_norm_le_integral_split
+private theorem centeredEmpiricalCharFunFinSucc_remainder_norm_le_integral_split
     (Y : ℕ → ℝ) (n : ℕ) (t δ η : ℝ)
     (hδ : 0 < δ) (hη : 0 ≤ η)
     (hsmall : ∀ y : ℝ, |y| < δ →
@@ -5652,7 +5660,7 @@ This deterministic bridge is the norm-estimate face of the Taylor remainder
 premise used in the changing-support empirical characteristic-function power
 argument: it is enough to show that `n+1` times the norm of the displayed
 second-order remainder tends to zero. -/
-theorem centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_scaled_norm_tendsto_zero
+private theorem centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_scaled_norm_tendsto_zero
     (Y : ℕ → ℝ) (u : ℝ)
     (hscaled :
       Tendsto
@@ -5680,7 +5688,7 @@ This deterministic constructor discharges the explicit Taylor-remainder
 premise used by the changing-support characteristic-function bridge once the
 empirical variances are eventually bounded and every centered scaled square
 tail tends to zero. -/
-theorem
+private theorem
     centeredEmpiricalCharFunFinSucc_remainder_isLittleO_of_variance_bound_tail
     (Y : ℕ → ℝ) (u : ℝ) {B : ℝ} (hB : 0 ≤ B)
     (hvar_bound : ∀ᶠ n in atTop, empiricalVarianceFinSucc Y n ≤ B)

@@ -1,6 +1,14 @@
 import HansenEconometrics.Chapter10Bootstrap.Quantiles
 import HansenEconometrics.Chapter10Bootstrap.Regression
 
+/-!
+# Chapter 10 — Percentile intervals
+
+Percentile-interval coverage, bias-corrected interval definitions, and the BCa
+interval API, including the frontier-nullity facts that drive percentile
+coverage convergence.
+-/
+
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
@@ -187,7 +195,7 @@ theorem percentileCoverageLimit_measure_set_eq
 
 /-- The frontier of the percentile-coverage set is contained in the union of
 the two binding endpoint hyperplanes. -/
-theorem frontier_percentileCoverageSet_subset :
+private theorem frontier_percentileCoverageSet_subset :
     frontier percentileCoverageSet ⊆
       {z : Fin 3 → ℝ | z 1 = -z 0} ∪
         {z : Fin 3 → ℝ | -z 0 = z 2} := by
@@ -208,7 +216,7 @@ theorem frontier_percentileCoverageSet_subset :
 
 /-- Scalar endpoint-boundary null mass implies the vector-law null-frontier
 premise for the percentile-coverage set. -/
-theorem percentileCoverage_frontier_null_of_boundary_null
+private theorem percentileCoverage_frontier_null_of_boundary_null
     {ξ : Ωlim → ℝ} {qLower qUpper : ℝ}
     (hξ : AEMeasurable ξ ν)
     (hleft : ν {ω | qLower = -ξ ω} = 0)
