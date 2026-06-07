@@ -19,6 +19,10 @@ reports to `review/reports/`.
 
 ## (a) Running with Claude Code
 
+> **Note:** `scripts/review.workflow.js` is the planned Claude Code entry point and is created in
+> Task 7 of the implementation plan. Until that lands, use the Codex/manual procedure in section (b)
+> below (the portable Layer-1 assets are fully usable without the workflow script).
+
 The Claude Code orchestrator is `scripts/review.workflow.js`. Invoke it via the Workflow
 tool, passing the list of Lean files to review as `args`:
 
