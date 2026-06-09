@@ -1,6 +1,19 @@
 import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 
+/-!
+# Chapter 2: Linear Projection
+
+This file covers two distinct subjects from Hansen Chapter 2:
+
+* **Theorem 2.9** — deterministic linear-projection matrix algebra: the projection
+  coefficient `linearProjectionBeta = QXX⁻¹ QXY`, the normal equations, orthogonality,
+  the MSE quadratic-completion identity, best-linear-predictor minimization (with a
+  moment-notation wrapper), and uniqueness.
+* **Theorem 2.10** — measure-theoretic regression-coefficient formulas: the intercept
+  and the slope/covariance formulas in the `MeanCovariance` section.
+-/
+
 open scoped Matrix
 
 namespace HansenEconometrics

@@ -177,7 +177,7 @@ structure PotentialOutcomeCIAOn
   condIndep_y1 : D ⟂ᵢ[X, x_measurable; μ] Y1
 
 omit [MeasurableSpace Ω] in
-theorem conditioningSpace_pair_comm
+private theorem conditioningSpace_pair_comm
     {D : Ω → Bool} {X : Ω → β} :
     conditioningSpace (fun ω => (D ω, X ω)) =
       conditioningSpace (fun ω => (X ω, D ω)) := by

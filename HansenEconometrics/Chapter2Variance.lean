@@ -1,5 +1,18 @@
 import HansenEconometrics.Chapter2CondExp
 
+/-!
+# Chapter 2: Variance decomposition
+
+The variance results of Hansen Chapter 2 and their conditioning-variable-facing wrappers:
+
+* the law of total variance (`law_total_variance`) and the regression-error variance
+  identity (`integral_condVar_eq_integral_cefError_sq`);
+* the explained-variance bound `Var[E[Y|m]] ≤ Var[Y]` (`variance_condExp_le_variance`);
+* residual-variance antitonicity in the conditioning σ-algebra
+  (`variance_cefError_antitone`);
+* the `ProbabilityOnRandomVars` `_rv` wrappers stated over a conditioning variable.
+-/
+
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory
 open MeasureTheory ProbabilityTheory
 
@@ -40,7 +53,7 @@ theorem law_total_variance
     (X := Y) hm hY
 
 /-- Hansen Theorem 2.8, rearranged. -/
-theorem variance_decomposition
+private theorem variance_decomposition
     {Y : Ω → ℝ}
     (hm : m ≤ m₀)
     [IsProbabilityMeasure μ]
@@ -57,8 +70,8 @@ theorem variance_condExp_le_variance
     (hY : MemLp Y 2 μ) :
     Var[μ[Y | m]; μ] ≤ Var[Y; μ] := by
   have htv := law_total_variance (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY
-  have hY2 : Integrable ((Y - μ[Y | m]) ^ 2) μ := by
-    exact (hY.sub hY.condExp).integrable_sq
+  have hY2 : Integrable ((Y - μ[Y | m]) ^ 2) μ :=
+    (hY.sub hY.condExp).integrable_sq
   have hnonneg : 0 ≤ μ[Var[Y; μ | m]] := by
     rw [integral_condVar_eq_integral_cefError_sq (m := m) (m₀ := m₀) (μ := μ) (Y := Y) hm hY2]
     refine integral_nonneg ?_
