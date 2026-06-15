@@ -4,9 +4,10 @@ import Mathlib.Data.Matrix.Mul
 /-!
 # Chapter 11 — principal components
 
-Principal components are exposed through the covariance quadratic form. The main
-theorem-facing wrapper records that the maximizing unit vector is an eigenvector
-of the covariance matrix for the ordered component.
+Principal components are exposed through the covariance quadratic form. The
+current file supplies reusable PCA notation plus algebraic bridge lemmas; the
+spectral existence theorem behind Hansen Theorem 11.8 remains a separate gap in
+the chapter inventory.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -39,8 +40,8 @@ structure PrincipalComponentSolution
       principalComponentVariance Sigma g ≤ principalComponentVariance Sigma h
 
 omit [DecidableEq k] in
-/-- **Hansen Theorem 11.8.** Principal components are covariance eigenvectors. -/
-theorem chapter11_theorem_11_8_principalComponent_eigenvector
+/-- Eigenvector component of a supplied `PrincipalComponentSolution`. -/
+theorem principalComponent_eigenvector_of_solution
     (Sigma : Matrix k k ℝ) (h : k → ℝ) (lambda : ℝ)
     (hh : PrincipalComponentSolution Sigma h lambda) :
     Sigma *ᵥ h = lambda • h :=

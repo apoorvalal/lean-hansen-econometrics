@@ -6,6 +6,8 @@ import Mathlib.Data.Matrix.Mul
 
 This module records the principal-component factor-estimation surface and the
 large-dimension condition package used in Hansen's approximate-factor discussion.
+The factor-model MLE/PCA certificate here is a support interface, not the full
+proof of Hansen Theorem 11.9 from the least-squares objective.
 -/
 
 open scoped Matrix
@@ -31,28 +33,36 @@ noncomputable def factorScoreEstimator
 /-- Principal-component least-squares factor solution from Hansen Theorem 11.9. -/
 structure FactorPCSolution
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
-    (Λhat : Matrix k r ℝ) (Fhat : k → r → ℝ) : Prop where
-  leading_eigenspace : Shat = Shat
+    (Λhat : Matrix k r ℝ) (Fhat : k → r → ℝ)
+    (leadingEigenspace normalization : Prop) : Prop where
+  leading_eigenspace : leadingEigenspace
   loading_eq : Λhat = factorLoadingEstimator H sqrtD
   factor_eq : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (fun a => if a = i then 1 else 0)
-  normalization : Λhat = Λhat
+  normalization : normalization
 
 omit [DecidableEq r] in
-/-- **Hansen Theorem 11.9.** Principal-component solution of the least-squares
-factor model under the usual normalization. -/
-theorem chapter11_theorem_11_9_factorModel_pc_solution
+/-- Assemble a principal-component factor-solution certificate. -/
+theorem factorPCSolution_of_certificate
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
     (Λhat : Matrix k r ℝ) (Fhat : k → r → ℝ)
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat) :
-    FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat :=
-  h
+    {leadingEigenspace normalization : Prop}
+    (hLead : leadingEigenspace)
+    (hLoad : Λhat = factorLoadingEstimator H sqrtD)
+    (hFactor : ∀ i, Fhat i = factorScoreEstimator H invSqrtD (fun a => if a = i then 1 else 0))
+    (hNorm : normalization) :
+    FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat leadingEigenspace normalization where
+  leading_eigenspace := hLead
+  loading_eq := hLoad
+  factor_eq := hFactor
+  normalization := hNorm
 
 omit [DecidableEq r] in
 /-- Loading equality component of Hansen Theorem 11.9. -/
 theorem factorPCSolution_loading_eq
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
     (Λhat : Matrix k r ℝ) (Fhat : k → r → ℝ)
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat) :
+    {leadingEigenspace normalization : Prop}
+    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat leadingEigenspace normalization) :
     Λhat = factorLoadingEstimator H sqrtD :=
   h.loading_eq
 
@@ -61,7 +71,8 @@ omit [DecidableEq r] in
 theorem factorPCSolution_factor_eq
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (sqrtD invSqrtD : Matrix r r ℝ)
     (Λhat : Matrix k r ℝ) (Fhat : k → r → ℝ)
-    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat) :
+    {leadingEigenspace normalization : Prop}
+    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat Fhat leadingEigenspace normalization) :
     ∀ i, Fhat i = factorScoreEstimator H invSqrtD (fun a => if a = i then 1 else 0) :=
   h.factor_eq
 

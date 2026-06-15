@@ -4,10 +4,10 @@ import HansenEconometrics.LinearAlgebraUtils
 /-!
 # Chapter 11 — matrix-normal and Wishart wrappers
 
-This file provides the Chapter 11 public surface for the matrix-normal appendix
-results. The Wishart law is represented as the push-forward law of a matrix
-quadratic form, which is enough for downstream finite-sample distributional
-wrappers without duplicating Mathlib's Gaussian internals.
+This file provides support notation for the Chapter 11 matrix-normal appendix.
+The Wishart law is represented as the push-forward law of a matrix quadratic
+form. The law lemmas below project supplied law interfaces; they do not yet
+derive Hansen Theorems 11.10--11.12 from primitive normal/Wishart assumptions.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -54,22 +54,22 @@ noncomputable def hotellingT2
   root * ((Ybar - μ0) ⬝ᵥ (Shat⁻¹ *ᵥ (Ybar - μ0)))
 
 omit [DecidableEq n] [DecidableEq m] in
-/-- **Hansen Theorem 11.10.** Normal sample covariance has a scaled Wishart law. -/
-theorem chapter11_theorem_11_10_sampleCovariance_wishart
+/-- Interface projection for a sample covariance with a scaled Wishart law. -/
+theorem sampleCovariance_hasLaw_from_wishartInterface
     (Shat : Ω → Matrix m m ℝ) (Ylaw : Measure (Matrix n m ℝ)) (c : ℝ)
     (h : HasLaw Shat (scaledWishartMatrixLaw c Ylaw) μ) :
     HasLaw Shat (scaledWishartMatrixLaw c Ylaw) μ :=
   h
 
-/-- **Hansen Theorem 11.11.** Inverse-Wishart linear form has a chi-square law. -/
-theorem chapter11_theorem_11_11_inverseWishartLinearForm_chiSquared
+/-- Interface projection for an inverse-Wishart linear-form chi-square law. -/
+theorem inverseWishartLinearForm_hasLaw_from_interface
     (W : Ω → Matrix m m ℝ) (α : m → ℝ) (df : ℕ)
     (h : HasLaw (fun ω => inverseWishartLinearForm α (W ω)) (chiSquared df) μ) :
     HasLaw (fun ω => inverseWishartLinearForm α (W ω)) (chiSquared df) μ :=
   h
 
-/-- **Hansen Theorem 11.12.** Hotelling's `T²` statistic has the scaled F law. -/
-theorem chapter11_theorem_11_12_hotellingT2_scaledF
+/-- Interface projection for Hotelling's `T²` scaled F law. -/
+theorem hotellingT2_hasLaw_from_interface
     (T2 : Ω → ℝ) (scale : ℝ) (q ν : ℕ)
     (h : HasLaw T2 ((classicalFDist q ν).map fun x => scale * x) μ) :
     HasLaw T2 ((classicalFDist q ν).map fun x => scale * x) μ :=

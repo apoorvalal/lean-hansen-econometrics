@@ -68,22 +68,21 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- Chapter 11 now has a theorem-facing Lean surface under
+- Chapter 11 now has a support Lean surface under
   `HansenEconometrics/Chapter11MultivariateRegression/`, with an umbrella import at
   `HansenEconometrics/Chapter11MultivariateRegression.lean`.
 - The formalization is intentionally layered:
   - deterministic system-regression definitions and common-regressor covariance algebra live in
     `Systems.lean`
-  - asymptotic LS and covariance-consistency wrappers live in `Asymptotics.lean`
-  - SUR wrappers live in `SUR.lean`
+  - asymptotic LS and covariance-consistency interface projections live in `Asymptotics.lean`
+  - SUR variance notation and support bridges live in `SUR.lean`
   - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
-- The asymptotic theorem statements reuse the repo's Chapter 8 `GaussianLimit` and
-  `CovarianceEstimatorConsistent` interfaces rather than rebuilding empirical-process arguments in
-  Chapter 11.
-- Reduced-rank, factor-model, Wishart, inverse-Wishart, and Hotelling results are currently
-  formalized as chapter-facing theorem packages/law wrappers. They name the textbook result and its
-  reusable Lean object while leaving deeper distributional/eigenvalue derivations as future backend
-  work.
+- The current declarations reuse the repo's Chapter 8 `GaussianLimit` and
+  `CovarianceEstimatorConsistent` interfaces, but they do not claim the full Hansen theorem
+  conclusions unless the Lean statement derives the result from non-tautological assumptions.
+- Reduced-rank, factor-model, Wishart, inverse-Wishart, and Hotelling material is represented by
+  notation and certificate shapes only. The full generalized-eigenvalue, spectral, and distributional
+  derivations remain open.
 
 ## LaTeX / Lean Crosswalk
 
@@ -103,18 +102,35 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | `chapter11_theorem_11_1_systemLeastSquares_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_1_systemLeastSquares_tendstoInDistribution` |
-| Theorem 11.2 | Under Assumptions 7.2 and 7.3, linear transformations of system LS have the stated Gaussian limit. | `chapter11_theorem_11_2_delta_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_2_delta_tendstoInDistribution` |
-| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | `chapter11_theorem_11_3_covariance_consistent`; delta wrapper `systemDeltaCovariance_consistent` |
-| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | `chapter11_theorem_11_4_sur_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_4_sur_tendstoInDistribution` |
-| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | `chapter11_theorem_11_5_sur_efficiency` |
-| Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. | `chapter11_theorem_11_6_sur_covariance_consistent` |
-| Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | `chapter11_theorem_11_7_reducedRank_mle` |
-| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `chapter11_theorem_11_8_principalComponent_eigenvector`; variance wrapper `principalComponentVariance_eq_eigenvalue` |
-| Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | `chapter11_theorem_11_9_factorModel_pc_solution`; projection wrappers `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq` |
-| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | `chapter11_theorem_11_10_sampleCovariance_wishart` |
-| Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | `chapter11_theorem_11_11_inverseWishartLinearForm_chiSquared` |
-| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | `chapter11_theorem_11_12_hotellingT2_scaledF` |
+| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. |  |
+| Theorem 11.2 | Under Assumptions 7.2 and 7.3, linear transformations of system LS have the stated Gaussian limit. |  |
+| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. |  |
+| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. |  |
+| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. |  |
+| Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. |  |
+| Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. |  |
+| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. |  |
+| Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. |  |
+| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. |  |
+| Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. |  |
+| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. |  |
+
+## Lean-Only Support Results
+
+- System regression interface projections: `systemLeastSquares_gaussianLimit_from_interface`,
+  `systemLeastSquares_tendstoInDistribution_from_interface`,
+  `systemDelta_gaussianLimit_from_interface`, `systemDelta_tendstoInDistribution_from_interface`,
+  `systemCovariance_consistent_from_interfaces`, and `systemDeltaCovariance_consistent`.
+- SUR support bridges: `sur_gaussianLimit_from_interface`,
+  `sur_tendstoInDistribution_from_interface`, `sur_efficiency_from_loewner_gap`, and
+  `surCovariance_consistent_from_interface`.
+- PCA and factor-model support: `principalComponent_eigenvector_of_solution`,
+  `principalComponentVariance_eq_eigenvalue`, `factorPCSolution_of_certificate`,
+  `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq`, and
+  `approximateFactor_scoreVariance_bound`.
+- Reduced-rank and distributional certificate helpers: `ReducedRankMLE`,
+  `reducedRankMLE_of_certificate`, `sampleCovariance_hasLaw_from_wishartInterface`,
+  `inverseWishartLinearForm_hasLaw_from_interface`, and `hotellingT2_hasLaw_from_interface`.
 
 ## Notes
 

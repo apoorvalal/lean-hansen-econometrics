@@ -2,11 +2,12 @@ import HansenEconometrics.Chapter8Asymptotics
 import HansenEconometrics.Chapter11MultivariateRegression.Systems
 
 /-!
-# Chapter 11 — asymptotic regression-system wrappers
+# Chapter 11 — asymptotic regression-system interfaces
 
-The main theorem-facing statements in this file expose Hansen's Chapter 11
-asymptotic conclusions while consuming the reusable convergence interfaces
-already used by Chapters 7 and 8.
+This file records the reusable Chapter 8 convergence interfaces needed by the
+Chapter 11 regression-system theorems. These lemmas are interface projections
+and distributional faces; they are not, by themselves, proofs of Hansen
+Theorems 11.1--11.3 from Assumption 7.2.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -18,16 +19,15 @@ variable {Ω k q : Type*}
 variable [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
 variable [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
 
-/-- **Hansen Theorem 11.1.** Systems least-squares asymptotic normality, stated as
-the chapter-facing wrapper over a supplied Chapter 7-style Gaussian limit. -/
-theorem chapter11_theorem_11_1_systemLeastSquares_gaussianLimit
+/-- Interface projection for system least-squares asymptotic normality. -/
+theorem systemLeastSquares_gaussianLimit_from_interface
     (T : ℕ → Ω → k → ℝ) (Q Ωmat : Matrix k k ℝ)
     (hT : GaussianLimit μ T (systemAsymptoticVariance Q Ωmat)) :
     GaussianLimit μ T (systemAsymptoticVariance Q Ωmat) :=
   hT
 
-/-- Distributional face of `chapter11_theorem_11_1_systemLeastSquares_gaussianLimit`. -/
-theorem chapter11_theorem_11_1_systemLeastSquares_tendstoInDistribution
+/-- Distributional face of `systemLeastSquares_gaussianLimit_from_interface`. -/
+theorem systemLeastSquares_tendstoInDistribution_from_interface
     (T : ℕ → Ω → k → ℝ) (Q Ωmat : Matrix k k ℝ)
     (hT : GaussianLimit μ T (systemAsymptoticVariance Q Ωmat)) :
     TendstoInDistribution T atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
@@ -35,17 +35,17 @@ theorem chapter11_theorem_11_1_systemLeastSquares_tendstoInDistribution
   hT.limit
 
 omit [DecidableEq k] in
-/-- **Hansen Theorem 11.2.** Delta-method asymptotic normality for smooth
-functions of multiple equation coefficients. -/
-theorem chapter11_theorem_11_2_delta_gaussianLimit
+/-- Interface projection for delta-method asymptotic normality of smooth
+functions of multiple-equation coefficients. -/
+theorem systemDelta_gaussianLimit_from_interface
     (Tθ : ℕ → Ω → q → ℝ) (Vβ : Matrix k k ℝ) (R : Matrix k q ℝ)
     (hTθ : GaussianLimit μ Tθ (systemDeltaVariance Vβ R)) :
     GaussianLimit μ Tθ (systemDeltaVariance Vβ R) :=
   hTθ
 
 omit [DecidableEq k] in
-/-- Distributional face of Hansen Theorem 11.2. -/
-theorem chapter11_theorem_11_2_delta_tendstoInDistribution
+/-- Distributional face of `systemDelta_gaussianLimit_from_interface`. -/
+theorem systemDelta_tendstoInDistribution_from_interface
     (Tθ : ℕ → Ω → q → ℝ) (Vβ : Matrix k k ℝ) (R : Matrix k q ℝ)
     (hTθ : GaussianLimit μ Tθ (systemDeltaVariance Vβ R)) :
     TendstoInDistribution Tθ atTop (fun z : EuclideanSpace ℝ q => z.ofLp)
@@ -53,9 +53,9 @@ theorem chapter11_theorem_11_2_delta_tendstoInDistribution
   hTθ.limit
 
 omit [IsProbabilityMeasure μ] [DecidableEq k] in
-/-- **Hansen Theorem 11.3.** Robust and homoskedastic covariance estimators for
-the systems least-squares coefficient vector are consistent. -/
-theorem chapter11_theorem_11_3_covariance_consistent
+/-- Interface projection for a pair of system least-squares covariance
+consistency statements. -/
+theorem systemCovariance_consistent_from_interfaces
     (Vhat Vhat0 : ℕ → Ω → Matrix k k ℝ) (Vβ Vβ0 : Matrix k k ℝ)
     (hV : CovarianceEstimatorConsistent μ Vhat Vβ)
     (hV0 : CovarianceEstimatorConsistent μ Vhat0 Vβ0) :
