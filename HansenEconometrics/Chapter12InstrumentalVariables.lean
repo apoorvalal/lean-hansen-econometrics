@@ -9,19 +9,20 @@ import HansenEconometrics.Chapter12InstrumentalVariables.WeakMany
 /-!
 # Chapter 12 - Instrumental Variables
 
-This compatibility module re-exports the Chapter 12 instrumental-variables
-formalization:
+This compatibility module re-exports the current Chapter 12
+instrumental-variables support layer:
 
 * `Basic` contains deterministic IV, 2SLS, k-class/LIML, split-sample IV, JIVE,
   Wald IV, first-stage, and variance notation.
-* `Asymptotics` contains theorem-facing wrappers for Theorems 12.1--12.5.
+* `Asymptotics` contains convergence interfaces and projection lemmas for the
+  Theorems 12.1--12.5 route.
 * `Tests` contains Wald, endogeneity, overidentification, and subset-test
-  wrappers for Theorems 12.6 and 12.14--12.17.
+  notation plus the exact algebraic Theorem 12.17 bridge.
 * `FiniteSample`, `Bootstrap`, `GeneratedRegressors`, and `ControlFunction`
-  cover Theorems 12.7--12.13.
+  record support interfaces for Theorems 12.7--12.13.
 * `LATE` records the Assumption 12.3 and Wald-ratio surface.
-* `WeakMany` covers the weak- and many-instrument wrappers for Theorems
-  12.18--12.19.
+* `WeakMany` contains weak- and many-instrument support interfaces for
+  Theorems 12.18--12.19.
 
 The theorem-by-theorem crosswalk and completeness notes live in
 `inventory/ch12-inventory.md`.

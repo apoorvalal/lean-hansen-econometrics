@@ -24,9 +24,8 @@ structure LATEAssumption where
 structure LATEIdentification (late EY1 EY0 EX1 EX0 : ℝ) : Prop where
   identified : late = lateWaldRatio EY1 EY0 EX1 EX0
 
-/-- Hansen Section 12.34: under Assumption 12.3, the binary-IV Wald ratio
-identifies the local average treatment effect. -/
-theorem chapter12_late_eq_waldRatio
+/-- Projection from a LATE identification package to the binary-IV Wald-ratio identity. -/
+theorem late_eq_waldRatio_of_identification
     (late EY1 EY0 EX1 EX0 : ℝ)
     (h : LATEIdentification late EY1 EY0 EX1 EX0) :
     late = lateWaldRatio EY1 EY0 EX1 EX0 :=

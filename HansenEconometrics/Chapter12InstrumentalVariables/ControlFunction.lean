@@ -4,8 +4,8 @@ import HansenEconometrics.Chapter12InstrumentalVariables.Basic
 /-!
 # Chapter 12 - control-function regression
 
-This module exposes the control-function residual notation and theorem-facing
-wrapper used by Hansen's control-function regression section.
+This module exposes the control-function residual notation and a consistency
+interface used by Hansen's control-function regression route.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -25,17 +25,16 @@ noncomputable def controlFunctionResidual
     (Z : Matrix n l ℝ) (X2 : Matrix n k ℝ) : Matrix n k ℝ :=
   firstStageResidual Z X2
 
-/-- Control-function asymptotic conclusion package. -/
-structure ControlFunctionRegressionPackage
+/-- Control-function consistency interface. -/
+structure ControlFunctionConsistencyInterface
     (betahat : ℕ → Omega → q → ℝ) (beta : q → ℝ) : Prop where
   consistent : TendstoInMeasure mu betahat atTop (fun _ => beta)
 
 omit [DecidableEq q] in
-/-- **Hansen Theorem 12.13.** Control-function regression recovers the
-structural coefficient under the stated conditional-mean restriction. -/
-theorem chapter12_theorem_12_13_controlFunction_consistent
+/-- Interface projection for control-function consistency. -/
+theorem controlFunction_consistent_from_interface
     (betahat : ℕ → Omega → q → ℝ) (beta : q → ℝ)
-    (h : ControlFunctionRegressionPackage (mu := mu) betahat beta) :
+    (h : ControlFunctionConsistencyInterface (mu := mu) betahat beta) :
     TendstoInMeasure mu betahat atTop (fun _ => beta) :=
   h.consistent
 

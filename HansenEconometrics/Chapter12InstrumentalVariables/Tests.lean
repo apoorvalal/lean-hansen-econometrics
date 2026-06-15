@@ -6,6 +6,9 @@ import HansenEconometrics.FDist
 
 This module records the Wald, endogeneity, overidentification, and subset
 overidentification test surfaces from Hansen's instrumental-variables chapter.
+Only the algebraic subset-overidentification identity is currently a numbered
+Hansen theorem bridge; the distributional lemmas below are interface
+projections.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -49,34 +52,30 @@ noncomputable def subsetOveridentificationCStar
     (gbar : q → ℝ) (C : Matrix q r ℝ) (What : Matrix q q ℝ) : ℝ :=
   subsetOveridentificationStatistic gbar C What
 
-/-- **Hansen Theorem 12.6.** Wald tests for smooth 2SLS restrictions have the
-chi-square null law asymptotically. -/
-theorem chapter12_theorem_12_6_wald_chiSquaredLimit
+/-- Interface projection for an IV Wald statistic with a chi-square null limit. -/
+theorem ivWald_chiSquaredLimit_from_interface
     (W : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
     (hW : TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
     TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
   hW
 
-/-- **Hansen Theorem 12.14.** The robust control-function endogeneity Wald
-statistic has a chi-square null law asymptotically. -/
-theorem chapter12_theorem_12_14_endogeneity_wald_chiSquaredLimit
+/-- Interface projection for the robust control-function endogeneity Wald limit. -/
+theorem endogeneityWald_chiSquaredLimit_from_interface
     (W : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
     (hW : TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
     TendstoInDistribution W atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
   hW
 
 omit [IsProbabilityMeasure mu] in
-/-- **Hansen Theorem 12.15.** Under the normal homoskedastic regression
-assumption, the endogeneity F statistic has the exact finite-sample F law. -/
-theorem chapter12_theorem_12_15_endogeneity_F_hasLaw
+/-- Interface projection for the finite-sample endogeneity F law. -/
+theorem endogeneityF_hasLaw_from_interface
     (Fstat : Omega → ℝ) (df1 df2 : ℕ)
     (hF : HasLaw Fstat (classicalFDist df1 df2) mu) :
     HasLaw Fstat (classicalFDist df1 df2) mu :=
   hF
 
-/-- **Hansen Theorem 12.16.** The overidentification statistic has the
-chi-square null law asymptotically. -/
-theorem chapter12_theorem_12_16_overidentification_chiSquaredLimit
+/-- Interface projection for the overidentification statistic's chi-square null limit. -/
+theorem overidentification_chiSquaredLimit_from_interface
     (J : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
     (hJ : TendstoInDistribution J atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
     TendstoInDistribution J atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=
@@ -92,9 +91,9 @@ theorem chapter12_theorem_12_17_subsetOveridentification_N_eq_CStar
       subsetOveridentificationCStar gbar C What :=
   rfl
 
-/-- **Hansen Theorem 12.17, distributional part.** The subset-overidentification
-statistic has the chi-square null law asymptotically. -/
-theorem chapter12_theorem_12_17_subsetOveridentification_chiSquaredLimit
+/-- Interface projection for the subset-overidentification statistic's chi-square
+null limit. -/
+theorem subsetOveridentification_chiSquaredLimit_from_interface
     (Nstat : ℕ → Omega → ℝ) (df : ℕ) [Fact (0 < df)]
     (hN : TendstoInDistribution Nstat atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df)) :
     TendstoInDistribution Nstat atTop (fun x : ℝ => x) (fun _ => mu) (chiSquared df) :=

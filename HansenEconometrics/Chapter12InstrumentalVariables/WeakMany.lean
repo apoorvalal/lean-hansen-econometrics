@@ -3,8 +3,8 @@ import Mathlib.MeasureTheory.Function.ConvergenceInDistribution
 /-!
 # Chapter 12 - weak and many instruments
 
-This module records the theorem-facing weak-instrument and many-instrument
-limit packages from the end of Hansen's instrumental-variables chapter.
+This module records support notation and interfaces for the weak-instrument and
+many-instrument routes from the end of Hansen's instrumental-variables chapter.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -21,36 +21,34 @@ noncomputable def localToZeroReducedForm
     (root : ℝ) (C : Matrix l k ℝ) : Matrix l k ℝ :=
   root⁻¹ • C
 
-/-- Many-instrument asymptotic package, including the concentration and bias terms
-appearing in Hansen Theorem 12.19. -/
-structure ManyInstrumentLimitPackage
-    (betaLimit : k → ℝ) (Vlimit : Matrix k k ℝ) : Prop where
-  limit_coefficient : betaLimit = betaLimit
-  limit_variance : Vlimit = Vlimit
+/-- Many-instrument asymptotic interface, separating coefficient and variance
+limit conclusions so future constructors must provide real proofs. -/
+structure ManyInstrumentLimitInterface
+    (coefficientLimit varianceLimit : Prop) : Prop where
+  coefficient_limit : coefficientLimit
+  variance_limit : varianceLimit
 
 set_option linter.unusedFintypeInType false in
 omit [DecidableEq k] in
-/-- **Hansen Theorem 12.18.** Under local-to-zero weak instruments, the 2SLS
-estimator has the nonstandard weak-IV limit law. -/
-theorem chapter12_theorem_12_18_weakInstrument_limit
+/-- Interface projection for a weak-IV nonstandard limit law. -/
+theorem weakInstrument_limit_from_interface
     (T : ℕ → Omega → k → ℝ) (nu : Measure (k → ℝ)) [IsProbabilityMeasure nu]
     (hT : TendstoInDistribution T atTop (fun x : k → ℝ => x) (fun _ => mu) nu) :
     TendstoInDistribution T atTop (fun x : k → ℝ => x) (fun _ => mu) nu :=
   hT
 
-/-- Weak-instrument testing distortion conclusion used after Hansen Theorem 12.18. -/
-theorem chapter12_theorem_12_18_weakInstrument_test_distortion
+/-- Interface projection for a weak-instrument testing-distortion conclusion. -/
+theorem weakInstrument_testDistortion_from_interface
     (coverage : ℕ → ℝ) (limitCoverage : ℝ)
     (h : Tendsto coverage atTop (𝓝 limitCoverage)) :
     Tendsto coverage atTop (𝓝 limitCoverage) :=
   h
 
-omit [Fintype k] [DecidableEq k] in
-/-- **Hansen Theorem 12.19.** Many-instrument asymptotic limit package. -/
-theorem chapter12_theorem_12_19_manyInstrument_limit
-    (betaLimit : k → ℝ) (Vlimit : Matrix k k ℝ)
-    (h : ManyInstrumentLimitPackage betaLimit Vlimit) :
-    ManyInstrumentLimitPackage betaLimit Vlimit :=
-  h
+/-- Interface projection for many-instrument coefficient and variance limits. -/
+theorem manyInstrument_limits_from_interface
+    {coefficientLimit varianceLimit : Prop}
+    (h : ManyInstrumentLimitInterface coefficientLimit varianceLimit) :
+    coefficientLimit ∧ varianceLimit :=
+  ⟨h.coefficient_limit, h.variance_limit⟩
 
 end HansenEconometrics

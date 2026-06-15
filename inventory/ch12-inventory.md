@@ -97,24 +97,25 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- Chapter 12 now has a theorem-facing Lean surface under
+- Chapter 12 now has a support Lean surface under
   `HansenEconometrics/Chapter12InstrumentalVariables/`, with an umbrella import at
   `HansenEconometrics/Chapter12InstrumentalVariables.lean`.
 - The formalization is split by mathematical layer:
   - deterministic IV, 2SLS, k-class/LIML, split-sample IV, JIVE, Wald IV, first-stage, and variance
     notation live in `Basic.lean`
-  - consistency, asymptotic normality, covariance, and smooth-function wrappers for Theorems
-    12.1--12.5 live in `Asymptotics.lean`
-  - Wald, endogeneity, overidentification, and subset-test wrappers for Theorems 12.6 and
-    12.14--12.17 live in `Tests.lean`
+  - consistency, asymptotic normality, covariance, and smooth-function interface projections for
+    Theorems 12.1--12.5 live in `Asymptotics.lean`
+  - Wald, endogeneity, overidentification, and subset-test notation plus the exact algebraic
+    Theorem 12.17 bridge live in `Tests.lean`
   - finite-sample, bootstrap, generated-regressor, expectation-error, control-function, LATE,
     weak-instrument, and many-instrument material lives in topic-specific submodules
 - The current surface reuses existing Chapter 8 `GaussianLimit` and
-  `CovarianceEstimatorConsistent`, Chapter 9 testing/distribution interfaces, and Chapter 10
-  bootstrap weak-convergence interfaces.
-- Deep model-specific derivations such as full weak-IV nonstandard limits, many-instrument bias
-  expansions, generated-regressor backend linearizations, and exact finite-sample moment proofs are
-  represented by explicit theorem packages or law premises rather than reproved in this chapter pass.
+  `CovarianceEstimatorConsistent`, Chapter 9 testing/distribution notation, and Chapter 10
+  bootstrap weak-convergence interfaces, but it does not cite projection lemmas as completed Hansen
+  theorems.
+- Deep model-specific derivations such as 2SLS consistency from Assumption 12.1, the full
+  Assumption 12.2 CLT, weak-IV nonstandard limits, many-instrument bias expansions,
+  generated-regressor backend linearizations, and exact finite-sample moment proofs remain open.
 
 ## LaTeX / Lean Crosswalk
 
@@ -134,26 +135,59 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 12.1 | Under Assumption 12.1, ˆβ2sls − →p β as n → ∞. | `chapter12_theorem_12_1_twoStageLeastSquares_consistent` |
-| Theorem 12.2 | Under Assumption 12.2, as n → ∞. | `chapter12_theorem_12_2_twoStageLeastSquares_gaussianLimit`; distribution-facing wrapper `chapter12_theorem_12_2_twoStageLeastSquares_tendstoInDistribution` |
-| Theorem 12.3 | Under Assumption 12.2, as n → ∞, ˆV | `chapter12_theorem_12_3_covariance_consistent` |
-| Theorem 12.4 | Under Assumptions 12.1 and 7.3, as n → ∞, ˆθ2sls − →p θ. | `chapter12_theorem_12_4_function_consistent` |
-| Theorem 12.5 | Under Assumptions 12.2 and 7.3, as n → ∞, | `chapter12_theorem_12_5_function_gaussianLimit`; distribution-facing wrapper `chapter12_theorem_12_5_function_tendstoInDistribution` |
-| Theorem 12.6 | Under Assumption 12.2, Assumption 7.3, and H0, then as n → | `chapter12_theorem_12_6_wald_chiSquaredLimit` |
-| Theorem 12.7 | If (Y , X , Z ) are jointly normal, then for any r , E | `chapter12_theorem_12_7_twoStageLeastSquares_finiteMoments` |
-| Theorem 12.8 | Under Assumption 12.2, as n → ∞ | `chapter12_theorem_12_8_twoStageLeastSquares_bootstrap` |
-| Theorem 12.9 | Take model (12.48) with E | `chapter12_theorem_12_9_generatedRegressor_gaussianLimit` |
-| Theorem 12.10 | Take model (12.48) with ˆA = A (X , Z ), v |#124;X , Z ∼ N | `chapter12_theorem_12_10_generatedRegressor_normal_hasLaw` |
-| Theorem 12.11 | Take model (12.48) and (12.54) with E | `chapter12_theorem_12_11_generatedRegressor_consistent` |
-| Theorem 12.12 | For the model and estimators described in this section, with | `chapter12_theorem_12_12_expectationError_gaussianLimit` |
-| Theorem 12.13 | If E | `chapter12_theorem_12_13_controlFunction_consistent` |
-| Theorem 12.14 | Under H0, the control-function endogeneity Wald statistic has a chi-square limit and the upper-tail test has asymptotic size. | `chapter12_theorem_12_14_endogeneity_wald_chiSquaredLimit` |
-| Theorem 12.15 | Suppose e |#124;X , Z ∼ N | `chapter12_theorem_12_15_endogeneity_F_hasLaw` |
-| Theorem 12.16 | Under Assumption 12.2 and E | `chapter12_theorem_12_16_overidentification_chiSquaredLimit` |
-| Theorem 12.17 | Algebraically, N = C ∗. Under Assumption 12.2 and E | algebraic wrapper `chapter12_theorem_12_17_subsetOveridentification_N_eq_CStar`; distribution wrapper `chapter12_theorem_12_17_subsetOveridentification_chiSquaredLimit` |
-| Theorem 12.18 | Under (12.71), | `chapter12_theorem_12_18_weakInstrument_limit` |
-| Theorem 12.19 | In model (12.73), under assumptions (12.74), (12.75) and | `chapter12_theorem_12_19_manyInstrument_limit` |
-| Theorem 12.18. | Given the simplifying assumptions the result is | `chapter12_theorem_12_18_weakInstrument_test_distortion` |
+| Theorem 12.1 | Under Assumption 12.1, ˆβ2sls − →p β as n → ∞. |  |
+| Theorem 12.2 | Under Assumption 12.2, as n → ∞. |  |
+| Theorem 12.3 | Under Assumption 12.2, as n → ∞, ˆV |  |
+| Theorem 12.4 | Under Assumptions 12.1 and 7.3, as n → ∞, ˆθ2sls − →p θ. |  |
+| Theorem 12.5 | Under Assumptions 12.2 and 7.3, as n → ∞, |  |
+| Theorem 12.6 | Under Assumption 12.2, Assumption 7.3, and H0, then as n → |  |
+| Theorem 12.7 | If (Y , X , Z ) are jointly normal, then for any r , E |  |
+| Theorem 12.8 | Under Assumption 12.2, as n → ∞ |  |
+| Theorem 12.9 | Take model (12.48) with E |  |
+| Theorem 12.10 | Take model (12.48) with ˆA = A (X , Z ), v |#124;X , Z ∼ N |  |
+| Theorem 12.11 | Take model (12.48) and (12.54) with E |  |
+| Theorem 12.12 | For the model and estimators described in this section, with |  |
+| Theorem 12.13 | If E |  |
+| Theorem 12.14 | Under H0, the control-function endogeneity Wald statistic has a chi-square limit and the upper-tail test has asymptotic size. |  |
+| Theorem 12.15 | Suppose e |#124;X , Z ∼ N |  |
+| Theorem 12.16 | Under Assumption 12.2 and E |  |
+| Theorem 12.17 | Algebraically, N = C ∗. Under Assumption 12.2 and E |  |
+| Theorem 12.18 | Under (12.71), |  |
+| Theorem 12.19 | In model (12.73), under assumptions (12.74), (12.75) and |  |
+| Theorem 12.18. | Given the simplifying assumptions the result is |  |
+
+## Lean-Only Support Results
+
+- Deterministic IV notation and totalization bridges: `twoStageLeastSquaresBetaStar_eq`,
+  `twoStageLeastSquaresBetaOrZero_eq_of_det_ne_zero`,
+  `twoStageLeastSquaresBetaOrZero_eq_zero_of_det_eq_zero`, `firstStageFitted_eq_projection_mul`,
+  and `limlBeta_eq_kClassBeta`.
+- Asymptotic support interfaces and projections: `IVConsistencyInterface`,
+  `IVGaussianLimitInterface`, `twoStageLeastSquares_consistent_from_interface`,
+  `twoStageLeastSquares_gaussianLimit_from_interface`,
+  `twoStageLeastSquares_tendstoInDistribution_from_interface`,
+  `twoStageLeastSquares_covariance_consistent_from_interface`,
+  `twoStageLeastSquares_function_consistent_from_interface`,
+  `twoStageLeastSquares_function_gaussianLimit_from_interface`, and
+  `twoStageLeastSquares_function_tendstoInDistribution_from_interface`.
+- Testing support: `ivWald_chiSquaredLimit_from_interface`,
+  `endogeneityWald_chiSquaredLimit_from_interface`, `endogeneityF_hasLaw_from_interface`,
+  `overidentification_chiSquaredLimit_from_interface`,
+  `chapter12_theorem_12_17_subsetOveridentification_N_eq_CStar`, and
+  `subsetOveridentification_chiSquaredLimit_from_interface`.
+- Other support interfaces: `TwoSLSFiniteMomentInterface`,
+  `twoStageLeastSquares_finiteMoments_from_interface`,
+  `twoStageLeastSquares_bootstrap_from_interface`,
+  `GeneratedRegressorGaussianLimitInterface`, `GeneratedRegressorNormalLawInterface`,
+  `GeneratedRegressorConsistencyInterface`, `ExpectationErrorGaussianLimitInterface`,
+  `generatedRegressor_gaussianLimit_from_interface`,
+  `generatedRegressor_normal_hasLaw_from_interface`,
+  `generatedRegressor_consistent_from_interface`,
+  `expectationError_gaussianLimit_from_interface`, `ControlFunctionConsistencyInterface`,
+  `controlFunction_consistent_from_interface`, `controlFunctionResidual_eq_firstStageResidual`,
+  `late_eq_waldRatio_of_identification`, `localToZeroReducedForm`,
+  `ManyInstrumentLimitInterface`, `weakInstrument_limit_from_interface`,
+  `weakInstrument_testDistortion_from_interface`, and `manyInstrument_limits_from_interface`.
 
 ## Notes
 
@@ -168,4 +202,4 @@ Conventions:
   `overidentificationStatistic`, `subsetOveridentificationStatistic`,
   `subsetOveridentificationN`, and `subsetOveridentificationCStar`.
 - LATE and weak/many-instrument bridge definitions include `lateWaldRatio`, `LATEAssumption`,
-  `LATEIdentification`, `localToZeroReducedForm`, and `ManyInstrumentLimitPackage`.
+  `LATEIdentification`, `localToZeroReducedForm`, and `ManyInstrumentLimitInterface`.

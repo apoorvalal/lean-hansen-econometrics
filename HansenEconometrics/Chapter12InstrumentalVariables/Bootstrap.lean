@@ -3,8 +3,9 @@ import HansenEconometrics.Chapter10Bootstrap.WeakDistribution
 /-!
 # Chapter 12 - bootstrap for 2SLS
 
-This module connects Hansen's bootstrap 2SLS theorem to the reusable Chapter 10
-conditional weak-convergence interface.
+This module connects the bootstrap 2SLS route to the reusable Chapter 10
+conditional weak-convergence interface. The bridge below is not a proof of
+Hansen Theorem 12.8 from Assumption 12.2.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -17,9 +18,8 @@ variable [MeasurableSpace Omega] [MeasurableSpace OmegaS] [MeasurableSpace Omega
 variable [TopologicalSpace E]
 variable {mu : Measure Omega}
 
-/-- **Hansen Theorem 12.8.** Bootstrap consistency for the 2SLS statistic,
-stated over the Chapter 10 conditional weak-convergence interface. -/
-theorem chapter12_theorem_12_8_twoStageLeastSquares_bootstrap
+/-- Interface projection for bootstrap consistency of a 2SLS statistic. -/
+theorem twoStageLeastSquares_bootstrap_from_interface
     (Pstar : ℕ → Omega → Measure OmegaS)
     (Tstar : ℕ → Omega → OmegaS → E)
     (nu : Measure OmegaLim) (Tlim : OmegaLim → E)
