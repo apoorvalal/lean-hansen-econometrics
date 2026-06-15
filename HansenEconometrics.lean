@@ -31,3 +31,4 @@ import HansenEconometrics.BootstrapUtils
 import HansenEconometrics.Chapter10Bootstrap
 import HansenEconometrics.Chapter11MultivariateRegression
 import HansenEconometrics.Chapter12InstrumentalVariables
+import HansenEconometrics.Chapter13GMM
