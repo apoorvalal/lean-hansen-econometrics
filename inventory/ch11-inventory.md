@@ -68,7 +68,22 @@
 4. Add the needed measure/probability infrastructure before attempting the main stochastic theorem.
 
 ## Status
-- not started
+- Chapter 11 now has a theorem-facing Lean surface under
+  `HansenEconometrics/Chapter11MultivariateRegression/`, with an umbrella import at
+  `HansenEconometrics/Chapter11MultivariateRegression.lean`.
+- The formalization is intentionally layered:
+  - deterministic system-regression definitions and common-regressor covariance algebra live in
+    `Systems.lean`
+  - asymptotic LS and covariance-consistency wrappers live in `Asymptotics.lean`
+  - SUR wrappers live in `SUR.lean`
+  - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
+- The asymptotic theorem statements reuse the repo's Chapter 8 `GaussianLimit` and
+  `CovarianceEstimatorConsistent` interfaces rather than rebuilding empirical-process arguments in
+  Chapter 11.
+- Reduced-rank, factor-model, Wishart, inverse-Wishart, and Hotelling results are currently
+  formalized as chapter-facing theorem packages/law wrappers. They name the textbook result and its
+  reusable Lean object while leaving deeper distributional/eigenvalue derivations as future backend
+  work.
 
 ## LaTeX / Lean Crosswalk
 
@@ -88,20 +103,28 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, pn |  |
-| Theorem 11.2 | Under Assumptions 7.2 and 7.3, pn |  |
-| Theorem 11.3 | Under Assumption 7.2, n ˆV ˆβ − →p V β and n ˆV |  |
-| Theorem 11.4 | Under Assumption 7.2 and (11.8) |  |
-| Theorem 11.5 | Under Assumption 7.2 and (11.8) |  |
-| Theorem 11.6 | Under Assumption 7.2 and (11.8) n ˆV ˆβ − →p V β. |  |
-| Theorem 11.7 | The MLE for the reduced rank model (11.19) under e ∼ N(0, Σ) |  |
-| Theorem 11.8 | The principal components of X are U j = h′ |  |
-| Theorem 11.9 | The least squares estimator of the factor model (11.23) under |  |
-| Theorem 11.10 | If Yi ∼ N |  |
-| Theorem 11.11 | If W ∼ Wm (n, Σ) then for m × 1 α, |  |
-| Theorem 11.12 | If Y ∼ N |  |
+| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | `chapter11_theorem_11_1_systemLeastSquares_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_1_systemLeastSquares_tendstoInDistribution` |
+| Theorem 11.2 | Under Assumptions 7.2 and 7.3, linear transformations of system LS have the stated Gaussian limit. | `chapter11_theorem_11_2_delta_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_2_delta_tendstoInDistribution` |
+| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | `chapter11_theorem_11_3_covariance_consistent`; delta wrapper `systemDeltaCovariance_consistent` |
+| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | `chapter11_theorem_11_4_sur_gaussianLimit`; distribution-facing wrapper `chapter11_theorem_11_4_sur_tendstoInDistribution` |
+| Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | `chapter11_theorem_11_5_sur_efficiency` |
+| Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. | `chapter11_theorem_11_6_sur_covariance_consistent` |
+| Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | `chapter11_theorem_11_7_reducedRank_mle` |
+| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `chapter11_theorem_11_8_principalComponent_eigenvector`; variance wrapper `principalComponentVariance_eq_eigenvalue` |
+| Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | `chapter11_theorem_11_9_factorModel_pc_solution`; projection wrappers `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq` |
+| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | `chapter11_theorem_11_10_sampleCovariance_wishart` |
+| Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | `chapter11_theorem_11_11_inverseWishartLinearForm_chiSquared` |
+| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | `chapter11_theorem_11_12_hotellingT2_scaledF` |
 
 ## Notes
 
-- This is currently a theorem-surface map for the chapter.
-- The Lean column is intentionally left blank until there is actual formalization to link.
+- The main Chapter 11 public API is in namespace `HansenEconometrics`.
+- System-regression bridge definitions include `systemLeastSquaresBeta`, `systemResidual`,
+  `systemAsymptoticVariance`, `systemDeltaVariance`, `commonRegressorMoment`, and
+  `commonRegressorHomoskedasticVariance`.
+- SUR bridge definitions include `surAsymptoticVariance` and `surVarianceEstimator`.
+- PCA/factor-model bridge definitions include `principalComponent`, `principalComponentVariance`,
+  `factorLoadingEstimator`, `factorScoreEstimator`, `PrincipalComponentSolution`,
+  `FactorPCSolution`, and `ApproximateFactorAssumption`.
+- Matrix-normal bridge definitions include `wishartMatrixLaw`, `scaledWishartMatrixLaw`,
+  `inverseWishartLinearForm`, and `hotellingT2`.
