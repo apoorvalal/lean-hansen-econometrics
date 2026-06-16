@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+import HansenEconometrics.LinearAlgebraUtils
 
 /-!
 # Chapter 12 - instrumental variables basics
@@ -24,9 +25,26 @@ variable [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq q]
 noncomputable def ivCrossMoment (Z : Matrix n l ℝ) (X : Matrix n k ℝ) : Matrix l k ℝ :=
   Zᵀ * X
 
+/-- Hansen normalized sample instrument moment `n⁻¹ Z'Z`. -/
+noncomputable def ivNormalizedInstrumentMoment (Z : Matrix n l ℝ) : Matrix l l ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • (Zᵀ * Z)
+
+/-- Hansen normalized sample instrument/regressor cross moment `n⁻¹ Z'X`. -/
+noncomputable def ivNormalizedCrossMoment (Z : Matrix n l ℝ) (X : Matrix n k ℝ) :
+    Matrix l k ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • (Zᵀ * X)
+
+/-- Hansen normalized sample instrument/outcome moment `n⁻¹ Z'Y`. -/
+noncomputable def ivNormalizedOutcomeMoment (Z : Matrix n l ℝ) (Y : n → ℝ) : l → ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • (Zᵀ *ᵥ Y)
+
 /-- Sample instrument/error moment `Z'e`. -/
 noncomputable def ivScore (Z : Matrix n l ℝ) (e : n → ℝ) : l → ℝ :=
   Zᵀ *ᵥ e
+
+/-- Hansen normalized sample instrument/error moment `n⁻¹ Z'e`. -/
+noncomputable def ivNormalizedScore (Z : Matrix n l ℝ) (e : n → ℝ) : l → ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • (Zᵀ *ᵥ e)
 
 /-- Projection matrix onto the span of the instruments, using the total matrix inverse. -/
 noncomputable def instrumentProjectionMatrix (Z : Matrix n l ℝ) : Matrix n n ℝ :=
@@ -45,6 +63,16 @@ noncomputable def twoStageLeastSquaresBeta
     (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ) : k → ℝ :=
   ((Xᵀ * instrumentProjectionMatrix Z * X)⁻¹) *ᵥ
     ((Xᵀ * instrumentProjectionMatrix Z) *ᵥ Y)
+
+/-- Moment-form 2SLS coefficient map
+`(Q_ZX' Q_ZZ⁻¹ Q_ZX)⁻¹ Q_ZX' Q_ZZ⁻¹ Q_ZY`.
+
+This is the deterministic continuous-mapping surface used by the Chapter 12
+consistency and asymptotic-normality proofs after sample moments have been
+shown to converge. -/
+noncomputable def twoStageLeastSquaresMomentBeta
+    (QZX : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (QZY : l → ℝ) : k → ℝ :=
+  (QZXᵀ * QZZ⁻¹ * QZX)⁻¹ *ᵥ ((QZXᵀ * QZZ⁻¹) *ᵥ QZY)
 
 /-- Star alias for the total 2SLS estimator, following the Chapter 7+ totalization pattern. -/
 noncomputable def twoStageLeastSquaresBetaStar
@@ -72,6 +100,73 @@ theorem twoStageLeastSquaresBetaStar_eq
     (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ) :
     twoStageLeastSquaresBetaStar X Z Y = twoStageLeastSquaresBeta X Z Y :=
   rfl
+
+omit [Fintype n] [DecidableEq n] in
+/-- Population moment identity behind Hansen Theorem 12.1.
+
+If `Q_ZY = Q_ZX β` and the 2SLS bread matrix is nonsingular, the moment-form
+2SLS map returns the structural coefficient `β`. -/
+theorem twoStageLeastSquaresMomentBeta_eq_beta
+    (QZX : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (QZY : l → ℝ) (β : k → ℝ)
+    (hQZY : QZY = QZX *ᵥ β)
+    (hunit : IsUnit (QZXᵀ * QZZ⁻¹ * QZX).det) :
+    twoStageLeastSquaresMomentBeta QZX QZZ QZY = β := by
+  have hunit' : IsUnit (QZXᵀ * (QZZ⁻¹ * QZX)).det := by
+    simpa [Matrix.mul_assoc] using hunit
+  simp [twoStageLeastSquaresMomentBeta, hQZY, Matrix.mulVec_mulVec, Matrix.mul_assoc,
+    Matrix.nonsing_inv_mul _ hunit']
+
+omit [DecidableEq n] in
+/-- The displayed finite-sample 2SLS formula equals the deterministic moment-form
+map evaluated at the unnormalized sample moments `Z'X`, `Z'Z`, and `Z'Y`. -/
+theorem twoStageLeastSquaresBeta_eq_momentBeta
+    (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ) :
+    twoStageLeastSquaresBeta X Z Y =
+      twoStageLeastSquaresMomentBeta (Zᵀ * X) (Zᵀ * Z) (Zᵀ *ᵥ Y) := by
+  simp [twoStageLeastSquaresBeta, twoStageLeastSquaresMomentBeta,
+    instrumentProjectionMatrix, Matrix.mulVec_mulVec, Matrix.mul_assoc]
+
+omit [DecidableEq n] in
+/-- The finite-sample 2SLS estimator also equals the moment-form map evaluated
+at Hansen's normalized sample moments. -/
+theorem twoStageLeastSquaresBeta_eq_normalizedMomentBeta
+    (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ) [Nonempty n] :
+    twoStageLeastSquaresBeta X Z Y =
+      twoStageLeastSquaresMomentBeta
+        ((Fintype.card n : ℝ)⁻¹ • (Zᵀ * X))
+        ((Fintype.card n : ℝ)⁻¹ • (Zᵀ * Z))
+        ((Fintype.card n : ℝ)⁻¹ • (Zᵀ *ᵥ Y)) := by
+  let c : ℝ := (Fintype.card n : ℝ)⁻¹
+  have hcard : (Fintype.card n : ℝ) ≠ 0 :=
+    Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hc : c ≠ 0 := inv_ne_zero hcard
+  rw [twoStageLeastSquaresBeta_eq_momentBeta]
+  unfold twoStageLeastSquaresMomentBeta
+  simp [nonsingInv_smul, Matrix.transpose_smul, Matrix.smul_mul,
+    Matrix.mul_smul, Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul,
+    Matrix.mul_assoc]
+
+omit [DecidableEq n] in
+/-- The normalized-moment bridge in terms of the named Chapter 12 sample moments. -/
+theorem twoStageLeastSquaresBeta_eq_normalizedSampleMoments
+    (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ) [Nonempty n] :
+    twoStageLeastSquaresBeta X Z Y =
+      twoStageLeastSquaresMomentBeta
+        (ivNormalizedCrossMoment Z X)
+        (ivNormalizedInstrumentMoment Z)
+        (ivNormalizedOutcomeMoment Z Y) := by
+  simpa [ivNormalizedCrossMoment, ivNormalizedInstrumentMoment, ivNormalizedOutcomeMoment] using
+    twoStageLeastSquaresBeta_eq_normalizedMomentBeta X Z Y
+
+omit [DecidableEq n] [Fintype l] [DecidableEq k] [DecidableEq l] in
+/-- Structural-equation identity for Hansen's normalized IV outcome moment:
+`n⁻¹ Z'Y = (n⁻¹ Z'X)β + n⁻¹ Z'e`. -/
+theorem ivNormalizedOutcomeMoment_linear_model
+    (X : Matrix n k ℝ) (Z : Matrix n l ℝ) (β : k → ℝ) (e : n → ℝ) :
+    ivNormalizedOutcomeMoment Z (X *ᵥ β + e) =
+      ivNormalizedCrossMoment Z X *ᵥ β + ivNormalizedScore Z e := by
+  unfold ivNormalizedOutcomeMoment ivNormalizedCrossMoment ivNormalizedScore
+  rw [Matrix.mulVec_add, Matrix.mulVec_mulVec, smul_add, Matrix.smul_mulVec]
 
 omit [DecidableEq n] in
 /-- On nonsingular designs, the OrZero 2SLS estimator equals the total 2SLS formula. -/
@@ -130,6 +225,11 @@ noncomputable def jiveBeta
 noncomputable def tslsBread
     (QZX : Matrix l k ℝ) (QZZ : Matrix l l ℝ) : Matrix k k ℝ :=
   (QZXᵀ * QZZ⁻¹ * QZX)⁻¹
+
+/-- 2SLS influence matrix multiplying the instrument score `n⁻¹/² Z'e`. -/
+noncomputable def tslsInfluenceMatrix
+    (QZX : Matrix l k ℝ) (QZZ : Matrix l l ℝ) : Matrix k l ℝ :=
+  tslsBread QZX QZZ * QZXᵀ * QZZ⁻¹
 
 /-- 2SLS asymptotic meat matrix. -/
 noncomputable def tslsMeat

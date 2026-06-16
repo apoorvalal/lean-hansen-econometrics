@@ -105,14 +105,14 @@
     notation live in `Basic.lean`
   - consistency, asymptotic normality, covariance, and smooth-function interface projections for
     Theorems 12.1--12.5 live in `Asymptotics.lean`
-  - Wald, endogeneity, overidentification, and subset-test notation plus the exact algebraic
-    Theorem 12.17 bridge live in `Tests.lean`
+  - Wald, endogeneity, overidentification, and subset-test notation plus theorem-facing
+    rejection-probability wrappers and the exact algebraic Theorem 12.17 bridge live in `Tests.lean`
   - finite-sample, bootstrap, generated-regressor, expectation-error, control-function, LATE,
     weak-instrument, and many-instrument material lives in topic-specific submodules
 - The current surface reuses existing Chapter 8 `GaussianLimit` and
-  `CovarianceEstimatorConsistent`, Chapter 9 testing/distribution notation, and Chapter 10
-  bootstrap weak-convergence interfaces, but it does not cite projection lemmas as completed Hansen
-  theorems.
+  `CovarianceEstimatorConsistent`, Chapter 9 testing/distribution notation and test-size bridges,
+  Chapter 5 exact block-F laws, and Chapter 10 bootstrap weak-convergence interfaces, but it does
+  not cite projection lemmas as completed Hansen theorems.
 - Deep model-specific derivations such as 2SLS consistency from Assumption 12.1, the full
   Assumption 12.2 CLT, weak-IV nonstandard limits, many-instrument bias expansions,
   generated-regressor backend linearizations, and exact finite-sample moment proofs remain open.
@@ -161,7 +161,13 @@ Conventions:
 - Deterministic IV notation and totalization bridges: `twoStageLeastSquaresBetaStar_eq`,
   `twoStageLeastSquaresBetaOrZero_eq_of_det_ne_zero`,
   `twoStageLeastSquaresBetaOrZero_eq_zero_of_det_eq_zero`, `firstStageFitted_eq_projection_mul`,
-  and `limlBeta_eq_kClassBeta`.
+  `ivNormalizedInstrumentMoment`, `ivNormalizedCrossMoment`, `ivNormalizedOutcomeMoment`,
+  `ivNormalizedScore`, `ivNormalizedOutcomeMoment_linear_model`,
+  `twoStageLeastSquaresMomentBeta`, `twoStageLeastSquaresMomentBeta_eq_beta`,
+  `twoStageLeastSquaresBeta_eq_momentBeta`,
+  `twoStageLeastSquaresBeta_eq_normalizedMomentBeta`,
+  `twoStageLeastSquaresBeta_eq_normalizedSampleMoments`, `tslsInfluenceMatrix`, and
+  `limlBeta_eq_kClassBeta`.
 - Asymptotic support interfaces and projections: `IVConsistencyInterface`,
   `IVGaussianLimitInterface`, `twoStageLeastSquares_consistent_from_interface`,
   `twoStageLeastSquares_gaussianLimit_from_interface`,
@@ -170,20 +176,66 @@ Conventions:
   `twoStageLeastSquares_function_consistent_from_interface`,
   `twoStageLeastSquares_function_gaussianLimit_from_interface`, and
   `twoStageLeastSquares_function_tendstoInDistribution_from_interface`.
+- Theorem-facing smooth-function layer: `twoStageLeastSquares_function_consistent_of_continuous`
+  reuses the asymptotic-utils continuous mapping theorem to derive Theorem 12.4's transformed
+  consistency conclusion from coefficient consistency and continuity of `r`; the remaining
+  Assumption 12.1 constructor for 2SLS coefficient consistency is still open.
+- Theorem-facing 2SLS moment-map layers:
+  `IVSampleMomentAssumption12_1`, `ivPopInstrumentMoment`, `ivPopCrossMoment`,
+  `ivPopScoreMoment`, `ivNormalizedInstrumentMoment_stack_tendstoInMeasure_pop`,
+  `ivNormalizedCrossMoment_stack_tendstoInMeasure_pop`,
+  `ivNormalizedScore_stack_tendstoInMeasure_zero`,
+  `ivNormalizedOutcomeMoment_stack_tendstoInMeasure_structural`,
+  `twoStageLeastSquaresMomentBeta_aestronglyMeasurable`,
+  `twoStageLeastSquaresMomentBeta_continuousAt`,
+  `twoStageLeastSquaresMomentBeta_tendstoInMeasure_of_moments`, and
+  `twoStageLeastSquares_consistent_from_moment_convergence`,
+  `twoStageLeastSquaresMomentBeta_stack_consistent_structural`, and
+  `twoStageLeastSquaresBeta_stack_succ_consistent_structural`. These prove the moment-level WLLN
+  and 2SLS consistency route for Theorem 12.1, including the displayed finite-sample 2SLS formula
+  on samples of size `n+1`; the remaining gap is deriving `IVSampleMomentAssumption12_1` directly
+  from Hansen's raw Assumption 12.1 and removing/documenting the empty-sample totalization corner.
+- Theorem-facing 2SLS normality layers:
+  `ivScore_tendstoInDistribution_multivariateGaussian`, `ivScore_gaussianLimit`,
+  `twoStageLeastSquares_tendstoInDistribution_from_score_linearization`, and
+  `twoStageLeastSquares_tendstoInDistribution_from_ivScore_linearization`. These reuse Chapter 7's
+  score CLT with instruments in place of regressors and the reusable rectangular Gaussian linear-map
+  bridge; the remaining gap is the finite-sample algebra proving the 2SLS influence expansion from
+  Hansen Assumption 12.2 and the symmetry rewrite from the linear-image covariance to the displayed
+  `tslsAsymptoticVariance` surface.
+- Theorem-facing covariance plug-in layers:
+  `tslsAsymptoticVariance_aestronglyMeasurable`, `tslsAsymptoticVariance_continuousAt`,
+  `tslsAsymptoticVariance_tendstoInMeasure_of_moments`,
+  `tslsCovarianceEstimatorConsistent_of_moment_convergence`,
+  `tslsDeltaCovarianceConsistent_of_fixedDerivative`, and
+  `tslsDeltaCovarianceConsistent_of_estimatedDerivative`. These reuse the Chapter 7/8 covariance
+  CMT machinery for Theorems 12.3 and 12.5; concrete residual covariance estimators and WLLN
+  constructors remain open.
 - Testing support: `ivWald_chiSquaredLimit_from_interface`,
   `endogeneityWald_chiSquaredLimit_from_interface`, `endogeneityF_hasLaw_from_interface`,
   `overidentification_chiSquaredLimit_from_interface`,
   `chapter12_theorem_12_17_subsetOveridentification_N_eq_CStar`, and
   `subsetOveridentification_chiSquaredLimit_from_interface`.
+- Theorem-facing testing layers reusing earlier chapters:
+  `chapter12_theorem_12_6_ivWald_rejectionProb_tendsto_alpha`,
+  `chapter12_theorem_12_14_endogeneityWald_rejectionProb_tendsto_alpha`,
+  `chapter12_theorem_12_15_endogeneityF_hasLaw_classicalFDist`,
+  `chapter12_theorem_12_15_endogeneityF_rejection_probability_eq_alpha`,
+  `chapter12_theorem_12_16_sargan_rejectionProb_tendsto_alpha`, and
+  `chapter12_theorem_12_17_subsetOveridentification_rejectionProbs_tendsto_alpha`. These discharge
+  the law-to-size or exact fixed-design F-law layer; the remaining Hansen-assumption constructors
+  are still open unless a row is explicitly mapped above.
 - Other support interfaces: `TwoSLSFiniteMomentInterface`,
   `twoStageLeastSquares_finiteMoments_from_interface`,
   `twoStageLeastSquares_bootstrap_from_interface`,
   `GeneratedRegressorGaussianLimitInterface`, `GeneratedRegressorNormalLawInterface`,
   `GeneratedRegressorConsistencyInterface`, `ExpectationErrorGaussianLimitInterface`,
   `generatedRegressor_gaussianLimit_from_interface`,
+  `gaussianLimit_linearMap`, `generatedRegressor_gaussianLimit_linearMap_from_interface`,
   `generatedRegressor_normal_hasLaw_from_interface`,
   `generatedRegressor_consistent_from_interface`,
-  `expectationError_gaussianLimit_from_interface`, `ControlFunctionConsistencyInterface`,
+  `expectationError_gaussianLimit_from_interface`,
+  `expectationError_gaussianLimit_linearMap_from_interface`, `ControlFunctionConsistencyInterface`,
   `controlFunction_consistent_from_interface`, `controlFunctionResidual_eq_firstStageResidual`,
   `late_eq_waldRatio_of_identification`, `localToZeroReducedForm`,
   `ManyInstrumentLimitInterface`, `weakInstrument_limit_from_interface`,
