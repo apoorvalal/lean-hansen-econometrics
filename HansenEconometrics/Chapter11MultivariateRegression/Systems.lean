@@ -56,6 +56,42 @@ noncomputable def systemLeastSquaresBetaStarObs
     (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : k → ℝ :=
   systemLeastSquaresBetaStar (systemStackRegressors X) (systemStackOutcomes Y)
 
+omit [Fintype q] [DecidableEq q] in
+/-- Observation-level fitted values from the totalized system least-squares estimator. -/
+noncomputable def systemFittedStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : n → m → ℝ :=
+  fun i j => X i j ⬝ᵥ systemLeastSquaresBetaStarObs X Y
+
+omit [Fintype q] [DecidableEq q] in
+/-- Observation-level totalized system least-squares residuals. These are the Chapter 11
+vector residuals built from the stacked Chapter 7 Star estimator. -/
+noncomputable def systemResidualStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : n → m → ℝ :=
+  fun i j => olsResidualStar (systemStackRegressors X) (systemStackOutcomes Y) (i, j)
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- The observation-level system residual is outcome minus fitted value. -/
+@[simp]
+theorem systemResidualStarObs_apply
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) (i : n) (j : m) :
+    systemResidualStarObs X Y i j = Y i j - systemFittedStarObs X Y i j := by
+  rfl
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- Under the system linear model, each totalized system residual is the structural
+error minus the row fitted coefficient error. -/
+theorem systemResidualStarObs_linear_model_apply
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ) (i : n) (j : m)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemResidualStarObs X Y i j =
+      e i j - X i j ⬝ᵥ (systemLeastSquaresBetaStarObs X Y - β) := by
+  unfold systemResidualStarObs systemLeastSquaresBetaStarObs systemLeastSquaresBetaStar
+    olsResidualStar systemStackOutcomes systemStackRegressors
+  simp only [Pi.sub_apply, dotProduct_sub]
+  rw [hmodel i j]
+  simp only [Matrix.mulVec, dotProduct]
+  ring_nf
+
 omit [DecidableEq n] in
 /-- The system Star estimator is the totalized OLS estimator on the stacked system. -/
 @[simp]
@@ -137,6 +173,12 @@ feasible homoskedastic system and SUR covariance estimators. -/
 noncomputable def systemSigmaHat
     (ehat : n → m → ℝ) : Matrix m m ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (ehat i) (ehat i)
+
+omit [Fintype q] [DecidableEq q] in
+/-- Feasible residual covariance assembled from the observation-level Star system residuals. -/
+noncomputable def systemSigmaHatStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : Matrix m m ℝ :=
+  systemSigmaHat (systemResidualStarObs X Y)
 
 omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
   [DecidableEq q] [DecidableEq m] in
@@ -307,6 +349,19 @@ corresponding to Hansen's `n V̂⁰_{β̂}`. -/
 noncomputable def systemHomoskedasticCovariance
     (X : n → Matrix m k ℝ) (SigmaHat : Matrix m m ℝ) : Matrix k k ℝ :=
   systemSandwichCovariance (systemNormalizedGram X) (systemHomoskedasticMiddle X SigmaHat)
+
+omit [Fintype q] [DecidableEq q] in
+/-- Feasible robust system covariance using the actual totalized system residuals. -/
+noncomputable def systemRobustCovarianceStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : Matrix k k ℝ :=
+  systemRobustCovariance X (systemResidualStarObs X Y)
+
+omit [Fintype q] [DecidableEq q] in
+/-- Feasible homoskedastic system covariance using the residual covariance
+`Σ̂ = n⁻¹∑ êᵢêᵢ'` from the totalized system residuals. -/
+noncomputable def systemHomoskedasticCovarianceStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : Matrix k k ℝ :=
+  systemHomoskedasticCovariance X (systemSigmaHatStarObs X Y)
 
 omit [Fintype n] [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- Common-regressor block moment `I_m ⊗ Q`, written on product indices. -/

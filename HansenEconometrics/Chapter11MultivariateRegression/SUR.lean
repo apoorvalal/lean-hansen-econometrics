@@ -46,24 +46,74 @@ noncomputable def surAsymptoticVariance (M : Matrix k k ℝ) : Matrix k k ℝ :=
 noncomputable def surVarianceEstimator (Mhat : Matrix k k ℝ) : Matrix k k ℝ :=
   Mhat⁻¹
 
-omit [DecidableEq n] in
+omit [DecidableEq n] [DecidableEq k] [DecidableEq m] in
 /-- Weighted SUR score mean `n⁻¹∑ Xᵢ'W Yᵢ`, where `W` is typically
 `Σ̂⁻¹` or `Σ⁻¹`. -/
 noncomputable def surWeightedScoreMean
     (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (Y : n → m → ℝ) : k → ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, (X i)ᵀ *ᵥ (W *ᵥ Y i)
 
-omit [DecidableEq n] in
+omit [DecidableEq n] [DecidableEq k] [DecidableEq m] in
 /-- Hansen feasible SUR estimator written at the observation-system level:
 `(n⁻¹∑ Xᵢ'W Xᵢ)⁻¹ (n⁻¹∑ Xᵢ'W Yᵢ)`. -/
 noncomputable def surBetaFromInverseCovStar
     (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (Y : n → m → ℝ) : k → ℝ :=
   (systemHomoskedasticMiddle X W)⁻¹ *ᵥ surWeightedScoreMean X W Y
 
+omit [DecidableEq n] [DecidableEq k] [DecidableEq m] in
+/-- Weighted SUR scores split into information matrix times coefficient plus weighted
+error score under the system linear model. -/
+theorem surWeightedScoreMean_outcomes_linear_model
+    (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    surWeightedScoreMean X W Y =
+      systemHomoskedasticMiddle X W *ᵥ β + surWeightedScoreMean X W e := by
+  unfold surWeightedScoreMean systemHomoskedasticMiddle systemMiddleTerm
+  rw [Matrix.smul_mulVec, ← smul_add]
+  congr 1
+  rw [Matrix.sum_mulVec, ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  have hyi : Y i = X i *ᵥ β + e i := by
+    ext j
+    simp [Matrix.mulVec, dotProduct, hmodel i j]
+  rw [hyi, Matrix.mulVec_add, Matrix.mulVec_add, Matrix.mulVec_mulVec,
+    Matrix.mulVec_mulVec, Matrix.mulVec_mulVec]
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- SUR estimator error identity with a fixed inverse-covariance weight. The right
+side is exactly the totalized singular-information remainder. -/
+theorem surBetaFromInverseCovStar_sub_identity
+    (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    surBetaFromInverseCovStar X W Y - β -
+        (systemHomoskedasticMiddle X W)⁻¹ *ᵥ surWeightedScoreMean X W e =
+      ((systemHomoskedasticMiddle X W)⁻¹ * systemHomoskedasticMiddle X W - 1) *ᵥ β := by
+  unfold surBetaFromInverseCovStar
+  rw [surWeightedScoreMean_outcomes_linear_model X W e Y β hmodel,
+      Matrix.mulVec_add, Matrix.mulVec_mulVec,
+      Matrix.sub_mulVec, Matrix.one_mulVec]
+  abel
+
 omit [DecidableEq n] in
 /-- Hansen residual covariance estimator `n⁻¹∑ êᵢêᵢ'`, reused by feasible SUR. -/
 noncomputable def surResidualCovariance (ehat : n → m → ℝ) : Matrix m m ℝ :=
   systemSigmaHat ehat
+
+omit [DecidableEq n] in
+/-- Feasible SUR residual covariance using the totalized observation-level system residuals. -/
+noncomputable def surResidualCovarianceStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : Matrix m m ℝ :=
+  surResidualCovariance (systemResidualStarObs X Y)
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- The feasible SUR residual covariance is the same concrete residual covariance
+used by the Chapter 11 system covariance estimator. -/
+@[simp]
+theorem surResidualCovarianceStarObs_eq_systemSigmaHatStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) :
+    surResidualCovarianceStarObs X Y = systemSigmaHatStarObs X Y :=
+  rfl
 
 /-- Totalized SUR/GLS estimator, using `Matrix.nonsingInv` for both inverses. -/
 noncomputable def surBetaStar
