@@ -31,6 +31,32 @@ noncomputable def principalComponentVariance
     (Sigma : Matrix k k ℝ) (h : k → ℝ) : ℝ :=
   h ⬝ᵥ (Sigma *ᵥ h)
 
+/-- Index in the matrix coordinate type corresponding to an ordered eigenvalue
+index `Fin (card k)` from Mathlib's Hermitian spectrum API. -/
+noncomputable def orderedPCEigenIndex (j : Fin (Fintype.card k)) : k :=
+  (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))) j
+
+/-- Ordered principal-component eigenvalue, using Mathlib's nonincreasing
+Hermitian eigenvalue order. -/
+noncomputable def orderedPCEigenvalue
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) : ℝ :=
+  hSigma.eigenvalues₀ j
+
+/-- Ordered principal-component eigenvector corresponding to
+`orderedPCEigenvalue`. -/
+noncomputable def orderedPCEigenvector
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) : k → ℝ :=
+  ⇑(hSigma.eigenvectorBasis (orderedPCEigenIndex j))
+
+/-- Hansen's sequential PCA feasible set: unit vectors orthogonal to all earlier
+ordered principal-component directions. -/
+def pcaFeasibleBefore
+    (H : Fin (Fintype.card k) → k → ℝ)
+    (j : Fin (Fintype.card k)) (h : k → ℝ) : Prop :=
+  h ⬝ᵥ h = 1 ∧ ∀ i, i < j → h ⬝ᵥ H i = 0
+
 /-- A vector satisfying the principal-component first-order and optimality conditions. -/
 structure PrincipalComponentSolution
     (Sigma : Matrix k k ℝ) (h : k → ℝ) (lambda : ℝ) : Prop where
@@ -56,6 +82,55 @@ theorem principalComponentVariance_eq_eigenvalue
     principalComponentVariance Sigma h = lambda := by
   rw [principalComponentVariance, heig]
   simp [dotProduct_smul, hunit]
+
+/-- Ordered PCA eigenvectors solve the ordered covariance eigenvalue equation. -/
+theorem orderedPCEigenvector_eigenvector
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    Sigma *ᵥ orderedPCEigenvector hSigma j =
+      orderedPCEigenvalue hSigma j • orderedPCEigenvector hSigma j := by
+  simpa [orderedPCEigenvector, orderedPCEigenvalue, orderedPCEigenIndex,
+    Matrix.IsHermitian.eigenvalues] using
+    hSigma.mulVec_eigenvectorBasis (orderedPCEigenIndex j)
+
+/-- Ordered PCA eigenvectors have unit Euclidean norm. -/
+theorem orderedPCEigenvector_unit
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    orderedPCEigenvector hSigma j ⬝ᵥ orderedPCEigenvector hSigma j = 1 := by
+  have hinner := (orthonormal_iff_ite.mp hSigma.eigenvectorBasis.orthonormal)
+    (orderedPCEigenIndex j) (orderedPCEigenIndex j)
+  rw [EuclideanSpace.inner_eq_star_dotProduct] at hinner
+  simpa [orderedPCEigenvector, dotProduct_comm] using hinner
+
+/-- Ordered PCA eigenvectors are feasible for Hansen's sequential PCA problem. -/
+theorem orderedPCEigenvector_feasibleBefore
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    pcaFeasibleBefore (orderedPCEigenvector hSigma) j
+      (orderedPCEigenvector hSigma j) := by
+  constructor
+  · exact orderedPCEigenvector_unit hSigma j
+  · intro i hij
+    have hne : orderedPCEigenIndex j ≠ orderedPCEigenIndex i := by
+      intro hidx
+      have : j = i :=
+        (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))).injective hidx
+      exact (ne_of_gt hij) this
+    have hinner := (orthonormal_iff_ite.mp hSigma.eigenvectorBasis.orthonormal)
+      (orderedPCEigenIndex j) (orderedPCEigenIndex i)
+    rw [EuclideanSpace.inner_eq_star_dotProduct] at hinner
+    simpa [orderedPCEigenvector, hne, dotProduct_comm] using hinner
+
+/-- The variance of an ordered PCA eigenvector equals the ordered eigenvalue. -/
+theorem principalComponentVariance_eq_orderedPCEigenvalue
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    principalComponentVariance Sigma (orderedPCEigenvector hSigma j) =
+      orderedPCEigenvalue hSigma j :=
+  principalComponentVariance_eq_eigenvalue Sigma (orderedPCEigenvector hSigma j)
+    (orderedPCEigenvalue hSigma j) (orderedPCEigenvector_unit hSigma j)
+    (orderedPCEigenvector_eigenvector hSigma j)
 
 omit [DecidableEq k] in
 /-- **Hansen Theorem 11.8, variance identity.**
@@ -119,6 +194,21 @@ theorem principalComponent_variance_eq_covMat_eigenvalue
         (⇑((covMat_isHermitian (μ := μ) X).eigenvectorBasis j)) X; μ] =
       (covMat_isHermitian (μ := μ) X).eigenvalues j :=
   principalComponent_variance_eq_hermitian_eigenvalue X hX
+    (covMat_isHermitian (μ := μ) X) j
+
+/-- Ordered covariance-eigenbasis form of Hansen Theorem 11.8's variance
+identity. This uses Mathlib's nonincreasing `eigenvalues₀` order. -/
+theorem principalComponent_variance_eq_ordered_covMat_eigenvalue
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (j : Fin (Fintype.card k)) :
+    Var[principalComponent
+        (orderedPCEigenvector (covMat_isHermitian (μ := μ) X) j) X; μ] =
+      orderedPCEigenvalue (covMat_isHermitian (μ := μ) X) j := by
+  rw [principalComponent_variance_eq_covMat_quadratic X
+    (orderedPCEigenvector (covMat_isHermitian (μ := μ) X) j) hX]
+  exact principalComponentVariance_eq_orderedPCEigenvalue
     (covMat_isHermitian (μ := μ) X) j
 
 end HansenEconometrics

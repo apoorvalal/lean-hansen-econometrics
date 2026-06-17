@@ -35,6 +35,27 @@ noncomputable def systemLeastSquaresBetaStar
     (X : Matrix n k ℝ) (Y : n → ℝ) : k → ℝ :=
   olsBetaStar X Y
 
+omit [Fintype q] [DecidableEq q] in
+/-- Stack observation-level system regressors into scalar rows indexed by
+observation and equation. For `X i : Matrix m k ℝ`, row `(i, j)` is the
+regressor row for equation `j` in observation `i`. -/
+noncomputable def systemStackRegressors
+    (X : n → Matrix m k ℝ) : Matrix (n × m) k ℝ :=
+  fun im a => X im.1 im.2 a
+
+omit [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q] in
+/-- Stack observation-level system outcomes into scalar rows indexed by
+observation and equation. -/
+def systemStackOutcomes (Y : n → m → ℝ) : n × m → ℝ :=
+  fun im => Y im.1 im.2
+
+omit [Fintype q] [DecidableEq q] in
+/-- Hansen observation-level systems least-squares estimator, totalized through
+the Chapter 7 Star convention after stacking observation/equation rows. -/
+noncomputable def systemLeastSquaresBetaStarObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : k → ℝ :=
+  systemLeastSquaresBetaStar (systemStackRegressors X) (systemStackOutcomes Y)
+
 omit [DecidableEq n] in
 /-- The system Star estimator is the totalized OLS estimator on the stacked system. -/
 @[simp]
@@ -78,6 +99,12 @@ noncomputable def systemScore
     (Xi : Matrix m k ℝ) (ei : m → ℝ) : k → ℝ :=
   Xiᵀ *ᵥ ei
 
+omit [Fintype q] [DecidableEq q] in
+/-- Normalized system score mean `n⁻¹∑ Xᵢ'eᵢ`. -/
+noncomputable def systemScoreMean
+    (X : n → Matrix m k ℝ) (e : n → m → ℝ) : k → ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, systemScore (X i) (e i)
+
 omit [Fintype n] [Fintype q] [DecidableEq n] [DecidableEq q] in
 /-- One-observation system covariance middle matrix `Xᵢ' Eᵢ Xᵢ`, where
 `Eᵢ` is typically `eᵢeᵢ'` or a common error covariance estimate. -/
@@ -90,6 +117,50 @@ omit [Fintype n] [Fintype q] [DecidableEq n] [DecidableEq q] in
 noncomputable def systemRobustMiddleTerm
     (Xi : Matrix m k ℝ) (ei : m → ℝ) : Matrix k k ℝ :=
   systemMiddleTerm Xi (Matrix.vecMulVec ei ei)
+
+omit [Fintype n] [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- The one-observation robust middle `Xᵢ'eᵢeᵢ'Xᵢ` is the score outer product
+`(Xᵢ'eᵢ)(Xᵢ'eᵢ)'`. -/
+theorem systemRobustMiddleTerm_eq_vecMulVec_score
+    (Xi : Matrix m k ℝ) (ei : m → ℝ) :
+    systemRobustMiddleTerm Xi ei =
+      Matrix.vecMulVec (systemScore Xi ei) (systemScore Xi ei) := by
+  ext a b
+  simp [systemRobustMiddleTerm, systemMiddleTerm, systemScore, Matrix.mul_apply,
+    Matrix.mulVec, Matrix.vecMulVec_apply, dotProduct, Finset.mul_sum,
+    mul_comm, mul_left_comm]
+
+omit [Fintype q] [DecidableEq q] in
+/-- Observation-level residual covariance `n⁻¹∑ êᵢêᵢ'` used in Hansen's
+feasible homoskedastic system and SUR covariance estimators. -/
+noncomputable def systemSigmaHat
+    (ehat : n → m → ℝ) : Matrix m m ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (ehat i) (ehat i)
+
+omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q]
+  [DecidableEq m] in
+/-- The stacked system Gram matrix is the unnormalized sum of Hansen's
+per-observation Gram contributions `Xᵢ'Xᵢ`. -/
+theorem systemStackRegressors_transpose_mul_self_eq_sum
+    (X : n → Matrix m k ℝ) :
+    (systemStackRegressors X)ᵀ * systemStackRegressors X =
+      ∑ i : n, (X i)ᵀ * X i := by
+  ext a b
+  simp [systemStackRegressors, Matrix.mul_apply, Matrix.sum_apply,
+    ← Finset.univ_product_univ, Finset.sum_product]
+
+omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q]
+  [DecidableEq m] in
+/-- The stacked system cross moment with vector outcomes is the unnormalized
+sum `∑ Xᵢ'Yᵢ`. -/
+theorem systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) :
+    (systemStackRegressors X)ᵀ *ᵥ systemStackOutcomes Y =
+      ∑ i : n, systemScore (X i) (Y i) := by
+  ext a
+  simp [systemStackRegressors, systemStackOutcomes, systemScore, Matrix.mulVec,
+    dotProduct, ← Finset.univ_product_univ, Finset.sum_product]
 
 omit [Fintype q] [DecidableEq q] in
 /-- Normalized system Gram matrix `n⁻¹∑ Xᵢ'Xᵢ`. -/

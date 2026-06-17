@@ -34,6 +34,127 @@ variable [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
 variable [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
 variable {m : Type*} [Fintype m] [DecidableEq m]
 
+omit [DecidableEq q] [DecidableEq m] in
+/-- System-score condition package for Hansen Theorem 11.1 at the
+observation-system level.
+
+It records the real probabilistic ingredients used by the proof route:
+convergence of `Q̂ = n⁻¹∑ Xᵢ'Xᵢ`, a vector CLT for
+`√n n⁻¹∑ Xᵢ'eᵢ`, nonsingularity and symmetry of the population Gram inverse,
+and positive semidefiniteness of the score covariance. -/
+structure SystemScoreCLTConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → Matrix m k ℝ) (e : ℕ → Ω → m → ℝ)
+    (Q Omega : Matrix k k ℝ) : Prop where
+  gram_meas : ∀ n,
+    AEStronglyMeasurable
+      (fun ω => systemNormalizedGram (fun i : Fin n => X i.val ω)) μ
+  gram_tendsto : TendstoInMeasure μ
+    (fun n ω => systemNormalizedGram (fun i : Fin n => X i.val ω))
+    atTop (fun _ => Q)
+  gram_nonsing : IsUnit Q.det
+  gram_inv_transpose : (Q⁻¹)ᵀ = Q⁻¹
+  score_limit : TendstoInDistribution
+    (fun (t : ℕ) ω =>
+      Real.sqrt (t : ℝ) •
+        systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω))
+    atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+    (multivariateGaussian 0 Omega)
+  score_cov_posSemidef : Omega.PosSemidef
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- The Hansen coefficient covariance `Q⁻¹ΩQ⁻¹` is positive semidefinite when
+`Ω` is positive semidefinite and `Q⁻¹` is symmetric. -/
+theorem systemAsymptoticVariance_posSemidef
+    {Q Omega : Matrix k k ℝ}
+    (hOmega : Omega.PosSemidef) (hQsymm : (Q⁻¹)ᵀ = Q⁻¹) :
+    (systemAsymptoticVariance Q Omega).PosSemidef := by
+  have hpsd : (Q⁻¹ * Omega * (Q⁻¹)ᵀ).PosSemidef := by
+    simpa [Matrix.conjTranspose] using
+      Matrix.PosSemidef.mul_mul_conjTranspose_same hOmega Q⁻¹
+  simpa [systemAsymptoticVariance, hQsymm] using hpsd
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Linearized Hansen Theorem 11.1 at the observation-system level.
+
+If `Q̂ →p Q` and the system score mean obeys the vector CLT with covariance
+`Ω`, then the feasible linearized statistic `Q̂⁻¹√n ĝ` has the Gaussian limit
+with covariance `Q⁻¹ΩQ⁻¹`. -/
+theorem systemLinearizedScore_tendstoInDistribution
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+          (Real.sqrt (t : ℝ) •
+            systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (systemAsymptoticVariance Q Omega)) := by
+  have hQinv : TendstoInMeasure μ
+      (fun (t : ℕ) ω => (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹)
+      atTop (fun _ => Q⁻¹) :=
+    tendstoInMeasure_matrix_inv h.gram_meas h.gram_tendsto (fun _ => h.gram_nonsing)
+  have hQinv_meas : ∀ n,
+      AEStronglyMeasurable
+        (fun ω => (systemNormalizedGram (fun i : Fin n => X i.val ω))⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (h.gram_meas n)
+  have hlin :=
+    randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
+      (Ahat := fun (t : ℕ) ω => (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹)
+      (A := Q⁻¹) (S := Omega)
+      (T := fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω))
+      h.score_cov_posSemidef hQinv_meas hQinv h.score_limit
+  simpa [systemAsymptoticVariance, h.gram_inv_transpose] using hlin
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Hansen-facing system least-squares CLT from a proved system linearization.
+
+The theorem is stated for observation-level system regressors and vector
+outcomes. The remaining proof obligation is exactly the finite-sample/asymptotic
+linearization of the chosen totalized estimator around `Q̂⁻¹√n ĝ`; once that is
+available, the Gaussian limit follows from `systemLinearizedScore_tendstoInDistribution`. -/
+theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hlinearization : TendstoInMeasure μ
+      ((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+      atTop (fun _ => 0))
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (systemAsymptoticVariance Q Omega)) := by
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (t : ℕ) ω =>
+      (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+        (Real.sqrt (t : ℝ) •
+          systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+    (Y := fun (t : ℕ) ω =>
+      Real.sqrt (t : ℝ) •
+        (systemLeastSquaresBetaStarObs
+          (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β))
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp)
+    (systemLinearizedScore_tendstoInDistribution (μ := μ) h)
+    hlinearization hmeas
+
 /-- Interface projection for system least-squares asymptotic normality. -/
 theorem systemLeastSquares_gaussianLimit_from_interface
     (T : ℕ → Ω → k → ℝ) (Q Ωmat : Matrix k k ℝ)

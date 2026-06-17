@@ -79,8 +79,11 @@
   - SUR variance notation and support bridges live in `SUR.lean`
   - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
 - The current declarations reuse the repo's Chapter 7/8 OLS asymptotics, Banach-valued WLLN, matrix
-  continuous-mapping, `GaussianLimit`, and `CovarianceEstimatorConsistent` layers. Theorems 11.1 and
-  11.2 now have non-tautological stacked-system Star-estimator wrappers.
+  continuous-mapping, Gaussian linear-map/Slutsky, `GaussianLimit`, and
+  `CovarianceEstimatorConsistent` layers. Theorem 11.1 now has an observation-level system score
+  package and linearized Hansen theorem in addition to the older scalar-stacked Star-estimator
+  wrapper; the remaining estimator step is the explicit totalized-estimator linearization
+  remainder.
 - Theorem 11.3 has exact system middle-matrix and sandwich assembly theorems for the true-error
   robust middle and fixed-covariance homoskedastic middle. It also has explicit perturbation routes
   for feasible vector residuals and estimated homoskedastic covariance middles; the remaining
@@ -111,14 +114,14 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov` (stacked-system Star estimator, reusing Chapter 7 OLS CLT). |
+| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | Observation-level support: `SystemScoreCLTConditions`, `systemLinearizedScore_tendstoInDistribution`, and `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`; deterministic system stacking is `systemStackRegressors`, `systemStackOutcomes`, and `systemLeastSquaresBetaStarObs`. The older scalar-stacked support theorem `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov` remains available. Proving the estimator linearization from primitive Assumption 7.2 remains open. |
 | Theorem 11.2 | Under Assumptions 7.2 and 7.3, linear transformations of system LS have the stated Gaussian limit. | `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution` (fixed-derivative linear transform of Theorem 11.1). |
-| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | Exact-system support: `systemRobustCovariance_tendstoInMeasure_of_ideal_wlln`, `systemRobustCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, `systemHomoskedasticCovariance_tendstoInMeasure_of_fixed_wlln`, `systemHomoskedasticCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, plus the moment-convergence wrappers. Stacked-scalar feasible support: `systemCovariance_consistent_of_iidRobustFeasibleHCMomentConditions`. Primitive residual/covariance perturbation bounds remain open. |
-| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | Support: `surBetaStar`, `surBetaStar_eq_glsBeta`, and Chapter 4 `glsBeta_linear_decomposition`. Full SUR CLT from weighted-score primitive assumptions remains open. |
+| Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | Exact-system support: `systemRobustCovariance_tendstoInMeasure_of_ideal_wlln`, `systemRobustCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, `systemHomoskedasticCovariance_tendstoInMeasure_of_fixed_wlln`, `systemHomoskedasticCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, plus the moment-convergence wrappers. Concrete residual covariance is `systemSigmaHat`; `systemRobustMiddleTerm_eq_vecMulVec_score` links Hansen's middle to score outer products. Stacked-scalar feasible support: `systemCovariance_consistent_of_iidRobustFeasibleHCMomentConditions`. Primitive residual/covariance perturbation bounds remain open. |
+| Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | Support: `surWeightedScoreMean`, `surBetaFromInverseCovStar`, `surResidualCovariance`, `surBetaStar`, `surBetaStar_eq_glsBeta`, and Chapter 4 `glsBeta_linear_decomposition`. Full feasible SUR CLT from weighted-score and `Σ̂⁻¹` substitution assumptions remains open. |
 | Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | Support: `sur_efficiency_from_gls_variance_gap` reuses Chapter 4 generalized Gauss-Markov variance-gap algebra. Full SUR population theorem remains open. |
-| Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. | Support: `surVarianceEstimator_tendstoInMeasure`, `surCovariance_consistent_of_information_tendsto`, `surCovariance_consistent_of_fixed_inverse_cov_wlln`, `surCovariance_consistent_of_estimated_inverse_cov_substitution`, plus system homoskedastic covariance CMT/WLLN wrappers. Primitive `Σ̂⁻¹` perturbation bound remains open. |
+| Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. | Support: `surResidualCovariance`, `surVarianceEstimator_tendstoInMeasure`, `surCovariance_consistent_of_information_tendsto`, `surCovariance_consistent_of_fixed_inverse_cov_wlln`, `surCovariance_consistent_of_estimated_inverse_cov_substitution`, plus system homoskedastic covariance CMT/WLLN wrappers. Primitive `Σ̂⁻¹` perturbation bound remains open. |
 | Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | Support: `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`, `reducedRankGPencilB`, `generalizedEigenvector`, `generalizedEigenvectorColumns`, `reducedRankHansenGEigenvectors`, `ReducedRankMLE`, `reducedRankMLE_of_generalizedEigenvectors`, `reducedRankMLE_of_hansen_generalizedEigenvectors`; `C : Matrix ell m ℝ` keeps the control-regressor dimension separate. Full likelihood/eigenvalue optimizer remains open. |
-| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `principalComponent_variance_eq_covMat_quadratic`, `principalComponent_variance_eq_eigenvalue`, `principalComponent_variance_eq_hermitian_eigenvalue`, `principalComponent_variance_eq_covMat_eigenvalue`, plus deterministic `principalComponentVariance_eq_eigenvalue`. Ordered-PCA maximization remains open. |
+| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `principalComponent_variance_eq_covMat_quadratic`, `principalComponent_variance_eq_eigenvalue`, `principalComponent_variance_eq_hermitian_eigenvalue`, `principalComponent_variance_eq_covMat_eigenvalue`, `principalComponent_variance_eq_ordered_covMat_eigenvalue`, plus deterministic `principalComponentVariance_eq_eigenvalue` and `principalComponentVariance_eq_orderedPCEigenvalue`. Ordered eigenvector feasibility is `orderedPCEigenvector_feasibleBefore`; the ordered argmax proof remains open. |
 | Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | Support: `factorSampleCovariance`, `factorSampleCovariance_transpose`, `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`, `factorLeadingEigenspace_col_diagonal`, `FactorPCSolution`, `factorPCSolution_sample_covariance_eq`, `factorPCSolution_leadingEigenspace_eq`, `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq`, `factorPCSolution_of_normalized_eigenspace_certificate`; factor scores are observation-indexed as `Fhat : n → r → ℝ`. Full least-squares/eigenspace derivation remains open. |
 | Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | Support: `matrixCrossProduct_hasLaw_wishartMatrixLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`, `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`, and `sampleCovariance_hasLaw_from_wishartInterface`. Derivation from independent normal rows remains open. |
 | Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | Support: `inverseWishartLinearForm_hasLaw_map`, `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`, and `inverseWishartLinearForm_hasLaw_from_interface`. Schur-complement/inverse-Wishart derivation remains open. |
@@ -131,6 +134,9 @@ Conventions:
   `systemDelta_gaussianLimit_from_interface`, `systemDelta_tendstoInDistribution_from_interface`,
   `systemCovariance_consistent_from_interfaces`, and `systemDeltaCovariance_consistent`.
 - System-regression asymptotic wrappers and exact covariance assembly:
+  `SystemScoreCLTConditions`, `systemAsymptoticVariance_posSemidef`,
+  `systemLinearizedScore_tendstoInDistribution`,
+  `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`,
   `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov`,
   `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution`,
   `systemNormalizedGram_tendstoInMeasure`,
@@ -146,7 +152,8 @@ Conventions:
 - Shared covariance helper: `covMat_isHermitian`.
 - SUR support bridges: `sur_gaussianLimit_from_interface`,
   `sur_tendstoInDistribution_from_interface`, `sur_efficiency_from_loewner_gap`, and
-  `surCovariance_consistent_from_interface`; non-tautological SUR support includes `surBetaStar`,
+  `surCovariance_consistent_from_interface`; non-tautological SUR support includes
+  `surWeightedScoreMean`, `surBetaFromInverseCovStar`, `surResidualCovariance`, `surBetaStar`,
   `surBetaStar_eq_glsBeta`, `surVarianceEstimator_tendstoInMeasure`,
   `surCovariance_consistent_of_information_tendsto`, and
   `surCovariance_consistent_of_fixed_inverse_cov_wlln`,
@@ -155,7 +162,11 @@ Conventions:
   `principalComponentVariance_eq_eigenvalue`, `principalComponent_variance_eq_covMat_quadratic`,
   `principalComponent_variance_eq_eigenvalue`,
   `principalComponent_variance_eq_hermitian_eigenvalue`,
-  `principalComponent_variance_eq_covMat_eigenvalue`, `factorSampleCovariance`,
+  `principalComponent_variance_eq_covMat_eigenvalue`, `orderedPCEigenIndex`,
+  `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`,
+  `orderedPCEigenvector_eigenvector`, `orderedPCEigenvector_unit`,
+  `orderedPCEigenvector_feasibleBefore`, `principalComponentVariance_eq_orderedPCEigenvalue`,
+  `principalComponent_variance_eq_ordered_covMat_eigenvalue`, `factorSampleCovariance`,
   `factorSampleCovariance_transpose`, `factorScoreSampleCovariance`,
   `factorScoreNormalization`, `factorLeadingEigenspace`,
   `factorLeadingEigenspace_col_diagonal`, `factorPCSolution_of_certificate`,
@@ -184,14 +195,18 @@ Conventions:
 
 - The main Chapter 11 public API is in namespace `HansenEconometrics`.
 - System-regression bridge definitions include `systemLeastSquaresBeta`, `systemResidual`,
-  `systemAsymptoticVariance`, `systemDeltaVariance`, `systemScore`, `systemMiddleTerm`,
+  `systemLeastSquaresBetaStarObs`, `systemStackRegressors`, `systemStackOutcomes`,
+  `systemAsymptoticVariance`, `systemDeltaVariance`, `systemScore`, `systemScoreMean`,
+  `systemMiddleTerm`,
   `systemRobustMiddleTerm`, `systemNormalizedGram`, `systemRobustMiddle`,
-  `systemHomoskedasticMiddle`, `systemRobustCovariance`, `systemHomoskedasticCovariance`,
-  `commonRegressorMoment`, and `commonRegressorHomoskedasticVariance`.
+  `systemHomoskedasticMiddle`, `systemSigmaHat`, `systemRobustCovariance`,
+  `systemHomoskedasticCovariance`, `commonRegressorMoment`, and
+  `commonRegressorHomoskedasticVariance`.
 - SUR bridge definitions include `surAsymptoticVariance`, `surVarianceEstimator`, and
   `surBetaStar`.
 - PCA/factor-model bridge definitions include `principalComponent`, `principalComponentVariance`,
-  `factorLoadingEstimator`, `factorScoreEstimator`, `PrincipalComponentSolution`,
-  `FactorPCSolution`, and `ApproximateFactorAssumption`.
+  `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`, `factorLoadingEstimator`,
+  `factorScoreEstimator`, `PrincipalComponentSolution`, `FactorPCSolution`, and
+  `ApproximateFactorAssumption`.
 - Matrix-normal bridge definitions include `wishartMatrixLaw`, `scaledWishartMatrixLaw`,
   `inverseWishartLinearForm`, and `hotellingT2`.

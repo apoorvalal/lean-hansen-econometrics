@@ -46,6 +46,25 @@ noncomputable def surAsymptoticVariance (M : Matrix k k ℝ) : Matrix k k ℝ :=
 noncomputable def surVarianceEstimator (Mhat : Matrix k k ℝ) : Matrix k k ℝ :=
   Mhat⁻¹
 
+omit [DecidableEq n] in
+/-- Weighted SUR score mean `n⁻¹∑ Xᵢ'W Yᵢ`, where `W` is typically
+`Σ̂⁻¹` or `Σ⁻¹`. -/
+noncomputable def surWeightedScoreMean
+    (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (Y : n → m → ℝ) : k → ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, (X i)ᵀ *ᵥ (W *ᵥ Y i)
+
+omit [DecidableEq n] in
+/-- Hansen feasible SUR estimator written at the observation-system level:
+`(n⁻¹∑ Xᵢ'W Xᵢ)⁻¹ (n⁻¹∑ Xᵢ'W Yᵢ)`. -/
+noncomputable def surBetaFromInverseCovStar
+    (X : n → Matrix m k ℝ) (W : Matrix m m ℝ) (Y : n → m → ℝ) : k → ℝ :=
+  (systemHomoskedasticMiddle X W)⁻¹ *ᵥ surWeightedScoreMean X W Y
+
+omit [DecidableEq n] in
+/-- Hansen residual covariance estimator `n⁻¹∑ êᵢêᵢ'`, reused by feasible SUR. -/
+noncomputable def surResidualCovariance (ehat : n → m → ℝ) : Matrix m m ℝ :=
+  systemSigmaHat ehat
+
 /-- Totalized SUR/GLS estimator, using `Matrix.nonsingInv` for both inverses. -/
 noncomputable def surBetaStar
     (X : Matrix n k ℝ) (Ωmat : Matrix n n ℝ) (y : n → ℝ) : k → ℝ :=
