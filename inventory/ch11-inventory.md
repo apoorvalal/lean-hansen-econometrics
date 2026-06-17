@@ -80,10 +80,11 @@
   - reduced-rank, PCA, factor-model, and matrix-normal material live in separate submodules
 - The current declarations reuse the repo's Chapter 7/8 OLS asymptotics, Banach-valued WLLN, matrix
   continuous-mapping, Gaussian linear-map/Slutsky, `GaussianLimit`, and
-  `CovarianceEstimatorConsistent` layers. Theorem 11.1 now has an observation-level system score
-  package and linearized Hansen theorem in addition to the older scalar-stacked Star-estimator
-  wrapper; the remaining estimator step is the explicit totalized-estimator linearization
-  remainder.
+  `CovarianceEstimatorConsistent` layers. Theorem 11.1 now has exact observation-level system
+  stacking identities, the normalized `Q̂ₙ⁻¹ ĝₙ` finite-sample representation, a system score
+  package, and a linearized Hansen theorem in addition to the older scalar-stacked Star-estimator
+  wrapper; the remaining estimator step is to prove the singular-design remainder is negligible
+  from primitive Assumption 7.2.
 - Theorem 11.3 has exact system middle-matrix and sandwich assembly theorems for the true-error
   robust middle and fixed-covariance homoskedastic middle. It also has explicit perturbation routes
   for feasible vector residuals and estimated homoskedastic covariance middles; the remaining
@@ -114,7 +115,7 @@ Conventions:
 
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
-| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | Observation-level support: `SystemScoreCLTConditions`, `systemLinearizedScore_tendstoInDistribution`, and `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`; deterministic system stacking is `systemStackRegressors`, `systemStackOutcomes`, and `systemLeastSquaresBetaStarObs`. The older scalar-stacked support theorem `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov` remains available. Proving the estimator linearization from primitive Assumption 7.2 remains open. |
+| Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | Observation-level support: `SystemScoreCLTConditions`, `systemLinearizedScore_tendstoInDistribution`, and `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`; deterministic system stacking is `systemStackRegressors`, `systemStackOutcomes`, and `systemLeastSquaresBetaStarObs`. Exact finite-sample system algebra is `systemStackOutcomes_linear_model`, `systemScoreMean_outcomes_linear_model`, `systemLeastSquaresBetaStarObs_eq_normalized_moments`, and `systemLeastSquaresBetaStarObs_sub_identity_normalized`, with unnormalized bridge results available for stacked sums. The older scalar-stacked support theorem `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov` remains available. Proving the singular-design remainder is negligible from primitive Assumption 7.2 remains open. |
 | Theorem 11.2 | Under Assumptions 7.2 and 7.3, smooth functions of system LS have the stated Gaussian limit. | Stable nonlinear-delta support: `SystemDeltaLinearization`, `systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization`, and `systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit`. The fixed linear-transform specialization remains `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution`. Proving the Taylor remainder from primitive Assumption 7.3 remains open. |
 | Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | Exact-system support: `systemRobustCovariance_tendstoInMeasure_of_ideal_wlln`, `systemRobustCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, `systemHomoskedasticCovariance_tendstoInMeasure_of_fixed_wlln`, `systemHomoskedasticCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, plus the moment-convergence wrappers. Concrete residual covariance is `systemSigmaHat`; `systemRobustMiddleTerm_eq_vecMulVec_score` links Hansen's middle to score outer products. Stacked-scalar feasible support: `systemCovariance_consistent_of_iidRobustFeasibleHCMomentConditions`. Primitive residual/covariance perturbation bounds remain open. |
 | Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | Support: `surWeightedScoreMean`, `surBetaFromInverseCovStar`, `surResidualCovariance`, `surBetaStar`, `surBetaStar_eq_glsBeta`, and Chapter 4 `glsBeta_linear_decomposition`. Full feasible SUR CLT from weighted-score and `Σ̂⁻¹` substitution assumptions remains open. |
@@ -135,6 +136,11 @@ Conventions:
   `systemCovariance_consistent_from_interfaces`, and `systemDeltaCovariance_consistent`.
 - System-regression asymptotic wrappers and exact covariance assembly:
   `SystemScoreCLTConditions`, `systemAsymptoticVariance_posSemidef`,
+  `systemStackOutcomes_linear_model`, `systemScore_sum_outcomes_linear_model`,
+  `systemScoreMean_outcomes_linear_model`, `systemLeastSquaresBetaStarObs_eq_sum_moments`,
+  `systemLeastSquaresBetaStarObs_eq_normalized_moments`,
+  `systemLeastSquaresBetaStarObs_sub_identity`,
+  `systemLeastSquaresBetaStarObs_sub_identity_normalized`,
   `systemLinearizedScore_tendstoInDistribution`,
   `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`,
   `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov`,

@@ -138,8 +138,8 @@ noncomputable def systemSigmaHat
     (ehat : n → m → ℝ) : Matrix m m ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (ehat i) (ehat i)
 
-omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q]
-  [DecidableEq m] in
+omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
 /-- The stacked system Gram matrix is the unnormalized sum of Hansen's
 per-observation Gram contributions `Xᵢ'Xᵢ`. -/
 theorem systemStackRegressors_transpose_mul_self_eq_sum
@@ -162,11 +162,115 @@ theorem systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum
   simp [systemStackRegressors, systemStackOutcomes, systemScore, Matrix.mulVec,
     dotProduct, ← Finset.univ_product_univ, Finset.sum_product]
 
+omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- Observation/equation stacking preserves the system linear model
+`Yᵢ = Xᵢ β + eᵢ`. -/
+theorem systemStackOutcomes_linear_model
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemStackOutcomes Y =
+      systemStackRegressors X *ᵥ β + systemStackOutcomes e := by
+  ext im
+  simp [systemStackOutcomes, systemStackRegressors, Matrix.mulVec, dotProduct,
+    hmodel im.1 im.2]
+
+omit [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+/-- Observation-level system scores split into Gram times coefficient plus error score
+under the system linear model. -/
+theorem systemScore_sum_outcomes_linear_model
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    ∑ i : n, systemScore (X i) (Y i) =
+      (∑ i : n, (X i)ᵀ * X i) *ᵥ β +
+        ∑ i : n, systemScore (X i) (e i) := by
+  rw [← systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum X Y,
+      systemStackOutcomes_linear_model X e Y β hmodel,
+      Matrix.mulVec_add, Matrix.mulVec_mulVec,
+      systemStackRegressors_transpose_mul_self_eq_sum,
+      systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum]
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- Totalized observation-level system least squares equals the inverse stacked Gram times
+the unnormalized system cross moment. -/
+theorem systemLeastSquaresBetaStarObs_eq_sum_moments
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) :
+    systemLeastSquaresBetaStarObs X Y =
+      (∑ i : n, (X i)ᵀ * X i)⁻¹ *ᵥ
+        ∑ i : n, systemScore (X i) (Y i) := by
+  unfold systemLeastSquaresBetaStarObs systemLeastSquaresBetaStar olsBetaStar
+  rw [systemStackRegressors_transpose_mul_self_eq_sum,
+      systemStackRegressors_transpose_mulVec_stackOutcomes_eq_sum]
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- System analogue of Chapter 7's totalized OLS residual identity. Under the linear
+model, the estimator error equals the system score term plus the singular-design
+totalization remainder. -/
+theorem systemLeastSquaresBetaStarObs_sub_identity
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemLeastSquaresBetaStarObs X Y - β -
+        (∑ i : n, (X i)ᵀ * X i)⁻¹ *ᵥ
+          ∑ i : n, systemScore (X i) (e i) =
+      (((∑ i : n, (X i)ᵀ * X i)⁻¹ *
+          ∑ i : n, (X i)ᵀ * X i) - 1) *ᵥ β := by
+  rw [systemLeastSquaresBetaStarObs_eq_sum_moments,
+      systemScore_sum_outcomes_linear_model X e Y β hmodel,
+      Matrix.mulVec_add, Matrix.mulVec_mulVec,
+      Matrix.sub_mulVec, Matrix.one_mulVec]
+  abel
+
 omit [Fintype q] [DecidableEq q] in
 /-- Normalized system Gram matrix `n⁻¹∑ Xᵢ'Xᵢ`. -/
 noncomputable def systemNormalizedGram
     (X : n → Matrix m k ℝ) : Matrix k k ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, (X i)ᵀ * X i
+
+omit [Fintype q] [DecidableEq n] [DecidableEq k] [DecidableEq q]
+  [DecidableEq m] in
+/-- Normalized observation-level system scores split into normalized Gram times
+coefficient plus normalized error score under the system linear model. -/
+theorem systemScoreMean_outcomes_linear_model
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemScoreMean X Y =
+      systemNormalizedGram X *ᵥ β + systemScoreMean X e := by
+  unfold systemScoreMean systemNormalizedGram
+  rw [systemScore_sum_outcomes_linear_model X e Y β hmodel,
+      Matrix.smul_mulVec, smul_add]
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- Totalized observation-level system least squares equals normalized system
+Gram inverse times normalized system cross moment. This is the Hansen-facing
+`Q̂ₙ⁻¹ ĝₙ` form of `systemLeastSquaresBetaStarObs_eq_sum_moments`. -/
+theorem systemLeastSquaresBetaStarObs_eq_normalized_moments
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) :
+    systemLeastSquaresBetaStarObs X Y =
+      (systemNormalizedGram X)⁻¹ *ᵥ systemScoreMean X Y := by
+  by_cases hn0 : Fintype.card n = 0
+  · haveI : IsEmpty n := Fintype.card_eq_zero_iff.mp hn0
+    simp [systemLeastSquaresBetaStarObs_eq_sum_moments, systemNormalizedGram,
+      systemScoreMean]
+  · have hne : (Fintype.card n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hn0
+    rw [systemLeastSquaresBetaStarObs_eq_sum_moments]
+    unfold systemNormalizedGram systemScoreMean
+    rw [nonsingInv_smul, Matrix.smul_mulVec, Matrix.mulVec_smul, smul_smul,
+      inv_inv, mul_inv_cancel₀ hne, one_smul]
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- Hansen-facing normalized version of the Chapter 7 totalized OLS residual identity
+for observation-level systems. -/
+theorem systemLeastSquaresBetaStarObs_sub_identity_normalized
+    (X : n → Matrix m k ℝ) (e Y : n → m → ℝ) (β : k → ℝ)
+    (hmodel : ∀ i j, Y i j = (X i j) ⬝ᵥ β + e i j) :
+    systemLeastSquaresBetaStarObs X Y - β -
+        (systemNormalizedGram X)⁻¹ *ᵥ systemScoreMean X e =
+      ((systemNormalizedGram X)⁻¹ * systemNormalizedGram X - 1) *ᵥ β := by
+  rw [systemLeastSquaresBetaStarObs_eq_normalized_moments,
+      systemScoreMean_outcomes_linear_model X e Y β hmodel,
+      Matrix.mulVec_add, Matrix.mulVec_mulVec,
+      Matrix.sub_mulVec, Matrix.one_mulVec]
+  abel
 
 omit [Fintype q] [DecidableEq q] in
 /-- Normalized robust system covariance middle matrix
