@@ -1,4 +1,5 @@
 import HansenEconometrics.Chapter8Asymptotics
+import HansenEconometrics.AsymptoticUtils.DeltaMethod
 import HansenEconometrics.Chapter11MultivariateRegression.Systems
 
 /-!
@@ -253,6 +254,57 @@ theorem systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : q => ℝ))
   simpa [T, Te, Function.comp_def, matrixContinuousLinearMap_apply] using htarget
 
+omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [Fintype m] [DecidableEq m] in
+/-- Hansen Assumption 7.3/Chapter 11.2 deterministic smoothness package for a
+function of the system coefficient vector.
+
+The derivative of `r` at `β` is represented by Hansen's matrix `R`, with
+linear action `v ↦ Rᵀv`. The stochastic Taylor-remainder negligibility needed
+for Theorem 11.2 is intentionally kept outside this deterministic package. -/
+structure SystemDeltaAssumption73
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ) where
+  /-- Fréchet derivative of `r` at `β`. -/
+  derivative : (k → ℝ) →L[ℝ] (q → ℝ)
+  /-- Differentiability at the true parameter. -/
+  differentiable_at : HasFDerivAt r derivative β
+  /-- The derivative is represented by `Rᵀ`. -/
+  derivative_apply : ∀ v : k → ℝ, derivative v = Rᵀ *ᵥ v
+  /-- Hansen's full-rank derivative condition. -/
+  fullRank : Function.Injective R.mulVec
+
+omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [Fintype m] [DecidableEq m] in
+/-- Deterministic Taylor remainder for Hansen Theorem 11.2:
+`r(b) - r(β) - Rᵀ(b - β)`. -/
+noncomputable def systemDeltaTaylorRemainder
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ) :
+    (k → ℝ) → (q → ℝ) :=
+  fun b => r b - r β - Rᵀ *ᵥ (b - β)
+
+namespace SystemDeltaAssumption73
+
+omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
+  [Fintype m] [DecidableEq m] in
+/-- Assumption 7.3 supplies the deterministic little-o Taylor remainder. -/
+theorem taylorRemainder_isLittleO
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SystemDeltaAssumption73 r β R) :
+    systemDeltaTaylorRemainder r β R =o[𝓝 β] (fun b => b - β) := by
+  simpa [systemDeltaTaylorRemainder, h73.derivative_apply] using
+    deltaMethod_remainder_isLittleO h73.differentiable_at
+
+omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q]
+  [Fintype m] [DecidableEq m] in
+/-- Algebraic form of the Taylor expansion around `β`. -/
+theorem taylorExpansion_eq_linear_plus_remainder
+    {r : (k → ℝ) → (q → ℝ)} {β b : k → ℝ} {R : Matrix k q ℝ}
+    (_h73 : SystemDeltaAssumption73 r β R) :
+    r b - r β =
+      Rᵀ *ᵥ (b - β) + systemDeltaTaylorRemainder r β R b := by
+  ext j
+  simp [systemDeltaTaylorRemainder]
+
+end SystemDeltaAssumption73
+
 /-- Stable nonlinear-delta linearization interface for Hansen Theorem 11.2.
 
 `Tβ` is the scaled coefficient statistic and `Tθ` is the scaled statistic for a
@@ -264,6 +316,34 @@ structure SystemDeltaLinearization
   scaled_measurable : ∀ n, AEMeasurable (Tθ n) μ
   expansion : TendstoInMeasure μ
     (Tθ - fun n ω => Rᵀ *ᵥ Tβ n ω) atTop (fun _ => 0)
+
+omit [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q] [Fintype m] [DecidableEq m] in
+/-- Constructor for the Chapter 11 nonlinear-delta interface from the scaled Taylor
+remainder associated with `SystemDeltaAssumption73`. -/
+theorem systemDeltaLinearization_of_scaled_taylor_remainder
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (_h73 : SystemDeltaAssumption73 r β R)
+    (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
+    (hscaled_meas : ∀ n,
+      AEMeasurable (fun ω => root n • (r (βhat n ω) - r β)) μ)
+    (hrem : TendstoInMeasure μ
+      (fun n ω => root n • systemDeltaTaylorRemainder r β R (βhat n ω))
+      atTop (fun _ => 0)) :
+    SystemDeltaLinearization μ
+      (fun n ω => root n • (r (βhat n ω) - r β)) R
+      (fun n ω => root n • (βhat n ω - β)) where
+  scaled_measurable := hscaled_meas
+  expansion := by
+    have heq :
+        ((fun n ω => root n • (r (βhat n ω) - r β)) -
+            fun n ω => Rᵀ *ᵥ (root n • (βhat n ω - β))) =
+          fun n ω => root n • systemDeltaTaylorRemainder r β R (βhat n ω) := by
+      funext n ω
+      ext j
+      simp [systemDeltaTaylorRemainder, sub_eq_add_neg, Matrix.mulVec_add, Matrix.mulVec_smul,
+        Matrix.mulVec_neg, smul_neg, smul_eq_mul]
+      ring_nf
+    simpa [heq] using hrem
 
 /-- Hansen Theorem 11.2 at the stable nonlinear-delta interface.
 
