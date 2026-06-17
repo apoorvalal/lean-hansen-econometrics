@@ -255,6 +255,14 @@ noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → �
 noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
   fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
 
+omit [Fintype k] in
+/-- A coordinate covariance matrix is Hermitian, equivalently symmetric over `ℝ`. -/
+theorem covMat_isHermitian (μ : Measure Ω) (X : Ω → k → ℝ) :
+    (covMat μ X).IsHermitian := by
+  rw [Matrix.IsHermitian]
+  ext i j
+  simp [covMat, ProbabilityTheory.covariance_comm]
+
 /-- Identically distributed finite-dimensional vectors have matching coordinate covariances. -/
 theorem identDistrib_covariance_apply_eq
     {Ω' k : Type*} [MeasurableSpace Ω']
