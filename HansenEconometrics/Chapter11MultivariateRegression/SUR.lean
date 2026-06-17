@@ -219,6 +219,37 @@ theorem surLinearizedScore_tendstoInDistribution
   simpa [hcov] using hlin
 
 omit [DecidableEq n] [DecidableEq m] in
+/-- The fixed-weight SUR sample information matrix is singular with asymptotically
+vanishing probability whenever it converges to nonsingular `M`. -/
+theorem measure_surInformation_singular_tendsto_zero
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {W : Matrix m m ℝ} {M : Matrix k k ℝ}
+    (h : SURScoreCLTConditions μ X W e M) :
+    Tendsto
+      (fun n => μ {ω |
+        ¬ IsUnit (systemHomoskedasticMiddle (fun i : Fin n => X i.val ω) W).det})
+      atTop (𝓝 0) := by
+  have hDet : TendstoInMeasure μ
+      (fun n ω => (systemHomoskedasticMiddle (fun i : Fin n => X i.val ω) W).det)
+      atTop (fun _ => M.det) :=
+    tendstoInMeasure_continuous_comp h.information_meas h.information_tendsto
+      (Continuous.matrix_det continuous_id)
+  have hqne : M.det ≠ 0 := h.information_nonsing.ne_zero
+  set ε : ℝ := |M.det| / 2 with hε_def
+  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hqne)
+  have hε_le : ε ≤ |M.det| := by
+    rw [hε_def]
+    linarith [abs_nonneg M.det]
+  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
+    (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
+  simp only [Set.mem_setOf_eq, hω, edist_dist, Real.dist_eq, zero_sub, abs_neg]
+  exact ENNReal.ofReal_le_ofReal hε_le
+
+omit [DecidableEq n] [DecidableEq m] in
 /-- Exact fixed-weight SUR Star-estimator linearization on nonsingular sample
 information matrices. -/
 theorem surBetaFromInverseCovStar_linearization_of_nonsingular
@@ -313,6 +344,104 @@ theorem surBetaFromInverseCovStar_tendstoInDistribution_of_nonsingular
     (surLinearizedScore_tendstoInDistribution (μ := μ) h)
     (surBetaFromInverseCovStar_linearization_of_nonsingular
       (μ := μ) (X := X) (e := e) (Y := Y) W β hmodel hMhat_unit)
+    hmeas
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Exact fixed-weight SUR Star-estimator linearization with the singular
+information-matrix remainder handled by a high-probability argument. -/
+theorem surBetaFromInverseCovStar_linearization
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {W : Matrix m m ℝ} {M : Matrix k k ℝ}
+    (h : SURScoreCLTConditions μ X W e M) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
+    TendstoInMeasure μ
+      ((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+                (fun i : Fin t => e i.val ω)))
+      atTop (fun _ => 0) := by
+  have hsingular := measure_surInformation_singular_tendsto_zero h
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsingular
+    (fun _ => zero_le _) (fun t => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  intro hunit
+  let Xt : Fin t → Matrix m k ℝ := fun i => X i.val ω
+  let et : Fin t → m → ℝ := fun i => e i.val ω
+  let Yt : Fin t → m → ℝ := fun i => Y i.val ω
+  let Mhat : Matrix k k ℝ := systemHomoskedasticMiddle Xt W
+  let ghat : k → ℝ := surWeightedScoreMean Xt W et
+  let betaHat : k → ℝ := surBetaFromInverseCovStar Xt W Yt
+  have hid :
+      betaHat - β - Mhat⁻¹ *ᵥ ghat =
+        (Mhat⁻¹ * Mhat - 1) *ᵥ β := by
+    simpa [betaHat, Mhat, ghat, Xt, et, Yt] using
+      surBetaFromInverseCovStar_sub_identity
+        (X := Xt) (W := W) (e := et) (Y := Yt) (β := β)
+        (by intro i j; exact hmodel i.val ω j)
+  have hlin0 : betaHat - β - Mhat⁻¹ *ᵥ ghat = 0 := by
+    rw [hid, Matrix.nonsing_inv_mul Mhat (by simpa [Mhat, Xt] using hunit)]
+    simp
+  have hzero :
+      Real.sqrt (t : ℝ) • (betaHat - β) -
+        Mhat⁻¹ *ᵥ (Real.sqrt (t : ℝ) • ghat) = 0 := by
+    rw [Matrix.mulVec_smul, ← smul_sub, hlin0, smul_zero]
+  change ε ≤ edist
+    (((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+                (fun i : Fin t => e i.val ω)))
+        t ω) 0 at hω
+  have hω0 : ε = 0 := by
+    simpa [Xt, et, Yt, Mhat, ghat, betaHat, hzero] using hω
+  exact hε.ne' hω0
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Hansen Theorem 11.4 fixed-weight SUR wrapper with sample singularity handled
+by the totalized Star estimator and high-probability information argument. -/
+theorem surBetaFromInverseCovStar_tendstoInDistribution
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {W : Matrix m m ℝ} {M : Matrix k k ℝ}
+    (h : SURScoreCLTConditions μ X W e M) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (surAsymptoticVariance M)) := by
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (t : ℕ) ω =>
+      (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+        (Real.sqrt (t : ℝ) •
+          surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+            (fun i : Fin t => e i.val ω)))
+    (Y := fun (t : ℕ) ω =>
+      Real.sqrt (t : ℝ) •
+        (surBetaFromInverseCovStar
+          (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β))
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp)
+    (surLinearizedScore_tendstoInDistribution (μ := μ) h)
+    (surBetaFromInverseCovStar_linearization
+      (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel)
     hmeas
 
 omit [Fintype k] [DecidableEq k] in
