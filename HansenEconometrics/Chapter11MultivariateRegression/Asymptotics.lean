@@ -399,6 +399,90 @@ theorem taylorExpansion_eq_linear_plus_remainder
 
 end SystemDeltaAssumption73
 
+omit [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq q] in
+/-- Hansen Theorem 11.2 Taylor-remainder bridge.
+
+If the coefficient estimator is consistent and its scaled coefficient error is
+`Oₚ(1)`, Assumption 7.3's deterministic little-o Taylor remainder is negligible
+after the same scaling. -/
+theorem systemDelta_scaled_taylor_remainder_tendstoInMeasure_of_consistency_bounded
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SystemDeltaAssumption73 r β R)
+    (root : ℕ → ℝ) (βhat : ℕ → Ω → k → ℝ)
+    (hβ : TendstoInMeasure μ βhat atTop (fun _ => β))
+    (hTβ : BoundedInProbabilityNorm μ
+      (fun n ω => root n • (βhat n ω - β))) :
+    TendstoInMeasure μ
+      (fun n ω => root n • systemDeltaTaylorRemainder r β R (βhat n ω))
+      atTop (fun _ => 0) := by
+  rw [tendstoInMeasure_iff_dist] at hβ ⊢
+  intro ε hε
+  rw [ENNReal.tendsto_atTop_zero]
+  intro δ hδ
+  have hδ2 : 0 < δ / 2 := ENNReal.div_pos hδ.ne' ENNReal.ofNat_ne_top
+  obtain ⟨M, hMpos, hMev⟩ := hTβ (δ / 2) hδ2
+  let η : ℝ := ε / M
+  have hηpos : 0 < η := div_pos hε hMpos
+  have hnear :
+      ∀ᶠ b in 𝓝 β,
+        ‖systemDeltaTaylorRemainder r β R b‖ ≤ η * ‖b - β‖ :=
+    (SystemDeltaAssumption73.taylorRemainder_isLittleO h73).def hηpos
+  rcases Metric.mem_nhds_iff.1 hnear with ⟨ρ, hρpos, hρsub⟩
+  have hβev := (hβ ρ hρpos).eventually_lt_const hδ2
+  obtain ⟨N, hN⟩ := eventually_atTop.1 (hMev.and hβev)
+  refine ⟨N, fun n hnN => ?_⟩
+  have hnM : μ {ω | M ≤ ‖root n • (βhat n ω - β)‖} ≤ δ / 2 := (hN n hnN).1
+  have hnβ : μ {ω | ρ ≤ dist (βhat n ω) β} < δ / 2 := (hN n hnN).2
+  have hnβ_le : μ {ω | ρ ≤ dist (βhat n ω) β} ≤ δ / 2 := le_of_lt hnβ
+  have hcover :
+      {ω | ε ≤ dist
+        (root n • systemDeltaTaylorRemainder r β R (βhat n ω)) 0} ⊆
+        {ω | M ≤ ‖root n • (βhat n ω - β)‖} ∪
+          {ω | ρ ≤ dist (βhat n ω) β} := by
+    intro ω hω
+    by_cases hTbig : M ≤ ‖root n • (βhat n ω - β)‖
+    · exact Or.inl hTbig
+    right
+    by_contra hβbig
+    have hTsmall : ‖root n • (βhat n ω - β)‖ < M := not_le.mp hTbig
+    have hβsmall : dist (βhat n ω) β < ρ := not_le.mp hβbig
+    have hbmem : βhat n ω ∈ Metric.ball β ρ := by
+      simpa [Metric.mem_ball, dist_comm] using hβsmall
+    have hrem_bound :
+        ‖systemDeltaTaylorRemainder r β R (βhat n ω)‖ ≤
+          η * ‖βhat n ω - β‖ :=
+      hρsub hbmem
+    have hscaled_bound :
+        ‖root n • systemDeltaTaylorRemainder r β R (βhat n ω)‖ ≤
+          η * ‖root n • (βhat n ω - β)‖ := by
+      calc
+        ‖root n • systemDeltaTaylorRemainder r β R (βhat n ω)‖
+            = ‖root n‖ * ‖systemDeltaTaylorRemainder r β R (βhat n ω)‖ :=
+              norm_smul _ _
+        _ ≤ ‖root n‖ * (η * ‖βhat n ω - β‖) :=
+              mul_le_mul_of_nonneg_left hrem_bound (norm_nonneg _)
+        _ = η * (‖root n‖ * ‖βhat n ω - β‖) := by ring
+        _ = η * ‖root n • (βhat n ω - β)‖ := by rw [norm_smul]
+    have hscaled_lt : ‖root n • systemDeltaTaylorRemainder r β R (βhat n ω)‖ < ε := by
+      calc
+        ‖root n • systemDeltaTaylorRemainder r β R (βhat n ω)‖
+            ≤ η * ‖root n • (βhat n ω - β)‖ := hscaled_bound
+        _ < η * M := mul_lt_mul_of_pos_left hTsmall hηpos
+        _ = ε := div_mul_cancel₀ ε hMpos.ne'
+    have hdist_lt :
+        dist (root n • systemDeltaTaylorRemainder r β R (βhat n ω)) 0 < ε := by
+      simpa [dist_eq_norm] using hscaled_lt
+    exact (not_le_of_gt hdist_lt) hω
+  calc
+    μ {ω | ε ≤ dist
+        (root n • systemDeltaTaylorRemainder r β R (βhat n ω)) 0}
+        ≤ μ ({ω | M ≤ ‖root n • (βhat n ω - β)‖} ∪
+          {ω | ρ ≤ dist (βhat n ω) β}) := measure_mono hcover
+    _ ≤ μ {ω | M ≤ ‖root n • (βhat n ω - β)‖} +
+          μ {ω | ρ ≤ dist (βhat n ω) β} := measure_union_le _ _
+    _ ≤ δ / 2 + δ / 2 := add_le_add hnM hnβ_le
+    _ = δ := ENNReal.add_halves δ
+
 /-- Stable nonlinear-delta linearization interface for Hansen Theorem 11.2.
 
 `Tβ` is the scaled coefficient statistic and `Tθ` is the scaled statistic for a
