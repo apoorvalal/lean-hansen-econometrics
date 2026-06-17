@@ -123,9 +123,9 @@ Conventions:
 | Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | Support: `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`, `reducedRankGPencilB`, `generalizedEigenvector`, `generalizedEigenvectorColumns`, `reducedRankHansenGEigenvectors`, `ReducedRankMLE`, `reducedRankMLE_of_generalizedEigenvectors`, `reducedRankMLE_of_hansen_generalizedEigenvectors`; `C : Matrix ell m ℝ` keeps the control-regressor dimension separate. Full likelihood/eigenvalue optimizer remains open. |
 | Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `principalComponent_variance_eq_covMat_quadratic`, `principalComponent_variance_eq_eigenvalue`, `principalComponent_variance_eq_hermitian_eigenvalue`, `principalComponent_variance_eq_covMat_eigenvalue`, `principalComponent_variance_eq_ordered_covMat_eigenvalue`, plus deterministic `principalComponentVariance_eq_eigenvalue` and `principalComponentVariance_eq_orderedPCEigenvalue`. Ordered eigenvector feasibility is `orderedPCEigenvector_feasibleBefore`; the ordered argmax proof remains open. |
 | Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | Support: `factorSampleCovariance`, `factorSampleCovariance_transpose`, `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`, `factorLeadingEigenspace_col_diagonal`, `FactorPCSolution`, `factorPCSolution_sample_covariance_eq`, `factorPCSolution_leadingEigenspace_eq`, `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq`, `factorPCSolution_of_normalized_eigenspace_certificate`; factor scores are observation-indexed as `Fhat : n → r → ℝ`. Full least-squares/eigenspace derivation remains open. |
-| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | Support: `matrixCrossProduct_hasLaw_wishartMatrixLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`, `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`, and `sampleCovariance_hasLaw_from_wishartInterface`. Derivation from independent normal rows remains open. |
-| Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | Support: `inverseWishartLinearForm_hasLaw_map`, `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`, and `inverseWishartLinearForm_hasLaw_from_interface`. Schur-complement/inverse-Wishart derivation remains open. |
-| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | Support: `hotellingT2_hasLaw_map`, `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`, and `hotellingT2_hasLaw_from_interface`. Sample mean/covariance independence plus chi-square/inverse-Wishart derivation remains open. |
+| Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | Support: `sampleMeanMatrix`, `centeredSampleMatrix`, `sampleCovarianceMatrix`, `sampleCovarianceMatrix_apply`, `matrixCrossProduct_hasLaw_wishartMatrixLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`, `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`, `sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows`, and `sampleCovariance_hasLaw_from_wishartInterface`. Derivation from independent normal rows remains open. |
+| Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | Support: `inverseWishartLinearForm`, `inverseWishartScaledLinearForm`, `inverseWishartLinearForm_hasLaw_map`, `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`, `inverseWishartScaledLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq`, `inverseWishartLinearForm_hasLaw_from_interface`, and `inverseWishartScaledLinearForm_hasLaw_from_interface`. Schur-complement/inverse-Wishart derivation remains open. |
+| Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | Support: `hotellingT2`, `hotellingT2Sample`, `hotellingT2HansenScale`, `hotellingT2_hasLaw_map`, `hotellingT2Sample_hasLaw_map`, `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`, `hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio`, and `hotellingT2_hasLaw_from_interface`. Sample mean/covariance independence plus chi-square/inverse-Wishart derivation remains open. |
 
 ## Lean-Only Support Results
 
@@ -181,14 +181,21 @@ Conventions:
   `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`,
   `reducedRankGPencilB`, `reducedRankHansenGEigenvectors`,
   `reducedRankMLE_of_hansen_generalizedEigenvectors`,
+  `sampleMeanMatrix`, `centeredSampleMatrix`, `sampleCovarianceMatrix`,
+  `sampleCovarianceMatrix_apply`,
   `matrixCrossProduct_hasLaw_wishartMatrixLaw`,
   `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`,
   `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`,
+  `sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows`,
   `sampleCovariance_hasLaw_from_wishartInterface`,
-  `inverseWishartLinearForm_hasLaw_map`,
+  `inverseWishartLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_map`,
   `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`,
-  `inverseWishartLinearForm_hasLaw_from_interface`, `hotellingT2_hasLaw_map`,
-  `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`, and
+  `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq`,
+  `inverseWishartLinearForm_hasLaw_from_interface`,
+  `inverseWishartScaledLinearForm_hasLaw_from_interface`, `hotellingT2Sample`,
+  `hotellingT2HansenScale`, `hotellingT2_hasLaw_map`, `hotellingT2Sample_hasLaw_map`,
+  `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`,
+  `hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio`, and
   `hotellingT2_hasLaw_from_interface`.
 
 ## Notes
@@ -208,5 +215,7 @@ Conventions:
   `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`, `factorLoadingEstimator`,
   `factorScoreEstimator`, `PrincipalComponentSolution`, `FactorPCSolution`, and
   `ApproximateFactorAssumption`.
-- Matrix-normal bridge definitions include `wishartMatrixLaw`, `scaledWishartMatrixLaw`,
-  `inverseWishartLinearForm`, and `hotellingT2`.
+- Matrix-normal bridge definitions include `sampleMeanMatrix`, `centeredSampleMatrix`,
+  `sampleCovarianceMatrix`, `wishartMatrixLaw`, `scaledWishartMatrixLaw`,
+  `inverseWishartLinearForm`, `inverseWishartScaledLinearForm`, `hotellingT2`,
+  `hotellingT2Sample`, and `hotellingT2HansenScale`.
