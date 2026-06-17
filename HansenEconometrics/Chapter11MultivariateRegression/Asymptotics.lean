@@ -156,6 +156,100 @@ theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization
     (systemLinearizedScore_tendstoInDistribution (μ := μ) h)
     hlinearization hmeas
 
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Exact Chapter 11.1 Star-estimator linearization on nonsingular sample Grams.
+
+The normalized finite-sample identity in `Systems.lean` leaves only the
+totalized singular-design remainder
+`(Q̂ₙ⁻¹ Q̂ₙ - I) β`. On samples where `Q̂ₙ` is nonsingular this remainder is
+exactly zero, so the scaled estimator error equals the linearized score. -/
+theorem systemLeastSquaresBetaStarObs_linearization_of_nonsingular
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hQhat_unit : ∀ t ω,
+      IsUnit (systemNormalizedGram (fun i : Fin t => X i.val ω)).det) :
+    TendstoInMeasure μ
+      ((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+      atTop (fun _ => 0) := by
+  have hzero :
+      TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : k → ℝ)) atTop
+        (fun _ => 0) := by
+    exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all _ (fun _ => tendsto_const_nhds))
+  refine TendstoInMeasure.congr (fun t => ?_) EventuallyEq.rfl hzero
+  filter_upwards with ω
+  let Xt : Fin t → Matrix m k ℝ := fun i => X i.val ω
+  let et : Fin t → m → ℝ := fun i => e i.val ω
+  let Yt : Fin t → m → ℝ := fun i => Y i.val ω
+  let Qhat : Matrix k k ℝ := systemNormalizedGram Xt
+  let ghat : k → ℝ := systemScoreMean Xt et
+  let betaHat : k → ℝ := systemLeastSquaresBetaStarObs Xt Yt
+  have hid :
+      betaHat - β - Qhat⁻¹ *ᵥ ghat =
+        ((Qhat)⁻¹ * Qhat - 1) *ᵥ β := by
+    simpa [betaHat, Qhat, ghat, Xt, et, Yt] using
+      systemLeastSquaresBetaStarObs_sub_identity_normalized
+        (X := Xt) (e := et) (Y := Yt) (β := β)
+        (by intro i j; exact hmodel i.val ω j)
+  have hlin0 : betaHat - β - Qhat⁻¹ *ᵥ ghat = 0 := by
+    rw [hid, Matrix.nonsing_inv_mul Qhat (by simpa [Qhat, Xt] using hQhat_unit t ω)]
+    simp
+  ext a
+  simp only [Pi.sub_apply, Pi.smul_apply, Pi.zero_apply]
+  have hcoord := congrArg (fun v : k → ℝ => v a) hlin0
+  simp only [Pi.sub_apply, Pi.zero_apply] at hcoord
+  rw [Matrix.mulVec_smul]
+  simp only [Pi.smul_apply]
+  symm
+  change Real.sqrt (t : ℝ) * (betaHat a - β a) -
+      Real.sqrt (t : ℝ) * (Qhat⁻¹ *ᵥ ghat) a = 0
+  calc
+    Real.sqrt (t : ℝ) * (betaHat a - β a) -
+        Real.sqrt (t : ℝ) * (Qhat⁻¹ *ᵥ ghat) a =
+          Real.sqrt (t : ℝ) *
+            (betaHat a - β a - (Qhat⁻¹ *ᵥ ghat) a) := by ring
+    _ = 0 := by rw [hcoord, mul_zero]
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Hansen Theorem 11.1 wrapper when sample normalized Grams are nonsingular.
+
+This theorem composes the exact nonsingular finite-sample linearization with
+the Chapter 11 system-score CLT package. It is stronger than the pure
+linearization-interface theorem, while keeping the nonsingularity side
+condition explicit rather than hiding it inside Assumption 7.2. -/
+theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_nonsingular
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hQhat_unit : ∀ t ω,
+      IsUnit (systemNormalizedGram (fun i : Fin t => X i.val ω)).det)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (systemAsymptoticVariance Q Omega)) :=
+  systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization
+    (μ := μ) h β
+    (systemLeastSquaresBetaStarObs_linearization_of_nonsingular
+      (μ := μ) (X := X) (e := e) (Y := Y) β hmodel hQhat_unit)
+    hmeas
+
 /-- Interface projection for system least-squares asymptotic normality. -/
 theorem systemLeastSquares_gaussianLimit_from_interface
     (T : ℕ → Ω → k → ℝ) (Q Ωmat : Matrix k k ℝ)

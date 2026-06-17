@@ -144,6 +144,177 @@ theorem sur_tendstoInDistribution_from_interface
       (fun _ => μ) (multivariateGaussian 0 (surAsymptoticVariance M)) :=
   hT.limit
 
+omit [DecidableEq n] [DecidableEq m] in
+/-- Fixed-weight SUR score CLT package for Hansen Theorem 11.4.
+
+For a fixed inverse-covariance weight `W`, the sample information matrix is
+`n⁻¹∑ Xᵢ' W Xᵢ` and the score is `n⁻¹∑ Xᵢ' W eᵢ`. Under homoskedasticity with
+`W = Σ⁻¹`, the score covariance is the same population information matrix `M`,
+which yields the Hansen SUR covariance `M⁻¹`. -/
+structure SURScoreCLTConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → Matrix m k ℝ) (W : Matrix m m ℝ)
+    (e : ℕ → Ω → m → ℝ) (M : Matrix k k ℝ) : Prop where
+  information_meas : ∀ n,
+    AEStronglyMeasurable
+      (fun ω => systemHomoskedasticMiddle (fun i : Fin n => X i.val ω) W) μ
+  information_tendsto : TendstoInMeasure μ
+    (fun n ω => systemHomoskedasticMiddle (fun i : Fin n => X i.val ω) W)
+    atTop (fun _ => M)
+  information_nonsing : IsUnit M.det
+  information_inv_transpose : (M⁻¹)ᵀ = M⁻¹
+  information_posSemidef : M.PosSemidef
+  score_limit : TendstoInDistribution
+    (fun (t : ℕ) ω =>
+      Real.sqrt (t : ℝ) •
+        surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+          (fun i : Fin t => e i.val ω))
+    atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+    (multivariateGaussian 0 M)
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Fixed-weight SUR linearized score CLT.
+
+If the information matrix converges to nonsingular `M` and the fixed-weight
+SUR score has covariance `M`, then the linearized statistic has Hansen
+covariance `M⁻¹`. -/
+theorem surLinearizedScore_tendstoInDistribution
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {W : Matrix m m ℝ} {M : Matrix k k ℝ}
+    (h : SURScoreCLTConditions μ X W e M) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+          (Real.sqrt (t : ℝ) •
+            surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+              (fun i : Fin t => e i.val ω)))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (surAsymptoticVariance M)) := by
+  have hMinv : TendstoInMeasure μ
+      (fun (t : ℕ) ω =>
+        (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹)
+      atTop (fun _ => M⁻¹) :=
+    tendstoInMeasure_matrix_inv h.information_meas h.information_tendsto
+      (fun _ => h.information_nonsing)
+  have hMinv_meas : ∀ n,
+      AEStronglyMeasurable
+        (fun ω => (systemHomoskedasticMiddle (fun i : Fin n => X i.val ω) W)⁻¹) μ :=
+    fun n => aestronglyMeasurable_matrix_inv (h.information_meas n)
+  have hlin :=
+    randomMatrix_mulVec_tendstoInDistribution_multivariateGaussian
+      (Ahat := fun (t : ℕ) ω =>
+        (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹)
+      (A := M⁻¹) (S := M)
+      (T := fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+            (fun i : Fin t => e i.val ω))
+      h.information_posSemidef hMinv_meas hMinv h.score_limit
+  have hcov : M⁻¹ * M * (M⁻¹)ᵀ = surAsymptoticVariance M := by
+    calc
+      M⁻¹ * M * (M⁻¹)ᵀ = (M⁻¹ * M) * M⁻¹ := by
+        rw [h.information_inv_transpose]
+      _ = 1 * M⁻¹ := by rw [Matrix.nonsing_inv_mul M h.information_nonsing]
+      _ = surAsymptoticVariance M := by simp [surAsymptoticVariance]
+  simpa [hcov] using hlin
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Exact fixed-weight SUR Star-estimator linearization on nonsingular sample
+information matrices. -/
+theorem surBetaFromInverseCovStar_linearization_of_nonsingular
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    (W : Matrix m m ℝ) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hMhat_unit : ∀ t ω,
+      IsUnit (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W).det) :
+    TendstoInMeasure μ
+      ((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+                (fun i : Fin t => e i.val ω)))
+      atTop (fun _ => 0) := by
+  have hzero :
+      TendstoInMeasure μ (fun _ : ℕ => fun _ : Ω => (0 : k → ℝ)) atTop
+        (fun _ => 0) := by
+    exact tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all _ (fun _ => tendsto_const_nhds))
+  refine TendstoInMeasure.congr (fun t => ?_) EventuallyEq.rfl hzero
+  filter_upwards with ω
+  let Xt : Fin t → Matrix m k ℝ := fun i => X i.val ω
+  let et : Fin t → m → ℝ := fun i => e i.val ω
+  let Yt : Fin t → m → ℝ := fun i => Y i.val ω
+  let Mhat : Matrix k k ℝ := systemHomoskedasticMiddle Xt W
+  let ghat : k → ℝ := surWeightedScoreMean Xt W et
+  let betaHat : k → ℝ := surBetaFromInverseCovStar Xt W Yt
+  have hid :
+      betaHat - β - Mhat⁻¹ *ᵥ ghat =
+        (Mhat⁻¹ * Mhat - 1) *ᵥ β := by
+    simpa [betaHat, Mhat, ghat, Xt, et, Yt] using
+      surBetaFromInverseCovStar_sub_identity
+        (X := Xt) (W := W) (e := et) (Y := Yt) (β := β)
+        (by intro i j; exact hmodel i.val ω j)
+  have hlin0 : betaHat - β - Mhat⁻¹ *ᵥ ghat = 0 := by
+    rw [hid, Matrix.nonsing_inv_mul Mhat (by simpa [Mhat, Xt] using hMhat_unit t ω)]
+    simp
+  ext a
+  simp only [Pi.sub_apply, Pi.smul_apply, Pi.zero_apply]
+  have hcoord := congrArg (fun v : k → ℝ => v a) hlin0
+  simp only [Pi.sub_apply, Pi.zero_apply] at hcoord
+  rw [Matrix.mulVec_smul]
+  simp only [Pi.smul_apply]
+  symm
+  change Real.sqrt (t : ℝ) * (betaHat a - β a) -
+      Real.sqrt (t : ℝ) * (Mhat⁻¹ *ᵥ ghat) a = 0
+  calc
+    Real.sqrt (t : ℝ) * (betaHat a - β a) -
+        Real.sqrt (t : ℝ) * (Mhat⁻¹ *ᵥ ghat) a =
+          Real.sqrt (t : ℝ) *
+            (betaHat a - β a - (Mhat⁻¹ *ᵥ ghat) a) := by ring
+    _ = 0 := by rw [hcoord, mul_zero]
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Hansen Theorem 11.4 fixed-weight SUR wrapper under explicit sample
+nonsingularity. -/
+theorem surBetaFromInverseCovStar_tendstoInDistribution_of_nonsingular
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {W : Matrix m m ℝ} {M : Matrix k k ℝ}
+    (h : SURScoreCLTConditions μ X W e M) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hMhat_unit : ∀ t ω,
+      IsUnit (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W).det)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (surBetaFromInverseCovStar
+            (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (surAsymptoticVariance M)) := by
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun (t : ℕ) ω =>
+      (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) W)⁻¹ *ᵥ
+        (Real.sqrt (t : ℝ) •
+          surWeightedScoreMean (fun i : Fin t => X i.val ω) W
+            (fun i : Fin t => e i.val ω)))
+    (Y := fun (t : ℕ) ω =>
+      Real.sqrt (t : ℝ) •
+        (surBetaFromInverseCovStar
+          (fun i : Fin t => X i.val ω) W (fun i : Fin t => Y i.val ω) - β))
+    (Z := fun z : EuclideanSpace ℝ k => z.ofLp)
+    (surLinearizedScore_tendstoInDistribution (μ := μ) h)
+    (surBetaFromInverseCovStar_linearization_of_nonsingular
+      (μ := μ) (X := X) (e := e) (Y := Y) W β hmodel hMhat_unit)
+    hmeas
+
 omit [Fintype k] [DecidableEq k] in
 /-- Loewner-order bridge for SUR efficiency once the variance gap has been
 established by a concrete SUR proof. -/
@@ -165,6 +336,34 @@ theorem sur_efficiency_from_gls_variance_gap
     (Aᵀ * Ωmat * A - surAsymptoticVariance (Xᵀ * ⅟Ωmat * X)).PosSemidef := by
   simpa [surAsymptoticVariance, invOf_eq_nonsing_inv] using
     generalizedGaussMarkov_variance_gap_posSemidef X A Ωmat hΩ hAX
+
+omit [MeasurableSpace Ω] [IsProbabilityMeasure μ] in
+/-- Hansen Theorem 11.5 finite-dimensional SUR efficiency comparison.
+
+The OLS covariance surface `olsConditionalVarianceMatrix X Ωmat` dominates
+the SUR/GLS covariance `(XᵀΩ⁻¹X)⁻¹` in positive-semidefinite order. This is
+the Chapter 11 textbook comparison obtained by instantiating the Chapter 4
+generalized Gauss-Markov theorem with the OLS linear estimator
+`A = X (XᵀX)⁻¹`. -/
+theorem sur_efficiency_vs_olsConditionalVarianceMatrix
+    (X : Matrix n k ℝ) (Ωmat : Matrix n n ℝ)
+    [Invertible Ωmat] [Invertible (Xᵀ * ⅟Ωmat * X)] [Invertible (Xᵀ * X)]
+    (hΩ : Ωmat.PosSemidef) :
+    (olsConditionalVarianceMatrix X Ωmat -
+      surAsymptoticVariance (Xᵀ * ⅟Ωmat * X)).PosSemidef := by
+  let A : Matrix n k ℝ := X * ⅟ (Xᵀ * X)
+  have hAX : Aᵀ * X = (1 : Matrix k k ℝ) := by
+    dsimp [A]
+    calc
+      (X * ⅟ (Xᵀ * X))ᵀ * X =
+          ⅟ (Xᵀ * X) * (Xᵀ * X) := by
+            rw [Matrix.transpose_mul, inv_gram_transpose]
+            simp [Matrix.mul_assoc]
+      _ = 1 := by rw [invOf_mul_self]
+  have hgap := sur_efficiency_from_gls_variance_gap
+    (X := X) (A := A) (Ωmat := Ωmat) hΩ hAX
+  simpa [A, olsConditionalVarianceMatrix, invOf_eq_nonsing_inv,
+    Matrix.transpose_nonsing_inv, gram_transpose, Matrix.mul_assoc] using hgap
 
 omit [IsProbabilityMeasure μ] [DecidableEq k] in
 /-- Interface projection for feasible SUR covariance consistency. -/

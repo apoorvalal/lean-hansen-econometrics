@@ -1,5 +1,6 @@
 import HansenEconometrics.FDist
 import HansenEconometrics.LinearAlgebraUtils
+import HansenEconometrics.MultivariateNormal
 import HansenEconometrics.AsymptoticUtils
 
 /-!
@@ -52,6 +53,31 @@ noncomputable def wishartMatrixLaw
 noncomputable def scaledWishartMatrixLaw
     (c : ℝ) (Ylaw : Measure (Matrix n m ℝ)) : Measure (Matrix m m ℝ) :=
   (wishartMatrixLaw Ylaw).map fun W => c • W
+
+/-- Row law for a vector-valued Gaussian observation, represented on plain
+functions `m → ℝ` rather than `EuclideanSpace ℝ m`. -/
+noncomputable def rowGaussianLaw
+    (mean : m → ℝ) (Sigma : Matrix m m ℝ) : Measure (m → ℝ) :=
+  (multivariateGaussian (WithLp.toLp 2 mean) Sigma).map
+    fun z : EuclideanSpace ℝ m => z.ofLp
+
+/-- Product law for iid Gaussian rows of a random matrix. This is the
+Hansen-facing matrix-normal sampling law used by the Wishart surface. -/
+noncomputable def iidMatrixGaussianLaw
+    (mean : m → ℝ) (Sigma : Matrix m m ℝ) : Measure (Matrix n m ℝ) :=
+  ((Measure.pi fun _ : n => rowGaussianLaw mean Sigma) : Measure (n → m → ℝ)).map
+    fun Y : n → m → ℝ => (Y : Matrix n m ℝ)
+
+/-- Hansen Wishart law `W_m(n, Σ)`, represented as the cross-product
+push-forward of iid centered Gaussian rows. -/
+noncomputable def wishartLaw (Sigma : Matrix m m ℝ) : Measure (Matrix m m ℝ) :=
+  wishartMatrixLaw (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
+
+/-- Hansen scaled Wishart law, used for sample covariance matrices. -/
+noncomputable def scaledWishartLaw
+    (c : ℝ) (Sigma : Matrix m m ℝ) : Measure (Matrix m m ℝ) :=
+  scaledWishartMatrixLaw c
+    (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
 
 /-- Scalar inverse-Wishart linear form in Hansen Theorem 11.11. -/
 noncomputable def inverseWishartLinearForm
@@ -132,6 +158,36 @@ theorem scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw
     ⟨by fun_prop, rfl⟩
   exact hscale.comp (matrixCrossProduct_hasLaw_wishartMatrixLaw Y Ylaw hY)
 
+omit [DecidableEq n] in
+/-- Hansen Theorem 11.10 Wishart cross-product surface.
+
+If a sample matrix has iid centered Gaussian row law with covariance `Σ`, then
+its cross-product has the Hansen Wishart law `W_m(n,Σ)`. -/
+theorem matrixCrossProduct_hasLaw_wishartLaw
+    (Y : Ω → Matrix n m ℝ) (Sigma : Matrix m m ℝ)
+    (hY : HasLaw Y
+      (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma) μ) :
+    HasLaw (fun ω => matrixCrossProduct (Y ω)) (wishartLaw (n := n) Sigma) μ := by
+  simpa [wishartLaw] using
+    matrixCrossProduct_hasLaw_wishartMatrixLaw
+      (Y := Y)
+      (Ylaw := iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
+      hY
+
+omit [DecidableEq n] in
+/-- Scaled Hansen-Wishart cross-product surface. -/
+theorem scaledMatrixCrossProduct_hasLaw_scaledWishartLaw
+    (Y : Ω → Matrix n m ℝ) (Sigma : Matrix m m ℝ) (c : ℝ)
+    (hY : HasLaw Y
+      (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma) μ) :
+    HasLaw (fun ω => c • matrixCrossProduct (Y ω))
+      (scaledWishartLaw (n := n) c Sigma) μ := by
+  simpa [scaledWishartLaw] using
+    scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw
+      (Y := Y)
+      (Ylaw := iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
+      (c := c) hY
+
 omit [DecidableEq n] [DecidableEq m] in
 /-- Sample covariance law from a scaled cross-product representation.
 
@@ -161,6 +217,24 @@ theorem sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows
     scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw
       (Y := fun ω => centeredSampleMatrix (Y ω)) (Ylaw := Ylaw)
       (c := ((Fintype.card n - 1 : ℝ)⁻¹)) hY
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 11.10 sample-covariance surface in Wishart notation.
+
+Once the centered sample-row matrix has iid centered Gaussian row law with
+covariance `Σ`, the bias-corrected sample covariance has the scaled Wishart law
+`(n-1)⁻¹ W_m(n,Σ)` in the repository's finite-index notation. -/
+theorem sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows
+    (Y : Ω → n → m → ℝ) (Sigma : Matrix m m ℝ)
+    (hY : HasLaw (fun ω => centeredSampleMatrix (Y ω))
+      (iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma) μ) :
+    HasLaw (fun ω => sampleCovarianceMatrix (Y ω))
+      (scaledWishartLaw (n := n) ((Fintype.card n - 1 : ℝ)⁻¹) Sigma) μ := by
+  simpa [scaledWishartLaw] using
+    sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows
+      (Y := Y)
+      (Ylaw := iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
+      hY
 
 /-- Any inverse-Wishart linear-form law can be obtained as the push-forward of
 the matrix law through Hansen's scalar map. -/
@@ -246,6 +320,25 @@ theorem inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
     HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω)) (chiSquared df) μ := by
   rw [← hmap]
   exact inverseWishartScaledLinearForm_hasLaw_map W Wlaw Sigma α hW
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 11.11 Wishart-law specialization.
+
+For `W ∼ W_m(n,Σ)`, the scaled inverse-Wishart linear form has Hansen's
+chi-square law once the Schur-complement push-forward identity has been proved
+for the named `wishartLaw`. -/
+theorem inverseWishartScaledLinearForm_hasLaw_chiSquared_of_wishartLaw_map_eq
+    (W : Ω → Matrix m m ℝ) (Sigma : Matrix m m ℝ) (α : m → ℝ)
+    (hW : HasLaw W (wishartLaw (n := n) Sigma) μ)
+    (hmap : (wishartLaw (n := n) Sigma).map
+        (inverseWishartScaledLinearForm Sigma α) =
+      chiSquared (Fintype.card n - Fintype.card m + 1)) :
+    HasLaw (fun ω => inverseWishartScaledLinearForm Sigma α (W ω))
+      (chiSquared (Fintype.card n - Fintype.card m + 1)) μ :=
+  inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq
+    (W := W) (Wlaw := wishartLaw (n := n) Sigma)
+    (Sigma := Sigma) (α := α)
+    (df := Fintype.card n - Fintype.card m + 1) hW hmap
 
 /-- Hotelling's `T²` law as a push-forward of the joint law of the sample mean
 and sample covariance. -/
