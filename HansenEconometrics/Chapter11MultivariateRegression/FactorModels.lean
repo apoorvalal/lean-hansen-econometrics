@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Matrix.Mul
+import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 
 /-!
@@ -147,6 +148,23 @@ def factorLeadingEigenspace
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ) : Prop :=
   Shat * H = H * D
 
+/-- Hansen Theorem 11.9 concentrated spectral objective. Under the normalized
+factor-score parametrization, maximizing the concentrated least-squares
+criterion is equivalent to maximizing this trace over matrices with orthonormal
+columns. -/
+noncomputable def factorConcentratedObjective
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) : ℝ :=
+  Matrix.trace (Hᵀ * Shat * H)
+
+/-- Global maximizer predicate for the concentrated factor-PCA spectral
+objective over orthonormal loading directions. -/
+structure FactorConcentratedObjectiveMaximizer
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) : Prop where
+  orthonormal : Hᵀ * H = 1
+  maximizes :
+    ∀ G : Matrix k r ℝ, Gᵀ * G = 1 →
+      factorConcentratedObjective Shat G ≤ factorConcentratedObjective Shat H
+
 /-- Deterministic scaling assumptions for Hansen Theorem 11.9's PCA factor
 solution. `H` has orthonormal selected eigenvectors, `D` is the selected
 eigenvalue matrix, and `sqrtD`/`invSqrtD` are paired so that Hansen's rotated
@@ -157,6 +175,46 @@ structure FactorPCScaling
   score_scale_normalizes : invSqrtD * D * invSqrtDᵀ = 1
   loading_scale : D * invSqrtDᵀ = sqrtD
   leastSquares_score_scale : (sqrtDᵀ * sqrtD)⁻¹ * sqrtDᵀ = invSqrtD
+
+omit [DecidableEq k] in
+/-- Orthonormal eigenspaces convert the concentrated factor-PCA spectral
+objective to the trace of the selected eigenvalue matrix. -/
+theorem factorConcentratedObjective_eq_trace_eigenvalues_of_normalized
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ)
+    (hLead : factorLeadingEigenspace Shat H D) (hOrth : Hᵀ * H = 1) :
+    factorConcentratedObjective Shat H = Matrix.trace D := by
+  have hmiddle : Hᵀ * Shat * H = D := by
+    calc
+      Hᵀ * Shat * H = Hᵀ * (Shat * H) := by rw [Matrix.mul_assoc]
+      _ = Hᵀ * (H * D) := by rw [hLead]
+      _ = Hᵀ * H * D := by rw [Matrix.mul_assoc]
+      _ = D := by rw [hOrth, Matrix.one_mul]
+  simp [factorConcentratedObjective, hmiddle]
+
+omit [DecidableEq k] in
+/-- Diagonal version of the concentrated factor-PCA objective: normalized
+selected eigenvectors attain the sum of their selected eigenvalues. -/
+theorem factorConcentratedObjective_eq_sum_eigenvalues_of_normalized
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (d : r → ℝ)
+    (hLead : factorLeadingEigenspace Shat H (Matrix.diagonal d))
+    (hOrth : Hᵀ * H = 1) :
+    factorConcentratedObjective Shat H = ∑ j, d j := by
+  rw [factorConcentratedObjective_eq_trace_eigenvalues_of_normalized
+    Shat H (Matrix.diagonal d) hLead hOrth, Matrix.trace_diagonal]
+
+omit [DecidableEq k] in
+/-- Assemble the concentrated objective maximizer certificate from an
+orthonormality proof and a global trace-comparison proof. The missing Ky Fan
+step for Hansen Theorem 11.9 is exactly the `hmax` argument for the leading
+eigenspace. -/
+theorem factorConcentratedObjectiveMaximizer_of_trace_maximal
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (hOrth : Hᵀ * H = 1)
+    (hmax : ∀ G : Matrix k r ℝ, Gᵀ * G = 1 →
+      factorConcentratedObjective Shat G ≤ factorConcentratedObjective Shat H) :
+    FactorConcentratedObjectiveMaximizer Shat H where
+  orthonormal := hOrth
+  maximizes := hmax
 
 omit [DecidableEq k] in
 /-- If the factor eigenspace equation is written with a diagonal eigenvalue
@@ -375,6 +433,33 @@ theorem factorPCSolution_of_eigenspace_scaling_certificate
     (factorLoadingEstimator H sqrtD) X
     (fun i => factorScoreEstimator H invSqrtD (X i))
     hSample hLead rfl (fun _ => rfl)
+    (factorScoreNormalization_of_eigenspace_scores Shat H D sqrtD invSqrtD X
+      hSample hLead hscale)
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- Hansen Theorem 11.9 certificate assembled from the global concentrated
+objective optimizer, eigenspace equation, and PCA scaling equations.
+
+This is the theorem-facing endpoint for the factor-PCA route: the remaining
+spectral theorem must provide `FactorConcentratedObjectiveMaximizer` for the
+leading `r` eigenspace, rather than only sequential one-column optimality. -/
+theorem factorPCSolution_of_concentratedObjective_optimizer
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
+    (hSample : Shat = factorSampleCovariance X)
+    (hLead : factorLeadingEigenspace Shat H D)
+    (hscale : FactorPCScaling H D sqrtD invSqrtD)
+    (hOpt : FactorConcentratedObjectiveMaximizer Shat H) :
+    FactorPCSolution Shat H sqrtD invSqrtD
+      (factorLoadingEstimator H sqrtD) X
+      (fun i => factorScoreEstimator H invSqrtD (X i))
+      (factorLeadingEigenspace Shat H D ∧
+        FactorConcentratedObjectiveMaximizer Shat H)
+      (factorScoreNormalization (fun i => factorScoreEstimator H invSqrtD (X i))) :=
+  factorPCSolution_of_certificate Shat H sqrtD invSqrtD
+    (factorLoadingEstimator H sqrtD) X
+    (fun i => factorScoreEstimator H invSqrtD (X i))
+    hSample ⟨hLead, hOpt⟩ rfl (fun _ => rfl)
     (factorScoreNormalization_of_eigenspace_scores Shat H D sqrtD invSqrtD X
       hSample hLead hscale)
 
