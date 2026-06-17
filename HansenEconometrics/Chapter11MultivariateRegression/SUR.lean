@@ -715,6 +715,46 @@ theorem surCovariance_consistent_of_fixed_inverse_cov_wlln
       (μ := μ) Sigma⁻¹ hint hindep hident)
     hM_unit
 
+omit [Fintype n] [DecidableEq n] in
+/-- Inverse-CMT bridge for the actual feasible SUR residual covariance
+`Σ̂ = n⁻¹∑ êᵢêᵢ'`. -/
+theorem surResidualCovarianceStarObs_inverse_tendstoInMeasure
+    {X : ℕ → Ω → Matrix m k ℝ} {Y : ℕ → Ω → m → ℝ}
+    {Sigma : Matrix m m ℝ}
+    (hSigmaHat_meas : ∀ t,
+      AEStronglyMeasurable
+        (fun ω =>
+          surResidualCovarianceStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) μ)
+    (hSigmaHat : TendstoInMeasure μ
+      (fun t ω =>
+        surResidualCovarianceStarObs
+          (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))
+      atTop (fun _ => Sigma))
+    (hSigma_unit : IsUnit Sigma.det) :
+    TendstoInMeasure μ
+      (fun t ω =>
+        (surResidualCovarianceStarObs
+          (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹)
+      atTop (fun _ => Sigma⁻¹) :=
+  tendstoInMeasure_matrix_inv hSigmaHat_meas hSigmaHat (fun _ => hSigma_unit)
+
+omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
+/-- Measurability of the inverse feasible SUR residual covariance. -/
+theorem surResidualCovarianceStarObs_inverse_aestronglyMeasurable
+    {X : ℕ → Ω → Matrix m k ℝ} {Y : ℕ → Ω → m → ℝ}
+    (hSigmaHat_meas : ∀ t,
+      AEStronglyMeasurable
+        (fun ω =>
+          surResidualCovarianceStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) μ)
+    (t : ℕ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        (surResidualCovarianceStarObs
+          (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹) μ :=
+  aestronglyMeasurable_matrix_inv (hSigmaHat_meas t)
+
 omit [Fintype n] [DecidableEq n] [DecidableEq m] in
 /-- Estimated-inverse-covariance route for Hansen Theorem 11.6.
 
@@ -760,5 +800,49 @@ theorem surCovariance_consistent_of_estimated_inverse_cov_substitution
         (μ := μ) SigmaInv hint hindep hident)
       hsub)
     hM_unit
+
+/-- Hansen Theorem 11.6 wrapper for the actual feasible SUR residual covariance.
+
+This specializes the estimated-inverse covariance route to
+`Σ̂ = surResidualCovarianceStarObs X Y`. The remaining assumption `hsub` is the
+primitive perturbation statement that replacing `Σ⁻¹` by `Σ̂⁻¹` inside
+`n⁻¹∑ X_i' (·) X_i` changes the information matrix by `o_p(1)`. -/
+theorem surCovariance_consistent_of_residualCovarianceStarObs_substitution
+    {X : ℕ → Ω → Matrix m k ℝ} {Y : ℕ → Ω → m → ℝ}
+    (Sigma : Matrix m m ℝ)
+    (hint : Integrable (fun ω => systemMiddleTerm (X 0 ω) Sigma⁻¹) μ)
+    (hindep : Pairwise ((· ⟂ᵢ[μ] ·) on
+      (fun i ω => systemMiddleTerm (X i ω) Sigma⁻¹)))
+    (hident : ∀ i,
+      IdentDistrib (fun ω => systemMiddleTerm (X i ω) Sigma⁻¹)
+        (fun ω => systemMiddleTerm (X 0 ω) Sigma⁻¹) μ μ)
+    (hMhat_meas : ∀ t,
+      AEStronglyMeasurable
+        (fun ω =>
+          systemHomoskedasticMiddle (fun i : Fin t => X i.val ω)
+            ((surResidualCovarianceStarObs
+              (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹)) μ)
+    (hsub : TendstoInMeasure μ
+      (fun t ω =>
+        systemHomoskedasticMiddle (fun i : Fin t => X i.val ω)
+            ((surResidualCovarianceStarObs
+              (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹) -
+          systemHomoskedasticMiddle (fun i : Fin t => X i.val ω) Sigma⁻¹)
+      atTop (fun _ => 0))
+    (hM_unit : IsUnit (μ[fun ω => systemMiddleTerm (X 0 ω) Sigma⁻¹]).det) :
+    CovarianceEstimatorConsistent μ
+      (fun t ω =>
+        surVarianceEstimator
+          (systemHomoskedasticMiddle (fun i : Fin t => X i.val ω)
+            ((surResidualCovarianceStarObs
+              (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹)))
+      (surAsymptoticVariance
+        (μ[fun ω => systemMiddleTerm (X 0 ω) Sigma⁻¹])) :=
+  surCovariance_consistent_of_estimated_inverse_cov_substitution
+    (μ := μ) (X := X) (SigmaInv := Sigma⁻¹)
+    (SigmaInvHat := fun t ω =>
+      (surResidualCovarianceStarObs
+        (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))⁻¹)
+    hint hindep hident hMhat_meas hsub hM_unit
 
 end HansenEconometrics
