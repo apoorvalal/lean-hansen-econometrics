@@ -236,6 +236,25 @@ theorem sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows
       (Ylaw := iidMatrixGaussianLaw (n := n) (m := m) (0 : m → ℝ) Sigma)
       hY
 
+omit [DecidableEq n] in
+/-- Hansen Theorem 11.10 sample-covariance bridge with the correct centered
+sample degrees of freedom.
+
+The centered residual matrix has rank `n - 1`; this theorem lets the proof use
+an explicit `df`-row Gaussian representation of those centered rows rather than
+incorrectly treating all `n` centered rows as iid. -/
+theorem sampleCovarianceMatrix_hasLaw_scaledWishartLaw_of_centeredRows_df
+    {df : Type*} [Fintype df]
+    (Y : Ω → n → m → ℝ) (Z : Ω → Matrix df m ℝ) (Sigma : Matrix m m ℝ)
+    (hZ : HasLaw Z
+      (iidMatrixGaussianLaw (n := df) (m := m) (0 : m → ℝ) Sigma) μ)
+    (hShat : (fun ω => sampleCovarianceMatrix (Y ω)) =ᵐ[μ]
+      fun ω => ((Fintype.card n - 1 : ℝ)⁻¹) • matrixCrossProduct (Z ω)) :
+    HasLaw (fun ω => sampleCovarianceMatrix (Y ω))
+      (scaledWishartLaw (n := df) ((Fintype.card n - 1 : ℝ)⁻¹) Sigma) μ :=
+  (scaledMatrixCrossProduct_hasLaw_scaledWishartLaw
+    (Y := Z) (Sigma := Sigma) (c := ((Fintype.card n - 1 : ℝ)⁻¹)) hZ).congr hShat
+
 /-- Any inverse-Wishart linear-form law can be obtained as the push-forward of
 the matrix law through Hansen's scalar map. -/
 theorem inverseWishartLinearForm_hasLaw_map
