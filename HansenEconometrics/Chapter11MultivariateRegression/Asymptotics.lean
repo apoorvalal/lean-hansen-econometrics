@@ -253,6 +253,74 @@ theorem systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution
   have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : q => ℝ))
   simpa [T, Te, Function.comp_def, matrixContinuousLinearMap_apply] using htarget
 
+/-- Stable nonlinear-delta linearization interface for Hansen Theorem 11.2.
+
+`Tβ` is the scaled coefficient statistic and `Tθ` is the scaled statistic for a
+smooth function of the coefficients. The expansion records the Assumption 7.3
+Taylor remainder: `Tθ = Rᵀ Tβ + oₚ(1)`. -/
+structure SystemDeltaLinearization
+    (μ : Measure Ω)
+    (Tθ : ℕ → Ω → q → ℝ) (R : Matrix k q ℝ) (Tβ : ℕ → Ω → k → ℝ) : Prop where
+  scaled_measurable : ∀ n, AEMeasurable (Tθ n) μ
+  expansion : TendstoInMeasure μ
+    (Tθ - fun n ω => Rᵀ *ᵥ Tβ n ω) atTop (fun _ => 0)
+
+/-- Hansen Theorem 11.2 at the stable nonlinear-delta interface.
+
+Once a coefficient statistic has covariance `Vβ` and the smooth target has the
+linearization `RᵀTβ + oₚ(1)`, the smooth target has covariance `RᵀVβR`. -/
+theorem systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization
+    (Tθ : ℕ → Ω → q → ℝ) (R : Matrix k q ℝ) (Tβ : ℕ → Ω → k → ℝ)
+    (Vβ : Matrix k k ℝ) (hVβ : Vβ.PosSemidef)
+    (hTβ : TendstoInDistribution Tβ atTop (fun z : EuclideanSpace ℝ k => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 Vβ))
+    (hlinear : SystemDeltaLinearization μ Tθ R Tβ) :
+    TendstoInDistribution Tθ atTop (fun z : EuclideanSpace ℝ q => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) := by
+  let Tβe : ℕ → Ω → EuclideanSpace ℝ k := fun n ω => WithLp.toLp 2 (Tβ n ω)
+  have hTβe :
+      TendstoInDistribution Tβe atTop (fun z : EuclideanSpace ℝ k => z)
+        (fun _ => μ) (multivariateGaussian 0 Vβ) := by
+    have hmap := hTβ.continuous_comp (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
+    simpa [Tβe, Function.comp_def] using hmap
+  have hlinE :
+      TendstoInDistribution
+        (fun n => matrixContinuousLinearMap Rᵀ ∘ Tβe n)
+        atTop (matrixContinuousLinearMap Rᵀ ∘ fun z : EuclideanSpace ℝ k => z)
+        (fun _ => μ) (multivariateGaussian 0 Vβ) :=
+    hTβe.continuous_comp (matrixContinuousLinearMap Rᵀ).continuous
+  have hLaw : HasLaw (fun z : EuclideanSpace ℝ k => matrixContinuousLinearMap Rᵀ z)
+      (multivariateGaussian 0 (systemDeltaVariance Vβ R)) (multivariateGaussian 0 Vβ) := by
+    simpa [systemDeltaVariance, matrixContinuousLinearMap,
+      Matrix.conjTranspose_eq_transpose_of_trivial] using
+      hasLaw_multivariateGaussian_zero_linearMap (n := k) (q := q) hVβ Rᵀ
+  have htargetE :
+      TendstoInDistribution
+        (fun n ω => matrixContinuousLinearMap Rᵀ (Tβe n ω))
+        atTop (fun z : EuclideanSpace ℝ q => z)
+        (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) := by
+    simpa [Function.comp_def] using
+      tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ q) hlinE hLaw
+  have htarget := htargetE.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : q => ℝ))
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := fun n ω => Rᵀ *ᵥ Tβ n ω) (Y := Tθ)
+    (Z := fun z : EuclideanSpace ℝ q => z.ofLp)
+    (by
+      simpa [Tβe, Function.comp_def, matrixContinuousLinearMap_apply] using htarget)
+    hlinear.expansion hlinear.scaled_measurable
+
+/-- Hansen Theorem 11.2 from the Chapter 11 Gaussian-limit interface and a
+stable nonlinear-delta linearization. -/
+theorem systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
+    (Tθ : ℕ → Ω → q → ℝ) (R : Matrix k q ℝ) (Tβ : ℕ → Ω → k → ℝ)
+    (Vβ : Matrix k k ℝ)
+    (hTβ : GaussianLimit μ Tβ Vβ)
+    (hlinear : SystemDeltaLinearization μ Tθ R Tβ) :
+    TendstoInDistribution Tθ atTop (fun z : EuclideanSpace ℝ q => z.ofLp)
+      (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) :=
+  systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization
+    Tθ R Tβ Vβ hTβ.covariance_posSemidef hTβ.limit hlinear
+
 omit [DecidableEq k] in
 /-- Interface projection for delta-method asymptotic normality of smooth
 functions of multiple-equation coefficients. -/

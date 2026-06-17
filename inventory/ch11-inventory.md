@@ -115,7 +115,7 @@ Conventions:
 | Textbook result | Textbook statement | Lean theorem |
 | --- | --- | --- |
 | Theorem 11.1 | Under Assumption 7.2, system LS has the stated Gaussian limit. | Observation-level support: `SystemScoreCLTConditions`, `systemLinearizedScore_tendstoInDistribution`, and `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`; deterministic system stacking is `systemStackRegressors`, `systemStackOutcomes`, and `systemLeastSquaresBetaStarObs`. The older scalar-stacked support theorem `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov` remains available. Proving the estimator linearization from primitive Assumption 7.2 remains open. |
-| Theorem 11.2 | Under Assumptions 7.2 and 7.3, linear transformations of system LS have the stated Gaussian limit. | `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution` (fixed-derivative linear transform of Theorem 11.1). |
+| Theorem 11.2 | Under Assumptions 7.2 and 7.3, smooth functions of system LS have the stated Gaussian limit. | Stable nonlinear-delta support: `SystemDeltaLinearization`, `systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization`, and `systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit`. The fixed linear-transform specialization remains `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution`. Proving the Taylor remainder from primitive Assumption 7.3 remains open. |
 | Theorem 11.3 | Under Assumption 7.2, the system LS covariance estimator is consistent. | Exact-system support: `systemRobustCovariance_tendstoInMeasure_of_ideal_wlln`, `systemRobustCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, `systemHomoskedasticCovariance_tendstoInMeasure_of_fixed_wlln`, `systemHomoskedasticCovariance_tendstoInMeasure_of_feasible_wlln_substitution`, plus the moment-convergence wrappers. Concrete residual covariance is `systemSigmaHat`; `systemRobustMiddleTerm_eq_vecMulVec_score` links Hansen's middle to score outer products. Stacked-scalar feasible support: `systemCovariance_consistent_of_iidRobustFeasibleHCMomentConditions`. Primitive residual/covariance perturbation bounds remain open. |
 | Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | Support: `surWeightedScoreMean`, `surBetaFromInverseCovStar`, `surResidualCovariance`, `surBetaStar`, `surBetaStar_eq_glsBeta`, and Chapter 4 `glsBeta_linear_decomposition`. Full feasible SUR CLT from weighted-score and `Σ̂⁻¹` substitution assumptions remains open. |
 | Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | Support: `sur_efficiency_from_gls_variance_gap` reuses Chapter 4 generalized Gauss-Markov variance-gap algebra. Full SUR population theorem remains open. |
@@ -139,6 +139,9 @@ Conventions:
   `systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization`,
   `systemLeastSquaresBetaStar_tendstoInDistribution_heteroAsymCov`,
   `systemLeastSquaresBetaStar_linearTransform_tendstoInDistribution`,
+  `SystemDeltaLinearization`,
+  `systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization`,
+  `systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit`,
   `systemNormalizedGram_tendstoInMeasure`,
   `systemRobustMiddle_ideal_tendstoInMeasure`,
   `systemHomoskedasticMiddle_fixed_tendstoInMeasure`,
