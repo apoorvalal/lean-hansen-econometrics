@@ -189,6 +189,18 @@ theorem orderedPCEigenvector_sequentialPrincipalComponentSolution
   maximizes_variance := by
     exact orderedPCEigenvector_maximizes_variance_feasibleBefore hSigma j
 
+/-- Hansen Theorem 11.8, sequential optimizer form specialized to the covariance
+matrix of a random vector. -/
+theorem ordered_covMat_PCEigenvector_sequentialPrincipalComponentSolution
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X : Ω → k → ℝ) (j : Fin (Fintype.card k)) :
+    SequentialPrincipalComponentSolution (covMat μ X)
+      (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j
+      (orderedPCEigenvector (covMat_isHermitian (μ := μ) X) j)
+      (orderedPCEigenvalue (covMat_isHermitian (μ := μ) X) j) :=
+  orderedPCEigenvector_sequentialPrincipalComponentSolution
+    (covMat_isHermitian (μ := μ) X) j
+
 omit [DecidableEq k] in
 /-- **Hansen Theorem 11.8, variance identity.**
 

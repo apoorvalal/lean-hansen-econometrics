@@ -494,6 +494,152 @@ theorem sur_efficiency_vs_olsConditionalVarianceMatrix
   simpa [A, olsConditionalVarianceMatrix, invOf_eq_nonsing_inv,
     Matrix.transpose_nonsing_inv, gram_transpose, Matrix.mul_assoc] using hgap
 
+omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] [DecidableEq k]
+  [DecidableEq m] in
+/-- Population version of Hansen's system middle matrix:
+`E[X_i' Σ X_i]`.
+
+This is used by the population-efficiency surface for Theorem 11.5. -/
+noncomputable def systemPopulationMiddle
+    (μ : Measure Ω) (X : Ω → Matrix m k ℝ) (Sigma : Matrix m m ℝ) :
+    Matrix k k ℝ :=
+  ∫ ω, systemMiddleTerm (X ω) Sigma ∂μ
+
+omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] [DecidableEq k]
+  [DecidableEq m] in
+/-- Quadratic form of the population system middle matrix. -/
+theorem systemPopulationMiddle_quadratic_eq_integral
+    (X : Ω → Matrix m k ℝ) (Sigma : Matrix m m ℝ)
+    (hX : Integrable (fun ω => systemMiddleTerm (X ω) Sigma) μ)
+    (a : k → ℝ) :
+    a ⬝ᵥ (systemPopulationMiddle μ X Sigma *ᵥ a) =
+      ∫ ω, (X ω *ᵥ a) ⬝ᵥ (Sigma *ᵥ (X ω *ᵥ a)) ∂μ := by
+  calc
+    a ⬝ᵥ (systemPopulationMiddle μ X Sigma *ᵥ a)
+        = ∑ i, ∑ j, a i * ((systemPopulationMiddle μ X Sigma) i j * a j) := by
+          simp [dotProduct, Matrix.mulVec, Finset.mul_sum]
+    _ = ∑ i, ∑ j,
+          a i * ((∫ ω, (systemMiddleTerm (X ω) Sigma) i j ∂μ) * a j) := by
+          congr
+          ext i
+          congr
+          ext j
+          have hentry := integral_apply_apply (μ := μ)
+            (f := fun ω => systemMiddleTerm (X ω) Sigma) hX i j
+          simpa [systemPopulationMiddle] using
+            congrArg (fun z => a i * (z * a j)) hentry
+    _ = ∑ i, ∑ j,
+          ∫ ω, a i * ((systemMiddleTerm (X ω) Sigma) i j * a j) ∂μ := by
+          congr
+          ext i
+          congr
+          ext j
+          rw [integral_const_mul]
+          rw [integral_mul_const]
+    _ = ∫ ω, ∑ i, ∑ j,
+          a i * ((systemMiddleTerm (X ω) Sigma) i j * a j) ∂μ := by
+          rw [integral_finset_sum]
+          · congr
+            ext i
+            rw [integral_finset_sum]
+            intro j hj
+            simpa [mul_assoc] using
+              ((Integrable.eval (Integrable.eval hX i) j).const_mul (a i)).mul_const (a j)
+          · intro i hi
+            exact integrable_finset_sum _ fun j hj => by
+              simpa [mul_assoc] using
+                ((Integrable.eval (Integrable.eval hX i) j).const_mul (a i)).mul_const (a j)
+    _ = ∫ ω, (X ω *ᵥ a) ⬝ᵥ (Sigma *ᵥ (X ω *ᵥ a)) ∂μ := by
+          refine integral_congr_ae ?_
+          filter_upwards [] with ω
+          have halg :
+              a ⬝ᵥ (systemMiddleTerm (X ω) Sigma *ᵥ a) =
+                (X ω *ᵥ a) ⬝ᵥ (Sigma *ᵥ (X ω *ᵥ a)) := by
+            calc
+              a ⬝ᵥ (systemMiddleTerm (X ω) Sigma *ᵥ a)
+                  = a ⬝ᵥ (((X ω)ᵀ * Sigma) *ᵥ (X ω *ᵥ a)) := by
+                    rw [systemMiddleTerm, Matrix.mulVec_mulVec]
+              _ = a ᵥ* ((X ω)ᵀ * Sigma) ⬝ᵥ (X ω *ᵥ a) := by
+                    rw [Matrix.dotProduct_mulVec]
+              _ = (X ω *ᵥ a) ᵥ* Sigma ⬝ᵥ (X ω *ᵥ a) := by
+                    rw [← Matrix.vecMul_mulVec]
+              _ = (X ω *ᵥ a) ⬝ᵥ (Sigma *ᵥ (X ω *ᵥ a)) := by
+                    rw [← Matrix.dotProduct_mulVec]
+          simpa [dotProduct, Matrix.mulVec, Finset.mul_sum] using halg
+
+omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] [DecidableEq k]
+  [DecidableEq m] in
+/-- Population system middle matrices preserve positive semidefiniteness. -/
+theorem systemPopulationMiddle_posSemidef
+    (X : Ω → Matrix m k ℝ) (Sigma : Matrix m m ℝ)
+    (hX : Integrable (fun ω => systemMiddleTerm (X ω) Sigma) μ)
+    (hSigma : Sigma.PosSemidef) :
+    (systemPopulationMiddle μ X Sigma).PosSemidef := by
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ ?_
+  · rw [Matrix.IsHermitian]
+    ext i j
+    have hSigma_symm : Sigmaᵀ = Sigma := by
+      simpa [Matrix.IsHermitian] using hSigma.1.eq
+    calc
+      (systemPopulationMiddle μ X Sigma) j i
+          = ∫ ω, (systemMiddleTerm (X ω) Sigma) j i ∂μ := by
+            exact integral_apply_apply (μ := μ)
+              (f := fun ω => systemMiddleTerm (X ω) Sigma) hX j i
+      _ = ∫ ω, (systemMiddleTerm (X ω) Sigma) i j ∂μ := by
+            congr with ω
+            have hterm :
+                (systemMiddleTerm (X ω) Sigma)ᵀ =
+                  systemMiddleTerm (X ω) Sigma := by
+              unfold systemMiddleTerm
+              rw [Matrix.transpose_mul, Matrix.transpose_mul,
+                Matrix.transpose_transpose, hSigma_symm]
+              simp [Matrix.mul_assoc]
+            exact congrFun (congrFun hterm i) j
+      _ = (systemPopulationMiddle μ X Sigma) i j := by
+            exact (integral_apply_apply (μ := μ)
+              (f := fun ω => systemMiddleTerm (X ω) Sigma) hX i j).symm
+  · intro a
+    change 0 ≤ a ⬝ᵥ (systemPopulationMiddle μ X Sigma *ᵥ a)
+    rw [systemPopulationMiddle_quadratic_eq_integral X Sigma hX a]
+    exact integral_nonneg fun ω => by
+      simpa using Matrix.PosSemidef.dotProduct_mulVec_nonneg hSigma (X ω *ᵥ a)
+
+omit [IsProbabilityMeasure μ] [DecidableEq m] in
+/-- Population Gauss-Markov variance-gap certificate.
+
+This is the Hilbert-space analogue of the deterministic Chapter 4 variance-gap
+identity used by Hansen Theorem 11.5. Once the population variance gap has been
+expanded as an expected quadratic middle, positive semidefiniteness follows
+from the positive semidefiniteness of the error covariance matrix. -/
+theorem population_generalizedGaussMarkov_variance_gap_posSemidef_of_expansion
+    (V M : Matrix k k ℝ) (B : Ω → Matrix m k ℝ) (Sigma : Matrix m m ℝ)
+    (hB : Integrable (fun ω => systemMiddleTerm (B ω) Sigma) μ)
+    (hSigma : Sigma.PosSemidef)
+    (hgap : V - M⁻¹ = systemPopulationMiddle μ B Sigma) :
+    (V - M⁻¹).PosSemidef := by
+  rw [hgap]
+  exact systemPopulationMiddle_posSemidef B Sigma hB hSigma
+
+omit [IsProbabilityMeasure μ] [DecidableEq m] in
+/-- Hansen Theorem 11.5 population-moment SUR efficiency wrapper.
+
+The conclusion is Hansen's population Loewner comparison. The premise `hgap`
+is the exact population Gauss-Markov expansion of the variance gap as
+`E[B_i'ΣB_i]`, with
+`B_i = A_i - Σ⁻¹ X_i (E[X_i'Σ⁻¹X_i])⁻¹` in the textbook proof. -/
+theorem sur_efficiency_vs_systemAsymptoticVariance_of_population_expansion
+    (Q Omega M : Matrix k k ℝ) (B : Ω → Matrix m k ℝ) (Sigma : Matrix m m ℝ)
+    (hB : Integrable (fun ω => systemMiddleTerm (B ω) Sigma) μ)
+    (hSigma : Sigma.PosSemidef)
+    (hgap :
+      systemAsymptoticVariance Q Omega - surAsymptoticVariance M =
+        systemPopulationMiddle μ B Sigma) :
+    (systemAsymptoticVariance Q Omega - surAsymptoticVariance M).PosSemidef := by
+  simpa [surAsymptoticVariance] using
+    population_generalizedGaussMarkov_variance_gap_posSemidef_of_expansion
+      (μ := μ) (V := systemAsymptoticVariance Q Omega) (M := M)
+      (B := B) (Sigma := Sigma) hB hSigma (by simpa [surAsymptoticVariance] using hgap)
+
 omit [IsProbabilityMeasure μ] [DecidableEq k] in
 /-- Interface projection for feasible SUR covariance consistency. -/
 theorem surCovariance_consistent_from_interface
