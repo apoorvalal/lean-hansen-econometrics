@@ -111,6 +111,37 @@ theorem systemLinearizedScore_tendstoInDistribution
   simpa [systemAsymptoticVariance, h.gram_inv_transpose] using hlin
 
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- The sample system Gram is singular with asymptotically vanishing probability
+whenever `Q̂ →ₚ Q` and the population Gram is nonsingular. -/
+theorem measure_systemNormalizedGram_singular_tendsto_zero
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) :
+    Tendsto
+      (fun n => μ {ω |
+        ¬ IsUnit (systemNormalizedGram (fun i : Fin n => X i.val ω)).det})
+      atTop (𝓝 0) := by
+  have hDet : TendstoInMeasure μ
+      (fun n ω => (systemNormalizedGram (fun i : Fin n => X i.val ω)).det)
+      atTop (fun _ => Q.det) :=
+    tendstoInMeasure_continuous_comp h.gram_meas h.gram_tendsto
+      (Continuous.matrix_det continuous_id)
+  have hqne : Q.det ≠ 0 := h.gram_nonsing.ne_zero
+  set ε : ℝ := |Q.det| / 2 with hε_def
+  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hqne)
+  have hε_le : ε ≤ |Q.det| := by
+    rw [hε_def]
+    linarith [abs_nonneg Q.det]
+  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
+    (fun _ => zero_le _) (fun n => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
+  simp only [Set.mem_setOf_eq, hω, edist_dist, Real.dist_eq, zero_sub, abs_neg]
+  exact ENNReal.ofReal_le_ofReal hε_le
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Hansen-facing system least-squares CLT from a proved system linearization.
 
 The theorem is stated for observation-level system regressors and vector
@@ -249,6 +280,173 @@ theorem systemLeastSquaresBetaStarObs_tendstoInDistribution_of_nonsingular
     (systemLeastSquaresBetaStarObs_linearization_of_nonsingular
       (μ := μ) (X := X) (e := e) (Y := Y) β hmodel hQhat_unit)
     hmeas
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Exact Chapter 11.1 Star-estimator linearization with the singular-design
+remainder handled by a high-probability argument.
+
+This removes the global sample-Gram nonsingularity side condition from
+`systemLeastSquaresBetaStarObs_linearization_of_nonsingular`: on nonsingular
+samples the residual is exactly zero, and the singular event has probability
+tending to zero by `measure_systemNormalizedGram_singular_tendsto_zero`. -/
+theorem systemLeastSquaresBetaStarObs_linearization
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j) :
+    TendstoInMeasure μ
+      ((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+      atTop (fun _ => 0) := by
+  have hsingular := measure_systemNormalizedGram_singular_tendsto_zero h
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsingular
+    (fun _ => zero_le _) (fun t => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  intro hunit
+  let Xt : Fin t → Matrix m k ℝ := fun i => X i.val ω
+  let et : Fin t → m → ℝ := fun i => e i.val ω
+  let Yt : Fin t → m → ℝ := fun i => Y i.val ω
+  let Qhat : Matrix k k ℝ := systemNormalizedGram Xt
+  let ghat : k → ℝ := systemScoreMean Xt et
+  let betaHat : k → ℝ := systemLeastSquaresBetaStarObs Xt Yt
+  have hid :
+      betaHat - β - Qhat⁻¹ *ᵥ ghat =
+        ((Qhat)⁻¹ * Qhat - 1) *ᵥ β := by
+    simpa [betaHat, Qhat, ghat, Xt, et, Yt] using
+      systemLeastSquaresBetaStarObs_sub_identity_normalized
+        (X := Xt) (e := et) (Y := Yt) (β := β)
+        (by intro i j; exact hmodel i.val ω j)
+  have hlin0 : betaHat - β - Qhat⁻¹ *ᵥ ghat = 0 := by
+    rw [hid, Matrix.nonsing_inv_mul Qhat (by simpa [Qhat, Xt] using hunit)]
+    simp
+  have hzero :
+      Real.sqrt (t : ℝ) • (betaHat - β) -
+        Qhat⁻¹ *ᵥ (Real.sqrt (t : ℝ) • ghat) = 0 := by
+    rw [Matrix.mulVec_smul, ← smul_sub, hlin0, smul_zero]
+  change ε ≤ edist
+    (((fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) -
+        fun (t : ℕ) ω =>
+          (systemNormalizedGram (fun i : Fin t => X i.val ω))⁻¹ *ᵥ
+            (Real.sqrt (t : ℝ) •
+              systemScoreMean (fun i : Fin t => X i.val ω) (fun i : Fin t => e i.val ω)))
+        t ω) 0 at hω
+  have hω0 : ε = 0 := by
+    simpa [Xt, et, Yt, Qhat, ghat, betaHat, hzero] using hω
+  exact hε.ne' hω0
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Hansen Theorem 11.1 at the system-score interface, with sample singularity
+handled by the totalized Star estimator and the high-probability Gram argument. -/
+theorem systemLeastSquaresBetaStarObs_tendstoInDistribution
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (systemAsymptoticVariance Q Omega)) :=
+  systemLeastSquaresBetaStarObs_tendstoInDistribution_of_linearization
+    (μ := μ) h β
+    (systemLeastSquaresBetaStarObs_linearization
+      (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel)
+    hmeas
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- The Chapter 11.1 system LS CLT implies the scaled system coefficient
+error is `Oₚ(1)`. This is the stochastic boundedness input for Hansen
+Theorem 11.2. -/
+theorem systemLeastSquaresBetaStarObs_sqrt_sub_boundedInProbabilityNorm
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ) :
+    BoundedInProbabilityNorm μ
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) := by
+  exact BoundedInProbabilityNorm.of_tendstoInDistribution
+    (systemLeastSquaresBetaStarObs_tendstoInDistribution
+      (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel hmeas)
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Consistency of the Chapter 11 system Star estimator as a corollary of the
+system LS CLT. -/
+theorem systemLeastSquaresBetaStarObs_tendstoInMeasure_beta
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega) (β : k → ℝ)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInMeasure μ
+      (fun t ω =>
+        systemLeastSquaresBetaStarObs
+          (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω))
+      atTop (fun _ => β) := by
+  let βhat : ℕ → Ω → k → ℝ := fun t ω =>
+    systemLeastSquaresBetaStarObs
+      (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)
+  have hbounded : BoundedInProbabilityNorm μ
+      (fun (t : ℕ) ω => Real.sqrt (t : ℝ) • (βhat t ω - β)) := by
+    simpa [βhat] using
+      systemLeastSquaresBetaStarObs_sqrt_sub_boundedInProbabilityNorm
+        (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel hmeas
+  have hinv_sqrt : Tendsto (fun t : ℕ => (Real.sqrt (t : ℝ))⁻¹)
+      atTop (𝓝 (0 : ℝ)) := by
+    exact tendsto_inv_atTop_zero.comp
+      (Real.tendsto_sqrt_atTop.comp tendsto_natCast_atTop_atTop)
+  have hscaled :
+      TendstoInMeasure μ
+        (fun (t : ℕ) (ω : Ω) => ((Real.sqrt (t : ℝ))⁻¹) •
+          ((Real.sqrt (t : ℝ)) • (βhat t ω - β)))
+        atTop (fun _ => (0 : k → ℝ)) :=
+    hbounded.tendstoInMeasure_const_smul_zero hinv_sqrt
+  have hdiff : TendstoInMeasure μ (fun t ω => βhat t ω - β)
+      atTop (fun _ => (0 : k → ℝ)) := by
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hscaled
+    filter_upwards [eventually_atTop.2 ⟨1, fun t ht => ht⟩] with t ht
+    exact ae_of_all μ (fun ω => by
+      have htpos_nat : 0 < t := lt_of_lt_of_le Nat.zero_lt_one ht
+      have htpos : 0 < (t : ℝ) := Nat.cast_pos.mpr htpos_nat
+      have hsqrt_ne : Real.sqrt (t : ℝ) ≠ 0 := Real.sqrt_ne_zero'.mpr htpos
+      ext a
+      simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+      rw [← mul_assoc, inv_mul_cancel₀ hsqrt_ne, one_mul])
+  have hconst : TendstoInMeasure μ (fun (_ : ℕ) (_ : Ω) => β)
+      atTop (fun _ => β) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  exact TendstoInMeasure.of_sub_tendsto_zero_vector hdiff hconst
 
 /-- Interface projection for system least-squares asymptotic normality. -/
 theorem systemLeastSquares_gaussianLimit_from_interface
@@ -578,6 +776,78 @@ theorem systemDelta_tendstoInDistribution_multivariateGaussian_of_gaussianLimit
       (fun _ => μ) (multivariateGaussian 0 (systemDeltaVariance Vβ R)) :=
   systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization
     Tθ R Tβ Vβ hTβ.covariance_posSemidef hTβ.limit hlinear
+
+omit [DecidableEq m] in
+/-- Hansen Theorem 11.2, concrete system least-squares Delta-method wrapper.
+
+Combines the system LS CLT from Theorem 11.1, the derived consistency and
+`Oₚ(1)` scaled coefficient error, and Assumption 7.3's Taylor remainder to
+obtain the Gaussian limit for `√n (r(β̂ₙ) - r(β))`. -/
+theorem systemDelta_systemLeastSquaresBetaStarObs_tendstoInDistribution
+    {X : ℕ → Ω → Matrix m k ℝ} {e : ℕ → Ω → m → ℝ}
+    {Y : ℕ → Ω → m → ℝ} {Q Omega : Matrix k k ℝ}
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h : SystemScoreCLTConditions μ X e Q Omega)
+    (h73 : SystemDeltaAssumption73 r β R)
+    (hmodel : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j)
+    (hmeasβ : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β)) μ)
+    (hmeasθ : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (r (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) - r β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (r (systemLeastSquaresBetaStarObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) - r β))
+      atTop (fun z : EuclideanSpace ℝ q => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (systemDeltaVariance (systemAsymptoticVariance Q Omega) R)) := by
+  let βhat : ℕ → Ω → k → ℝ := fun t ω =>
+    systemLeastSquaresBetaStarObs
+      (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)
+  have hβclt : TendstoInDistribution
+      (fun (t : ℕ) ω => Real.sqrt (t : ℝ) • (βhat t ω - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (systemAsymptoticVariance Q Omega)) := by
+    simpa [βhat] using
+      systemLeastSquaresBetaStarObs_tendstoInDistribution
+        (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel hmeasβ
+  have hβbounded : BoundedInProbabilityNorm μ
+      (fun (t : ℕ) ω => Real.sqrt (t : ℝ) • (βhat t ω - β)) := by
+    simpa [βhat] using
+      systemLeastSquaresBetaStarObs_sqrt_sub_boundedInProbabilityNorm
+        (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel hmeasβ
+  have hβcons : TendstoInMeasure μ βhat atTop (fun _ => β) := by
+    simpa [βhat] using
+      systemLeastSquaresBetaStarObs_tendstoInMeasure_beta
+        (μ := μ) (X := X) (e := e) (Y := Y) h β hmodel hmeasβ
+  have hrem : TendstoInMeasure μ
+      (fun (t : ℕ) (ω : Ω) => Real.sqrt (t : ℝ) •
+        systemDeltaTaylorRemainder r β R (βhat t ω))
+      atTop (fun _ => (0 : q → ℝ)) :=
+    systemDelta_scaled_taylor_remainder_tendstoInMeasure_of_consistency_bounded
+      (μ := μ) h73 (fun t : ℕ => Real.sqrt (t : ℝ)) βhat hβcons hβbounded
+  have hlinear : SystemDeltaLinearization μ
+      (fun t ω => Real.sqrt (t : ℝ) • (r (βhat t ω) - r β)) R
+      (fun t ω => Real.sqrt (t : ℝ) • (βhat t ω - β)) :=
+    systemDeltaLinearization_of_scaled_taylor_remainder
+      (μ := μ) h73 (fun t : ℕ => Real.sqrt (t : ℝ)) βhat
+      (by simpa [βhat] using hmeasθ) hrem
+  have hV : (systemAsymptoticVariance Q Omega).PosSemidef :=
+    systemAsymptoticVariance_posSemidef h.score_cov_posSemidef h.gram_inv_transpose
+  exact systemDelta_tendstoInDistribution_multivariateGaussian_of_linearization
+    (μ := μ)
+    (Tθ := fun t ω => Real.sqrt (t : ℝ) • (r (βhat t ω) - r β))
+    (R := R)
+    (Tβ := fun t ω => Real.sqrt (t : ℝ) • (βhat t ω - β))
+    (Vβ := systemAsymptoticVariance Q Omega)
+    hV hβclt hlinear
 
 omit [DecidableEq k] in
 /-- Interface projection for delta-method asymptotic normality of smooth
