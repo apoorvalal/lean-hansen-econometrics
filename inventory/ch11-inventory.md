@@ -91,8 +91,9 @@
   estimated homoskedastic covariance middles; the remaining stochastic work is to prove those
   perturbation bounds from primitive Hansen assumptions. The existing stacked-scalar feasible theorem
   remains available as a Chapter 7 HC covariance route.
-- PCA now uses Mathlib's Hermitian spectral theorem and the reusable `covMat_isHermitian` helper for
-  the covariance-eigenbasis variance face of Theorem 11.8. Reduced-rank and factor-model modules now
+- PCA now uses Mathlib's Hermitian spectral theorem, the reusable `covMat_isHermitian` helper, and
+  a shared Rayleigh-quotient bound for the variance and sequential optimizer faces of Theorem 11.8.
+  Reduced-rank and factor-model modules now
   use concrete generalized-eigenvector, Hansen residualized-pencil, sample-covariance,
   sample-normalization, and diagonal-eigenspace predicates instead of only arbitrary proposition
   slots. Wishart, inverse-Wishart, and Hotelling support includes law-map and scaled-F bridges, but
@@ -122,9 +123,9 @@ Conventions:
 | Theorem 11.4 | Under Assumption 7.2 and conditional homoskedasticity (11.8), SUR has the stated Gaussian limit. | Support: `surWeightedScoreMean`, `surWeightedScoreMean_outcomes_linear_model`, `surBetaFromInverseCovStar`, `surBetaFromInverseCovStar_sub_identity`, `surResidualCovariance`, `surResidualCovarianceStarObs`, `surBetaStar`, `surBetaStar_eq_glsBeta`, and Chapter 4 `glsBeta_linear_decomposition`. Full feasible SUR CLT from weighted-score and `Σ̂⁻¹` substitution assumptions remains open. |
 | Theorem 11.5 | Under Assumption 7.2 and (11.8), SUR is asymptotically at least as efficient as LS. | Support: `sur_efficiency_from_gls_variance_gap` reuses Chapter 4 generalized Gauss-Markov variance-gap algebra. Full SUR population theorem remains open. |
 | Theorem 11.6 | Under Assumption 7.2 and (11.8), the SUR covariance estimator is consistent. | Support: `surResidualCovariance`, `surResidualCovarianceStarObs`, `surResidualCovarianceStarObs_eq_systemSigmaHatStarObs`, `surVarianceEstimator_tendstoInMeasure`, `surCovariance_consistent_of_information_tendsto`, `surCovariance_consistent_of_fixed_inverse_cov_wlln`, `surCovariance_consistent_of_estimated_inverse_cov_substitution`, plus system homoskedastic covariance CMT/WLLN wrappers. Primitive `Σ̂⁻¹` perturbation bound remains open. |
-| Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | Support: `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`, `reducedRankGPencilB`, `generalizedEigenvector`, `generalizedEigenvectorColumns`, `reducedRankHansenGEigenvectors`, `ReducedRankMLE`, `reducedRankMLE_of_generalizedEigenvectors`, `reducedRankMLE_of_hansen_generalizedEigenvectors`; `C : Matrix ell m ℝ` keeps the control-regressor dimension separate. Full likelihood/eigenvalue optimizer remains open. |
-| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `principalComponent_variance_eq_covMat_quadratic`, `principalComponent_variance_eq_eigenvalue`, `principalComponent_variance_eq_hermitian_eigenvalue`, `principalComponent_variance_eq_covMat_eigenvalue`, `principalComponent_variance_eq_ordered_covMat_eigenvalue`, plus deterministic `principalComponentVariance_eq_eigenvalue` and `principalComponentVariance_eq_orderedPCEigenvalue`. Ordered eigenvector feasibility is `orderedPCEigenvector_feasibleBefore`; the ordered argmax proof remains open. |
-| Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | Support: `factorSampleCovariance`, `factorSampleCovariance_transpose`, `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`, `factorLeadingEigenspace_col_diagonal`, `FactorPCSolution`, `factorPCSolution_sample_covariance_eq`, `factorPCSolution_leadingEigenspace_eq`, `factorPCSolution_loading_eq`, `factorPCSolution_factor_eq`, `factorPCSolution_of_normalized_eigenspace_certificate`; factor scores are observation-indexed as `Fhat : n → r → ℝ`. Full least-squares/eigenspace derivation remains open. |
+| Theorem 11.7 | The MLE for the reduced-rank model (11.19) under normal errors is recovered from the generalized eigenvalue problem. | Support: `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`, `reducedRankGPencilB`, `generalizedEigenvector`, `generalizedEigenvectorColumns`, `generalizedEigenvectorColumns_mul_eq_mul_diagonal`, `generalizedEigenvectorColumns_crossGram_eq_mul_diagonal`, `generalizedEigenDetObjective_eq_prod_eigenvalues_of_normalized`, `reducedRankHansenGEigenvectors`, `reducedRankGNormalized`, `reducedRankConcentratedEigenObjective`, `reducedRankConcentratedObjectiveMaximizer`, `reducedRankConcentratedObjective_eq_prod_eigenvalues_of_normalized`, `reducedRankGEigenObjectiveMaximizerOnEigenvectors_of_eigenvalueProduct_maximal`, concrete recovery formulas `reducedRankAhat`, `reducedRankChat`, `reducedRankSigmaHat`, `reducedRankMaximizedLogLikelihood`, and certificate wrapper `reducedRankMLE_of_hansen_objective_optimizer`. The remaining gap is the normal-likelihood/spectral theorem proving that the leading generalized eigenspace is the global normalized determinant-objective maximizer, plus the dual `A⊥` smallest-eigenvalue representation. |
+| Theorem 11.8 | Principal components are eigenvector projections and their variance equals the associated eigenvalue. | `principalComponent_variance_eq_covMat_quadratic`, `principalComponent_variance_eq_eigenvalue`, `principalComponent_variance_eq_hermitian_eigenvalue`, `principalComponent_variance_eq_covMat_eigenvalue`, `principalComponent_variance_eq_ordered_covMat_eigenvalue`, plus deterministic `principalComponentVariance_eq_eigenvalue` and `principalComponentVariance_eq_orderedPCEigenvalue`. Ordered feasibility and sequential optimality are `orderedPCEigenvector_feasibleBefore`, `orderedPCEigenvector_maximizes_variance_feasibleBefore`, and `orderedPCEigenvector_sequentialPrincipalComponentSolution`. |
+| Theorem 11.9 | The least-squares estimator of the factor model (11.23) is based on the leading eigenspace of the sample covariance. | Support: `factorSampleCovariance`, `factorSampleCovariance_transpose`, `factorSampleCrossCovariance`, `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`, `factorLeadingEigenspace_col_diagonal`, `FactorPCScaling`, `FactorPCSolution`, `factorScoreLeastSquares`, `factorScoreEstimator_eq_leastSquaresScore`, `factorScoreNormalization_of_eigenspace_scores`, `factorSampleCrossCovariance_eq_loading_of_eigenspace_scores`, `factorPCSolution_of_eigenspace_scaling_certificate`, `factorPCSolution_factor_eq_leastSquaresScore`, and `factorPCSolution_loading_normalEquation`, plus the older certificate projections. These close the deterministic LS-score, loading-normal-equation, and factor-normalization bridges from the PCA eigenspace/scaling certificate. The remaining exact gap is the global leading-`r` eigenspace optimizer/Ky Fan step from the concentrated least-squares criterion. |
 | Theorem 11.10 | Sample covariance of multivariate normal observations has a Wishart law. | Support: `sampleMeanMatrix`, `centeredSampleMatrix`, `sampleCovarianceMatrix`, `sampleCovarianceMatrix_apply`, `matrixCrossProduct_hasLaw_wishartMatrixLaw`, `scaledMatrixCrossProduct_hasLaw_scaledWishartMatrixLaw`, `sampleCovariance_hasLaw_scaledWishartMatrixLaw_of_crossProduct`, `sampleCovarianceMatrix_hasLaw_scaledWishartMatrixLaw_of_centeredRows`, and `sampleCovariance_hasLaw_from_wishartInterface`. Derivation from independent normal rows remains open. |
 | Theorem 11.11 | A linear form in an inverse-Wishart matrix has the stated chi-squared law. | Support: `inverseWishartLinearForm`, `inverseWishartScaledLinearForm`, `inverseWishartLinearForm_hasLaw_map`, `inverseWishartLinearForm_hasLaw_chiSquared_of_map_eq`, `inverseWishartScaledLinearForm_hasLaw_map`, `inverseWishartScaledLinearForm_hasLaw_chiSquared_of_map_eq`, `inverseWishartLinearForm_hasLaw_from_interface`, and `inverseWishartScaledLinearForm_hasLaw_from_interface`. Schur-complement/inverse-Wishart derivation remains open. |
 | Theorem 11.12 | Hotelling's T² statistic has the stated scaled F law. | Support: `hotellingT2`, `hotellingT2Sample`, `hotellingT2HansenScale`, `hotellingT2_hasLaw_map`, `hotellingT2Sample_hasLaw_map`, `hotellingT2_hasLaw_scaledFDist_of_chiSquared_ratio`, `hotellingT2Sample_hasLaw_hansen_scaledFDist_of_chiSquared_ratio`, and `hotellingT2_hasLaw_from_interface`. Sample mean/covariance independence plus chi-square/inverse-Wishart derivation remains open. |
@@ -184,23 +185,46 @@ Conventions:
   `principalComponent_variance_eq_hermitian_eigenvalue`,
   `principalComponent_variance_eq_covMat_eigenvalue`, `orderedPCEigenIndex`,
   `orderedPCEigenvalue`, `orderedPCEigenvector`, `pcaFeasibleBefore`,
-  `orderedPCEigenvector_eigenvector`, `orderedPCEigenvector_unit`,
-  `orderedPCEigenvector_feasibleBefore`, `principalComponentVariance_eq_orderedPCEigenvalue`,
+  `SequentialPrincipalComponentSolution`, `orderedPCEigenvector_eigenvector`,
+  `orderedPCEigenvector_unit`, `orderedPCEigenvector_feasibleBefore`,
+  `orderedPCEigenvector_maximizes_variance_feasibleBefore`,
+  `orderedPCEigenvector_sequentialPrincipalComponentSolution`,
+  `principalComponentVariance_eq_orderedPCEigenvalue`,
   `principalComponent_variance_eq_ordered_covMat_eigenvalue`, `factorSampleCovariance`,
-  `factorSampleCovariance_transpose`, `factorScoreSampleCovariance`,
-  `factorScoreNormalization`, `factorLeadingEigenspace`,
-  `factorLeadingEigenspace_col_diagonal`, `factorPCSolution_of_certificate`,
+  `factorSampleCovariance_transpose`, `factorSampleCrossCovariance`,
+  `factorScoreSampleCovariance`, `factorScoreNormalization`, `factorLeadingEigenspace`,
+  `factorLeadingEigenspace_col_diagonal`, `FactorPCScaling`, `factorScoreLeastSquares`,
+  `factorSampleCrossCovariance_linearMap`, `factorScoreSampleCovariance_linearMap`,
+  `factorScoreEstimator_eq_leastSquaresScore`,
+  `factorScoreNormalization_of_eigenspace_scores`,
+  `factorSampleCrossCovariance_eq_loading_of_eigenspace_scores`,
+  `factorPCSolution_of_certificate`,
   `factorPCSolution_sample_covariance_eq`, `factorPCSolution_loading_eq`,
   `factorPCSolution_factor_eq`, `factorPCSolution_of_eigenspace_certificate`,
   `factorPCSolution_leadingEigenspace_eq`,
-  `factorPCSolution_of_normalized_eigenspace_certificate`, and
+  `factorPCSolution_of_normalized_eigenspace_certificate`,
+  `factorPCSolution_of_eigenspace_scaling_certificate`,
+  `factorPCSolution_factor_eq_leastSquaresScore`,
+  `factorPCSolution_loading_normalEquation`, and
   `approximateFactor_scoreVariance_bound`.
 - Reduced-rank and distributional certificate helpers: `generalizedEigenvector`,
-  `generalizedEigenvectorColumns`, `generalizedEigenvectorColumns_apply`, `ReducedRankMLE`,
+  `generalizedEigenvectorColumns`, `generalizedEigenvectorColumns_apply`,
+  `generalizedEigenvectorColumns_mul_eq_mul_diagonal`,
+  `generalizedEigenvectorColumns_crossGram_eq_mul_diagonal`,
+  `generalizedEigenvectorBNormalized`, `generalizedEigenDetObjective`,
+  `generalizedEigenDetObjective_eq_prod_eigenvalues_of_normalized`, `ReducedRankMLE`,
   `reducedRankMLE_of_certificate`, `reducedRankMLE_of_generalizedEigenvectors`,
   `reducedRankTildeY`, `reducedRankTildeX`, `reducedRankGPencilA`,
-  `reducedRankGPencilB`, `reducedRankHansenGEigenvectors`,
+  `reducedRankGPencilB`, `reducedRankHansenGEigenvectors`, `reducedRankGNormalized`,
+  `reducedRankConcentratedEigenObjective`, `reducedRankConcentratedObjectiveMaximizer`,
+  `reducedRankGEigenObjectiveMaximizerOnEigenvectors`,
+  `reducedRankConcentratedObjective_eq_prod_eigenvalues_of_normalized`,
+  `reducedRankGEigenObjectiveMaximizerOnEigenvectors_of_eigenvalueProduct_maximal`,
+  `reducedRankAhat`, `reducedRankChat`, `reducedRankSigmaHat`,
+  `reducedRankMaximizedLogLikelihood`, `reducedRankLeastSquaresRecovery`,
+  `reducedRankCovarianceRecovery`, `reducedRankLikelihoodValue`,
   `reducedRankMLE_of_hansen_generalizedEigenvectors`,
+  `reducedRankMLE_of_hansen_objective_optimizer`,
   `sampleMeanMatrix`, `centeredSampleMatrix`, `sampleCovarianceMatrix`,
   `sampleCovarianceMatrix_apply`,
   `matrixCrossProduct_hasLaw_wishartMatrixLaw`,

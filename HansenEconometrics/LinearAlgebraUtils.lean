@@ -409,6 +409,78 @@ lemma quadForm_eq_sum_eigenvalues_fintype
   simp
   ring
 
+/-- Rayleigh-quotient upper bound from a Hermitian spectral expansion.
+
+If the coordinates before `j` in the ordered Hermitian eigenbasis are zero,
+then a unit vector's quadratic form is bounded by the `j`th ordered eigenvalue.
+This is the deterministic core of the sequential PCA optimizer argument. -/
+lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (j : Fin (Fintype.card ι)) (z : EuclideanSpace ℝ ι)
+    (hunit : (z : ι → ℝ) ⬝ᵥ (z : ι → ℝ) = 1)
+    (hzero : ∀ i : Fin (Fintype.card ι), i < j →
+      hH.eigenvectorBasis.repr z
+        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))) i) = 0) :
+    (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ)) ≤ hH.eigenvalues₀ j := by
+  classical
+  let e : Fin (Fintype.card ι) ≃ ι :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
+  let c : Fin (Fintype.card ι) → ℝ := fun i =>
+    (hH.eigenvectorBasis.repr z (e i)) ^ 2
+  have hcoords_sum_k :
+      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 = 1 := by
+    have hnorm : ‖z‖ ^ 2 = 1 := by
+      rw [EuclideanSpace.real_norm_sq_eq]
+      simpa [dotProduct, pow_two] using hunit
+    calc
+      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2
+          = ∑ i : ι, ‖inner ℝ (hH.eigenvectorBasis i) z‖ ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro i _
+              rw [OrthonormalBasis.repr_apply_apply]
+              simp [sq_abs]
+              rfl
+      _ = ‖z‖ ^ 2 := OrthonormalBasis.sum_sq_norm_inner_right hH.eigenvectorBasis z
+      _ = 1 := hnorm
+  have hcoords_sum : ∑ i : Fin (Fintype.card ι), c i = 1 := by
+    calc
+      ∑ i : Fin (Fintype.card ι), c i
+          = ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 := by
+              simpa [c, e] using
+                (Equiv.sum_comp
+                  (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
+                  (fun i : ι => (hH.eigenvectorBasis.repr z i) ^ 2))
+      _ = 1 := hcoords_sum_k
+  have hquad :=
+    quadForm_eq_sum_eigenvalues_fintype (M := M) hH z
+  rw [hquad]
+  calc
+    ∑ i : ι, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2
+        = ∑ i : Fin (Fintype.card ι), hH.eigenvalues (e i) * c i := by
+            simpa [c, e] using
+              (Equiv.sum_comp
+                (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
+                (fun i : ι =>
+                  hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2)).symm
+    _ ≤ ∑ i : Fin (Fintype.card ι), hH.eigenvalues₀ j * c i := by
+          refine Finset.sum_le_sum ?_
+          intro i _
+          by_cases hij : i < j
+          · have hc0 : c i = 0 := by
+              have hz : hH.eigenvectorBasis.repr z (e i) = 0 := by
+                simpa [e] using hzero i hij
+              simp [c, hz]
+            rw [hc0, mul_zero, mul_zero]
+          · have hji : j ≤ i := le_of_not_gt hij
+            have heig :
+                hH.eigenvalues (e i) ≤ hH.eigenvalues₀ j := by
+              simpa [Matrix.IsHermitian.eigenvalues, e] using
+                hH.eigenvalues₀_antitone hji
+            exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
+    _ = hH.eigenvalues₀ j := by
+          rw [← Finset.mul_sum, hcoords_sum, mul_one]
+
 /-- For a Hermitian idempotent real matrix, the number of indices whose eigenvalue is `1`
 equals the rank of the matrix. -/
 lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent

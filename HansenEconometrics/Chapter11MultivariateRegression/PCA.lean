@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Data.Matrix.Mul
+import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 
 /-!
@@ -64,6 +65,18 @@ structure PrincipalComponentSolution
   eigenvector : Sigma *ᵥ h = lambda • h
   maximizes_variance :
     ∀ g : k → ℝ, g ⬝ᵥ g = 1 →
+      principalComponentVariance Sigma g ≤ principalComponentVariance Sigma h
+
+/-- Sequential PCA solution certificate for Hansen's ordered principal
+components. For `j > 0`, the optimizer is only required to dominate vectors
+orthogonal to the previously selected directions. -/
+structure SequentialPrincipalComponentSolution
+    (Sigma : Matrix k k ℝ) (H : Fin (Fintype.card k) → k → ℝ)
+    (j : Fin (Fintype.card k)) (h : k → ℝ) (lambda : ℝ) : Prop where
+  feasible : pcaFeasibleBefore H j h
+  eigenvector : Sigma *ᵥ h = lambda • h
+  maximizes_variance :
+    ∀ g : k → ℝ, pcaFeasibleBefore H j g →
       principalComponentVariance Sigma g ≤ principalComponentVariance Sigma h
 
 omit [DecidableEq k] in
@@ -131,6 +144,50 @@ theorem principalComponentVariance_eq_orderedPCEigenvalue
   principalComponentVariance_eq_eigenvalue Sigma (orderedPCEigenvector hSigma j)
     (orderedPCEigenvalue hSigma j) (orderedPCEigenvector_unit hSigma j)
     (orderedPCEigenvector_eigenvector hSigma j)
+
+/-- Ordered PCA eigenvectors solve Hansen's sequential variance maximization problem.
+
+The feasible set requires unit norm and orthogonality to the earlier ordered
+principal-component directions. Mathlib's ordered Hermitian eigenvalues and the
+shared spectral expansion then give the Rayleigh-quotient bound. -/
+theorem orderedPCEigenvector_maximizes_variance_feasibleBefore
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    ∀ g : k → ℝ, pcaFeasibleBefore (orderedPCEigenvector hSigma) j g →
+      principalComponentVariance Sigma g ≤
+        principalComponentVariance Sigma (orderedPCEigenvector hSigma j) := by
+  classical
+  intro g hg
+  let z : EuclideanSpace ℝ k := WithLp.toLp 2 g
+  have hzero :
+      ∀ i : Fin (Fintype.card k), i < j →
+        hSigma.eigenvectorBasis.repr z
+          ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))) i) = 0 := by
+    intro i hij
+    have horth := hg.2 i hij
+    have hrepr :
+        hSigma.eigenvectorBasis.repr z (orderedPCEigenIndex i) =
+          g ⬝ᵥ orderedPCEigenvector hSigma i := by
+      rw [OrthonormalBasis.repr_apply_apply]
+      rfl
+    change hSigma.eigenvectorBasis.repr z (orderedPCEigenIndex i) = 0
+    exact hrepr.trans horth
+  have hle :=
+    quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
+      (M := Sigma) hSigma j z (by simpa [z] using hg.1) hzero
+  rw [principalComponentVariance_eq_orderedPCEigenvalue hSigma j]
+  simpa [principalComponentVariance, orderedPCEigenvalue, z] using hle
+
+/-- Ordered PCA eigenvectors packaged as sequential solution certificates. -/
+theorem orderedPCEigenvector_sequentialPrincipalComponentSolution
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    SequentialPrincipalComponentSolution Sigma (orderedPCEigenvector hSigma) j
+      (orderedPCEigenvector hSigma j) (orderedPCEigenvalue hSigma j) where
+  feasible := orderedPCEigenvector_feasibleBefore hSigma j
+  eigenvector := orderedPCEigenvector_eigenvector hSigma j
+  maximizes_variance := by
+    exact orderedPCEigenvector_maximizes_variance_feasibleBefore hSigma j
 
 omit [DecidableEq k] in
 /-- **Hansen Theorem 11.8, variance identity.**

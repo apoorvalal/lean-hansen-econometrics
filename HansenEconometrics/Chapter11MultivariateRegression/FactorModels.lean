@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Matrix.Mul
+import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 
 /-!
 # Chapter 11 — factor models
@@ -8,8 +9,10 @@ import Mathlib.Data.Matrix.Mul
 This module records the principal-component factor-estimation surface and the
 large-dimension condition package used in Hansen's approximate-factor discussion.
 It ties the factor-PCA certificate to the sample second-moment matrix and a
-concrete eigenspace equation; the full least-squares/eigenspace optimizer behind
-Hansen Theorem 11.9 remains separate.
+concrete eigenspace equation. It also proves deterministic least-squares bridges
+for Hansen Theorem 11.9: the principal-component score formula is the
+fixed-loading least-squares score, and the eigenspace/scaling certificate implies
+the sample factor normalization and loading normal equation.
 -/
 
 open scoped Matrix
@@ -32,10 +35,22 @@ noncomputable def factorScoreEstimator
     (H : Matrix k r ℝ) (invSqrtD : Matrix r r ℝ) (X : k → ℝ) : r → ℝ :=
   invSqrtD *ᵥ (Hᵀ *ᵥ X)
 
+/-- Fixed-loading least-squares factor score
+`(Λ'Λ)^{-1}Λ'X`, using Mathlib's total nonsingular inverse. -/
+noncomputable def factorScoreLeastSquares
+    (Λ : Matrix k r ℝ) (X : k → ℝ) : r → ℝ :=
+  (Λᵀ * Λ)⁻¹ *ᵥ (Λᵀ *ᵥ X)
+
 /-- Sample second-moment matrix `n⁻¹∑ X_i X_i'` used in Hansen Theorem 11.9. -/
 noncomputable def factorSampleCovariance
     (X : n → k → ℝ) : Matrix k k ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (X i) (X i)
+
+/-- Sample cross moment `n⁻¹∑ X_i Fhat_i'`. Under Hansen's factor normalization,
+this is the least-squares loading normal equation. -/
+noncomputable def factorSampleCrossCovariance
+    (X : n → k → ℝ) (Fhat : n → r → ℝ) : Matrix k r ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, Matrix.vecMulVec (X i) (Fhat i)
 
 /-- Sample second-moment matrix of estimated factors. -/
 noncomputable def factorScoreSampleCovariance
@@ -45,6 +60,74 @@ noncomputable def factorScoreSampleCovariance
 /-- Hansen Theorem 11.9 normalization `n⁻¹∑ Fhat_i Fhat_i' = I_r`. -/
 def factorScoreNormalization (Fhat : n → r → ℝ) : Prop :=
   factorScoreSampleCovariance Fhat = 1
+
+omit [Fintype k] [DecidableEq n] [DecidableEq k] in
+@[simp]
+theorem factorSampleCovariance_apply
+    (X : n → k → ℝ) (a b : k) :
+    factorSampleCovariance X a b =
+      (Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i a * X i b := by
+  rw [factorSampleCovariance]
+  simp only [Matrix.smul_apply, smul_eq_mul, Matrix.sum_apply, Matrix.vecMulVec_apply]
+
+omit [Fintype k] [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+@[simp]
+theorem factorSampleCrossCovariance_apply
+    (X : n → k → ℝ) (Fhat : n → r → ℝ) (a : k) (b : r) :
+    factorSampleCrossCovariance X Fhat a b =
+      (Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i a * Fhat i b := by
+  rw [factorSampleCrossCovariance]
+  simp only [Matrix.smul_apply, smul_eq_mul, Matrix.sum_apply, Matrix.vecMulVec_apply]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq r] in
+@[simp]
+theorem factorScoreSampleCovariance_apply
+    (Fhat : n → r → ℝ) (a b : r) :
+    factorScoreSampleCovariance Fhat a b =
+      (Fintype.card n : ℝ)⁻¹ * ∑ i : n, Fhat i a * Fhat i b := by
+  rw [factorScoreSampleCovariance]
+  simp only [Matrix.smul_apply, smul_eq_mul, Matrix.sum_apply, Matrix.vecMulVec_apply]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+private theorem vecMulVec_mulVec_right
+    (x : k → ℝ) (A : Matrix r k ℝ) :
+    Matrix.vecMulVec x (A *ᵥ x) = Matrix.vecMulVec x x * Aᵀ := by
+  rw [Matrix.vecMulVec_mul, Matrix.vecMul_transpose]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+/-- Outer products commute with applying a fixed linear score map to the right. -/
+private theorem vecMulVec_mulVec_both
+    (x : k → ℝ) (A : Matrix r k ℝ) :
+    Matrix.vecMulVec (A *ᵥ x) (A *ᵥ x) =
+      A * Matrix.vecMulVec x x * Aᵀ := by
+  calc
+    Matrix.vecMulVec (A *ᵥ x) (A *ᵥ x)
+        = A * Matrix.vecMulVec x (A *ᵥ x) := by
+            rw [Matrix.mul_vecMulVec]
+    _ = A * (Matrix.vecMulVec x x * Aᵀ) := by
+            rw [vecMulVec_mulVec_right]
+    _ = A * Matrix.vecMulVec x x * Aᵀ := by
+            rw [Matrix.mul_assoc]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+/-- Cross moments after applying a fixed linear score map. -/
+theorem factorSampleCrossCovariance_linearMap
+    (X : n → k → ℝ) (A : Matrix r k ℝ) :
+    factorSampleCrossCovariance X (fun i => A *ᵥ X i) =
+      factorSampleCovariance X * Aᵀ := by
+  rw [factorSampleCrossCovariance, factorSampleCovariance]
+  simp_rw [vecMulVec_mulVec_right]
+  rw [← Matrix.sum_mul, Matrix.smul_mul]
+
+omit [Fintype r] [DecidableEq n] [DecidableEq k] [DecidableEq r] in
+/-- Score covariance after applying a fixed linear score map. -/
+theorem factorScoreSampleCovariance_linearMap
+    (X : n → k → ℝ) (A : Matrix r k ℝ) :
+    factorScoreSampleCovariance (fun i => A *ᵥ X i) =
+      A * factorSampleCovariance X * Aᵀ := by
+  rw [factorScoreSampleCovariance, factorSampleCovariance]
+  simp_rw [vecMulVec_mulVec_both]
+  rw [← Matrix.sum_mul, ← Matrix.mul_sum, Matrix.mul_smul, Matrix.smul_mul]
 
 omit [Fintype k] [DecidableEq n] [DecidableEq k] in
 /-- The factor-model sample second-moment matrix is symmetric. -/
@@ -64,6 +147,17 @@ def factorLeadingEigenspace
     (Shat : Matrix k k ℝ) (H : Matrix k r ℝ) (D : Matrix r r ℝ) : Prop :=
   Shat * H = H * D
 
+/-- Deterministic scaling assumptions for Hansen Theorem 11.9's PCA factor
+solution. `H` has orthonormal selected eigenvectors, `D` is the selected
+eigenvalue matrix, and `sqrtD`/`invSqrtD` are paired so that Hansen's rotated
+loadings and normalized factor scores satisfy the advertised equations. -/
+structure FactorPCScaling
+    (H : Matrix k r ℝ) (D sqrtD invSqrtD : Matrix r r ℝ) : Prop where
+  eigenvectors_orthonormal : Hᵀ * H = 1
+  score_scale_normalizes : invSqrtD * D * invSqrtDᵀ = 1
+  loading_scale : D * invSqrtDᵀ = sqrtD
+  leastSquares_score_scale : (sqrtDᵀ * sqrtD)⁻¹ * sqrtDᵀ = invSqrtD
+
 omit [DecidableEq k] in
 /-- If the factor eigenspace equation is written with a diagonal eigenvalue
 matrix, each column of `H` is an eigenvector. -/
@@ -74,6 +168,87 @@ theorem factorLeadingEigenspace_col_diagonal
   ext a
   have hij := congrFun (congrFun h a) j
   simpa [Matrix.mul_apply, Matrix.mulVec, Matrix.diagonal, mul_comm] using hij
+
+omit [DecidableEq k] in
+/-- Hansen Theorem 11.9 score formula as a fixed-loading least-squares score.
+For `Λ = H D^{1/2}`, the fixed-loading least-squares score
+`(Λ'Λ)^{-1}Λ'X` equals `D^{-1/2}H'X` under the deterministic PCA scaling
+identities. -/
+theorem factorScoreEstimator_eq_leastSquaresScore
+    (H : Matrix k r ℝ) (D sqrtD invSqrtD : Matrix r r ℝ)
+    (X : k → ℝ) (hscale : FactorPCScaling H D sqrtD invSqrtD) :
+    factorScoreEstimator H invSqrtD X =
+      factorScoreLeastSquares (factorLoadingEstimator H sqrtD) X := by
+  have hgram : (H * sqrtD)ᵀ * (H * sqrtD) = sqrtDᵀ * sqrtD := by
+    calc
+      (H * sqrtD)ᵀ * (H * sqrtD)
+          = (sqrtDᵀ * Hᵀ) * (H * sqrtD) := by rw [Matrix.transpose_mul]
+      _ = sqrtDᵀ * ((Hᵀ * H) * sqrtD) := by
+            rw [Matrix.mul_assoc, ← Matrix.mul_assoc Hᵀ H sqrtD]
+      _ = sqrtDᵀ * (1 * sqrtD) := by rw [hscale.eigenvectors_orthonormal]
+      _ = sqrtDᵀ * sqrtD := by rw [Matrix.one_mul]
+  unfold factorScoreEstimator factorScoreLeastSquares factorLoadingEstimator
+  rw [hgram, Matrix.transpose_mul]
+  calc
+    invSqrtD *ᵥ (Hᵀ *ᵥ X)
+        = ((sqrtDᵀ * sqrtD)⁻¹ * sqrtDᵀ) *ᵥ (Hᵀ *ᵥ X) := by
+            rw [hscale.leastSquares_score_scale]
+    _ = (sqrtDᵀ * sqrtD)⁻¹ *ᵥ (sqrtDᵀ *ᵥ (Hᵀ *ᵥ X)) := by
+            exact (Matrix.mulVec_mulVec (Hᵀ *ᵥ X)
+              ((sqrtDᵀ * sqrtD)⁻¹) sqrtDᵀ).symm
+    _ = (sqrtDᵀ * sqrtD)⁻¹ *ᵥ ((sqrtDᵀ * Hᵀ) *ᵥ X) := by
+            congr 1
+            exact Matrix.mulVec_mulVec X sqrtDᵀ Hᵀ
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- The eigenspace/scaling certificate implies Hansen's score normalization
+`n⁻¹∑ Fhat_i Fhat_i' = I_r` for the principal-component factor scores. -/
+theorem factorScoreNormalization_of_eigenspace_scores
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
+    (hSample : Shat = factorSampleCovariance X)
+    (hLead : factorLeadingEigenspace Shat H D)
+    (hscale : FactorPCScaling H D sqrtD invSqrtD) :
+    factorScoreNormalization (fun i => factorScoreEstimator H invSqrtD (X i)) := by
+  unfold factorScoreNormalization factorScoreEstimator
+  simp_rw [Matrix.mulVec_mulVec]
+  rw [factorScoreSampleCovariance_linearMap X (invSqrtD * Hᵀ), ← hSample]
+  calc
+    (invSqrtD * Hᵀ) * Shat * (invSqrtD * Hᵀ)ᵀ
+        = invSqrtD * (Hᵀ * Shat * H) * invSqrtDᵀ := by
+            rw [Matrix.transpose_mul, Matrix.transpose_transpose]
+            simp only [Matrix.mul_assoc]
+    _ = invSqrtD * D * invSqrtDᵀ := by
+            rw [show Hᵀ * Shat * H = D by
+              calc
+                Hᵀ * Shat * H = Hᵀ * (Shat * H) := by rw [Matrix.mul_assoc]
+                _ = Hᵀ * (H * D) := by rw [hLead]
+                _ = Hᵀ * H * D := by rw [Matrix.mul_assoc]
+                _ = D := by rw [hscale.eigenvectors_orthonormal, Matrix.one_mul]]
+    _ = 1 := hscale.score_scale_normalizes
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- The eigenspace/scaling certificate implies Hansen's loading normal equation
+under the normalized principal-component scores:
+`n⁻¹∑ X_i Fhat_i' = H D^{1/2}`. -/
+theorem factorSampleCrossCovariance_eq_loading_of_eigenspace_scores
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
+    (hSample : Shat = factorSampleCovariance X)
+    (hLead : factorLeadingEigenspace Shat H D)
+    (hscale : FactorPCScaling H D sqrtD invSqrtD) :
+    factorSampleCrossCovariance X
+        (fun i => factorScoreEstimator H invSqrtD (X i)) =
+      factorLoadingEstimator H sqrtD := by
+  unfold factorScoreEstimator factorLoadingEstimator
+  simp_rw [Matrix.mulVec_mulVec]
+  rw [factorSampleCrossCovariance_linearMap X (invSqrtD * Hᵀ), ← hSample]
+  calc
+    Shat * (invSqrtD * Hᵀ)ᵀ
+        = Shat * H * invSqrtDᵀ := by
+            rw [Matrix.transpose_mul, Matrix.transpose_transpose, Matrix.mul_assoc]
+    _ = H * D * invSqrtDᵀ := by rw [hLead]
+    _ = H * sqrtD := by rw [Matrix.mul_assoc, hscale.loading_scale]
 
 /-- Principal-component least-squares factor solution from Hansen Theorem 11.9. -/
 structure FactorPCSolution
@@ -179,6 +354,66 @@ theorem factorPCSolution_of_normalized_eigenspace_certificate
       (factorLeadingEigenspace Shat H D) (factorScoreNormalization Fhat) :=
   factorPCSolution_of_eigenspace_certificate Shat H D sqrtD invSqrtD Λhat X Fhat
     hSample hLead hLoad hFactor hNorm
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- Hansen Theorem 11.9 certificate assembled directly from the eigenspace and
+PCA scaling equations. Unlike `factorPCSolution_of_normalized_eigenspace_certificate`,
+the score normalization is proved from the eigenspace/scaling hypotheses rather
+than supplied as an input. -/
+theorem factorPCSolution_of_eigenspace_scaling_certificate
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ) (X : n → k → ℝ)
+    (hSample : Shat = factorSampleCovariance X)
+    (hLead : factorLeadingEigenspace Shat H D)
+    (hscale : FactorPCScaling H D sqrtD invSqrtD) :
+    FactorPCSolution Shat H sqrtD invSqrtD
+      (factorLoadingEstimator H sqrtD) X
+      (fun i => factorScoreEstimator H invSqrtD (X i))
+      (factorLeadingEigenspace Shat H D)
+      (factorScoreNormalization (fun i => factorScoreEstimator H invSqrtD (X i))) :=
+  factorPCSolution_of_eigenspace_certificate Shat H D sqrtD invSqrtD
+    (factorLoadingEstimator H sqrtD) X
+    (fun i => factorScoreEstimator H invSqrtD (X i))
+    hSample hLead rfl (fun _ => rfl)
+    (factorScoreNormalization_of_eigenspace_scores Shat H D sqrtD invSqrtD X
+      hSample hLead hscale)
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- A factor-PCA certificate satisfying the scaling equations uses the
+fixed-loading least-squares score `(Λhat'Λhat)^{-1}Λhat'X_i`. -/
+theorem factorPCSolution_factor_eq_leastSquaresScore
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ)
+    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
+    {normalization : Prop}
+    (hscale : FactorPCScaling H D sqrtD invSqrtD)
+    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
+      (factorLeadingEigenspace Shat H D) normalization) :
+    ∀ i, Fhat i = factorScoreLeastSquares Λhat (X i) := by
+  intro i
+  rw [h.factor_eq i, h.loading_eq]
+  exact factorScoreEstimator_eq_leastSquaresScore H D sqrtD invSqrtD (X i) hscale
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- A factor-PCA certificate satisfying the scaling equations solves the loading
+normal equation under Hansen's factor normalization:
+`n⁻¹∑ X_i Fhat_i' = Λhat`. -/
+theorem factorPCSolution_loading_normalEquation
+    (Shat : Matrix k k ℝ) (H : Matrix k r ℝ)
+    (D sqrtD invSqrtD : Matrix r r ℝ)
+    (Λhat : Matrix k r ℝ) (X : n → k → ℝ) (Fhat : n → r → ℝ)
+    {normalization : Prop}
+    (hscale : FactorPCScaling H D sqrtD invSqrtD)
+    (h : FactorPCSolution Shat H sqrtD invSqrtD Λhat X Fhat
+      (factorLeadingEigenspace Shat H D) normalization) :
+    factorSampleCrossCovariance X Fhat = Λhat := by
+  rw [h.loading_eq]
+  have hF :
+      Fhat = fun i => factorScoreEstimator H invSqrtD (X i) :=
+    funext h.factor_eq
+  rw [hF]
+  exact factorSampleCrossCovariance_eq_loading_of_eigenspace_scores Shat H
+    D sqrtD invSqrtD X h.sample_covariance_eq h.leading_eigenspace hscale
 
 /-- Hansen Assumption 11.1, in a finite-dimensional theorem-facing package. -/
 structure ApproximateFactorAssumption
