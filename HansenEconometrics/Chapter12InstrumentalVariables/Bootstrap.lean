@@ -15,6 +15,7 @@ API, but keep Hansen's IV-specific recentering explicit:
 open MeasureTheory ProbabilityTheory Filter
 open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
 open scoped Matrix.Norms.Elementwise Function
+open scoped symmDiff
 
 namespace HansenEconometrics
 
@@ -4496,6 +4497,193 @@ theorem
   simpa [twoSLSBootstrapRobustPercentileTCIEventFinSucc] using hcoverage
 
 set_option linter.style.longLine false in
+/-- Hansen Theorem 12.8 percentile-`t` coverage when nonpositive realized
+sample standard errors occur with probability tending to zero.
+
+This is the asymptotic counterpart of
+`twoSLSBootstrapRobustPercentileTCIEventFinSucc_tendsto_one_sub_alpha_uniform`.
+It replaces positivity at every sample size and outcome by the high-probability
+nondegeneracy condition actually needed to identify the confidence-interval
+event with the studentized-statistic event. -/
+theorem
+    twoSLSBootstrapRobustPercentileTCIEventFinSucc_tendsto_one_sub_alpha_uniform_of_standardError_nonpos_tendsto_zero
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
+    (hsampleSe :
+      Tendsto
+        (fun n =>
+          μ {ω |
+            twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+              R Z X Y n ω ≤ 0})
+        atTop (𝓝 0))
+    (htstat :
+      TendstoInDistribution
+        (fun n ω =>
+          percentileTStatistic (linearRestrictionEstimate R β)
+            (twoSLSLinearRestrictionEstimateFinSucc R Z X Y n ω)
+            (twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+              R Z X Y n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1))
+    (hTstar_meas : ∀ n ω,
+      AEMeasurable
+        (fun ωs => twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω))
+    (hTstar :
+      TendstoInBootstrapDistributionIndexed μ
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (fun n ω ωs (_ : Unit) =>
+          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+        (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z))
+    (hα_pos : 0 < α) (hα_lt_one : α < 1)
+    (hstrict : StrictMono (fun x => cdf (gaussianReal 0 1) x))
+    (hlower_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+            (fun n ω ωs =>
+              twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+            (α / 2) n) μ)
+    (hupper_meas :
+      ∀ n,
+        AEMeasurable
+          (bootstrapScalarLowerQuantileIndexed
+            (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+            (fun n ω ωs =>
+              twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+            (1 - α / 2) n) μ)
+    (hq_nonneg : 0 ≤ q)
+    (hcdfLower : cdf (gaussianReal 0 1) (-q) = α / 2)
+    (hcdfUpper : cdf (gaussianReal 0 1) q = 1 - α / 2) :
+    Tendsto
+      (fun n =>
+        μ {ω |
+          twoSLSBootstrapRobustPercentileTCIEventFinSucc
+            R Z X Y β α n ω})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  let θ : ℝ := linearRestrictionEstimate R β
+  let θhat : ℕ → Ω → ℝ := fun n ω =>
+    twoSLSLinearRestrictionEstimateFinSucc R Z X Y n ω
+  let se : ℕ → Ω → ℝ := fun n ω =>
+    twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc R Z X Y n ω
+  let tstat : ℕ → Ω → ℝ := fun n ω =>
+    percentileTStatistic θ (θhat n ω) (se n ω)
+  let sePos : ℕ → Ω → ℝ := fun n ω => if 0 < se n ω then se n ω else 1
+  let θhatPos : ℕ → Ω → ℝ := fun n ω => θ + tstat n ω * sePos n ω
+  let qLower : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (fun n ω ωs =>
+        twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+      (α / 2)
+  let qUpper : ℕ → Ω → ℝ :=
+    bootstrapScalarLowerQuantileIndexed
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (fun n ω ωs =>
+        twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+      (1 - α / 2)
+  let actual : ℕ → Set Ω := fun n =>
+    {ω | percentileTCIEvent θ (θhat n ω) (se n ω)
+      (qLower n ω) (qUpper n ω)}
+  let reference : ℕ → Set Ω := fun n =>
+    {ω | percentileTCIEvent θ (θhatPos n ω) (sePos n ω)
+      (qLower n ω) (qUpper n ω)}
+  let bad : ℕ → Set Ω := fun n => {ω | se n ω ≤ 0}
+  have hsePos : ∀ n ω, 0 < sePos n ω := by
+    intro n ω
+    simp only [sePos]
+    split_ifs with h
+    · exact h
+    · norm_num
+  have htstat' :
+      TendstoInDistribution tstat atTop (fun x : ℝ => x)
+        (fun _ => μ) (gaussianReal 0 1) := by
+    simpa [tstat, θ, θhat, se] using htstat
+  have htstatPos :
+      TendstoInDistribution
+        (fun n ω => percentileTStatistic θ (θhatPos n ω) (sePos n ω))
+        atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1) := by
+    refine TendstoInDistribution.congr (fun n => ae_of_all μ fun ω => ?_)
+      EventuallyEq.rfl htstat'
+    dsimp [θhatPos, percentileTStatistic]
+    field_simp [(hsePos n ω).ne']
+    ring
+  haveI : NoAtoms (gaussianReal 0 1) :=
+    noAtoms_gaussianReal (μ := 0) (v := 1) (by norm_num)
+  have hξ : HasLaw (fun x : ℝ => x) (gaussianReal 0 1) (gaussianReal 0 1) := by
+    simpa [id] using (HasLaw.id (μ := gaussianReal 0 1))
+  have hreference :
+      Tendsto (fun n => μ (reference n)) atTop
+        (𝓝 (ENNReal.ofReal (1 - α))) := by
+    have hcoverage :=
+      chapter10_percentileTCI_coverage_tendsto_one_sub_alpha_indexed_bootstrapDistribution_quantile_prob
+        (μ := μ) (ν := gaussianReal 0 1) (η := gaussianReal 0 1)
+        (Pstar := twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (Tstar := fun n ω ωs =>
+          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+        (θ := θ) (θhat := θhatPos) (se := sePos)
+        (ξ := fun x : ℝ => x) (q := q) (α := α)
+        hsePos htstatPos
+        (fun n ω =>
+          twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
+        hTstar_meas hα_pos hα_lt_one hstrict hTstar
+        (fun x => continuousAt_cdf_standardNormal x)
+        hlower_meas hupper_meas hξ hq_nonneg hcdfLower hcdfUpper
+    simpa [reference, qLower, qUpper] using hcoverage
+  have hsymm_subset : ∀ n, actual n ∆ reference n ⊆ bad n := by
+    intro n ω hω
+    by_cases hpos : 0 < se n ω
+    · have hseEq : sePos n ω = se n ω := by simp [sePos, hpos]
+      have hθhatEq : θhatPos n ω = θhat n ω := by
+        dsimp [θhatPos, tstat, percentileTStatistic]
+        rw [hseEq]
+        field_simp [hpos.ne']
+        ring
+      have heq : ω ∈ actual n ↔ ω ∈ reference n := by
+        simp only [actual, reference, Set.mem_setOf_eq, hseEq, hθhatEq]
+      rw [Set.mem_symmDiff] at hω
+      rcases hω with hω | hω
+      · exact False.elim (hω.2 (heq.mp hω.1))
+      · exact False.elim (hω.2 (heq.mpr hω.1))
+    · exact not_lt.mp hpos
+  have hbad : Tendsto (fun n => μ (bad n)) atTop (𝓝 0) := by
+    simpa [bad, se] using hsampleSe
+  have hdiff : Tendsto (fun n => μ (actual n ∆ reference n)) atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+      (Eventually.of_forall fun n => zero_le _) ?_
+    exact Eventually.of_forall fun n => measure_mono (hsymm_subset n)
+  let L : ℝ≥0∞ := ENNReal.ofReal (1 - α)
+  have hL_ne_top : L ≠ ∞ := by simp [L]
+  have hlower :
+      Tendsto (fun n => μ (reference n) - μ (actual n ∆ reference n))
+        atTop (𝓝 L) := by
+    simpa [L] using ENNReal.Tendsto.sub hreference hdiff (Or.inl hL_ne_top)
+  have hupper :
+      Tendsto (fun n => μ (reference n) + μ (actual n ∆ reference n))
+        atTop (𝓝 L) := by
+    simpa [L] using hreference.add hdiff
+  have hactual : Tendsto (fun n => μ (actual n)) atTop (𝓝 L) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' hlower hupper ?_ ?_
+    · exact Eventually.of_forall fun n => by
+        have href_le :
+            μ (reference n) ≤ μ (actual n) + μ (actual n ∆ reference n) := by
+          calc
+            μ (reference n) ≤ μ ((actual n ∆ reference n) ∪ actual n) :=
+              measure_mono (le_symmDiff_sup_left (actual n) (reference n))
+            _ ≤ μ (actual n ∆ reference n) + μ (actual n) := measure_union_le _ _
+            _ = μ (actual n) + μ (actual n ∆ reference n) := by rw [add_comm]
+        exact tsub_le_iff_right.mpr href_le
+    · exact Eventually.of_forall fun n => by
+        calc
+          μ (actual n) ≤ μ ((actual n ∆ reference n) ∪ reference n) :=
+            measure_mono (le_symmDiff_sup_right (actual n) (reference n))
+          _ ≤ μ (actual n ∆ reference n) + μ (reference n) := measure_union_le _ _
+          _ = μ (reference n) + μ (actual n ∆ reference n) := by rw [add_comm]
+  simpa [actual, θ, θhat, se, qLower, qUpper, L,
+    twoSLSBootstrapRobustPercentileTCIEventFinSucc] using hactual
+
+set_option linter.style.longLine false in
 /-- Hansen Theorem 12.8 non-studentized percentile interval coverage endpoint
 from the ordinary-bootstrap one-row numerator limit.
 
@@ -4727,6 +4915,33 @@ structure TwoSLSBootstrapRobustPercentileTSampleInputs
           (twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc R Z X Y n ω))
       atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1)
 
+/-- Asymptotic sample-side inputs for Hansen Theorem 12.8's percentile-`t`
+interval.
+
+Unlike `TwoSLSBootstrapRobustPercentileTSampleInputs`, this package does not
+require the realized standard error to be positive at every finite sample.
+It records the statistically natural replacement: the probability of a
+nonpositive standard error tends to zero. -/
+structure TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs
+    (μ : Measure Ω)
+    [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
+    (β : k → ℝ) (R : Matrix Unit k ℝ) : Prop where
+  standard_error_nonpos_probability_tendsto_zero :
+    Tendsto
+      (fun n =>
+        μ {ω |
+          twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+            R Z X Y n ω ≤ 0})
+      atTop (𝓝 0)
+  statistic_limit :
+    TendstoInDistribution
+      (fun n ω =>
+        percentileTStatistic (linearRestrictionEstimate R β)
+          (twoSLSLinearRestrictionEstimateFinSucc R Z X Y n ω)
+          (twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc R Z X Y n ω))
+      atTop (fun x : ℝ => x) (fun _ => μ) (gaussianReal 0 1)
+
 /-- Bootstrap quantile calibration inputs for Hansen Theorem 12.8's
 percentile-`t` interval.
 
@@ -4779,6 +4994,21 @@ structure TwoSLSBootstrapRobustPercentileTCoverageInputs
     TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
       μ Z X Y R q α
 
+/-- Asymptotic interval-side package for Hansen Theorem 12.8.
+
+The sample component uses high-probability standard-error nondegeneracy rather
+than finite-sample pathwise positivity. -/
+structure TwoSLSBootstrapRobustPercentileTAsymptoticCoverageInputs
+    (μ : Measure Ω)
+    [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
+    (β : k → ℝ) (R : Matrix Unit k ℝ) (q α : ℝ) : Prop where
+  sample :
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs μ Z X Y β R
+  quantile :
+    TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
+      μ Z X Y R q α
+
 /-- Constructor for the named percentile-`t` interval-side package. -/
 theorem TwoSLSBootstrapRobustPercentileTCoverageInputs.of_sample_quantile
     [IsProbabilityMeasure μ]
@@ -4790,6 +5020,21 @@ theorem TwoSLSBootstrapRobustPercentileTCoverageInputs.of_sample_quantile
       TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
         μ Z X Y R q α) :
     TwoSLSBootstrapRobustPercentileTCoverageInputs
+      μ Z X Y β R q α where
+  sample := hsample
+  quantile := hquantile
+
+/-- Constructor for the asymptotic percentile-`t` interval-side package. -/
+theorem TwoSLSBootstrapRobustPercentileTAsymptoticCoverageInputs.of_sample_quantile
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {R : Matrix Unit k ℝ} {q α : ℝ}
+    (hsample :
+      TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs μ Z X Y β R)
+    (hquantile :
+      TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
+        μ Z X Y R q α) :
+    TwoSLSBootstrapRobustPercentileTAsymptoticCoverageInputs
       μ Z X Y β R q α where
   sample := hsample
   quantile := hquantile
@@ -5689,6 +5934,107 @@ theorem
     exact (mul_div_cancel_left₀ x hseθ.ne').symm
 
 set_option linter.style.longLine false in
+/-- Build the asymptotic sample-side percentile-`t` package from coefficient
+and covariance convergence.
+
+Covariance consistency sends the unscaled restriction standard error to the
+positive limit `linearRestrictionStdError R Vβ`. Consequently the probability
+of a nonpositive realized standard error tends to zero; no finite-sample
+positive-definiteness premise is needed. -/
+theorem
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_coefficient_clt_covariance_consistency
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {R : Matrix Unit k ℝ} {Vβ : Matrix k k ℝ}
+    (hVβ : Vβ.PosSemidef)
+    (hseθ : 0 < linearRestrictionStdError R Vβ)
+    (hβ :
+      TendstoInDistribution
+        (fun (n : ℕ) ω =>
+          Real.sqrt ((n + 1 : ℕ) : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+              (stackOutcomes Y (n + 1) ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vβ))
+    (hV_meas : ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          twoSLSVHatStar
+            (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+            (stackOutcomes Y (n + 1) ω)) μ)
+    (hV :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSVHatStar
+            (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+            (stackOutcomes Y (n + 1) ω))
+        atTop (fun _ => Vβ)) :
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs
+      μ Z X Y β R := by
+  have hscale :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSRobustLinearRestrictionStdErrorFinSucc R Z X Y n ω)
+        atTop (fun _ => linearRestrictionStdError R Vβ) := by
+    simpa [twoSLSRobustLinearRestrictionStdErrorFinSucc] using
+      tendstoInMeasure_continuous_comp
+        (μ := μ)
+        (f := fun n ω =>
+          twoSLSVHatStar
+            (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+            (stackOutcomes Y (n + 1) ω))
+        (g := fun _ => Vβ)
+        (h := fun V : Matrix k k ℝ => linearRestrictionStdError R V)
+        hV_meas hV (continuous_linearRestrictionStdError R)
+  have hscale_nonpos :
+      Tendsto
+        (fun n =>
+          μ {ω |
+            twoSLSRobustLinearRestrictionStdErrorFinSucc R Z X Y n ω ≤ 0})
+        atTop (𝓝 0) :=
+    tendsto_measure_nonpos_of_tendstoInMeasure_const_pos
+      (μ := μ) hseθ hscale
+  have hestimator_nonpos :
+      Tendsto
+        (fun n =>
+          μ {ω |
+            twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+              R Z X Y n ω ≤ 0})
+        atTop (𝓝 0) := by
+    refine hscale_nonpos.congr' ?_
+    exact Eventually.of_forall fun n => by
+      apply congrArg μ
+      ext ω
+      have hn : 0 < (n + 1 : ℝ) := by exact_mod_cast Nat.succ_pos n
+      have hroot : 0 < Real.sqrt (n + 1 : ℝ) := Real.sqrt_pos.mpr hn
+      change
+        twoSLSRobustLinearRestrictionStdErrorFinSucc R Z X Y n ω ≤ 0 ↔
+          twoSLSRobustLinearRestrictionStdErrorFinSucc R Z X Y n ω /
+            Real.sqrt (n + 1 : ℝ) ≤ 0
+      constructor
+      · intro hnonpos
+        exact div_nonpos_of_nonpos_of_nonneg hnonpos hroot.le
+      · intro hdiv
+        by_contra hnot
+        exact (not_lt_of_ge hdiv)
+          (div_pos (lt_of_not_ge hnot) hroot)
+  refine
+    { standard_error_nonpos_probability_tendsto_zero := hestimator_nonpos
+      statistic_limit := ?_ }
+  have hT :=
+    twoSLSRobustLinearTStatFinSucc_tendstoInDistribution_standardNormal_of_coefficient_covariance
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (β := β) (R := R)
+      (Vβ := Vβ) hVβ hseθ hβ hV_meas hV
+  exact TendstoInDistribution.congr
+    (fun n => by
+      filter_upwards with ω
+      exact
+        (percentileTStatistic_twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+          R Z X Y β n ω).symm)
+    Filter.EventuallyEq.rfl hT
+
+set_option linter.style.longLine false in
 /-- Constructor for the original-sample percentile-`t` inputs from primitive
 coefficient and covariance convergence facts.
 
@@ -5942,6 +6288,149 @@ theorem
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     (β := β) (R := R) h hmodel hw
     (oneRow_transpose_mulVec_injective_of_exists_ne_zero hR) hVhat_pos
+
+set_option linter.style.longLine false in
+/-- Assumption-12.2-facing asymptotic sample-side constructor.
+
+The coefficient CLT and robust covariance consistency are the existing
+Chapter 12.2/12.3 results. Assumption 12.2 makes the limiting restriction
+variance positive, while covariance consistency makes nonpositive realized
+standard errors a probability-zero asymptotic event. -/
+theorem
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_assumption12_2_iid_weight_wlln_rows
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {R : Matrix Unit k ℝ}
+    (h : TwoSLSAssumption12_2IidFourthConditions μ Z X e)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hw : TwoSLSCovarianceWeightWLLNConditions μ Z X e)
+    (hR : Function.Injective Rᵀ.mulVec) :
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs
+      μ Z X Y β R := by
+  let Vβ : Matrix k k ℝ :=
+    twoSLSAsymptoticVariance
+      (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (scoreCovMat μ Z e)
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+  let hGram := h.toGramConditions
+  have hVβ_pos : Vβ.PosDef := by
+    dsimp [Vβ]
+    exact
+      twoSLSAsymptoticVariance_posDef_of_qzz_omega_rank
+        (QXZ := twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+        (QZZ := twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+        (Omega := scoreCovMat μ Z e)
+        (QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+        (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
+          (μ := μ) (Z := Z) (X := X)
+          hGram.toTwoSLSAssumption12_1GramConditions.combined_gram)
+        h.qzz_posDef h.omega_posDef h.qzx_rank
+  have hVθ : (R * Vβ * Rᵀ).PosDef := by
+    have hcov : ((Rᵀ)ᵀ * Vβ * Rᵀ).PosDef :=
+      restrictionCov_posDef_of_cov_posDef Vβ Rᵀ hVβ_pos hR
+    simpa [Vβ] using hcov
+  have hseθ : 0 < linearRestrictionStdError R Vβ :=
+    linearRestrictionStdError_pos_of_restrictionCov_posDef R hVθ
+  have hY : ∀ i, AEStronglyMeasurable (Y i) μ :=
+    outcome_aestronglyMeasurable_of_linear_model
+      (μ := μ) (X := X) (e := e) (Y := Y) β
+      h.x_aestronglyMeasurable h.e_aestronglyMeasurable hmodel
+  have hV_meas : ∀ n,
+      AEStronglyMeasurable
+        (fun ω =>
+          twoSLSVHatStar
+            (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+            (stackOutcomes Y (n + 1) ω)) μ := by
+    intro n
+    simpa [stackRegressors, stackOutcomes] using
+      twoSLSVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (n := n + 1) (Z := Z) (X := X) (Y := Y)
+        h.z_aestronglyMeasurable h.x_aestronglyMeasurable hY
+  have hβ0 :=
+    twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_iid_model
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
+  have hβ_shift :
+      TendstoInDistribution
+        (fun (n : ℕ) ω =>
+          Real.sqrt ((n + 1 : ℕ) : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+              (stackOutcomes Y (n + 1) ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vβ) := by
+    refine
+      { forall_aemeasurable := ?_
+        aemeasurable_limit := by
+          simpa [Vβ] using hβ0.aemeasurable_limit
+        tendsto := ?_ }
+    · intro n
+      simpa [Vβ, stackRegressors, stackOutcomes] using
+        hβ0.forall_aemeasurable (n + 1)
+    · have hcomp := hβ0.tendsto.comp (tendsto_add_atTop_nat 1)
+      convert hcomp using 1 with n
+  have hV0 :=
+    (twoSLSCovariances_tendstoInMeasure_formula_of_assumption12_2_iid_weight_wlln
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel hw).1
+  have hV_shift :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSVHatStar
+            (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
+            (stackOutcomes Y (n + 1) ω))
+        atTop (fun _ => Vβ) := by
+    intro ε hε
+    simpa [Vβ, stackRegressors, stackOutcomes] using
+      (hV0 ε hε).comp (tendsto_add_atTop_nat 1)
+  exact
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_coefficient_clt_covariance_consistency
+      (μ := μ) (Z := Z) (X := X) (Y := Y) (β := β) (R := R)
+      (Vβ := Vβ) hVβ_pos.posSemidef hseθ hβ_shift hV_meas hV_shift
+
+set_option linter.style.longLine false in
+/-- Observed-row Assumption 12.2 constructor for the asymptotic sample-side
+percentile-`t` package. -/
+theorem
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_observed_textbook_fourth
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {R : Matrix Unit k ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (hR : Function.Injective Rᵀ.mulVec) :
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs
+      μ Z X Y β R := by
+  let hmixed : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e :=
+    h.toJointIidMixedMomentConditions
+  exact
+    TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_assumption12_2_iid_weight_wlln_rows
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      (β := β) (R := R)
+      hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+      h.model
+      (hmixed.toWeightWLLNConditions
+        (μ := μ) (Z := Z) (X := X) (e := e))
+      hR
+
+set_option linter.style.longLine false in
+/-- Under observed-row Assumption 12.2, a nonzero one-row restriction has a
+positive robust standard error with probability tending to one. -/
+theorem
+    twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc_nonpos_probability_tendsto_zero_of_observed_assumption12_2
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {R : Matrix Unit k ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β)
+    (hR : ∃ j : k, R () j ≠ 0) :
+    Tendsto
+      (fun n =>
+        μ {ω |
+          twoSLSRobustLinearRestrictionEstimatorStdErrorFinSucc
+            R Z X Y n ω ≤ 0})
+      atTop (𝓝 0) :=
+  (TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs.of_observed_textbook_fourth
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    (β := β) (R := R) h
+    (oneRow_transpose_mulVec_injective_of_exists_ne_zero hR)).standard_error_nonpos_probability_tendsto_zero
 
 set_option linter.style.longLine false in
 /-- Field-level constructor for the bootstrap quantile-calibration side of
@@ -6309,6 +6798,98 @@ theorem
       hcoverage.quantile.upper_quantile_aemeasurable
       hcoverage.quantile.critical_nonneg hcoverage.quantile.cdf_lower
       hcoverage.quantile.cdf_upper
+
+set_option linter.style.longLine false in
+/-- Percentile-`t` interval coverage from the robust bootstrap t-ratio limit
+and the asymptotic interval-side package.
+
+This is the preferred Hansen Theorem 12.8 coverage bridge: finite-sample
+covariance degeneracy is allowed, provided its probability vanishes. -/
+theorem
+    twoSLSBootstrapRobustPercentileTCIEventFinSucc_tendsto_one_sub_alpha_uniform_of_asymptoticCoverageInputs
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
+    (hTstar :
+      TendstoInBootstrapDistributionIndexed μ
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (fun n ω ωs (_ : Unit) =>
+          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+        (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z))
+    (hcoverage :
+      TwoSLSBootstrapRobustPercentileTAsymptoticCoverageInputs
+        μ Z X Y β R q α) :
+    Tendsto
+      (fun n =>
+        μ {ω |
+          twoSLSBootstrapRobustPercentileTCIEventFinSucc
+            R Z X Y β α n ω})
+      atTop (𝓝 (ENNReal.ofReal (1 - α))) :=
+  twoSLSBootstrapRobustPercentileTCIEventFinSucc_tendsto_one_sub_alpha_uniform_of_standardError_nonpos_tendsto_zero
+    (μ := μ) (Z := Z) (X := X) (Y := Y) (R := R) (β := β)
+    (q := q) (α := α)
+    hcoverage.sample.standard_error_nonpos_probability_tendsto_zero
+    hcoverage.sample.statistic_limit
+    (fun n ω =>
+      twoSLSBootstrapRobustLinearTStatFinSucc_aemeasurable
+        (R := R) (Z := Z) (X := X) (Y := Y) n ω)
+    hTstar hcoverage.quantile.alpha_pos hcoverage.quantile.alpha_lt_one
+    hcoverage.quantile.standardNormal_cdf_strictMono
+    hcoverage.quantile.lower_quantile_aemeasurable
+    hcoverage.quantile.upper_quantile_aemeasurable
+    hcoverage.quantile.critical_nonneg hcoverage.quantile.cdf_lower
+    hcoverage.quantile.cdf_upper
+
+set_option linter.style.longLine false in
+/-- Bootstrap percentile-`t` critical-value convergence and interval coverage
+under high-probability sample covariance nondegeneracy. -/
+theorem
+    twoSLSBootstrapRobustPercentileTCIEventFinSucc_quantiles_tendsto_and_coverage_of_asymptotic_sample_quantile
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {R : Matrix Unit k ℝ} {β : k → ℝ} {q α : ℝ}
+    (hTstar :
+      TendstoInBootstrapDistributionIndexed μ
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (fun n ω ωs (_ : Unit) =>
+          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+        (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z))
+    (hsample :
+      TwoSLSBootstrapRobustPercentileTAsymptoticSampleInputs μ Z X Y β R)
+    (hquantile :
+      TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
+        μ Z X Y R q α) :
+    (TendstoInMeasure μ
+        (bootstrapScalarLowerQuantileIndexed
+          (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+          (fun n ω ωs =>
+            twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+          (α / 2))
+        atTop (fun _ => -q) ∧
+      TendstoInMeasure μ
+        (bootstrapScalarLowerQuantileIndexed
+          (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+          (fun n ω ωs =>
+            twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
+          (1 - α / 2))
+        atTop (fun _ => q)) ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            twoSLSBootstrapRobustPercentileTCIEventFinSucc
+              R Z X Y β α n ω})
+        atTop (𝓝 (ENNReal.ofReal (1 - α))) := by
+  constructor
+  · exact
+      hquantile.quantiles_tendsto_of_bootstrap_tstat
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (R := R) hTstar
+  · exact
+      twoSLSBootstrapRobustPercentileTCIEventFinSucc_tendsto_one_sub_alpha_uniform_of_asymptoticCoverageInputs
+        (μ := μ) (Z := Z) (X := X) (Y := Y) (R := R)
+        (β := β) (q := q) (α := α) hTstar
+        (TwoSLSBootstrapRobustPercentileTAsymptoticCoverageInputs.of_sample_quantile
+          (μ := μ) (Z := Z) (X := X) (Y := Y) (β := β)
+          (R := R) (q := q) (α := α) hsample hquantile)
 
 set_option linter.style.longLine false in
 /-- Percentile-`t` quantile convergence and interval coverage from the
@@ -12899,173 +13480,6 @@ theorem
   exact ⟨hdist.1, hdist.2, hci⟩
 
 set_option linter.style.longLine false in
-/-- Hansen Theorem 12.8 observed-row distribution inputs.
-
-This package records the exact current proof boundary for the coefficient and
-robust one-row studentized conclusions of Hansen Theorem 12.8.  Assumption
-12.2 is stated on Hansen's observed rows; the remaining fields are precisely
-the bootstrap empirical-process and covariance-consistency primitives still
-not derived from Assumption 12.2 alone. -/
-structure TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
-    (μ : Measure Ω)
-    [IsProbabilityMeasure μ]
-    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
-    (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
-    (β : k → ℝ) (C : ℝ) : Prop where
-  assumption12_2 :
-    TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β
-  restriction_row_ne_zero : ∃ j : k, R () j ≠ 0
-  trueScore_norm_bound :
-    ∀ᶠ n in atTop,
-      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
-        ‖twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc
-          Z e n ω ωs‖ ≤ C
-  residual_substitution_vanishes : ∀ δ : ℝ, 0 < δ →
-    ∀ᶠ n in atTop,
-      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
-        ‖twoSLSBootstrapResidualSubstitutionRecenteredScoreStatisticFinSucc
-          Z X Y β n ω ωs‖ < δ
-  population_linearization_vanishes : ∀ δ : ℝ, 0 < δ →
-    ∀ᶠ n in atTop,
-      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
-        dist (twoSLSBootstrapLinearizedGapFinSucc Z X Y n ω ωs)
-          (twoSLSBootstrapPopulationLinearizedGapFinSucc
-            (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
-            Z X Y n ω ωs) < δ
-  coefficient_linearization_vanishes : ∀ δ : ℝ, 0 < δ →
-    ∀ᶠ n in atTop,
-      ∀ ω (ωs : Fin (n + 1) → Fin (n + 1)),
-        dist (twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
-          (twoSLSBootstrapLinearizedGapFinSucc Z X Y n ω ωs) < δ
-  bootstrap_covariance_consistent :
-    TendstoInBootstrapProbabilityIndexed μ
-      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-      (fun n ω ωs => twoSLSBootstrapVHatStarFinSucc Z X Y n ω ωs)
-      (fun _ =>
-        twoSLSAsymptoticVariance
-          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
-          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
-          (scoreCovMat μ Z e)
-          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))
-
-set_option linter.style.longLine false in
-/-- Hansen Theorem 12.8 observed-row full percentile-`t` inputs.
-
-This extends the distribution-input package with exactly the interval-side
-primitives used by the current formalization: finite-sample positive
-definiteness of the realized robust covariance and Chapter 10 percentile-`t`
-quantile calibration. -/
-structure TwoSLSBootstrapTheorem12_8ObservedFullInputs
-    (μ : Measure Ω)
-    [IsProbabilityMeasure μ]
-    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
-    (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
-    (β : k → ℝ) (q α C : ℝ) : Prop where
-  distribution :
-    TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
-      μ Z X e Y R β C
-  sample_covariance_posDef : ∀ n ω,
-    (twoSLSVHatStar
-      (stackRegressors Z (n + 1) ω) (stackRegressors X (n + 1) ω)
-      (stackOutcomes Y (n + 1) ω)).PosDef
-  quantile_calibration :
-    TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
-      μ Z X Y R q α
-
-set_option linter.style.longLine false in
-/-- Hansen Theorem 12.8 observed-row coefficient and robust one-row
-studentized bootstrap conclusions from the bundled primitive inputs. -/
-theorem
-    twoSLSBootstrap_theorem12_8_of_observed_textbook_primitiveInputs
-    [IsProbabilityMeasure μ]
-    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    {R : Matrix Unit k ℝ} {β : k → ℝ} {C : ℝ}
-    (h :
-      TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
-        μ Z X e Y R β C) :
-    TendstoInBootstrapDistributionIndexed μ
-        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-        (fun n ω ωs => twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
-        (multivariateGaussian (0 : EuclideanSpace ℝ k)
-          (twoSLSAsymptoticVariance
-            (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (scoreCovMat μ Z e)
-            (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))))
-        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) ∧
-      TendstoInBootstrapDistributionIndexed μ
-        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-        (fun n ω ωs (_ : Unit) =>
-          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
-        (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) :=
-  twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_row_ne_zero
-    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    (R := R) (β := β) (C := C)
-    h.assumption12_2 h.restriction_row_ne_zero h.trueScore_norm_bound
-    h.residual_substitution_vanishes h.population_linearization_vanishes
-    h.coefficient_linearization_vanishes h.bootstrap_covariance_consistent
-
-set_option linter.style.longLine false in
-/-- Full observed-row Hansen Theorem 12.8 from the bundled primitive inputs:
-coefficient bootstrap Gaussian limit, robust one-row studentized limit,
-percentile-`t` quantile convergence, and interval coverage. -/
-theorem
-    twoSLSBootstrap_full_theorem12_8_of_observed_textbook_primitiveInputs
-    [IsProbabilityMeasure μ]
-    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
-    {R : Matrix Unit k ℝ} {β : k → ℝ} {q α C : ℝ}
-    (h :
-      TwoSLSBootstrapTheorem12_8ObservedFullInputs
-        μ Z X e Y R β q α C) :
-    TendstoInBootstrapDistributionIndexed μ
-        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-        (fun n ω ωs => twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
-        (multivariateGaussian (0 : EuclideanSpace ℝ k)
-          (twoSLSAsymptoticVariance
-            (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
-            (scoreCovMat μ Z e)
-            (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))))
-        (fun z : EuclideanSpace ℝ k => (z : k → ℝ)) ∧
-      TendstoInBootstrapDistributionIndexed μ
-        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-        (fun n ω ωs (_ : Unit) =>
-          twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
-        (gaussianReal 0 1) (fun z : ℝ => fun _ : Unit => z) ∧
-      (TendstoInMeasure μ
-          (bootstrapScalarLowerQuantileIndexed
-            (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-            (fun n ω ωs =>
-              twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
-            (α / 2))
-          atTop (fun _ => -q) ∧
-        TendstoInMeasure μ
-          (bootstrapScalarLowerQuantileIndexed
-            (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-            (fun n ω ωs =>
-              twoSLSBootstrapRobustLinearTStatFinSucc R Z X Y n ω ωs)
-            (1 - α / 2))
-          atTop (fun _ => q)) ∧
-        Tendsto
-          (fun n =>
-            μ {ω |
-              twoSLSBootstrapRobustPercentileTCIEventFinSucc
-                R Z X Y β α n ω})
-          atTop (𝓝 (ENNReal.ofReal (1 - α))) :=
-  twoSLSBootstrap_full_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration_row_ne_zero
-    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
-    (R := R) (β := β) (q := q) (α := α) (C := C)
-    h.distribution.assumption12_2 h.distribution.restriction_row_ne_zero
-    h.distribution.trueScore_norm_bound
-    h.distribution.residual_substitution_vanishes
-    h.distribution.population_linearization_vanishes
-    h.distribution.coefficient_linearization_vanishes
-    h.distribution.bootstrap_covariance_consistent
-    h.sample_covariance_posDef h.quantile_calibration
-
-set_option linter.style.longLine false in
 /-- Textbook-fourth percentile-`t` coverage with the one-row restriction rank
 condition stated as a nonzero row entry. -/
 theorem
@@ -13574,6 +13988,373 @@ theorem
       (R := R) (β := β) (q := q) (α := α)
       h hR hboot hVhat_pos hquantile
   exact ⟨hdist.1, hdist.2, hci⟩
+
+private theorem
+    tendstoInBootstrapWeakDistributionIndexed_of_closeness_asymptoticallyTight
+    {E : Type*} [PseudoMetricSpace E] [MeasurableSpace E]
+    [OpensMeasurableSpace E] [SecondCountableTopology E] [T2Space E]
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Zstar Zstar' : ∀ n, Ω → Ωboot n → E}
+    {ν : Measure Ωlim} {Zlim : Ωlim → E}
+    (hZ : TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar ν Zlim)
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hZstar : ∀ n ω, Measurable (Zstar n ω))
+    (hZstar' : ∀ n ω, Measurable (Zstar' n ω))
+    (hTight : ∀ η : ℝ, 0 < η →
+      ∃ K : Set E, IsCompact K ∧
+        Tendsto
+          (fun n =>
+            μ {ω |
+              η ≤ (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K}})
+          atTop (𝓝 0) ∧
+        Tendsto
+          (fun n =>
+            μ {ω |
+              η ≤ (Pstar n ω).real {ωs | Zstar' n ω ωs ∉ K}})
+          atTop (𝓝 0))
+    (hclose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)})
+        atTop (fun _ => 0)) :
+    TendstoInBootstrapWeakDistributionIndexed μ Pstar Zstar' ν Zlim := by
+  refine hZ.of_integral_difference_zero ?_
+  intro f
+  rw [tendstoInMeasure_iff_dist]
+  intro ε hε
+  let C : ℝ := 2 * ‖f‖
+  let η : ℝ := ε / (8 * (C + 1))
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  have hC1_pos : 0 < C + 1 := by linarith
+  have hη : 0 < η := by
+    dsimp [η]
+    positivity
+  obtain ⟨K, hK, hTightZ, hTightZ'⟩ := hTight η hη
+  have hε2 : 0 < ε / 2 := by positivity
+  have hf_uc : UniformContinuousOn (fun x => f x) K :=
+    hK.uniformContinuousOn_of_continuous f.continuous.continuousOn
+  obtain ⟨δ, hδ_pos, hδ⟩ :=
+    Metric.uniformContinuousOn_iff.mp hf_uc (ε / 2) hε2
+  let closeProb : ℕ → Ω → ℝ := fun n ω =>
+    (Pstar n ω).real
+      {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)}
+  let tailProb : ℕ → Ω → ℝ := fun n ω =>
+    (Pstar n ω).real {ωs | Zstar n ω ωs ∉ K}
+  let tailProb' : ℕ → Ω → ℝ := fun n ω =>
+    (Pstar n ω).real {ωs | Zstar' n ω ωs ∉ K}
+  have hcloseOuter :
+      Tendsto (fun n => μ {ω | η ≤ closeProb n ω}) atTop (𝓝 0) := by
+    have hclose' := hclose δ hδ_pos
+    rw [tendstoInMeasure_iff_dist] at hclose'
+    simpa [closeProb, Real.dist_eq, abs_of_nonneg measureReal_nonneg] using
+      hclose' η hη
+  have houterSum :
+      Tendsto
+        (fun n =>
+          (μ {ω | η ≤ closeProb n ω} + μ {ω | η ≤ tailProb n ω}) +
+            μ {ω | η ≤ tailProb' n ω})
+        atTop (𝓝 0) := by
+    simpa [tailProb, tailProb'] using (hcloseOuter.add hTightZ).add hTightZ'
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds houterSum
+    (fun _ => zero_le _) ?_
+  intro n
+  let OA : Set Ω := {ω | η ≤ closeProb n ω}
+  let OB : Set Ω := {ω | η ≤ tailProb n ω}
+  let OD : Set Ω := {ω | η ≤ tailProb' n ω}
+  have hsubset :
+      {ω |
+        ε ≤ dist
+          (bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω)
+          0} ⊆ OA ∪ OB ∪ OD := by
+    intro ω hω
+    let A : Set (Ωboot n) :=
+      {ωs | δ ≤ dist (Zstar' n ω ωs) (Zstar n ω ωs)}
+    let B : Set (Ωboot n) := {ωs | Zstar n ω ωs ∉ K}
+    let D : Set (Ωboot n) := {ωs | Zstar' n ω ωs ∉ K}
+    let pclose : ℝ := closeProb n ω
+    let ptail : ℝ := tailProb n ω
+    let ptail' : ℝ := tailProb' n ω
+    have hpclose_nonneg : 0 ≤ pclose := measureReal_nonneg
+    have hptail_nonneg : 0 ≤ ptail := measureReal_nonneg
+    have hptail'_nonneg : 0 ≤ ptail' := measureReal_nonneg
+    have hKmeas : MeasurableSet K := hK.isClosed.measurableSet
+    have hA : MeasurableSet A := by
+      dsimp [A]
+      exact measurableSet_le measurable_const ((hZstar' n ω).dist (hZstar n ω))
+    have hB : MeasurableSet B := by
+      dsimp [B]
+      simpa only [Set.mem_setOf_eq, Set.mem_compl_iff] using
+        hKmeas.compl.preimage (hZstar n ω)
+    have hD : MeasurableSet D := by
+      dsimp [D]
+      simpa only [Set.mem_setOf_eq, Set.mem_compl_iff] using
+        hKmeas.compl.preimage (hZstar' n ω)
+    have hbad_real_le :
+        (Pstar n ω).real (A ∪ B ∪ D) ≤ pclose + ptail + ptail' := by
+      have hAB : (Pstar n ω).real (A ∪ B) ≤ pclose + ptail := by
+        have hμ : (Pstar n ω) (A ∪ B) ≤ (Pstar n ω) A + (Pstar n ω) B :=
+          measure_union_le A B
+        have hμreal :
+            (Pstar n ω).real (A ∪ B) ≤
+              ((Pstar n ω) A + (Pstar n ω) B).toReal :=
+          ENNReal.toReal_mono
+            (ENNReal.add_ne_top.mpr ⟨measure_ne_top _ _, measure_ne_top _ _⟩) hμ
+        have hsum_real :
+            ((Pstar n ω) A + (Pstar n ω) B).toReal = pclose + ptail := by
+          rw [ENNReal.toReal_add (measure_ne_top _ _) (measure_ne_top _ _)]
+          simp [Measure.real_def, pclose, ptail, closeProb, tailProb, A, B]
+        exact hμreal.trans_eq hsum_real
+      have hABD :
+          (Pstar n ω).real ((A ∪ B) ∪ D) ≤
+            (Pstar n ω).real (A ∪ B) + ptail' := by
+        have hμ :
+            (Pstar n ω) ((A ∪ B) ∪ D) ≤
+              (Pstar n ω) (A ∪ B) + (Pstar n ω) D :=
+          measure_union_le (A ∪ B) D
+        have hμreal :
+            (Pstar n ω).real ((A ∪ B) ∪ D) ≤
+              ((Pstar n ω) (A ∪ B) + (Pstar n ω) D).toReal :=
+          ENNReal.toReal_mono
+            (ENNReal.add_ne_top.mpr ⟨measure_ne_top _ _, measure_ne_top _ _⟩) hμ
+        have hsum_real :
+            ((Pstar n ω) (A ∪ B) + (Pstar n ω) D).toReal =
+              (Pstar n ω).real (A ∪ B) + ptail' := by
+          rw [ENNReal.toReal_add (measure_ne_top _ _) (measure_ne_top _ _)]
+          simp [Measure.real_def, ptail', tailProb', D]
+        exact hμreal.trans_eq hsum_real
+      rw [show A ∪ B ∪ D = (A ∪ B) ∪ D by rfl]
+      linarith
+    have hdist_integral :
+        |bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| ≤
+          ε / 2 + C * (pclose + ptail + ptail') := by
+      letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+      dsimp [bootstrapBoundedContinuousIntegralIndexed, pclose, ptail, ptail',
+        closeProb, tailProb, tailProb', A, B, D]
+      have hbound :=
+        abs_integral_boundedContinuous_comp_sub_le_of_dist_event_compact_tails
+          (P := Pstar n ω) (Z := Zstar n ω) (Z' := Zstar' n ω)
+          (hZstar n ω) (hZstar' n ω) f hK (le_of_lt hε2)
+          (fun x hx y hy hxy =>
+            le_of_lt (by simpa [Real.dist_eq] using hδ y hy x hx hxy))
+      have hbound' :
+          |∫ ωs, f (Zstar' n ω ωs) ∂Pstar n ω -
+              ∫ ωs, f (Zstar n ω ωs) ∂Pstar n ω| ≤
+            ε / 2 + (2 * ‖f‖) * (Pstar n ω).real (A ∪ B ∪ D) := by
+        simpa [A, B, D] using hbound
+      have hmul_bad :
+          (2 * ‖f‖) * (Pstar n ω).real (A ∪ B ∪ D) ≤
+            (2 * ‖f‖) * (pclose + ptail + ptail') :=
+        mul_le_mul_of_nonneg_left hbad_real_le (by positivity)
+      exact hbound'.trans (by
+        dsimp [C]
+        linarith)
+    have habs_ge :
+        ε ≤ |bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω| := by
+      simpa [Real.dist_eq] using hω
+    by_contra hout
+    have hnotOA : ω ∉ OA := by
+      intro hmem
+      exact hout (Or.inl (Or.inl hmem))
+    have hnotOB : ω ∉ OB := by
+      intro hmem
+      exact hout (Or.inl (Or.inr hmem))
+    have hnotOD : ω ∉ OD := by
+      intro hmem
+      exact hout (Or.inr hmem)
+    have hpclose_lt : pclose < η := by
+      exact not_le.mp (by simpa [OA, pclose] using hnotOA)
+    have hptail_lt : ptail < η := by
+      exact not_le.mp (by simpa [OB, ptail] using hnotOB)
+    have hptail'_lt : ptail' < η := by
+      exact not_le.mp (by simpa [OD, ptail'] using hnotOD)
+    have hpsum : pclose + ptail + ptail' < 3 * η := by linarith
+    have hη_nonneg : 0 ≤ 3 * η := by positivity
+    have hscale : (C + 1) * (3 * η) = 3 * ε / 8 := by
+      dsimp [η]
+      field_simp [ne_of_gt hC1_pos]
+      <;> ring
+    have hCsum_lt : C * (pclose + ptail + ptail') < ε / 2 := by
+      calc
+        C * (pclose + ptail + ptail') ≤ C * (3 * η) :=
+          mul_le_mul_of_nonneg_left hpsum.le hC_nonneg
+        _ ≤ (C + 1) * (3 * η) :=
+          mul_le_mul_of_nonneg_right (by linarith) hη_nonneg
+        _ = 3 * ε / 8 := hscale
+        _ < ε / 2 := by linarith
+    linarith
+  calc
+    μ {ω |
+        ε ≤ dist
+          (bootstrapBoundedContinuousIntegralIndexed Pstar Zstar' f n ω -
+            bootstrapBoundedContinuousIntegralIndexed Pstar Zstar f n ω)
+          0}
+        ≤ μ (OA ∪ OB ∪ OD) := measure_mono hsubset
+    _ ≤ μ (OA ∪ OB) + μ OD := measure_union_le _ _
+    _ ≤ (μ OA + μ OB) + μ OD :=
+      add_le_add (measure_union_le _ _) le_rfl
+    _ =
+        (μ {ω | η ≤ closeProb n ω} + μ {ω | η ≤ tailProb n ω}) +
+          μ {ω | η ≤ tailProb' n ω} := rfl
+
+/-- Proper asymptotic-tightness empirical-process inputs for Hansen
+Theorem 12.8.
+
+Every tightness field has the standard high-probability form: for each
+conditional tail tolerance `η`, there is a compact set such that the outer
+probability of conditional mass at least `η` outside that compact tends to
+zero. In particular, no field asks the conditional mass outside one fixed
+compact to converge to zero. -/
+structure TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+    (μ : Measure Ω)
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (Y e : ℕ → Ω → ℝ) (β : k → ℝ)
+    (R : Matrix Unit k ℝ) : Prop where
+  residual_negligibility :
+    TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β
+  score_tightness : ∀ η : ℝ, 0 < η →
+    ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc
+                  Z e n ω ωs ∉ K}})
+        atTop (𝓝 0) ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapRecenteredScoreStatisticFinSucc
+                  Z X Y n ω ωs ∉ K}})
+        atTop (𝓝 0)
+  coefficient_closeness :
+    TwoSLSBootstrapCoefficientLinearizationClosenessInputs μ
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω)) Z X Y
+      (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (scoreCovMat μ Z e)
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+  population_to_sample_tightness : ∀ η : ℝ, 0 < η →
+    ∃ K : Set (k → ℝ), IsCompact K ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapPopulationLinearizedGapFinSucc
+                  (twoSLSCombinedQXZ
+                    (popGram μ (twoSLSCombinedRegressors Z X)))
+                  (twoSLSCombinedQZZ
+                    (popGram μ (twoSLSCombinedRegressors Z X)))
+                  (twoSLSCombinedQZX
+                    (popGram μ (twoSLSCombinedRegressors Z X)))
+                  Z X Y n ω ωs ∉ K}})
+        atTop (𝓝 0) ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapLinearizedGapFinSucc Z X Y n ω ωs ∉ K}})
+        atTop (𝓝 0)
+  linearized_to_coefficient_tightness : ∀ η : ℝ, 0 < η →
+    ∃ K : Set (k → ℝ), IsCompact K ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapLinearizedGapFinSucc Z X Y n ω ωs ∉ K}})
+        atTop (𝓝 0) ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs ∉ K}})
+        atTop (𝓝 0)
+  studentization_tightness : ∀ η : ℝ, 0 < η →
+    ∃ K : Set (ℝ × ℝ), IsCompact K ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                (twoSLSBootstrapLinearRestrictionStatisticFinSucc
+                    R Z X Y n ω ωs,
+                  linearRestrictionStdError R
+                    (twoSLSAsymptoticVariance
+                      (twoSLSCombinedQXZ
+                        (popGram μ (twoSLSCombinedRegressors Z X)))
+                      (twoSLSCombinedQZZ
+                        (popGram μ (twoSLSCombinedRegressors Z X)))
+                      (scoreCovMat μ Z e)
+                      (twoSLSCombinedQZX
+                        (popGram μ (twoSLSCombinedRegressors Z X))))) ∉ K}})
+        atTop (𝓝 0) ∧
+      Tendsto
+        (fun n =>
+          μ {ω |
+            η ≤ (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+              {ωs |
+                (twoSLSBootstrapLinearRestrictionStatisticFinSucc
+                    R Z X Y n ω ωs,
+                  twoSLSBootstrapRobustLinearRestrictionStdErrorFinSucc
+                    R Z X Y n ω ωs) ∉ K}})
+        atTop (𝓝 0)
+  covariance_resample :
+    TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs μ Z X Y
+
+/-- Hansen Theorem 12.8 observed-row distribution inputs.
+
+Assumption 12.2 supplies the population Gaussian and covariance
+nondegeneracy facts. The remaining raw gap is the ordinary-bootstrap
+empirical process: true-score compact-tail control, residual substitution,
+coefficient linearization, and covariance resampling. -/
+structure TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+    (μ : Measure Ω)
+    [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
+    (β : k → ℝ) : Prop where
+  assumption12_2 :
+    TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β
+  restriction_row_ne_zero : ∃ j : k, R () j ≠ 0
+  empirical_process :
+    TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
+      μ Z X Y e β R
+
+/-- Full observed-row Hansen Theorem 12.8 inputs.
+
+No pathwise score bound or all-sample covariance positive-definiteness field
+appears. Sample standard-error nondegeneracy is derived in probability from
+Assumption 12.2 covariance consistency. -/
+structure TwoSLSBootstrapTheorem12_8ObservedFullInputs
+    (μ : Measure Ω)
+    [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (e Y : ℕ → Ω → ℝ) (R : Matrix Unit k ℝ)
+    (β : k → ℝ) (q α : ℝ) : Prop where
+  distribution :
+    TwoSLSBootstrapTheorem12_8ObservedDistributionInputs
+      μ Z X e Y R β
+  quantile_calibration :
+    TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
+      μ Z X Y R q α
+
+/- The proper-tightness packages above deliberately stop before the final
+studentization endpoint. The existing Chapter 10 fixed-compact transfer is
+too strong for a nondegenerate Gaussian limit; the remaining bridge is tracked
+in the Chapter 12 inventory. -/
 
 end DistributionInterfaces
 
