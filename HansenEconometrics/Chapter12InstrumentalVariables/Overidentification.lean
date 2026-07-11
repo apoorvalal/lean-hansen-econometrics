@@ -2707,6 +2707,324 @@ noncomputable def twoSLSSubsetLimitResidualizedScoreMap
   let M := twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
   A * M
 
+omit [Fintype n] [DecidableEq n] [Fintype k] [DecidableEq k] in
+private theorem twoSLSSubsetResidualizedScoreMapFromGram_fullRowRank
+    (Q : Matrix (la ⊕ lb) (la ⊕ lb) ℝ)
+    (hQaa : IsUnit (Q.submatrix Sum.inl Sum.inl).det)
+    (hQ : IsUnit Q.det) :
+    Function.Injective
+      (fun v : lb → ℝ =>
+        Matrix.vecMul v (twoSLSSubsetResidualizedScoreMapFromGram Q)) := by
+  classical
+  let Qaa : Matrix la la ℝ := Q.submatrix Sum.inl Sum.inl
+  let Qab : Matrix la lb ℝ := Q.submatrix Sum.inl Sum.inr
+  let Qba : Matrix lb la ℝ := Q.submatrix Sum.inr Sum.inl
+  let Qbb : Matrix lb lb ℝ := Q.submatrix Sum.inr Sum.inr
+  let S : Matrix lb lb ℝ := Qbb - Qba * Qaa⁻¹ * Qab
+  let A : Matrix lb (la ⊕ lb) ℝ :=
+    twoSLSSubsetResidualizedScoreMapFromGram Q
+  letI : Invertible Qaa :=
+    Matrix.invertibleOfIsUnitDet (A := Qaa) (by simpa [Qaa] using hQaa)
+  have hblocks : Matrix.fromBlocks Qaa Qab Qba Qbb = Q := by
+    ext i j
+    cases i <;> cases j <;> rfl
+  have hS : IsUnit S := by
+    have hQunit : IsUnit Q := (Matrix.isUnit_iff_isUnit_det Q).mpr hQ
+    have hBlocksUnit : IsUnit (Matrix.fromBlocks Qaa Qab Qba Qbb) := by
+      simpa [hblocks] using hQunit
+    have hSchur :=
+      (Matrix.isUnit_fromBlocks_iff_of_invertible₁₁
+        (A := Qaa) (B := Qab) (C := Qba) (D := Qbb)).mp hBlocksUnit
+    simpa [S, invOf_eq_nonsing_inv] using hSchur
+  have hAQ : A * Q =
+      Q.submatrix Sum.inr id -
+        Qba * Qaa⁻¹ * Q.submatrix Sum.inl id := by
+    dsimp [A, twoSLSSubsetResidualizedScoreMapFromGram]
+    rw [Matrix.mul_assoc, Matrix.nonsing_inv_mul Q hQ, Matrix.mul_one]
+  have hAQ_right : (A * Q).submatrix id Sum.inr = S := by
+    rw [hAQ]
+    ext b c
+    simp [S, Qaa, Qab, Qba, Qbb, Matrix.mul_apply]
+  intro v w hvw
+  have hAQv : Matrix.vecMul v (A * Q) = Matrix.vecMul w (A * Q) := by
+    change Matrix.vecMul v A = Matrix.vecMul w A at hvw
+    rw [← Matrix.vecMul_vecMul, ← Matrix.vecMul_vecMul, hvw]
+  have hSv : Matrix.vecMul v S = Matrix.vecMul w S := by
+    have hSub :
+        Matrix.vecMul v ((A * Q).submatrix id Sum.inr) =
+          Matrix.vecMul w ((A * Q).submatrix id Sum.inr) := by
+      ext b
+      exact congrFun hAQv (Sum.inr b)
+    simpa [hAQ_right] using hSub
+  exact Matrix.vecMul_injective_of_isUnit hS hSv
+
+omit [Fintype n] [DecidableEq n] in
+/-- Hansen's maintained first-stage rank prevents the full-model residual maker
+from removing a nonzero row of the excluded-instrument residualization map. -/
+theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_partitioned_rank
+    (QXZ : Matrix k (la ⊕ lb) ℝ) (QZZ : Matrix (la ⊕ lb) (la ⊕ lb) ℝ)
+    (QZX : Matrix (la ⊕ lb) k ℝ)
+    (hQXZ : QXZ = QZXᵀ)
+    (hQaa : IsUnit (QZZ.submatrix Sum.inl Sum.inl).det)
+    (hQZZ : IsUnit QZZ.det)
+    (hMaintainedRank : Function.Injective
+      (QZX.submatrix Sum.inl id).mulVec) :
+    Function.Injective
+      (fun v : lb → ℝ => Matrix.vecMul v
+        (twoSLSSubsetResidualizedScoreMapFromGram QZZ *
+          twoSLSOveridPopulationResidualMaker QXZ QZZ QZX)) := by
+  classical
+  let A : Matrix lb (la ⊕ lb) ℝ :=
+    twoSLSSubsetResidualizedScoreMapFromGram QZZ
+  let B : Matrix k k ℝ := twoSLSBread QXZ QZZ QZX
+  let M : Matrix (la ⊕ lb) (la ⊕ lb) ℝ :=
+    twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
+  let Qaa : Matrix la la ℝ := QZZ.submatrix Sum.inl Sum.inl
+  let Qba : Matrix lb la ℝ := QZZ.submatrix Sum.inr Sum.inl
+  have hA : Function.Injective (fun v : lb → ℝ => Matrix.vecMul v A) := by
+    simpa [A] using
+      twoSLSSubsetResidualizedScoreMapFromGram_fullRowRank QZZ hQaa hQZZ
+  have hAQ : A * QZZ =
+      QZZ.submatrix Sum.inr id -
+        Qba * Qaa⁻¹ * QZZ.submatrix Sum.inl id := by
+    dsimp [A, Qaa, Qba, twoSLSSubsetResidualizedScoreMapFromGram]
+    rw [Matrix.mul_assoc, Matrix.nonsing_inv_mul QZZ hQZZ, Matrix.mul_one]
+  have hCorrection : Qba * Qaa⁻¹ * Qaa = Qba := by
+    rw [Matrix.mul_assoc, Matrix.nonsing_inv_mul Qaa (by simpa [Qaa] using hQaa),
+      Matrix.mul_one]
+  have hAQ_left : (A * QZZ).submatrix id Sum.inl = 0 := by
+    rw [hAQ]
+    ext b a
+    change Qba b a - (Qba * Qaa⁻¹ * Qaa) b a = 0
+    rw [hCorrection]
+    simp
+  intro v w hvw
+  let d : lb → ℝ := v - w
+  have hdAM : Matrix.vecMul d (A * M) = 0 := by
+    rw [Matrix.sub_vecMul]
+    change Matrix.vecMul v (A * M) - Matrix.vecMul w (A * M) = 0
+    simpa [A, M] using sub_eq_zero.mpr hvw
+  let u : (la ⊕ lb) → ℝ := Matrix.vecMul d A
+  have huM : Matrix.vecMul u M = 0 := by
+    simpa [u, Matrix.vecMul_vecMul] using hdAM
+  let t : k → ℝ := Matrix.vecMul (Matrix.vecMul u QZX) B⁻¹
+  have hu_eq : u = Matrix.vecMul t (QXZ * QZZ⁻¹) := by
+    have huM' :
+        Matrix.vecMul u
+          ((1 : Matrix (la ⊕ lb) (la ⊕ lb) ℝ) -
+            QZX * B⁻¹ * QXZ * QZZ⁻¹) = 0 := by
+      simpa [M, B, twoSLSOveridPopulationResidualMaker] using huM
+    rw [Matrix.vecMul_sub, Matrix.vecMul_one] at huM'
+    have hu := sub_eq_zero.mp huM'
+    simpa [t, Matrix.vecMul_vecMul, Matrix.mul_assoc] using hu
+  have huQ : Matrix.vecMul u QZZ = Matrix.vecMul t QXZ := by
+    rw [hu_eq, Matrix.vecMul_vecMul, Matrix.mul_assoc,
+      Matrix.nonsing_inv_mul QZZ hQZZ, Matrix.mul_one]
+  have huQ_left : (Matrix.vecMul u QZZ) ∘ Sum.inl = 0 := by
+    funext a
+    have hz : Matrix.vecMul d ((A * QZZ).submatrix id Sum.inl) = 0 := by
+      rw [hAQ_left]
+      simp
+    change Matrix.vecMul u QZZ (Sum.inl a) = 0
+    calc
+      Matrix.vecMul u QZZ (Sum.inl a) =
+          Matrix.vecMul d (A * QZZ) (Sum.inl a) := by
+            dsimp [u]
+            rw [Matrix.vecMul_vecMul]
+      _ = Matrix.vecMul d ((A * QZZ).submatrix id Sum.inl) a := rfl
+      _ = 0 := congrFun hz a
+  have htQXZ_left : (Matrix.vecMul t QXZ) ∘ Sum.inl = 0 := by
+    rw [← huQ]
+    exact huQ_left
+  have hMaintainedZero : (QZX.submatrix Sum.inl id) *ᵥ t = 0 := by
+    funext a
+    have ha := congrFun htQXZ_left a
+    simpa [hQXZ, Matrix.mulVec, Matrix.vecMul, Matrix.transpose_apply,
+      Matrix.submatrix_apply] using ha
+  have ht : t = 0 := hMaintainedRank (by simpa using hMaintainedZero)
+  have hu : u = 0 := by
+    rw [ht] at hu_eq
+    simpa using hu_eq
+  have hd : d = 0 := hA (by simpa [u] using hu)
+  exact sub_eq_zero.mp (by simpa [d] using hd)
+
+omit [Fintype n] [DecidableEq n] [DecidableEq la] [DecidableEq lb] in
+private theorem twoSLSCombinedQZX_fullInstrument_submatrix_inl
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Za : ℕ → Ω → la → ℝ) (Zb : ℕ → Ω → lb → ℝ)
+    (X : ℕ → Ω → k → ℝ)
+    (hMaintained : Integrable (fun ω =>
+      Matrix.vecMulVec (twoSLSCombinedRegressors Za X 0 ω)
+        (twoSLSCombinedRegressors Za X 0 ω)) μ)
+    (hFull : Integrable (fun ω =>
+      Matrix.vecMulVec
+        (twoSLSCombinedRegressors
+          (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω)
+        (twoSLSCombinedRegressors
+          (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω)) μ) :
+    (twoSLSCombinedQZX
+      (popGram μ (twoSLSCombinedRegressors
+        (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X))).submatrix Sum.inl id =
+      twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Za X)) := by
+  ext a j
+  rw [twoSLSCombinedQZX, twoSLSCombinedQZX, popGram, popGram]
+  calc
+    (∫ ω,
+        Matrix.vecMulVec
+          (twoSLSCombinedRegressors
+            (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω)
+          (twoSLSCombinedRegressors
+            (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω) ∂μ)
+          (Sum.inl (Sum.inl a)) (Sum.inr j) =
+        ∫ ω,
+          Matrix.vecMulVec
+            (twoSLSCombinedRegressors
+              (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω)
+            (twoSLSCombinedRegressors
+              (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X 0 ω)
+            (Sum.inl (Sum.inl a)) (Sum.inr j) ∂μ :=
+      integral_apply_apply hFull (Sum.inl (Sum.inl a)) (Sum.inr j)
+    _ = ∫ ω,
+          Matrix.vecMulVec (twoSLSCombinedRegressors Za X 0 ω)
+            (twoSLSCombinedRegressors Za X 0 ω)
+            (Sum.inl a) (Sum.inr j) ∂μ := by
+      simp [twoSLSCombinedRegressors, Matrix.vecMulVec_apply]
+    _ = (∫ ω,
+          Matrix.vecMulVec (twoSLSCombinedRegressors Za X 0 ω)
+            (twoSLSCombinedRegressors Za X 0 ω) ∂μ)
+          (Sum.inl a) (Sum.inr j) :=
+      (integral_apply_apply hMaintained (Sum.inl a) (Sum.inr j)).symm
+
+set_option linter.style.longLine false in
+/-- The maintained/full Assumption 12.2 population rank conditions derive the
+full-row-rank limiting excluded-instrument score map. -/
+theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_assumption12_2_partitioned
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    [IsProbabilityMeasure μ]
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    (hMaintained : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
+    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e) :
+    Function.Injective
+      (fun v : lb → ℝ => Matrix.vecMul v
+        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+          (twoSLSSubsetResidualizedScoreMapFromGram
+            (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)))))) := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  let hMaintainedGram : TwoSLSAssumption12_2GramConditions μ Za X e :=
+    hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toGramConditions
+  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toGramConditions
+  have hZaInt : Integrable (fun ω => Matrix.vecMulVec (Za 0 ω) (Za 0 ω)) μ :=
+    hMaintainedGram.instrument_moments.int_outer
+  have hFullInt : Integrable (fun ω =>
+      Matrix.vecMulVec (Zfull 0 ω) (Zfull 0 ω)) μ :=
+    hFullGram.instrument_moments.int_outer
+  have hMaintainedCombinedInt : Integrable (fun ω =>
+      Matrix.vecMulVec (twoSLSCombinedRegressors Za X 0 ω)
+        (twoSLSCombinedRegressors Za X 0 ω)) μ :=
+    hMaintainedGram.combined_gram.int_outer
+  have hFullCombinedInt : Integrable (fun ω =>
+      Matrix.vecMulVec (twoSLSCombinedRegressors Zfull X 0 ω)
+        (twoSLSCombinedRegressors Zfull X 0 ω)) μ :=
+    hFullGram.combined_gram.int_outer
+  have hQeq : popGram μ Zfull =
+      twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X)) :=
+    popGram_eq_twoSLSCombinedQZZ_popGram hFullInt hFullCombinedInt
+  have hQaa : IsUnit
+      ((twoSLSCombinedQZZ
+        (popGram μ (twoSLSCombinedRegressors Zfull X))).submatrix
+          Sum.inl Sum.inl).det := by
+    rw [← hQeq, popGram_fullInstrument_submatrix_inl_inl
+      (μ := μ) Za Zb hZaInt hFullInt]
+    have hMaintainedIid :=
+      hMaintained.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions.toTwoSLSAssumption12_1IidConditions
+    exact hMaintainedIid.instrument_popGram_nonsing
+  have hQXZ :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X)) =
+        (twoSLSCombinedQZX
+          (popGram μ (twoSLSCombinedRegressors Zfull X)))ᵀ :=
+    twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
+      (μ := μ) (Z := Zfull) (X := X) hFullGram.combined_gram
+  have hMaintainedRank : Function.Injective
+      ((twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Zfull X))).submatrix
+          Sum.inl id).mulVec := by
+    rw [twoSLSCombinedQZX_fullInstrument_submatrix_inl
+      (μ := μ) Za Zb X hMaintainedCombinedInt hFullCombinedInt]
+    exact hMaintained.qzx_rank
+  have hRank :=
+    twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_partitioned_rank
+      (QXZ := twoSLSCombinedQXZ
+        (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      (QZZ := twoSLSCombinedQZZ
+        (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      (QZX := twoSLSCombinedQZX
+        (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      hQXZ hQaa
+      ((Matrix.isUnit_iff_isUnit_det _).mp hFull.qzz_posDef.isUnit)
+      hMaintainedRank
+  simpa [twoSLSSubsetLimitResidualizedScoreMap, Zfull, hQeq] using hRank
+
+set_option linter.style.longLine false in
+/-- Population-rank version of the limiting row-Gram certificate in Hansen
+Theorem 12.17. -/
+theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_assumption12_2_partitioned
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    [IsProbabilityMeasure μ]
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    (hMaintained : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Za X e)
+    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e) :
+    IsUnit
+      ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+          (twoSLSSubsetResidualizedScoreMapFromGram
+            (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω))))) *
+        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+          (twoSLSSubsetResidualizedScoreMapFromGram
+            (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)))))ᵀ).det := by
+  let R : Matrix lb (la ⊕ lb) ℝ :=
+    twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+      (twoSLSSubsetResidualizedScoreMapFromGram
+        (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω))))
+  have hR : Function.Injective (fun v : lb → ℝ => Matrix.vecMul v R) := by
+    simpa [R] using
+      twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_assumption12_2_partitioned
+        (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
+        hMaintained hFull
+  have hPos : (R * Rᵀ).PosDef := by
+    have h := Matrix.PosDef.mul_mul_conjTranspose_same
+      (Matrix.PosDef.one (n := la ⊕ lb) (R := ℝ)) hR
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using h
+  exact (Matrix.isUnit_iff_isUnit_det _).mp hPos.isUnit
+
+set_option linter.style.longLine false in
+/-- Observed-row Assumption 12.2 derives the limiting row-Gram certificate;
+no separate row-Gram or covariance-target rank premise is needed. -/
+theorem twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_assumption12_2
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    [IsProbabilityMeasure μ]
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hMaintained :
+      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
+    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
+    IsUnit
+      ((twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+          (twoSLSSubsetResidualizedScoreMapFromGram
+            (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω))))) *
+        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X
+          (twoSLSSubsetResidualizedScoreMapFromGram
+            (popGram μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)))))ᵀ).det :=
+  twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_assumption12_2_partitioned
+    (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
+    hMaintained.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
+    hFull.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
+
 private theorem matrix_vecMul_injective_of_rowGram_det_isUnit
     {r c : Type*} [Fintype r] [DecidableEq r] [Fintype c]
     (R : Matrix r c ℝ) (hGram : IsUnit (R * Rᵀ).det) :
