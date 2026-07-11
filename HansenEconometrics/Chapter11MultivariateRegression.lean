@@ -2,6 +2,7 @@ import HansenEconometrics.Chapter11MultivariateRegression.Systems
 import HansenEconometrics.Chapter11MultivariateRegression.Asymptotics
 import HansenEconometrics.Chapter11MultivariateRegression.SUR
 import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
+import HansenEconometrics.Chapter11MultivariateRegression.ReducedRankLikelihood
 import HansenEconometrics.Chapter11MultivariateRegression.PCA
 import HansenEconometrics.Chapter11MultivariateRegression.FactorModels
 import HansenEconometrics.Chapter11MultivariateRegression.MatrixNormal
@@ -22,8 +23,10 @@ The development is split by textbook topic:
   route.
 * `SUR`: seemingly unrelated regression variance definitions and support
   bridges for Theorems 11.4--11.6.
-* `ReducedRank`: generalized-eigenvector predicates, reduced-rank MLE
-  certificate shape, and `A⊥` residual-pencil support for Theorem 11.7.
+* `ReducedRank`: generalized-eigenvector predicates, reduced-rank formula and
+  spectral certificates, and `A⊥` residual-pencil support for Theorem 11.7.
+* `ReducedRankLikelihood`: raw Gaussian likelihood, exact-rank admissibility,
+  and an actual global MLE predicate kept distinct from the formula certificate.
 * `PCA` and `FactorModels`: principal components, factor-model PC estimators,
   concrete sample-covariance/eigenspace support, and Assumption 11.1-facing
   support lemmas for Theorems 11.8--11.9.

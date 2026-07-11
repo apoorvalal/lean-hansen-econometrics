@@ -11,23 +11,33 @@ import HansenEconometrics.Chapter3FWL
 /-!
 # Chapter 11 — reduced-rank regression
 
-The reduced-rank MLE in Hansen Theorem 11.7 is an eigenvalue/eigenvector
-characterization. This module records the residualized matrix pencil, the
-concentrated determinant objective, concrete least-squares recovery formulas,
-the `A⊥` residual-pencil surface, and the algebraic bridge from normalized
-generalized eigenvectors to the eigenvalue product in Hansen's concentrated
-objectives.
+Hansen Theorem 11.7 gives an eigenvalue/eigenvector characterization of the
+reduced-rank MLE. This module records its formula and spectral layer: the
+residualized matrix pencil, concentrated determinant objective, concrete
+least-squares recovery formulas, the `A⊥` residual-pencil surface, and the
+algebraic bridge from normalized generalized eigenvectors to the eigenvalue
+product in Hansen's concentrated objectives.
 
 Equation (11.21), its derivation, and its equivalent residual-pencil display
 maximize the direct `A⊥` determinant objective and select the largest residual
 roots. The theorem's final summary instead says "smallest"; that isolated
 minimum-oriented surface is retained below only as explicitly documented typo
 compatibility. The canonical theorem-facing surface uses the direct maximizer
-and keeps `A⊥' Ahat = 0` in its conclusion. Under regular residualized Gram
-assumptions, this module now proves global attainment of both direct objectives
-and normalized generalized-pencil spectral existence separately. It does not
-yet prove that the ordered spectral blocks are those maximizers or select them
-simultaneously with `A⊥' Ahat = 0`; that is the remaining raw-likelihood gap.
+and keeps `A⊥' Ahat = 0` in its conclusion. Positive-semidefinite numerators,
+positive-definite denominators, and admissible dimension bounds now let the
+strengthened whitening construction select a leading ordered generalized-
+eigenvector block and prove that the same block carries a global determinant
+max certificate. Short compatibility projections package the two determinant
+maxima as a G/`A⊥` max/max pair while intentionally forgetting the ordered-root
+evidence. Positive definiteness of `Ỹ'Ỹ` also constructs Hansen's canonical
+dual block and proves its displayed dual relation. The remaining spectral gap
+is simultaneous G/`A⊥` dual compatibility: choosing representatives inside
+tied eigenspaces so that the canonical dual block lies in the required
+residual-pencil eigenspace and yields the cross orthogonality `A⊥' Ahat = 0`.
+
+The legacy `ReducedRankMLE` name below denotes only a formula certificate. Raw
+Gaussian likelihood, positive-definite covariance, admissibility, and global
+likelihood comparison are deliberately separated into `ReducedRankLikelihood`.
 -/
 
 open scoped Matrix
@@ -44,8 +54,8 @@ variable [Fintype k]
 
 /-- Generalized eigenvector equation `A v = λ B v` for a matrix pencil `(A, B)`.
 
-This is the concrete spectral predicate needed by Hansen Theorem 11.7 before the
-full reduced-rank likelihood optimizer is assembled. -/
+This is the concrete spectral predicate needed by Hansen Theorem 11.7 before a
+full reduced-rank likelihood optimizer can be proved. -/
 def generalizedEigenvector
     (A B : Matrix k k ℝ) (lambda : ℝ) (v : k → ℝ) : Prop :=
   v ≠ 0 ∧ A *ᵥ v = lambda • (B *ᵥ v)
@@ -95,6 +105,54 @@ theorem generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
       rw [generalizedEigenvectorColumns_mul_eq_mul_diagonal A B lambda G h]
     _ = (Gᵀ * B * G) * Matrix.diagonal lambda := by
       simp [Matrix.mul_assoc]
+
+/-- Generalized eigenvector blocks for disjoint roots of the same symmetric
+pencil are orthogonal for the denominator bilinear form.
+
+This is the block form of the standard identity
+`(λᵢ - μⱼ) gᵢ' B hⱼ = 0`.  No definiteness or normalization is needed:
+symmetry of both pencil matrices and separation of the two displayed root
+families are sufficient. -/
+theorem generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
+    [Fintype s] [DecidableEq s]
+    (A B : Matrix k k ℝ)
+    (lambda : r → ℝ) (G : Matrix k r ℝ)
+    (mu : s → ℝ) (H : Matrix k s ℝ)
+    (hAT : Aᵀ = A) (hBT : Bᵀ = B)
+    (hG : generalizedEigenvectorColumns A B lambda G)
+    (hH : generalizedEigenvectorColumns A B mu H)
+    (hDisjoint : ∀ i j, lambda i ≠ mu j) :
+    Gᵀ * B * H = 0 := by
+  have hGMat : A * G = B * G * Matrix.diagonal lambda :=
+    generalizedEigenvectorColumns_mul_eq_mul_diagonal A B lambda G hG
+  have hHMat : A * H = B * H * Matrix.diagonal mu :=
+    generalizedEigenvectorColumns_mul_eq_mul_diagonal A B mu H hH
+  have hLeft :
+      Gᵀ * A * H = (Gᵀ * B * H) * Matrix.diagonal mu := by
+    calc
+      Gᵀ * A * H = Gᵀ * (A * H) := by rw [Matrix.mul_assoc]
+      _ = Gᵀ * (B * H * Matrix.diagonal mu) := by rw [hHMat]
+      _ = (Gᵀ * B * H) * Matrix.diagonal mu := by
+        simp [Matrix.mul_assoc]
+  have hRight :
+      Gᵀ * A * H = Matrix.diagonal lambda * (Gᵀ * B * H) := by
+    calc
+      Gᵀ * A * H = (A * G)ᵀ * H := by
+        rw [Matrix.transpose_mul, hAT, Matrix.mul_assoc]
+      _ = (B * G * Matrix.diagonal lambda)ᵀ * H := by rw [hGMat]
+      _ = Matrix.diagonal lambda * (Gᵀ * B * H) := by
+        simp [Matrix.transpose_mul, hBT, Matrix.mul_assoc]
+  ext i j
+  have hij :
+      lambda i * (Gᵀ * B * H) i j = (Gᵀ * B * H) i j * mu j := by
+    simpa [Matrix.mul_apply, Matrix.diagonal] using
+      congrArg (fun M : Matrix r s ℝ => M i j) (hRight.symm.trans hLeft)
+  by_contra hne
+  apply hDisjoint i j
+  apply mul_left_cancel₀ hne
+  calc
+    (Gᵀ * B * H) i j * lambda i = lambda i * (Gᵀ * B * H) i j := mul_comm _ _
+    _ = (Gᵀ * B * H) i j * mu j := hij
 
 /-- Hansen's normalization for generalized-eigenvector columns:
 `G' B G = I`. -/
@@ -366,13 +424,91 @@ theorem generalizedEigenDetObjectiveMaximizer_exists_of_posDef
     A B T T⁻¹ hBT' (Matrix.nonsing_inv_mul T hTdet)
       (Matrix.mul_nonsing_inv T hTdet) hcard
 
+/-- An explicit invertible whitening selects a normalized generalized-
+eigenvector block whose roots are the leading ordered eigenvalues of the
+whitened Hermitian numerator.
+
+This is the spectral half of the positive-semidefinite determinant theorem:
+the construction selects the first `card r` vectors of Mathlib's nonincreasing
+Hermitian eigenbasis and transports them through the inverse whitening. -/
+theorem generalizedEigenvectorColumns_normalized_leading_exists_of_whitening
+    [DecidableEq k]
+    (A B T S M : Matrix k k ℝ)
+    (hB : B = Tᵀ * T) (hM : M = Sᵀ * A * S)
+    (hST : S * T = 1) (hTS : T * S = 1)
+    (hMHerm : M.IsHermitian)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ G : Matrix k r ℝ,
+      generalizedEigenvectorColumns A B
+          (fun j : r => hMHerm.eigenvalues₀
+            (Fin.castLE hcard ((Fintype.equivFin r) j))) G ∧
+        generalizedEigenvectorBNormalized B G := by
+  classical
+  have hTtSt : Tᵀ * Sᵀ = 1 := by
+    rw [← Matrix.transpose_mul, hST, Matrix.transpose_one]
+  let e : r → k := fun j =>
+    (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k)))
+      (Fin.castLE hcard ((Fintype.equivFin r) j))
+  have he : Function.Injective e := by
+    intro i j hij
+    apply (Fintype.equivFin r).injective
+    apply Fin.castLE_injective hcard
+    exact (Fintype.equivOfCardEq
+      (Fintype.card_fin (Fintype.card k))).injective hij
+  let Q : Matrix k r ℝ := fun i j =>
+    (hMHerm.eigenvectorBasis (e j) : EuclideanSpace ℝ k) i
+  let lambda : r → ℝ := fun j => hMHerm.eigenvalues₀
+    (Fin.castLE hcard ((Fintype.equivFin r) j))
+  have hQNorm : Qᵀ * Q = 1 := by
+    ext i j
+    rw [Matrix.mul_apply]
+    have hinner :=
+      (orthonormal_iff_ite.mp hMHerm.eigenvectorBasis.orthonormal) (e i) (e j)
+    have hiff : e i = e j ↔ i = j := he.eq_iff
+    have hinner' :
+        (fun a => Q a i) ⬝ᵥ (fun a => Q a j) = if i = j then 1 else 0 := by
+      rw [dotProduct_comm]
+      simpa [Q, hiff] using hinner
+    simpa [Matrix.transpose_apply, dotProduct, Matrix.one_apply] using hinner'
+  have hMQ : M * Q = Q * Matrix.diagonal lambda := by
+    ext i j
+    have heig := hMHerm.mulVec_eigenvectorBasis (e j)
+    have hentry := congrFun heig i
+    simpa [Q, lambda, e, Matrix.IsHermitian.eigenvalues, Matrix.mul_apply,
+      Matrix.mulVec, dotProduct, Matrix.diagonal, mul_comm] using hentry
+  let G : Matrix k r ℝ := S * Q
+  have hGNorm : generalizedEigenvectorBNormalized B G := by
+    change Gᵀ * B * G = 1
+    calc
+      Gᵀ * B * G = Qᵀ * (Sᵀ * Tᵀ) * (T * S) * Q := by
+        simp [G, hB, Matrix.transpose_mul, Matrix.mul_assoc]
+      _ = Qᵀ * (T * S)ᵀ * (T * S) * Q := by
+        rw [Matrix.transpose_mul]
+      _ = Qᵀ * Q := by rw [hTS]; simp
+      _ = 1 := hQNorm
+  have hBGSimp : B * G = Tᵀ * Q := by
+    calc
+      B * G = (Tᵀ * T) * (S * Q) := by rw [hB]
+      _ = Tᵀ * ((T * S) * Q) := by simp [Matrix.mul_assoc]
+      _ = Tᵀ * Q := by rw [hTS, Matrix.one_mul]
+  have hAG : A * G = B * G * Matrix.diagonal lambda := by
+    calc
+      A * G = (Tᵀ * Sᵀ) * A * (S * Q) := by rw [hTtSt]; simp [G]
+      _ = Tᵀ * (M * Q) := by rw [hM]; simp [Matrix.mul_assoc]
+      _ = Tᵀ * (Q * Matrix.diagonal lambda) := by rw [hMQ]
+      _ = B * G * Matrix.diagonal lambda := by
+        rw [hBGSimp]
+        exact (Matrix.mul_assoc Tᵀ Q (Matrix.diagonal lambda)).symm
+  exact ⟨G,
+    generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
+      A B lambda G hGNorm hAG,
+    hGNorm⟩
+
 /-- A Hermitian generalized pencil with positive-definite denominator has a
 normalized block of generalized eigenvectors in every admissible dimension.
 
-The construction whitens the denominator, selects the first `card r` vectors
-of Mathlib's nonincreasing Hermitian eigenbasis, and transports them back. This
-is a genuine spectral-existence theorem, but it does not yet identify that
-ordered block with the determinant maximizer above. -/
+This compatibility surface hides the explicit leading-root formula exposed by
+`generalizedEigenvectorColumns_normalized_leading_exists_of_whitening`. -/
 theorem generalizedEigenvectorColumns_normalized_exists_of_isHermitian_posDef
     (A B : Matrix k k ℝ) (hA : A.IsHermitian) (hB : B.PosDef)
     (hcard : Fintype.card r ≤ Fintype.card k) :
@@ -389,68 +525,17 @@ theorem generalizedEigenvectorColumns_normalized_exists_of_isHermitian_posDef
   let S : Matrix k k ℝ := T⁻¹
   have hST : S * T = 1 := Matrix.nonsing_inv_mul T hTdet
   have hTS : T * S = 1 := Matrix.mul_nonsing_inv T hTdet
-  have hTtSt : Tᵀ * Sᵀ = 1 := by
-    rw [← Matrix.transpose_mul, hST, Matrix.transpose_one]
   let M : Matrix k k ℝ := Sᵀ * A * S
   have hM : M.IsHermitian := by
     simpa [M, Matrix.conjTranspose_eq_transpose_of_trivial] using
       Matrix.isHermitian_conjTranspose_mul_mul S hA
-  let e : r → k := fun j =>
-    (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k)))
-      (Fin.castLE hcard ((Fintype.equivFin r) j))
-  have he : Function.Injective e := by
-    intro i j hij
-    apply (Fintype.equivFin r).injective
-    apply Fin.castLE_injective hcard
-    exact (Fintype.equivOfCardEq
-      (Fintype.card_fin (Fintype.card k))).injective hij
-  let Q : Matrix k r ℝ := fun i j =>
-    (hM.eigenvectorBasis (e j) : EuclideanSpace ℝ k) i
-  let lambda : r → ℝ := fun j => hM.eigenvalues (e j)
-  have hQNorm : Qᵀ * Q = 1 := by
-    ext i j
-    rw [Matrix.mul_apply]
-    have hinner :=
-      (orthonormal_iff_ite.mp hM.eigenvectorBasis.orthonormal) (e i) (e j)
-    have hiff : e i = e j ↔ i = j := he.eq_iff
-    have hinner' :
-        (fun a => Q a i) ⬝ᵥ (fun a => Q a j) = if i = j then 1 else 0 := by
-      rw [dotProduct_comm]
-      simpa [Q, hiff] using hinner
-    simpa [Matrix.transpose_apply, dotProduct, Matrix.one_apply] using hinner'
-  have hMQ : M * Q = Q * Matrix.diagonal lambda := by
-    ext i j
-    have heig := hM.mulVec_eigenvectorBasis (e j)
-    have hentry := congrFun heig i
-    simpa [M, Q, lambda, Matrix.mul_apply, Matrix.mulVec, dotProduct,
-      Matrix.diagonal, mul_comm] using hentry
-  let G : Matrix k r ℝ := S * Q
-  have hGNorm : generalizedEigenvectorBNormalized B G := by
-    change Gᵀ * B * G = 1
-    calc
-      Gᵀ * B * G = Qᵀ * (Sᵀ * Tᵀ) * (T * S) * Q := by
-        simp [G, hBT', Matrix.transpose_mul, Matrix.mul_assoc]
-      _ = Qᵀ * (T * S)ᵀ * (T * S) * Q := by
-        rw [Matrix.transpose_mul]
-      _ = Qᵀ * Q := by rw [hTS]; simp
-      _ = 1 := hQNorm
-  have hBGSimp : B * G = Tᵀ * Q := by
-    calc
-      B * G = (Tᵀ * T) * (S * Q) := by rw [hBT']
-      _ = Tᵀ * ((T * S) * Q) := by simp [Matrix.mul_assoc]
-      _ = Tᵀ * Q := by rw [hTS, Matrix.one_mul]
-  have hAG : A * G = B * G * Matrix.diagonal lambda := by
-    calc
-      A * G = (Tᵀ * Sᵀ) * A * (S * Q) := by rw [hTtSt]; simp [G]
-      _ = Tᵀ * (M * Q) := by simp [M, Matrix.mul_assoc]
-      _ = Tᵀ * (Q * Matrix.diagonal lambda) := by rw [hMQ]
-      _ = B * G * Matrix.diagonal lambda := by
-        rw [hBGSimp]
-        exact (Matrix.mul_assoc Tᵀ Q (Matrix.diagonal lambda)).symm
-  exact ⟨G, lambda,
-    generalizedEigenvectorColumns_of_mul_eq_mul_diagonal
-      A B lambda G hGNorm hAG,
-    hGNorm⟩
+  obtain ⟨G, hGEig, hGNorm⟩ :=
+    generalizedEigenvectorColumns_normalized_leading_exists_of_whitening
+      A B T S M hBT' rfl hST hTS hM hcard
+  exact ⟨G,
+    (fun j : r => hM.eigenvalues₀
+      (Fin.castLE hcard ((Fintype.equivFin r) j))),
+    hGEig, hGNorm⟩
 
 end GeneralizedEigenExistence
 
@@ -612,6 +697,66 @@ private theorem compression_quadratic_eq_image_quadratic
       Matrix.dotProduct_mulVec x Hᵀ (A *ᵥ (H *ᵥ x))
     _ = (H *ᵥ x) ⬝ᵥ (A *ᵥ (H *ᵥ x)) := by
       rw [Matrix.vecMul_transpose]
+
+/-- Multiplicative Ritz bound for a positive-semidefinite matrix.
+
+For every orthonormal `r`-column block, the determinant of the compression is
+at most the product of the leading `r` ordered eigenvalues of the ambient
+matrix.  This is the general multi-column determinant theorem used by Hansen's
+two reduced-rank pencils after positive-definite whitening. -/
+theorem generalizedEigenDetProductUpperBound_identity_of_posSemidef_ordered
+    [DecidableEq k]
+    (M : Matrix k k ℝ) (hM : M.PosSemidef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    generalizedEigenDetProductUpperBound M (1 : Matrix k k ℝ)
+      (fun j : r => hM.1.eigenvalues₀
+        (Fin.castLE hcard ((Fintype.equivFin r) j))) := by
+  classical
+  intro H hHNorm
+  have hHTH : Hᵀ * H = 1 := by
+    simpa [generalizedEigenvectorBNormalized, Matrix.mul_assoc] using hHNorm
+  let C : Matrix r r ℝ := Hᵀ * M * H
+  have hC : C.PosSemidef := by
+    have hcomp := hM.conjTranspose_mul_mul_same H
+    simpa [C, Matrix.conjTranspose, Matrix.star_apply] using hcomp
+  have hEigLe : ∀ j : Fin (Fintype.card r),
+      hC.1.eigenvalues₀ j ≤ hM.1.eigenvalues₀ (Fin.castLE hcard j) := by
+    intro j
+    simpa [C] using
+      (hermitian_compression_ordered_eigenvalue_le hM.1 H hHTH hcard j)
+  have hCProd : (∏ i : r, hC.1.eigenvalues i) =
+      ∏ j : Fin (Fintype.card r), hC.1.eigenvalues₀ j := by
+    calc
+      (∏ i : r, hC.1.eigenvalues i) =
+          ∏ j : Fin (Fintype.card r),
+            hC.1.eigenvalues
+              ((Fintype.equivOfCardEq
+                (Fintype.card_fin (Fintype.card r))) j) := by
+            exact (Equiv.prod_comp
+              (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card r)))
+              hC.1.eigenvalues).symm
+      _ = ∏ j : Fin (Fintype.card r), hC.1.eigenvalues₀ j := by
+            apply Finset.prod_congr rfl
+            intro j _
+            simp [Matrix.IsHermitian.eigenvalues]
+  calc
+    (Hᵀ * M * H).det = ∏ i, hC.1.eigenvalues i := by
+      simpa [C] using hC.1.det_eq_prod_eigenvalues
+    _ = ∏ j : Fin (Fintype.card r), hC.1.eigenvalues₀ j := hCProd
+    _ ≤ ∏ j : Fin (Fintype.card r),
+        hM.1.eigenvalues₀ (Fin.castLE hcard j) := by
+      exact Finset.prod_le_prod
+        (fun j _ => by
+          let e : Fin (Fintype.card r) ≃ r :=
+            Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card r))
+          have hnonneg := hC.eigenvalues_nonneg (e j)
+          simpa [Matrix.IsHermitian.eigenvalues, e] using hnonneg)
+        (fun j _ => hEigLe j)
+    _ = ∏ i : r, hM.1.eigenvalues₀
+        (Fin.castLE hcard ((Fintype.equivFin r) i)) := by
+      exact (Equiv.prod_comp (Fintype.equivFin r)
+        (fun j : Fin (Fintype.card r) =>
+          hM.1.eigenvalues₀ (Fin.castLE hcard j))).symm
 
 /-- Multi-column determinant variational theorem in the top-eigenvalue
 plateau case.
@@ -2102,6 +2247,108 @@ theorem GeneralizedEigenDetProductMinCertificate.of_detObjectiveMinimizer
   selected_compressedDet_minimal :=
     generalizedEigenSelectedCompressedDetMinimal_of_detObjectiveMinimizer A B G hOpt
 
+/-- Explicit-whitening existence for the generalized-pencil determinant max
+certificate.
+
+The selected roots are exactly the leading `card r` ordered eigenvalues of the
+positive-semidefinite whitened numerator `M = S' A S`. Thus the spectral block
+and the global determinant maximizer are the same constructed witness. -/
+theorem generalizedEigenDetProductMaxCertificate_exists_of_whitening
+    [DecidableEq k]
+    (A B T S M : Matrix k k ℝ)
+    (hB : B = Tᵀ * T) (hM : M = Sᵀ * A * S)
+    (hST : S * T = 1) (hTS : T * S = 1)
+    (hMPos : M.PosSemidef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ G : Matrix k r ℝ,
+      GeneralizedEigenDetProductMaxCertificate A B G
+        (fun j : r => hMPos.1.eigenvalues₀
+          (Fin.castLE hcard ((Fintype.equivFin r) j))) := by
+  classical
+  let lambda : r → ℝ := fun j => hMPos.1.eigenvalues₀
+    (Fin.castLE hcard ((Fintype.equivFin r) j))
+  obtain ⟨G, hGEig, hGNorm⟩ :=
+    generalizedEigenvectorColumns_normalized_leading_exists_of_whitening
+      A B T S M hB hM hST hTS hMPos.1 hcard
+  have hAFactor : A = Tᵀ * M * T := by
+    calc
+      A = (S * T)ᵀ * A * (S * T) := by rw [hST]; simp
+      _ = Tᵀ * (Sᵀ * A * S) * T := by
+        simp [Matrix.transpose_mul, Matrix.mul_assoc]
+      _ = Tᵀ * M * T := by rw [← hM]
+  have hBound : generalizedEigenDetProductUpperBound A B lambda :=
+    generalizedEigenDetProductUpperBound_of_whitened_identity
+      A B M T lambda hAFactor hB
+      (generalizedEigenDetProductUpperBound_identity_of_posSemidef_ordered
+        M hMPos hcard)
+  exact ⟨G,
+    GeneralizedEigenDetProductMaxCertificate.of_productUpperBound
+      A B G lambda hGEig hGNorm hBound⟩
+
+open scoped MatrixOrder
+
+/-- A positive-semidefinite generalized-pencil numerator and positive-definite
+denominator admit a normalized leading generalized-eigenvector block that
+globally maximizes the compressed determinant.
+
+The returned whitening data records that the roots in the max certificate are
+exactly the leading `card r` ordered eigenvalues of the whitened numerator. -/
+theorem generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef
+    [DecidableEq k]
+    (A B : Matrix k k ℝ) (hA : A.PosSemidef) (hB : B.PosDef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ (T S M : Matrix k k ℝ) (hMPos : M.PosSemidef)
+        (G : Matrix k r ℝ),
+      B = Tᵀ * T ∧
+        M = Sᵀ * A * S ∧
+        S * T = 1 ∧
+        T * S = 1 ∧
+        GeneralizedEigenDetProductMaxCertificate A B G
+          (fun j : r => hMPos.1.eigenvalues₀
+            (Fin.castLE hcard ((Fintype.equivFin r) j))) := by
+  classical
+  have hFactor :
+      ∃ T : Matrix k k ℝ, IsUnit T ∧ B = star T * T :=
+    (CStarAlgebra.isStrictlyPositive_iff_eq_star_mul_self
+      (A := Matrix k k ℝ)).mp
+      (show IsStrictlyPositive B from hB.isStrictlyPositive)
+  obtain ⟨T, hTunit, hBT⟩ := hFactor
+  have hBT' : B = Tᵀ * T := by
+    simpa [star_eq_conjTranspose, Matrix.conjTranspose_eq_transpose_of_trivial]
+      using hBT
+  have hTdet : IsUnit T.det := (Matrix.isUnit_iff_isUnit_det T).mp hTunit
+  let S : Matrix k k ℝ := T⁻¹
+  have hST : S * T = 1 := Matrix.nonsing_inv_mul T hTdet
+  have hTS : T * S = 1 := Matrix.mul_nonsing_inv T hTdet
+  let M : Matrix k k ℝ := Sᵀ * A * S
+  have hMPos : M.PosSemidef := by
+    have hconj := hA.conjTranspose_mul_mul_same S
+    simpa [M, Matrix.conjTranspose, Matrix.star_apply] using hconj
+  obtain ⟨G, hG⟩ :=
+    generalizedEigenDetProductMaxCertificate_exists_of_whitening
+      A B T S M hBT' rfl hST hTS hMPos hcard
+  exact ⟨T, S, M, hMPos, G, hBT', rfl, hST, hTS, hG⟩
+
+/-- Compatibility projection of
+`generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef`.
+
+This shorter surface returns a normalized generalized-eigenvector block and
+its global determinant-max certificate, but deliberately forgets the
+whitening data that identifies its roots as the leading ordered roots. -/
+theorem generalizedEigenDetProductMaxCertificate_exists_of_posSemidef_posDef
+    (A B : Matrix k k ℝ) (hA : A.PosSemidef) (hB : B.PosDef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ),
+      GeneralizedEigenDetProductMaxCertificate A B G lambda := by
+  classical
+  obtain ⟨T, S, M, hMPos, G, hBT, hMA, hST, hTS, hG⟩ :=
+    generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef
+      (r := r) A B hA hB hcard
+  exact ⟨G,
+    (fun j : r => hMPos.1.eigenvalues₀
+      (Fin.castLE hcard ((Fintype.equivFin r) j))),
+    hG⟩
+
 end GeneralizedEigenvectors
 
 section HansenPencil
@@ -2761,9 +3008,11 @@ omit [DecidableEq n] in
 /-- Hansen's G pencil has normalized generalized-eigenvector columns in every
 admissible reduced-rank dimension when `X̃'X̃` is positive definite.
 
-This closes generalized-pencil spectral existence independently of the
-compactness-based objective-maximizer existence theorem; the determinant
-variational identification between the two witnesses remains open. -/
+This compatibility theorem exposes only spectral existence. The stronger
+`reducedRankGDetProductMaxCertificate_exists_of_gram_posDef` below adds global
+determinant maximality; the generic
+`generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef`
+retains the explicit leading-root formula. -/
 theorem reducedRankHansenGEigenvectors_normalized_exists_of_gram_posDef
     (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
     (hXGram : (Xtildeᵀ * Xtilde).PosDef)
@@ -2778,6 +3027,28 @@ theorem reducedRankHansenGEigenvectors_normalized_exists_of_gram_posDef
   exact generalizedEigenvectorColumns_normalized_exists_of_isHermitian_posDef
     (r := r) (reducedRankGPencilA Xtilde Ytilde)
       (reducedRankGPencilB Xtilde) hA hB hcard
+
+omit [DecidableEq n] in
+/-- Hansen's G pencil admits a normalized generalized-eigenvector block that
+is also a global determinant-product max certificate.
+
+This compatibility projection does not retain the whitening data that
+identifies the returned roots as leading ordered roots. -/
+theorem reducedRankGDetProductMaxCertificate_exists_of_gram_posDef
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (hXGram : (Xtildeᵀ * Xtilde).PosDef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ),
+      GeneralizedEigenDetProductMaxCertificate
+        (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde)
+        G lambda := by
+  classical
+  have hB : (reducedRankGPencilB Xtilde).PosDef := by
+    simpa [reducedRankGPencilB] using hXGram
+  exact generalizedEigenDetProductMaxCertificate_exists_of_posSemidef_posDef
+    (r := r) (reducedRankGPencilA Xtilde Ytilde)
+      (reducedRankGPencilB Xtilde)
+      (reducedRankGPencilA_posSemidef Xtilde Ytilde) hB hcard
 
 /-- Global minimizer predicate for Hansen's reciprocal concentrated objective
 over normalized `G` matrices. -/
@@ -3463,9 +3734,11 @@ omit [DecidableEq n] [DecidableEq m] in
 columns in every admissible complement dimension when `Ỹ'Ỹ` is positive
 definite.
 
-As on the G side, this spectral witness is constructed without an optimizer
-premise; the missing determinant min-max theorem must show that the appropriate
-ordered witness is an equation (11.21) maximizer. -/
+This compatibility theorem exposes only spectral existence. The stronger
+`reducedRankAperpDetProductMaxCertificate_exists_of_gram_posDef` below adds
+global maximality for equation (11.21); the generic
+`generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef`
+retains the explicit leading-root formula. -/
 theorem reducedRankHansenAperpEigenvectors_normalized_exists_of_gram_posDef
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (hYGram : (Ytildeᵀ * Ytilde).PosDef)
@@ -3480,6 +3753,29 @@ theorem reducedRankHansenAperpEigenvectors_normalized_exists_of_gram_posDef
   exact generalizedEigenvectorColumns_normalized_exists_of_isHermitian_posDef
     (r := s) (reducedRankAperpPencilA Etilde)
       (reducedRankAperpPencilB Ytilde) hA hB hcard
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Hansen's direct equation (11.21) residual pencil admits a normalized
+generalized-eigenvector block that is also a global determinant-product max
+certificate.
+
+This compatibility projection does not retain the whitening data that
+identifies the returned roots as leading ordered roots. -/
+theorem reducedRankAperpDetProductMaxCertificate_exists_of_gram_posDef
+    (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hcard : Fintype.card s ≤ Fintype.card m) :
+    ∃ (Aperp : Matrix m s ℝ) (eta : s → ℝ),
+      GeneralizedEigenDetProductMaxCertificate
+        (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
+        Aperp eta := by
+  classical
+  have hB : (reducedRankAperpPencilB Ytilde).PosDef := by
+    simpa [reducedRankAperpPencilB] using hYGram
+  exact generalizedEigenDetProductMaxCertificate_exists_of_posSemidef_posDef
+    (r := s) (reducedRankAperpPencilA Etilde)
+      (reducedRankAperpPencilB Ytilde)
+      (reducedRankAperpPencilA_posSemidef Etilde) hB hcard
 
 /-- Global minimizer predicate for Hansen's `A⊥` determinant objective over
 `Ỹ'Ỹ`-normalized matrices.
@@ -3974,9 +4270,9 @@ theorem reducedRankHansenResidualizedNormalizedEigenblocks_exist_of_yGram_posDef
 `reducedRankHansenResidualizedNormalizedEigenblocks_exist_of_yGram_posDef`.
 
 It constructs normalized generalized-eigenvector blocks for both residualized
-pencils from full column rank of `[X,Z]`, `[Y,Z]`, and `Z`. As above, the two
-blocks are not identified with the independently attained direct-objective
-maxima or with a simultaneous cross-orthogonal Hansen pair. -/
+pencils from full column rank of `[X,Z]`, `[Y,Z]`, and `Z`. This compatibility
+surface does not return the available max certificates and still does not
+construct a simultaneous cross-orthogonal Hansen pair. -/
 theorem reducedRankHansenResidualizedNormalizedEigenblocks_exist_of_full_grams
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -4038,6 +4334,53 @@ structure ReducedRankHansenDetProductMaxMaxCertificate
   aperp_max :
     GeneralizedEigenDetProductMaxCertificate
       (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp eta
+
+omit [DecidableEq n] in
+/-- Positive-definite residualized design and outcome Grams construct both
+global determinant-max blocks in Hansen's canonical max/max spectral
+certificate.
+
+No objective maximizer or spectral witness is assumed: both are supplied by
+the positive-semidefinite/positive-definite generalized-pencil theorem. This
+projected certificate does not retain either block's ordered-root formula. -/
+theorem ReducedRankHansenDetProductMaxMaxCertificate.exists_of_gram_posDef
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (hXGram : (Xtildeᵀ * Xtilde).PosDef)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hrk : Fintype.card r ≤ Fintype.card k)
+    (hsm : Fintype.card s ≤ Fintype.card m) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ)
+        (Aperp : Matrix m s ℝ) (eta : s → ℝ),
+      ReducedRankHansenDetProductMaxMaxCertificate
+        Xtilde Ytilde Etilde G lambda Aperp eta := by
+  obtain ⟨G, lambda, hG⟩ :=
+    reducedRankGDetProductMaxCertificate_exists_of_gram_posDef
+      (r := r) Xtilde Ytilde hXGram hrk
+  obtain ⟨Aperp, eta, hAperp⟩ :=
+    reducedRankAperpDetProductMaxCertificate_exists_of_gram_posDef
+      (s := s) Etilde Ytilde hYGram hsm
+  exact ⟨G, lambda, Aperp, eta, ⟨hG, hAperp⟩⟩
+
+/-- Full-Gram specialization constructing Hansen's canonical max/max spectral
+certificate for the actual residualized sample matrices. -/
+theorem ReducedRankHansenDetProductMaxMaxCertificate.exists_residualized_of_full_grams
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [DecidableEq k]
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
+    [Invertible ((Matrix.fromCols Y Z)ᵀ * Matrix.fromCols Y Z)]
+    (hrk : Fintype.card r ≤ Fintype.card k)
+    (hsm : Fintype.card s ≤ Fintype.card m) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ)
+        (Aperp : Matrix m s ℝ) (eta : s → ℝ),
+      ReducedRankHansenDetProductMaxMaxCertificate
+        (reducedRankTildeX Z X) (reducedRankTildeY Z Y)
+        (reducedRankTildeE X Z Y) G lambda Aperp eta :=
+  ReducedRankHansenDetProductMaxMaxCertificate.exists_of_gram_posDef
+    (reducedRankTildeX Z X) (reducedRankTildeY Z Y)
+    (reducedRankTildeE X Z Y)
+    (reducedRankTildeX_gram_posDef Z X)
+    (reducedRankTildeY_gram_posDef Z Y) hrk hsm
 
 omit [DecidableEq n] in
 /-- Build the canonical max/max spectral certificate from the two direct
@@ -5752,11 +6095,82 @@ def reducedRankDualEigenvectorRelation
     (G : Matrix k r ℝ) (W : Matrix m r ℝ) (Lambda : Matrix r r ℝ) : Prop :=
   reducedRankAhat Xtilde Ytilde G * Lambda = reducedRankAperpPencilB Ytilde * W
 
+/-- Canonical dual block obtained by solving Hansen's displayed relation with
+the nonsingular inverse of `Ỹ'Ỹ`. -/
+noncomputable def reducedRankDualEigenvectorBlock
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Lambda : Matrix r r ℝ) : Matrix m r ℝ :=
+  (reducedRankAperpPencilB Ytilde)⁻¹ *
+    reducedRankAhat Xtilde Ytilde G * Lambda
+
+omit [DecidableEq n] in
+/-- Positive definiteness of the residualized outcome Gram proves Hansen's
+displayed dual relation for the canonical dual block.
+
+Thus the dual relation itself is not an additional premise under the regular
+full-Gram assumptions. The remaining content is identifying this block in the
+appropriate residual-pencil eigenspace. -/
+theorem reducedRankDualEigenvectorRelation_canonical_of_yGram_posDef
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Lambda : Matrix r r ℝ)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef) :
+    reducedRankDualEigenvectorRelation Xtilde Ytilde G
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda) Lambda := by
+  let S : Matrix m m ℝ := reducedRankAperpPencilB Ytilde
+  have hSPos : S.PosDef := by
+    simpa [S, reducedRankAperpPencilB] using hYGram
+  have hSdet : IsUnit S.det :=
+    (Matrix.isUnit_iff_isUnit_det S).mp hSPos.isUnit
+  unfold reducedRankDualEigenvectorRelation reducedRankDualEigenvectorBlock
+  change reducedRankAhat Xtilde Ytilde G * Lambda =
+    S * (S⁻¹ * reducedRankAhat Xtilde Ytilde G * Lambda)
+  rw [Matrix.mul_assoc S⁻¹ (reducedRankAhat Xtilde Ytilde G) Lambda,
+    ← Matrix.mul_assoc S S⁻¹ (reducedRankAhat Xtilde Ytilde G * Lambda),
+    Matrix.mul_nonsing_inv S hSdet, Matrix.one_mul]
+
+/-- Raw residualized full-Gram specialization of
+`reducedRankDualEigenvectorRelation_canonical_of_yGram_posDef`.
+
+Full column rank of `[Y,Z]` and `Z` supplies the only inverse needed to
+construct Hansen's canonical dual block. -/
+theorem reducedRankDualEigenvectorRelation_canonical_residualized_of_full_gram
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Lambda : Matrix r r ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols Y Z)ᵀ * Matrix.fromCols Y Z)] :
+    reducedRankDualEigenvectorRelation
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G
+      (reducedRankDualEigenvectorBlock
+        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G Lambda)
+      Lambda :=
+  reducedRankDualEigenvectorRelation_canonical_of_yGram_posDef
+    (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G Lambda
+    (reducedRankTildeY_gram_posDef Z Y)
+
 /-- Hansen's `Ỹ'Ỹ`-orthogonality between the estimated `A⊥` block and the dual
 selected-eigenvector block `W`. -/
 def reducedRankAperpYOrthogonal
     (Ytilde : Matrix n m ℝ) (Aperp : Matrix m s ℝ) (W : Matrix m r ℝ) : Prop :=
   Aperpᵀ * reducedRankAperpPencilB Ytilde * W = 0
+
+omit [DecidableEq n] in
+/-- Residual-pencil eigenblocks with disjoint roots are orthogonal in Hansen's
+`Ỹ'Ỹ` metric. -/
+theorem reducedRankAperpYOrthogonal_of_disjoint_eigenblocks
+    [Fintype s] [DecidableEq s]
+    (Etilde Ytilde : Matrix n m ℝ)
+    (eta : s → ℝ) (Aperp : Matrix m s ℝ)
+    (mu : r → ℝ) (W : Matrix m r ℝ)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hW : reducedRankHansenAperpEigenvectors Etilde Ytilde mu W)
+    (hDisjoint : ∀ i j, eta i ≠ mu j) :
+    reducedRankAperpYOrthogonal Ytilde Aperp W := by
+  exact generalizedEigenvectorColumns_crossGram_eq_zero_of_disjoint_roots
+    (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
+    eta Aperp mu W
+    (by simp [reducedRankAperpPencilA, Matrix.transpose_mul])
+    (by simp [reducedRankAperpPencilB, Matrix.transpose_mul])
+    hAperp hW hDisjoint
 
 omit [DecidableEq n] [DecidableEq m] [Fintype r] [DecidableEq r] in
 /-- Under a fixed-root span witness `X̃G = ỸC`, Hansen's dual orthogonality
@@ -5984,6 +6398,40 @@ theorem reducedRankAperp_cross_orthogonal_of_dual_relation
   exact reducedRankAperpAhat_orthogonal_of_dual_relation
     Xtilde Ytilde G Aperp W Lambda LambdaInv hDual hOrth hLambdaInv
 
+omit [DecidableEq n] in
+/-- Cross orthogonality from a canonical dual residual-pencil eigenblock.
+
+Positive definiteness constructs the dual relation, while symmetry and
+disjoint residual-pencil roots derive `Ỹ'Ỹ`-orthogonality. This removes both
+of those premises from `reducedRankAperp_cross_orthogonal_of_dual_relation`;
+the nontrivial remaining spectral premise is that the canonical dual block is
+indeed a residual-pencil eigenblock with roots separated from `A⊥`. -/
+theorem reducedRankAperp_cross_orthogonal_of_canonical_dual_eigenblock
+    [Fintype s] [DecidableEq s]
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Aperp : Matrix m s ℝ)
+    (Lambda LambdaInv : Matrix r r ℝ)
+    (eta : s → ℝ) (mu : r → ℝ)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hNorm : reducedRankGNormalized Xtilde G)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hDualEig : reducedRankHansenAperpEigenvectors Etilde Ytilde mu
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda))
+    (hDisjoint : ∀ i j, eta i ≠ mu j)
+    (hLambdaInv : Lambda * LambdaInv = 1) :
+    reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp := by
+  exact reducedRankAperp_cross_orthogonal_of_dual_relation
+    Xtilde Ytilde G Aperp
+    (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
+    Lambda LambdaInv hNorm
+    (reducedRankDualEigenvectorRelation_canonical_of_yGram_posDef
+      Xtilde Ytilde G Lambda hYGram)
+    (reducedRankAperpYOrthogonal_of_disjoint_eigenblocks
+      Etilde Ytilde eta Aperp mu
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
+      hAperp hDualEig hDisjoint)
+    hLambdaInv
+
 omit [DecidableEq n] [DecidableEq m] in
 /-- Normalized diagonal selected-root version of the duality step.
 
@@ -6030,6 +6478,40 @@ theorem
     reducedRankAperp_cross_orthogonal_of_dual_relation
       Xtilde Ytilde G Aperp W Lambda LambdaInv hMax.g_max.normalized
       hDual hOrth hLambdaInv
+
+omit [DecidableEq n] in
+/-- Build the identified max/max certificate from the canonical dual
+residual-pencil eigenblock.
+
+The positive-definite outcome Gram synthesizes Hansen's displayed dual
+relation, and disjoint residual-pencil roots synthesize dual orthogonality. No
+cross-orthogonality premise is assumed. -/
+theorem
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_canonical_dual_eigenblock
+    [Fintype s] [DecidableEq s]
+    {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {lambda : r → ℝ}
+    {Aperp : Matrix m s ℝ} {eta : s → ℝ}
+    (hMax : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (Lambda LambdaInv : Matrix r r ℝ) (mu : r → ℝ)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hDualEig : reducedRankHansenAperpEigenvectors Etilde Ytilde mu
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda))
+    (hDisjoint : ∀ i j, eta i ≠ mu j)
+    (hLambdaInv : Lambda * LambdaInv = 1) :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta :=
+  ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_dual_relation
+    hMax (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
+    Lambda LambdaInv
+    (reducedRankDualEigenvectorRelation_canonical_of_yGram_posDef
+      Xtilde Ytilde G Lambda hYGram)
+    (reducedRankAperpYOrthogonal_of_disjoint_eigenblocks
+      Etilde Ytilde eta Aperp mu
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
+      hMax.aperp_max.eigenvectors hDualEig hDisjoint)
+    hLambdaInv
 
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from the
@@ -6611,8 +7093,13 @@ theorem
     hOrdered W (reducedRankSelectedRootProduct_ne_zero_of_pos lambda hLambda)
     hDual hOrth
 
-/-- Hansen Theorem 11.7 maximized log-likelihood value, expressed through the
-residualized outcome cross-product and selected generalized eigenvalues. -/
+/-- Hansen Theorem 11.7's displayed maximized log-likelihood formula, expressed
+through the residualized outcome cross-product and selected generalized
+eigenvalues.
+
+This definition records the textbook display literally.  It does not by itself
+assert that the value is attained by, or even agrees with, the raw Gaussian
+log-likelihood; those are separate obligations in the likelihood layer. -/
 noncomputable def reducedRankMaximizedLogLikelihood
     (Ytilde : Matrix n m ℝ) (lambda : r → ℝ) : ℝ :=
   ((Fintype.card m : ℝ) / 2) *
@@ -6634,7 +7121,10 @@ def reducedRankCovarianceRecovery
     (G : Matrix k r ℝ) (Sigma : Matrix m m ℝ) : Prop :=
   Sigma = reducedRankSigmaHat Xtilde Ytilde G
 
-/-- Concrete maximized likelihood-value predicate for Hansen Theorem 11.7. -/
+/-- Equality with Hansen Theorem 11.7's displayed likelihood value.
+
+Despite the legacy name of the right-hand side, this predicate is a formula
+identity only; it contains no likelihood comparison. -/
 def reducedRankLikelihoodValue
     (Ytilde : Matrix n m ℝ) (lambda : r → ℝ) (logLikelihood : ℝ) : Prop :=
   logLikelihood = reducedRankMaximizedLogLikelihood Ytilde lambda
@@ -6643,10 +7133,13 @@ end Recovery
 
 end HansenPencil
 
-/-- Certificate package used by Hansen's reduced-rank MLE route.
+/-- Legacy-named formula certificate used by Hansen's reduced-rank MLE route.
 
-The proposition fields are supplied by a future generalized-eigenvalue
-constructor; this package deliberately avoids vacuous self-equalities. -/
+This structure packages the spectral and recovery formulas only.  Its fields
+do not define a Gaussian likelihood, require positive-definite covariance, or
+compare the candidate with admissible competitors.  New theorem-facing code
+should use `ReducedRankMLEFormulaCertificate`; the old name is retained for
+compatibility. -/
 structure ReducedRankMLE
     (G : Matrix k r ℝ) (A : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (Sigma : Matrix m m ℝ) (logLikelihood : ℝ)
@@ -6657,7 +7150,17 @@ structure ReducedRankMLE
   covariance_recovery : covarianceRecovery
   likelihood_value : likelihoodValue
 
-/-- Assemble a reduced-rank MLE certificate from its four mathematical components. -/
+/-- Honest canonical name for the legacy `ReducedRankMLE` formula bundle. -/
+abbrev ReducedRankMLEFormulaCertificate
+    (G : Matrix k r ℝ) (A : Matrix m r ℝ) (C : Matrix ell m ℝ)
+    (Sigma : Matrix m m ℝ) (logLikelihood : ℝ)
+    (generalizedEigenvectors leastSquaresRecovery covarianceRecovery likelihoodValue : Prop) :
+    Prop :=
+  ReducedRankMLE G A C Sigma logLikelihood generalizedEigenvectors
+    leastSquaresRecovery covarianceRecovery likelihoodValue
+
+/-- Assemble the legacy reduced-rank formula certificate from its four
+mathematical components. -/
 theorem reducedRankMLE_of_certificate
     (G : Matrix k r ℝ) (A : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (Sigma : Matrix m m ℝ) (logLikelihood : ℝ)
@@ -6675,8 +7178,8 @@ section GeneralizedEigenCertificate
 
 variable [Fintype k]
 
-/-- Reduced-rank MLE certificate whose generalized-eigenvector component is the
-concrete matrix-pencil predicate used in Hansen Theorem 11.7. -/
+/-- Legacy reduced-rank formula certificate whose generalized-eigenvector
+component is the concrete matrix-pencil predicate used in Hansen Theorem 11.7. -/
 theorem reducedRankMLE_of_generalizedEigenvectors
     (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (Sigma : Matrix m m ℝ) (logLikelihood : ℝ)
@@ -6906,7 +7409,10 @@ The conclusion also retains the identifying equation
 `A⊥'Ỹ'X̃G = 0`, which becomes `A⊥' Ahat = 0` under the displayed normalized
 coefficient formula. The input certificate remains an explicit premise: this
 structure does not manufacture the generalized eigenspaces from the raw normal
-likelihood assumptions. -/
+likelihood assumptions. Despite its compatibility name, this structure is only
+the formula/spectral conclusion; it neither states covariance positive
+definiteness nor compares the raw Gaussian likelihood with admissible
+competitors. -/
 structure ReducedRankHansenTheorem11_7
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
@@ -6927,8 +7433,8 @@ structure ReducedRankHansenTheorem11_7
     reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C
   covariance_recovery : reducedRankCovarianceRecovery Xtilde Ytilde G Sigma
   likelihood_value : reducedRankLikelihoodValue Ytilde lambda logLikelihood
-  mle :
-    ReducedRankMLE G Acoef C Sigma logLikelihood
+  mle_formula_certificate :
+    ReducedRankMLEFormulaCertificate G Acoef C Sigma logLikelihood
       (ReducedRankHansenIdentifiedSpectralMaximizerCertificate
         Xtilde Ytilde Etilde G lambda Aperp eta)
       (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C)
@@ -6980,7 +7486,7 @@ theorem reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificat
     (reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
       Xtilde Ytilde G hSpec.spectral_maximizers.g_max.normalized).symm
   likelihood_value := rfl
-  mle := by
+  mle_formula_certificate := by
     exact reducedRankMLE_of_certificate G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
@@ -10505,9 +11011,9 @@ theorem
     G lambda Aperp eta hG hGOpt hAperp hAperpOpt W hLambda hDual hOrth
 
 /-- Residualized selected-compressed-determinant version of the exact-dimension
-dual-relation endpoint. This is the closest current surface to Hansen's
-ordered generalized-eigenvalue statement before the missing determinant
-min-max theorem is supplied. -/
+dual-relation endpoint. The determinant min-max theorem is now available; this
+conditional surface remains useful when callers already have selected extrema
+and a compatible dual relation. -/
 theorem
     reducedRankHansenTheorem11_7_residualized_exactDimension_of_selectedExtrema_dual_relation
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)

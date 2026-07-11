@@ -1,9 +1,11 @@
 import Mathlib.Data.Real.StarOrdered
+import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Order.Fin.Tuple
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
 open scoped Matrix
+open scoped MatrixOrder
 
 namespace HansenEconometrics
 
@@ -393,6 +395,56 @@ lemma quadraticForm_mulVec_eq_pullback_rect
     _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
       rw [← Matrix.dotProduct_mulVec]
 
+/-- Pointwise domination of squared norms after two matrix maps implies the
+corresponding Loewner order on their Gram matrices. -/
+theorem gram_le_gram_of_mulVec_norm_sq_le
+    {m n : Type*} [Fintype m] [Fintype n]
+    (A B : Matrix m n ℝ)
+    (h : ∀ x : n → ℝ,
+      dotProduct (A *ᵥ x) (A *ᵥ x) ≤ dotProduct (B *ᵥ x) (B *ᵥ x)) :
+    Aᵀ * A ≤ Bᵀ * B := by
+  classical
+  rw [Matrix.le_iff]
+  refine Matrix.PosSemidef.of_dotProduct_mulVec_nonneg ?_ ?_
+  · simpa [Matrix.conjTranspose, Matrix.star_apply] using
+      (Matrix.isHermitian_conjTranspose_mul_self B).sub
+        (Matrix.isHermitian_conjTranspose_mul_self A)
+  · intro x
+    have hA :
+        dotProduct (A *ᵥ x) (A *ᵥ x) =
+          dotProduct x ((Aᵀ * A) *ᵥ x) := by
+      simpa using
+        (quadraticForm_mulVec_eq_pullback_rect A (1 : Matrix m m ℝ) x)
+    have hB :
+        dotProduct (B *ᵥ x) (B *ᵥ x) =
+          dotProduct x ((Bᵀ * B) *ᵥ x) := by
+      simpa using
+        (quadraticForm_mulVec_eq_pullback_rect B (1 : Matrix m m ℝ) x)
+    simpa [Matrix.sub_mulVec, hA, hB] using sub_nonneg.mpr (h x)
+
+/-- Left multiplication by a positive-semidefinite weight preserves trace
+inequalities in the Loewner order. -/
+theorem trace_mul_le_trace_mul_of_le_of_posSemidef
+    {n : Type*} [Fintype n]
+    {A B W : Matrix n n ℝ}
+    (hAB : A ≤ B) (hW : W.PosSemidef) :
+    Matrix.trace (W * A) ≤ Matrix.trace (W * B) := by
+  classical
+  let S : Matrix n n ℝ := CFC.sqrt W
+  have hD : (B - A).PosSemidef := Matrix.le_iff.mp hAB
+  have hS : Sᴴ = S := by
+    simpa [S] using (CFC.sqrt_nonneg W).isSelfAdjoint
+  have hSsq : S * S = W := by
+    simpa [S] using CFC.sqrt_mul_sqrt_self W hW.nonneg
+  have hcongr : (Sᴴ * (B - A) * S).PosSemidef :=
+    hD.conjTranspose_mul_mul_same S
+  rw [← sub_nonneg, ← Matrix.trace_sub, ← Matrix.mul_sub]
+  calc
+    0 ≤ Matrix.trace (Sᴴ * (B - A) * S) := hcongr.trace_nonneg
+    _ = Matrix.trace (S * Sᴴ * (B - A)) :=
+      Matrix.trace_mul_cycle Sᴴ (B - A) S
+    _ = Matrix.trace (W * (B - A)) := by rw [hS, hSsq]
+
 /-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
 Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
 lemma quadForm_eq_sum_eigenvalues
@@ -561,6 +613,239 @@ lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
             exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
     _ = hH.eigenvalues₀ j := by
           rw [← Finset.mul_sum, hcoords_sum, mul_one]
+
+/-- Rayleigh-quotient lower bound from a Hermitian spectral expansion.
+
+If the coordinates after `j` in the ordered Hermitian eigenbasis are zero,
+then the `j`th ordered eigenvalue bounds a unit vector's quadratic form from
+below. This is the lower-bound counterpart used in Ritz interlacing. -/
+lemma ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (j : Fin (Fintype.card ι)) (z : EuclideanSpace ℝ ι)
+    (hunit : (z : ι → ℝ) ⬝ᵥ (z : ι → ℝ) = 1)
+    (hzero : ∀ i : Fin (Fintype.card ι), j < i →
+      hH.eigenvectorBasis.repr z
+        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))) i) = 0) :
+    hH.eigenvalues₀ j ≤ (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ)) := by
+  classical
+  let e : Fin (Fintype.card ι) ≃ ι :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
+  let c : Fin (Fintype.card ι) → ℝ := fun i =>
+    (hH.eigenvectorBasis.repr z (e i)) ^ 2
+  have hcoords_sum_k :
+      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 = 1 := by
+    have hnorm : ‖z‖ ^ 2 = 1 := by
+      rw [EuclideanSpace.real_norm_sq_eq]
+      simpa [dotProduct, pow_two] using hunit
+    calc
+      ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2
+          = ∑ i : ι, ‖inner ℝ (hH.eigenvectorBasis i) z‖ ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro i _
+              rw [OrthonormalBasis.repr_apply_apply]
+              simp [sq_abs]
+              rfl
+      _ = ‖z‖ ^ 2 := OrthonormalBasis.sum_sq_norm_inner_right hH.eigenvectorBasis z
+      _ = 1 := hnorm
+  have hcoords_sum : ∑ i : Fin (Fintype.card ι), c i = 1 := by
+    calc
+      ∑ i : Fin (Fintype.card ι), c i
+          = ∑ i : ι, (hH.eigenvectorBasis.repr z i) ^ 2 := by
+              simpa [c, e] using
+                (Equiv.sum_comp
+                  (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
+                  (fun i : ι => (hH.eigenvectorBasis.repr z i) ^ 2))
+      _ = 1 := hcoords_sum_k
+  have hquad :=
+    quadForm_eq_sum_eigenvalues_fintype (M := M) hH z
+  rw [hquad]
+  calc
+    hH.eigenvalues₀ j =
+        ∑ i : Fin (Fintype.card ι), hH.eigenvalues₀ j * c i := by
+          rw [← Finset.mul_sum, hcoords_sum, mul_one]
+    _ ≤ ∑ i : Fin (Fintype.card ι), hH.eigenvalues (e i) * c i := by
+          refine Finset.sum_le_sum ?_
+          intro i _
+          by_cases hij : j < i
+          · have hc0 : c i = 0 := by
+              have hz : hH.eigenvectorBasis.repr z (e i) = 0 := by
+                simpa [e] using hzero i hij
+              simp [c, hz]
+            rw [hc0, mul_zero, mul_zero]
+          · have hij' : i ≤ j := le_of_not_gt hij
+            have heig :
+                hH.eigenvalues₀ j ≤ hH.eigenvalues (e i) := by
+              simpa [Matrix.IsHermitian.eigenvalues, e] using
+                hH.eigenvalues₀_antitone hij'
+            exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
+    _ = ∑ i : ι, hH.eigenvalues i *
+        (hH.eigenvectorBasis.repr z i) ^ 2 := by
+          simpa [c, e] using
+            (Equiv.sum_comp
+              (Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι)))
+              (fun i : ι =>
+                hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2))
+
+/-- Ritz upper interlacing for an orthonormal-column compression of a real
+Hermitian matrix.
+
+For `Hᵀ H = I` and every ordered compression eigenvalue, the corresponding
+ordered eigenvalue of `Hᵀ M H` is at most the same leading ordered eigenvalue
+of `M`. The proof uses rank-nullity to intersect the image under `H` of the
+first `j + 1` compression eigendirections with the subspace orthogonal to the
+first `j` eigendirections of `M`. -/
+theorem hermitian_compression_ordered_eigenvalue_le
+    {q r : Type*} [Fintype q] [Fintype r] [DecidableEq q] [DecidableEq r]
+    {M : Matrix q q ℝ} (hM : M.IsHermitian)
+    (H : Matrix q r ℝ) (hH : Hᵀ * H = 1)
+    (hcard : Fintype.card r ≤ Fintype.card q)
+    (j : Fin (Fintype.card r)) :
+    let hC : (Hᵀ * M * H).IsHermitian := by
+      simpa [Matrix.conjTranspose, Matrix.star_apply] using
+        Matrix.isHermitian_conjTranspose_mul_mul H hM
+    hC.eigenvalues₀ j ≤ hM.eigenvalues₀ (Fin.castLE hcard j) := by
+  classical
+  let C : Matrix r r ℝ := Hᵀ * M * H
+  have hC : C.IsHermitian := by
+    simpa [C, Matrix.conjTranspose, Matrix.star_apply] using
+      Matrix.isHermitian_conjTranspose_mul_mul H hM
+  let eC : Fin (Fintype.card r) ≃ r :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card r))
+  let eM : Fin (Fintype.card q) ≃ q :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card q))
+  have hjr : j.val + 1 ≤ Fintype.card r := Nat.succ_le_iff.mpr j.isLt
+  have hjq : j.val ≤ Fintype.card q :=
+    (Nat.le_of_lt j.isLt).trans hcard
+  let vC : Fin (j.val + 1) → EuclideanSpace ℝ r := fun k =>
+    hC.eigenvectorBasis (eC (Fin.castLE hjr k))
+  let HvC : Fin (j.val + 1) → EuclideanSpace ℝ q := fun k =>
+    Matrix.toEuclideanLin H (vC k)
+  let A : Matrix (Fin j.val) (Fin (j.val + 1)) ℝ := fun i k =>
+    hM.eigenvectorBasis.repr (HvC k) (eM (Fin.castLE hjq i))
+  have hdim :
+      Module.finrank ℝ (Fin j.val → ℝ) <
+        Module.finrank ℝ (Fin (j.val + 1) → ℝ) := by
+    simpa only [Module.finrank_pi, Fintype.card_fin] using Nat.lt_succ_self j.val
+  have hker : LinearMap.ker A.mulVecLin ≠ ⊥ :=
+    LinearMap.ker_ne_bot_of_finrank_lt hdim
+  obtain ⟨a, haKer, ha0⟩ := (Submodule.ne_bot_iff _).mp hker
+  have haMul : A *ᵥ a = 0 := by
+    simpa only [LinearMap.mem_ker, Matrix.mulVecLin_apply] using haKer
+  let x : EuclideanSpace ℝ r := (Fintype.linearCombination ℝ vC) a
+  have hvorth : Orthonormal ℝ vC := by
+    exact hC.eigenvectorBasis.orthonormal.comp
+      (fun k : Fin (j.val + 1) => eC (Fin.castLE hjr k))
+      (eC.injective.comp (Fin.castLE_injective hjr))
+  have hx0 : x ≠ 0 := by
+    intro hx
+    apply ha0
+    apply hvorth.linearIndependent.fintypeLinearCombination_injective
+    simpa [x] using hx
+  let u : EuclideanSpace ℝ r := ‖x‖⁻¹ • x
+  have hunorm : ‖u‖ = 1 := by
+    simpa [u] using norm_smul_inv_norm hx0
+  have huunit : (u : r → ℝ) ⬝ᵥ (u : r → ℝ) = 1 := by
+    have hnormsq := EuclideanSpace.real_norm_sq_eq u
+    rw [hunorm] at hnormsq
+    simpa [dotProduct, pow_two] using hnormsq.symm
+  have huzeroAfter : ∀ i : Fin (Fintype.card r), j < i →
+      hC.eigenvectorBasis.repr u (eC i) = 0 := by
+    intro i hij
+    rw [OrthonormalBasis.repr_apply_apply]
+    have hinnerx : inner ℝ (hC.eigenvectorBasis (eC i)) x = 0 := by
+      change inner ℝ (hC.eigenvectorBasis (eC i))
+        ((Fintype.linearCombination ℝ vC) a) = 0
+      rw [Fintype.linearCombination_apply, inner_sum]
+      refine Finset.sum_eq_zero (fun k _ => ?_)
+      have hne : eC i ≠ eC (Fin.castLE hjr k) := by
+        apply eC.injective.ne
+        intro hieq
+        have hik : i = Fin.castLE hjr k := Fin.ext (Fin.ext_iff.mp hieq)
+        have hle : (i : ℕ) ≤ j := by
+          rw [hik]
+          exact Nat.le_of_lt_succ k.isLt
+        exact (not_le_of_gt hij) hle
+      rw [real_inner_smul_right]
+      have hinner : inner ℝ (hC.eigenvectorBasis (eC i)) (vC k) = 0 := by
+        change inner ℝ (hC.eigenvectorBasis (eC i))
+          (hC.eigenvectorBasis (eC (Fin.castLE hjr k))) = 0
+        exact hC.eigenvectorBasis.orthonormal.inner_eq_zero hne
+      rw [hinner, mul_zero]
+    change inner ℝ (hC.eigenvectorBasis (eC i)) (‖x‖⁻¹ • x) = 0
+    rw [real_inner_smul_right, hinnerx, mul_zero]
+  have hHx : Matrix.toEuclideanLin H x = ∑ k, a k • HvC k := by
+    change Matrix.toEuclideanLin H ((Fintype.linearCombination ℝ vC) a) = _
+    rw [Fintype.linearCombination_apply, map_sum]
+    refine Finset.sum_congr rfl (fun k _ => ?_)
+    rw [map_smul]
+  have hHxzeroBefore : ∀ i : Fin j.val,
+      hM.eigenvectorBasis.repr (Matrix.toEuclideanLin H x)
+        (eM (Fin.castLE hjq i)) = 0 := by
+    intro i
+    have hrow := congrFun haMul i
+    change ∑ k, A i k * a k = 0 at hrow
+    have hrepr :
+        hM.eigenvectorBasis.repr (Matrix.toEuclideanLin H x) =
+          ∑ k, a k • hM.eigenvectorBasis.repr (HvC k) := by
+      rw [hHx, map_sum]
+      refine Finset.sum_congr rfl (fun k _ => ?_)
+      rw [map_smul]
+    have hcoord := congrArg
+      (fun y : EuclideanSpace ℝ q => (y : q → ℝ) (eM (Fin.castLE hjq i))) hrepr
+    calc
+      hM.eigenvectorBasis.repr (Matrix.toEuclideanLin H x)
+          (eM (Fin.castLE hjq i)) =
+          ∑ k, a k * hM.eigenvectorBasis.repr (HvC k)
+            (eM (Fin.castLE hjq i)) := by
+              simpa only [WithLp.ofLp_sum, WithLp.ofLp_smul, Finset.sum_apply,
+                Pi.smul_apply, smul_eq_mul] using hcoord
+      _ = ∑ k, A i k * a k := by
+              refine Finset.sum_congr rfl (fun k _ => ?_)
+              change a k * A i k = A i k * a k
+              ring
+      _ = 0 := hrow
+  let z : EuclideanSpace ℝ q := Matrix.toEuclideanLin H u
+  have hzunit : (z : q → ℝ) ⬝ᵥ (z : q → ℝ) = 1 := by
+    change (H *ᵥ (u : r → ℝ)) ⬝ᵥ (H *ᵥ (u : r → ℝ)) = 1
+    calc
+      (H *ᵥ (u : r → ℝ)) ⬝ᵥ (H *ᵥ (u : r → ℝ)) =
+          (H *ᵥ (u : r → ℝ)) ⬝ᵥ
+            ((1 : Matrix q q ℝ) *ᵥ (H *ᵥ (u : r → ℝ))) := by simp
+      _ = (u : r → ℝ) ⬝ᵥ
+          ((Hᵀ * (1 : Matrix q q ℝ) * H) *ᵥ (u : r → ℝ)) := by
+            exact quadraticForm_mulVec_eq_pullback_rect
+              H (1 : Matrix q q ℝ) (u : r → ℝ)
+      _ = (u : r → ℝ) ⬝ᵥ (u : r → ℝ) := by
+            simp [hH]
+      _ = 1 := huunit
+  have hzscale : z = ‖x‖⁻¹ • Matrix.toEuclideanLin H x := by
+    change Matrix.toEuclideanLin H (‖x‖⁻¹ • x) = _
+    rw [map_smul]
+  have hzzeroBefore : ∀ i : Fin (Fintype.card q), i < Fin.castLE hcard j →
+      hM.eigenvectorBasis.repr z (eM i) = 0 := by
+    intro i hij
+    let i' : Fin j.val := ⟨i.val, by simpa using hij⟩
+    have hiCast : Fin.castLE hjq i' = i := by
+      ext
+      rfl
+    have hxzero : hM.eigenvectorBasis.repr (Matrix.toEuclideanLin H x) (eM i) = 0 := by
+      simpa [hiCast] using hHxzeroBefore i'
+    rw [hzscale, map_smul]
+    change ‖x‖⁻¹ *
+      hM.eigenvectorBasis.repr (Matrix.toEuclideanLin H x) (eM i) = 0
+    rw [hxzero, mul_zero]
+  have hlower := ordered_eigenvalue_le_quadForm_of_unit_of_zero_after
+    (M := C) hC j u huunit huzeroAfter
+  have hupper := quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
+    (M := M) hM (Fin.castLE hcard j) z hzunit hzzeroBefore
+  calc
+    hC.eigenvalues₀ j ≤ (u : r → ℝ) ⬝ᵥ (C *ᵥ (u : r → ℝ)) := hlower
+    _ = (z : q → ℝ) ⬝ᵥ (M *ᵥ (z : q → ℝ)) := by
+      symm
+      simpa [C, z] using
+        quadraticForm_mulVec_eq_pullback_rect H M (u : r → ℝ)
+    _ ≤ hM.eigenvalues₀ (Fin.castLE hcard j) := hupper
 
 private lemma sum_fin_filter_lt_eq_sum_castLE
     {n m : ℕ} (hmn : m ≤ n) (f : Fin n → ℝ) :
