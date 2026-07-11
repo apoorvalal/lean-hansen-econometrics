@@ -29,15 +29,23 @@ strengthened whitening construction select a leading ordered generalized-
 eigenvector block and prove that the same block carries a global determinant
 max certificate. Short compatibility projections package the two determinant
 maxima as a G/`A⊥` max/max pair while intentionally forgetting the ordered-root
-evidence. Positive definiteness of `Ỹ'Ỹ` also constructs Hansen's canonical
-dual block and proves its displayed dual relation. The remaining spectral gap
-is simultaneous G/`A⊥` dual compatibility: choosing representatives inside
-tied eigenspaces so that the canonical dual block lies in the required
-residual-pencil eigenspace and yields the cross orthogonality `A⊥' Ahat = 0`.
+evidence. The retained leading-root surface also proves the distinct
+`det (I - compression)` minimum required by equation (11.20). Under the exact
+complement-pencil identity and nonzero selected roots, the canonical dual block
+is now proved to lie in the `1 - lambda` residual-pencil eigenspaces. Disjoint
+selected/complement roots then give a simultaneous identified max/max
+certificate, allowing arbitrary ties within either selected family. The
+remaining spectral gap is the cross-boundary tie: representatives must be
+chosen jointly inside that tied eigenspace rather than as independent leading
+blocks. The residualized-data endpoint also still needs the exact complement-
+pencil identity derived from its FWL definitions.
 
 The legacy `ReducedRankMLE` name below denotes only a formula certificate. Raw
 Gaussian likelihood, positive-definite covariance, admissibility, and global
 likelihood comparison are deliberately separated into `ReducedRankLikelihood`.
+The canonical profiled value below uses the corrected raw-Gaussian constant;
+Hansen's erroneous printed constant is retained only under an explicit
+textbook-literal compatibility name.
 -/
 
 open scoped Matrix
@@ -757,6 +765,94 @@ theorem generalizedEigenDetProductUpperBound_identity_of_posSemidef_ordered
       exact (Equiv.prod_comp (Fintype.equivFin r)
         (fun j : Fin (Fintype.card r) =>
           hM.1.eigenvalues₀ (Fin.castLE hcard j))).symm
+
+/-- Complement-product lower bound transported from an ordinary whitened
+matrix to a generalized pencil.
+
+When the whitened numerator satisfies `0 <= M <= I`, every B-normalized
+competitor `H` satisfies that the product of one minus the leading ordered
+eigenvalues is at most `det (I - H' A H)`. This is the determinant direction
+needed by equation (11.20); it is stronger than, and is not inferred from, a
+maximum of `det (H' A H)`. -/
+theorem generalizedEigenComplementDetLowerBound_of_whitening
+    [DecidableEq k]
+    (A B M T : Matrix k k ℝ)
+    (hA : A = Tᵀ * M * T) (hB : B = Tᵀ * T)
+    (hM : M.PosSemidef) (hIM : (1 - M).PosSemidef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∀ H : Matrix k r ℝ, generalizedEigenvectorBNormalized B H →
+      ∏ j : r,
+          (1 - hM.1.eigenvalues₀
+            (Fin.castLE hcard ((Fintype.equivFin r) j))) ≤
+        (1 - Hᵀ * A * H).det := by
+  intro H hH
+  change Hᵀ * B * H = 1 at hH
+  have hTH : (T * H)ᵀ * (T * H) = (1 : Matrix r r ℝ) := by
+    calc
+      (T * H)ᵀ * (T * H) = Hᵀ * Tᵀ * (T * H) := by
+        rw [Matrix.transpose_mul]
+      _ = Hᵀ * (Tᵀ * T) * H := by simp [Matrix.mul_assoc]
+      _ = Hᵀ * B * H := by rw [← hB]
+      _ = 1 := hH
+  have hBound :=
+    prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression_reindex
+      hM hIM (T * H) hTH hcard
+  have hCompression :
+      (T * H)ᵀ * M * (T * H) = Hᵀ * A * H := by
+    calc
+      (T * H)ᵀ * M * (T * H) = Hᵀ * (Tᵀ * M * T) * H := by
+        rw [Matrix.transpose_mul]
+        simp [Matrix.mul_assoc]
+      _ = Hᵀ * A * H := by rw [← hA]
+  rw [hCompression] at hBound
+  exact hBound
+
+/-- A normalized leading generalized-eigenblock minimizes the complement
+determinant used by Hansen's profiled equation (11.20).
+
+The leading-root formula is retained explicitly in the hypotheses instead of
+being projected to a bare determinant-max certificate. Together with
+`0 <= M <= I`, this proves the correct `det (I - compression)` comparison over
+every B-normalized competitor, including multi-column blocks. -/
+theorem generalizedEigenLeadingComplementDetMinimal_of_whitening
+    [DecidableEq k]
+    (A B M T : Matrix k k ℝ)
+    (hA : A = Tᵀ * M * T) (hB : B = Tᵀ * T)
+    (hM : M.PosSemidef) (hIM : (1 - M).PosSemidef)
+    (hcard : Fintype.card r ≤ Fintype.card k)
+    (G : Matrix k r ℝ)
+    (hEig : generalizedEigenvectorColumns A B
+      (fun j : r => hM.1.eigenvalues₀
+        (Fin.castLE hcard ((Fintype.equivFin r) j))) G)
+    (hNorm : generalizedEigenvectorBNormalized B G) :
+    ∀ H : Matrix k r ℝ, generalizedEigenvectorBNormalized B H →
+      (1 - Gᵀ * A * G).det ≤ (1 - Hᵀ * A * H).det := by
+  let lambda : r → ℝ := fun j => hM.1.eigenvalues₀
+    (Fin.castLE hcard ((Fintype.equivFin r) j))
+  have hGCompression : Gᵀ * A * G = Matrix.diagonal lambda := by
+    calc
+      Gᵀ * A * G = (Gᵀ * B * G) * Matrix.diagonal lambda :=
+        generalizedEigenvectorColumns_crossGram_eq_mul_diagonal
+          A B lambda G hEig
+      _ = Matrix.diagonal lambda := by
+        change Gᵀ * B * G = 1 at hNorm
+        rw [hNorm]
+        simp
+  have hGDet :
+      (1 - Gᵀ * A * G).det = ∏ j : r, (1 - lambda j) := by
+    rw [hGCompression]
+    rw [show (1 : Matrix r r ℝ) - Matrix.diagonal lambda =
+      Matrix.diagonal (fun j => 1 - lambda j) by
+        ext i j
+        by_cases hij : i = j
+        · subst j
+          simp
+        · simp [hij]]
+    rw [Matrix.det_diagonal]
+  intro H hH
+  rw [hGDet]
+  exact generalizedEigenComplementDetLowerBound_of_whitening
+    A B M T hA hB hM hIM hcard H hH
 
 /-- Multi-column determinant variational theorem in the top-eigenvalue
 plateau case.
@@ -2329,6 +2425,62 @@ theorem generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_pos
       A B T S M hBT' rfl hST hTS hMPos hcard
   exact ⟨T, S, M, hMPos, G, hBT', rfl, hST, hTS, hG⟩
 
+/-- A positive-semidefinite/positive-definite pencil with `A <= B` admits one
+leading block carrying both spectral objective certificates needed by Hansen's
+G-side analysis.
+
+The returned G is the same leading ordered generalized-eigenblock in the
+determinant-max certificate and in the universal
+`det (I - G' A G) <= det (I - H' A H)` comparison. The whitening data and exact
+ordered-root formula are retained, so no complement extremum is inferred from
+the bare determinant maximum. -/
+theorem generalizedEigenLeadingComplementDetMinimal_exists_of_posSemidef_posDef
+    [DecidableEq k]
+    (A B : Matrix k k ℝ) (hA : A.PosSemidef) (hB : B.PosDef)
+    (hAB : A ≤ B)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ (T S M : Matrix k k ℝ) (hMPos : M.PosSemidef)
+        (G : Matrix k r ℝ),
+      B = Tᵀ * T ∧
+        M = Sᵀ * A * S ∧
+        S * T = 1 ∧
+        T * S = 1 ∧
+        (1 - M).PosSemidef ∧
+        GeneralizedEigenDetProductMaxCertificate A B G
+          (fun j : r => hMPos.1.eigenvalues₀
+            (Fin.castLE hcard ((Fintype.equivFin r) j))) ∧
+        (∀ H : Matrix k r ℝ, generalizedEigenvectorBNormalized B H →
+          (1 - Gᵀ * A * G).det ≤ (1 - Hᵀ * A * H).det) := by
+  obtain ⟨T, S, M, hMPos, G, hBT, hMA, hST, hTS, hG⟩ :=
+    generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef
+      (r := r) A B hA hB hcard
+  have hSBS : Sᵀ * B * S = (1 : Matrix k k ℝ) := by
+    rw [hBT]
+    calc
+      Sᵀ * (Tᵀ * T) * S = (T * S)ᵀ * (T * S) := by
+        simp [Matrix.transpose_mul, Matrix.mul_assoc]
+      _ = 1 := by rw [hTS]; simp
+  have hSIM : Sᵀ * (B - A) * S = (1 : Matrix k k ℝ) - M := by
+    calc
+      Sᵀ * (B - A) * S = Sᵀ * B * S - Sᵀ * A * S := by
+        rw [Matrix.mul_sub, Matrix.sub_mul]
+      _ = 1 - M := by rw [hSBS, ← hMA]
+  have hIM : ((1 : Matrix k k ℝ) - M).PosSemidef := by
+    have hcong := (Matrix.le_iff.mp hAB).conjTranspose_mul_mul_same S
+    rw [Matrix.conjTranspose_eq_transpose_of_trivial, hSIM] at hcong
+    exact hcong
+  have hAFactor : A = Tᵀ * M * T := by
+    calc
+      A = (S * T)ᵀ * A * (S * T) := by rw [hST]; simp
+      _ = Tᵀ * (Sᵀ * A * S) * T := by
+        simp [Matrix.transpose_mul, Matrix.mul_assoc]
+      _ = Tᵀ * M * T := by rw [← hMA]
+  have hMinimal :=
+    generalizedEigenLeadingComplementDetMinimal_of_whitening
+      A B M T hAFactor hBT hMPos hIM hcard G
+        hG.eigenvectors hG.normalized
+  exact ⟨T, S, M, hMPos, G, hBT, hMA, hST, hTS, hIM, hG, hMinimal⟩
+
 /-- Compatibility projection of
 `generalizedEigenLeadingDetProductMaxCertificate_exists_of_posSemidef_posDef`.
 
@@ -2512,6 +2664,45 @@ theorem reducedRankGPencilA_posSemidef
   have h := hP.conjTranspose_mul_mul_same Xtilde
   simpa [reducedRankGPencilA, reducedRankGWhitenedProjection,
     Matrix.conjTranspose, Matrix.star_apply, Matrix.mul_assoc] using h
+
+omit [DecidableEq n] [Fintype k] in
+open scoped MatrixOrder in
+/-- Hansen's G-pencil numerator is bounded above by its denominator when the
+outcome Gram is positive definite.
+
+The difference is the congruence `Xtilde' M_Y Xtilde` of the orthogonal
+annihilator for `Ytilde`, hence is positive semidefinite. This supplies the
+literal `0 <= M <= I` order input after whitening; it does not by itself turn a
+compressed-determinant maximum into an extremum of `det (I - compression)`. -/
+theorem reducedRankGPencilA_le_pencilB_of_yGram_posDef
+    [Finite k]
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef) :
+    reducedRankGPencilA Xtilde Ytilde ≤ reducedRankGPencilB Xtilde := by
+  classical
+  letI := Fintype.ofFinite k
+  have hYdet : IsUnit (Ytildeᵀ * Ytilde).det :=
+    (Matrix.isUnit_iff_isUnit_det (Ytildeᵀ * Ytilde)).mp hYGram.isUnit
+  letI : Invertible (Ytildeᵀ * Ytilde) :=
+    Matrix.invertibleOfIsUnitDet (A := Ytildeᵀ * Ytilde) hYdet
+  let M : Matrix n n ℝ := annihilatorMatrix Ytilde
+  have hMPos : M.PosSemidef :=
+    posSemidef_of_transpose_eq_self_idempotent M
+      (by simpa [M] using annihilatorMatrix_transpose Ytilde)
+      (by simpa [M] using annihilatorMatrix_idempotent Ytilde)
+  have hCongr : (Xtildeᵀ * M * Xtilde).PosSemidef := by
+    have h := hMPos.conjTranspose_mul_mul_same Xtilde
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using h
+  rw [Matrix.le_iff]
+  have hDiff :
+      reducedRankGPencilB Xtilde - reducedRankGPencilA Xtilde Ytilde =
+        Xtildeᵀ * M * Xtilde := by
+    simp only [reducedRankGPencilA, reducedRankGPencilB, M,
+      annihilatorMatrix, hatMatrix, Matrix.invOf_eq_nonsing_inv]
+    rw [Matrix.mul_sub, Matrix.mul_one, Matrix.sub_mul]
+    simp [Matrix.mul_assoc]
+  rw [hDiff]
+  exact hCongr
 
 omit [DecidableEq n] [Fintype m] [DecidableEq m] in
 /-- Hansen's residual-pencil numerator `Ẽ'Ẽ` is positive semidefinite. -/
@@ -2739,6 +2930,41 @@ variable [Fintype r] [DecidableEq r]
 def reducedRankGNormalized
     (Xtilde : Matrix n k ℝ) (G : Matrix k r ℝ) : Prop :=
   generalizedEigenvectorBNormalized (reducedRankGPencilB Xtilde) G
+
+omit [DecidableEq n] [Fintype ell] [DecidableEq ell] in
+/-- Hansen's G pencil admits a normalized leading block that minimizes the
+complement determinant in equation (11.20).
+
+This is the chapter-facing specialization of
+`generalizedEigenLeadingComplementDetMinimal_exists_of_posSemidef_posDef`.
+The returned roots are exactly the leading ordered roots of the whitened
+positive-semidefinite numerator; the same `G` carries both their generalized
+eigenvector equations and the universal `det (I - compression)` comparison. -/
+theorem reducedRankGLeadingComplementDetMinimal_exists
+    (Xtilde : Matrix n k ℝ) (Ytilde : Matrix n m ℝ)
+    (hXGram : (Xtildeᵀ * Xtilde).PosDef)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hcard : Fintype.card r ≤ Fintype.card k) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ),
+      reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
+        reducedRankGNormalized Xtilde G ∧
+        (∀ H : Matrix k r ℝ, reducedRankGNormalized Xtilde H →
+          (1 - Gᵀ * reducedRankGPencilA Xtilde Ytilde * G).det ≤
+            (1 - Hᵀ * reducedRankGPencilA Xtilde Ytilde * H).det) := by
+  classical
+  have hA : (reducedRankGPencilA Xtilde Ytilde).PosSemidef :=
+    reducedRankGPencilA_posSemidef Xtilde Ytilde
+  have hB : (reducedRankGPencilB Xtilde).PosDef := by
+    simpa [reducedRankGPencilB] using hXGram
+  have hAB :=
+    reducedRankGPencilA_le_pencilB_of_yGram_posDef Xtilde Ytilde hYGram
+  obtain ⟨T, S, M, hMPos, G, hBT, hMA, hST, hTS, hIM, hG, hMinimal⟩ :=
+    generalizedEigenLeadingComplementDetMinimal_exists_of_posSemidef_posDef
+      (r := r) (reducedRankGPencilA Xtilde Ytilde)
+        (reducedRankGPencilB Xtilde) hA hB hAB hcard
+  let lambda : r → ℝ := fun j =>
+    hMPos.1.eigenvalues₀ (Fin.castLE hcard ((Fintype.equivFin r) j))
+  exact ⟨G, lambda, hG.eigenvectors, hG.normalized, hMinimal⟩
 
 omit [DecidableEq n] [Fintype r] in
 /-- Hansen normalization of `G` says that the image block `X̃G` is ordinary
@@ -6104,6 +6330,140 @@ noncomputable def reducedRankDualEigenvectorBlock
     reducedRankAhat Xtilde Ytilde G * Lambda
 
 omit [DecidableEq n] in
+/-- The canonical dual block with identity scaling lies in the complementary
+residual-pencil eigenspaces with roots `1 - lambda`.
+
+The exact complement identity states
+`Etilde'Etilde = Ytilde'Ytilde - Ytilde'Xtilde
+  (Xtilde'Xtilde)⁻¹ Xtilde'Ytilde`. Under the two positive-definite Grams,
+Hansen's normalized G-eigenvector equations transport through the canonical
+dual map. Nonzero selected G roots are needed only to prove that the transported
+columns are nonzero generalized eigenvectors. Repeated selected roots are
+allowed; no cross-orthogonality or simultaneous eigenspace membership is
+assumed. -/
+theorem reducedRankDualEigenvectorBlock_one_aperpEigenvectors_of_complement
+    [DecidableEq k]
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (hXGram : (Xtildeᵀ * Xtilde).PosDef)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hComplement :
+      reducedRankAperpPencilA Etilde =
+        reducedRankAperpPencilB Ytilde -
+          (Ytildeᵀ * Xtilde) * (reducedRankGPencilB Xtilde)⁻¹ *
+            (Xtildeᵀ * Ytilde))
+    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
+    (hNorm : reducedRankGNormalized Xtilde G)
+    (hLambda : ∀ j, lambda j ≠ 0) :
+    reducedRankHansenAperpEigenvectors Etilde Ytilde
+      (fun j => 1 - lambda j)
+      (reducedRankDualEigenvectorBlock Xtilde Ytilde G 1) := by
+  let Q : Matrix k k ℝ := reducedRankGPencilB Xtilde
+  let S : Matrix m m ℝ := reducedRankAperpPencilB Ytilde
+  let W : Matrix m r ℝ := reducedRankDualEigenvectorBlock Xtilde Ytilde G 1
+  have hQPos : Q.PosDef := by
+    simpa [Q, reducedRankGPencilB] using hXGram
+  have hQdet : IsUnit Q.det :=
+    (Matrix.isUnit_iff_isUnit_det Q).mp hQPos.isUnit
+  have hQInv : Q⁻¹ * Q = 1 := Matrix.nonsing_inv_mul Q hQdet
+  have hSPos : S.PosDef := by
+    simpa [S, reducedRankAperpPencilB] using hYGram
+  have hSdet : IsUnit S.det :=
+    (Matrix.isUnit_iff_isUnit_det S).mp hSPos.isUnit
+  have hSW : S * W = Ytildeᵀ * Xtilde * G := by
+    change S * (S⁻¹ * reducedRankAhat Xtilde Ytilde G * (1 : Matrix r r ℝ)) =
+      Ytildeᵀ * Xtilde * G
+    rw [Matrix.mul_assoc S⁻¹ (reducedRankAhat Xtilde Ytilde G) 1,
+      ← Matrix.mul_assoc S S⁻¹ (reducedRankAhat Xtilde Ytilde G * 1),
+      Matrix.mul_nonsing_inv S hSdet, Matrix.one_mul, Matrix.mul_one,
+      reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm]
+  have hGEq :
+      reducedRankGPencilA Xtilde Ytilde * G =
+        Q * G * Matrix.diagonal lambda := by
+    simpa [Q] using
+      generalizedEigenvectorColumns_mul_eq_mul_diagonal
+        (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde)
+        lambda G hG
+  have hXTYW :
+      (Xtildeᵀ * Ytilde) * W = Q * G * Matrix.diagonal lambda := by
+    calc
+      (Xtildeᵀ * Ytilde) * W =
+          (Xtildeᵀ * Ytilde) *
+            ((Ytildeᵀ * Ytilde)⁻¹ * (Ytildeᵀ * Xtilde * G)) := by
+              rw [show W = (Ytildeᵀ * Ytilde)⁻¹ *
+                (Ytildeᵀ * Xtilde * G) by
+                  simp [W, reducedRankDualEigenvectorBlock,
+                    reducedRankAperpPencilB,
+                    reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm,
+                    Matrix.mul_assoc]]
+      _ = reducedRankGPencilA Xtilde Ytilde * G := by
+            simp [reducedRankGPencilA, Matrix.mul_assoc]
+      _ = Q * G * Matrix.diagonal lambda := hGEq
+  have hResidualTerm :
+      ((Ytildeᵀ * Xtilde) * Q⁻¹ * (Xtildeᵀ * Ytilde)) * W =
+        S * W * Matrix.diagonal lambda := by
+    calc
+      ((Ytildeᵀ * Xtilde) * Q⁻¹ * (Xtildeᵀ * Ytilde)) * W =
+          (Ytildeᵀ * Xtilde) * Q⁻¹ * ((Xtildeᵀ * Ytilde) * W) := by
+            simp [Matrix.mul_assoc]
+      _ = (Ytildeᵀ * Xtilde) * Q⁻¹ *
+          (Q * G * Matrix.diagonal lambda) := by rw [hXTYW]
+      _ = (Ytildeᵀ * Xtilde) * ((Q⁻¹ * Q) * G) *
+          Matrix.diagonal lambda := by simp [Matrix.mul_assoc]
+      _ = (Ytildeᵀ * Xtilde) * G * Matrix.diagonal lambda := by
+            rw [hQInv]
+            simp
+      _ = S * W * Matrix.diagonal lambda := by rw [hSW]
+  have hWEq :
+      reducedRankAperpPencilA Etilde * W =
+        S * W * Matrix.diagonal (fun j => 1 - lambda j) := by
+    calc
+      reducedRankAperpPencilA Etilde * W =
+          (S - (Ytildeᵀ * Xtilde) * Q⁻¹ * (Xtildeᵀ * Ytilde)) * W := by
+            rw [hComplement]
+      _ = S * W -
+          ((Ytildeᵀ * Xtilde) * Q⁻¹ * (Xtildeᵀ * Ytilde)) * W := by
+            rw [Matrix.sub_mul]
+      _ = S * W - S * W * Matrix.diagonal lambda := by rw [hResidualTerm]
+      _ = S * W * ((1 : Matrix r r ℝ) - Matrix.diagonal lambda) := by
+            rw [Matrix.mul_sub, Matrix.mul_one]
+      _ = S * W * Matrix.diagonal (fun j => 1 - lambda j) := by
+            congr 1
+            ext i j
+            by_cases hij : i = j
+            · subst j
+              simp
+            · simp [hij]
+  change generalizedEigenvectorColumns
+    (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
+    (fun j => 1 - lambda j) W
+  intro j
+  constructor
+  · intro hWzero
+    have hWcol : ∀ i, W i j = 0 := fun i => by
+      simpa using congrFun hWzero i
+    have hScaledCol : ∀ i, (Q * G * Matrix.diagonal lambda) i j = 0 := by
+      intro i
+      rw [← hXTYW]
+      simp [Matrix.mul_apply, hWcol]
+    have hQGcol : ∀ i, (Q * G) i j = 0 := by
+      intro i
+      have hi := hScaledCol i
+      have hi' : (Q * G) i j * lambda j = 0 := by
+        simpa [Matrix.mul_apply, Matrix.diagonal] using hi
+      exact (mul_eq_zero.mp hi').resolve_right (hLambda j)
+    have hQGvec : Q *ᵥ (fun a => G a j) = 0 := by
+      ext i
+      simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct] using hQGcol i
+    have hpos := hQPos.dotProduct_mulVec_pos (hG j).1
+    rw [hQGvec] at hpos
+    simp at hpos
+  · ext i
+    have hentry := congrArg (fun M : Matrix m r ℝ => M i j) hWEq
+    simpa [S, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+      Matrix.diagonal, mul_comm] using hentry
+
+omit [DecidableEq n] in
 /-- Positive definiteness of the residualized outcome Gram proves Hansen's
 displayed dual relation for the canonical dual block.
 
@@ -6512,6 +6872,46 @@ theorem
       (reducedRankDualEigenvectorBlock Xtilde Ytilde G Lambda)
       hMax.aperp_max.eigenvectors hDualEig hDisjoint)
     hLambdaInv
+
+set_option linter.style.longLine false in
+omit [DecidableEq n] in
+/-- Conditional simultaneous G/`Aperp` constructor with a sharp cross-boundary
+spectral-separation hypothesis.
+
+The exact complement-pencil identity and nonzero selected G roots make the
+identity-scaled canonical dual block a residual-pencil eigenblock with roots
+`1 - lambda`. The existing disjoint-root orthogonality theorem then identifies
+the independently selected direct-objective maximizers whenever
+`eta_i != 1 - lambda_j`. Ties within the selected G family or within the
+selected `Aperp` family are allowed; only a tie crossing the selected/complement
+boundary is excluded. This is a conditional bridge, not Hansen's still-open
+unconditional tied-boundary simultaneous construction. -/
+theorem
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_complement_pencil_of_separated_roots
+    [DecidableEq k] [Fintype s] [DecidableEq s]
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hMax : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (hXGram : (Xtildeᵀ * Xtilde).PosDef)
+    (hYGram : (Ytildeᵀ * Ytilde).PosDef)
+    (hComplement :
+      reducedRankAperpPencilA Etilde =
+        reducedRankAperpPencilB Ytilde -
+          (Ytildeᵀ * Xtilde) * (reducedRankGPencilB Xtilde)⁻¹ *
+            (Xtildeᵀ * Ytilde))
+    (hLambda : ∀ j, lambda j ≠ 0)
+    (hSeparated : ∀ i j, eta i ≠ 1 - lambda j) :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta :=
+  ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_canonical_dual_eigenblock
+    hMax (1 : Matrix r r ℝ) (1 : Matrix r r ℝ) (fun j => 1 - lambda j)
+    hYGram
+    (reducedRankDualEigenvectorBlock_one_aperpEigenvectors_of_complement
+      Xtilde Ytilde Etilde G lambda hXGram hYGram hComplement
+      hMax.g_max.eigenvectors hMax.g_max.normalized hLambda)
+    hSeparated (by simp)
 
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from the
@@ -7093,17 +7493,31 @@ theorem
     hOrdered W (reducedRankSelectedRootProduct_ne_zero_of_pos lambda hLambda)
     hDual hOrth
 
-/-- Hansen Theorem 11.7's displayed maximized log-likelihood formula, expressed
-through the residualized outcome cross-product and selected generalized
-eigenvalues.
+/-- Literal compatibility surface for Hansen Theorem 11.7's printed maximized
+log-likelihood display.
 
-This definition records the textbook display literally.  It does not by itself
-assert that the value is attained by, or even agrees with, the raw Gaussian
-log-likelihood; those are separate obligations in the likelihood layer. -/
-noncomputable def reducedRankMaximizedLogLikelihood
+The printed constant has the wrong sign and scale and omits the normalization
+term induced by profiling `SigmaHat = n⁻¹ R'R`. This definition is retained only
+to cite that textbook display; canonical formula certificates use
+`reducedRankMaximizedLogLikelihood`. -/
+noncomputable def reducedRankMaximizedLogLikelihood_textbookLiteralCompatibility
     (Ytilde : Matrix n m ℝ) (lambda : r → ℝ) : ℝ :=
   ((Fintype.card m : ℝ) / 2) *
       ((Fintype.card n : ℝ) * Real.log (2 * Real.pi) - 1)
+    - ((Fintype.card n : ℝ) / 2) * Real.log (Ytildeᵀ * Ytilde).det
+    - ((Fintype.card n : ℝ) / 2) * ∑ j, Real.log (1 - lambda j)
+
+/-- Correct raw-Gaussian profiled log-likelihood value in terms of the
+unnormalized residualized outcome Gram and selected generalized roots.
+
+The first term includes the `+(n*m/2) log n` contribution from
+`SigmaHat = n⁻¹ R'R`. This definition records the canonical candidate value
+only. Equality with an attained raw Gaussian likelihood still requires the
+relevant determinant factorization, positivity, and logarithm hypotheses. -/
+noncomputable def reducedRankMaximizedLogLikelihood
+    (Ytilde : Matrix n m ℝ) (lambda : r → ℝ) : ℝ :=
+  (((Fintype.card n : ℝ) * (Fintype.card m : ℝ)) / 2) *
+      (Real.log (Fintype.card n : ℝ) - Real.log (2 * Real.pi) - 1)
     - ((Fintype.card n : ℝ) / 2) * Real.log (Ytildeᵀ * Ytilde).det
     - ((Fintype.card n : ℝ) / 2) * ∑ j, Real.log (1 - lambda j)
 
@@ -7121,10 +7535,11 @@ def reducedRankCovarianceRecovery
     (G : Matrix k r ℝ) (Sigma : Matrix m m ℝ) : Prop :=
   Sigma = reducedRankSigmaHat Xtilde Ytilde G
 
-/-- Equality with Hansen Theorem 11.7's displayed likelihood value.
+/-- Equality with the corrected canonical profiled-likelihood value.
 
-Despite the legacy name of the right-hand side, this predicate is a formula
-identity only; it contains no likelihood comparison. -/
+This predicate is a formula identity only; it contains no likelihood
+comparison and assumes none of the determinant or logarithm hypotheses needed
+to derive the identity from the raw Gaussian likelihood. -/
 def reducedRankLikelihoodValue
     (Ytilde : Matrix n m ℝ) (lambda : r → ℝ) (logLikelihood : ℝ) : Prop :=
   logLikelihood = reducedRankMaximizedLogLikelihood Ytilde lambda

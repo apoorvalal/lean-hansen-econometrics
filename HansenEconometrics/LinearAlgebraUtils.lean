@@ -847,6 +847,126 @@ theorem hermitian_compression_ordered_eigenvalue_le
         quadraticForm_mulVec_eq_pullback_rect H M (u : r → ℝ)
     _ ≤ hM.eigenvalues₀ (Fin.castLE hcard j) := hupper
 
+private lemma det_one_sub_eq_prod_one_sub_ordered_eigenvalues
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {A : Matrix ι ι ℝ} (hA : A.IsHermitian) :
+    (1 - A).det =
+      ∏ j : Fin (Fintype.card ι), (1 - hA.eigenvalues₀ j) := by
+  classical
+  let e : Fin (Fintype.card ι) ≃ ι :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
+  calc
+    (1 - A).det = A.charpoly.eval 1 := by
+      rw [Matrix.eval_charpoly]
+      simp
+    _ = (∏ i : ι,
+        (Polynomial.X - Polynomial.C (hA.eigenvalues i))).eval 1 := by
+      rw [hA.charpoly_eq]
+      simp only [RCLike.ofReal_real_eq_id, id]
+    _ = ∏ i : ι, (1 - hA.eigenvalues i) := by
+      rw [Polynomial.eval_prod]
+      simp
+    _ = ∏ j : Fin (Fintype.card ι),
+        (1 - hA.eigenvalues (e j)) := by
+      exact (Equiv.prod_comp e (fun i : ι => 1 - hA.eigenvalues i)).symm
+    _ = ∏ j : Fin (Fintype.card ι),
+        (1 - hA.eigenvalues₀ j) := by
+      apply Finset.prod_congr rfl
+      intro j _
+      simp [Matrix.IsHermitian.eigenvalues, e]
+
+private lemma one_sub_ordered_eigenvalue_nonneg_of_one_sub_posSemidef
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {A : Matrix ι ι ℝ} (hA : A.IsHermitian)
+    (hIA : (1 - A).PosSemidef)
+    (j : Fin (Fintype.card ι)) :
+    0 ≤ 1 - hA.eigenvalues₀ j := by
+  classical
+  let e : Fin (Fintype.card ι) ≃ ι :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card ι))
+  let v : ι → ℝ := hA.eigenvectorBasis (e j)
+  have hvunit : v ⬝ᵥ v = 1 := by
+    have hv :=
+      (orthonormal_iff_ite.mp hA.eigenvectorBasis.orthonormal) (e j) (e j)
+    simpa [v] using hv
+  have heig : A *ᵥ v = hA.eigenvalues (e j) • v := by
+    simpa [v] using hA.mulVec_eigenvectorBasis (e j)
+  have hnonneg : 0 ≤ v ⬝ᵥ ((1 - A) *ᵥ v) := by
+    simpa using hIA.dotProduct_mulVec_nonneg v
+  calc
+    0 ≤ v ⬝ᵥ ((1 - A) *ᵥ v) := hnonneg
+    _ = v ⬝ᵥ (v - A *ᵥ v) := by rw [Matrix.sub_mulVec, Matrix.one_mulVec]
+    _ = v ⬝ᵥ v - v ⬝ᵥ (A *ᵥ v) := dotProduct_sub v v (A *ᵥ v)
+    _ = 1 - v ⬝ᵥ (hA.eigenvalues (e j) • v) := by rw [hvunit, heig]
+    _ = 1 - hA.eigenvalues (e j) := by simp [dotProduct_smul, hvunit]
+    _ = 1 - hA.eigenvalues₀ j := by
+      simp [Matrix.IsHermitian.eigenvalues, e]
+
+/-- Complement-determinant lower bound for an orthonormal-column Hermitian
+compression.
+
+If both `M` and `I - M` are positive semidefinite, then the product of the
+complements of the leading `card r` ordered eigenvalues of `M` is at most
+`det (I - Hᵀ M H)` for every `H` with orthonormal columns. Mathlib's
+`eigenvalues₀` are nonincreasing, so Ritz upper interlacing reverses after
+subtracting from one. -/
+theorem prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression
+    {q r : Type*} [Fintype q] [Fintype r] [DecidableEq q] [DecidableEq r]
+    {M : Matrix q q ℝ} (hM : M.PosSemidef)
+    (hIM : (1 - M).PosSemidef)
+    (H : Matrix q r ℝ) (hH : Hᵀ * H = 1)
+    (hcard : Fintype.card r ≤ Fintype.card q) :
+    ∏ j : Fin (Fintype.card r),
+        (1 - hM.1.eigenvalues₀ (Fin.castLE hcard j)) ≤
+      (1 - Hᵀ * M * H).det := by
+  classical
+  let C : Matrix r r ℝ := Hᵀ * M * H
+  have hC : C.PosSemidef := by
+    have hcomp := hM.conjTranspose_mul_mul_same H
+    simpa [C, Matrix.conjTranspose, Matrix.star_apply] using hcomp
+  have hEigLe : ∀ j : Fin (Fintype.card r),
+      hC.1.eigenvalues₀ j ≤
+        hM.1.eigenvalues₀ (Fin.castLE hcard j) := by
+    intro j
+    simpa [C] using
+      (hermitian_compression_ordered_eigenvalue_le hM.1 H hH hcard j)
+  have hFactorNonneg : ∀ j : Fin (Fintype.card r),
+      0 ≤ 1 - hM.1.eigenvalues₀ (Fin.castLE hcard j) := by
+    intro j
+    exact one_sub_ordered_eigenvalue_nonneg_of_one_sub_posSemidef
+      hM.1 hIM (Fin.castLE hcard j)
+  have hprod :
+      ∏ j : Fin (Fintype.card r),
+          (1 - hM.1.eigenvalues₀ (Fin.castLE hcard j)) ≤
+        ∏ j : Fin (Fintype.card r),
+          (1 - hC.1.eigenvalues₀ j) :=
+    Finset.prod_le_prod
+      (fun j _ => hFactorNonneg j)
+      (fun j _ => sub_le_sub_left (hEigLe j) 1)
+  rw [← det_one_sub_eq_prod_one_sub_ordered_eigenvalues hC.1] at hprod
+  exact hprod
+
+/-- Reindexed form of
+`prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression` for APIs whose
+selected eigenvalues are indexed by the compression column type itself. -/
+theorem prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression_reindex
+    {q r : Type*} [Fintype q] [Fintype r] [DecidableEq q] [DecidableEq r]
+    {M : Matrix q q ℝ} (hM : M.PosSemidef)
+    (hIM : (1 - M).PosSemidef)
+    (H : Matrix q r ℝ) (hH : Hᵀ * H = 1)
+    (hcard : Fintype.card r ≤ Fintype.card q) :
+    ∏ j : r,
+        (1 - hM.1.eigenvalues₀
+          (Fin.castLE hcard ((Fintype.equivFin r) j))) ≤
+      (1 - Hᵀ * M * H).det := by
+  have hbound :=
+    prod_one_sub_ordered_eigenvalues_le_det_one_sub_compression
+      hM hIM H hH hcard
+  rw [← Equiv.prod_comp (Fintype.equivFin r)
+    (fun j : Fin (Fintype.card r) =>
+      1 - hM.1.eigenvalues₀ (Fin.castLE hcard j))] at hbound
+  exact hbound
+
 private lemma sum_fin_filter_lt_eq_sum_castLE
     {n m : ℕ} (hmn : m ≤ n) (f : Fin n → ℝ) :
     (Finset.univ.filter (fun i : Fin n => (i : ℕ) < m)).sum f =
