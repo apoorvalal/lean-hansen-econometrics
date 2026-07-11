@@ -1,7 +1,9 @@
 import HansenEconometrics.AsymptoticUtils
+import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
 import HansenEconometrics.Chapter7Asymptotics.Consistency
 import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.LIML
+import Mathlib.Probability.Independence.Conditional
 
 /-!
 # Chapter 12 — many instruments
@@ -2791,13 +2793,12 @@ theorem toEntryWLLNConditions
 end ManyInstrumentsProjectedErrorTraceRemainderCanonicalRowAverageConditions
 
 omit [DecidableEq k] in
-/-- Matrix/vector row WLLN inputs for the projected-error trace remainders.
+/-- Compatibility-only matrix/vector row WLLN inputs for projected remainders.
 
-This is the finite-dimensional row-process form of the remaining
-homoskedastic projection step.  Instead of asking for separate scalar WLLN
-certificates for every matrix entry and vector coordinate, it records one
-matrix row process and one vector row process whose sample averages are the
-two projected-error trace remainders and whose means are zero. -/
+This generic implication is valid if such iid additive rows are independently
+constructed. Hansen's projected quadratic forms do not supply them because
+`P_Z` couples all observations. New theorem-facing work must use
+`ManyInstrumentsProjectionQuadraticMeanSquareConditions`. -/
 structure ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -3054,14 +3055,11 @@ theorem toCanonicalRowAverageConditions
 end ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
 
 omit [DecidableEq k] in
-/-- Scalar sample-average WLLN inputs for the entrywise projected-error trace
-remainders in Hansen's many-instrument argument.
+/-- Compatibility-only scalar row-average inputs for projected remainders.
 
-This is a Chapter-7-WLLN-facing primitive for the remaining homoskedastic
-projection step.  For each fixed matrix entry and vector coordinate, the caller
-identifies the projected-error trace remainder with the sample mean of a
-scalar row process whose mean is zero.  The constructor below then supplies the
-entrywise `o_p(1)` package used by the theorem-facing wrappers. -/
+This package does not follow from Hansen's iid errors because projection makes
+the canonical summands dependent. It is retained only for callers that have
+an independent additive representation from a separate argument. -/
 structure ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -3252,13 +3250,12 @@ theorem of_joint_row_wlln
 end ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
 
 omit [∀ m, DecidableEq (ι m)] in
-/-- Scalar sample-average WLLN inputs for the remaining sample LIML eigenvalue
-adjustment gap in Hansen Theorem 12.19.
+/-- Compatibility-only scalar row-average inputs for the LIML gap.
 
-The field `adjustment_gap_eq_avg` identifies
-`μ̂_n - (ℓ_n/n)/(1 - ℓ_n/n)` with a scalar sample mean.  The constructor below
-uses the Chapter 7 WLLN to produce
-`ManyInstrumentsLIMLSampleEigenvalueProblemConditions`. -/
+The implication from the stated additive representation is valid, but a LIML
+generalized eigenvalue is not itself an additive row statistic. Hansen's raw
+model therefore does not construct this package; use normalized-pencil
+convergence and a generalized-eigenvalue selector instead. -/
 structure ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (limlMuHat : ℕ → Ω → ℝ)
@@ -3407,15 +3404,12 @@ Rayleigh quotient, `[Y X]'M_Z[Y X]` with `M_Z = I - P_Z`. -/
       Matrix.fromCols (fun i (_ : Unit) => Y i) X
     Wᵀ * ((1 : Matrix n n ℝ) - instrumentProjectionStar Z) * W
 
-/-- Finite-sample Rayleigh/eigenvalue adjustment-gap WLLN input for Hansen
-Theorem 12.19.
+/-- Compatibility finite-sample Rayleigh/eigenvalue adjustment-gap input.
 
-This is the strongest local audit surface for the LIML eigenvalue side of the
-many-instrument theorem. It states that `μ̂_n` is the minimizing generalized
-Rayleigh value for Hansen's sample `[Y X]'P_Z[Y X]` / `[Y X]'M_Z[Y X]`
-problem, and separately records the row-average WLLN proving
-`μ̂_n - (ℓ_n/n)/(1-ℓ_n/n) = o_p(1)`. The spectral theorem constructing these
-fields from Hansen's primitive assumptions remains outside the current file. -/
+The Rayleigh audit field is genuine, but the separate iid row decomposition of
+the selected eigenvalue gap is not supplied by Hansen's assumptions. The
+canonical replacement is
+`ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate`. -/
 structure ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -3475,15 +3469,11 @@ theorem toSampleEigenvalueProblemConditions
 end ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
 
 omit [DecidableEq k] in
-/-- One joint row-process package for Hansen Theorem 12.19's projected-error
-trace remainders and finite-sample LIML Rayleigh adjustment gap.
+/-- Compatibility-only joint row package for projected and eigenvalue gaps.
 
-This is the narrowest currently implemented row-WLLN boundary for the
-many-instrument stochastic remainder: a single iid row process carries the
-matrix projected-error remainder, the vector projected-error score remainder,
-and the centered LIML eigenvalue adjustment.  The finite-sample Rayleigh
-minimizer is retained as an audit field, while the constructors below recover
-the separate packages consumed by the theorem-facing endpoints. -/
+Neither a projected quadratic form nor a selected generalized eigenvalue has
+this iid additive structure in Hansen's model. The package remains only as a
+generic compatibility implication and is deprecated below. -/
 structure ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
@@ -3526,15 +3516,11 @@ structure ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
 namespace ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
 
 omit [DecidableEq k] in
-/-- Construct the joint projected-error/Rayleigh row package from one raw
-integrable iid row process.
+/-- Compatibility constructor from an explicitly supplied iid additive row.
 
-This is the row-process boundary closest to Hansen's homoskedastic
-many-instrument calculation: the caller identifies the three finite-sample
-remainders as sample averages of the three coordinates of one row object,
-proves that row object is iid with mean zero, and supplies the finite-sample
-Rayleigh minimizer audit field.  The component WLLN inputs used downstream are
-then obtained by continuous linear projection. -/
+Its premises are not consequences of Hansen's raw conditional model. In
+particular, this declaration must not be used to label an arbitrary row object
+as the projected-form or eigenvalue remainder. -/
 theorem of_raw_joint_row
     {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
     {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
@@ -13137,6 +13123,675 @@ theorem manyInstruments_estimators_minus_beta_theorem12_19_kappa
     manyInstruments_twoSLSBetaStar_minus_beta_tendstoInMeasure h h2SLS_meas,
     manyInstruments_limlKClassBetaStar_kappa_minus_beta_tendstoInMeasure
       h hLIML_meas hkappa⟩
+
+/-! ## Raw conditional model and generalized-pencil route
+
+The compatibility interfaces above include sample-average decompositions of
+projected quadratic forms and of the LIML eigenvalue gap.  Those are not raw
+many-instrument assumptions: projection couples all observations, and a
+generalized eigenvalue is not an additive row statistic.  The declarations
+below provide the canonical replacement boundary.  Projected quadratic forms
+are controlled by conditional mean-square bounds, while the LIML adjustment
+is obtained by continuous mapping from the normalized sample pencil.
+-/
+
+/-- Loading from the reduced-form signal `s = ZΓ` into the joint data row
+`[Y X]`: its first column is `s'β` and its remaining columns are `s`. -/
+noncomputable def manyInstrumentsStructuralLoading
+    (β : k → ℝ) : Matrix k (Sum Unit k) ℝ :=
+  fun i j => match j with
+    | Sum.inl _ => β i
+    | Sum.inr h => if i = h then 1 else 0
+
+/-- Structural-residual direction `[1; -β]`.  It annihilates the signal
+loading and therefore attains the smallest limiting LIML root. -/
+def manyInstrumentsStructuralResidualDirection
+    (β : k → ℝ) : Sum Unit k → ℝ
+  | Sum.inl _ => 1
+  | Sum.inr j => -β j
+
+/-- Full reduced-form error row `[e,u₂]`. -/
+noncomputable def manyInstrumentsReducedFormErrorData
+    {n : Type*} [Fintype n]
+    (e : n → ℝ) (u2 : Matrix n k ℝ) : Matrix n (Sum Unit k) ℝ :=
+  Matrix.fromCols (fun i (_ : Unit) => e i) u2
+
+/-- The `u₂u₂'` block of Hansen's full reduced-form error covariance. -/
+def manyInstrumentsSigma22
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : Matrix k k ℝ :=
+  fun a b => Sigma (Sum.inr a) (Sum.inr b)
+
+/-- The `u₂e` block of Hansen's full reduced-form error covariance. -/
+def manyInstrumentsSigma2e
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) : k → ℝ :=
+  fun a => Sigma (Sum.inr a) (Sum.inl ())
+
+/-- Normalized full reduced-error projected moment `n⁻¹u'P_Zu`.
+
+Unlike `sampleGram (P_Z u)`, this is Hansen's quadratic form directly and
+does not hide symmetry/idempotence behind a transformed-row representation. -/
+noncomputable def manyInstrumentsProjectedFullErrorMoment
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  let U := manyInstrumentsReducedFormErrorData e u2
+  (Fintype.card n : ℝ)⁻¹ • (Uᵀ * instrumentProjectionStar Z * U)
+
+/-- Centered projected reduced-error moment from Hansen's conditional
+homoskedastic calculation. -/
+noncomputable def manyInstrumentsProjectedFullErrorCentered
+    {n l : Type*} [Fintype n] [Fintype l] [DecidableEq n] [DecidableEq l]
+    (Z : Matrix n l ℝ) (e : n → ℝ) (u2 : Matrix n k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  manyInstrumentsProjectedFullErrorMoment Z e u2 -
+    manyInstrumentProjectionTraceRatio Z • Sigma
+
+/-- Hansen's normalized finite-sample LIML pencil
+`(n⁻¹[Y X]'P_Z[Y X], n⁻¹[Y X]'M_Z[Y X])`. -/
+noncomputable def manyInstrumentsLIMLNormalizedSamplePencil
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (m : ℕ) (ω : Ω) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  ((m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighNumerator
+      (Z m ω) (X m ω) (Y m ω),
+    (m : ℝ)⁻¹ • manyInstrumentsLIMLSampleRayleighDenominator
+      (Z m ω) (X m ω) (Y m ω))
+
+/-- Limiting numerator of the many-instrument LIML pencil:
+`B'HB + αΣ`. -/
+noncomputable def manyInstrumentsLIMLLimitNumerator
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (manyInstrumentsStructuralLoading β)ᵀ * H *
+      manyInstrumentsStructuralLoading β + alpha • Sigma
+
+/-- Limiting denominator of the many-instrument LIML pencil: `(1-α)Σ`. -/
+noncomputable def manyInstrumentsLIMLLimitDenominator
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (1 - alpha) • Sigma
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem manyInstrumentsStructuralResidualDirection_inl
+    (β : k → ℝ) (u : Unit) :
+    manyInstrumentsStructuralResidualDirection β (Sum.inl u) = 1 := rfl
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem manyInstrumentsStructuralResidualDirection_inr
+    (β : k → ℝ) (j : k) :
+    manyInstrumentsStructuralResidualDirection β (Sum.inr j) = -β j := rfl
+
+/-- The structural-residual direction annihilates the signal loading. -/
+theorem manyInstrumentsStructuralLoading_mulVec_residualDirection
+    (β : k → ℝ) :
+    manyInstrumentsStructuralLoading β *ᵥ
+        manyInstrumentsStructuralResidualDirection β = 0 := by
+  ext i
+  simp [manyInstrumentsStructuralLoading,
+    manyInstrumentsStructuralResidualDirection, Matrix.mulVec, dotProduct]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The structural-residual direction is nonzero. -/
+theorem manyInstrumentsStructuralResidualDirection_ne_zero
+    (β : k → ℝ) : manyInstrumentsStructuralResidualDirection β ≠ 0 := by
+  intro h
+  have hh := congrFun h (Sum.inl ())
+  simp at hh
+
+private theorem manyInstruments_signal_quadratic_eq
+    (H : Matrix k k ℝ) (β : k → ℝ) (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) =
+      (manyInstrumentsStructuralLoading β *ᵥ g) ⬝ᵥ
+        (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g)) := by
+  calc
+    g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) =
+        g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ *
+          (H * manyInstrumentsStructuralLoading β)) *ᵥ g) := by
+      rw [Matrix.mul_assoc]
+    _ = g ⬝ᵥ ((manyInstrumentsStructuralLoading β)ᵀ *ᵥ
+          (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g))) := by
+      rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec]
+    _ = (manyInstrumentsStructuralLoading β *ᵥ g) ⬝ᵥ
+        (H *ᵥ (manyInstrumentsStructuralLoading β *ᵥ g)) := by
+      conv_lhs =>
+        rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+        simp
+      rw [Matrix.mulVec_mulVec]
+
+private theorem manyInstruments_limit_numerator_quadratic
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (manyInstrumentsLIMLLimitNumerator β H Sigma alpha *ᵥ g) =
+      g ⬝ᵥ (((manyInstrumentsStructuralLoading β)ᵀ * H *
+        manyInstrumentsStructuralLoading β) *ᵥ g) +
+        alpha * (g ⬝ᵥ (Sigma *ᵥ g)) := by
+  rw [manyInstrumentsLIMLLimitNumerator, Matrix.add_mulVec, dotProduct_add,
+    Matrix.smul_mulVec, dotProduct_smul]
+  rfl
+
+omit [DecidableEq k] in
+private theorem manyInstruments_limit_denominator_quadratic
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (g : Sum Unit k → ℝ) :
+    g ⬝ᵥ (manyInstrumentsLIMLLimitDenominator Sigma alpha *ᵥ g) =
+      (1 - alpha) * (g ⬝ᵥ (Sigma *ᵥ g)) := by
+  rw [manyInstrumentsLIMLLimitDenominator, Matrix.smul_mulVec,
+    dotProduct_smul]
+  rfl
+
+/-- The positive-denominator Rayleigh minimum of the limiting
+many-instrument pencil is `α/(1-α)`.
+
+The witness is `[1;-β]`; positive definiteness of `Σ` makes it admissible.
+The lower bound is the nonnegative signal quadratic form. -/
+theorem manyInstrumentsLIMLLimit_rayleighMinimizer
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+      (manyInstrumentsLIMLLimitDenominator Sigma alpha)
+      (alpha / (1 - alpha)) := by
+  have hc : 0 < 1 - alpha := by linarith
+  have hc0 : 1 - alpha ≠ 0 := hc.ne'
+  have hg0 : manyInstrumentsStructuralResidualDirection β ≠ 0 :=
+    manyInstrumentsStructuralResidualDirection_ne_zero β
+  have hq0 : 0 < manyInstrumentsStructuralResidualDirection β ⬝ᵥ
+      (Sigma *ᵥ manyInstrumentsStructuralResidualDirection β) :=
+    hSigma.dotProduct_mulVec_pos hg0
+  constructor
+  · refine ⟨manyInstrumentsStructuralResidualDirection β, ?_, ?_⟩
+    · rw [limlRayleighAdmissible,
+        manyInstruments_limit_denominator_quadratic]
+      positivity
+    · rw [limlRayleighQuotient,
+        manyInstruments_limit_numerator_quadratic,
+        manyInstruments_limit_denominator_quadratic,
+        manyInstruments_signal_quadratic_eq,
+        manyInstrumentsStructuralLoading_mulVec_residualDirection]
+      simp
+      field_simp [hc0, hq0.ne']
+  · intro g hg
+    have hden : 0 < (1 - alpha) * (g ⬝ᵥ (Sigma *ᵥ g)) := by
+      simpa [limlRayleighAdmissible,
+        manyInstruments_limit_denominator_quadratic] using hg
+    have hsignal : 0 ≤ g ⬝ᵥ
+        (((manyInstrumentsStructuralLoading β)ᵀ * H *
+          manyInstrumentsStructuralLoading β) *ᵥ g) := by
+      rw [manyInstruments_signal_quadratic_eq]
+      exact hH.dotProduct_mulVec_nonneg _
+    rw [limlRayleighQuotient,
+      manyInstruments_limit_numerator_quadratic,
+      manyInstruments_limit_denominator_quadratic]
+    apply (le_div_iff₀ hden).2
+    field_simp [hc0]
+    nlinarith
+
+/-- Chapter 11 rank-one generalized-pencil lower-bound certificate for the
+same limiting root. -/
+theorem manyInstrumentsLIMLLimit_generalizedEigenProductLowerBound
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (hH : H.PosSemidef) (halpha : alpha < 1) :
+    generalizedEigenDetProductLowerBound
+      (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+      (manyInstrumentsLIMLLimitDenominator Sigma alpha)
+      (fun _ : Unit => alpha / (1 - alpha)) := by
+  apply generalizedEigenDetProductLowerBound_rankOne_of_rayleigh_bound
+  intro g hnorm
+  have hc : 0 < 1 - alpha := by linarith
+  have hc0 : 1 - alpha ≠ 0 := hc.ne'
+  have hsignal : 0 ≤ g ⬝ᵥ
+      (((manyInstrumentsStructuralLoading β)ᵀ * H *
+        manyInstrumentsStructuralLoading β) *ᵥ g) := by
+    rw [manyInstruments_signal_quadratic_eq]
+    exact hH.dotProduct_mulVec_nonneg _
+  rw [manyInstruments_limit_numerator_quadratic]
+  rw [manyInstruments_limit_denominator_quadratic] at hnorm
+  have hq : g ⬝ᵥ (Sigma *ᵥ g) = (1 - alpha)⁻¹ := by
+    field_simp [hc0]
+    nlinarith
+  rw [hq]
+  field_simp [hc0]
+  nlinarith
+
+namespace LIMLRayleighMinimizer
+
+omit [Fintype k] [DecidableEq k] in
+/-- Two minimum-value certificates for the same positive-denominator
+Rayleigh problem have the same scalar value. -/
+theorem value_unique
+    {d : Type*} [Fintype d]
+    {A B : Matrix d d ℝ} {x y : ℝ}
+    (hx : LIMLRayleighMinimizer A B x)
+    (hy : LIMLRayleighMinimizer A B y) : x = y := by
+  rcases hx.value with ⟨gx, hgx, hvx⟩
+  rcases hy.value with ⟨gy, hgy, hvy⟩
+  apply le_antisymm
+  · simpa [hvy] using hx.lower_bound gy hgy
+  · simpa [hvx] using hy.lower_bound gx hgx
+
+end LIMLRayleighMinimizer
+
+omit [Fintype k] [DecidableEq k] in
+noncomputable local instance manyInstrumentsAnyMatrixMeasurableSpace
+    {r c : Type*} [Fintype r] [Fintype c] :
+    MeasurableSpace (Matrix r c ℝ) :=
+  matrixBorelMeasurableSpace r c
+
+omit [Fintype k] [DecidableEq k] in
+local instance manyInstrumentsAnyMatrixBorelSpace
+    {r c : Type*} [Fintype r] [Fintype c] :
+    BorelSpace (Matrix r c ℝ) :=
+  matrixBorelSpace r c
+
+/-- Literal conditional-homoskedastic, conditionally independent,
+bounded-fourth-moment reduced-form error model for Hansen (12.74)--(12.75).
+
+No projected quadratic-form convergence and no LIML eigenvalue convergence is
+a field.  This is therefore a genuine raw model package rather than a renamed
+conclusion. -/
+structure ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (B : ℝ) : Prop where
+  instrument_measurable : ∀ m, Measurable (Z m)
+  error_row_memLp_four : ∀ m (i : Fin m), MemLp
+    (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i) 4 μ
+  rows_conditionally_independent : ∀ m,
+    iCondIndepFun (conditioningSpace (Z m))
+      (conditioningSpace_le (instrument_measurable m))
+      (fun i ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i) μ
+  conditional_mean_zero : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+      (Z m) =ᵐ[μ] 0
+  conditional_second_moment : ∀ m (i : Fin m),
+    condExpOn μ
+      (fun ω => Matrix.vecMulVec
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i)
+        (manyInstrumentsReducedFormErrorData (e m ω) (u2 m ω) i))
+      (Z m) =ᵐ[μ] fun _ => Sigma
+  fourth_bound_nonneg : 0 ≤ B
+  conditional_fourth_bound : ∀ m (i : Fin m),
+    ∀ᵐ ω ∂μ, condExpOn μ
+      (fun ω' => ‖manyInstrumentsReducedFormErrorData
+        (e m ω') (u2 m ω') i‖ ^ 4) (Z m) ω ≤ B
+
+/-- Non-circular raw model package for Hansen Theorem 12.19.
+
+It contains the two model equations, assumptions (12.74)--(12.77), positivity,
+and the instrument-rank condition needed by the Star projection.  In
+particular it contains neither estimator limits, projected-form WLLNs, nor an
+assumed LIML adjustment/eigenvalue gap. -/
+structure ManyInstrumentsTheorem1219RawModelConditions
+    [StandardBorelSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (Gamma : (m : ℕ) → Matrix (ι m) k ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (alpha B : ℝ) : Prop where
+  reduced_form : ∀ m ω,
+    X m ω = manyInstrumentSignal (Z m ω) (Gamma m) + u2 m ω
+  structural : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω
+  instrument_ratio : Tendsto
+    (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+    atTop (𝓝 alpha)
+  alpha_lt_one : alpha < 1
+  signal_gram_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω => manyInstrumentSignalGram (Z m ω) (Gamma m)) μ
+  signal_gram_tendsto : TendstoInMeasure μ
+    (fun m ω => manyInstrumentSignalGram (Z m ω) (Gamma m))
+    atTop (fun _ => H)
+  signal_posDef : H.PosDef
+  error_covariance_posDef : Sigma.PosDef
+  instrument_gram_nonsingular : ∀ m, ∀ᵐ ω ∂μ,
+    Nonempty (Invertible ((Z m ω)ᵀ * Z m ω))
+  errors : ManyInstrumentsConditionalHomoskedasticFourthMomentModel
+    (ι := ι) μ Z e u2 Sigma B
+
+/-- Honest concentration input for Hansen's projected quadratic form.
+
+The `O(1/n)` entrywise mean-square bounds are the direct consequences of
+conditional homoskedasticity, bounded conditional fourth moments, projection
+symmetry/idempotence, `tr(P_Z)=ℓ`, and `Σ_j P_ij²=P_ii`.  Unlike the legacy row
+packages, this does not assert that a projected quadratic form is an iid row
+average. -/
+structure ManyInstrumentsProjectionQuadraticMeanSquareConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (e : (m : ℕ) → Ω → Fin m → ℝ)
+    (u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (C : ℝ) : Prop where
+  bound_nonneg : 0 ≤ C
+  entry_sq_integrable : ∀ m (a b : Sum Unit k), Integrable
+    (fun ω => ‖manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ)) μ
+  entry_mean_square_bound : ∀ a b : Sum Unit k, ∀ᶠ m in atTop,
+    (∫ ω, ‖manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b‖ ^ (2 : ℝ) ∂μ) ≤ C / (m : ℝ)
+
+private theorem manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    {E : ℕ → Ω → ℝ} {C : ℝ}
+    (hInt : ∀ m, Integrable (fun ω => ‖E m ω‖ ^ (2 : ℝ)) μ)
+    (hbound : ∀ᶠ m in atTop,
+      (∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) ≤ C / (m : ℝ)) :
+    TendstoInMeasure μ E atTop (fun _ => 0) := by
+  have hupper : Tendsto (fun m : ℕ => C / (m : ℝ)) atTop (𝓝 0) :=
+    tendsto_natCast_atTop_atTop.const_div_atTop C
+  have hnonneg : ∀ᶠ m in atTop,
+      (0 : ℝ) ≤ ∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ :=
+    Eventually.of_forall fun m => integral_nonneg fun ω =>
+      Real.rpow_nonneg (norm_nonneg (E m ω)) _
+  have hmoment : Tendsto
+      (fun m => ∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) atTop (𝓝 0) :=
+    tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hupper hnonneg hbound
+  have hscaled : Tendsto
+      (fun m => (∫ ω, ‖E m ω‖ ^ (2 : ℝ) ∂μ) /
+        (fun _ : ℕ => (1 : ℝ)) m ^ (2 : ℝ)) atTop (𝓝 0) := by
+    simpa using hmoment
+  have hraw := TendstoInMeasure.of_integral_norm_rpow_scaled_tendsto_zero
+    (μ := μ) (X := E) (a := fun _ : ℕ => (1 : ℝ)) (p := (2 : ℝ))
+    (by norm_num) (Eventually.of_forall fun _ => by norm_num) hInt hscaled
+  simpa using hraw
+
+omit [DecidableEq k] in
+/-- Conditional-projection `O(1/n)` mean-square bounds imply the centered
+matrix WLLN, entrywise and hence jointly in the fixed `(1+k)` dimension. -/
+theorem ManyInstrumentsProjectionQuadraticMeanSquareConditions.centered_tendsto_zero
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {C : ℝ}
+    (h : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorCentered
+        (Z m ω) (e m ω) (u2 m ω) Sigma)
+      atTop (fun _ => (0 : Matrix (Sum Unit k) (Sum Unit k) ℝ)) := by
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  exact manyInstruments_tendstoInMeasure_zero_of_integral_sq_le_inv
+    (μ := μ) (E := fun m ω => manyInstrumentsProjectedFullErrorCentered
+      (Z m ω) (e m ω) (u2 m ω) Sigma a b)
+    (h.entry_sq_integrable · a b) (h.entry_mean_square_bound a b)
+
+omit [DecidableEq k] in
+/-- Combining the honest projected-form concentration bound with projection
+trace convergence gives `n⁻¹u'P_Zu ->p αΣ`. -/
+theorem ManyInstrumentsProjectionQuadraticMeanSquareConditions.projected_tendsto
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {C alpha : ℝ}
+    (h : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C)
+    (htrace_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => manyInstrumentProjectionTraceRatio (Z m ω)) μ)
+    (htrace : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω))
+      atTop (fun _ => alpha)) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω))
+      atTop (fun _ => alpha • Sigma) := by
+  have hideal : TendstoInMeasure μ
+      (fun m ω => manyInstrumentProjectionTraceRatio (Z m ω) • Sigma)
+      atTop (fun _ => alpha • Sigma) := by
+    have hSigma : TendstoInMeasure μ
+        (fun _ : ℕ => fun _ : Ω => Sigma) atTop (fun _ => Sigma) := by
+      exact tendstoInMeasure_of_tendsto_ae
+        (fun _ => aestronglyMeasurable_const)
+        (ae_of_all μ fun _ => tendsto_const_nhds)
+    exact tendstoInMeasure_smul_matrix htrace_meas
+      (fun _ => aestronglyMeasurable_const) htrace hSigma
+  exact TendstoInMeasure.of_sub_tendsto_zero_matrix
+    (by simpa [manyInstrumentsProjectedFullErrorCentered] using
+      h.centered_tendsto_zero) hideal
+
+omit [DecidableEq k] in
+/-- The raw model supplies projection-trace convergence and measurability;
+therefore the only additional input needed for the full projected-error WLLN
+is the honest conditional mean-square concentration bound. -/
+theorem ManyInstrumentsTheorem1219RawModelConditions.projected_full_error_tendsto
+    [StandardBorelSpace Ω]
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {alpha B C : ℝ}
+    (hraw : ManyInstrumentsTheorem1219RawModelConditions
+      μ Z X Y Gamma e u2 β H Sigma alpha B)
+    (hquad : ManyInstrumentsProjectionQuadraticMeanSquareConditions
+      μ Z e u2 Sigma C) :
+    TendstoInMeasure μ
+      (fun m ω => manyInstrumentsProjectedFullErrorMoment
+        (Z m ω) (e m ω) (u2 m ω))
+      atTop (fun _ => alpha • Sigma) := by
+  apply hquad.projected_tendsto
+  · intro m
+    exact manyInstrumentProjectionTraceRatio_aestronglyMeasurable_of_ae_nonsingular
+      (hraw.instrument_gram_nonsingular m)
+  · exact
+      manyInstrumentProjectionTraceRatio_tendstoInMeasure_of_eventually_ae_card_ratio_nonsingular
+        hraw.instrument_ratio
+        (Eventually.of_forall hraw.instrument_gram_nonsingular)
+
+/-- Joint convergence of the two normalized sample-pencil matrices.  This is
+the honest spectral input to the LIML CMT; it does not assume an eigenvalue
+gap or the LIML adjustment limit. -/
+structure ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ) : Prop where
+  pencil_meas : ∀ m, AEStronglyMeasurable
+    (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m) μ
+  pencil_tendsto : TendstoInMeasure μ
+    (manyInstrumentsLIMLNormalizedSamplePencil Z X Y) atTop
+    (fun _ => (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+      manyInstrumentsLIMLLimitDenominator Sigma alpha))
+
+/-- Continuous generalized-eigenvalue selector certificate, matching the
+weak-IV selector/CMT architecture but applied to the many-instrument
+normalized pencil.
+
+The sample minimizer is retained as an audit field.  The deterministic limit
+minimizer identifies the selector's limiting value; no stochastic eigenvalue
+gap is assumed. -/
+structure ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ)
+    (X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ)
+    (Y : (m : ℕ) → Ω → Fin m → ℝ)
+    (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (H : Matrix k k ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (alpha : ℝ)
+    (muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ) : Prop where
+  selector_cont : Continuous muSelector
+  mu_meas : ∀ m, AEStronglyMeasurable (limlMuHat m) μ
+  sample_selector_eq : ∀ m, limlMuHat m =ᵐ[μ] fun ω =>
+    muSelector (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω)
+  sample_rayleigh_minimizer : ∀ m, ∀ᵐ ω ∂μ,
+    LIMLRayleighMinimizer
+      (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω).1
+      (manyInstrumentsLIMLNormalizedSamplePencil Z X Y m ω).2
+      (limlMuHat m ω)
+  limit_rayleigh_minimizer : LIMLRayleighMinimizer
+    (manyInstrumentsLIMLLimitNumerator β H Sigma alpha)
+    (manyInstrumentsLIMLLimitDenominator Sigma alpha)
+    (muSelector (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+      manyInstrumentsLIMLLimitDenominator Sigma alpha))
+
+/-- Normalized-pencil convergence plus the continuous generalized-eigenvalue
+selector derives `μ̂ ->p α/(1-α)` by CMT. -/
+theorem manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector)
+    (hH : H.PosSemidef) (hSigma : Sigma.PosDef) (halpha : alpha < 1) :
+    ManyInstrumentsLIMLEigenvalueLimitConditions μ limlMuHat alpha where
+  meas := hselector.mu_meas
+  tendsto := by
+    have hbenchmark := manyInstrumentsLIMLLimit_rayleighMinimizer
+      β H Sigma alpha hH hSigma halpha
+    have hvalue :
+        muSelector (manyInstrumentsLIMLLimitNumerator β H Sigma alpha,
+          manyInstrumentsLIMLLimitDenominator Sigma alpha) =
+            alpha / (1 - alpha) :=
+      LIMLRayleighMinimizer.value_unique
+        hselector.limit_rayleigh_minimizer hbenchmark
+    have hraw := tendstoInMeasure_continuous_comp
+      hpencil.pencil_meas hpencil.pencil_tendsto hselector.selector_cont
+    refine TendstoInMeasure.congr (fun m => (hselector.sample_selector_eq m).symm)
+      (ae_of_all μ fun _ => hvalue) hraw
+
+/-- Assemble the canonical Theorem 12.19 condition package through normalized
+pencil convergence and generalized-eigenvalue CMT.
+
+This replaces the legacy adjustment-gap WLLN input.  The OLS and projected
+2SLS assemblies remain separate because they also supply the two non-LIML
+faces of Hansen's theorem. -/
+theorem
+ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (𝓝 alpha))
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef) (hSigma : Sigma.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha)
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector) :
+    ManyInstrumentsTheorem1219Conditions
+      μ Z X Y Gamma e u2 limlMuHat β H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha := by
+  have hmu := manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector
+    hpencil hselector hH.posSemidef hSigma halpha_lt_one
+  exact
+    ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_mu_limit_conditions
+      (manyInstruments_alpha_nonneg_of_card_ratio_tendsto hratio)
+      halpha_lt_one hratio hstruct hH hOLS h2SLS hmu
+
+/-- Hansen Theorem 12.19 through the genuine generalized-pencil route.
+
+The LIML conclusion is obtained from normalized pencil convergence and the
+continuous selector.  No additive eigenvalue-gap decomposition is exposed. -/
+theorem manyInstruments_estimators_theorem12_19_of_normalizedPencil_selector
+    {Z : (m : ℕ) → Ω → Matrix (Fin m) (ι m) ℝ}
+    {X : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {Y : (m : ℕ) → Ω → Fin m → ℝ}
+    {Gamma : (m : ℕ) → Matrix (ι m) k ℝ}
+    {e : (m : ℕ) → Ω → Fin m → ℝ}
+    {u2 : (m : ℕ) → Ω → Matrix (Fin m) k ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {H : Matrix k k ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ} {alpha : ℝ}
+    {muSelector :
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) → ℝ}
+    (halpha_lt_one : alpha < 1)
+    (hratio : Tendsto
+      (fun m : ℕ => (Fintype.card (ι m) : ℝ) / (m : ℝ))
+      atTop (𝓝 alpha))
+    (hstruct : ∀ m ω, Y m ω = X m ω *ᵥ β + e m ω)
+    (hH : H.PosDef) (hSigma : Sigma.PosDef)
+    (hOLS : ManyInstrumentsOLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma))
+    (h2SLS : ManyInstrumentsTwoSLSMomentAssemblyConditions
+      μ Z X Gamma e u2 H (manyInstrumentsSigma22 Sigma)
+        (manyInstrumentsSigma2e Sigma) alpha)
+    (hpencil : ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+      μ Z X Y β H Sigma alpha)
+    (hselector : ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate
+      μ Z X Y limlMuHat β H Sigma alpha muSelector) :
+    TendstoInMeasure μ
+      (fun m ω => olsBetaStar (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsOLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma)) ∧
+    TendstoInMeasure μ
+      (fun m ω => twoSLSBetaStar (Z m ω) (X m ω) (Y m ω)) atTop
+      (fun _ => β + manyInstrumentsTwoSLSBias H
+        (manyInstrumentsSigma22 Sigma) (manyInstrumentsSigma2e Sigma) alpha) ∧
+    TendstoInMeasure μ
+      (fun m ω => limlBetaStar (Z m ω) (X m ω) (Y m ω) (limlMuHat m ω))
+      atTop (fun _ => β) :=
+  manyInstruments_estimators_theorem12_19
+    (ManyInstrumentsTheorem1219Conditions.of_reduced_form_assemblies_normalizedPencil_selector
+      halpha_lt_one hratio hstruct hH hSigma hOLS h2SLS hpencil hselector)
+
+/- The following compatibility packages encode projected quadratic forms or
+an eigenvalue adjustment as iid additive rows.  Projection and generalized
+eigenvalue selection do not have that form.  They remain available only so
+existing same-file compatibility wrappers elaborate; new theorem-facing work
+must use the conditional mean-square and normalized-pencil route above. -/
+attribute [deprecated ManyInstrumentsProjectionQuadraticMeanSquareConditions
+    (since := "2026-07-11")]
+  ManyInstrumentsProjectedErrorTraceRemainderRowWLLNConditions
+  ManyInstrumentsProjectedErrorTraceRemainderScalarWLLNConditions
+
+attribute [deprecated ManyInstrumentsLIMLNormalizedPencilConvergenceConditions
+    (since := "2026-07-11")]
+  ManyInstrumentsLIMLSampleEigenvalueAdjustmentGapWLLNConditions
+  ManyInstrumentsLIMLFiniteSampleRayleighAdjustmentGapWLLNConditions
+  ManyInstrumentsProjectedErrorRayleighJointRowWLLNConditions
 
 end Asymptotics
 
