@@ -591,6 +591,182 @@ def generalizedEigenDetProductLowerBound
   ∀ H : Matrix k r ℝ, generalizedEigenvectorBNormalized B H →
     ∏ j, lambda j ≤ (Hᵀ * A * H).det
 
+/-- Scalar Rayleigh upper bound for a generalized pencil, normalized by its
+denominator quadratic form. This is strictly weaker than the multi-column
+determinant maximum and is supplied by the top ordered eigenvalue after
+whitening. -/
+def generalizedEigenRayleighUpperBound
+    (A B : Matrix k k ℝ) (alpha : ℝ) : Prop :=
+  ∀ v : k → ℝ, v ⬝ᵥ (B *ᵥ v) = 1 → v ⬝ᵥ (A *ᵥ v) ≤ alpha
+
+omit [DecidableEq r] in
+private theorem compression_quadratic_eq_image_quadratic
+    (A : Matrix k k ℝ) (H : Matrix k r ℝ) (x : r → ℝ) :
+    x ⬝ᵥ ((Hᵀ * A * H) *ᵥ x) =
+      (H *ᵥ x) ⬝ᵥ (A *ᵥ (H *ᵥ x)) := by
+  calc
+    x ⬝ᵥ ((Hᵀ * A * H) *ᵥ x) =
+        x ⬝ᵥ (Hᵀ *ᵥ (A *ᵥ (H *ᵥ x))) := by
+          simp [Matrix.mulVec_mulVec, Matrix.mul_assoc]
+    _ = (x ᵥ* Hᵀ) ⬝ᵥ (A *ᵥ (H *ᵥ x)) :=
+      Matrix.dotProduct_mulVec x Hᵀ (A *ᵥ (H *ᵥ x))
+    _ = (H *ᵥ x) ⬝ᵥ (A *ᵥ (H *ᵥ x)) := by
+      rw [Matrix.vecMul_transpose]
+
+/-- Multi-column determinant variational theorem in the top-eigenvalue
+plateau case.
+
+For a positive-semidefinite numerator, every eigenvalue of a normalized
+compression is nonnegative. Applying the scalar top-Rayleigh bound to each
+normalized compression eigenvector bounds every one by `alpha`; hence the
+compressed determinant is at most `alpha ^ card r`. When all selected roots
+equal `alpha`, this is exactly their product. No determinant maximum is assumed. -/
+theorem generalizedEigenDetProductUpperBound_of_posSemidef_tied_rayleigh
+    (A B : Matrix k k ℝ) (hA : A.PosSemidef)
+    (lambda : r → ℝ) (alpha : ℝ)
+    (hTie : ∀ j, lambda j = alpha)
+    (hRayleigh : generalizedEigenRayleighUpperBound A B alpha) :
+    generalizedEigenDetProductUpperBound A B lambda := by
+  classical
+  intro H hHNorm
+  let C : Matrix r r ℝ := Hᵀ * A * H
+  have hC : C.PosSemidef := by
+    have hcomp := hA.conjTranspose_mul_mul_same H
+    simpa [C, Matrix.conjTranspose, Matrix.star_apply] using hcomp
+  have hEigLe : ∀ i : r, hC.1.eigenvalues i ≤ alpha := by
+    intro i
+    let xE : EuclideanSpace ℝ r := hC.1.eigenvectorBasis i
+    let x : r → ℝ := ⇑xE
+    have hnorm : x ⬝ᵥ x = 1 := by
+      have hnorm1 : ‖xE‖ = 1 := hC.1.eigenvectorBasis.orthonormal.1 i
+      have hnormsq : ‖xE‖ ^ 2 = (1 : ℝ) := by rw [hnorm1]; norm_num
+      have hsum := (EuclideanSpace.real_norm_sq_eq xE).symm
+      calc
+        x ⬝ᵥ x = ∑ j : r, xE j ^ 2 := by
+          simp [x, dotProduct, pow_two]
+        _ = ‖xE‖ ^ 2 := hsum
+        _ = 1 := hnormsq
+    let v : k → ℝ := H *ᵥ x
+    have hBunit : v ⬝ᵥ (B *ᵥ v) = 1 := by
+      calc
+        v ⬝ᵥ (B *ᵥ v) = x ⬝ᵥ ((Hᵀ * B * H) *ᵥ x) := by
+          exact (compression_quadratic_eq_image_quadratic B H x).symm
+        _ = x ⬝ᵥ x := by rw [hHNorm]; simp
+        _ = 1 := hnorm
+    have heig : C *ᵥ x = hC.1.eigenvalues i • x := by
+      simpa [x, xE] using hC.1.mulVec_eigenvectorBasis i
+    have hquad : v ⬝ᵥ (A *ᵥ v) = hC.1.eigenvalues i := by
+      calc
+        v ⬝ᵥ (A *ᵥ v) = x ⬝ᵥ (C *ᵥ x) := by
+          exact (compression_quadratic_eq_image_quadratic A H x).symm
+        _ = x ⬝ᵥ (hC.1.eigenvalues i • x) := by rw [heig]
+        _ = hC.1.eigenvalues i := by
+          simp [dotProduct_smul, hnorm]
+    rw [← hquad]
+    exact hRayleigh v hBunit
+  calc
+    (Hᵀ * A * H).det = ∏ i, hC.1.eigenvalues i := by
+      simpa [C] using hC.1.det_eq_prod_eigenvalues
+    _ ≤ ∏ _i : r, alpha := by
+      exact Finset.prod_le_prod
+        (fun i _ => hC.eigenvalues_nonneg i) (fun i _ => hEigLe i)
+    _ = ∏ j, lambda j := by
+      apply Finset.prod_congr rfl
+      intro j _
+      exact (hTie j).symm
+
+/-- A tied normalized generalized-eigenblock at a scalar Rayleigh upper bound
+is the independently attained determinant-objective maximizer.
+
+This identifies the spectral and compact-attainment witnesses in the plateau
+case without taking objective maximality as a premise. -/
+theorem generalizedEigenDetObjectiveMaximizer_of_posSemidef_tied_rayleigh
+    (A B : Matrix k k ℝ) (hA : A.PosSemidef)
+    (lambda : r → ℝ) (alpha : ℝ) (G : Matrix k r ℝ)
+    (hEig : generalizedEigenvectorColumns A B lambda G)
+    (hNorm : generalizedEigenvectorBNormalized B G)
+    (hTie : ∀ j, lambda j = alpha)
+    (hRayleigh : generalizedEigenRayleighUpperBound A B alpha) :
+    generalizedEigenDetObjectiveMaximizer A B G := by
+  refine ⟨hNorm, ?_⟩
+  intro H hHNorm
+  rw [generalizedEigenDetObjective_eq_compressed_det_of_normalized A B H hHNorm,
+    generalizedEigenDetObjective_eq_prod_eigenvalues_of_normalized
+      A B lambda G hEig hNorm]
+  exact generalizedEigenDetProductUpperBound_of_posSemidef_tied_rayleigh
+    A B hA lambda alpha hTie hRayleigh H hHNorm
+
+/-- Whitening transports Mathlib's largest ordered Hermitian eigenvalue into
+a scalar generalized Rayleigh upper bound.
+
+The factor `T` may be rectangular. Thus the theorem applies directly to the
+canonical Hansen factorizations `A = X̃' M X̃`, `B = X̃'X̃` and
+`A = Ỹ' M Ỹ`, `B = Ỹ'Ỹ`. -/
+theorem generalizedEigenRayleighUpperBound_of_whitened_top
+    {q : Type*} [Fintype q] [DecidableEq q] [Nonempty q]
+    (A B : Matrix k k ℝ) (M : Matrix q q ℝ) (T : Matrix q k ℝ)
+    (hA : A = Tᵀ * M * T) (hB : B = Tᵀ * T)
+    (hM : M.IsHermitian) :
+    generalizedEigenRayleighUpperBound A B
+      (hM.eigenvalues₀ ⟨0, Fintype.card_pos⟩) := by
+  classical
+  intro v hBunit
+  let z : EuclideanSpace ℝ q := WithLp.toLp 2 (T *ᵥ v)
+  have hunit : (z : q → ℝ) ⬝ᵥ (z : q → ℝ) = 1 := by
+    calc
+      (z : q → ℝ) ⬝ᵥ (z : q → ℝ) =
+          (T *ᵥ v) ⬝ᵥ ((1 : Matrix q q ℝ) *ᵥ (T *ᵥ v)) := by
+            simp [z]
+      _ = v ⬝ᵥ ((Tᵀ * (1 : Matrix q q ℝ) * T) *ᵥ v) := by
+        exact (compression_quadratic_eq_image_quadratic
+          (1 : Matrix q q ℝ) T v).symm
+      _ = v ⬝ᵥ (B *ᵥ v) := by simp [hB, Matrix.mul_assoc]
+      _ = 1 := hBunit
+  have hzero :
+      ∀ i : Fin (Fintype.card q), i < ⟨0, Fintype.card_pos⟩ →
+        hM.eigenvectorBasis.repr z
+          ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card q))) i) = 0 := by
+    intro i hi
+    simp at hi
+  have htop :=
+    quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
+      (M := M) hM ⟨0, Fintype.card_pos⟩ z hunit hzero
+  calc
+    v ⬝ᵥ (A *ᵥ v) = v ⬝ᵥ ((Tᵀ * M * T) *ᵥ v) := by rw [hA]
+    _ = (T *ᵥ v) ⬝ᵥ (M *ᵥ (T *ᵥ v)) :=
+      compression_quadratic_eq_image_quadratic M T v
+    _ ≤ hM.eigenvalues₀ ⟨0, Fintype.card_pos⟩ := by
+      simpa [z] using htop
+
+/-- Ordered spectral block equals the determinant-objective maximizer in the
+top plateau case after whitening.
+
+This is the exact multi-column spectral/attainment identification available
+without a general multiplicative interlacing theorem: the selected roots are
+required only to equal the largest ordered eigenvalue of the whitened PSD
+matrix, rather than assuming the determinant objective itself is maximal. -/
+theorem
+    generalizedEigenDetObjectiveMaximizer_of_whitened_posSemidef_tied_top
+    {q : Type*} [Fintype q] [DecidableEq q] [Nonempty q]
+    (A B : Matrix k k ℝ) (M : Matrix q q ℝ) (T : Matrix q k ℝ)
+    (lambda : r → ℝ) (G : Matrix k r ℝ)
+    (hA : A = Tᵀ * M * T) (hB : B = Tᵀ * T)
+    (hM : M.PosSemidef)
+    (hEig : generalizedEigenvectorColumns A B lambda G)
+    (hNorm : generalizedEigenvectorBNormalized B G)
+    (hTie : ∀ j, lambda j =
+      hM.1.eigenvalues₀ ⟨0, Fintype.card_pos⟩) :
+    generalizedEigenDetObjectiveMaximizer A B G := by
+  have hApsd : A.PosSemidef := by
+    rw [hA]
+    have hcomp := hM.conjTranspose_mul_mul_same T
+    simpa [Matrix.conjTranspose, Matrix.star_apply] using hcomp
+  exact generalizedEigenDetObjectiveMaximizer_of_posSemidef_tied_rayleigh
+    A B hApsd lambda (hM.1.eigenvalues₀ ⟨0, Fintype.card_pos⟩) G
+      hEig hNorm hTie
+      (generalizedEigenRayleighUpperBound_of_whitened_top
+        A B M T hA hB hM.1)
+
 omit [Fintype r] [DecidableEq r] in
 private theorem rankOne_compression_entry_eq_dot
     [Unique r] (A : Matrix k k ℝ) (H : Matrix k r ℝ) :
