@@ -57,6 +57,25 @@ noncomputable def systemLeastSquaresBetaStarObs
   systemLeastSquaresBetaStar (systemStackRegressors X) (systemStackOutcomes Y)
 
 omit [Fintype q] [DecidableEq q] in
+/-- Textbook-facing OrZero observation-level system least-squares estimator.
+
+This is ordinary OLS on the stacked system when the stacked Gram is nonsingular
+and `0` otherwise. It is pointwise equal to the Star proof engine by the shared
+OLS OrZero bridge. -/
+noncomputable def systemLeastSquaresBetaOrZeroObs
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : k → ℝ :=
+  olsBetaOrZero (systemStackRegressors X) (systemStackOutcomes Y)
+
+omit [Fintype q] [DecidableEq n] [DecidableEq q] [DecidableEq m] in
+/-- The textbook-facing system OrZero estimator equals the Star proof engine. -/
+@[simp]
+theorem systemLeastSquaresBetaOrZeroObs_eq_star
+    (X : n → Matrix m k ℝ) (Y : n → m → ℝ) :
+    systemLeastSquaresBetaOrZeroObs X Y = systemLeastSquaresBetaStarObs X Y := by
+  simp [systemLeastSquaresBetaOrZeroObs, systemLeastSquaresBetaStarObs,
+    systemLeastSquaresBetaStar, olsBetaOrZero_eq_olsBetaStar]
+
+omit [Fintype q] [DecidableEq q] in
 /-- Observation-level fitted values from the totalized system least-squares estimator. -/
 noncomputable def systemFittedStarObs
     (X : n → Matrix m k ℝ) (Y : n → m → ℝ) : n → m → ℝ :=
@@ -327,6 +346,65 @@ omit [Fintype q] [DecidableEq q] in
 noncomputable def systemHomoskedasticMiddle
     (X : n → Matrix m k ℝ) (SigmaHat : Matrix m m ℝ) : Matrix k k ℝ :=
   (Fintype.card n : ℝ)⁻¹ • ∑ i : n, systemMiddleTerm (X i) SigmaHat
+
+omit [Fintype q] [DecidableEq q] in
+/-- Empirical design weight multiplying the `(a,b)` entry of a system error
+covariance matrix inside Hansen's homoskedastic middle matrix. -/
+noncomputable def systemHomoskedasticMiddleWeight
+    (X : n → Matrix m k ℝ) (a b : m) (c d : k) : ℝ :=
+  (Fintype.card n : ℝ)⁻¹ • ∑ i : n, X i a c * X i b d
+
+omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- Coordinate expansion of the homoskedastic system middle as a finite sum of
+error-covariance entries times empirical design weights. -/
+theorem systemHomoskedasticMiddle_apply_eq_sum_weight
+    (X : n → Matrix m k ℝ) (SigmaHat : Matrix m m ℝ) (c d : k) :
+    systemHomoskedasticMiddle X SigmaHat c d =
+      ∑ a : m, ∑ b : m,
+        SigmaHat a b * systemHomoskedasticMiddleWeight X a b c d := by
+  unfold systemHomoskedasticMiddle systemHomoskedasticMiddleWeight systemMiddleTerm
+  simp only [Matrix.smul_apply, Matrix.sum_apply, Matrix.mul_apply, Matrix.transpose_apply]
+  calc
+    (Fintype.card n : ℝ)⁻¹ *
+        (∑ i : n, ∑ b : m, (∑ a : m, X i a c * SigmaHat a b) * X i b d)
+        =
+        (Fintype.card n : ℝ)⁻¹ *
+          (∑ i : n, ∑ a : m, ∑ b : m,
+            X i a c * SigmaHat a b * X i b d) := by
+          congr 1
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          rw [Finset.sum_comm]
+          refine Finset.sum_congr rfl ?_
+          intro b _
+          rw [Finset.sum_mul]
+    _ = ∑ i : n, ∑ a : m, ∑ b : m,
+          SigmaHat a b * ((Fintype.card n : ℝ)⁻¹ * (X i a c * X i b d)) := by
+          simp [Finset.mul_sum, mul_comm, mul_left_comm, mul_assoc]
+    _ = ∑ a : m, ∑ b : m, ∑ i : n,
+          SigmaHat a b * ((Fintype.card n : ℝ)⁻¹ * (X i a c * X i b d)) := by
+          rw [Finset.sum_comm]
+          refine Finset.sum_congr rfl ?_
+          intro a _
+          rw [Finset.sum_comm]
+    _ = ∑ a : m, ∑ b : m,
+          SigmaHat a b * ((Fintype.card n : ℝ)⁻¹ * ∑ i : n, X i a c * X i b d) := by
+          simp [Finset.mul_sum, mul_comm, mul_left_comm, mul_assoc]
+
+omit [Fintype k] [Fintype q] [DecidableEq n] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- Coordinate expansion for replacing one system covariance matrix by another
+inside Hansen's homoskedastic middle matrix. -/
+theorem systemHomoskedasticMiddle_sub_apply_eq_sum_weight
+    (X : n → Matrix m k ℝ) (SigmaHat Sigma : Matrix m m ℝ) (c d : k) :
+    (systemHomoskedasticMiddle X SigmaHat - systemHomoskedasticMiddle X Sigma) c d =
+      ∑ a : m, ∑ b : m,
+        (SigmaHat a b - Sigma a b) * systemHomoskedasticMiddleWeight X a b c d := by
+  rw [Matrix.sub_apply,
+    systemHomoskedasticMiddle_apply_eq_sum_weight X SigmaHat c d,
+    systemHomoskedasticMiddle_apply_eq_sum_weight X Sigma c d]
+  simp [Finset.sum_sub_distrib, sub_mul]
 
 omit [Fintype n] [Fintype q] [Fintype m] [DecidableEq n] [DecidableEq q]
   [DecidableEq m] in

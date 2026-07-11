@@ -1453,6 +1453,85 @@ theorem randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
   refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
   simp [Matrix.mulVec, dotProduct]
 
+set_option maxHeartbeats 1200000 in
+-- Finite-coordinate stochastic-order glue over two matrix limits is expensive here.
+omit [DecidableEq k] [DecidableEq q] in
+/-- If two random matrices converge in measure to the same fixed matrix, their
+difference has negligible product against any coordinatewise bounded-in-probability
+vector sequence. -/
+private theorem randomMatrixDifference_mulVec_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (Ahat Bhat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ)
+    (T : ℕ → Ω → k → ℝ)
+    (hAhat : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hBhat : TendstoInMeasure μ Bhat atTop (fun _ => A))
+    (hT : ∀ j, BoundedInProbability μ (fun n ω => T n ω j)) :
+    TendstoInMeasure μ (fun n ω => (Ahat n ω - Bhat n ω) *ᵥ T n ω)
+      atTop (fun _ => 0) := by
+  classical
+  have hdiff : TendstoInMeasure μ (fun n ω => Ahat n ω - Bhat n ω)
+      atTop (fun _ => (0 : Matrix k k ℝ)) := by
+    refine tendstoInMeasure_pi (fun i => ?_)
+    refine tendstoInMeasure_pi (fun j => ?_)
+    have hAi : TendstoInMeasure μ (fun n ω => Ahat n ω i) atTop (fun _ => A i) :=
+      TendstoInMeasure.pi_apply hAhat i
+    have hBi : TendstoInMeasure μ (fun n ω => Bhat n ω i) atTop (fun _ => A i) :=
+      TendstoInMeasure.pi_apply hBhat i
+    have hAij : TendstoInMeasure μ (fun n ω => Ahat n ω i j)
+        atTop (fun _ => A i j) :=
+      TendstoInMeasure.pi_apply hAi j
+    have hBij : TendstoInMeasure μ (fun n ω => Bhat n ω i j)
+        atTop (fun _ => A i j) :=
+      TendstoInMeasure.pi_apply hBi j
+    have hcenter :=
+      TendstoInMeasure.sub_zero_real
+        (TendstoInMeasure.sub_limit_zero_real hAij)
+        (TendstoInMeasure.sub_limit_zero_real hBij)
+    simpa [Pi.sub_apply, sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hcenter
+  simpa using
+    randomMatrix_mulVec_sub_limit_tendstoInMeasure_zero
+      (μ := μ) (Ahat := fun n ω => Ahat n ω - Bhat n ω)
+      (A := (0 : Matrix k k ℝ)) (T := T) hdiff hT
+
+set_option maxHeartbeats 2000000 in
+-- This combines the score-substitution CMT with the two-matrix inverse-gap rule.
+omit [DecidableEq k] [DecidableEq q] in
+/-- Two random matrix-vector products have a negligible difference when the
+matrices share a probability limit, the vectors are asymptotically equivalent,
+and the comparison vector is coordinatewise bounded in probability. -/
+theorem randomMatrix_mulVec_substitution_tendstoInMeasure_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    (Ahat Bhat : ℕ → Ω → Matrix k k ℝ) (A : Matrix k k ℝ)
+    (T S : ℕ → Ω → k → ℝ)
+    (hAhat_meas : ∀ n, AEStronglyMeasurable (Ahat n) μ)
+    (hT_meas : ∀ n, AEStronglyMeasurable (T n) μ)
+    (hS_meas : ∀ n, AEStronglyMeasurable (S n) μ)
+    (hAhat : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (hBhat : TendstoInMeasure μ Bhat atTop (fun _ => A))
+    (hTS : TendstoInMeasure μ (fun n ω => T n ω - S n ω) atTop (fun _ => 0))
+    (hS : ∀ j, BoundedInProbability μ (fun n ω => S n ω j)) :
+    TendstoInMeasure μ (fun n ω => Ahat n ω *ᵥ T n ω - Bhat n ω *ᵥ S n ω)
+      atTop (fun _ => 0) := by
+  classical
+  have hdiff_meas : ∀ n, AEStronglyMeasurable (fun ω => T n ω - S n ω) μ :=
+    fun n => (hT_meas n).sub (hS_meas n)
+  have hscore :=
+    tendstoInMeasure_mulVec
+      (μ := μ) (A := Ahat) (Ainf := fun _ => A)
+      (v := fun n ω => T n ω - S n ω)
+      (vinf := fun _ => (0 : k → ℝ))
+      hAhat_meas hdiff_meas hAhat hTS
+  have hscore0 : TendstoInMeasure μ
+      (fun n ω => Ahat n ω *ᵥ (T n ω - S n ω)) atTop (fun _ => 0) := by
+    simpa using hscore
+  have hmatrix :=
+    randomMatrixDifference_mulVec_tendstoInMeasure_zero
+      (μ := μ) Ahat Bhat A S hAhat hBhat hS
+  have hsum := TendstoInMeasure.add_zero_vector hscore0 hmatrix
+  refine hsum.congr_left (fun n => ae_of_all μ (fun ω => ?_))
+  rw [Matrix.mulVec_sub, Matrix.sub_mulVec]
+  abel_nf
+
 set_option maxHeartbeats 2000000 in
 -- This combines the nonlinear FONC map CMT with finite-coordinate stochastic-order glue.
 /-- Random nonlinear FONC linear maps have a negligible product remainder against any

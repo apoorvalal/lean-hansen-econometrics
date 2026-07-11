@@ -1,5 +1,6 @@
 import Mathlib.Data.Real.StarOrdered
 import Mathlib.Analysis.Matrix.Spectrum
+import Mathlib.Order.Fin.Tuple
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
 open scoped Matrix
@@ -44,6 +45,30 @@ theorem nonsingInv_smul {k : Type*} [Fintype k] [DecidableEq k]
       simp
     rw [Matrix.nonsing_inv_apply_not_isUnit _ hcMdet,
         Matrix.nonsing_inv_apply_not_isUnit _ hM, smul_zero]
+
+/-- Total inverse of a congruent Gram matrix under explicit two-sided inverse
+column transforms.
+
+This shared helper is used by later asymptotic covariance transforms and by
+the Chapter 11 inverse-Wishart coordinate-alignment layer. -/
+theorem nonsingInv_conjugate_of_inverse {k q : Type*}
+    [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+    (G : Matrix k k ℝ) (T : Matrix k q ℝ) (S : Matrix q k ℝ)
+    (hST : S * T = 1) (hTS : T * S = 1) (hG : IsUnit G.det) :
+    (Tᵀ * G * T)⁻¹ = S * G⁻¹ * Sᵀ := by
+  have htr : Sᵀ * Tᵀ = 1 := by
+    rw [← Matrix.transpose_mul, hTS, Matrix.transpose_one]
+  refine Matrix.inv_eq_left_inv ?_
+  calc
+    (S * G⁻¹ * Sᵀ) * (Tᵀ * G * T)
+        = S * (G⁻¹ * ((Sᵀ * Tᵀ) * (G * T))) := by
+          rw [Matrix.mul_assoc Tᵀ G T]
+          simp [Matrix.mul_assoc]
+    _ = S * (G⁻¹ * (G * T)) := by rw [htr, Matrix.one_mul]
+    _ = S * ((G⁻¹ * G) * T) := by rw [Matrix.mul_assoc]
+    _ = S * ((1 : Matrix k k ℝ) * T) := by rw [Matrix.nonsing_inv_mul G hG]
+    _ = S * T := by simp
+    _ = 1 := hST
 
 /-- Hansen Theorem 3.3.1 helper: the Gram matrix `Xᵀ * X` is symmetric. Relocated here from
 `Chapter3Projections.lean` so that earlier files (e.g., `Chapter3LeastSquaresAlgebra.lean`)
@@ -197,6 +222,62 @@ theorem rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent {n : Type*}
         intro i
         cases i
         rfl }
+
+/-- A real Hermitian idempotent matrix is the orthogonal projection onto its
+`1`-eigenspace, written as the sum of outer products of Mathlib's eigenbasis
+vectors. -/
+theorem isHermitian_idempotent_eq_sum_one_eigenvectorBasis_outer
+    {n : Type*} [Fintype n] [DecidableEq n]
+    {P : Matrix n n ℝ} (hP : P.IsHermitian) (hI : IsIdempotentElem P) :
+    (fun j k : n => ∑ r : {i : n // hP.eigenvalues i = 1},
+      (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) j *
+        (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) k) = P := by
+  classical
+  ext j k
+  have heig := eigenvalues_zero_or_one_of_isHermitian_idempotent hP hI
+  let f : n → ℝ := fun x =>
+    (hP.eigenvectorBasis x : EuclideanSpace ℝ n) j *
+      (hP.eigenvectorBasis x : EuclideanSpace ℝ n) k
+  have hsub :
+      (∑ r : {i : n // hP.eigenvalues i = 1}, f r.1) =
+        ∑ x ∈ (Finset.univ.filter (fun i : n => hP.eigenvalues i = 1)), f x := by
+    rw [← Finset.sum_subtype
+      (s := Finset.univ.filter (fun i : n => hP.eigenvalues i = 1))]
+    intro x
+    simp
+  have hfilter :
+      (∑ x ∈ (Finset.univ.filter (fun i : n => hP.eigenvalues i = 1)), f x) =
+        ∑ x : n, f x * hP.eigenvalues x := by
+    rw [Finset.sum_filter]
+    refine Finset.sum_congr rfl ?_
+    intro x _
+    by_cases h1 : hP.eigenvalues x = 1
+    · simp [h1]
+    · have h0 : hP.eigenvalues x = 0 := (heig x).resolve_right h1
+      simp [h0]
+  have hsum :
+      (∑ r : {i : n // hP.eigenvalues i = 1},
+        (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) j *
+          (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) k) =
+        ∑ x : n, (hP.eigenvectorBasis x : EuclideanSpace ℝ n) j *
+          hP.eigenvalues x * (hP.eigenvectorBasis x : EuclideanSpace ℝ n) k := by
+    calc
+      (∑ r : {i : n // hP.eigenvalues i = 1},
+        (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) j *
+          (hP.eigenvectorBasis r.1 : EuclideanSpace ℝ n) k)
+          = ∑ r : {i : n // hP.eigenvalues i = 1}, f r.1 := by rfl
+      _ = ∑ x ∈ (Finset.univ.filter (fun i : n => hP.eigenvalues i = 1)), f x :=
+        hsub
+      _ = ∑ x : n, f x * hP.eigenvalues x := hfilter
+      _ = ∑ x : n, (hP.eigenvectorBasis x : EuclideanSpace ℝ n) j *
+          hP.eigenvalues x * (hP.eigenvectorBasis x : EuclideanSpace ℝ n) k := by
+          refine Finset.sum_congr rfl ?_
+          intro x _
+          dsimp [f]
+          ring
+  rw [hsum]
+  conv_rhs => rw [hP.spectral_theorem]
+  simp [Unitary.conjStarAlgAut_apply, Matrix.mul_apply, Matrix.diagonal]
 
 /-- A Hermitian idempotent real matrix has quadratic form equal to the sum of squared
 coordinates on its `1`-eigenspace. This is the reusable deterministic bridge behind finite-sample
@@ -480,6 +561,260 @@ lemma quadForm_le_ordered_eigenvalue_of_unit_of_zero_before
             exact mul_le_mul_of_nonneg_right heig (sq_nonneg _)
     _ = hH.eigenvalues₀ j := by
           rw [← Finset.mul_sum, hcoords_sum, mul_one]
+
+private lemma sum_fin_filter_lt_eq_sum_castLE
+    {n m : ℕ} (hmn : m ≤ n) (f : Fin n → ℝ) :
+    (Finset.univ.filter (fun i : Fin n => (i : ℕ) < m)).sum f =
+      ∑ j : Fin m, f (Fin.castLE hmn j) := by
+  classical
+  have hfilter :
+      Finset.univ.filter (fun i : Fin n => (i : ℕ) < m) =
+        Finset.univ.map (Fin.castLEEmb hmn) := by
+    ext i
+    constructor
+    · intro hi
+      have hi' : (i : ℕ) < m := by simpa using (Finset.mem_filter.mp hi).2
+      refine Finset.mem_map.mpr ?_
+      refine ⟨⟨i, hi'⟩, Finset.mem_univ _, ?_⟩
+      ext
+      simp
+    · intro hi
+      rcases Finset.mem_map.mp hi with ⟨j, _hj, rfl⟩
+      simp
+  rw [hfilter]
+  exact Finset.sum_map Finset.univ (Fin.castLEEmb hmn) f
+
+private lemma antitone_weighted_sum_le_sum_largest
+    {n m : ℕ} (hmn : m ≤ n) (a w : Fin n → ℝ)
+    (ha : Antitone a)
+    (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∀ i, w i ≤ 1)
+    (hsum : ∑ i : Fin n, w i = (m : ℝ)) :
+    ∑ i : Fin n, a i * w i ≤
+      ∑ j : Fin m, a (Fin.castLE hmn j) := by
+  classical
+  by_cases hm0 : m = 0
+  · subst m
+    have hw_zero : ∀ i : Fin n, w i = 0 := by
+      intro i
+      have hle_sum : w i ≤ ∑ x : Fin n, w x :=
+        Finset.single_le_sum (fun x _ => hw0 x) (Finset.mem_univ i)
+      rw [hsum] at hle_sum
+      have hle0 : w i ≤ 0 := by simpa using hle_sum
+      exact le_antisymm hle0 (hw0 i)
+    simp [hw_zero]
+  · have hmpos : 0 < m := Nat.pos_of_ne_zero hm0
+    have hnpos : 0 < n := hmpos.trans_le hmn
+    let t : Fin n := ⟨m - 1, by omega⟩
+    let p : Fin n → Prop := fun i => (i : ℕ) < m
+    have hhead_one :
+        (Finset.univ.filter p).sum (fun _ : Fin n => (1 : ℝ)) = (m : ℝ) := by
+      rw [show (Finset.univ.filter p).sum (fun _ : Fin n => (1 : ℝ)) =
+          (Finset.univ.filter (fun i : Fin n => (i : ℕ) < m)).sum
+            (fun _ : Fin n => (1 : ℝ)) by rfl]
+      rw [sum_fin_filter_lt_eq_sum_castLE hmn (fun _ : Fin n => (1 : ℝ))]
+      simp
+    have hsplit_w :
+        (Finset.univ.filter p).sum w +
+          (Finset.univ.filter (fun i : Fin n => ¬ p i)).sum w = (m : ℝ) := by
+      rw [Finset.sum_filter_add_sum_filter_not Finset.univ p w, hsum]
+    have hhead_bound :
+        ∀ i : Fin n, p i →
+          a i * w i ≤ a i + a t * (w i - 1) := by
+      intro i hi
+      have hit : i ≤ t := by
+        simp only [p] at hi
+        exact Fin.le_def.mpr (by change (i : ℕ) ≤ m - 1; omega)
+      have hat : a t ≤ a i := ha hit
+      have hwneg : w i - 1 ≤ 0 := sub_nonpos.mpr (hw1 i)
+      have hmul : a i * (w i - 1) ≤ a t * (w i - 1) :=
+        mul_le_mul_of_nonpos_right hat hwneg
+      calc
+        a i * w i = a i + a i * (w i - 1) := by ring
+        _ ≤ a i + a t * (w i - 1) := by
+              simpa [add_comm, add_left_comm, add_assoc] using
+                add_le_add_left hmul (a i)
+    have htail_bound :
+        ∀ i : Fin n, ¬ p i → a i * w i ≤ a t * w i := by
+      intro i hi
+      have hti : t ≤ i := by
+        simp only [p] at hi
+        exact Fin.le_def.mpr (by change m - 1 ≤ (i : ℕ); omega)
+      exact mul_le_mul_of_nonneg_right (ha hti) (hw0 i)
+    calc
+      ∑ i : Fin n, a i * w i
+          = (Finset.univ.filter p).sum (fun i => a i * w i) +
+              (Finset.univ.filter (fun i : Fin n => ¬ p i)).sum
+                (fun i => a i * w i) := by
+                rw [Finset.sum_filter_add_sum_filter_not Finset.univ p
+                  (fun i => a i * w i)]
+      _ ≤ (Finset.univ.filter p).sum (fun i => a i + a t * (w i - 1)) +
+              (Finset.univ.filter (fun i : Fin n => ¬ p i)).sum (fun i => a t * w i) := by
+                exact add_le_add
+                  (Finset.sum_le_sum (fun i hi => hhead_bound i
+                    (by simpa using (Finset.mem_filter.mp hi).2)))
+                  (Finset.sum_le_sum (fun i hi => htail_bound i
+                    (by simpa using (Finset.mem_filter.mp hi).2)))
+      _ = (Finset.univ.filter p).sum a := by
+        rw [Finset.sum_add_distrib]
+        have htail :
+            (Finset.univ.filter (fun x : Fin n => ¬ p x)).sum w =
+              (m : ℝ) - (Finset.univ.filter p).sum w := by
+          linarith
+        calc
+          (Finset.univ.filter p).sum a +
+              (Finset.univ.filter p).sum (fun i => a t * (w i - 1)) +
+              (Finset.univ.filter (fun i : Fin n => ¬ p i)).sum (fun i => a t * w i)
+              = (Finset.univ.filter p).sum a +
+                  a t * (((Finset.univ.filter p).sum w - (m : ℝ)) +
+                    (Finset.univ.filter (fun i : Fin n => ¬ p i)).sum w) := by
+                  rw [← Finset.mul_sum, ← Finset.mul_sum]
+                  rw [Finset.sum_sub_distrib]
+                  rw [show (Finset.univ.filter p).sum (fun _ : Fin n => (1 : ℝ)) = (m : ℝ)
+                    from hhead_one]
+                  ring
+          _ = (Finset.univ.filter p).sum a := by
+                  rw [htail]
+                  ring
+      _ = ∑ j : Fin m, a (Fin.castLE hmn j) := by
+        rw [show (Finset.univ.filter p).sum a =
+          (Finset.univ.filter (fun i : Fin n => (i : ℕ) < m)).sum a by rfl]
+        exact sum_fin_filter_lt_eq_sum_castLE hmn a
+
+private lemma matrix_columns_orthonormal_of_transpose_mul_eq_one
+    {ι κ : Type*} [Fintype ι] [DecidableEq κ]
+    (G : Matrix ι κ ℝ) (hG : Gᵀ * G = 1) :
+    Orthonormal ℝ
+      (fun j : κ => (WithLp.toLp 2 (fun i : ι => G i j) : EuclideanSpace ℝ ι)) := by
+  classical
+  rw [orthonormal_iff_ite]
+  intro i j
+  have hij := congrFun (congrFun hG i) j
+  rw [Matrix.mul_apply] at hij
+  calc
+    inner ℝ
+        (WithLp.toLp 2 (fun a : ι => G a i) : EuclideanSpace ℝ ι)
+        (WithLp.toLp 2 (fun a : ι => G a j) : EuclideanSpace ℝ ι)
+        = ∑ a : ι, G a i * G a j := by
+          change (fun a : ι => G a j) ⬝ᵥ (fun a : ι => G a i) =
+            ∑ a : ι, G a i * G a j
+          rw [dotProduct_comm]
+          rfl
+    _ = if i = j then 1 else 0 := by
+          simpa [Matrix.transpose_apply] using hij
+
+/-- Ky Fan trace inequality for real Hermitian matrices, in finite-dimensional
+matrix-coordinate form.
+
+For any matrix `G` with orthonormal columns, the sum of Hermitian quadratic
+forms along those columns is bounded by the sum of the leading ordered
+eigenvalues. This is the reusable deterministic spectral result behind Hansen
+Theorem 11.9's factor-PCA optimizer. -/
+theorem hermitian_sum_column_quadratic_le_sum_largest_eigenvalues
+    {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableEq ι] [DecidableEq κ]
+    {M : Matrix ι ι ℝ} (hM : M.IsHermitian)
+    (hcard : Fintype.card κ ≤ Fintype.card ι)
+    (G : Matrix ι κ ℝ) (hG : Gᵀ * G = 1) :
+    ∑ j : κ, (fun a => G a j) ⬝ᵥ (M *ᵥ fun a => G a j) ≤
+      ∑ j : κ, hM.eigenvalues₀
+        (Fin.castLE hcard ((Fintype.equivFin κ) j)) := by
+  classical
+  let n := Fintype.card ι
+  let m := Fintype.card κ
+  let e : Fin n ≃ ι := Fintype.equivOfCardEq (Fintype.card_fin n)
+  let col : κ → EuclideanSpace ℝ ι := fun j =>
+    WithLp.toLp 2 (fun a : ι => G a j)
+  let w : Fin n → ℝ := fun i =>
+    ∑ j : κ, (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2
+  have horth := matrix_columns_orthonormal_of_transpose_mul_eq_one G hG
+  have hw0 : ∀ i : Fin n, 0 ≤ w i := by
+    intro i
+    exact Finset.sum_nonneg (fun j _ => sq_nonneg _)
+  have hw1 : ∀ i : Fin n, w i ≤ 1 := by
+    intro i
+    have hbessel := horth.sum_inner_products_le
+      (s := Finset.univ) (x := hM.eigenvectorBasis (e i))
+    have hnorm : ‖hM.eigenvectorBasis (e i)‖ ^ 2 = (1 : ℝ) := by
+      have hnorm1 := hM.eigenvectorBasis.orthonormal.norm_eq_one (e i)
+      rw [hnorm1]
+      norm_num
+    rw [hnorm] at hbessel
+    have hbessel' :
+        ∑ j : κ, inner ℝ (hM.eigenvectorBasis (e i)) (col j) ^ 2 ≤ 1 := by
+      calc
+        ∑ j : κ, inner ℝ (hM.eigenvectorBasis (e i)) (col j) ^ 2
+            = ∑ j : κ, ‖inner ℝ (col j) (hM.eigenvectorBasis (e i))‖ ^ 2 := by
+                refine Finset.sum_congr rfl ?_
+                intro j _
+                rw [real_inner_comm (col j) (hM.eigenvectorBasis (e i))]
+                simp [Real.norm_eq_abs, sq_abs]
+        _ ≤ ‖hM.eigenvectorBasis (e i)‖ ^ 2 := by
+                simpa using hbessel
+        _ = 1 := hnorm
+    simpa [w, col, OrthonormalBasis.repr_apply_apply] using hbessel'
+  have hsum_w : ∑ i : Fin n, w i = (m : ℝ) := by
+    calc
+      ∑ i : Fin n, w i
+          = ∑ j : κ, ∑ i : Fin n,
+              (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2 := by
+              rw [Finset.sum_comm]
+      _ = ∑ j : κ, ∑ a : ι,
+              (hM.eigenvectorBasis.repr (col j) a) ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              simpa [e] using
+                (Equiv.sum_comp e
+                  (fun a : ι => (hM.eigenvectorBasis.repr (col j) a) ^ 2))
+      _ = ∑ j : κ, ‖col j‖ ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              simpa [OrthonormalBasis.repr_apply_apply] using
+                (OrthonormalBasis.sum_sq_inner_right hM.eigenvectorBasis (col j))
+      _ = ∑ _j : κ, (1 : ℝ) := by
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              have hnorm1 := horth.norm_eq_one j
+              rw [hnorm1]
+              norm_num
+      _ = (m : ℝ) := by
+              simp [m]
+  have hleft_eq :
+      ∑ j : κ, (fun a => G a j) ⬝ᵥ (M *ᵥ fun a => G a j) =
+        ∑ i : Fin n, hM.eigenvalues₀ i * w i := by
+    calc
+      ∑ j : κ, (fun a => G a j) ⬝ᵥ (M *ᵥ fun a => G a j)
+          = ∑ j : κ, ∑ a : ι,
+              hM.eigenvalues a * (hM.eigenvectorBasis.repr (col j) a) ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              simpa [col] using
+                quadForm_eq_sum_eigenvalues_fintype (M := M) hM (col j)
+      _ = ∑ j : κ, ∑ i : Fin n,
+              hM.eigenvalues (e i) *
+                (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2 := by
+              refine Finset.sum_congr rfl ?_
+              intro j _
+              simpa [e] using
+                (Equiv.sum_comp e
+                  (fun a : ι =>
+                    hM.eigenvalues a * (hM.eigenvectorBasis.repr (col j) a) ^ 2)).symm
+      _ = ∑ j : κ, ∑ i : Fin n,
+              hM.eigenvalues₀ i *
+                (hM.eigenvectorBasis.repr (col j) (e i)) ^ 2 := by
+              simp [Matrix.IsHermitian.eigenvalues, e]
+      _ = ∑ i : Fin n, hM.eigenvalues₀ i * w i := by
+              rw [Finset.sum_comm]
+              refine Finset.sum_congr rfl ?_
+              intro i _
+              simp [w, Finset.mul_sum]
+  rw [hleft_eq]
+  have hscalar := antitone_weighted_sum_le_sum_largest
+    (n := n) (m := m) hcard hM.eigenvalues₀ w
+    hM.eigenvalues₀_antitone hw0 hw1 hsum_w
+  refine hscalar.trans_eq ?_
+  simpa [m] using
+    (Equiv.sum_comp (Fintype.equivFin κ)
+      (fun j : Fin m => hM.eigenvalues₀ (Fin.castLE hcard j))).symm
 
 /-- For a Hermitian idempotent real matrix, the number of indices whose eigenvalue is `1`
 equals the rank of the matrix. -/

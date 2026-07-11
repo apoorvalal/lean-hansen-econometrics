@@ -41,6 +41,48 @@ theorem deltaMethod_remainder_isLittleO
 
 end DeterministicRemainder
 
+section SmoothFunctionAssumption73
+
+variable {k q : Type*} [Fintype k] [Fintype q]
+
+/-- Generic deterministic content of Hansen Assumption 7.3 for a smooth finite-dimensional
+function of a parameter vector.
+
+The matrix `R` follows Hansen's convention `R = ∂r(β)' / ∂β`, so the Fréchet derivative
+acts as `v ↦ Rᵀ v`. Stochastic consistency, asymptotic normality, and covariance
+estimation remain theorem-specific inputs. -/
+structure SmoothFunctionAssumption73
+    (r : (k → ℝ) → (q → ℝ)) (β : k → ℝ) (R : Matrix k q ℝ) where
+  /-- Fréchet derivative of `r` at `β`. -/
+  derivative : (k → ℝ) →L[ℝ] (q → ℝ)
+  /-- Differentiability at the true parameter. -/
+  differentiable_at : HasFDerivAt r derivative β
+  /-- The derivative is represented by Hansen's transpose-oriented matrix. -/
+  derivative_apply : ∀ v : k → ℝ, derivative v = Rᵀ *ᵥ v
+  /-- Hansen's full-column-rank derivative condition. -/
+  fullRank : Function.Injective R.mulVec
+
+namespace SmoothFunctionAssumption73
+
+/-- Hansen Assumption 7.3 supplies the continuity needed for smooth-function consistency. -/
+theorem continuousAt
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SmoothFunctionAssumption73 r β R) :
+    ContinuousAt r β :=
+  h73.differentiable_at.continuousAt
+
+/-- Assumption 7.3 supplies the deterministic Delta-method little-o Taylor remainder. -/
+theorem taylorRemainder_isLittleO
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h73 : SmoothFunctionAssumption73 r β R) :
+    (fun b => r b - r β - Rᵀ *ᵥ (b - β)) =o[𝓝 β] (fun b => b - β) := by
+  simpa [h73.derivative_apply] using
+    deltaMethod_remainder_isLittleO h73.differentiable_at
+
+end SmoothFunctionAssumption73
+
+end SmoothFunctionAssumption73
+
 section ConcreteTransforms
 
 /-- Scalar square derivative, packaged as a Fréchet derivative.
