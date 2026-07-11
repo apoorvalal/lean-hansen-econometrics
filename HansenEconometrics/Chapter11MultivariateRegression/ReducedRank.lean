@@ -14,8 +14,16 @@ characterization. This module records the residualized matrix pencil, the
 concentrated determinant objective, concrete least-squares recovery formulas,
 the `A⊥` residual-pencil surface, and the algebraic bridge from normalized
 generalized eigenvectors to the eigenvalue product in Hansen's concentrated
-objectives. It does not claim the remaining existence theorem selecting the
-leading generalized eigenspaces from the normal likelihood.
+objectives.
+
+Equation (11.21), its derivation, and its equivalent residual-pencil display
+maximize the direct `A⊥` determinant objective and select the largest residual
+roots. The theorem's final summary instead says "smallest"; that isolated
+minimum-oriented surface is retained below only as explicitly documented typo
+compatibility. The canonical theorem-facing surface uses the direct maximizer
+and keeps `A⊥' Ahat = 0` in its conclusion. This module does not claim the
+remaining existence theorem selecting those generalized eigenspaces from the
+raw normal likelihood.
 -/
 
 open scoped Matrix
@@ -2887,9 +2895,25 @@ def reducedRankAperpObjectiveMaximizer
           reducedRankAperpEigenObjective Etilde Ytilde H ≤
           reducedRankAperpEigenObjective Etilde Ytilde Aperp
 
+omit [DecidableEq n] [DecidableEq m] in
+/-- Specialize a generic generalized-pencil determinant-objective maximizer to
+Hansen's direct `A⊥` determinant objective (11.21). -/
+theorem reducedRankAperpObjectiveMaximizer_of_generalized_detObjectiveMaximizer
+    (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ) (Aperp : Matrix m s ℝ)
+    (hOpt : generalizedEigenDetObjectiveMaximizer
+      (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp) :
+    reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp :=
+  hOpt
+
 /-- Global minimizer predicate for Hansen's `A⊥` determinant objective over
-`Ỹ'Ỹ`-normalized matrices. This is the direct surface for the
-smallest-generalized-root representation. -/
+`Ỹ'Ỹ`-normalized matrices.
+
+This is compatibility with the isolated "smallest eigenvalues" sentence in
+Hansen's final Theorem 11.7 summary. It conflicts with equation (11.21), the
+preceding derivation, and the equivalent residual-pencil display, all of which
+use `argmax` and the largest roots. Consequently this minimum is not the MLE
+`A⊥` complement; canonical theorem-facing declarations use
+`reducedRankAperpObjectiveMaximizer`. -/
 def reducedRankAperpObjectiveMinimizer
     (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
     (Aperp : Matrix m s ℝ) : Prop :=
@@ -2994,6 +3018,48 @@ theorem reducedRankAperpReciprocalObjective_eq_inv_prod_eigenvalues_of_normalize
   generalizedEigenDetReciprocalObjective_eq_inv_prod_eigenvalues_of_normalized
     (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
     lambda Aperp h hNorm
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- Compressed-determinant route to the global maximizer in Hansen's direct
+`A⊥` objective (11.21).
+
+The selected normalized generalized-eigenvector block has objective
+`∏ eta_j`; an upper bound on every normalized competitor therefore proves that
+the selected residual-pencil roots are product-maximal. -/
+theorem reducedRankAperpObjectiveMaximizer_of_compressed_det_bound
+    (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
+    (eta : s → ℝ) (Aperp : Matrix m s ℝ)
+    (h : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hNorm : reducedRankAperpNormalized Ytilde Aperp)
+    (hBound : ∀ H : Matrix m s ℝ, reducedRankAperpNormalized Ytilde H →
+      (Hᵀ * reducedRankAperpPencilA Etilde * H).det ≤ ∏ j, eta j) :
+    reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp := by
+  constructor
+  · exact hNorm
+  · intro H hHNorm
+    calc
+      reducedRankAperpEigenObjective Etilde Ytilde H =
+          (Hᵀ * reducedRankAperpPencilA Etilde * H).det :=
+        generalizedEigenDetObjective_eq_compressed_det_of_normalized
+          (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
+          H hHNorm
+      _ ≤ ∏ j, eta j := hBound H hHNorm
+      _ = reducedRankAperpEigenObjective Etilde Ytilde Aperp :=
+        (reducedRankAperpObjective_eq_prod_eigenvalues_of_normalized
+          Etilde Ytilde eta Aperp h hNorm).symm
+
+omit [DecidableEq n] [DecidableEq m] in
+/-- A direct `A⊥` objective maximizer supplies the selected compressed-
+determinant maximum used by the maximizer-oriented spectral certificate. -/
+theorem reducedRankAperpSelectedCompressedDetMaximal_of_objectiveMaximizer
+    (Etilde : Matrix n m ℝ) (Ytilde : Matrix n m ℝ)
+    (Aperp : Matrix m s ℝ)
+    (hOpt : reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp) :
+    generalizedEigenSelectedCompressedDetMaximal
+      (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp :=
+  generalizedEigenSelectedCompressedDetMaximal_of_detObjectiveMaximizer
+    (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp
+    hOpt
 
 omit [DecidableEq n] [DecidableEq m] in
 /-- Compression-bound route to Hansen's global `A⊥` determinant minimizer.
@@ -3219,14 +3285,15 @@ section SpectralDualityCertificate
 
 variable [Fintype r] [DecidableEq r] [Fintype s] [DecidableEq s]
 
-/-- The determinant/product min-max input for Hansen Theorem 11.7, stated at
-the spectral level rather than as the final certificate fields.
+/-- Compatibility certificate for the isolated smallest-root sentence in the
+final summary of Hansen Theorem 11.7, stated at the spectral level.
 
 The G side supplies a selected compressed-determinant maximum for the residualized
 G pencil. The `A⊥` side supplies the dual selected compressed-determinant
-minimum for the residual pencil. The literal product variational bounds in
-`ReducedRankHansenSpectralDualityCertificate` are derived from these two
-min-max certificates. -/
+minimum for the residual pencil. That minimum conflicts with equation (11.21)
+and its derivation, so this certificate is not an MLE-complement certificate.
+It remains available only to preserve the literal smallest-root summary and
+the algebraic singular-boundary constructions built on it. -/
 structure ReducedRankHansenDetProductMinMaxCertificate
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -3238,12 +3305,148 @@ structure ReducedRankHansenDetProductMinMaxCertificate
     GeneralizedEigenDetProductMinCertificate
       (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp eta
 
-/-- Raw ordered generalized-eigenvalue min-max surface for Hansen Theorem 11.7.
+/-- Canonical maximizer-oriented spectral input for Hansen Theorem 11.7.
+
+Both selected blocks maximize their direct determinant objectives. In
+particular, the `A⊥` field is the selected compressed-determinant maximum for
+the residual pencil in equation (11.21), hence represents the largest
+residual-pencil roots rather than the inconsistent smallest-root summary. -/
+structure ReducedRankHansenDetProductMaxMaxCertificate
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ) : Prop where
+  g_max :
+    GeneralizedEigenDetProductMaxCertificate
+      (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde) G lambda
+  aperp_max :
+    GeneralizedEigenDetProductMaxCertificate
+      (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp eta
+
+omit [DecidableEq n] in
+/-- Build the canonical max/max spectral certificate from the two direct
+determinant-objective maximizers. -/
+theorem ReducedRankHansenDetProductMaxMaxCertificate.of_objective_maximizers
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
+    (hGOpt : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hAperpOpt : reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp) :
+    ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta where
+  g_max :=
+    GeneralizedEigenDetProductMaxCertificate.of_detObjectiveMaximizer
+      (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde)
+      G lambda hG hGOpt
+  aperp_max :=
+    GeneralizedEigenDetProductMaxCertificate.of_detObjectiveMaximizer
+      (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde)
+      Aperp eta hAperp hAperpOpt
+
+omit [DecidableEq n] in
+/-- Build the canonical max/max spectral certificate from selected compressed-
+determinant maxima for the two Hansen pencils. -/
+theorem
+    ReducedRankHansenDetProductMaxMaxCertificate.of_selected_compressedDet_maxima
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
+    (hGNorm : reducedRankGNormalized Xtilde G)
+    (hGMax : generalizedEigenSelectedCompressedDetMaximal
+      (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde) G)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hAperpNorm : reducedRankAperpNormalized Ytilde Aperp)
+    (hAperpMax : generalizedEigenSelectedCompressedDetMaximal
+      (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp) :
+    ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta where
+  g_max := ⟨hG, hGNorm, hGMax⟩
+  aperp_max := ⟨hAperp, hAperpNorm, hAperpMax⟩
+
+omit [DecidableEq n] in
+/-- The G-side objective maximizer extracted from the canonical max/max
+certificate. -/
+theorem ReducedRankHansenDetProductMaxMaxCertificate.g_objectiveMaximizer
+    {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {lambda : r → ℝ}
+    {Aperp : Matrix m s ℝ} {eta : s → ℝ}
+    (h : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta) :
+    reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G := by
+  change generalizedEigenDetObjectiveMaximizer
+    (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde) G
+  exact h.g_max.detObjectiveMaximizer
+
+omit [DecidableEq n] in
+/-- The equation (11.21) `A⊥` objective maximizer extracted from the canonical
+max/max certificate. -/
+theorem ReducedRankHansenDetProductMaxMaxCertificate.aperp_objectiveMaximizer
+    {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {lambda : r → ℝ}
+    {Aperp : Matrix m s ℝ} {eta : s → ℝ}
+    (h : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta) :
+    reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp :=
+  reducedRankAperpObjectiveMaximizer_of_generalized_detObjectiveMaximizer
+    Etilde Ytilde Aperp h.aperp_max.detObjectiveMaximizer
+
+/-- Canonical identified spectral certificate for Hansen Theorem 11.7.
+
+It combines the two direct objective maxima with Hansen's identifying
+orthogonality `A⊥'Ỹ'X̃G = 0` (equivalently `A⊥' Ahat = 0` under the normalized
+coefficient formula). -/
+structure ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ) : Prop where
+  spectral_maximizers :
+    ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta
+  aperp_cross_orthogonal : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp
+
+omit [DecidableEq n] in
+/-- Build the canonical identified spectral certificate directly from the two
+objective maxima and cross orthogonality. -/
+theorem
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_objective_maximizers_and_cross
+    (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
+    (hGOpt : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hAperpOpt : reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp)
+    (hCross : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp) :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta where
+  spectral_maximizers :=
+    ReducedRankHansenDetProductMaxMaxCertificate.of_objective_maximizers
+      Xtilde Ytilde Etilde G lambda Aperp eta hG hGOpt hAperp hAperpOpt
+  aperp_cross_orthogonal := hCross
+
+omit [DecidableEq n] in
+/-- Add cross orthogonality to an existing max/max spectral certificate. -/
+theorem
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_cross
+    {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {lambda : r → ℝ}
+    {Aperp : Matrix m s ℝ} {eta : s → ℝ}
+    (hMax : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (hCross : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp) :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta :=
+  ⟨hMax, hCross⟩
+
+/-- Raw ordered max/min surface for Hansen's inconsistent smallest-root
+summary compatibility.
 
 The primitive spectral inputs are the selected generalized-eigenvector equations,
 Hansen normalizations, and the two literal ordered product inequalities for the
-G and `A⊥` pencils. The reusable determinant/product certificate is derived
-from this raw surface rather than assumed. -/
+G and `A⊥` pencils. The `A⊥` lower bound is not equation (11.21) and is not an
+MLE-complement condition. -/
 structure ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -4247,14 +4450,13 @@ theorem ReducedRankHansenDetProductMinMaxCertificate.aperp_det_bound
   intro H hHNorm
   exact (GeneralizedEigenDetProductMinCertificate.lowerBound h.aperp_min) H hHNorm
 
-/-- Exact deterministic spectral certificate still needed to close Hansen
-Theorem 11.7 from the normal likelihood.
+/-- Deterministic spectral certificate for the literal smallest-root summary
+compatibility route.
 
 The fields are the two residualized generalized-eigenvector equations, the two
 Hansen normalizations, and the two literal determinant/product variational
-inequalities. Proving this certificate is now exactly the open spectral-duality
-work: identify the theorem's `G` and `A⊥` subspaces and prove the G-side upper
-bound and `A⊥`-side lower bound without weakening either display. -/
+inequalities. Its `A⊥` lower bound follows the inconsistent final summary, not
+equation (11.21); it must not be used as an MLE-complement certificate. -/
 structure ReducedRankHansenSpectralDualityCertificate
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -4266,9 +4468,11 @@ structure ReducedRankHansenSpectralDualityCertificate
   aperp_normalized : reducedRankAperpNormalized Ytilde Aperp
   aperp_det_bound : reducedRankAperpDetVariationalBound Etilde Ytilde eta
 
-/-- Strengthened spectral-duality certificate that keeps Hansen's explicit
-subspace identification `A⊥'Ỹ'X̃G = 0` alongside the two determinant/product
-min-max bounds. -/
+/-- Identified compatibility certificate that keeps Hansen's explicit
+subspace equation `A⊥'Ỹ'X̃G = 0` alongside the old max/min bounds.
+
+For the canonical max/max theorem surface use
+`ReducedRankHansenIdentifiedSpectralMaximizerCertificate`. -/
 structure ReducedRankHansenIdentifiedSpectralDualityCertificate
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -4523,13 +4727,13 @@ theorem ReducedRankHansenSpectralDualityCertificate.of_selected_compressedDet_ex
     reducedRankAperpDetVariationalBound_of_selected_compressedDet_minimal
       Etilde Ytilde eta Aperp hAperp hAperpNorm hAperpMin
 
-/-- Objective-extrema certificate for Hansen Theorem 11.7.
+/-- Objective-extrema compatibility certificate for Hansen's final
+smallest-root summary.
 
-This is the normal-likelihood-facing input layer: the selected `G` columns
-maximize Hansen's concentrated determinant objective, and the selected `A⊥`
-columns minimize the residual-pencil determinant objective. The determinant
-product bounds used by the final theorem are derived from these extrema rather
-than assumed separately. -/
+The selected `G` columns maximize Hansen's concentrated determinant objective,
+while the selected `A⊥` columns minimize the residual-pencil determinant
+objective. That second field is not equation (11.21) and is not an MLE
+condition. Canonical theorem-facing code uses the max/max certificate stack. -/
 structure ReducedRankHansenObjectiveExtremaCertificate
     (Xtilde : Matrix n k ℝ) (Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -5083,6 +5287,32 @@ theorem reducedRankAperp_cross_orthogonal_of_diagonal_dual_relation
   rw [← reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm]
   exact reducedRankAperpAhat_orthogonal_of_diagonal_dual_relation
     Xtilde Ytilde G Aperp W lambda hLambda hDual hOrth
+
+omit [DecidableEq n] in
+/-- Add Hansen's displayed dual relation to the canonical max/max spectral
+certificate.
+
+The existing duality algebra derives and stores
+`A⊥'Ỹ'X̃G = 0`; no separate cross-orthogonality premise is needed. -/
+theorem
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_dual_relation
+    [Fintype s] [DecidableEq s]
+    {Xtilde : Matrix n k ℝ} {Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {lambda : r → ℝ}
+    {Aperp : Matrix m s ℝ} {eta : s → ℝ}
+    (hMax : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (W : Matrix m r ℝ) (Lambda LambdaInv : Matrix r r ℝ)
+    (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
+    (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
+    (hLambdaInv : Lambda * LambdaInv = 1) :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta where
+  spectral_maximizers := hMax
+  aperp_cross_orthogonal :=
+    reducedRankAperp_cross_orthogonal_of_dual_relation
+      Xtilde Ytilde G Aperp W Lambda LambdaInv hMax.g_max.normalized
+      hDual hOrth hLambdaInv
 
 omit [DecidableEq n] in
 /-- Build the strengthened spectral-duality certificate from the
@@ -5947,318 +6177,187 @@ theorem reducedRankMLE_of_hansen_residualized_objective_optimizer
   reducedRankMLE_of_hansen_objective_optimizer Z X
     (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) G lambda hG hOpt
 
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 certificate carrying both the `G` generalized-eigenvector
-optimizer and the dual `A⊥` residual-pencil optimizer. The `A⊥` component is a
-certificate field because the algebraic duality between the two eigenspace
-parametrizations remains a separate spectral result. -/
-theorem reducedRankMLE_of_hansen_objective_and_aperp_optimizer
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
-    (hOpt : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G)
-    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
-    (hAperpOpt : reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp) :
-    ReducedRankMLE G
-      (reducedRankAhat Xtilde Ytilde G)
-      (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G))
-      (reducedRankSigmaHat Xtilde Ytilde G)
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      (reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G ∧
-        reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G
-        (reducedRankAhat Xtilde Ytilde G)
-        (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G)))
-      (reducedRankCovarianceRecovery Xtilde Ytilde G
-        (reducedRankSigmaHat Xtilde Ytilde G))
-      (reducedRankLikelihoodValue Ytilde lambda
-        (reducedRankMaximizedLogLikelihood Ytilde lambda)) where
-  generalized_eigenvectors := ⟨hG, hOpt, hAperp, hAperpOpt⟩
-  least_squares_recovery := ⟨rfl, rfl⟩
-  covariance_recovery := rfl
-  likelihood_value := rfl
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 certificate carrying both the `G` and `A⊥`
-determinant-compression variational bounds.
-
-This endpoint avoids direct optimizer premises on both sides. The still-open
-mathematical obligation is now concentrated in the two compression bounds and
-the spectral duality identifying the theorem's `G` and `A⊥` subspaces. -/
-theorem reducedRankMLE_of_hansen_compression_bounds_and_aperp
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
-    (hGNorm : reducedRankGNormalized Xtilde G)
-    (hGBound : ∀ H : Matrix k r ℝ, reducedRankGNormalized Xtilde H →
-      ∃ C : Matrix r r ℝ,
-        generalizedEigenCompression
-          (reducedRankGPencilA Xtilde Ytilde) (reducedRankGPencilB Xtilde) H C ∧
-          C.det ≤ ∏ j, lambda j)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
-    (hAperpNorm : reducedRankAperpNormalized Ytilde Aperp)
-    (hAperpBound : ∀ H : Matrix m s ℝ, reducedRankAperpNormalized Ytilde H →
-      ∃ C : Matrix s s ℝ,
-        generalizedEigenCompression
-          (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) H C ∧
-          ∏ j, eta j ≤ C.det) :
-    ReducedRankMLE G
-      (reducedRankAhat Xtilde Ytilde G)
-      (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G))
-      (reducedRankSigmaHat Xtilde Ytilde G)
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      (reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G ∧
-        reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G
-        (reducedRankAhat Xtilde Ytilde G)
-        (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G)))
-      (reducedRankCovarianceRecovery Xtilde Ytilde G
-        (reducedRankSigmaHat Xtilde Ytilde G))
-      (reducedRankLikelihoodValue Ytilde lambda
-        (reducedRankMaximizedLogLikelihood Ytilde lambda)) :=
-  reducedRankMLE_of_hansen_objective_and_aperp_optimizer
-    Z X Xtilde Y Ytilde Etilde G lambda
-    (Aperp := Aperp) (eta := eta) hG
-    (reducedRankConcentratedObjectiveMaximizer_of_compression_det_bound
-      Xtilde Ytilde lambda G hG hGNorm hGBound)
-    hAperp
-    (reducedRankAperpObjectiveMinimizer_of_compression_det_bound
-      Etilde Ytilde eta Aperp hAperp hAperpNorm hAperpBound)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 certificate carrying both exact compressed-determinant
-variational bounds.
-
-This endpoint isolates the remaining generalized-eigenvalue math in the
-G-side upper bound, the `A⊥`-side lower bound, and the separate spectral
-duality identifying the two theorem subspaces. -/
-theorem reducedRankMLE_of_hansen_compressed_det_bounds_and_aperp
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
-    (hGNorm : reducedRankGNormalized Xtilde G)
-    (hGBound : ∀ H : Matrix k r ℝ, reducedRankGNormalized Xtilde H →
-      (Hᵀ * reducedRankGPencilA Xtilde Ytilde * H).det ≤ ∏ j, lambda j)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
-    (hAperpNorm : reducedRankAperpNormalized Ytilde Aperp)
-    (hAperpBound : ∀ H : Matrix m s ℝ, reducedRankAperpNormalized Ytilde H →
-      ∏ j, eta j ≤ (Hᵀ * reducedRankAperpPencilA Etilde * H).det) :
-    ReducedRankMLE G
-      (reducedRankAhat Xtilde Ytilde G)
-      (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G))
-      (reducedRankSigmaHat Xtilde Ytilde G)
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      (reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G ∧
-        reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G
-        (reducedRankAhat Xtilde Ytilde G)
-        (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G)))
-      (reducedRankCovarianceRecovery Xtilde Ytilde G
-        (reducedRankSigmaHat Xtilde Ytilde G))
-      (reducedRankLikelihoodValue Ytilde lambda
-        (reducedRankMaximizedLogLikelihood Ytilde lambda)) :=
-  reducedRankMLE_of_hansen_objective_and_aperp_optimizer
-    Z X Xtilde Y Ytilde Etilde G lambda
-    (Aperp := Aperp) (eta := eta) hG
-    (reducedRankConcentratedObjectiveMaximizer_of_compressed_det_bound
-      Xtilde Ytilde lambda G hG hGNorm hGBound)
-    hAperp
-    (reducedRankAperpObjectiveMinimizer_of_compressed_det_bound
-      Etilde Ytilde eta Aperp hAperp hAperpNorm hAperpBound)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 MLE certificate assembled from the exact
-spectral-duality certificate.
-
-This is the theorem-facing endpoint for the remaining determinant/product
-variational work: once the normal-likelihood spectral argument supplies
-`ReducedRankHansenSpectralDualityCertificate`, the reduced-rank MLE recovery,
-covariance formula, and maximized likelihood value follow with no additional
-algebraic premises. -/
-theorem reducedRankMLE_of_hansen_spectral_duality_certificate
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hSpec : ReducedRankHansenSpectralDualityCertificate
-      Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankMLE G
-      (reducedRankAhat Xtilde Ytilde G)
-      (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G))
-      (reducedRankSigmaHat Xtilde Ytilde G)
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      (reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G ∧
-        reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G
-        (reducedRankAhat Xtilde Ytilde G)
-        (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G)))
-      (reducedRankCovarianceRecovery Xtilde Ytilde G
-        (reducedRankSigmaHat Xtilde Ytilde G))
-      (reducedRankLikelihoodValue Ytilde lambda
-        (reducedRankMaximizedLogLikelihood Ytilde lambda)) :=
-  reducedRankMLE_of_hansen_objective_and_aperp_optimizer
-    Z X Xtilde Y Ytilde Etilde G lambda
-    (Aperp := Aperp) (eta := eta)
-    hSpec.g_eigenvectors
-    (ReducedRankHansenSpectralDualityCertificate.g_objectiveMaximizer hSpec)
-    hSpec.aperp_eigenvectors
-    (ReducedRankHansenSpectralDualityCertificate.aperp_objectiveMinimizer hSpec)
-
-omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 MLE certificate assembled from the strengthened
-spectral-duality certificate that also records `A⊥'Ỹ'X̃G = 0`. -/
-theorem reducedRankMLE_of_hansen_identified_spectral_duality_certificate
-    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hSpec : ReducedRankHansenIdentifiedSpectralDualityCertificate
-      Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankMLE G
-      (reducedRankAhat Xtilde Ytilde G)
-      (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G))
-      (reducedRankSigmaHat Xtilde Ytilde G)
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      (reducedRankHansenGEigenvectors Xtilde Ytilde lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G ∧
-        reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G
-        (reducedRankAhat Xtilde Ytilde G)
-        (reducedRankChat Z X Y G (reducedRankAhat Xtilde Ytilde G)))
-      (reducedRankCovarianceRecovery Xtilde Ytilde G
-        (reducedRankSigmaHat Xtilde Ytilde G))
-      (reducedRankLikelihoodValue Ytilde lambda
-        (reducedRankMaximizedLogLikelihood Ytilde lambda)) :=
-  reducedRankMLE_of_hansen_spectral_duality_certificate
-    Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
-    hSpec.to_spectralDualityCertificate
-
-/-- Hansen Theorem 11.7 residualized spectral-certificate endpoint.
-
-This specializes `reducedRankMLE_of_hansen_spectral_duality_certificate` to the
-actual residual matrices in the textbook: `X̃ = M_Z X`, `Ỹ = M_Z Y`, and
-`Ẽ = M_[X,Z] Y`.  The only remaining substantive premise is the exact
-spectral-duality certificate selecting the leading `G` roots and dual `A⊥`
-roots. -/
-theorem reducedRankMLE_of_hansen_residualized_spectral_duality_certificate
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hSpec : ReducedRankHansenSpectralDualityCertificate
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-      G lambda Aperp eta) :
-    ReducedRankMLE G
-      (reducedRankAhat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)
-      (reducedRankChat Z X Y G
-        (reducedRankAhat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G))
-      (reducedRankSigmaHat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda)
-      (reducedRankHansenGEigenvectors
-          (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer
-          (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G ∧
-        reducedRankHansenAperpEigenvectors
-          (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer
-          (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G
-        (reducedRankAhat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)
-        (reducedRankChat Z X Y G
-          (reducedRankAhat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)))
-      (reducedRankCovarianceRecovery
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G
-        (reducedRankSigmaHat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G))
-      (reducedRankLikelihoodValue (reducedRankTildeY Z Y) lambda
-        (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda)) :=
-  reducedRankMLE_of_hansen_spectral_duality_certificate Z X
-    (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-    G lambda (Aperp := Aperp) (eta := eta) hSpec
-
-/-- Hansen Theorem 11.7 residualized spectral-certificate endpoint with the
-normalized least-squares coefficient formula exposed.
-
-Under the `G'X̃'X̃G = I` normalization contained in the spectral certificate,
-the coefficient slot is exactly the textbook cross-product formula
-`Â = Ỹ'X̃G`. -/
-theorem reducedRankMLE_of_hansen_residualized_normalized_spectral_duality_certificate
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    {s : Type*} [Fintype s] [DecidableEq s]
-    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
-    (hSpec : ReducedRankHansenSpectralDualityCertificate
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-      G lambda Aperp eta) :
-    ReducedRankMLE G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      (reducedRankSigmaHat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda)
-      (reducedRankHansenGEigenvectors
-          (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G ∧
-        reducedRankConcentratedObjectiveMaximizer
-          (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G ∧
-        reducedRankHansenAperpEigenvectors
-          (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp ∧
-        reducedRankAperpObjectiveMinimizer
-          (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) Aperp)
-      (reducedRankLeastSquaresRecovery Z X Y
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-        (reducedRankChat Z X Y G
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)))
-      (reducedRankCovarianceRecovery
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G
-        (reducedRankSigmaHat (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G))
-      (reducedRankLikelihoodValue (reducedRankTildeY Z Y) lambda
-        (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda)) where
-  generalized_eigenvectors :=
-    ⟨hSpec.g_eigenvectors,
-      ReducedRankHansenSpectralDualityCertificate.g_objectiveMaximizer hSpec,
-      hSpec.aperp_eigenvectors,
-      ReducedRankHansenSpectralDualityCertificate.aperp_objectiveMinimizer hSpec⟩
-  least_squares_recovery := by
-    constructor
-    · exact (reducedRankAhat_eq_cross_of_normalized
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G hSpec.g_normalized).symm
-    · rfl
-  covariance_recovery := rfl
-  likelihood_value := rfl
-
 section HansenTheorem11_7Conclusion
 
 variable {s : Type*} [Fintype s] [DecidableEq s]
 
-/-- The theorem-facing conclusion for Hansen Theorem 11.7.
+/-- Canonical theorem-facing conclusion for Hansen Theorem 11.7.
 
-This packages the exact residualized spectral certificate together with the
-displayed MLE formulas: the normalized `G` estimator, the `A⊥` generalized
-eigenvector estimator, `Â = Ỹ'X̃G`, the corresponding `Ĉ`, the covariance
-formula `n⁻¹(Ỹ'Ỹ - ÂÂ')`, and Hansen's maximized likelihood value. -/
+The residual-pencil complement maximizes the direct determinant objective in
+equation (11.21), so its selected roots are the largest roots on that surface.
+The conclusion also retains the identifying equation
+`A⊥'Ỹ'X̃G = 0`, which becomes `A⊥' Ahat = 0` under the displayed normalized
+coefficient formula. The input certificate remains an explicit premise: this
+structure does not manufacture the generalized eigenspaces from the raw normal
+likelihood assumptions. -/
 structure ReducedRankHansenTheorem11_7
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
+    (Sigma : Matrix m m ℝ) (Aperp : Matrix m s ℝ)
+    (lambda : r → ℝ) (eta : s → ℝ) (logLikelihood : ℝ) : Prop where
+  identified_spectral_maximizers :
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta
+  g_objective_maximizer : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G
+  aperp_objective_maximizer : reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp
+  aperp_cross_orthogonal : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp
+  a_formula : Acoef = Ytildeᵀ * Xtilde * G
+  c_formula : C = reducedRankChat Z X Y G Acoef
+  sigma_formula :
+    Sigma = (Fintype.card n : ℝ)⁻¹ • (Ytildeᵀ * Ytilde - Acoef * Acoefᵀ)
+  likelihood_formula : logLikelihood = reducedRankMaximizedLogLikelihood Ytilde lambda
+  least_squares_recovery :
+    reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C
+  covariance_recovery : reducedRankCovarianceRecovery Xtilde Ytilde G Sigma
+  likelihood_value : reducedRankLikelihoodValue Ytilde lambda logLikelihood
+  mle :
+    ReducedRankMLE G Acoef C Sigma logLikelihood
+      (ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+        Xtilde Ytilde Etilde G lambda Aperp eta)
+      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C)
+      (reducedRankCovarianceRecovery Xtilde Ytilde G Sigma)
+      (reducedRankLikelihoodValue Ytilde lambda logLikelihood)
+
+/-- Canonical Hansen 11.7 conclusion with the exact complementary-rank
+dimension recorded. -/
+structure ReducedRankHansenTheorem11_7ExactDimension
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
+    (Sigma : Matrix m m ℝ) (Aperp : Matrix m s ℝ)
+    (lambda : r → ℝ) (eta : s → ℝ) (logLikelihood : ℝ) : Prop where
+  theorem11_7 :
+    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
+      Aperp lambda eta logLikelihood
+  aperp_dimension : Fintype.card s = Fintype.card m - Fintype.card r
+
+omit [DecidableEq n] in
+/-- Assemble the canonical identified Hansen 11.7 conclusion from the max/max
+spectral certificate and the normalized recovery formulas. -/
+theorem reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hSpec : ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta) :
+    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+      (Ytildeᵀ * Xtilde * G)
+      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        (Ytildeᵀ * Ytilde -
+          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) where
+  identified_spectral_maximizers := hSpec
+  g_objective_maximizer := hSpec.spectral_maximizers.g_objectiveMaximizer
+  aperp_objective_maximizer := hSpec.spectral_maximizers.aperp_objectiveMaximizer
+  aperp_cross_orthogonal := hSpec.aperp_cross_orthogonal
+  a_formula := rfl
+  c_formula := rfl
+  sigma_formula := rfl
+  likelihood_formula := rfl
+  least_squares_recovery := by
+    constructor
+    · exact (reducedRankAhat_eq_cross_of_normalized
+        Xtilde Ytilde G hSpec.spectral_maximizers.g_max.normalized).symm
+    · rfl
+  covariance_recovery :=
+    (reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
+      Xtilde Ytilde G hSpec.spectral_maximizers.g_max.normalized).symm
+  likelihood_value := rfl
+  mle := by
+    exact reducedRankMLE_of_certificate G
+      (Ytildeᵀ * Xtilde * G)
+      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        (Ytildeᵀ * Ytilde -
+          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
+      (reducedRankMaximizedLogLikelihood Ytilde lambda)
+      hSpec
+      (by
+        constructor
+        · exact (reducedRankAhat_eq_cross_of_normalized
+            Xtilde Ytilde G hSpec.spectral_maximizers.g_max.normalized).symm
+        · rfl)
+      ((reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
+        Xtilde Ytilde G hSpec.spectral_maximizers.g_max.normalized).symm)
+      rfl
+
+omit [DecidableEq n] in
+/-- Direct objective form of the canonical identified Hansen 11.7 endpoint. -/
+theorem reducedRankHansenTheorem11_7_of_objective_maximizers_and_cross
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hG : reducedRankHansenGEigenvectors Xtilde Ytilde lambda G)
+    (hGOpt : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G)
+    (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
+    (hAperpOpt : reducedRankAperpObjectiveMaximizer Etilde Ytilde Aperp)
+    (hCross : reducedRankAperpCrossOrthogonal Xtilde Ytilde G Aperp) :
+    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+      (Ytildeᵀ * Xtilde * G)
+      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        (Ytildeᵀ * Ytilde -
+          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
+  reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate
+    Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
+    (ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_objective_maximizers_and_cross
+      Xtilde Ytilde Etilde G lambda Aperp eta
+      hG hGOpt hAperp hAperpOpt hCross)
+
+omit [DecidableEq n] in
+/-- Canonical Hansen 11.7 endpoint from the max/max spectral certificate and
+Hansen's displayed dual relation.
+
+Cross orthogonality is derived by
+`reducedRankAperp_cross_orthogonal_of_dual_relation` and remains a field of the
+returned theorem conclusion. -/
+theorem reducedRankHansenTheorem11_7_of_maxMax_and_dual_relation
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hMax : ReducedRankHansenDetProductMaxMaxCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (W : Matrix m r ℝ) (Lambda LambdaInv : Matrix r r ℝ)
+    (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
+    (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
+    (hLambdaInv : Lambda * LambdaInv = 1) :
+    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+      (Ytildeᵀ * Xtilde * G)
+      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        (Ytildeᵀ * Ytilde -
+          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
+  reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate
+    Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
+    (ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_dual_relation
+      hMax W Lambda LambdaInv hDual hOrth hLambdaInv)
+
+omit [DecidableEq n] in
+/-- Add Hansen's exact complementary dimension to the canonical identified
+conclusion. -/
+theorem ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+    {Z : Matrix n ell ℝ} {X Xtilde : Matrix n k ℝ} {Y Ytilde Etilde : Matrix n m ℝ}
+    {G : Matrix k r ℝ} {Acoef : Matrix m r ℝ} {C : Matrix ell m ℝ}
+    {Sigma : Matrix m m ℝ} {Aperp : Matrix m s ℝ}
+    {lambda : r → ℝ} {eta : s → ℝ} {logLikelihood : ℝ}
+    (h : ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
+      Aperp lambda eta logLikelihood)
+    (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
+    ReducedRankHansenTheorem11_7ExactDimension
+      Z X Xtilde Y Ytilde Etilde G Acoef C Sigma Aperp lambda eta logLikelihood where
+  theorem11_7 := h
+  aperp_dimension := hdim
+
+/-- Compatibility conclusion for the internally inconsistent smallest-root
+sentence in the final summary of Hansen Theorem 11.7.
+
+Equation (11.21), its derivation, and the equivalent residual-pencil display
+all use a maximum and the largest roots. This structure preserves the literal
+smallest-root summary only for old callers. In particular it has no MLE field
+and does not identify its `A⊥` minimum as the MLE complement. -/
+structure ReducedRankHansenSmallestSummaryCompatibility
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (Sigma : Matrix m m ℝ) (Aperp : Matrix m s ℝ)
@@ -6276,39 +6375,32 @@ structure ReducedRankHansenTheorem11_7
     reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C
   covariance_recovery : reducedRankCovarianceRecovery Xtilde Ytilde G Sigma
   likelihood_value : reducedRankLikelihoodValue Ytilde lambda logLikelihood
-  mle :
-    ReducedRankMLE G Acoef C Sigma logLikelihood
-      (ReducedRankHansenSpectralDualityCertificate Xtilde Ytilde Etilde G lambda Aperp eta)
-      (reducedRankLeastSquaresRecovery Z X Y Xtilde Ytilde G Acoef C)
-      (reducedRankCovarianceRecovery Xtilde Ytilde G Sigma)
-      (reducedRankLikelihoodValue Ytilde lambda logLikelihood)
 
-/-- Theorem-facing Hansen 11.7 conclusion with the exact complementary-rank
-dimension recorded. Hansen's `A⊥` block has `m - r` columns; this wrapper keeps
-that dimension equality as part of the citeable final surface without changing
-the reusable reduced-rank theorem package. -/
-structure ReducedRankHansenTheorem11_7ExactDimension
+/-- Exact-dimension wrapper for the literal smallest-summary compatibility
+surface. This remains non-MLE compatibility for Hansen's internal typo. -/
+structure ReducedRankHansenSmallestSummaryCompatibilityExactDimension
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (Acoef : Matrix m r ℝ) (C : Matrix ell m ℝ)
     (Sigma : Matrix m m ℝ) (Aperp : Matrix m s ℝ)
     (lambda : r → ℝ) (eta : s → ℝ) (logLikelihood : ℝ) : Prop where
   theorem11_7 :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
       Aperp lambda eta logLikelihood
   aperp_dimension : Fintype.card s = Fintype.card m - Fintype.card r
 
 omit [DecidableEq n] in
 /-- Add Hansen's exact complementary-rank dimension to an existing Theorem
 11.7 certificate. -/
-theorem ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+theorem ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     {Z : Matrix n ell ℝ} {X Xtilde : Matrix n k ℝ} {Y Ytilde Etilde : Matrix n m ℝ}
     {G : Matrix k r ℝ} {Acoef : Matrix m r ℝ} {C : Matrix ell m ℝ}
     {Sigma : Matrix m m ℝ} {Aperp : Matrix m s ℝ}
     {lambda : r → ℝ} {eta : s → ℝ} {logLikelihood : ℝ}
-    (h : ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
+    (h : ReducedRankHansenSmallestSummaryCompatibility Z X Xtilde Y Ytilde Etilde G Acoef C Sigma
       Aperp lambda eta logLikelihood)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X Xtilde Y Ytilde Etilde G Acoef C Sigma Aperp lambda eta logLikelihood where
   theorem11_7 := h
   aperp_dimension := hdim
@@ -6367,15 +6459,117 @@ theorem reducedRankAperpDimension_canonical :
   simp [reducedRankAperpIndex]
 
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 from the exact spectral-duality certificate, with the
-displayed normalized coefficient and covariance formulas exposed directly. -/
+/-- Exact-dimension canonical Hansen 11.7 endpoint from the identified max/max
+spectral certificate. -/
+theorem
+    reducedRankHansenTheorem11_7_exactDimension_of_identified_spectral_maximizer_certificate
+    (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m s ℝ) (eta : s → ℝ)
+    (hSpec : ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      Xtilde Ytilde Etilde G lambda Aperp eta)
+    (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
+    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+      (Ytildeᵀ * Xtilde * G)
+      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        (Ytildeᵀ * Ytilde -
+          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
+  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+    (reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate
+      Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hSpec)
+    hdim
+
+set_option linter.style.longLine false in
+/-- Residualized exact-dimension canonical endpoint at Hansen's `Fin (m-r)`
+complement index.
+
+The max/max identified certificate is still an explicit premise; in
+particular this wrapper does not claim the unresolved construction of that
+certificate from the raw normal likelihood. -/
+theorem
+    reducedRankHansenTheorem11_7_residualized_exactDimension_of_identified_spectral_maximizer_certificate_canonicalAperp
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [DecidableEq k]
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
+    (eta : reducedRankAperpIndex m r → ℝ)
+    (hSpec : ReducedRankHansenIdentifiedSpectralMaximizerCertificate
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
+      G lambda Aperp eta) :
+    ReducedRankHansenTheorem11_7ExactDimension
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
+      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
+      (reducedRankChat Z X Y G
+        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
+          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
+            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
+  reducedRankHansenTheorem11_7_exactDimension_of_identified_spectral_maximizer_certificate
+    Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
+    G lambda Aperp eta hSpec reducedRankAperpDimension_canonical
+
+set_option linter.style.longLine false in
+/-- Residualized direct-objective form of the canonical exact-dimension
+endpoint. Its `A⊥` premise is the equation (11.21) maximum and the returned
+conclusion retains `A⊥'Ỹ'X̃G = 0`. -/
+theorem
+    reducedRankHansenTheorem11_7_residualized_exactDimension_of_objective_maximizers_and_cross_canonicalAperp
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [DecidableEq k]
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
+    (G : Matrix k r ℝ) (lambda : r → ℝ)
+    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
+    (eta : reducedRankAperpIndex m r → ℝ)
+    (hG : reducedRankHansenGEigenvectors
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G)
+    (hGOpt : reducedRankConcentratedObjectiveMaximizer
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G)
+    (hAperp : reducedRankHansenAperpEigenvectors
+      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp)
+    (hAperpOpt : reducedRankAperpObjectiveMaximizer
+      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) Aperp)
+    (hCross : reducedRankAperpCrossOrthogonal
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G Aperp) :
+    ReducedRankHansenTheorem11_7ExactDimension
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
+      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
+      (reducedRankChat Z X Y G
+        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
+      ((Fintype.card n : ℝ)⁻¹ •
+        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
+          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
+            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
+      Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
+  reducedRankHansenTheorem11_7_residualized_exactDimension_of_identified_spectral_maximizer_certificate_canonicalAperp
+    Z X Y G lambda Aperp eta
+    (ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_objective_maximizers_and_cross
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
+      G lambda Aperp eta hG hGOpt hAperp hAperpOpt hCross)
+
+omit [DecidableEq n] in
+/-- Literal-smallest-summary compatibility from the old min-oriented spectral
+certificate.
+
+This exposes the recovery formulas but deliberately does not return an MLE:
+the `A⊥` minimum reflects Hansen's internally inconsistent final summary, not
+equation (11.21). Use
+`reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate` for
+the canonical theorem-facing result. -/
 theorem reducedRankHansenTheorem11_7_of_spectral_duality_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hSpec : ReducedRankHansenSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6400,23 +6594,6 @@ theorem reducedRankHansenTheorem11_7_of_spectral_duality_certificate
     (reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
       Xtilde Ytilde G hSpec.g_normalized).symm
   likelihood_value := rfl
-  mle := by
-    exact reducedRankMLE_of_certificate G
-      (Ytildeᵀ * Xtilde * G)
-      (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        (Ytildeᵀ * Ytilde -
-          (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
-      (reducedRankMaximizedLogLikelihood Ytilde lambda)
-      hSpec
-      (by
-        constructor
-        · exact (reducedRankAhat_eq_cross_of_normalized
-            Xtilde Ytilde G hSpec.g_normalized).symm
-        · rfl)
-      ((reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
-        Xtilde Ytilde G hSpec.g_normalized).symm)
-      rfl
 
 omit [DecidableEq n] in
 /-- Hansen Theorem 11.7 from the exact spectral-duality certificate, with
@@ -6428,28 +6605,33 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_spectral_duality_certific
     (hSpec : ReducedRankHansenSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hSpec)
     hdim
 
 omit [DecidableEq n] in
-/-- Hansen Theorem 11.7 from the strengthened spectral-duality certificate
-that also records the dual subspace identity `A⊥'Ỹ'X̃G = 0`. -/
-theorem reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+/-- Smallest-summary compatibility projection from the old identified
+min-oriented certificate.
+
+This deliberately returns only the compatibility structure. Canonical
+identified endpoints return `ReducedRankHansenTheorem11_7`, whose public
+`aperp_cross_orthogonal` field retains `A⊥'Ỹ'X̃G = 0`. -/
+theorem reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
     (Z : Matrix n ell ℝ) (X Xtilde : Matrix n k ℝ) (Y Ytilde Etilde : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hSpec : ReducedRankHansenIdentifiedSpectralDualityCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6477,14 +6659,15 @@ theorem reducedRankHansenTheorem11_7_of_detProductMinMax_and_dual_relation
     (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
     Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
     (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_and_dual_relation
       hMinMax W Lambda LambdaInv hDual hOrth hLambdaInv)
@@ -6501,7 +6684,8 @@ theorem reducedRankHansenTheorem11_7_of_detProductMinMax_certificate
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hMinMax : ReducedRankHansenDetProductMinMaxCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6522,7 +6706,8 @@ theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hObj : ReducedRankHansenObjectiveExtremaCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6545,7 +6730,8 @@ theorem reducedRankHansenTheorem11_7_of_objective_extrema
     (hGOpt : reducedRankConcentratedObjectiveMaximizer Xtilde Ytilde G)
     (hAperp : reducedRankHansenAperpEigenvectors Etilde Ytilde eta Aperp)
     (hAperpOpt : reducedRankAperpObjectiveMinimizer Etilde Ytilde Aperp) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6573,7 +6759,8 @@ theorem reducedRankHansenTheorem11_7_of_objective_extrema_certificate_and_dual_r
     (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6599,7 +6786,8 @@ theorem reducedRankHansenTheorem11_7_of_objective_extrema_and_dual_relation
     (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6634,14 +6822,14 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_detProductMinMax_and_dual
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_detProductMinMax_and_dual_relation
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       hMinMax W Lambda LambdaInv hDual hOrth hLambdaInv)
@@ -6669,15 +6857,15 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hMinMax W hGdet hDual hOrth))
@@ -6706,15 +6894,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hMinMax W hGdet hDual hOrth))
@@ -6742,15 +6930,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_pos
         hMinMax W hLambda hDual hOrth))
@@ -6781,7 +6969,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6819,7 +7007,7 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_product_bounds_diagonalDu
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6859,7 +7047,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6898,7 +7086,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6938,7 +7126,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -6973,7 +7161,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7020,15 +7208,15 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_rankOne_rayleigh_bounds_diagonalDual
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -7062,7 +7250,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7104,7 +7292,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7147,7 +7335,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7188,7 +7376,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7232,7 +7420,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7272,7 +7460,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7309,7 +7497,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7344,14 +7532,14 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_objective_extrema_and_dua
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_objective_extrema_and_dual_relation
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       hG hGOpt hAperp hAperpOpt W Lambda LambdaInv hDual hOrth hLambdaInv)
@@ -7380,15 +7568,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_compressedDet_ne_zero
         hObj.to_detProductMinMaxCertificate W hGdet hDual hOrth))
@@ -7413,7 +7601,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7448,15 +7636,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_prod_ne_zero
         hObj.to_detProductMinMaxCertificate W hLambdaProd hDual hOrth))
@@ -7481,7 +7669,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7517,15 +7705,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_detProductMinMax_diagonalDual_pos
         hObj.to_detProductMinMaxCertificate W hLambda hDual hOrth))
@@ -7550,7 +7738,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7583,7 +7771,8 @@ theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema
     (hAperpMin :
       generalizedEigenSelectedCompressedDetMinimal
         (reducedRankAperpPencilA Etilde) (reducedRankAperpPencilB Ytilde) Aperp) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7617,7 +7806,8 @@ theorem reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema_and_dual_
     (hDual : reducedRankDualEigenvectorRelation Xtilde Ytilde G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7655,14 +7845,14 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_selected_compressedDet_extrema_and_dual_relation
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       hG hGNorm hGMax hAperp hAperpNorm hAperpMin
@@ -7697,15 +7887,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_prod_ne_zero
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -7744,15 +7934,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_selectedExtrema_diagonalDual_compressedDet_ne_zero
         Xtilde Ytilde Etilde G lambda Aperp eta
@@ -7788,7 +7978,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7816,7 +8006,8 @@ theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certifica
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hMinMax : ReducedRankHansenDetProductMinMaxCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7840,14 +8031,14 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_m
     (hMinMax : ReducedRankHansenDetProductMinMaxCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_minMax_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hMinMax)
     hdim
@@ -7864,7 +8055,8 @@ theorem reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_certificate
     (Aperp : Matrix m s ℝ) (eta : s → ℝ)
     (hOrdered : ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7885,14 +8077,14 @@ theorem reducedRankHansenTheorem11_7_exactDimension_of_orderedGeneralizedEigen_c
     (hOrdered : ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate
       Xtilde Ytilde Etilde G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_of_orderedGeneralizedEigen_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta hOrdered)
     hdim
@@ -7920,15 +8112,15 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero
         hOrdered W hLambdaProd hDual hOrth))
@@ -7955,7 +8147,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -7989,7 +8181,7 @@ theorem
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -8024,15 +8216,15 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
         (Ytildeᵀ * Ytilde -
           (Ytildeᵀ * Xtilde * G) * (Ytildeᵀ * Xtilde * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood Ytilde lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
-    (reducedRankHansenTheorem11_7_of_identified_spectral_duality_certificate
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
+    (reducedRankHansenSmallestSummaryCompatibility_of_identified_spectral_duality_certificate
       Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
       (ReducedRankHansenIdentifiedSpectralDualityCertificate.of_orderedGeneralizedEigen_diagonalDual_prod_ne_zero
         hOrdered W hLambdaProd hDual hOrth))
@@ -8058,7 +8250,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -8092,7 +8284,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       Xtilde Ytilde G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal Ytilde Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension Z X Xtilde Y Ytilde Etilde G
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension Z X Xtilde Y Ytilde Etilde G
       (Ytildeᵀ * Xtilde * G)
       (reducedRankChat Z X Y G (Ytildeᵀ * Xtilde * G))
       ((Fintype.card n : ℝ)⁻¹ •
@@ -8118,7 +8310,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_spectral_duality_certificat
     (hSpec : ReducedRankHansenSpectralDualityCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8146,7 +8339,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_spectral_dua
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8156,7 +8349,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_spectral_dua
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_residualized_of_spectral_duality_certificate
       Z X Y G lambda Aperp eta hSpec)
     hdim
@@ -8173,7 +8366,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_certifica
     (hObj : ReducedRankHansenObjectiveExtremaCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8203,7 +8397,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema
       (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp)
     (hAperpOpt : reducedRankAperpObjectiveMinimizer
       (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) Aperp) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8232,7 +8427,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_certificat
     (hMinMax : ReducedRankHansenDetProductMinMaxCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8264,7 +8460,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_and_dual_r
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8300,7 +8497,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_objective_extrema_and_dual_
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W Lambda)
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8335,7 +8533,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8345,7 +8543,7 @@ theorem
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_residualized_of_detProductMinMax_and_dual_relation
       Z X Y G lambda Aperp eta hMinMax W Lambda LambdaInv hDual hOrth hLambdaInv)
     hdim
@@ -8376,7 +8574,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8414,7 +8612,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8464,7 +8662,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8516,7 +8714,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -8534,301 +8732,16 @@ theorem
       hG hGNorm hAperp hAperpNorm hWhite)
     W hLambda hDual hOrth
 
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from the projection-range/nullspace route.
+/-- Fixed-root projection/span/nullspace algebraic certificate package.
 
-The ordinary G-side witness `P G₀ = G₀` derives the selected projection roots
-`λ_j = 1`, hence the positive-root input needed by the diagonal-dual endpoint.
-The ordinary residual-side witness `R'R A₀ = 0` derives the trailing
-determinant minimum through
-`ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_null`.
-Thus the remaining nontrivial spectral obligations are exactly the construction
-of the selected Hansen generalized eigenvectors, the ordinary selected
-projection/nullspace witnesses, and Hansen's displayed diagonal dual relation.
--/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_range_null_diagonalDual_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ) (lambda : r → ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (eta : reducedRankAperpIndex m r → ℝ)
-    (G0 : Matrix n r ℝ) (A0 : Matrix n (reducedRankAperpIndex m r) ℝ)
-    (hG : reducedRankHansenGEigenvectors
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda G)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hAperp : reducedRankHansenAperpEigenvectors
-      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y) eta Aperp)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hG0 : generalizedEigenvectorColumns
-      (reducedRankGWhitenedProjection (reducedRankTildeY Z Y))
-      (1 : Matrix n n ℝ) lambda G0)
-    (hG0Norm : G0ᵀ * G0 = 1)
-    (hG0Range :
-      reducedRankGWhitenedProjection (reducedRankTildeY Z Y) * G0 = G0)
-    (hA0 : generalizedEigenvectorColumns
-      (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
-      (1 : Matrix n n ℝ) eta A0)
-    (hA0Norm : A0ᵀ * A0 = 1)
-    (hA0Null :
-      reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z) *
-        A0 = 0)
-    (W : Matrix m r ℝ)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) := by
-  have hMinMax :
-      ReducedRankHansenDetProductMinMaxCertificate
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-        G lambda Aperp eta :=
-    ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_range_null
-      Z X Y G lambda Aperp eta G0 A0
-      hG hGNorm hAperp hAperpNorm hG0 hG0Norm hG0Range hA0 hA0Norm hA0Null
-  have hLambda : ∀ j, 0 < lambda j := by
-    intro j
-    have hTop :=
-      generalizedEigenProjection_top_roots_of_range
-        (reducedRankGWhitenedProjection (reducedRankTildeY Z Y))
-        lambda G0 hG0 hG0Norm hG0Range j
-    rw [hTop]
-    norm_num
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp
-      Z X Y G lambda Aperp eta hMinMax W hLambda hDual hOrth
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from ordinary fixed-root projection and
-residual eigenvector packages.
-
-Compared with the range/nullspace route, this wrapper derives `P G₀ = G₀` and
-`R'R A₀ = 0` from ordinary identity-denominator eigenvector equations with
-displayed roots `1` and `0`. It is still a projection-specialized route, not the
-full arbitrary-root generalized-pencil construction. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_fixed_roots_diagonalDual_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (G0 : Matrix n r ℝ) (A0 : Matrix n (reducedRankAperpIndex m r) ℝ)
-    (hG : reducedRankHansenGEigenvectors
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (fun _ : r => (1 : ℝ)) G)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hAperp : reducedRankHansenAperpEigenvectors
-      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
-      (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) Aperp)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hG0 : generalizedEigenvectorColumns
-      (reducedRankGWhitenedProjection (reducedRankTildeY Z Y))
-      (1 : Matrix n n ℝ) (fun _ : r => (1 : ℝ)) G0)
-    (hG0Norm : G0ᵀ * G0 = 1)
-    (hA0 : generalizedEigenvectorColumns
-      (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
-      (1 : Matrix n n ℝ) (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) A0)
-    (hA0Norm : A0ᵀ * A0 = 1)
-    (W : Matrix m r ℝ)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W
-      (Matrix.diagonal (fun _ : r => (1 : ℝ))))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) := by
-  have hMinMax :
-      ReducedRankHansenDetProductMinMaxCertificate
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-        G (fun _ : r => (1 : ℝ)) Aperp
-        (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) :=
-    ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_fixed_roots
-      Z X Y G Aperp G0 A0 hG hGNorm hAperp hAperpNorm hG0 hG0Norm hA0 hA0Norm
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp
-      Z X Y G (fun _ : r => (1 : ℝ)) Aperp
-      (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      hMinMax W (by intro j; norm_num) hDual hOrth
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from image-space projection and residual
-nullspace witnesses.
-
-This wrapper removes duplicated eigenvector-package assumptions from the
-projection-specialized route. A Hansen-normalized `G` whose image `X̃G` is
-fixed by the whitened projection supplies both the original G-side generalized
-eigenvector equations and the ordinary selected projection block. A
-Hansen-normalized `A⊥` whose image `ỸA⊥` is killed by the unrestricted
-residual maker supplies the original dual generalized-eigenvector equations
-and the ordinary residual null block. The statement is still the fixed-root
-projection route, not the full arbitrary-root generalized-pencil min-max
-construction. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_image_residual_image_null_diagonalDual_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hGImageRange :
-      reducedRankGWhitenedProjection (reducedRankTildeY Z Y) *
-        (reducedRankTildeX Z X * G) =
-          reducedRankTildeX Z X * G)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hAperpImageNull :
-      reducedRankAperpResidualFactor X Z *
-        (reducedRankTildeY Z Y * Aperp) = 0)
-    (W : Matrix m r ℝ)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W
-      (Matrix.diagonal (fun _ : r => (1 : ℝ))))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) := by
-  let G0 : Matrix n r ℝ := reducedRankTildeX Z X * G
-  let A0 : Matrix n (reducedRankAperpIndex m r) ℝ := reducedRankTildeY Z Y * Aperp
-  have hG :
-      reducedRankHansenGEigenvectors
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (fun _ : r => (1 : ℝ)) G :=
-    reducedRankHansenGEigenvectors_one_of_whitened_projection_image_range
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G hGNorm hGImageRange
-  have hAperp :
-      reducedRankHansenAperpEigenvectors
-        (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
-        (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) Aperp :=
-    reducedRankHansenAperpEigenvectors_zero_of_residualized_image_null
-      Z X Y Aperp hAperpNorm hAperpImageNull
-  have hG0Norm : G0ᵀ * G0 = (1 : Matrix r r ℝ) := by
-    simpa [G0] using reducedRankG_image_orthonormal_of_normalized
-      (reducedRankTildeX Z X) G hGNorm
-  have hA0Norm : A0ᵀ * A0 = (1 : Matrix (reducedRankAperpIndex m r) (reducedRankAperpIndex m r) ℝ) := by
-    simpa [A0] using reducedRankAperp_image_orthonormal_of_normalized
-      (reducedRankTildeY Z Y) Aperp hAperpNorm
-  have hG0Range :
-      reducedRankGWhitenedProjection (reducedRankTildeY Z Y) * G0 = G0 := by
-    simpa [G0] using hGImageRange
-  have hA0Null :
-      reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z) *
-        A0 = 0 := by
-    simpa [A0] using
-      reducedRankAperpResidualWhitenedMatrix_mul_eq_zero_of_factor_null
-        (reducedRankAperpResidualFactor X Z)
-        (reducedRankTildeY Z Y * Aperp) hAperpImageNull
-  have hG0 :
-      generalizedEigenvectorColumns
-        (reducedRankGWhitenedProjection (reducedRankTildeY Z Y))
-        (1 : Matrix n n ℝ) (fun _ : r => (1 : ℝ)) G0 :=
-    generalizedEigenvectorColumns_one_of_range
-      (reducedRankGWhitenedProjection (reducedRankTildeY Z Y)) G0 hG0Norm hG0Range
-  have hA0 :
-      generalizedEigenvectorColumns
-        (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
-        (1 : Matrix n n ℝ) (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) A0 :=
-    generalizedEigenvectorColumns_zero_of_null
-      (reducedRankAperpResidualWhitenedMatrix (reducedRankAperpResidualFactor X Z))
-      A0 hA0Norm hA0Null
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_range_null_diagonalDual_canonicalAperp
-      Z X Y G (fun _ : r => (1 : ℝ)) Aperp
-      (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) G0 A0
-      hG hGNorm hAperp hAperpNorm hG0 hG0Norm hG0Range hA0 hA0Norm hA0Null
-      W hDual hOrth
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from Hansen-native span and residual-null
-witnesses.
-
-Compared with the image-space endpoint, this wrapper accepts the displayed
-span certificate `X̃G = ỸC` and the residual null certificate `ẼA⊥ = 0`.
-It derives the projection fixed-point and residual-factor null equations using
-the existing reduced-rank projection and `Ẽ = M_[X,Z]Ỹ` identities, then
-reuses the projection-specialized exact-dimension theorem. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_tildeE_null_diagonalDual_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hGSpan : reducedRankTildeX Z X * G = reducedRankTildeY Z Y * C)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hTildeENull : reducedRankTildeE X Z Y * Aperp = 0)
-    (W : Matrix m r ℝ)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W
-      (Matrix.diagonal (fun _ : r => (1 : ℝ))))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) :=
-  reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_image_residual_image_null_diagonalDual_canonicalAperp
-    Z X Y G Aperp
-    hGNorm
-    (reducedRankGWhitenedProjection_image_range_of_span
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G C hGSpan)
-    hAperpNorm
-    (reducedRankAperpResidualFactor_image_null_of_tildeE_null
-      Z X Y Aperp hTildeENull)
-    W hDual hOrth
-
-/-- Fixed-root projection/span/nullspace primitive package for Hansen 11.7.
-
-This is not the full normal-likelihood construction. It records the exact
-ordinary witnesses used by the projection-specialized fixed-root route:
+This is a singular-boundary route, not a finite normal MLE construction. It
+records the exact ordinary witnesses used by the projection-specialized
+fixed-root algebra:
 `X̃G = ỸC` gives the selected top-root block, `ẼA⊥ = 0` gives the residual
-null block, and `A⊥'Ỹ'ỸC = 0` is the remaining dual orthogonality. -/
+null block, and `A⊥'Ỹ'ỸC = 0` is the remaining dual orthogonality. Its public
+endpoints below return only determinant/product or identified spectral
+certificates; they do not return `ReducedRankMLE` or
+`ReducedRankHansenTheorem11_7`. -/
 structure ReducedRankHansenProjectionSpanNullConditions
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -8877,11 +8790,14 @@ theorem of_crossOrthogonal
 
 set_option linter.style.longLine false in
 /-- Convert the fixed-root projection/span/nullspace package into the reusable
-determinant/product min-max certificate used by the Hansen 11.7 MLE endpoints.
+determinant/product max/min compatibility certificate.
 
 This is an API bridge over the already-proved projection-specialized route: it
 constructs the ordinary selected blocks `G₀ = X̃G = ỸC` and `A₀ = ỸA⊥`, then
-reuses `ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_span_residual_null`. -/
+reuses
+`ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_span_residual_null`.
+It is algebraic support only and does not supply the canonical max/max MLE
+certificate. -/
 theorem to_detProductMinMaxCertificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -8966,8 +8882,9 @@ theorem to_detProductMinMaxCertificate_of_rank_lt
 
 set_option linter.style.longLine false in
 /-- Convert the fixed-root projection/span/nullspace package into the reusable
-identified spectral-duality certificate, retaining Hansen's explicit
-cross-orthogonality `A⊥'Ỹ'X̃G = 0`. -/
+identified max/min compatibility certificate, retaining Hansen's explicit
+cross-orthogonality `A⊥'Ỹ'X̃G = 0`. This remains an algebraic singular-boundary
+result, not the canonical max/max MLE certificate. -/
 theorem to_identifiedSpectralDualityCertificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [DecidableEq k]
@@ -9013,228 +8930,6 @@ theorem to_identifiedSpectralDualityCertificate_of_rank_lt
 
 end ReducedRankHansenProjectionSpanNullConditions
 
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from the bundled fixed-root
-projection/span/nullspace condition package.
-
-The condition package supplies `X̃G = ỸC`, so the displayed diagonal dual
-relation is derived internally by
-`reducedRankDualEigenvectorRelation_one_of_span` with `W = C` and `Λ = I`.
-The statement is intentionally limited to the projection-specialized fixed-root
-route and does not claim the missing arbitrary-root generalized-pencil
-variational theorem. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_null_conditions_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (h : ReducedRankHansenProjectionSpanNullConditions Z X Y G Aperp C) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) :=
-  reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_tildeE_null_diagonalDual_canonicalAperp
-    Z X Y G Aperp C h.g_normalized h.g_span h.aperp_normalized h.tildeE_null C
-    (reducedRankDualEigenvectorRelation_one_of_span
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G C
-      h.g_normalized h.g_span)
-    h.aperp_span_orthogonal
-
-set_option linter.style.longLine false in
-/-- Rank-inequality facade for the bundled fixed-root projection/span/nullspace
-condition package. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_null_conditions_canonicalAperp_of_rank_lt
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    (hrank : Fintype.card r < Fintype.card m)
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (h : ReducedRankHansenProjectionSpanNullConditions Z X Y G Aperp C) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) := by
-  letI : Nonempty (reducedRankAperpIndex m r) :=
-    reducedRankAperpIndex_nonempty_of_card_lt (m := m) (r := r) hrank
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_null_conditions_canonicalAperp
-      Z X Y G Aperp C h
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from the fixed-root projection/span/nullspace
-route, with the dual orthogonality supplied in Hansen's displayed cross form
-`A⊥'Ỹ'X̃G = 0`.
-
-This is equivalent to the package endpoint under the span witness `X̃G = ỸC`.
-It remains a projection-specialized fixed-root certificate route, not the
-missing arbitrary-root generalized-pencil construction. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_cross_null_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hGSpan : reducedRankTildeX Z X * G = reducedRankTildeY Z Y * C)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hTildeENull : reducedRankTildeE X Z Y * Aperp = 0)
-    (hCross : reducedRankAperpCrossOrthogonal
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G Aperp) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) :=
-  reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_null_conditions_canonicalAperp
-    Z X Y G Aperp C
-    (ReducedRankHansenProjectionSpanNullConditions.of_crossOrthogonal
-      Z X Y G Aperp C hGNorm hGSpan hAperpNorm hTildeENull hCross)
-
-set_option linter.style.longLine false in
-/-- Rank-inequality facade for the fixed-root projection/span/nullspace route.
-
-This matches Hansen's displayed complementary-rank condition more directly:
-`card r < card m` supplies the nonempty canonical `A⊥` column index, while the
-rest of the proof reuses
-`reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_cross_null_canonicalAperp`. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_cross_null_canonicalAperp_of_rank_lt
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    (hrank : Fintype.card r < Fintype.card m)
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hGSpan : reducedRankTildeX Z X * G = reducedRankTildeY Z Y * C)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hTildeENull : reducedRankTildeE X Z Y * Aperp = 0)
-    (hCross : reducedRankAperpCrossOrthogonal
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G Aperp) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) := by
-  letI : Nonempty (reducedRankAperpIndex m r) :=
-    reducedRankAperpIndex_nonempty_of_card_lt (m := m) (r := r) hrank
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_cross_null_canonicalAperp
-      Z X Y G Aperp C hGNorm hGSpan hAperpNorm hTildeENull hCross
-
-set_option linter.style.longLine false in
-/-- Residualized Hansen Theorem 11.7 from ordinary span and residual-nullspace
-witnesses.
-
-This is a stricter theorem-facing version of
-`reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_range_null_diagonalDual_canonicalAperp`.
-It derives `P G₀ = G₀` from the raw span certificate `G₀ = Ỹ C`, derives
-`R'R A₀ = 0` from the residual nullspace certificate `R A₀ = 0`, and builds the
-ordinary identity-denominator eigenvector packages with displayed roots `1`
-and `0` internally. -/
-theorem
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_projection_span_residual_null_diagonalDual_canonicalAperp
-    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
-    [DecidableEq k]
-    [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y)]
-    [Nonempty (reducedRankAperpIndex m r)]
-    (G : Matrix k r ℝ)
-    (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
-    (G0 : Matrix n r ℝ) (A0 : Matrix n (reducedRankAperpIndex m r) ℝ)
-    (C : Matrix m r ℝ)
-    (hG : reducedRankHansenGEigenvectors
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (fun _ : r => (1 : ℝ)) G)
-    (hGNorm : reducedRankGNormalized (reducedRankTildeX Z X) G)
-    (hAperp : reducedRankHansenAperpEigenvectors
-      (reducedRankTildeE X Z Y) (reducedRankTildeY Z Y)
-      (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) Aperp)
-    (hAperpNorm : reducedRankAperpNormalized (reducedRankTildeY Z Y) Aperp)
-    (hG0Span : G0 = reducedRankTildeY Z Y * C)
-    (hG0Norm : G0ᵀ * G0 = 1)
-    (hA0Norm : A0ᵀ * A0 = 1)
-    (hA0ResidualNull : reducedRankAperpResidualFactor X Z * A0 = 0)
-    (W : Matrix m r ℝ)
-    (hDual : reducedRankDualEigenvectorRelation
-      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W
-      (Matrix.diagonal (fun _ : r => (1 : ℝ))))
-    (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
-      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
-      ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
-      (reducedRankChat Z X Y G
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G))
-      ((Fintype.card n : ℝ)⁻¹ •
-        ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeY Z Y) -
-          ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
-            ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
-      Aperp (fun _ : r => (1 : ℝ)) (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y)
-        (fun _ : r => (1 : ℝ))) := by
-  have hMinMax :
-      ReducedRankHansenDetProductMinMaxCertificate
-        (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
-        G (fun _ : r => (1 : ℝ)) Aperp
-        (fun _ : reducedRankAperpIndex m r => (0 : ℝ)) :=
-    ReducedRankHansenDetProductMinMaxCertificate.of_residualized_projection_span_residual_null
-      Z X Y G Aperp G0 A0 C
-      hG hGNorm hAperp hAperpNorm hG0Span hG0Norm hA0Norm hA0ResidualNull
-  exact
-    reducedRankHansenTheorem11_7_residualized_exactDimension_of_detProductMinMax_diagonalDual_pos_canonicalAperp
-      Z X Y G (fun _ : r => (1 : ℝ)) Aperp
-      (fun _ : reducedRankAperpIndex m r => (0 : ℝ))
-      hMinMax W (by intro j; norm_num) hDual hOrth
-
 /-- Residualized Hansen Theorem 11.7 from the literal determinant/product
 variational bounds, the displayed dual relation, and the exact
 `dim(A⊥) = m-r` condition. -/
@@ -9264,7 +8959,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9313,7 +9008,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9362,7 +9057,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9413,7 +9108,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9465,7 +9160,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9512,7 +9207,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9566,7 +9261,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9609,7 +9304,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9654,7 +9349,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9704,7 +9399,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9756,7 +9451,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9809,7 +9504,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9858,7 +9553,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9904,7 +9599,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9947,7 +9642,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -9957,7 +9652,7 @@ theorem
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_residualized_of_objective_extrema_and_dual_relation
       Z X Y G lambda Aperp eta
       hG hGOpt hAperp hAperpOpt W Lambda LambdaInv hDual hOrth hLambdaInv)
@@ -9996,7 +9691,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10035,7 +9730,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10078,7 +9773,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10124,7 +9819,7 @@ theorem
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hLambdaInv : Lambda * LambdaInv = 1)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10170,7 +9865,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10224,7 +9919,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10273,7 +9968,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10301,7 +9996,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_min
     (hMinMax : ReducedRankHansenDetProductMinMaxCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10327,7 +10023,8 @@ theorem reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_cer
     (hOrdered : ReducedRankHansenOrderedGeneralizedEigenMinMaxCertificate
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta) :
-    ReducedRankHansenTheorem11_7 Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+    ReducedRankHansenSmallestSummaryCompatibility
+      Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
       (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10353,7 +10050,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_minMax_certi
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10363,7 +10060,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_minMax_certi
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_minMax_certificate
       Z X Y G lambda Aperp eta hMinMax)
     hdim
@@ -10382,7 +10079,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGener
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G lambda Aperp eta)
     (hdim : Fintype.card s = Fintype.card m - Fintype.card r) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10392,7 +10089,7 @@ theorem reducedRankHansenTheorem11_7_residualized_exactDimension_of_orderedGener
           ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G) *
             ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)ᵀ))
       Aperp lambda eta (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) :=
-  ReducedRankHansenTheorem11_7ExactDimension.of_theorem11_7
+  ReducedRankHansenSmallestSummaryCompatibilityExactDimension.of_theorem11_7
     (reducedRankHansenTheorem11_7_residualized_of_orderedGeneralizedEigen_certificate
       Z X Y G lambda Aperp eta hOrdered)
     hdim
@@ -10424,7 +10121,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10464,7 +10161,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10503,7 +10200,7 @@ theorem
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W)
     (hIndex : m ≃ Sum r s) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10544,7 +10241,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10578,7 +10275,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
@@ -10615,7 +10312,7 @@ theorem
     (hDual : reducedRankDualEigenvectorRelation
       (reducedRankTildeX Z X) (reducedRankTildeY Z Y) G W (Matrix.diagonal lambda))
     (hOrth : reducedRankAperpYOrthogonal (reducedRankTildeY Z Y) Aperp W) :
-    ReducedRankHansenTheorem11_7ExactDimension
+    ReducedRankHansenSmallestSummaryCompatibilityExactDimension
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y) G
       ((reducedRankTildeY Z Y)ᵀ * (reducedRankTildeX Z X) * G)
       (reducedRankChat Z X Y G
