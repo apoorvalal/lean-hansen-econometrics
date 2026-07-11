@@ -259,6 +259,267 @@ structure SystemAssumption72PrimitiveRow
 
 omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q]
   [DecidableEq m] in
+private theorem system_memLp_four_of_integrable_fourth
+    {f : Ω → ℝ} (hf : AEStronglyMeasurable f μ)
+    (hfourth : Integrable (fun ω => f ω ^ 4) μ) :
+    MemLp f 4 μ := by
+  rw [← integrable_norm_rpow_iff (μ := μ) hf (by norm_num) (by norm_num)]
+  convert hfourth using 1
+  ext ω
+  simpa [Real.norm_eq_abs] using (show Even (4 : ℕ) by decide).pow_abs (f ω)
+
+omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q]
+  [DecidableEq m] in
+private theorem system_memLp_two_mul_of_memLp_four
+    {f g : Ω → ℝ} (hf : MemLp f 4 μ) (hg : MemLp g 4 μ) :
+    MemLp (fun ω => f ω * g ω) 2 μ := by
+  have hdiv : (4 : ENNReal) / 2 = 2 := by
+    change ((4 : NNReal) : ENNReal) / ((2 : NNReal) : ENNReal) =
+      ((2 : NNReal) : ENNReal)
+    rw [← ENNReal.coe_div (by norm_num : (2 : NNReal) ≠ 0)]
+    norm_num
+  have hf_sq : MemLp (fun ω => |f ω| ^ 2) 2 μ := by
+    simpa [Real.norm_eq_abs, hdiv] using hf.norm_rpow_div 2
+  have hg_sq : MemLp (fun ω => |g ω| ^ 2) 2 μ := by
+    simpa [Real.norm_eq_abs, hdiv] using hg.norm_rpow_div 2
+  have hprod : Integrable (fun ω => |f ω| ^ 2 * |g ω| ^ 2) μ :=
+    hf_sq.integrable_mul hg_sq
+  refine (memLp_two_iff_integrable_sq (hf.1.mul hg.1)).2 ?_
+  convert hprod using 1
+  ext ω
+  change (f ω * g ω) ^ 2 = |f ω| ^ 2 * |g ω| ^ 2
+  rw [mul_pow, sq_abs, sq_abs]
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+/-- Hansen Assumption 7.2 at the literal observed system row `(Xᵢ,Yᵢ)`.
+
+The fourth moments are packaged as finite-dimensional row-norm moments, which
+are equivalent to Hansen's coordinate fourth moments. The conversion below
+derives the residual-row iid, Gram-integrability, and score-`L²` fields used by
+the Chapter 11 proof engine; none of those consequences is assumed here. -/
+structure SystemAssumption72ObservedResponseFourthConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X : ℕ → Ω → Matrix m k ℝ) (e Y : ℕ → Ω → m → ℝ)
+    (β : k → ℝ) : Prop where
+  observed_iIndep : iIndepFun (fun i ω => (X i ω, Y i ω)) μ
+  observed_identDistrib : ∀ i,
+    IdentDistrib (fun ω => (X i ω, Y i ω))
+      (fun ω => (X 0 ω, Y 0 ω)) μ μ
+  model : ∀ i ω j, Y i ω j = (X i ω j) ⬝ᵥ β + e i ω j
+  response_norm_fourth_integrable : Integrable (fun ω => ‖Y 0 ω‖ ^ 4) μ
+  design_norm_fourth_integrable : Integrable (fun ω => ‖X 0 ω‖ ^ 4) μ
+  score_mean_zero :
+    meanVec μ (fun ω => systemScore (X 0 ω) (e 0 ω)) = 0
+  gram_posDef : (systemPopulationGram μ X).PosDef
+
+namespace SystemAssumption72ObservedResponseFourthConditions
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem observed_row_aestronglyMeasurable_at
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (i : ℕ) : AEStronglyMeasurable (fun ω => (X i ω, Y i ω)) μ :=
+  (h.observed_identDistrib i).aestronglyMeasurable_fst
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem x_aestronglyMeasurable_at
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (i : ℕ) : AEStronglyMeasurable (X i) μ :=
+  (h.observed_row_aestronglyMeasurable_at i).fst
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem y_aestronglyMeasurable_at
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (i : ℕ) : AEStronglyMeasurable (Y i) μ :=
+  (h.observed_row_aestronglyMeasurable_at i).snd
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem design_memLp_four
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    MemLp (X 0) 4 μ := by
+  refine MemLp.of_eval fun a => MemLp.of_eval fun c => ?_
+  have hcoord : AEStronglyMeasurable (fun ω => X 0 ω a c) μ :=
+    (continuous_apply c).comp_aestronglyMeasurable
+      ((continuous_apply a).comp_aestronglyMeasurable
+        (h.x_aestronglyMeasurable_at 0))
+  apply system_memLp_four_of_integrable_fourth hcoord
+  refine h.design_norm_fourth_integrable.mono'
+    (hcoord.aemeasurable.pow_const 4).aestronglyMeasurable
+    (ae_of_all μ fun ω => ?_)
+  have hentry : |X 0 ω a c| ≤ ‖X 0 ω‖ := by
+    simpa [Real.norm_eq_abs] using
+      (Matrix.norm_entry_le_entrywise_sup_norm (A := X 0 ω) (i := a) (j := c))
+  calc
+    ‖X 0 ω a c ^ 4‖ = |X 0 ω a c| ^ 4 := by simp [Real.norm_eq_abs]
+    _ ≤ ‖X 0 ω‖ ^ 4 := by gcongr
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem response_memLp_four
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    MemLp (Y 0) 4 μ := by
+  refine MemLp.of_eval fun a => ?_
+  have hcoord : AEStronglyMeasurable (fun ω => Y 0 ω a) μ :=
+    (continuous_apply a).comp_aestronglyMeasurable
+      (h.y_aestronglyMeasurable_at 0)
+  apply system_memLp_four_of_integrable_fourth hcoord
+  refine h.response_norm_fourth_integrable.mono'
+    (hcoord.aemeasurable.pow_const 4).aestronglyMeasurable
+    (ae_of_all μ fun ω => ?_)
+  have hentry : |Y 0 ω a| ≤ ‖Y 0 ω‖ := by
+    simpa [Real.norm_eq_abs] using norm_le_pi_norm (Y 0 ω) a
+  calc
+    ‖Y 0 ω a ^ 4‖ = |Y 0 ω a| ^ 4 := by simp [Real.norm_eq_abs]
+    _ ≤ ‖Y 0 ω‖ ^ 4 := by gcongr
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem fitted_memLp_four
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    MemLp (fun ω => X 0 ω *ᵥ β) 4 μ := by
+  classical
+  refine MemLp.of_eval fun a => ?_
+  convert memLp_finset_sum' (s := Finset.univ)
+    (f := fun c ω => X 0 ω a c * β c)
+    (fun c _ => ((h.design_memLp_four.eval a).eval c).mul_const (β c)) using 1
+  ext ω
+  simp [Matrix.mulVec, dotProduct]
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem error_memLp_four
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    MemLp (e 0) 4 μ := by
+  have hdiff := h.response_memLp_four.sub h.fitted_memLp_four
+  convert hdiff using 1
+  funext ω
+  ext a
+  change e 0 ω a = Y 0 ω a - (X 0 ω *ᵥ β) a
+  rw [h.model 0 ω a]
+  change e 0 ω a = X 0 ω a ⬝ᵥ β + e 0 ω a - X 0 ω a ⬝ᵥ β
+  ring
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+private theorem observed_to_residual_measurable (β : k → ℝ) :
+    Measurable (fun row : Matrix m k ℝ × (m → ℝ) =>
+      (row.1, row.2 - row.1 *ᵥ β)) :=
+  (continuous_fst.prodMk
+    (continuous_snd.sub
+      (Continuous.matrix_mulVec continuous_fst continuous_const))).measurable
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+private theorem observed_to_residual_apply
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (i : ℕ) (ω : Ω) :
+    ((X i ω, Y i ω).1, (X i ω, Y i ω).2 - (X i ω, Y i ω).1 *ᵥ β) =
+      (X i ω, e i ω) := by
+  apply Prod.ext
+  · rfl
+  · funext a
+    change Y i ω a - (X i ω *ᵥ β) a = e i ω a
+    rw [h.model i ω a]
+    change X i ω a ⬝ᵥ β + e i ω a - X i ω a ⬝ᵥ β = e i ω a
+    ring
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem gram_integrable
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    Integrable (fun ω => (X 0 ω)ᵀ * X 0 ω) μ := by
+  have hX2 : MemLp (X 0) 2 μ := h.design_memLp_four.mono_exponent (by norm_num)
+  refine Integrable.of_eval fun c => Integrable.of_eval fun d => ?_
+  have hsum : Integrable (fun ω => ∑ a : m, X 0 ω a c * X 0 ω a d) μ :=
+    integrable_finset_sum _ fun a _ =>
+      ((hX2.eval a).eval c).integrable_mul ((hX2.eval a).eval d)
+  simpa [Matrix.mul_apply, Matrix.transpose_apply] using hsum
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+theorem score_memLp_two
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    MemLp (fun ω => systemScore (X 0 ω) (e 0 ω)) 2 μ := by
+  classical
+  refine MemLp.of_eval fun c => ?_
+  convert memLp_finset_sum' (s := Finset.univ)
+    (f := fun a ω => X 0 ω a c * e 0 ω a)
+    (fun a _ => system_memLp_two_mul_of_memLp_four
+      ((h.design_memLp_four.eval a).eval c) (h.error_memLp_four.eval a)) using 1
+  ext ω
+  simp [systemScore, Matrix.mulVec, dotProduct, Matrix.transpose_apply]
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+/-- Hansen's observed-row fourth moments imply the compact error second
+moment used by the feasible covariance proof. -/
+theorem error_norm_sq_integrable
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    Integrable (fun ω => ‖e 0 ω‖ ^ 2) μ :=
+  (h.error_memLp_four.mono_exponent (by norm_num : (2 : ENNReal) ≤ 4)).integrable_norm_pow
+    (by norm_num)
+
+omit [Fintype q] [DecidableEq k] [DecidableEq q] [DecidableEq m] in
+/-- Hansen's observed-row fourth moments imply
+`E[‖e₀‖ ‖X₀‖³] < ∞`, the compact mixed moment used by the feasible robust
+covariance substitution. This is Young's inequality applied pointwise. -/
+theorem error_design_norm_cubed_integrable
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    Integrable (fun ω => ‖e 0 ω‖ * ‖X 0 ω‖ ^ 3) μ := by
+  have he4 : Integrable (fun ω => ‖e 0 ω‖ ^ 4) μ :=
+    h.error_memLp_four.integrable_norm_pow (by norm_num)
+  have hdom : Integrable
+      (fun ω => (4 : ℝ)⁻¹ * (‖e 0 ω‖ ^ 4 + 3 * ‖X 0 ω‖ ^ 4)) μ :=
+    (he4.add (h.design_norm_fourth_integrable.const_mul 3)).const_mul (4 : ℝ)⁻¹
+  have htarget : AEStronglyMeasurable
+      (fun ω => ‖e 0 ω‖ * ‖X 0 ω‖ ^ 3) μ := by
+    simpa only [Pi.mul_apply, Pi.pow_apply] using
+      h.error_memLp_four.1.norm.mul (h.design_memLp_four.1.norm.pow 3)
+  refine hdom.mono' htarget (ae_of_all μ fun ω => ?_)
+  have hfactor :
+      0 ≤ (‖e 0 ω‖ - ‖X 0 ω‖) ^ 2 *
+        (‖e 0 ω‖ ^ 2 + 2 * ‖e 0 ω‖ * ‖X 0 ω‖ + 3 * ‖X 0 ω‖ ^ 2) := by
+    positivity
+  have hyoung :
+      4 * (‖e 0 ω‖ * ‖X 0 ω‖ ^ 3) ≤
+        ‖e 0 ω‖ ^ 4 + 3 * ‖X 0 ω‖ ^ 4 := by
+    nlinarith
+  norm_num at hyoung ⊢
+  nlinarith
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Literal observed-row Assumption 7.2 implies the primitive residual-row
+package used by Hansen Theorems 11.1--11.3. -/
+theorem toSystemAssumption72PrimitiveRow
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    SystemAssumption72PrimitiveRow μ X e where
+  row_iIndep := by
+    have hcomp := h.observed_iIndep.comp
+      (fun _ row => (row.1, row.2 - row.1 *ᵥ β))
+      (fun _ => observed_to_residual_measurable (m := m) (k := k) β)
+    convert hcomp using 1
+    funext i ω
+    exact (h.observed_to_residual_apply i ω).symm
+  row_identDistrib := by
+    intro i
+    have hcomp := (h.observed_identDistrib i).comp
+      (observed_to_residual_measurable (m := m) (k := k) β)
+    convert hcomp using 1 <;> funext ω
+    · exact (h.observed_to_residual_apply i ω).symm
+    · exact (h.observed_to_residual_apply 0 ω).symm
+  gram_integrable := h.gram_integrable
+  score_memLp := h.score_memLp_two
+  score_mean_zero := h.score_mean_zero
+  gram_nonsing := (Matrix.isUnit_iff_isUnit_det _).mp h.gram_posDef.isUnit
+
+end SystemAssumption72ObservedResponseFourthConditions
+
+omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq k] [DecidableEq q]
+  [DecidableEq m] in
 /-- Coordinate version of the fact that integrability of `X'X` gives finite
 second moments for the system-design coordinates. -/
 theorem systemDesignCoordinate_memLp_two_of_gram_integrable
@@ -1522,6 +1783,117 @@ theorem systemLeastSquaresBetaStarObs_aestronglyMeasurable_of_assumption72
     (by intro i j; exact hmodel i.val ω j),
     ← systemLeastSquaresBetaStarObs_eq_normalized_moments Xt Yt]
 
+omit [IsProbabilityMeasure μ] [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- Finite-sample measurability of the observation-level system residual row,
+derived from measurability of the observations and the Star coefficient
+estimator. -/
+theorem systemResidualStarObs_aestronglyMeasurable
+    {X : ℕ → Ω → Matrix m k ℝ} {Y : ℕ → Ω → m → ℝ}
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (n : ℕ) (i : Fin n) :
+    AEStronglyMeasurable
+      (fun ω => systemResidualStarObs
+        (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω) i) μ := by
+  have hBeta : AEStronglyMeasurable
+      (fun ω => systemLeastSquaresBetaStarObs
+        (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω)) μ := by
+    have hGram : AEStronglyMeasurable
+        (fun ω => systemNormalizedGram (fun r : Fin n => X r.val ω)) μ := by
+      simp only [systemNormalizedGram]
+      refine AEStronglyMeasurable.const_smul ?_ ((Fintype.card (Fin n) : ℝ)⁻¹)
+      refine Finset.aestronglyMeasurable_fun_sum _ (fun r _ => ?_)
+      have hXi := hX r.val
+      have hXiT := (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXi
+      exact (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+        (hXiT.prodMk hXi)
+    have hScore : AEStronglyMeasurable
+        (fun ω => systemScoreMean
+          (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω)) μ := by
+      simp only [systemScoreMean, systemScore]
+      refine AEStronglyMeasurable.const_smul ?_ ((Fintype.card (Fin n) : ℝ)⁻¹)
+      refine Finset.aestronglyMeasurable_fun_sum _ (fun r _ => ?_)
+      have hXiT := (continuous_id.matrix_transpose).comp_aestronglyMeasurable (hX r.val)
+      exact (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+        (hXiT.prodMk (hY r.val))
+    have hInv := aestronglyMeasurable_matrix_inv hGram
+    have hMul := (Continuous.matrix_mulVec continuous_fst continuous_snd)
+      |>.comp_aestronglyMeasurable (hInv.prodMk hScore)
+    simpa only [systemLeastSquaresBetaStarObs_eq_normalized_moments] using hMul
+  rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+  intro a
+  have hYia : AEStronglyMeasurable (fun ω => Y i.val ω a) μ :=
+    (continuous_apply a).comp_aestronglyMeasurable (hY i.val)
+  have hXia : AEStronglyMeasurable (fun ω => X i.val ω a) μ :=
+    (continuous_apply a).comp_aestronglyMeasurable (hX i.val)
+  have hfit : AEStronglyMeasurable
+      (fun ω => X i.val ω a ⬝ᵥ systemLeastSquaresBetaStarObs
+        (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω)) μ :=
+    (Continuous.dotProduct continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXia.prodMk hBeta)
+  exact ((hYia.sub hfit).congr (ae_of_all μ fun ω => by
+    rw [systemResidualStarObs_apply]
+    rfl)).aemeasurable
+
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+private theorem systemRobustMiddleTerm_aestronglyMeasurable_of_pair
+    {X : Ω → Matrix m k ℝ} {e : Ω → m → ℝ}
+    (hX : AEStronglyMeasurable X μ) (he : AEStronglyMeasurable e μ) :
+    AEStronglyMeasurable (fun ω => systemRobustMiddleTerm (X ω) (e ω)) μ := by
+  have hXt : AEStronglyMeasurable (fun ω => (X ω)ᵀ) μ :=
+    continuous_id.matrix_transpose.comp_aestronglyMeasurable hX
+  have hScore : AEStronglyMeasurable (fun ω => systemScore (X ω) (e ω)) μ := by
+    simpa only [systemScore] using
+      (Continuous.matrix_mulVec continuous_fst continuous_snd)
+        |>.comp_aestronglyMeasurable (hXt.prodMk he)
+  have hOuter : AEStronglyMeasurable
+      (fun ω => Matrix.vecMulVec (systemScore (X ω) (e ω))
+        (systemScore (X ω) (e ω))) μ :=
+    (Continuous.matrix_vecMulVec continuous_id continuous_id)
+      |>.comp_aestronglyMeasurable hScore
+  exact hOuter.congr (ae_of_all μ fun ω =>
+    (systemRobustMiddleTerm_eq_vecMulVec_score (X ω) (e ω)).symm)
+
+omit [IsProbabilityMeasure μ] [Fintype m] [Fintype q] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- A finite residual covariance is measurable when each residual row is
+measurable. -/
+theorem systemSigmaHat_aestronglyMeasurable_of_rows
+    {r : Type*} [Fintype r]
+    {ehat : r → Ω → m → ℝ}
+    (hehat : ∀ i, AEStronglyMeasurable (ehat i) μ) :
+    AEStronglyMeasurable (fun ω => systemSigmaHat (fun i => ehat i ω)) μ := by
+  classical
+  simp only [systemSigmaHat]
+  refine AEStronglyMeasurable.const_smul ?_ ((Fintype.card r : ℝ)⁻¹)
+  refine Finset.aestronglyMeasurable_fun_sum Finset.univ (fun i _ => ?_)
+  exact (Continuous.matrix_vecMulVec continuous_id continuous_id)
+    |>.comp_aestronglyMeasurable (hehat i)
+
+omit [IsProbabilityMeasure μ] [Fintype k] [Fintype q] [DecidableEq k]
+  [DecidableEq q] [DecidableEq m] in
+/-- A finite homoskedastic middle matrix is measurable when each design row
+and the estimated covariance are measurable. -/
+theorem systemHomoskedasticMiddle_aestronglyMeasurable_of_rows
+    {r : Type*} [Fintype r]
+    {X : r → Ω → Matrix m k ℝ} {SigmaHat : Ω → Matrix m m ℝ}
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hSigma : AEStronglyMeasurable SigmaHat μ) :
+    AEStronglyMeasurable
+      (fun ω => systemHomoskedasticMiddle (fun i => X i ω) (SigmaHat ω)) μ := by
+  classical
+  simp only [systemHomoskedasticMiddle]
+  refine AEStronglyMeasurable.const_smul ?_ ((Fintype.card r : ℝ)⁻¹)
+  refine Finset.aestronglyMeasurable_fun_sum Finset.univ (fun i _ => ?_)
+  have hXi := hX i
+  have hXiT := (continuous_id.matrix_transpose).comp_aestronglyMeasurable hXi
+  have hLeft := (Continuous.matrix_mul continuous_fst continuous_snd)
+    |>.comp_aestronglyMeasurable (hXiT.prodMk hSigma)
+  simpa only [systemMiddleTerm, Matrix.mul_assoc] using
+    (Continuous.matrix_mul continuous_fst continuous_snd)
+      |>.comp_aestronglyMeasurable (hLeft.prodMk hXi)
+
 omit [Fintype q] [DecidableEq q] [DecidableEq m] in
 /-- Scaled system-estimator measurability needed by Hansen Theorem 11.1,
 derived from Assumption 7.2 instead of left as a theorem premise. -/
@@ -1936,6 +2308,28 @@ theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_primitive_row_a
     (μ := μ) (X := X) (e := e) (Y := Y)
     h72.toSystemAssumption72 β hmodel
 
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- **Hansen Theorem 11.1** from literal observed-row Assumption 7.2.
+
+The residual-row iid, Gram WLLN, score CLT, and population nonsingularity
+inputs are derived from observed `(Xᵢ,Yᵢ)` iid rows, Hansen's fourth moments,
+orthogonality, and positive definiteness of `Q`. -/
+theorem systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_observed_assumption72
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ} {β : k → ℝ}
+    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (systemLeastSquaresBetaOrZeroObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (systemAsymptoticVariance
+          (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e))) :=
+  systemLeastSquaresBetaOrZeroObs_tendstoInDistribution_of_primitive_row_assumption72
+    (μ := μ) (X := X) (e := e) (Y := Y)
+    h72.toSystemAssumption72PrimitiveRow β h72.model
+
 omit [DecidableEq m] in
 /-- Hansen Theorem 11.2 from the Chapter 11 observation-level Assumption 7.2
 package and the deterministic Assumption 7.3 smoothness package. -/
@@ -2095,6 +2489,28 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
     (μ := μ) (X := X) (e := e) (Y := Y)
     h72.toSystemAssumption72 h73 hmodel
 
+omit [DecidableEq m] in
+/-- **Hansen Theorem 11.2** from literal observed-row Assumption 7.2 and the
+measurable Assumption 7.3 smooth-function package. -/
+theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_73
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h73 : SystemDeltaAssumption73Measurable r β R) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (r (systemLeastSquaresBetaOrZeroObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) - r β))
+      atTop (fun z : EuclideanSpace ℝ q => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (systemDeltaVariance
+          (systemAsymptoticVariance
+            (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
+  systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_73
+    (μ := μ) (X := X) (e := e) (Y := Y)
+    h72.toSystemAssumption72PrimitiveRow h73 h72.model
+
 set_option linter.style.longLine false in
 omit [DecidableEq m] in
 /-- Hansen Theorem 11.2 from the literal row-iid Assumption 7.2 surface and
@@ -2149,6 +2565,28 @@ theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumpt
   systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_73
     (μ := μ) (X := X) (e := e) (Y := Y)
     h72 h73.toSystemDeltaAssumption73Measurable hmodel
+
+omit [DecidableEq m] in
+/-- **Hansen Theorem 11.2** from literal observed-row Assumption 7.2 and the
+literal `ContDiffAt` Assumption 7.3 surface. -/
+theorem systemDelta_betaOrZeroObs_tendstoInDistribution_of_observed_assumptions72_contDiffAt
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {r : (k → ℝ) → (q → ℝ)} {β : k → ℝ} {R : Matrix k q ℝ}
+    (h72 : SystemAssumption72ObservedResponseFourthConditions μ X e Y β)
+    (h73 : SystemDeltaAssumption73ContDiffAt r β R) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (r (systemLeastSquaresBetaOrZeroObs
+            (fun i : Fin t => X i.val ω) (fun i : Fin t => Y i.val ω)) - r β))
+      atTop (fun z : EuclideanSpace ℝ q => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (systemDeltaVariance
+          (systemAsymptoticVariance
+            (systemPopulationGram μ X) (systemPopulationScoreCovariance μ X e)) R)) :=
+  systemDelta_betaOrZeroObs_tendstoInDistribution_of_primitive_row_assumptions72_contDiffAt
+    (μ := μ) (X := X) (e := e) (Y := Y)
+    h72.toSystemAssumption72PrimitiveRow h73 h72.model
 
 omit [DecidableEq k] [DecidableEq m] in
 /-- **Ideal robust system-middle WLLN for Hansen Chapter 11.**
@@ -5354,6 +5792,72 @@ theorem systemCovariances_theorem11_3_of_primitive_row_compact_assumption72
   systemCovariances_theorem11_3_of_middle_consistency
     (μ := μ) (X := X) (e := e) (Y := Y)
     h.toSystemCovarianceTheorem113Conditions
+
+omit [Fintype q] [DecidableEq q] [DecidableEq m] in
+/-- **Hansen Theorem 11.3** from literal observed-row Assumption 7.2.
+
+The observed-row fourth moments derive all residual-substitution moments in
+the compact covariance package. Measurability of both displayed feasible
+middle matrices is derived from the observed rows and the Star estimator. -/
+theorem systemCovariances_theorem11_3_of_observed_assumption72
+    {X : ℕ → Ω → Matrix m k ℝ} {e Y : ℕ → Ω → m → ℝ}
+    {β : k → ℝ}
+    (h : SystemAssumption72ObservedResponseFourthConditions μ X e Y β) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        systemRobustCovarianceStarObs
+          (fun i : Fin n => X i.val ω) (fun i : Fin n => Y i.val ω))
+      atTop
+      (fun _ =>
+        systemAsymptoticVariance (systemPopulationGram μ X)
+          (systemPopulationScoreCovariance μ X e)) ∧
+    TendstoInMeasure μ
+      (fun n ω =>
+        systemHomoskedasticCovarianceStarObs
+          (fun i : Fin n => X i.val ω) (fun i : Fin n => Y i.val ω))
+      atTop
+      (fun _ =>
+        systemAsymptoticVariance (systemPopulationGram μ X)
+          (μ[fun ω => systemMiddleTerm (X 0 ω)
+            (μ[fun ω => Matrix.vecMulVec (e 0 ω) (e 0 ω)])])) := by
+  apply systemCovariances_theorem11_3_of_primitive_row_compact_assumption72
+    (μ := μ) (X := X) (e := e) (Y := Y) (β := β)
+  exact
+    { toSystemAssumption72PrimitiveRow := h.toSystemAssumption72PrimitiveRow
+      model := h.model
+      error_norm_sq_integrable := h.error_norm_sq_integrable
+      error_design_norm_cubed_integrable := h.error_design_norm_cubed_integrable
+      design_norm_fourth_integrable := h.design_norm_fourth_integrable
+      robust_middle_measurable := fun n => by
+        simp only [systemRobustMiddle]
+        refine AEStronglyMeasurable.const_smul ?_ ((Fintype.card (Fin n) : ℝ)⁻¹)
+        refine Finset.aestronglyMeasurable_fun_sum Finset.univ (fun i _ => ?_)
+        exact systemRobustMiddleTerm_aestronglyMeasurable_of_pair
+          (h.x_aestronglyMeasurable_at i.val)
+          (systemResidualStarObs_aestronglyMeasurable
+            (μ := μ) (X := X) (Y := Y)
+            h.x_aestronglyMeasurable_at h.y_aestronglyMeasurable_at n i)
+      homoskedastic_middle_measurable := fun n => by
+        have hResidual : ∀ i : Fin n, AEStronglyMeasurable
+            (fun ω => systemResidualStarObs
+              (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω) i) μ :=
+          fun i => systemResidualStarObs_aestronglyMeasurable
+            (μ := μ) (X := X) (Y := Y)
+            h.x_aestronglyMeasurable_at h.y_aestronglyMeasurable_at n i
+        have hSigmaRaw := systemSigmaHat_aestronglyMeasurable_of_rows
+          (μ := μ)
+          (ehat := fun i : Fin n => fun ω => systemResidualStarObs
+            (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω) i)
+          hResidual
+        have hSigma : AEStronglyMeasurable
+            (fun ω => systemSigmaHatStarObs
+              (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω)) μ := by
+          simpa only [systemSigmaHatStarObs] using hSigmaRaw
+        exact systemHomoskedasticMiddle_aestronglyMeasurable_of_rows
+          (μ := μ) (X := fun i : Fin n => X i.val)
+          (SigmaHat := fun ω => systemSigmaHatStarObs
+            (fun r : Fin n => X r.val ω) (fun r : Fin n => Y r.val ω))
+          (fun i => h.x_aestronglyMeasurable_at i.val) hSigma }
 
 omit [DecidableEq m] in
 /-- Fixed-covariance WLLN plus CMT route for the homoskedastic system covariance
