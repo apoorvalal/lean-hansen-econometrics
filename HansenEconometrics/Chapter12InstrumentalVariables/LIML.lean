@@ -7,7 +7,9 @@ This file contains the limited-information maximum-likelihood coefficient
 surface used in Hansen's weak- and many-instrument asymptotic theorems.  The
 definitions follow the Chapter 12 Star convention: matrix inverses are
 totalized through `Matrix.nonsingInv`, so the notation is available without
-finite-sample rank side conditions.
+finite-sample rank side conditions.  The scalar Rayleigh quotient is also
+totalized as a function, but its canonical minimizer certificate ranges only
+over vectors with strictly positive denominator.
 -/
 
 open scoped Matrix
@@ -108,19 +110,102 @@ theorem limlBetaStar_sub_eq_normalizedScore_of_nonsingular
 
 omit [Fintype n] [DecidableEq n] in
 /-- Rayleigh quotient appearing in Hansen's weak-instrument LIML limit:
-`γ' A γ / γ' Σ γ`. -/
+`γ' A γ / γ' Σ γ`.
+
+Division on `ℝ` is totalized, so the quotient is merely notation at vectors
+where `γ'Σγ = 0`.  `LIMLRayleighMinimizer` excludes those vectors from its
+optimization domain. -/
 noncomputable def limlRayleighQuotient
     (A Sigma : Matrix k k ℝ) (γ : k → ℝ) : ℝ :=
   (γ ⬝ᵥ (A *ᵥ γ)) / (γ ⬝ᵥ (Sigma *ᵥ γ))
 
 omit [Fintype n] [DecidableEq n] in
+/-- Admissibility condition for Hansen's generalized Rayleigh quotient:
+the denominator `γ'Σγ` is strictly positive. -/
+def limlRayleighAdmissible
+    (Sigma : Matrix k k ℝ) (γ : k → ℝ) : Prop :=
+  0 < γ ⬝ᵥ (Sigma *ᵥ γ)
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- An admissible generalized-Rayleigh vector is nonzero. -/
+theorem limlRayleighAdmissible.ne_zero
+    {Sigma : Matrix k k ℝ} {γ : k → ℝ}
+    (hγ : limlRayleighAdmissible Sigma γ) : γ ≠ 0 := by
+  intro hzero
+  subst γ
+  simp [limlRayleighAdmissible] at hγ
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Positive definiteness makes every nonzero vector Rayleigh-admissible. -/
+theorem limlRayleighAdmissible_of_posDef
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.PosDef) {γ : k → ℝ}
+    (hγ : γ ≠ 0) : limlRayleighAdmissible Sigma γ := by
+  simpa [limlRayleighAdmissible] using hSigma.dotProduct_mulVec_pos hγ
+
+omit [Fintype n] [DecidableEq n] in
 /-- Hansen's weak-instrument `µ*` minimizer certificate for the LIML
-Rayleigh quotient.  The scalar `mustar` is the minimum value of
-`γ' A γ / γ'Σγ` over nonzero `γ`. -/
+   Rayleigh quotient.  The scalar `mustar` is the minimum value of
+   `γ' A γ / γ'Σγ` over vectors satisfying `γ'Σγ > 0`.  This domain restriction
+   prevents totalized division at a zero denominator from creating a spurious
+   minimizer. -/
 structure LIMLRayleighMinimizer
+    (A Sigma : Matrix k k ℝ) (mustar : ℝ) : Prop where
+  value : ∃ γ : k → ℝ,
+    limlRayleighAdmissible Sigma γ ∧ limlRayleighQuotient A Sigma γ = mustar
+  lower_bound : ∀ γ : k → ℝ, limlRayleighAdmissible Sigma γ →
+    mustar ≤ limlRayleighQuotient A Sigma γ
+
+omit [Fintype n] [DecidableEq n] in
+/-- Compatibility certificate minimizing the totalized Rayleigh quotient over
+all nonzero vectors.
+
+This is equivalent to `LIMLRayleighMinimizer` when `Sigma.PosDef`.  Without
+that hypothesis it is not Hansen's generalized Rayleigh minimization problem,
+because vectors with zero denominator remain in the domain. -/
+structure LIMLTotalizedRayleighMinimizer
     (A Sigma : Matrix k k ℝ) (mustar : ℝ) : Prop where
   value : ∃ γ : k → ℝ, γ ≠ 0 ∧ limlRayleighQuotient A Sigma γ = mustar
   lower_bound : ∀ γ : k → ℝ, γ ≠ 0 → mustar ≤ limlRayleighQuotient A Sigma γ
+
+namespace LIMLRayleighMinimizer
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Construct the denominator-safe minimizer from the totalized compatibility
+certificate when the denominator matrix is positive definite. -/
+theorem of_totalized_of_posDef
+    {A Sigma : Matrix k k ℝ} {mustar : ℝ} (hSigma : Sigma.PosDef)
+    (hmin : LIMLTotalizedRayleighMinimizer A Sigma mustar) :
+    LIMLRayleighMinimizer A Sigma mustar := by
+  refine ⟨?_, ?_⟩
+  · rcases hmin.value with ⟨γ, hγ, hvalue⟩
+    exact ⟨γ, limlRayleighAdmissible_of_posDef hSigma hγ, hvalue⟩
+  · intro γ hγ
+    exact hmin.lower_bound γ hγ.ne_zero
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- Recover the totalized compatibility certificate from the canonical
+minimizer when the denominator matrix is positive definite. -/
+theorem to_totalized_of_posDef
+    {A Sigma : Matrix k k ℝ} {mustar : ℝ}
+    (hmin : LIMLRayleighMinimizer A Sigma mustar) (hSigma : Sigma.PosDef) :
+    LIMLTotalizedRayleighMinimizer A Sigma mustar := by
+  refine ⟨?_, ?_⟩
+  · rcases hmin.value with ⟨γ, hγ, hvalue⟩
+    exact ⟨γ, hγ.ne_zero, hvalue⟩
+  · intro γ hγ
+    exact hmin.lower_bound γ (limlRayleighAdmissible_of_posDef hSigma hγ)
+
+omit [Fintype n] [DecidableEq n] [DecidableEq k] in
+/-- With a positive-definite denominator matrix, the canonical and totalized
+Rayleigh minimizer certificates are equivalent. -/
+theorem iff_totalized_of_posDef
+    {A Sigma : Matrix k k ℝ} {mustar : ℝ} (hSigma : Sigma.PosDef) :
+    LIMLRayleighMinimizer A Sigma mustar ↔
+      LIMLTotalizedRayleighMinimizer A Sigma mustar :=
+  ⟨fun hmin ↦ hmin.to_totalized_of_posDef hSigma,
+    fun hmin ↦ of_totalized_of_posDef hSigma hmin⟩
+
+end LIMLRayleighMinimizer
 
 omit [Fintype n] [DecidableEq n] in
 /-- Matrix whose quadratic form gives Hansen's LIML Rayleigh numerator,
