@@ -753,65 +753,14 @@ theorem trace_mul_le_trace_mul_of_le_of_posSemidef
       Matrix.trace_mul_cycle Sᴴ (B - A) S
     _ = Matrix.trace (W * (B - A)) := by rw [hS, hSsq]
 
-/-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
-Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
-lemma quadForm_eq_sum_eigenvalues
-    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hH : M.IsHermitian)
-    (z : EuclideanSpace ℝ (Fin n)) :
-    (z : Fin n → ℝ) ⬝ᵥ (M *ᵥ (z : Fin n → ℝ))
-      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
-  set b := hH.eigenvectorBasis with hb_def
-  -- Write (z : Fin n → ℝ) as a sum in the eigenbasis.
-  have hz_coord : (z : Fin n → ℝ) = ∑ i, b.repr z i • ((b i : Fin n → ℝ)) := by
-    have hsum : z = ∑ i, b.repr z i • b i := (b.sum_repr z).symm
-    have : ((z : EuclideanSpace ℝ (Fin n)) : Fin n → ℝ)
-        = (((∑ i, b.repr z i • b i) : EuclideanSpace ℝ (Fin n)) : Fin n → ℝ) :=
-      congrArg _ hsum
-    rw [this, WithLp.ofLp_sum]
-    rfl
-  -- Apply M to that sum; linearity + eigenvector identity.
-  have hMz_coord : M *ᵥ (z : Fin n → ℝ)
-      = ∑ i, (b.repr z i * hH.eigenvalues i) • ((b i : Fin n → ℝ)) := by
-    rw [hz_coord, Matrix.mulVec_sum]
-    refine Finset.sum_congr rfl (fun i _ => ?_)
-    rw [Matrix.mulVec_smul, hH.mulVec_eigenvectorBasis, smul_smul]
-  -- Orthonormality of the eigenbasis as `Fin n → ℝ` vectors. For real scalars the inner
-  -- product coincides with the flipped dot product: `⟪x, y⟫_ℝ = y ⬝ᵥ x`.
-  have hinner_eq_dot : ∀ x y : EuclideanSpace ℝ (Fin n),
-      @inner ℝ (EuclideanSpace ℝ (Fin n)) _ x y = ((y : Fin n → ℝ)) ⬝ᵥ ((x : Fin n → ℝ)) :=
-    fun _ _ => rfl
-  have horth : ∀ i j : Fin n,
-      ((b i : Fin n → ℝ)) ⬝ᵥ ((b j : Fin n → ℝ)) = if i = j then (1 : ℝ) else 0 := by
-    intro i j
-    rw [dotProduct_comm, ← hinner_eq_dot]
-    have := (orthonormal_iff_ite.mp b.orthonormal) i j
-    simpa using this
-  -- Expand the dot product step by step.
-  rw [hMz_coord, hz_coord, sum_dotProduct]
-  refine Finset.sum_congr rfl (fun i _ => ?_)
-  rw [smul_dotProduct, dotProduct_sum, smul_eq_mul]
-  have step : ∀ j, (b i : Fin n → ℝ) ⬝ᵥ ((b.repr z j * hH.eigenvalues j) • (b j : Fin n → ℝ))
-      = (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0) := by
-    intro j; rw [dotProduct_smul, horth, smul_eq_mul]
-  simp_rw [step]
-  rw [Finset.sum_congr rfl (fun j _ => show
-    (b.repr z j * hH.eigenvalues j) * (if i = j then (1 : ℝ) else 0)
-      = if i = j then b.repr z i * hH.eigenvalues i else 0 by
-    split_ifs with hij
-    · rw [hij]; ring
-    · ring)]
-  rw [Finset.sum_ite_eq Finset.univ i]
-  simp
-  ring
-
-/-- Finite-index version of `quadForm_eq_sum_eigenvalues`. -/
-lemma quadForm_eq_sum_eigenvalues_fintype
+private lemma quadForm_eq_sum_eigenvalues_core
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
     (z : EuclideanSpace ℝ ι) :
     (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ))
       = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
   set b := hH.eigenvectorBasis with hb_def
+  -- Write `z` as a sum in the eigenbasis.
   have hz_coord : (z : ι → ℝ) = ∑ i, b.repr z i • ((b i : ι → ℝ)) := by
     have hsum : z = ∑ i, b.repr z i • b i := (b.sum_repr z).symm
     have : ((z : EuclideanSpace ℝ ι) : ι → ℝ)
@@ -819,11 +768,14 @@ lemma quadForm_eq_sum_eigenvalues_fintype
       congrArg _ hsum
     rw [this, WithLp.ofLp_sum]
     rfl
+  -- Apply M to that sum; linearity + eigenvector identity.
   have hMz_coord : M *ᵥ (z : ι → ℝ)
       = ∑ i, (b.repr z i * hH.eigenvalues i) • ((b i : ι → ℝ)) := by
     rw [hz_coord, Matrix.mulVec_sum]
     refine Finset.sum_congr rfl (fun i _ => ?_)
     rw [Matrix.mulVec_smul, hH.mulVec_eigenvectorBasis, smul_smul]
+  -- Orthonormality of the eigenbasis as `ι → ℝ` vectors. For real scalars the inner
+  -- product coincides with the flipped dot product: `⟪x, y⟫_ℝ = y ⬝ᵥ x`.
   have hinner_eq_dot : ∀ x y : EuclideanSpace ℝ ι,
       @inner ℝ (EuclideanSpace ℝ ι) _ x y = ((y : ι → ℝ)) ⬝ᵥ ((x : ι → ℝ)) :=
     fun _ _ => rfl
@@ -833,6 +785,7 @@ lemma quadForm_eq_sum_eigenvalues_fintype
     rw [dotProduct_comm, ← hinner_eq_dot]
     have := (orthonormal_iff_ite.mp b.orthonormal) i j
     simpa using this
+  -- Expand the dot product step by step.
   rw [hMz_coord, hz_coord, sum_dotProduct]
   refine Finset.sum_congr rfl (fun i _ => ?_)
   rw [smul_dotProduct, dotProduct_sum, smul_eq_mul]
@@ -849,6 +802,24 @@ lemma quadForm_eq_sum_eigenvalues_fintype
   rw [Finset.sum_ite_eq Finset.univ i]
   simp
   ring
+
+/-- Spectral expansion of the quadratic form `z ⬝ᵥ M *ᵥ z` in the eigenbasis of a
+Hermitian real matrix: it equals the sum of eigenvalues times squared basis coordinates. -/
+lemma quadForm_eq_sum_eigenvalues
+    {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ (Fin n)) :
+    (z : Fin n → ℝ) ⬝ᵥ (M *ᵥ (z : Fin n → ℝ))
+      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
+  exact quadForm_eq_sum_eigenvalues_core hH z
+
+/-- Finite-index version of `quadForm_eq_sum_eigenvalues`. -/
+lemma quadForm_eq_sum_eigenvalues_fintype
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix ι ι ℝ} (hH : M.IsHermitian)
+    (z : EuclideanSpace ℝ ι) :
+    (z : ι → ℝ) ⬝ᵥ (M *ᵥ (z : ι → ℝ))
+      = ∑ i, hH.eigenvalues i * (hH.eigenvectorBasis.repr z i) ^ 2 := by
+  exact quadForm_eq_sum_eigenvalues_core hH z
 
 /-- Rayleigh-quotient upper bound from a Hermitian spectral expansion.
 
