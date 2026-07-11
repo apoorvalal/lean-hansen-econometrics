@@ -2512,7 +2512,10 @@ This version has no supplied contrast certificate: the contrast rows are
 Mathlib's orthonormal eigenbasis for the `1`-eigenspace of the sample-centering
 projection. The row index has cardinality `n - 1` by
 `sampleCenteringMatrix_card_eigenvalues_eq_one`, giving Hansen's centered
-Wishart degrees of freedom. -/
+Wishart degrees of freedom. Hansen's bias-corrected statistic is the
+`1 < Fintype.card n` case. When there is exactly one row, Lean's total inverse
+extends both the sample covariance and the scaled Wishart law to the degenerate
+zero law. -/
 theorem sampleCovarianceMatrix_hasLaw_theorem11_10_canonical
     [IsProbabilityMeasure μ] [Nonempty n]
     (Y : Ω → Matrix n m ℝ)

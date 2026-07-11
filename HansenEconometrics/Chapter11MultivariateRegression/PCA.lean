@@ -9,7 +9,10 @@ import HansenEconometrics.ProbabilityUtils
 
 Principal components are exposed through the covariance quadratic form. Mathlib's
 Hermitian spectral theorem supplies the eigenvector basis used by Hansen Theorem
-11.8; this file exposes the chapter-facing variance wrappers.
+11.8. The optimizer-first public surface characterizes every sequential variance
+optimizer relative to the earlier ordered directions by membership in the
+corresponding ordered eigenspace, while the canonical ordered eigenbasis remains
+available as a construction.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -81,6 +84,17 @@ def pcaFeasibleBefore
     (H : Fin (Fintype.card k) → k → ℝ)
     (j : Fin (Fintype.card k)) (h : k → ℝ) : Prop :=
   h ⬝ᵥ h = 1 ∧ ∀ i, i < j → h ⬝ᵥ H i = 0
+
+/-- Optimizer-only certificate for Hansen's sequential principal-component
+problem. Unlike `SequentialPrincipalComponentSolution`, this does not assume
+the eigenvector equation that Theorem 11.8 is meant to derive. -/
+structure SequentialPrincipalComponentOptimizer
+    (Sigma : Matrix k k ℝ) (H : Fin (Fintype.card k) → k → ℝ)
+    (j : Fin (Fintype.card k)) (h : k → ℝ) : Prop where
+  feasible : pcaFeasibleBefore H j h
+  maximizes_variance :
+    ∀ g : k → ℝ, pcaFeasibleBefore H j g →
+      principalComponentVariance Sigma g ≤ principalComponentVariance Sigma h
 
 /-- A vector satisfying the principal-component first-order and optimality conditions. -/
 structure PrincipalComponentSolution
@@ -347,6 +361,218 @@ theorem orderedPCEigenvector_maximizes_variance_feasibleBefore_eigenvalue
   rw [principalComponentVariance_eq_orderedPCEigenvalue hSigma j] at hmax
   exact hmax
 
+private theorem pcaFeasibleBefore_eigenvector_of_variance_eq_orderedPCEigenvalue
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) (h : k → ℝ)
+    (hfeasible : pcaFeasibleBefore (orderedPCEigenvector hSigma) j h)
+    (hvariance :
+      principalComponentVariance Sigma h = orderedPCEigenvalue hSigma j) :
+    Sigma *ᵥ h = orderedPCEigenvalue hSigma j • h := by
+  classical
+  let e : Fin (Fintype.card k) ≃ k :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+  let z : EuclideanSpace ℝ k := WithLp.toLp 2 h
+  let c : Fin (Fintype.card k) → ℝ := fun i =>
+    hSigma.eigenvectorBasis.repr z (e i)
+  have hc_before : ∀ i : Fin (Fintype.card k), i < j → c i = 0 := by
+    intro i hij
+    have horth := hfeasible.2 i hij
+    have hrepr :
+        hSigma.eigenvectorBasis.repr z (orderedPCEigenIndex i) =
+          h ⬝ᵥ orderedPCEigenvector hSigma i := by
+      rw [OrthonormalBasis.repr_apply_apply]
+      rfl
+    simpa [c, e, orderedPCEigenIndex] using hrepr.trans horth
+  have hcoords_sum_k :
+      ∑ i : k, (hSigma.eigenvectorBasis.repr z i) ^ 2 = 1 := by
+    have hnorm : ‖z‖ ^ 2 = 1 := by
+      rw [EuclideanSpace.real_norm_sq_eq]
+      simpa [z, dotProduct, pow_two] using hfeasible.1
+    calc
+      ∑ i : k, (hSigma.eigenvectorBasis.repr z i) ^ 2 =
+          ∑ i : k, ‖inner ℝ (hSigma.eigenvectorBasis i) z‖ ^ 2 := by
+            refine Finset.sum_congr rfl ?_
+            intro i _
+            rw [OrthonormalBasis.repr_apply_apply]
+            simp [sq_abs]
+            rfl
+      _ = ‖z‖ ^ 2 :=
+        OrthonormalBasis.sum_sq_norm_inner_right hSigma.eigenvectorBasis z
+      _ = 1 := hnorm
+  have hcoords_sum :
+      ∑ i : Fin (Fintype.card k), (c i) ^ 2 = 1 := by
+    calc
+      ∑ i : Fin (Fintype.card k), (c i) ^ 2 =
+          ∑ i : k, (hSigma.eigenvectorBasis.repr z i) ^ 2 := by
+            simpa [c, e] using
+              (Equiv.sum_comp e
+                (fun i : k => (hSigma.eigenvectorBasis.repr z i) ^ 2))
+      _ = 1 := hcoords_sum_k
+  have hquad := quadForm_eq_sum_eigenvalues_fintype (M := Sigma) hSigma z
+  have hquad_ordered :
+      ∑ i : Fin (Fintype.card k),
+          hSigma.eigenvalues (e i) * (c i) ^ 2 =
+        orderedPCEigenvalue hSigma j := by
+    calc
+      ∑ i : Fin (Fintype.card k),
+          hSigma.eigenvalues (e i) * (c i) ^ 2 =
+          ∑ i : k,
+            hSigma.eigenvalues i *
+              (hSigma.eigenvectorBasis.repr z i) ^ 2 := by
+            simpa [c, e] using
+              (Equiv.sum_comp e
+                (fun i : k =>
+                  hSigma.eigenvalues i *
+                    (hSigma.eigenvectorBasis.repr z i) ^ 2))
+      _ = principalComponentVariance Sigma h := by
+            simpa [principalComponentVariance, z] using hquad.symm
+      _ = orderedPCEigenvalue hSigma j := hvariance
+  have hgap_sum :
+      ∑ i : Fin (Fintype.card k),
+          (orderedPCEigenvalue hSigma j - hSigma.eigenvalues (e i)) *
+            (c i) ^ 2 = 0 := by
+    calc
+      ∑ i : Fin (Fintype.card k),
+          (orderedPCEigenvalue hSigma j - hSigma.eigenvalues (e i)) *
+            (c i) ^ 2 =
+          ∑ i : Fin (Fintype.card k),
+              orderedPCEigenvalue hSigma j * (c i) ^ 2 -
+            ∑ i : Fin (Fintype.card k),
+              hSigma.eigenvalues (e i) * (c i) ^ 2 := by
+                rw [← Finset.sum_sub_distrib]
+                refine Finset.sum_congr rfl ?_
+                intro i _
+                ring
+      _ = orderedPCEigenvalue hSigma j *
+            (∑ i : Fin (Fintype.card k), (c i) ^ 2) -
+          ∑ i : Fin (Fintype.card k),
+            hSigma.eigenvalues (e i) * (c i) ^ 2 := by
+              rw [Finset.mul_sum]
+      _ = 0 := by rw [hcoords_sum, hquad_ordered]; ring
+  have hgap_nonneg : ∀ i : Fin (Fintype.card k),
+      0 ≤ (orderedPCEigenvalue hSigma j - hSigma.eigenvalues (e i)) *
+        (c i) ^ 2 := by
+    intro i
+    by_cases hij : i < j
+    · rw [hc_before i hij]
+      simp
+    · have heig_le :
+          hSigma.eigenvalues (e i) ≤ orderedPCEigenvalue hSigma j := by
+        simpa [orderedPCEigenvalue, Matrix.IsHermitian.eigenvalues, e] using
+          hSigma.eigenvalues₀_antitone (le_of_not_gt hij)
+      exact mul_nonneg (sub_nonneg.mpr heig_le) (sq_nonneg (c i))
+  have hgap_zero_fun :
+      (fun i : Fin (Fintype.card k) =>
+        (orderedPCEigenvalue hSigma j - hSigma.eigenvalues (e i)) *
+          (c i) ^ 2) = 0 :=
+    (Fintype.sum_eq_zero_iff_of_nonneg hgap_nonneg).mp hgap_sum
+  have hgap_zero : ∀ i : Fin (Fintype.card k),
+      (orderedPCEigenvalue hSigma j - hSigma.eigenvalues (e i)) *
+        (c i) ^ 2 = 0 := by
+    intro i
+    exact congrFun hgap_zero_fun i
+  have hcoordinate_eigen : ∀ i : Fin (Fintype.card k),
+      (hSigma.eigenvalues (e i) - orderedPCEigenvalue hSigma j) * c i = 0 := by
+    intro i
+    rcases mul_eq_zero.mp (hgap_zero i) with hdiff | hcoord
+    · have : hSigma.eigenvalues (e i) - orderedPCEigenvalue hSigma j = 0 := by
+        linarith
+      simp [this]
+    · have hc : c i = 0 := sq_eq_zero_iff.mp hcoord
+      simp [hc]
+  have hz_coord :
+      h = ∑ i : k,
+        hSigma.eigenvectorBasis.repr z i •
+          (hSigma.eigenvectorBasis i : k → ℝ) := by
+    have hsum : z = ∑ i : k,
+        hSigma.eigenvectorBasis.repr z i • hSigma.eigenvectorBasis i :=
+      (hSigma.eigenvectorBasis.sum_repr z).symm
+    have hz := congrArg
+      (fun x : EuclideanSpace ℝ k => (x : k → ℝ)) hsum
+    simpa [z, WithLp.ofLp_sum] using hz
+  have hSigma_h_coord :
+      Sigma *ᵥ h = ∑ i : k,
+        (hSigma.eigenvectorBasis.repr z i * hSigma.eigenvalues i) •
+          (hSigma.eigenvectorBasis i : k → ℝ) := by
+    rw [hz_coord, Matrix.mulVec_sum]
+    refine Finset.sum_congr rfl ?_
+    intro i _
+    rw [Matrix.mulVec_smul, hSigma.mulVec_eigenvectorBasis, smul_smul]
+  rw [hSigma_h_coord, hz_coord, Finset.smul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  rw [smul_smul]
+  congr 1
+  have hi := hcoordinate_eigen (e.symm i)
+  simp only [Equiv.apply_symm_apply, c] at hi
+  nlinarith
+
+/-- Every optimizer relative to the earlier ordered eigenvectors has the `j`th
+ordered eigenvalue and lies in its full eigenspace. In particular, tied
+eigenvalues do not identify the optimizer with Mathlib's chosen
+`orderedPCEigenvector`. -/
+theorem SequentialPrincipalComponentOptimizer.eigenvector
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) (h : k → ℝ)
+    (hOpt : SequentialPrincipalComponentOptimizer Sigma
+      (orderedPCEigenvector hSigma) j h) :
+    Sigma *ᵥ h = orderedPCEigenvalue hSigma j • h := by
+  apply pcaFeasibleBefore_eigenvector_of_variance_eq_orderedPCEigenvalue
+    hSigma j h hOpt.feasible
+  apply le_antisymm
+  · exact orderedPCEigenvector_maximizes_variance_feasibleBefore_eigenvalue
+      hSigma j h hOpt.feasible
+  · rw [← principalComponentVariance_eq_orderedPCEigenvalue hSigma j]
+    exact hOpt.maximizes_variance (orderedPCEigenvector hSigma j)
+      (orderedPCEigenvector_feasibleBefore hSigma j)
+
+/-- A feasible vector in the `j`th ordered eigenspace solves Hansen's
+sequential variance-maximization problem. -/
+theorem sequentialPrincipalComponentOptimizer_of_eigenvector
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) (h : k → ℝ)
+    (hfeasible : pcaFeasibleBefore (orderedPCEigenvector hSigma) j h)
+    (heigen : Sigma *ᵥ h = orderedPCEigenvalue hSigma j • h) :
+    SequentialPrincipalComponentOptimizer Sigma
+      (orderedPCEigenvector hSigma) j h where
+  feasible := hfeasible
+  maximizes_variance := by
+    intro g hg
+    calc
+      principalComponentVariance Sigma g ≤ orderedPCEigenvalue hSigma j :=
+        orderedPCEigenvector_maximizes_variance_feasibleBefore_eigenvalue
+          hSigma j g hg
+      _ = principalComponentVariance Sigma h :=
+        (principalComponentVariance_eq_eigenvalue Sigma h
+          (orderedPCEigenvalue hSigma j) hfeasible.1 heigen).symm
+
+/-- Hansen's sequential optimizer condition is equivalent to membership in
+the `j`th ordered eigenspace, subject to the same feasibility constraints. -/
+theorem sequentialPrincipalComponentOptimizer_iff_eigenvector
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) (h : k → ℝ) :
+    SequentialPrincipalComponentOptimizer Sigma
+        (orderedPCEigenvector hSigma) j h ↔
+      pcaFeasibleBefore (orderedPCEigenvector hSigma) j h ∧
+        Sigma *ᵥ h = orderedPCEigenvalue hSigma j • h := by
+  constructor
+  · intro hOpt
+    exact ⟨hOpt.feasible, hOpt.eigenvector hSigma j h⟩
+  · rintro ⟨hfeasible, heigen⟩
+    exact sequentialPrincipalComponentOptimizer_of_eigenvector
+      hSigma j h hfeasible heigen
+
+/-- Mathlib's canonical ordered eigenvector is an optimizer witness for the
+optimizer-first characterization of Hansen Theorem 11.8. -/
+theorem orderedPCEigenvector_sequentialPrincipalComponentOptimizer
+    {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
+    (j : Fin (Fintype.card k)) :
+    SequentialPrincipalComponentOptimizer Sigma
+      (orderedPCEigenvector hSigma) j (orderedPCEigenvector hSigma j) where
+  feasible := orderedPCEigenvector_feasibleBefore hSigma j
+  maximizes_variance :=
+    orderedPCEigenvector_maximizes_variance_feasibleBefore hSigma j
+
 /-- Ordered PCA eigenvectors packaged as sequential solution certificates. -/
 theorem orderedPCEigenvector_sequentialPrincipalComponentSolution
     {Sigma : Matrix k k ℝ} (hSigma : Sigma.IsHermitian)
@@ -383,6 +609,76 @@ theorem principalComponent_variance_eq_covMat_quadratic
     Var[principalComponent h X; μ] = principalComponentVariance (covMat μ X) h := by
   simpa [principalComponent, principalComponentVariance, dotProduct_comm] using
     variance_dotProduct_eq_dotProduct_covMat_mulVec (μ := μ) X h hX
+
+/-- **Hansen Theorem 11.8, optimizer-first direction.**
+
+Any loading `h` that is feasible for the `j`th sequential problem and
+maximizes the actual score variance lies in the eigenspace for the `j`th
+ordered covariance eigenvalue. No equality with Mathlib's chosen ordered
+eigenvector is asserted when that eigenvalue is repeated. -/
+theorem ordered_covMat_eigenvector_of_maximizes_variance_feasibleBefore
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (j : Fin (Fintype.card k)) (h : k → ℝ)
+    (hfeasible : pcaFeasibleBefore
+      (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j h)
+    (hmax : ∀ g : k → ℝ,
+      pcaFeasibleBefore
+          (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j g →
+        Var[principalComponent g X; μ] ≤ Var[principalComponent h X; μ]) :
+    covMat μ X *ᵥ h =
+      orderedPCEigenvalue (covMat_isHermitian (μ := μ) X) j • h := by
+  apply SequentialPrincipalComponentOptimizer.eigenvector
+    (covMat_isHermitian (μ := μ) X) j h
+  refine ⟨hfeasible, ?_⟩
+  intro g hg
+  calc
+    principalComponentVariance (covMat μ X) g =
+        Var[principalComponent g X; μ] :=
+      (principalComponent_variance_eq_covMat_quadratic X g hX).symm
+    _ ≤ Var[principalComponent h X; μ] := hmax g hg
+    _ = principalComponentVariance (covMat μ X) h :=
+      principalComponent_variance_eq_covMat_quadratic X h hX
+
+/-- **Hansen Theorem 11.8, optimizer/eigenspace characterization.**
+
+For the sequential feasible set, maximizing `Var[h'X]` is equivalent to lying
+in the eigenspace of the `j`th ordered covariance eigenvalue. The eigenspace
+form is the correct statement in the presence of repeated eigenvalues. -/
+theorem ordered_covMat_maximizes_variance_feasibleBefore_iff_eigenvector
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (X : Ω → k → ℝ)
+    (hX : ∀ i, MemLp (fun ω => X ω i) 2 μ)
+    (j : Fin (Fintype.card k)) (h : k → ℝ) :
+    (pcaFeasibleBefore
+          (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j h ∧
+        ∀ g : k → ℝ,
+          pcaFeasibleBefore
+              (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j g →
+            Var[principalComponent g X; μ] ≤ Var[principalComponent h X; μ]) ↔
+      (pcaFeasibleBefore
+          (orderedPCEigenvector (covMat_isHermitian (μ := μ) X)) j h ∧
+        covMat μ X *ᵥ h =
+          orderedPCEigenvalue (covMat_isHermitian (μ := μ) X) j • h) := by
+  constructor
+  · rintro ⟨hfeasible, hmax⟩
+    exact ⟨hfeasible,
+      ordered_covMat_eigenvector_of_maximizes_variance_feasibleBefore
+        X hX j h hfeasible hmax⟩
+  · rintro ⟨hfeasible, heigen⟩
+    have hOpt := sequentialPrincipalComponentOptimizer_of_eigenvector
+      (covMat_isHermitian (μ := μ) X) j h hfeasible heigen
+    refine ⟨hfeasible, ?_⟩
+    intro g hg
+    calc
+      Var[principalComponent g X; μ] =
+          principalComponentVariance (covMat μ X) g :=
+        principalComponent_variance_eq_covMat_quadratic X g hX
+      _ ≤ principalComponentVariance (covMat μ X) h :=
+        hOpt.maximizes_variance g hg
+      _ = Var[principalComponent h X; μ] :=
+        (principalComponent_variance_eq_covMat_quadratic X h hX).symm
 
 omit [DecidableEq k] in
 /-- Covariance matrix of a vector of fixed principal-component scores.
