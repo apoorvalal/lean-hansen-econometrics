@@ -6,10 +6,14 @@ import HansenEconometrics.Chapter12InstrumentalVariables.LIML
 /-!
 # Chapter 12 — weak instruments
 
-This file gives the theorem surface for Hansen Theorem 12.18.  The displayed
-weak-instrument limits are named separately from the estimator convergence
-package, and the OLS face now has a moment-level constructor from normalized
-bread and score convergence.
+This file gives the theorem surface for Hansen Theorem 12.18.  Its canonical
+LIML eigenvalue primitive is the finite-sample generalized Rayleigh pair
+`([Y X]'P_Z[Y X], n^{-1}[Y X]'M_Z[Y X])`; the corresponding limit pair uses
+Hansen's full reduced-form Gaussian matrix and covariance `Σ`.
+
+Older assembly and structural-block Rayleigh interfaces are retained under
+`WeakIVCompatibility`.  They are proof support only and are not canonical
+statements of Hansen's LIML eigenvalue problem.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -34,7 +38,15 @@ private lemma weakIVMatrixBorelSpaceInst
       (weakIVMatrixBorelMeasurableSpaceInst (ι := ι) (κ := κ)) :=
   matrixBorelSpace ι κ
 
+@[reducible]
+private noncomputable def weakIVMatrixSecondCountableTopologyInst
+    {ι κ : Type*} [Countable ι] [Countable κ] :
+    SecondCountableTopology (Matrix ι κ ℝ) := by
+  change SecondCountableTopology (ι → κ → ℝ)
+  infer_instance
+
 attribute [local instance] weakIVMatrixBorelMeasurableSpaceInst weakIVMatrixBorelSpaceInst
+  weakIVMatrixSecondCountableTopologyInst
 
 /-- OLS weak-instrument probability limit drift,
 `Σ₂₂^{-1} Σ₂e`, from Hansen Theorem 12.18. -/
@@ -47,17 +59,24 @@ noncomputable def weakIVFirstStageLimit
     (QZZ : Matrix l l ℝ) (C Xi2 : Matrix l k ℝ) : Matrix l k ℝ :=
   QZZ * C + Xi2
 
-/-- Hansen's weak-instrument LIML Rayleigh numerator matrix,
-`(Q_ZZ C + Ξ₂)' Q_ZZ^{-1} (Q_ZZ C + Ξ₂)`. -/
-noncomputable def weakIVLIMLRayleighMatrix
+/-- X-only structural block of the weak-IV LIML limit bread,
+`(Q_ZZ C + Ξ₂)' Q_ZZ^{-1} (Q_ZZ C + Ξ₂)`.
+
+This is not Hansen's generalized-eigenvalue numerator for `µ*`, which uses
+the full reduced-form matrix `[Y X]`; see `weakIVReducedFormRayleighMatrix`.
+It remains public only as algebraic support for the displayed LIML bias. -/
+noncomputable def weakIVStructuralRayleighMatrix
     (QZZ : Matrix l l ℝ) (C Xi2 : Matrix l k ℝ) : Matrix k k ℝ :=
   limlRayleighMatrix QZZ (weakIVFirstStageLimit QZZ C Xi2)
 
-/-- Hansen's weak-instrument LIML Rayleigh quotient whose minimum is `µ*`. -/
-noncomputable def weakIVLIMLRayleighQuotient
+/-- X-only structural Rayleigh quotient used by legacy nonsingularity support.
+
+This quotient does not define Hansen's `µ*`; minimizing it together with the
+full reduced-form quotient is generally contradictory. -/
+noncomputable def weakIVStructuralRayleighQuotient
     (QZZ : Matrix l l ℝ) (C Xi2 : Matrix l k ℝ)
     (Sigma22 : Matrix k k ℝ) (γ : k → ℝ) : ℝ :=
-  limlRayleighQuotient (weakIVLIMLRayleighMatrix QZZ C Xi2) Sigma22 γ
+  limlRayleighQuotient (weakIVStructuralRayleighMatrix QZZ C Xi2) Sigma22 γ
 
 /-- Hansen's weak-IV 2SLS random limit drift,
 `(A' Q_ZZ^{-1} A)^{-1} A' Q_ZZ^{-1} ξ_e`, where
@@ -714,18 +733,195 @@ noncomputable def weakIVReducedFormRayleighQuotient
   limlRayleighQuotient
     (weakIVReducedFormRayleighMatrix QZZ C Xi2 xie β) Sigma γ
 
-/-- Sample primitive pair for the reduced-form LIML Rayleigh problem:
-`(Q̂_ZZ, n^{-1/2}Z'[Y X])`. -/
-noncomputable def weakIVReducedFormRayleighPrimitive
+/-- The finite-sample reduced-form data matrix `[Y X]` used by Hansen's LIML
+generalized eigenvalue problem. -/
+noncomputable def weakIVReducedFormSampleMatrix
+    (Y : ℕ → Ω → ℝ) (X : ℕ → Ω → k → ℝ)
+    (m : ℕ) (ω : Ω) : Matrix (Fin m) (Sum Unit k) ℝ
+  | i, Sum.inl _ => Y i.val ω
+  | i, Sum.inr j => X i.val ω j
+
+/-- The structural-equation presentation `[Xβ + e, X]` of the reduced-form
+sample matrix. -/
+noncomputable def weakIVReducedFormStructuralSampleMatrix
+    (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ) (β : k → ℝ)
+    (m : ℕ) (ω : Ω) : Matrix (Fin m) (Sum Unit k) ℝ
+  | i, Sum.inl _ => (X i.val ω) ⬝ᵥ β + e i.val ω
+  | i, Sum.inr j => X i.val ω j
+
+omit [Fintype l] [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
+/-- Under the structural equation, Hansen's observed `[Y X]` matrix is exactly
+the proof-facing `[Xβ + e, X]` matrix. -/
+theorem weakIVReducedFormSampleMatrix_eq_structural
+    {Y : ℕ → Ω → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    {β : k → ℝ}
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (m : ℕ) (ω : Ω) :
+    weakIVReducedFormSampleMatrix Y X m ω =
+      weakIVReducedFormStructuralSampleMatrix X e β m ω := by
+  ext i j
+  cases j with
+  | inl u =>
+      cases u
+      exact hmodel i.val ω
+  | inr j => rfl
+
+/-- Hansen's finite-sample LIML Rayleigh numerator
+`[Y X]' P_Z [Y X]`.  The Star projection only totalizes singular `Z'Z`; on
+the usual full-rank event it is the ordinary instrument projection. -/
+noncomputable def weakIVLIMLFiniteSampleRayleighNumerator
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (Y : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  let Zm := stackRegressors Z m ω
+  let R := weakIVReducedFormSampleMatrix Y X m ω
+  Rᵀ * instrumentProjectionStar Zm * R
+
+/-- Hansen's random finite-sample residual covariance denominator
+`n^{-1}[Y X]' M_Z [Y X]`, where `M_Z = I - P_Z`. -/
+noncomputable def weakIVLIMLFiniteSampleResidualCovariance
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (Y : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  let Zm := stackRegressors Z m ω
+  let R := weakIVReducedFormSampleMatrix Y X m ω
+  (m : ℝ)⁻¹ •
+    (Rᵀ * ((1 : Matrix (Fin m) (Fin m) ℝ) - instrumentProjectionStar Zm) * R)
+
+/-- Canonical finite-sample generalized-eigenvalue primitive for Hansen's
+scaled LIML adjustment `n μhat`:
+`([Y X]'P_Z[Y X], n^{-1}[Y X]'M_Z[Y X])`.
+
+In particular, the denominator is random; replacing it by its limit `Σ` is
+not an exact finite-sample eigenvalue problem. -/
+noncomputable def weakIVLIMLGeneralizedEigenvalueSamplePrimitive
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (Y : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (weakIVLIMLFiniteSampleRayleighNumerator Z X Y m ω,
+    weakIVLIMLFiniteSampleResidualCovariance Z X Y m ω)
+
+/-- Canonical limit generalized-eigenvalue primitive for Hansen's `μ*`:
+the full reduced-form Gaussian Rayleigh numerator paired with `Σ`. -/
+noncomputable def weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+    (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
+    (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
+    (β : k → ℝ) (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (η : Ωlim) :
+    Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+      Matrix (Sum Unit k) (Sum Unit k) ℝ :=
+  (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β, Sigma)
+
+/-- The generalized Rayleigh quotient represented by a numerator/denominator
+matrix pair. -/
+noncomputable def weakIVLIMLGeneralizedRayleighQuotient
+    (p : Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+      Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (γ : Sum Unit k → ℝ) : ℝ :=
+  limlRayleighQuotient p.1 p.2 γ
+
+/-- Canonical selector certificate for Hansen's finite-sample LIML
+generalized eigenvalue and its weak-IV limit.
+
+The same scalar is required to minimize only the full reduced-form quotient,
+first against the random sample residual covariance and then against its limit
+`Σ`.  No X-only minimizer or nonpositive-Rayleigh condition is present. -/
+structure WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (Y : ℕ → Ω → ℝ) (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
+    (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
+    (mustar : Ωlim → ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ))
+    (ν : Measure Ωlim) : Prop where
+  selector_meas : Measurable muSelector
+  selector_bad_measurable : MeasurableSet selectorBad
+  selector_bad_null :
+    (ν.map (fun η =>
+      weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+        QZZ C Xi2 xie β Sigma η)) selectorBad = 0
+  selector_continuous_off : ∀ p, p ∉ selectorBad → ContinuousAt muSelector p
+  sample_selector_eq : ∀ m ω,
+    limlMuHat m ω =
+      muSelector (weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω)
+  limit_selector_eq : ∀ η,
+    mustar η =
+      muSelector
+        (weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+          QZZ C Xi2 xie β Sigma η)
+  finite_sample_rayleigh_minimizer : ∀ m ω,
+    let p := weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω
+    LIMLRayleighMinimizer p.1 p.2 (limlMuHat m ω)
+  limit_rayleigh_minimizer : ∀ η,
+    LIMLRayleighMinimizer
+      (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
+      Sigma (mustar η)
+
+omit [DecidableEq k] in
+/-- The corrected generalized-eigenvalue primitive CMT derives
+`n μhat ⇒ μ*` from joint convergence of both the projected numerator and the
+random residual-covariance denominator. -/
+theorem WeakIVLIMLGeneralizedEigenvalueSelectorCertificate.muHat_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {Y : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
+    {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ}
+    {mustar : Ωlim → ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (hprimitive : TendstoInDistribution
+      (E := Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)
+      (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) =>
+        weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω)
+      atTop
+      (fun η =>
+        weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+          QZZ C Xi2 xie β Sigma η)
+      (fun _ => μ) ν)
+    (h : WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
+      Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma
+      muSelector selectorBad ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) => limlMuHat m ω)
+      atTop mustar (fun _ => μ) ν := by
+  have hraw := tendstoInDistribution_ae_continuous_comp
+    hprimitive h.selector_meas h.selector_bad_null h.selector_continuous_off
+  refine TendstoInDistribution.congr ?_ ?_ hraw
+  · intro m
+    exact ae_of_all μ (fun ω => by
+      simpa [Function.comp_def] using (h.sample_selector_eq m ω).symm)
+  · exact ae_of_all ν (fun η => by
+      simpa [Function.comp_def] using (h.limit_selector_eq η).symm)
+
+/-- Numerator-only sample support pair `(Qhat_ZZ, n^{-1/2}Z'[Y X])`.
+
+This legacy pair is useful for projected-moment CMTs but is not Hansen's
+finite-sample generalized-eigenvalue primitive because it omits the random
+residual covariance denominator. -/
+noncomputable def weakIVCompatibilityReducedFormRayleighPrimitive
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
     (β : k → ℝ) (m : ℕ) (ω : Ω) :
     Matrix l l ℝ × Matrix l (Sum Unit k) ℝ :=
   (sampleQZZ (stackRegressors Z m ω),
     weakIVRootReducedFormProjectedMoment Z X e β m ω)
 
-/-- Limit primitive pair for the reduced-form LIML Rayleigh problem:
-`(Q_ZZ, Q_ZZ C β + ξ)`. -/
-noncomputable def weakIVReducedFormRayleighLimitPrimitive
+/-- Compatibility limit pair `(Q_ZZ, Q_ZZ C β + ξ)` for the numerator-only
+selector route. -/
+noncomputable def weakIVCompatibilityReducedFormRayleighLimitPrimitive
     (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
     (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
     (β : k → ℝ) (η : Ωlim) :
@@ -744,33 +940,32 @@ noncomputable def weakIVReducedFormProjectedMomentFromPrimitive
   | i, Sum.inl _ => (A *ᵥ β) i + zScore i
   | i, Sum.inr j => A i j
 
-/-- Primitive-to-reduced-form bridge for the LIML Rayleigh problem. -/
-noncomputable def weakIVReducedFormRayleighPrimitiveFromRootPrimitive
+/-- Compatibility bridge from root moments to the numerator-only pair. -/
+noncomputable def weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive
     (β : k → ℝ) (p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) :
     Matrix l l ℝ × Matrix l (Sum Unit k) ℝ :=
   (p.1, weakIVReducedFormProjectedMomentFromPrimitive p.2.1 p.2.2 β)
 
 omit [Fintype l] [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
-/-- The generic reduced-form primitive bridge specializes to the sample
-Rayleigh primitive used for Hansen's finite-sample LIML eigenvalue. -/
-theorem weakIVReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
+/-- The compatibility bridge specializes to the numerator-only sample pair.
+It does not identify Hansen's finite-sample generalized eigenvalue. -/
+theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
     (β : k → ℝ) (m : ℕ) (ω : Ω) :
-    weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+    weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
         (weakIV2SLSRootPrimitiveMoments Z X e m ω) =
-      weakIVReducedFormRayleighPrimitive Z X e β m ω := by
+      weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω := by
   rfl
 
 omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ωlim] in
-/-- The generic reduced-form primitive bridge specializes to Hansen's limiting
-reduced-form Rayleigh primitive. -/
-theorem weakIVReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
+/-- The compatibility bridge specializes to the numerator-only limit pair. -/
+theorem weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
     (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
     (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
     (β : k → ℝ) (η : Ωlim) :
-    weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+    weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
         (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η) =
-      weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η := by
+      weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η := by
   rfl
 
 /-- Joint primitive surface for the LIML root-assembly CMT:
@@ -790,9 +985,51 @@ noncomputable def weakIVLIMLRootOLSPrimitiveLimit
     (Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) × (Matrix k k ℝ × (k → ℝ)) :=
   (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η, (Sigma22, Sigma2e))
 
+/-- Canonical joint primitive for Theorem 12.18: the root-scaled 2SLS and OLS
+moments together with Hansen's full finite-sample generalized eigenvalue pair. -/
+noncomputable def weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (e Y : ℕ → Ω → ℝ) (m : ℕ) (ω : Ω) :
+    ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+        (Matrix k k ℝ × (k → ℝ))) ×
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) :=
+  (weakIVLIMLRootOLSPrimitiveMoments Z X e m ω,
+    weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω)
+
+/-- Limit of the canonical joint Theorem 12.18 primitive. -/
+noncomputable def weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+    (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
+    (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
+    (β : k → ℝ) (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ) (η : Ωlim) :
+    ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+        (Matrix k k ℝ × (k → ℝ))) ×
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ) :=
+  (weakIVLIMLRootOLSPrimitiveLimit QZZ C Xi2 xie Sigma22 Sigma2e η,
+    weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+      QZZ C Xi2 xie β Sigma η)
+
+/-- Map from the canonical joint primitive to the root LIML assembly tuple.
+The eigenvalue coordinate is selected from the full numerator/denominator
+pair, while the 2SLS coordinate reuses the projected-moment map. -/
+noncomputable def weakIVLIMLGeneralizedEigenvalueRootAssemblyMap
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (p :
+      ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ)) :
+    ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ :=
+  ((weakIV2SLSProjectedBreadScoreFromPrimitive p.1.1, p.1.2),
+    muSelector p.2)
+
 /-- Continuous-map target from primitive root/OLS moments and a Rayleigh
 selector to the root-assembly tuple used by the weak-IV LIML moment CMT. -/
-noncomputable def weakIVLIMLRootAssemblyFromPrimitiveRayleighMap
+noncomputable def weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap
     (β : k → ℝ)
     (muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ)
     (p :
@@ -800,17 +1037,15 @@ noncomputable def weakIVLIMLRootAssemblyFromPrimitiveRayleighMap
         (Matrix k k ℝ × (k → ℝ))) :
     ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ :=
   ((weakIV2SLSProjectedBreadScoreFromPrimitive p.1, p.2),
-    muSelector (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β p.1))
+    muSelector (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β p.1))
 
 omit [DecidableEq k] in
-/-- Continuous-mapping bridge from the sample reduced-form Rayleigh problem to
-Hansen's limiting LIML eigenvalue adjustment.
+/-- Compatibility CMT from the numerator-only sample pair to a selected limit.
 
 The hypothesis `muSelector` is the continuous argmin/eigenvalue selector for
-the reduced-form Rayleigh primitive `(Q, R)`.  The sample and limit minimizer
-certificates keep the theorem tied to the LIML Rayleigh problem; the CMT part
-then derives `µ̂_n ⇒ µ*` without using the estimator limit as an assumption. -/
-theorem weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
+the pair `(Q, R)`.  This theorem predates the exact random-denominator
+primitive and is not the canonical finite-sample LIML eigenvalue route. -/
+theorem weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -821,17 +1056,17 @@ theorem weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
     (hprimitive : TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν)
     (hselector_cont : Continuous muSelector)
     (hliml_selector : ∀ m ω,
       limlMuHat m ω =
-        muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω))
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω))
     (hmustar_selector : ∀ η,
       mustar η =
-        muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η))
+        muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η))
     (hsample_minimizer : ∀ m ω,
       LIMLRayleighMinimizer
         (limlRayleighMatrix
@@ -1220,7 +1455,7 @@ omit [Fintype l] [DecidableEq k] [DecidableEq l] in
 private theorem weakIV_reducedForm_rayleigh_primitive_from_root_continuous
     (β : k → ℝ) :
     Continuous
-      (weakIVReducedFormRayleighPrimitiveFromRootPrimitive
+      (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive
         (k := k) (l := l) β) := by
   have hmat : Continuous
       (fun p : Matrix l l ℝ × Matrix l k ℝ × (l → ℝ) =>
@@ -1255,7 +1490,7 @@ This is the continuous bridge from
 `(Q̂_ZZ, n^{-1/2}Z'X, n^{-1/2}Z'e)` to the reduced-form LIML Rayleigh primitive
 `(Q̂_ZZ, n^{-1/2}Z'[Y X])` used by the `µ̂_n` selector in Hansen Theorem
 12.18. -/
-theorem weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+theorem weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {β : k → ℝ} {QZZ : Matrix l l ℝ}
     {C : Matrix l k ℝ} {Xi2 : Ωlim → Matrix l k ℝ}
@@ -1269,9 +1504,9 @@ theorem weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_prim
     TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν := by
   have hraw := hPrimitive.continuous_comp
     (weakIV_reducedForm_rayleigh_primitive_from_root_continuous
@@ -1280,12 +1515,295 @@ theorem weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_prim
   · intro m
     exact ae_of_all μ (fun ω => by
       simpa using
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq
           (k := k) (l := l) Z X e β m ω))
   · exact ae_of_all ν (fun η => by
       simpa using
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq
           (k := k) (l := l) QZZ C Xi2 xie β η))
+
+omit [DecidableEq k] in
+private theorem weakIV_liml_generalizedEigenvalue_rootAssembly_map_measurable
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    (hselector_meas : Measurable muSelector) :
+    Measurable
+      (weakIVLIMLGeneralizedEigenvalueRootAssemblyMap
+        (k := k) (l := l) muSelector) := by
+  have hroot : Measurable
+      (fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) =>
+        weakIV2SLSProjectedBreadScoreFromPrimitive (k := k) (l := l) p.1.1) :=
+    (weakIV_twoSLS_projected_bread_score_map_measurable (k := k) (l := l)).comp
+      (measurable_fst.comp measurable_fst)
+  have hols : Measurable
+      (fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => p.1.2) :=
+    measurable_snd.comp measurable_fst
+  have hmu : Measurable
+      (fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => muSelector p.2) :=
+    hselector_meas.comp measurable_snd
+  simpa [weakIVLIMLGeneralizedEigenvalueRootAssemblyMap] using
+    (hroot.prodMk hols).prodMk hmu
+
+omit [Fintype k] [DecidableEq k] in
+private theorem
+    weakIV_liml_generalizedEigenvalue_rootAssembly_map_continuousAt_of_qzz_nonsingular
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    (p :
+      ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ))
+    (hselector_cont : ContinuousAt muSelector p.2)
+    (hp : IsUnit (p.1.1.1).det) :
+    ContinuousAt
+      (weakIVLIMLGeneralizedEigenvalueRootAssemblyMap
+        (k := k) (l := l) muSelector) p := by
+  have hroot_inner : ContinuousAt
+      (fun q :
+          (Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+            (Matrix k k ℝ × (k → ℝ)) =>
+        weakIV2SLSProjectedBreadScoreFromPrimitive (k := k) (l := l) q.1) p.1 :=
+    (weakIV_twoSLS_projected_bread_score_map_continuousAt_of_qzz_nonsingular
+      (k := k) (l := l) p.1.1 hp).comp continuousAt_fst
+  have hroot : ContinuousAt
+      (fun q :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) =>
+        weakIV2SLSProjectedBreadScoreFromPrimitive (k := k) (l := l) q.1.1) p :=
+    hroot_inner.comp continuousAt_fst
+  have hols : ContinuousAt
+      (fun q :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => q.1.2) p :=
+    continuousAt_snd.comp continuousAt_fst
+  have hmu : ContinuousAt
+      (fun q :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => muSelector q.2) p :=
+    hselector_cont.comp continuousAt_snd
+  simpa [weakIVLIMLGeneralizedEigenvalueRootAssemblyMap] using
+    (hroot.prodMk hols).prodMk hmu
+
+omit [DecidableEq k] in
+/-- Canonical root-assembly CMT for the LIML face of Hansen Theorem 12.18.
+
+The input jointly contains the local-to-zero root moments, OLS moments, and
+the full generalized-eigenvalue pair with random residual covariance.  Thus
+the output convergence of `µ̂_n` is derived by the selector map rather than
+assumed as part of an assembly package. -/
+theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_generalizedEigenvalue
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
+    {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ}
+    {mustar : Ωlim → ℝ}
+    {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (hprimitive : TendstoInDistribution
+      (E :=
+        ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+            (Matrix k k ℝ × (k → ℝ))) ×
+          (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+            Matrix (Sum Unit k) (Sum Unit k) ℝ))
+      (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) =>
+        weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments Z X e Y m ω)
+      atTop
+      (fun η =>
+        weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+          QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η)
+      (fun _ => μ) ν)
+    (hQZZ : IsUnit QZZ.det)
+    (hselector : WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
+      Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma
+      muSelector selectorBad ν) :
+    TendstoInDistribution
+      (E := ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ)
+      (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) =>
+        ((((weakIV2SLSRootScaledBread Z X m ω,
+            weakIV2SLSRootScaledScore Z X e m ω),
+           (weakIVOLSNormalizedBread X m ω,
+            weakIVOLSNormalizedScore X e m ω)),
+          limlMuHat m ω) :
+          ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ))
+      atTop
+      (fun η =>
+        ((((weakIV2SLSLimitBread QZZ C (Xi2 η),
+            weakIV2SLSLimitScore QZZ C (Xi2 η) (xie η)),
+           (Sigma22, Sigma2e)),
+          mustar η) :
+          ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ))
+      (fun _ => μ) ν := by
+  let Dq : Set
+      (((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ)) :=
+    {p | ¬ IsUnit (p.1.1.1).det}
+  let Ds : Set
+      (((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ)) :=
+    {p | p.2 ∈ selectorBad}
+  let D := Dq ∪ Ds
+  have hDq_meas : MeasurableSet Dq := by
+    have hdet : Measurable
+        (fun p :
+            ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+                (Matrix k k ℝ × (k → ℝ))) ×
+              (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+                Matrix (Sum Unit k) (Sum Unit k) ℝ) => (p.1.1.1).det) :=
+      (Continuous.matrix_det
+        (continuous_fst.comp (continuous_fst.comp continuous_fst))).measurable
+    rw [show Dq =
+        (fun p :
+            ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+                (Matrix k k ℝ × (k → ℝ))) ×
+              (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+                Matrix (Sum Unit k) (Sum Unit k) ℝ) => (p.1.1.1).det) ⁻¹' {0} by
+          ext p
+          simp [Dq, isUnit_iff_ne_zero]]
+    exact hdet (measurableSet_singleton (0 : ℝ))
+  have hDs_meas : MeasurableSet Ds := by
+    change MeasurableSet
+      ((fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => p.2) ⁻¹' selectorBad)
+    exact measurable_snd hselector.selector_bad_measurable
+  have hD_meas : MeasurableSet D := hDq_meas.union hDs_meas
+  have hDq_null :
+      (ν.map
+        (fun η =>
+          weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+            QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η)) Dq = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hprimitive.aemeasurable_limit hDq_meas]
+    have hQZZ_ne : QZZ.det ≠ 0 := hQZZ.ne_zero
+    have hpre_empty :
+        (fun η =>
+          weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+            QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η) ⁻¹' Dq =
+            (∅ : Set Ωlim) := by
+      ext η
+      simp [Dq, weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit,
+        weakIVLIMLRootOLSPrimitiveLimit, weakIV2SLSPrimitiveLimit,
+        isUnit_iff_ne_zero, hQZZ_ne]
+    rw [hpre_empty]
+    simp
+  have hDs_null :
+      (ν.map
+        (fun η =>
+          weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+            QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η)) Ds = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hprimitive.aemeasurable_limit hDs_meas]
+    have heigen_limit_ae : AEMeasurable
+        (fun η =>
+          weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+            QZZ C Xi2 xie β Sigma η) ν :=
+      measurable_snd.comp_aemeasurable hprimitive.aemeasurable_limit
+    have hbad := hselector.selector_bad_null
+    rw [Measure.map_apply_of_aemeasurable heigen_limit_ae
+      hselector.selector_bad_measurable] at hbad
+    simpa [Ds, weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit] using hbad
+  have hD_null :
+      (ν.map
+        (fun η =>
+          weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+            QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η)) D = 0 := by
+    simpa [D] using measure_union_null hDq_null hDs_null
+  have hcont : ∀ p :
+      ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ),
+      p ∉ D →
+        ContinuousAt
+          (weakIVLIMLGeneralizedEigenvalueRootAssemblyMap
+            (k := k) (l := l) muSelector) p := by
+    intro p hp
+    have hpq : p ∉ Dq := by
+      intro hpq
+      exact hp (by exact Or.inl hpq)
+    have hps : p ∉ Ds := by
+      intro hps
+      exact hp (by exact Or.inr hps)
+    have hpunit : IsUnit (p.1.1.1).det := by
+      simpa [Dq] using hpq
+    have hselector_cont : ContinuousAt muSelector p.2 :=
+      hselector.selector_continuous_off p.2 (by simpa [Ds] using hps)
+    exact
+      weakIV_liml_generalizedEigenvalue_rootAssembly_map_continuousAt_of_qzz_nonsingular
+        (k := k) (l := l) p hselector_cont hpunit
+  have hraw := tendstoInDistribution_ae_continuous_comp
+    hprimitive
+    (weakIV_liml_generalizedEigenvalue_rootAssembly_map_measurable
+      (k := k) (l := l) hselector.selector_meas)
+    hD_null hcont
+  refine TendstoInDistribution.congr ?_ ?_ hraw
+  · intro m
+    exact ae_of_all μ (fun ω => by
+      change
+        weakIVLIMLGeneralizedEigenvalueRootAssemblyMap muSelector
+            (weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments
+              Z X e Y m ω) =
+          (((weakIV2SLSRootScaledBread Z X m ω,
+              weakIV2SLSRootScaledScore Z X e m ω),
+            (weakIVOLSNormalizedBread X m ω,
+              weakIVOLSNormalizedScore X e m ω)),
+            limlMuHat m ω)
+      simp only [weakIVLIMLGeneralizedEigenvalueRootAssemblyMap,
+        weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments]
+      rw [← hselector.sample_selector_eq m ω]
+      simp [
+        weakIVLIMLRootOLSPrimitiveMoments,
+        weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq])
+  · exact ae_of_all ν (fun η => by
+      change
+        weakIVLIMLGeneralizedEigenvalueRootAssemblyMap muSelector
+            (weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+              QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η) =
+          (((weakIV2SLSLimitBread QZZ C (Xi2 η),
+              weakIV2SLSLimitScore QZZ C (Xi2 η) (xie η)),
+            (Sigma22, Sigma2e)),
+            mustar η)
+      simp only [weakIVLIMLGeneralizedEigenvalueRootAssemblyMap,
+        weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit]
+      rw [← hselector.limit_selector_eq η]
+      simp [
+        weakIVLIMLRootOLSPrimitiveLimit,
+        weakIV2SLSProjectedBreadScoreFromPrimitive,
+        weakIV2SLSPrimitiveLimit, weakIV2SLSLimitBread, weakIV2SLSLimitScore,
+        Matrix.mul_assoc])
 
 omit [DecidableEq k] in
 private theorem weakIV_liml_rootAssembly_from_primitive_rayleigh_map_measurable
@@ -1293,7 +1811,7 @@ private theorem weakIV_liml_rootAssembly_from_primitive_rayleigh_map_measurable
     {muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ}
     (hselector_cont : Continuous muSelector) :
     Measurable
-      (weakIVLIMLRootAssemblyFromPrimitiveRayleighMap
+      (weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap
         (k := k) (l := l) β muSelector) := by
   have hroot : Measurable
       (fun p :
@@ -1311,11 +1829,11 @@ private theorem weakIV_liml_rootAssembly_from_primitive_rayleigh_map_measurable
       (fun p :
           (Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
             (Matrix k k ℝ × (k → ℝ)) =>
-        muSelector (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β p.1)) :=
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β p.1)) :=
     hselector_cont.measurable.comp
       ((weakIV_reducedForm_rayleigh_primitive_from_root_continuous
         (k := k) (l := l) β).measurable.comp measurable_fst)
-  simpa [weakIVLIMLRootAssemblyFromPrimitiveRayleighMap] using
+  simpa [weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap] using
     (hroot.prodMk hols).prodMk hmu
 
 omit [DecidableEq k] in
@@ -1328,7 +1846,7 @@ private theorem weakIV_liml_rootAssembly_from_primitive_rayleigh_map_continuousA
         (Matrix k k ℝ × (k → ℝ)))
     (hp : IsUnit (p.1.1).det) :
     ContinuousAt
-      (weakIVLIMLRootAssemblyFromPrimitiveRayleighMap
+      (weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap
         (k := k) (l := l) β muSelector) p := by
   have hroot : ContinuousAt
       (fun q :
@@ -1346,23 +1864,22 @@ private theorem weakIV_liml_rootAssembly_from_primitive_rayleigh_map_continuousA
       (fun q :
           (Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
             (Matrix k k ℝ × (k → ℝ)) =>
-        muSelector (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β q.1)) p :=
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β q.1)) p :=
     hselector_cont.continuousAt.comp
       ((weakIV_reducedForm_rayleigh_primitive_from_root_continuous
         (k := k) (l := l) β).continuousAt.comp continuousAt_fst)
-  simpa [weakIVLIMLRootAssemblyFromPrimitiveRayleighMap] using
+  simpa [weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap] using
     (hroot.prodMk hols).prodMk hmu
 
 omit [DecidableEq k] in
-/-- Primitive root/OLS/Rayleigh-selector CMT for the LIML face of Hansen
-Theorem 12.18.
+/-- Compatibility root/OLS/numerator-selector CMT.
 
-This is the theorem-facing bridge from the primitive local-to-zero moments and
-the continuous reduced-form Rayleigh selector to the joint
+This support bridge maps primitive local-to-zero moments and the continuous
+numerator-only selector to the joint
 `((B₂SLS,S₂SLS),(Σ₂₂,Σ₂e),µ̂)` assembly required by the weak-scaled LIML moment
-CMT.  The only discontinuity is the usual `Q̂_ZZ` inverse, handled off the
-nonsingular `Q_ZZ` limit. -/
-theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayleigh_selector
+CMT.  It is retained for compatibility and is not the canonical Hansen
+generalized-eigenvalue derivation. -/
+theorem weakIV_compatibility_root_assembly_of_numerator_selector
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
     {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
@@ -1383,10 +1900,10 @@ theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayle
     (hselector_cont : Continuous muSelector)
     (hliml_selector : ∀ m ω,
       limlMuHat m ω =
-        muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω))
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω))
     (hmustar_selector : ∀ η,
       mustar η =
-        muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)) :
+        muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)) :
     TendstoInDistribution
       (E := ((Matrix k k ℝ × (k → ℝ)) × (Matrix k k ℝ × (k → ℝ))) × ℝ)
       (Ω := fun _ : ℕ => Ω)
@@ -1442,7 +1959,7 @@ theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayle
         (Matrix k k ℝ × (k → ℝ)),
       p ∉ D →
         ContinuousAt
-          (weakIVLIMLRootAssemblyFromPrimitiveRayleighMap
+          (weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap
             (k := k) (l := l) β muSelector) p := by
     intro p hp
     have hpunit : IsUnit (p.1.1).det := by
@@ -1463,7 +1980,7 @@ theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayle
   · intro m
     exact ae_of_all μ (fun ω => by
       change
-        weakIVLIMLRootAssemblyFromPrimitiveRayleighMap β muSelector
+        weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap β muSelector
           (weakIVLIMLRootOLSPrimitiveMoments Z X e m ω) =
         (((weakIV2SLSRootScaledBread Z X m ω,
             weakIV2SLSRootScaledScore Z X e m ω),
@@ -1471,34 +1988,34 @@ theorem weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayle
             weakIVOLSNormalizedScore X e m ω)),
           limlMuHat m ω)
       have hred :
-        weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+        weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
               (weakIV2SLSRootPrimitiveMoments Z X e m ω) =
-            weakIVReducedFormRayleighPrimitive Z X e β m ω :=
-        weakIVReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq Z X e β m ω
+            weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω :=
+        weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq Z X e β m ω
       rw [hliml_selector m ω]
-      simp [weakIVLIMLRootAssemblyFromPrimitiveRayleighMap,
+      simp [weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap,
         weakIVLIMLRootOLSPrimitiveMoments,
         weakIV2SLSProjectedBreadScoreFromRootPrimitive_eq, hred])
   · exact ae_of_all ν (fun η => by
       change
-        weakIVLIMLRootAssemblyFromPrimitiveRayleighMap β muSelector
+        weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap β muSelector
           (weakIVLIMLRootOLSPrimitiveLimit QZZ C Xi2 xie Sigma22 Sigma2e η) =
         (((weakIV2SLSLimitBread QZZ C (Xi2 η),
             weakIV2SLSLimitScore QZZ C (Xi2 η) (xie η)),
            (Sigma22, Sigma2e)),
           mustar η)
       have hred :
-          weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
               (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η) =
-            weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η :=
-        weakIVReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq QZZ C Xi2 xie β η
+            weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η :=
+        weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq QZZ C Xi2 xie β η
       have hred' :
-          weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
               (QZZ, weakIVFirstStageLimit QZZ C (Xi2 η), xie η) =
-            weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η := by
+            weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η := by
         simpa [weakIV2SLSPrimitiveLimit] using hred
       rw [hmustar_selector η]
-      simp [weakIVLIMLRootAssemblyFromPrimitiveRayleighMap,
+      simp [weakIVCompatibilityLIMLRootAssemblyFromPrimitiveRayleighMap,
         weakIVLIMLRootOLSPrimitiveLimit,
         weakIV2SLSProjectedBreadScoreFromPrimitive,
         weakIV2SLSPrimitiveLimit, weakIV2SLSLimitBread, weakIV2SLSLimitScore,
@@ -1967,14 +2484,33 @@ theorem WeakIV2SLSMomentConditions.of_primitive_firstStage_score
   limit_nonsing_ae := h.limit_nonsing_ae
   singular_tendsto_zero := h.singular_tendsto_zero
 
-/-- Moment/CLT-level LIML condition package for Hansen Theorem 12.18.
+/-!
+## Compatibility and proof-support interfaces
+
+The declarations in this namespace preserve the earlier assembly-oriented
+proof stack.  They are not the canonical Hansen Theorem 12.18 surface:
+
+* the historical Rayleigh certificates omit the random finite-sample residual
+  covariance or additionally require an unrelated X-only minimizer;
+* the `mu_nonpos` and `rayleigh_nonpos` endpoints are generally unavailable
+  under the positive covariance assumptions of the generalized eigenproblem;
+* root-assembly packages that already contain joint convergence with `µhat`
+  are support interfaces, not derivations of Hansen's eigenvalue limit.
+
+Use `WeakIVLIMLGeneralizedEigenvalueSelectorCertificate` and
+`weakIV_estimators_minus_beta_theorem12_18_of_generalizedEigenvalue` for the
+canonical theorem route.
+-/
+namespace WeakIVCompatibility
+
+/-- Compatibility moment/CLT-level LIML condition package.
 
 The fields are the weak-IV-scaled LIML bread and structural-error score joint
 limit, plus the high-probability nonsingularity needed to remove Star
 totalization.  The estimator itself uses the finite-sample adjustment
 `µ̂_n / n`, while `limlMuHat` is the scaled eigenvalue sequence with limit
-`μ*`.  The package records Hansen's Rayleigh-minimum definition of `μ*` but
-does not assume the final LIML estimator limit. -/
+`μ*`.  Eigenvalue identification belongs to the canonical generalized-
+eigenvalue certificate outside this namespace. -/
 structure WeakIVLIMLMomentConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (ν : Measure Ωlim) [IsProbabilityMeasure ν]
@@ -1986,9 +2522,6 @@ structure WeakIVLIMLMomentConditions
     (mustar : Ωlim → ℝ)
     (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
   linear_model : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω
-  liml_rayleigh_minimizer : ∀ η,
-    LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
   estimator_meas : ∀ m, AEStronglyMeasurable
     (fun ω =>
       limlBetaStar
@@ -2038,9 +2571,6 @@ structure WeakIVLIMLRootAssemblyConditions
     (mustar : Ωlim → ℝ)
     (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
   linear_model : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω
-  liml_rayleigh_minimizer : ∀ η,
-    LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
   estimator_meas : ∀ m, AEStronglyMeasurable
     (fun ω =>
       limlBetaStar
@@ -2093,10 +2623,10 @@ structure WeakIVLIMLReducedFormRayleighSelectorCertificate
   selector_cont : Continuous muSelector
   sample_selector_eq : ∀ m ω,
     limlMuHat m ω =
-      muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω)
+      muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
   limit_selector_eq : ∀ η,
     mustar η =
-      muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
   sample_rayleigh_minimizer : ∀ m ω,
     LIMLRayleighMinimizer
       (limlRayleighMatrix
@@ -2109,7 +2639,7 @@ structure WeakIVLIMLReducedFormRayleighSelectorCertificate
       Sigma (mustar η)
   structural_limit_rayleigh_minimizer : ∀ η,
     LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
+      (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
 
 /-- Narrow Rayleigh-selector certificate for Hansen's weak-IV LIML eigenvalue
 adjustment.
@@ -2133,13 +2663,13 @@ structure WeakIVLIMLStructuralRayleighSelectorCertificate
   selector_cont : Continuous muSelector
   sample_selector_eq : ∀ m ω,
     limlMuHat m ω =
-      muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω)
+      muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
   limit_selector_eq : ∀ η,
     mustar η =
-      muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
   structural_limit_rayleigh_minimizer : ∀ η,
     LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
+      (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
 
 omit [Fintype l] [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
 /-- Convert a selector equation stated on Hansen's literal root primitive
@@ -2153,13 +2683,13 @@ theorem weakIV_liml_selector_sample_eq_of_root_primitive
     (hroot : ∀ m ω,
       limlMuHat m ω =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSRootPrimitiveMoments Z X e m ω))) :
     ∀ m ω,
       limlMuHat m ω =
-        muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω) := by
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω) := by
   intro m ω
-  simpa [weakIVReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq] using
+  simpa [weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq] using
     hroot m ω
 
 omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ωlim] in
@@ -2174,13 +2704,13 @@ theorem weakIV_liml_selector_limit_eq_of_root_primitive
     (hroot : ∀ η,
       mustar η =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η))) :
     ∀ η,
       mustar η =
-        muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η) := by
+        muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η) := by
   intro η
-  simpa [weakIVReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq] using
+  simpa [weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq] using
     hroot η
 
 omit [Fintype l] [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
@@ -2198,14 +2728,14 @@ theorem weakIV_liml_selector_sample_eq_root_primitive_of_reducedForm
     {muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ}
     (hreduced : ∀ m ω,
       limlMuHat m ω =
-        muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω)) :
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)) :
     ∀ m ω,
       limlMuHat m ω =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSRootPrimitiveMoments Z X e m ω)) := by
   intro m ω
-  simpa [weakIVReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq] using
+  simpa [weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_sample_eq] using
     hreduced m ω
 
 omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ωlim] in
@@ -2218,14 +2748,14 @@ theorem weakIV_liml_selector_limit_eq_root_primitive_of_reducedForm
     {muSelector : Matrix l l ℝ × Matrix l (Sum Unit k) ℝ → ℝ}
     (hreduced : ∀ η,
       mustar η =
-        muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)) :
+        muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)) :
     ∀ η,
       mustar η =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η)) := by
   intro η
-  simpa [weakIVReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq] using
+  simpa [weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive_limit_eq] using
     hreduced η
 
 omit [DecidableEq k] [MeasurableSpace Ω] [MeasurableSpace Ωlim] in
@@ -2249,16 +2779,16 @@ theorem WeakIVLIMLStructuralRayleighSelectorCertificate.of_root_primitive_select
     (hsample : ∀ m ω,
       limlMuHat m ω =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSRootPrimitiveMoments Z X e m ω)))
     (hlimit : ∀ η,
       mustar η =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η)))
     (hstructural : ∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
     WeakIVLIMLStructuralRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22 where
   selector_cont := hselector
@@ -2287,12 +2817,12 @@ theorem WeakIVLIMLReducedFormRayleighSelectorCertificate.of_root_primitive_selec
     (hsample_eq : ∀ m ω,
       limlMuHat m ω =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSRootPrimitiveMoments Z X e m ω)))
     (hlimit_eq : ∀ η,
       mustar η =
         muSelector
-          (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+          (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
             (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η)))
     (hsample_min : ∀ m ω,
       LIMLRayleighMinimizer
@@ -2306,7 +2836,7 @@ theorem WeakIVLIMLReducedFormRayleighSelectorCertificate.of_root_primitive_selec
         Sigma (mustar η))
     (hstructural_min : ∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
     WeakIVLIMLReducedFormRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22 where
   selector_cont := hselector
@@ -2342,12 +2872,12 @@ structure WeakIVLIMLFiniteSampleRayleighSelectorCertificate
   sample_selector_eq_root_primitive : ∀ m ω,
     limlMuHat m ω =
       muSelector
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
           (weakIV2SLSRootPrimitiveMoments Z X e m ω))
   limit_selector_eq_root_primitive : ∀ η,
     mustar η =
       muSelector
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
           (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η))
   finite_sample_rayleigh_minimizer : ∀ m ω,
     LIMLRayleighMinimizer
@@ -2357,7 +2887,7 @@ structure WeakIVLIMLFiniteSampleRayleighSelectorCertificate
       Sigma (limlMuHat m ω)
   structural_limit_rayleigh_minimizer : ∀ η,
     LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
+      (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
 
 /- The raw eigenvalue problem package keeps all selector and minimizer facts
 together before downstream theorem packages forget the audit-only fields. -/
@@ -2382,12 +2912,12 @@ structure WeakIVLIMLRawEigenvalueProblemConditions
   sample_selector_eq_root_primitive : ∀ m ω,
     limlMuHat m ω =
       muSelector
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
           (weakIV2SLSRootPrimitiveMoments Z X e m ω))
   limit_selector_eq_root_primitive : ∀ η,
     mustar η =
       muSelector
-        (weakIVReducedFormRayleighPrimitiveFromRootPrimitive β
+        (weakIVCompatibilityReducedFormRayleighPrimitiveFromRootPrimitive β
           (weakIV2SLSPrimitiveLimit QZZ C Xi2 xie η))
   finite_sample_rayleigh_minimizer : ∀ m ω,
     LIMLRayleighMinimizer
@@ -2401,7 +2931,7 @@ structure WeakIVLIMLRawEigenvalueProblemConditions
       Sigma (mustar η)
   structural_limit_rayleigh_minimizer : ∀ η,
     LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
+      (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
 
 omit [DecidableEq k] [MeasurableSpace Ω] [MeasurableSpace Ωlim] in
 /-- Build the finite-sample Rayleigh certificate from selector equations stated
@@ -2423,10 +2953,10 @@ theorem WeakIVLIMLFiniteSampleRayleighSelectorCertificate.of_reducedForm_selecto
     (hselector : Continuous muSelector)
     (hsample_eq : ∀ m ω,
       limlMuHat m ω =
-        muSelector (weakIVReducedFormRayleighPrimitive Z X e β m ω))
+        muSelector (weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω))
     (hlimit_eq : ∀ η,
       mustar η =
-        muSelector (weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η))
+        muSelector (weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η))
     (hsample_min : ∀ m ω,
       LIMLRayleighMinimizer
         (limlRayleighMatrix
@@ -2435,7 +2965,7 @@ theorem WeakIVLIMLFiniteSampleRayleighSelectorCertificate.of_reducedForm_selecto
         Sigma (limlMuHat m ω))
     (hstructural_min : ∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :
     WeakIVLIMLFiniteSampleRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22 where
   selector_cont := hselector
@@ -2667,9 +3197,9 @@ theorem WeakIVLIMLFiniteSampleRayleighSelectorCertificate.muHat_tendstoInDistrib
     (hprimitive : TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν)
     (h : WeakIVLIMLFiniteSampleRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22) :
@@ -2717,7 +3247,7 @@ theorem
       atTop mustar (fun _ => μ) ν :=
   WeakIVLIMLFiniteSampleRayleighSelectorCertificate.muHat_tendstoInDistribution
     (μ := μ) (ν := ν)
-    (weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+    (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
       (μ := μ) (ν := ν) (β := β) hPrimitive)
     h
 
@@ -2757,7 +3287,7 @@ theorem weakIV_liml_finite_sample_rayleigh_selector_outputs_of_root_primitive
         Sigma (limlMuHat m ω)) ∧
     (∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :=
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) :=
   ⟨WeakIVLIMLFiniteSampleRayleighSelectorCertificate.muHat_tendstoInDistribution_of_root_primitive
         (μ := μ) (ν := ν) hPrimitive h,
     h.finite_sample_rayleigh_minimizer,
@@ -2802,15 +3332,15 @@ theorem weakIV_liml_raw_eigenvalue_problem_outputs_of_root_primitive
         Sigma (mustar η)) ∧
     (∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) := by
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)) := by
   let hred : WeakIVLIMLReducedFormRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22 :=
     WeakIVLIMLReducedFormRayleighSelectorCertificate.of_raw_eigenvalue_problem
       (k := k) (l := l) h
   have hout :=
-    weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
+    weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
       (μ := μ) (ν := ν)
-      (weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+      (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
         (μ := μ) (ν := ν) (β := β) hPrimitive)
       hred.selector_cont hred.sample_selector_eq hred.limit_selector_eq
       hred.sample_rayleigh_minimizer hred.reducedForm_limit_rayleigh_minimizer
@@ -2831,9 +3361,9 @@ theorem weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleig
     (hprimitive : TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν)
     (h : WeakIVLIMLStructuralRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22) :
@@ -2862,9 +3392,9 @@ theorem WeakIVLIMLStructuralRayleighSelectorCertificate.muHat_tendstoInDistribut
     (hprimitive : TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν)
     (h : WeakIVLIMLStructuralRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22) :
@@ -2879,7 +3409,7 @@ omit [DecidableEq k] in
 local-to-zero first-stage/score convergence.
 
 This composes the root primitive bridge
-`weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive`
+`weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive`
 with the reduced-form selector theorem, so callers do not have to assume
 reduced-form Rayleigh primitive convergence separately. -/
 theorem weakIV_limlMuHat_tendstoInDistribution_of_root_primitive_structural_rayleigh_selector
@@ -2903,7 +3433,7 @@ theorem weakIV_limlMuHat_tendstoInDistribution_of_root_primitive_structural_rayl
       atTop mustar (fun _ => μ) ν :=
   weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_structural_rayleigh_selector
     (μ := μ) (ν := ν)
-    (weakIV_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
+    (weakIV_compatibility_reducedForm_rayleigh_primitive_tendstoInDistribution_of_root_primitive
       (μ := μ) (ν := ν) (β := β) hPrimitive)
     h
 
@@ -2984,9 +3514,9 @@ theorem WeakIVLIMLReducedFormRayleighSelectorCertificate.muHat_tendstoInDistribu
     (hprimitive : TendstoInDistribution
       (E := Matrix l l ℝ × Matrix l (Sum Unit k) ℝ) (Ω := fun _ : ℕ => Ω)
       (fun (m : ℕ) (ω : Ω) =>
-        weakIVReducedFormRayleighPrimitive Z X e β m ω)
+        weakIVCompatibilityReducedFormRayleighPrimitive Z X e β m ω)
       atTop
-      (fun η => weakIVReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
+      (fun η => weakIVCompatibilityReducedFormRayleighLimitPrimitive QZZ C Xi2 xie β η)
       (fun _ => μ) ν)
     (h : WeakIVLIMLReducedFormRayleighSelectorCertificate
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22) :
@@ -3003,7 +3533,7 @@ theorem WeakIVLIMLReducedFormRayleighSelectorCertificate.muHat_tendstoInDistribu
       LIMLRayleighMinimizer
         (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
         Sigma (mustar η)) :=
-  weakIV_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
+  weakIV_compatibility_limlMuHat_tendstoInDistribution_of_reducedForm_rayleigh_argmin
     (μ := μ) (ν := ν) hprimitive h.selector_cont
     h.sample_selector_eq h.limit_selector_eq
     h.sample_rayleigh_minimizer h.reducedForm_limit_rayleigh_minimizer
@@ -3072,12 +3602,11 @@ theorem WeakIVLIMLRootAssemblyConditions.of_primitive_rayleigh
     WeakIVLIMLRootAssemblyConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
   linear_model := h.linear_model
-  liml_rayleigh_minimizer := h.rayleigh_selector.structural_limit_rayleigh_minimizer
   estimator_meas := h.estimator_meas
   actual_bread_meas := h.actual_bread_meas
   actual_score_meas := h.actual_score_meas
   root_assembly_joint_tendsto :=
-    weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayleigh_selector
+    weakIV_compatibility_root_assembly_of_numerator_selector
       (μ := μ) (ν := ν) (Z := Z) (X := X) (e := e)
       (limlMuHat := limlMuHat) (β := β) (QZZ := QZZ) (C := C)
       (Xi2 := Xi2) (xie := xie) (mustar := mustar)
@@ -3293,12 +3822,11 @@ theorem WeakIVLIMLRootAssemblyConditions.of_structural_rayleigh
     WeakIVLIMLRootAssemblyConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
   linear_model := h.linear_model
-  liml_rayleigh_minimizer := h.rayleigh_selector.structural_limit_rayleigh_minimizer
   estimator_meas := h.estimator_meas
   actual_bread_meas := h.actual_bread_meas
   actual_score_meas := h.actual_score_meas
   root_assembly_joint_tendsto :=
-    weakIV_liml_root_assembly_joint_tendstoInDistribution_of_primitive_rayleigh_selector
+    weakIV_compatibility_root_assembly_of_numerator_selector
       (μ := μ) (ν := ν) (Z := Z) (X := X) (e := e)
       (limlMuHat := limlMuHat) (β := β) (QZZ := QZZ) (C := C)
       (Xi2 := Xi2) (xie := xie) (mustar := mustar)
@@ -3689,12 +4217,12 @@ theorem weakIVLIMLLimitBread_nonsing_ae_of_qzz_posDef_firstStage_rank_mu_nonpos_
         hSigma22 hbad.2).isUnit
 
 omit [Fintype l] [DecidableEq k] [DecidableEq l] in
-/-- A LIML Rayleigh minimizer is nonpositive whenever any nonzero test vector
-has nonpositive Rayleigh quotient. -/
+/-- A LIML Rayleigh minimizer is nonpositive whenever an admissible test
+vector has nonpositive Rayleigh quotient. -/
 theorem LIMLRayleighMinimizer.nonpos_of_quotient_nonpos
     {A Sigma : Matrix k k ℝ} {mustar : ℝ}
     (hmin : LIMLRayleighMinimizer A Sigma mustar)
-    {γ : k → ℝ} (hγ : γ ≠ 0)
+    {γ : k → ℝ} (hγ : limlRayleighAdmissible Sigma γ)
     (hquot : limlRayleighQuotient A Sigma γ ≤ 0) :
     mustar ≤ 0 :=
   le_trans (hmin.lower_bound γ hγ) hquot
@@ -3714,16 +4242,15 @@ theorem weakIV_mu_nonpos_ae_of_structural_rayleigh_witness_ae
     {Sigma22 : Matrix k k ℝ}
     (hmin : ∀ η,
       LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
-    (hwitness : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+        (weakIVStructuralRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
+    (hwitness : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     ν {η | ¬ mustar η ≤ 0} = 0 := by
   refine measure_mono_null ?_ hwitness
   intro η hbad hwit
   rcases hwit with ⟨γ, hγ, hquot⟩
-  exact hbad <|
-    (hmin η).nonpos_of_quotient_nonpos hγ
-      (by simpa [weakIVLIMLRayleighQuotient] using hquot)
+  exact hbad <| le_trans ((hmin η).lower_bound γ hγ)
+    (by simpa [weakIVStructuralRayleighQuotient] using hquot)
 
 /-- Pointwise `µ* ≤ 0` implies the a.e. sign field used by the weak-IV LIML
 limit-bread bridge. -/
@@ -3763,13 +4290,13 @@ theorem weakIVLIMLRayleigh_nonpos_witness_ae_of_forall
     {Ωlim : Type*} [MeasurableSpace Ωlim] {ν : Measure Ωlim}
     {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
     {Xi2 : Ωlim → Matrix l k ℝ} {Sigma22 : Matrix k k ℝ}
-    (hWitness : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
-    ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0 := by
+    (hWitness : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0 := by
   have hEmpty :
-      {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-        weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} =
+      {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+        weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} =
         (∅ : Set Ωlim) := by
     ext η
     simp [hWitness η]
@@ -3839,9 +4366,6 @@ theorem WeakIVLIMLMomentConditions.of_joint_tendsto_limit_nonsing
     {mustar : Ωlim → ℝ}
     {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (hest : ∀ m, AEStronglyMeasurable
       (fun ω =>
         limlBetaStar
@@ -3869,7 +4393,6 @@ theorem WeakIVLIMLMomentConditions.of_joint_tendsto_limit_nonsing
     WeakIVLIMLMomentConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
   linear_model := hmodel
-  liml_rayleigh_minimizer := hrayleigh
   estimator_meas := hest
   bread_meas := hbread
   score_meas := hscore
@@ -4454,7 +4977,7 @@ theorem WeakIVLIMLMomentConditions.of_root_assembly
       (limlMuHat := limlMuHat) (β := β) (QZZ := QZZ) (C := C)
       (Xi2 := Xi2) (xie := xie) (mustar := mustar)
       (Sigma22 := Sigma22) (Sigma2e := Sigma2e)
-      h.linear_model h.liml_rayleigh_minimizer h.estimator_meas
+      h.linear_model h.estimator_meas
       h.actual_bread_meas h.actual_score_meas hActual_joint h.limit_nonsing_ae
 
 /-- Build the LIML weak-IV moment package from primitive root/OLS moments and
@@ -5447,9 +5970,6 @@ structure WeakIVTheorem1218Conditions
     (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
     (mustar : Ωlim → ℝ)
     (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
-  liml_rayleigh_minimizer : ∀ η,
-    LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
   ols_limit : TendstoInMeasure μ
     (fun (m : ℕ) ω =>
       olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -5486,9 +6006,6 @@ structure WeakIVTheorem1218CenteredConditions
     (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
     (mustar : Ωlim → ℝ)
     (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ) : Prop where
-  liml_rayleigh_minimizer : ∀ η,
-    LIMLRayleighMinimizer
-      (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η)
   ols_centered : TendstoInMeasure μ
     (fun (m : ℕ) ω =>
       olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -6042,8 +6559,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218FiniteSampleRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6112,8 +6629,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218FiniteSampleRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6172,8 +6689,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218FiniteSampleRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6242,8 +6759,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218FiniteSampleRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6643,8 +7160,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6700,8 +7217,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6757,8 +7274,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -6810,8 +7327,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -7035,8 +7552,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -7093,8 +7610,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -7152,8 +7669,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -7204,8 +7721,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218RawEigenvalueProblemConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector Sigma :=
@@ -7508,8 +8025,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218StructuralRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector :=
@@ -7560,8 +8077,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218StructuralRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector :=
@@ -7621,8 +8138,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     WeakIVTheorem1218StructuralRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector := by
@@ -7815,8 +8332,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     WeakIVTheorem1218StructuralRayleighConditions
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e
       muSelector :=
@@ -8105,9 +8622,6 @@ theorem weakIV_centeredConditions_of_ols_moments
     {mustar : Ωlim → ℝ}
     {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     (hOLS : WeakIVOLSMomentConditions μ X e Y β Sigma22 Sigma2e)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (h2 : TendstoInDistribution
       (fun (m : ℕ) ω =>
         twoSLSBetaStar
@@ -8126,7 +8640,6 @@ theorem weakIV_centeredConditions_of_ols_moments
       (fun _ => μ) ν) :
     WeakIVTheorem1218CenteredConditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_centered := weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments hOLS
   twoSLS_centered := h2
   liml_centered := hliml
@@ -8146,9 +8659,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_moments
     {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     (hOLS : WeakIVOLSMomentConditions μ X e Y β Sigma22 Sigma2e)
     (h2SLS : WeakIV2SLSMomentConditions μ ν Z X e Y β QZZ C Xi2 xie)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (hliml : TendstoInDistribution
       (fun (m : ℕ) ω =>
         limlBetaStar
@@ -8160,7 +8670,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_moments
       (fun _ => μ) ν) :
     WeakIVTheorem1218CenteredConditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_centered := weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments hOLS
   twoSLS_centered :=
     weakIV_twoSLSBetaStar_minus_beta_tendstoInDistribution_of_moments h2SLS
@@ -8194,9 +8703,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_root_primitive
     (hQZZ : IsUnit QZZ.det)
     (h2SLS_limit :
       ν {η | ¬ IsUnit (weakIV2SLSLimitBread QZZ C (Xi2 η)).det} = 0)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (hliml : TendstoInDistribution
       (fun (m : ℕ) ω =>
         limlBetaStar
@@ -8208,7 +8714,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_root_primitive
       (fun _ => μ) ν) :
     WeakIVTheorem1218CenteredConditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_centered := weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments hOLS
   twoSLS_centered :=
     weakIV_twoSLSBetaStar_minus_beta_tendstoInDistribution_of_root_primitive
@@ -8237,7 +8742,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_liml_moments
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e) :
     WeakIVTheorem1218CenteredConditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hLIML.liml_rayleigh_minimizer
   ols_centered := weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments hOLS
   twoSLS_centered :=
     weakIV_twoSLSBetaStar_minus_beta_tendstoInDistribution_of_moments h2SLS
@@ -8263,7 +8767,6 @@ theorem weakIV_centeredConditions_of_ols_twoSLS_root_primitive_liml_moments
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e) :
     WeakIVTheorem1218CenteredConditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hLIML.liml_rayleigh_minimizer
   ols_centered := weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments hOLS
   twoSLS_centered :=
     weakIV_twoSLSBetaStar_minus_beta_tendstoInDistribution_of_root_primitive_moments h2SLS
@@ -8362,9 +8865,6 @@ theorem weakIV_conditions_of_ols_moments
     {mustar : Ωlim → ℝ}
     {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     (hOLS : WeakIVOLSMomentConditions μ X e Y β Sigma22 Sigma2e)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (h2 : TendstoInDistribution
       (fun (m : ℕ) ω =>
         twoSLSBetaStar
@@ -8383,7 +8883,6 @@ theorem weakIV_conditions_of_ols_moments
       (fun _ => μ) ν) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_limit := weakIV_olsBetaStar_tendstoInMeasure_of_moments hOLS
   twoSLS_limit := h2
   liml_limit := hliml
@@ -8402,9 +8901,6 @@ theorem weakIV_conditions_of_ols_twoSLS_moments
     {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
     (hOLS : WeakIVOLSMomentConditions μ X e Y β Sigma22 Sigma2e)
     (h2SLS : WeakIV2SLSMomentConditions μ ν Z X e Y β QZZ C Xi2 xie)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (hliml : TendstoInDistribution
       (fun (m : ℕ) ω =>
         limlBetaStar
@@ -8416,7 +8912,6 @@ theorem weakIV_conditions_of_ols_twoSLS_moments
       (fun _ => μ) ν) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_limit := weakIV_olsBetaStar_tendstoInMeasure_of_moments hOLS
   twoSLS_limit := weakIV_twoSLSBetaStar_tendstoInDistribution_of_moments h2SLS
   liml_limit := hliml
@@ -8451,9 +8946,6 @@ theorem weakIV_conditions_of_ols_twoSLS_root_primitive
     (hQZZ : IsUnit QZZ.det)
     (h2SLS_limit :
       ν {η | ¬ IsUnit (weakIV2SLSLimitBread QZZ C (Xi2 η)).det} = 0)
-    (hrayleigh : ∀ η,
-      LIMLRayleighMinimizer
-        (weakIVLIMLRayleighMatrix QZZ C (Xi2 η)) Sigma22 (mustar η))
     (hliml : TendstoInDistribution
       (fun (m : ℕ) ω =>
         limlBetaStar
@@ -8465,7 +8957,6 @@ theorem weakIV_conditions_of_ols_twoSLS_root_primitive
       (fun _ => μ) ν) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hrayleigh
   ols_limit := weakIV_olsBetaStar_tendstoInMeasure_of_moments hOLS
   twoSLS_limit :=
     weakIV_twoSLSBetaStar_tendstoInDistribution_of_root_primitive
@@ -8492,7 +8983,6 @@ theorem weakIV_conditions_of_ols_twoSLS_liml_moments
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hLIML.liml_rayleigh_minimizer
   ols_limit := weakIV_olsBetaStar_tendstoInMeasure_of_moments hOLS
   twoSLS_limit := weakIV_twoSLSBetaStar_tendstoInDistribution_of_moments h2SLS
   liml_limit := weakIV_limlBetaStar_tendstoInDistribution_of_moments hLIML
@@ -8512,7 +9002,6 @@ theorem weakIV_conditions_of_ols_twoSLS_root_primitive_liml_moments
       μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := hLIML.liml_rayleigh_minimizer
   ols_limit := weakIV_olsBetaStar_tendstoInMeasure_of_moments hOLS
   twoSLS_limit :=
     weakIV_twoSLSBetaStar_tendstoInDistribution_of_root_primitive_moments h2SLS
@@ -8554,7 +9043,6 @@ theorem WeakIVTheorem1218Conditions.of_centered
       (fun ω => olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β) μ) :
     WeakIVTheorem1218Conditions
       μ ν Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e where
-  liml_rayleigh_minimizer := h.liml_rayleigh_minimizer
   ols_limit := by
     have hOLS := tendstoInMeasure_continuous_comp hOLS_meas h.ols_centered
       (by fun_prop : Continuous fun x : k → ℝ => β + x)
@@ -9249,8 +9737,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -9314,8 +9802,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -9379,8 +9867,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -9444,8 +9932,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -9519,8 +10007,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -9593,8 +10081,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -9667,8 +10155,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0)
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0)
     (hreduced : ∀ η,
       LIMLRayleighMinimizer
         (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
@@ -9747,8 +10235,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0)
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0)
     (hreduced : ∀ η,
       LIMLRayleighMinimizer
         (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
@@ -9977,8 +10465,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -10050,8 +10538,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -12268,8 +12756,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -12333,8 +12821,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -12403,8 +12891,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -12468,8 +12956,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -12539,8 +13027,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -12604,8 +13092,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -12669,8 +13157,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -12734,8 +13222,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -13088,8 +13576,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13156,8 +13644,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13232,8 +13720,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13308,8 +13796,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     (TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13384,8 +13872,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ν {η | ¬ Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec} = 0)
-    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
+    (hRayleighNonpos : ν {η | ¬ ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0} = 0) :
     (TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -13458,8 +13946,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13528,8 +14016,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     (TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
@@ -13604,8 +14092,8 @@ theorem
       Z X e limlMuHat β QZZ C Xi2 xie mustar muSelector Sigma Sigma22)
     (hReducedRank : ∀ η, Function.Injective
       (weakIVReducedFormLimit QZZ C (Xi2 η) (xie η) β).mulVec)
-    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, γ ≠ 0 ∧
-      weakIVLIMLRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
+    (hRayleighNonpos : ∀ η, ∃ γ : k → ℝ, limlRayleighAdmissible Sigma22 γ ∧
+      weakIVStructuralRayleighQuotient QZZ C (Xi2 η) Sigma22 γ ≤ 0) :
     (TendstoInMeasure μ
       (fun (m : ℕ) ω =>
         olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω))
@@ -14020,6 +14508,203 @@ theorem weakIV_estimators_theorem12_18_kappa
       ext i
       simp [Pi.add_apply, Pi.sub_apply])
   · exact EventuallyEq.rfl
+
+end WeakIVCompatibility
+
+open WeakIVCompatibility
+
+/-- Canonical primitive condition package for Hansen Theorem 12.18.
+
+The stochastic input is joint convergence of the local-to-zero root moments,
+the OLS moments, and the exact finite-sample generalized-eigenvalue pair
+`([Y X]'P_Z[Y X], n^{-1}[Y X]'M_Z[Y X])`.  The LIML eigenvalue is identified
+only by the full reduced-form generalized Rayleigh problem.  No estimator
+limit, X-only minimizer, or nonpositive-Rayleigh endpoint is assumed. -/
+structure WeakIVTheorem1218GeneralizedEigenvalueConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
+    (e Y : ℕ → Ω → ℝ) (limlMuHat : ℕ → Ω → ℝ)
+    (β : k → ℝ) (QZZ : Matrix l l ℝ) (C : Matrix l k ℝ)
+    (Xi2 : Ωlim → Matrix l k ℝ) (xie : Ωlim → l → ℝ)
+    (mustar : Ωlim → ℝ)
+    (Sigma22 : Matrix k k ℝ) (Sigma2e : k → ℝ)
+    (Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ)
+    (muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ)
+    (selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)) : Prop where
+  linear_model : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω
+  ols_bread_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => weakIVOLSNormalizedBread X m ω) μ
+  ols_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => weakIVOLSNormalizedScore X e m ω) μ
+  sigma22_nonsing : IsUnit Sigma22.det
+  twoSLS_estimator_meas : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      twoSLSBetaStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+    μ
+  liml_estimator_meas : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      limlBetaStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)
+        (weakIVLIMLFiniteSampleMu limlMuHat m ω))
+    μ
+  liml_actual_bread_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => weakIVLIMLWeakScaledBread Z X limlMuHat m ω) μ
+  liml_actual_score_meas : ∀ m, AEStronglyMeasurable
+    (fun ω => weakIVLIMLWeakScaledScore Z X e limlMuHat m ω) μ
+  joint_primitive_tendsto : TendstoInDistribution
+    (E :=
+      ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ))) ×
+        (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+          Matrix (Sum Unit k) (Sum Unit k) ℝ))
+    (Ω := fun _ : ℕ => Ω)
+    (fun (m : ℕ) (ω : Ω) =>
+      weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments Z X e Y m ω)
+    atTop
+    (fun η =>
+      weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit
+        QZZ C Xi2 xie β Sigma22 Sigma2e Sigma η)
+    (fun _ => μ) ν
+  qzz_nonsing : IsUnit QZZ.det
+  eigenvalue_selector : WeakIVLIMLGeneralizedEigenvalueSelectorCertificate
+    Z X Y limlMuHat β QZZ C Xi2 xie mustar Sigma
+    muSelector selectorBad ν
+  twoSLS_limit_nonsing_ae :
+    ν {η | ¬ IsUnit (weakIV2SLSLimitBread QZZ C (Xi2 η)).det} = 0
+  liml_limit_nonsing_ae :
+    ν {η | ¬ IsUnit
+      (weakIVLIMLLimitBread QZZ C (Xi2 η) (mustar η) Sigma22).det} = 0
+
+/-- Hansen Theorem 12.18 from the exact finite-sample LIML generalized
+eigenvalue problem.
+
+The conclusion contains the three centered estimator limits, convergence of
+the scaled finite-sample LIML eigenvalue, and Hansen's full reduced-form
+Rayleigh-minimizer characterization of `μ*`. -/
+theorem weakIV_estimators_minus_beta_theorem12_18_of_generalizedEigenvalue
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {limlMuHat : ℕ → Ω → ℝ}
+    {β : k → ℝ} {QZZ : Matrix l l ℝ} {C : Matrix l k ℝ}
+    {Xi2 : Ωlim → Matrix l k ℝ} {xie : Ωlim → l → ℝ}
+    {mustar : Ωlim → ℝ}
+    {Sigma22 : Matrix k k ℝ} {Sigma2e : k → ℝ}
+    {Sigma : Matrix (Sum Unit k) (Sum Unit k) ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (h : WeakIVTheorem1218GeneralizedEigenvalueConditions
+      μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar
+      Sigma22 Sigma2e Sigma muSelector selectorBad) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsBetaStar (stackRegressors X m ω) (stackOutcomes Y m ω) - β)
+      atTop (fun _ => weakIVOLSBias Sigma22 Sigma2e) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        twoSLSBetaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω) - β)
+      atTop
+      (fun η => weakIV2SLSBias QZZ C (Xi2 η) (xie η))
+      (fun _ => μ) ν ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        limlBetaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω)
+          (weakIVLIMLFiniteSampleMu limlMuHat m ω) - β)
+      atTop
+      (fun η =>
+        weakIVLIMLBias QZZ C (Xi2 η) (xie η) (mustar η) Sigma22 Sigma2e)
+      (fun _ => μ) ν ∧
+    TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) => limlMuHat m ω)
+      atTop mustar (fun _ => μ) ν ∧
+    (∀ η, LIMLRayleighMinimizer
+      (weakIVReducedFormRayleighMatrix QZZ C (Xi2 η) (xie η) β)
+      Sigma (mustar η)) := by
+  have hroot_ols : TendstoInDistribution
+      (E :=
+        (Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+          (Matrix k k ℝ × (k → ℝ)))
+      (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) => weakIVLIMLRootOLSPrimitiveMoments Z X e m ω)
+      atTop
+      (fun η => weakIVLIMLRootOLSPrimitiveLimit QZZ C Xi2 xie Sigma22 Sigma2e η)
+      (fun _ => μ) ν := by
+    have hraw := h.joint_primitive_tendsto.continuous_comp
+      (continuous_fst : Continuous
+        (fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => p.1))
+    simpa [weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments,
+      weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit] using hraw
+  have heigen_primitive : TendstoInDistribution
+      (E := Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)
+      (Ω := fun _ : ℕ => Ω)
+      (fun (m : ℕ) (ω : Ω) =>
+        weakIVLIMLGeneralizedEigenvalueSamplePrimitive Z X Y m ω)
+      atTop
+      (fun η =>
+        weakIVLIMLGeneralizedEigenvalueLimitPrimitive
+          QZZ C Xi2 xie β Sigma η)
+      (fun _ => μ) ν := by
+    have hraw := h.joint_primitive_tendsto.continuous_comp
+      (continuous_snd : Continuous
+        (fun p :
+          ((Matrix l l ℝ × Matrix l k ℝ × (l → ℝ)) ×
+              (Matrix k k ℝ × (k → ℝ))) ×
+            (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+              Matrix (Sum Unit k) (Sum Unit k) ℝ) => p.2))
+    simpa [weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveMoments,
+      weakIVLIMLGeneralizedEigenvalueRootOLSPrimitiveLimit] using hraw
+  let hOLS : WeakIVOLSMomentConditions μ X e Y β Sigma22 Sigma2e :=
+    WeakIVOLSMomentConditions.of_root_ols_primitive
+      h.linear_model h.ols_bread_meas h.ols_score_meas hroot_ols h.sigma22_nonsing
+  let h2SLS : WeakIV2SLSRootPrimitiveMomentConditions
+      μ ν Z X e Y β QZZ C Xi2 xie :=
+    WeakIV2SLSRootPrimitiveMomentConditions.of_root_ols_primitive
+      h.linear_model h.twoSLS_estimator_meas hroot_ols h.qzz_nonsing
+      h.twoSLS_limit_nonsing_ae
+  have hassembly :=
+    weakIV_liml_root_assembly_joint_tendstoInDistribution_of_generalizedEigenvalue
+      (μ := μ) (ν := ν) h.joint_primitive_tendsto h.qzz_nonsing
+      h.eigenvalue_selector
+  let hLIMLRoot : WeakIVLIMLRootAssemblyConditions
+      μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e :=
+    { linear_model := h.linear_model
+      estimator_meas := h.liml_estimator_meas
+      actual_bread_meas := h.liml_actual_bread_meas
+      actual_score_meas := h.liml_actual_score_meas
+      root_assembly_joint_tendsto := hassembly
+      limit_nonsing_ae := h.liml_limit_nonsing_ae }
+  let hLIML : WeakIVLIMLMomentConditions
+      μ ν Z X e Y limlMuHat β QZZ C Xi2 xie mustar Sigma22 Sigma2e :=
+    WeakIVLIMLMomentConditions.of_root_assembly hLIMLRoot
+  have hOLS_limit :=
+    weakIV_olsBetaStar_minus_beta_tendstoInMeasure_of_moments
+      hOLS
+  have h2SLS_limit :=
+    weakIV_twoSLSBetaStar_minus_beta_tendstoInDistribution_of_root_primitive_moments
+      h2SLS
+  have hLIML_limit :=
+    weakIV_limlBetaStar_minus_beta_tendstoInDistribution_of_moments hLIML
+  exact
+    ⟨hOLS_limit, h2SLS_limit, hLIML_limit,
+      h.eigenvalue_selector.muHat_tendstoInDistribution heigen_primitive,
+      h.eigenvalue_selector.limit_rayleigh_minimizer⟩
 
 end Asymptotics
 
