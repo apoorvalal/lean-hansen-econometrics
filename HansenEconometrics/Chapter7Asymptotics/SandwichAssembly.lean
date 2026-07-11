@@ -2932,6 +2932,78 @@ noncomputable def olsHetCovStar
     (X : Matrix n k ℝ) (y : n → ℝ) : Matrix k k ℝ :=
   (sampleGram X)⁻¹ * sampleScoreCovStar X y * (sampleGram X)⁻¹
 
+omit [DecidableEq k] in
+/-- Sample Gram matrices transform contravariantly under a deterministic
+column change `X ↦ X T`. -/
+theorem sampleGram_mul_columnTransform
+    {q : Type*}
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) :
+    sampleGram (X * T) = Tᵀ * sampleGram X * T := by
+  unfold sampleGram
+  rw [Matrix.transpose_mul]
+  simp [Matrix.mul_assoc, Matrix.smul_mul, Matrix.mul_smul]
+
+/-- HC0 middle matrices transform contravariantly under a deterministic column
+change when the totalized OLS residuals agree. -/
+theorem sampleScoreCovStar_mul_columnTransform_of_residual_eq
+    {q : Type*} [Fintype q] [DecidableEq q]
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) (y : n → ℝ)
+    (hres : olsResidualStar (X * T) y = olsResidualStar X y) :
+    sampleScoreCovStar (X * T) y =
+      Tᵀ * sampleScoreCovStar X y * T := by
+  unfold sampleScoreCovStar
+  rw [hres]
+  calc
+    (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • (X * T) i)
+          (olsResidualStar X y i • (X * T) i)
+        =
+      (Fintype.card n : ℝ)⁻¹ •
+        ∑ i : n, Tᵀ * Matrix.vecMulVec (olsResidualStar X y i • X i)
+          (olsResidualStar X y i • X i) * T := by
+          congr 1
+          refine Finset.sum_congr rfl ?_
+          intro i _
+          ext a b
+          simp [Matrix.mul_apply, Matrix.vecMulVec_apply,
+            Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+    _ = Tᵀ * ((Fintype.card n : ℝ)⁻¹ •
+          ∑ i : n, Matrix.vecMulVec (olsResidualStar X y i • X i)
+            (olsResidualStar X y i • X i)) * T := by
+          rw [Matrix.mul_smul, Matrix.smul_mul]
+          simp [Matrix.mul_assoc, Matrix.mul_sum, Matrix.sum_mul]
+
+/-- HC0 sandwich covariance transforms under a deterministic nonsingular
+column change, provided the totalized residuals agree. -/
+theorem olsHetCovStar_mul_columnTransform_of_residual_eq
+    {q : Type*} [Fintype q] [DecidableEq q]
+    (X : Matrix n k ℝ) (T : Matrix k q ℝ) (S : Matrix q k ℝ) (y : n → ℝ)
+    (hST : S * T = 1) (hTS : T * S = 1)
+    (hG : IsUnit (sampleGram X).det)
+    (hres : olsResidualStar (X * T) y = olsResidualStar X y) :
+    olsHetCovStar (X * T) y = S * olsHetCovStar X y * Sᵀ := by
+  have htr : Sᵀ * Tᵀ = 1 := by
+    rw [← Matrix.transpose_mul, hTS, Matrix.transpose_one]
+  rw [olsHetCovStar, sampleGram_mul_columnTransform,
+    sampleScoreCovStar_mul_columnTransform_of_residual_eq X T y hres,
+    nonsingInv_conjugate_of_inverse (G := sampleGram X) (T := T) (S := S) hST hTS hG]
+  change (S * (sampleGram X)⁻¹ * Sᵀ) *
+        (Tᵀ * sampleScoreCovStar X y * T) *
+        (S * (sampleGram X)⁻¹ * Sᵀ) =
+      S * ((sampleGram X)⁻¹ * sampleScoreCovStar X y * (sampleGram X)⁻¹) * Sᵀ
+  calc
+    (S * (sampleGram X)⁻¹ * Sᵀ) *
+          (Tᵀ * sampleScoreCovStar X y * T) *
+          (S * (sampleGram X)⁻¹ * Sᵀ)
+        = S * ((sampleGram X)⁻¹ *
+            ((Sᵀ * Tᵀ) * sampleScoreCovStar X y * (T * S)) *
+              (sampleGram X)⁻¹) * Sᵀ := by
+          simp [Matrix.mul_assoc]
+    _ = S * ((sampleGram X)⁻¹ * sampleScoreCovStar X y *
+          (sampleGram X)⁻¹) * Sᵀ := by
+          rw [htr, hTS]
+          simp [Matrix.mul_assoc]
+
 /-- Totalized HC1 asymptotic sandwich estimator:
 `(n / (n-k)) V̂_HC0`. -/
 noncomputable def olsHetCovHC1Star

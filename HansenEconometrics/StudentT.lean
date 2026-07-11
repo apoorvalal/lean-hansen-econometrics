@@ -709,6 +709,166 @@ lemma studentTPDFReal_abs (ν : ℕ) (x : ℝ) :
     simp
   · simp [studentTPDFReal, hν]
 
+/-- Upper polynomial envelope for the Student-`t` density in the tails.
+
+This is reusable analytic support for the moment threshold theorem: away from
+the origin, the density is bounded above by a constant times
+`|x|^(-(ν+1))`. -/
+lemma studentTPDFReal_tail_upper_le {ν : ℕ} (hν : 0 < ν) {x : ℝ}
+    (hx : 1 ≤ |x|) :
+    studentTPDFReal ν x ≤
+      studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2)) *
+        |x| ^ (-(((ν : ℝ) + 1))) := by
+  rw [studentTPDFReal_of_pos hν]
+  let a : ℝ := (((ν : ℝ) + 1) / 2)
+  have hνr : 0 < (ν : ℝ) := by exact_mod_cast hν
+  have hxpos : 0 < |x| := lt_of_lt_of_le zero_lt_one hx
+  have hsqpos : 0 < |x| ^ 2 / (ν : ℝ) := by positivity
+  have hbase_le : |x| ^ 2 / (ν : ℝ) ≤ 1 + |x| ^ 2 / (ν : ℝ) := by linarith
+  have hpow_le :
+      (1 + x ^ 2 / (ν : ℝ)) ^ (-a) ≤
+        ((ν : ℝ) ^ a) * |x| ^ (-(2 * a)) := by
+    have hx_sq : x ^ 2 = |x| ^ 2 := by
+      rw [sq_abs]
+    rw [hx_sq]
+    calc
+      (1 + |x| ^ 2 / (ν : ℝ)) ^ (-a)
+        ≤ (|x| ^ 2 / (ν : ℝ)) ^ (-a) :=
+          Real.rpow_le_rpow_of_nonpos hsqpos hbase_le (by dsimp [a]; linarith [hνr])
+      _ = ((ν : ℝ) ^ a) * |x| ^ (-(2 * a)) := by
+          rw [Real.div_rpow (sq_nonneg _) hνr.le (-a)]
+          rw [Real.rpow_neg hνr.le a]
+          rw [← Real.rpow_natCast, ← Real.rpow_mul hxpos.le]
+          rw [show ((2 : ℕ) : ℝ) * -a = -(2 * a) by ring]
+          simp [div_eq_mul_inv, mul_comm]
+  have hc_nonneg : 0 ≤ studentTDensityConstant ν := studentTDensityConstant_nonneg ν
+  calc
+    studentTDensityConstant ν * (1 + x ^ 2 / (ν : ℝ)) ^ (-((ν : ℝ) + 1) / 2)
+      ≤ studentTDensityConstant ν * (((ν : ℝ) ^ a) * |x| ^ (-(2 * a))) := by
+          convert mul_le_mul_of_nonneg_left hpow_le hc_nonneg using 2
+          dsimp [a]
+          ring_nf
+    _ = studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2)) *
+        |x| ^ (-(((ν : ℝ) + 1))) := by
+          dsimp [a]
+          ring_nf
+
+/-- Lower polynomial envelope for the Student-`t` density in the tails.
+
+Together with `studentTPDFReal_tail_upper_le`, this pins the tail order at
+`|x|^(-(ν+1))`, reducing the remaining Student-`t` moment threshold proof to
+the standard real-power integrability criterion. -/
+lemma studentTPDFReal_tail_lower_le {ν : ℕ} (hν : 0 < ν) {x : ℝ}
+    (hx : 1 ≤ |x|) :
+    studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+        |x| ^ (-(((ν : ℝ) + 1))) ≤
+      studentTPDFReal ν x := by
+  rw [studentTPDFReal_of_pos hν]
+  let a : ℝ := (((ν : ℝ) + 1) / 2)
+  have hνr : 0 < (ν : ℝ) := by exact_mod_cast hν
+  have hxpos : 0 < |x| := lt_of_lt_of_le zero_lt_one hx
+  have hApos : 0 < 1 + (ν : ℝ)⁻¹ := by positivity
+  have hsmall_pos : 0 < 1 + |x| ^ 2 / (ν : ℝ) := by positivity
+  have hbase_le :
+      1 + |x| ^ 2 / (ν : ℝ) ≤ (1 + (ν : ℝ)⁻¹) * |x| ^ 2 := by
+    have hx_sq_ge : 1 ≤ |x| ^ 2 := by
+      nlinarith [hx, abs_nonneg x]
+    calc
+      1 + |x| ^ 2 / (ν : ℝ)
+        ≤ |x| ^ 2 + |x| ^ 2 / (ν : ℝ) := by linarith
+      _ = (1 + (ν : ℝ)⁻¹) * |x| ^ 2 := by
+          field_simp [hνr.ne']
+  have hpow_le :
+      (1 + (ν : ℝ)⁻¹) ^ (-a) * |x| ^ (-(2 * a)) ≤
+        (1 + x ^ 2 / (ν : ℝ)) ^ (-a) := by
+    have hx_sq : x ^ 2 = |x| ^ 2 := by
+      rw [sq_abs]
+    rw [hx_sq]
+    calc
+      (1 + (ν : ℝ)⁻¹) ^ (-a) * |x| ^ (-(2 * a))
+        = ((1 + (ν : ℝ)⁻¹) * |x| ^ 2) ^ (-a) := by
+            rw [Real.mul_rpow hApos.le (sq_nonneg _)]
+            rw [← Real.rpow_natCast, ← Real.rpow_mul hxpos.le]
+            rw [show ((2 : ℕ) : ℝ) * -a = -(2 * a) by ring]
+      _ ≤ (1 + |x| ^ 2 / (ν : ℝ)) ^ (-a) :=
+          Real.rpow_le_rpow_of_nonpos hsmall_pos hbase_le (by dsimp [a]; linarith [hνr])
+  have hc_nonneg : 0 ≤ studentTDensityConstant ν := studentTDensityConstant_nonneg ν
+  have hpow_le_final :
+      (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+          |x| ^ (-(((ν : ℝ) + 1))) ≤
+        (1 + x ^ 2 / (ν : ℝ)) ^ (-((ν : ℝ) + 1) / 2) := by
+    calc
+      (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+          |x| ^ (-(((ν : ℝ) + 1)))
+        = (1 + (ν : ℝ)⁻¹) ^ (-a) * |x| ^ (-(2 * a)) := by
+            congr 2
+            · dsimp [a]
+              ring
+      _ ≤ (1 + x ^ 2 / (ν : ℝ)) ^ (-a) := hpow_le
+      _ = (1 + x ^ 2 / (ν : ℝ)) ^ (-((ν : ℝ) + 1) / 2) := by
+            congr 1
+            dsimp [a]
+            ring
+  calc
+    studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+        |x| ^ (-(((ν : ℝ) + 1)))
+      = studentTDensityConstant ν *
+          ((1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+            |x| ^ (-(((ν : ℝ) + 1)))) := by ring
+    _ ≤ studentTDensityConstant ν * (1 + x ^ 2 / (ν : ℝ)) ^ (-((ν : ℝ) + 1) / 2) := by
+          exact mul_le_mul_of_nonneg_left hpow_le_final hc_nonneg
+
+/-- Upper tail comparison for the Student-`t` moment integrand. -/
+lemma studentTMomentIntegrand_tail_upper_le {ν : ℕ} (hν : 0 < ν)
+    (r : ℝ≥0) {x : ℝ} (hx : 1 ≤ |x|) :
+    |x| ^ (r : ℝ) * studentTPDFReal ν x ≤
+      (studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2))) *
+        |x| ^ ((r : ℝ) - (ν : ℝ) - 1) := by
+  have hxpos : 0 < |x| := lt_of_lt_of_le zero_lt_one hx
+  have hpdf := studentTPDFReal_tail_upper_le (ν := ν) hν (x := x) hx
+  calc
+    |x| ^ (r : ℝ) * studentTPDFReal ν x
+      ≤ |x| ^ (r : ℝ) *
+          (studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2)) *
+            |x| ^ (-(((ν : ℝ) + 1)))) := by
+          gcongr
+    _ = (studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2))) *
+        |x| ^ ((r : ℝ) - (ν : ℝ) - 1) := by
+          rw [show
+            |x| ^ (r : ℝ) *
+                (studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2)) *
+                  |x| ^ (-(((ν : ℝ) + 1)))) =
+              (studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2))) *
+                (|x| ^ (r : ℝ) * |x| ^ (-(((ν : ℝ) + 1)))) by ring]
+          rw [← Real.rpow_add hxpos]
+          ring_nf
+
+/-- Lower tail comparison for the Student-`t` moment integrand. -/
+lemma studentTMomentIntegrand_tail_lower_le {ν : ℕ} (hν : 0 < ν)
+    (r : ℝ≥0) {x : ℝ} (hx : 1 ≤ |x|) :
+    (studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2))) *
+        |x| ^ ((r : ℝ) - (ν : ℝ) - 1) ≤
+      |x| ^ (r : ℝ) * studentTPDFReal ν x := by
+  have hxpos : 0 < |x| := lt_of_lt_of_le zero_lt_one hx
+  have hpdf := studentTPDFReal_tail_lower_le (ν := ν) hν (x := x) hx
+  calc
+    (studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2))) *
+        |x| ^ ((r : ℝ) - (ν : ℝ) - 1)
+      = |x| ^ (r : ℝ) *
+          (studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2)) *
+            |x| ^ (-(((ν : ℝ) + 1)))) := by
+          rw [show
+            |x| ^ (r : ℝ) *
+                (studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^
+                  (-(((ν : ℝ) + 1) / 2)) * |x| ^ (-(((ν : ℝ) + 1)))) =
+              (studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^
+                  (-(((ν : ℝ) + 1) / 2))) *
+                (|x| ^ (r : ℝ) * |x| ^ (-(((ν : ℝ) + 1)))) by ring]
+          rw [← Real.rpow_add hxpos]
+          ring_nf
+    _ ≤ |x| ^ (r : ℝ) * studentTPDFReal ν x := by
+          gcongr
+
 private lemma image_Ioo_zero_one_div_one_sub :
     (fun u : ℝ => u / (1 - u)) '' Set.Ioo (0 : ℝ) 1 = Set.Ioi (0 : ℝ) := by
   ext z
@@ -1639,6 +1799,250 @@ theorem studentT_eq_classicalStudentT {ν : ℕ} (hν : 0 < ν) :
     studentT ν = classicalStudentT ν := by
   rw [studentT_eq_map_ratio_prod hν, ratio_prod_map_eq_classicalStudentT hν]
 
+/-- The real-density moment integrand for the central Student-`t` law. -/
+noncomputable def studentTMomentIntegrand (ν : ℕ) (r : ℝ≥0) (x : ℝ) : ℝ :=
+  |x| ^ (r : ℝ) * studentTPDFReal ν x
+
+lemma studentTMomentIntegrand_nonneg (ν : ℕ) (r : ℝ≥0) (x : ℝ) :
+    0 ≤ studentTMomentIntegrand ν r x := by
+  exact mul_nonneg (Real.rpow_nonneg (abs_nonneg x) _) (studentTPDFReal_nonneg ν x)
+
+private lemma studentTMomentIntegrand_neg (ν : ℕ) (r : ℝ≥0) (x : ℝ) :
+    studentTMomentIntegrand ν r (-x) = studentTMomentIntegrand ν r x := by
+  have hpdf_abs_x : studentTPDFReal ν |x| = studentTPDFReal ν x :=
+    studentTPDFReal_abs ν x
+  have hpdf_abs_neg : studentTPDFReal ν |-x| = studentTPDFReal ν (-x) :=
+    studentTPDFReal_abs ν (-x)
+  have hpdf_neg : studentTPDFReal ν (-x) = studentTPDFReal ν x := by
+    rw [← hpdf_abs_neg, abs_neg, hpdf_abs_x]
+  simp [studentTMomentIntegrand, hpdf_neg]
+
+private lemma aestronglyMeasurable_studentTMomentIntegrand
+    (ν : ℕ) (r : ℝ≥0) {μ : Measure ℝ} :
+    AEStronglyMeasurable (studentTMomentIntegrand ν r) μ := by
+  unfold studentTMomentIntegrand
+  fun_prop
+
+private lemma integrableOn_Icc_studentTMomentIntegrand
+    {ν : ℕ} (hν : 0 < ν) (r : ℝ≥0) :
+    IntegrableOn (studentTMomentIntegrand ν r) (Set.Icc (-1 : ℝ) 1) := by
+  have hdom : Integrable (studentTPDFReal ν) (volume.restrict (Set.Icc (-1 : ℝ) 1)) :=
+    (integrable_studentTPDFReal hν).integrableOn
+  refine Integrable.mono' hdom
+    (aestronglyMeasurable_studentTMomentIntegrand ν r) ?_
+  refine (ae_restrict_iff' measurableSet_Icc).2 (ae_of_all _ ?_)
+  intro x hx
+  have hx_abs_le : |x| ≤ 1 := abs_le.2 hx
+  have hr_nonneg : 0 ≤ (r : ℝ) := by exact_mod_cast r.2
+  have hpow_le : |x| ^ (r : ℝ) ≤ 1 :=
+    Real.rpow_le_one (abs_nonneg x) hx_abs_le hr_nonneg
+  have hpdf_nonneg : 0 ≤ studentTPDFReal ν x := studentTPDFReal_nonneg ν x
+  calc
+    ‖studentTMomentIntegrand ν r x‖
+        = studentTMomentIntegrand ν r x := by
+            rw [Real.norm_eq_abs, abs_of_nonneg (studentTMomentIntegrand_nonneg ν r x)]
+    _ ≤ studentTPDFReal ν x := by
+          dsimp [studentTMomentIntegrand]
+          calc
+            |x| ^ (r : ℝ) * studentTPDFReal ν x
+                ≤ 1 * studentTPDFReal ν x :=
+                  mul_le_mul_of_nonneg_right hpow_le hpdf_nonneg
+            _ = studentTPDFReal ν x := by ring
+
+private lemma integrableOn_Ioi_studentTMomentIntegrand_of_lt
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (r : ℝ) < (ν : ℝ)) :
+    IntegrableOn (studentTMomentIntegrand ν r) (Set.Ioi (1 : ℝ)) := by
+  let a : ℝ := (r : ℝ) - (ν : ℝ) - 1
+  let C : ℝ := studentTDensityConstant ν * ((ν : ℝ) ^ (((ν : ℝ) + 1) / 2))
+  have ha : a < -1 := by
+    dsimp [a]
+    linarith
+  have hbase : IntegrableOn (fun x : ℝ => C * x ^ a) (Set.Ioi (1 : ℝ)) :=
+    (integrableOn_Ioi_rpow_of_lt ha zero_lt_one).const_mul C
+  refine Integrable.mono' hbase
+    (aestronglyMeasurable_studentTMomentIntegrand ν r) ?_
+  refine (ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ ?_)
+  intro x hx
+  have hx_nonneg : 0 ≤ x := le_of_lt (zero_lt_one.trans hx)
+  have hx_abs : |x| = x := abs_of_nonneg hx_nonneg
+  have hx_abs_tail : 1 ≤ |x| := by
+    rw [hx_abs]
+    exact hx.le
+  have hupper :=
+    studentTMomentIntegrand_tail_upper_le (ν := ν) hν (r := r) (x := x) hx_abs_tail
+  calc
+    ‖studentTMomentIntegrand ν r x‖
+        = studentTMomentIntegrand ν r x := by
+            rw [Real.norm_eq_abs, abs_of_nonneg (studentTMomentIntegrand_nonneg ν r x)]
+    _ ≤ C * |x| ^ a := by
+          simpa [studentTMomentIntegrand, C, a] using hupper
+    _ = C * x ^ a := by rw [hx_abs]
+
+private lemma integrableOn_Iio_studentTMomentIntegrand_of_lt
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (r : ℝ) < (ν : ℝ)) :
+    IntegrableOn (studentTMomentIntegrand ν r) (Set.Iio (-1 : ℝ)) := by
+  have hright : IntegrableOn (studentTMomentIntegrand ν r) (Set.Ioi (1 : ℝ)) :=
+    integrableOn_Ioi_studentTMomentIntegrand_of_lt hν hr
+  have hright' :
+      IntegrableOn (studentTMomentIntegrand ν r) (Set.Ioi (-(-1 : ℝ))) := by
+    simpa using hright
+  have hcomp :
+      IntegrableOn (fun x : ℝ => studentTMomentIntegrand ν r (-x))
+        (Set.Iio (-1 : ℝ)) :=
+    MeasureTheory.IntegrableOn.comp_neg_Iio
+      (μ := volume) (c := (-1 : ℝ)) hright'
+  refine hcomp.congr_fun ?_ measurableSet_Iio
+  intro x _hx
+  exact studentTMomentIntegrand_neg ν r x
+
+/-- If `r < ν`, the Student-`t` density has finite `r`-moment.
+
+This is the finite side of the analytic tail theorem used by Hansen Theorem 12.7:
+the proof reuses the polynomial upper tail envelope and Mathlib's
+`integrableOn_Ioi_rpow_of_lt` criterion. -/
+theorem integrable_studentTMomentIntegrand_of_lt
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (r : ℝ) < (ν : ℝ)) :
+    Integrable (studentTMomentIntegrand ν r) := by
+  have hleft_open : IntegrableOn (studentTMomentIntegrand ν r) (Set.Iio (-1 : ℝ)) :=
+    integrableOn_Iio_studentTMomentIntegrand_of_lt hν hr
+  have hleft : IntegrableOn (studentTMomentIntegrand ν r) (Set.Iic (-1 : ℝ)) :=
+    (integrableOn_Iic_iff_integrableOn_Iio
+      (f := studentTMomentIntegrand ν r) (b := (-1 : ℝ))).2 hleft_open
+  have hmiddle : IntegrableOn (studentTMomentIntegrand ν r) (Set.Icc (-1 : ℝ) 1) :=
+    integrableOn_Icc_studentTMomentIntegrand hν r
+  have hright_open : IntegrableOn (studentTMomentIntegrand ν r) (Set.Ioi (1 : ℝ)) :=
+    integrableOn_Ioi_studentTMomentIntegrand_of_lt hν hr
+  have hright : IntegrableOn (studentTMomentIntegrand ν r) (Set.Ici (1 : ℝ)) :=
+    (integrableOn_Ici_iff_integrableOn_Ioi
+      (f := studentTMomentIntegrand ν r) (b := (1 : ℝ))).2 hright_open
+  have hleft_middle : IntegrableOn (studentTMomentIntegrand ν r) (Set.Iic (1 : ℝ)) := by
+    simpa [Set.Iic_union_Icc_eq_Iic (show (-1 : ℝ) ≤ 1 by norm_num)] using
+      hleft.union hmiddle
+  have hall : IntegrableOn (studentTMomentIntegrand ν r) Set.univ := by
+    simpa [Set.Iic_union_Ici] using hleft_middle.union hright
+  exact integrableOn_univ.mp hall
+
+/-- Finite side of the central Student-`t` moment threshold:
+the identity under `studentT ν` belongs to `L^r` for every `r < ν`. -/
+theorem studentT_memLp_id_of_lt
+    {ν : ℕ} (hν : 0 < ν) (r : ℝ≥0) (hr : (r : ℝ) < (ν : ℝ)) :
+    MemLp (fun x : ℝ => x) (r : ℝ≥0∞) (studentT ν) := by
+  by_cases hr_zero : r = 0
+  · rw [hr_zero]
+    simpa using
+      (memLp_zero_iff_aestronglyMeasurable
+        (μ := studentT ν) (f := fun x : ℝ => x)).2 aestronglyMeasurable_id
+  have hp_ne_zero : (r : ℝ≥0∞) ≠ 0 := by
+    simp [hr_zero]
+  have hp_ne_top : (r : ℝ≥0∞) ≠ ∞ := by
+    simp
+  rw [studentT_eq_classicalStudentT hν, classicalStudentT]
+  refine
+    (MeasureTheory.integrable_norm_rpow_iff
+      (μ := volume.withDensity (studentTPDF ν))
+      (f := fun x : ℝ => x)
+      aestronglyMeasurable_id hp_ne_zero hp_ne_top).mp ?_
+  rw [MeasureTheory.integrable_withDensity_iff_integrable_smul'
+    (f := studentTPDF ν)
+    (g := fun x : ℝ => ‖x‖ ^ (r : ℝ≥0∞).toReal)
+    (measurable_studentTPDF ν)
+    (ae_of_all _ fun x => by simp [studentTPDF])]
+  have hmoment := integrable_studentTMomentIntegrand_of_lt hν hr
+  convert hmoment using 1
+  ext x
+  simp [studentTMomentIntegrand, studentTPDF, Real.norm_eq_abs,
+    ENNReal.toReal_ofReal (studentTPDFReal_nonneg ν x), mul_comm]
+
+private lemma integrable_studentTMomentIntegrand_of_studentT_memLp
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr_pos : 0 < (r : ℝ))
+    (hLp : MemLp (fun x : ℝ => x) (r : ℝ≥0∞) (studentT ν)) :
+    Integrable (studentTMomentIntegrand ν r) := by
+  have hr_ne_zero : r ≠ 0 := by
+    exact_mod_cast (ne_of_gt hr_pos)
+  have hp_ne_zero : (r : ℝ≥0∞) ≠ 0 := by
+    simp [hr_ne_zero]
+  have hp_ne_top : (r : ℝ≥0∞) ≠ ∞ := by
+    simp
+  rw [studentT_eq_classicalStudentT hν, classicalStudentT] at hLp
+  have hnorm :
+      Integrable (fun x : ℝ => ‖x‖ ^ (r : ℝ≥0∞).toReal)
+        (volume.withDensity (studentTPDF ν)) :=
+    (MeasureTheory.integrable_norm_rpow_iff
+      (μ := volume.withDensity (studentTPDF ν))
+      (f := fun x : ℝ => x)
+      aestronglyMeasurable_id hp_ne_zero hp_ne_top).mpr hLp
+  rw [MeasureTheory.integrable_withDensity_iff_integrable_smul'
+    (f := studentTPDF ν)
+    (g := fun x : ℝ => ‖x‖ ^ (r : ℝ≥0∞).toReal)
+    (measurable_studentTPDF ν)
+    (ae_of_all _ fun x => by simp [studentTPDF])] at hnorm
+  convert hnorm using 1
+  ext x
+  simp [studentTMomentIntegrand, studentTPDF, Real.norm_eq_abs,
+    ENNReal.toReal_ofReal (studentTPDFReal_nonneg ν x), mul_comm]
+
+private lemma not_integrableOn_Ioi_studentTMomentIntegrand_of_ge
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (ν : ℝ) ≤ (r : ℝ)) :
+    ¬ IntegrableOn (studentTMomentIntegrand ν r) (Set.Ioi (1 : ℝ)) := by
+  intro hInt
+  let a : ℝ := (r : ℝ) - (ν : ℝ) - 1
+  let C : ℝ :=
+    studentTDensityConstant ν * (1 + (ν : ℝ)⁻¹) ^ (-(((ν : ℝ) + 1) / 2))
+  have hCpos : 0 < C := by
+    dsimp [C]
+    exact mul_pos (studentTDensityConstant_pos hν)
+      (Real.rpow_pos_of_pos (by positivity) _)
+  have hCne : C ≠ 0 := ne_of_gt hCpos
+  have hscaled :
+      IntegrableOn (fun x : ℝ => C * x ^ a) (Set.Ioi (1 : ℝ)) := by
+    refine Integrable.mono' hInt (by fun_prop) ?_
+    refine (ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ ?_)
+    intro x hx
+    have hx_nonneg : 0 ≤ x := le_of_lt (zero_lt_one.trans hx)
+    have hx_abs : |x| = x := abs_of_nonneg hx_nonneg
+    have hx_abs_tail : 1 ≤ |x| := by
+      rw [hx_abs]
+      exact hx.le
+    have hlower :=
+      studentTMomentIntegrand_tail_lower_le (ν := ν) hν (r := r) (x := x) hx_abs_tail
+    have hleft_nonneg : 0 ≤ C * x ^ a := by
+      exact mul_nonneg hCpos.le (Real.rpow_nonneg hx_nonneg _)
+    calc
+      ‖C * x ^ a‖ = C * x ^ a := by
+        rw [Real.norm_eq_abs, abs_of_nonneg hleft_nonneg]
+      _ = C * |x| ^ a := by rw [hx_abs]
+      _ ≤ studentTMomentIntegrand ν r x := by
+        simpa [studentTMomentIntegrand, C, a] using hlower
+  have hrpow : IntegrableOn (fun x : ℝ => x ^ a) (Set.Ioi (1 : ℝ)) := by
+    have hdiv : IntegrableOn (fun x : ℝ => C⁻¹ * (C * x ^ a)) (Set.Ioi (1 : ℝ)) :=
+      hscaled.const_mul C⁻¹
+    refine hdiv.congr_fun ?_ measurableSet_Ioi
+    intro x _hx
+    simp [hCne]
+  have ha_lt : a < -1 :=
+    (integrableOn_Ioi_rpow_iff (s := a) (t := (1 : ℝ)) zero_lt_one).mp hrpow
+  have ha_ge : -1 ≤ a := by
+    dsimp [a]
+    linarith
+  linarith
+
+private lemma not_integrable_studentTMomentIntegrand_of_ge
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (ν : ℝ) ≤ (r : ℝ)) :
+    ¬ Integrable (studentTMomentIntegrand ν r) := by
+  intro hInt
+  exact not_integrableOn_Ioi_studentTMomentIntegrand_of_ge hν hr hInt.integrableOn
+
+/-- Reverse side of the central Student-`t` moment threshold:
+the identity under `studentT ν` is not in `L^r` when `r ≥ ν`. -/
+theorem studentT_not_memLp_id_of_ge
+    {ν : ℕ} (hν : 0 < ν) {r : ℝ≥0} (hr : (ν : ℝ) ≤ (r : ℝ)) :
+    ¬ MemLp (fun x : ℝ => x) (r : ℝ≥0∞) (studentT ν) := by
+  intro hLp
+  have hνr_pos : 0 < (ν : ℝ) := by exact_mod_cast hν
+  have hr_pos : 0 < (r : ℝ) := lt_of_lt_of_le hνr_pos hr
+  exact not_integrable_studentTMomentIntegrand_of_ge hν hr
+    (integrable_studentTMomentIntegrand_of_studentT_memLp hν hr_pos hLp)
+
 /-- The classical ratio `Z / √(Q/ν)` has the standalone `studentT ν` law whenever
 `Z ∼ N(0,1)`, `Q ∼ χ²(ν)`, and `Z` is independent of `Q`. -/
 theorem hasLaw_ratio_standardNormal_chiSquared_studentT
@@ -1665,5 +2069,163 @@ theorem hasLaw_ratio_standardNormal_chiSquared_studentT
     · exact Filter.Eventually.of_forall fun _ => rfl
     · exact Filter.Eventually.of_forall fun _ => rfl
   simpa [studentT] using IndepFun.hasLaw_fun_mul hZ hFac hIndFac
+
+/-- Reusable Student-`t` moment-threshold statement: the identity under
+`studentT ν` has finite `r`-moment exactly for `r < ν`.
+
+This is intentionally a standalone Student-`t` analytic primitive.  Kinal's
+Theorem 12.7 uses this predicate only after the ratio-law bridge has already
+identified the Gaussian-over-square-root-chi-square law as `studentT ν`. -/
+def StudentTMomentThresholdIff (ν : ℕ) : Prop :=
+  ∀ r : ℝ≥0,
+    MemLp (fun x : ℝ => x) (r : ℝ≥0∞) (studentT ν) ↔
+      (r : ℝ) < (ν : ℝ)
+
+/-- The central Student-`t` moment threshold for positive degrees of freedom:
+`X ∼ t_ν` has finite `r`-moment exactly for `r < ν`. -/
+theorem studentTMomentThresholdIff_of_pos {ν : ℕ} (hν : 0 < ν) :
+    StudentTMomentThresholdIff ν := by
+  intro r
+  constructor
+  · intro hLp
+    by_contra hlt
+    exact studentT_not_memLp_id_of_ge hν (le_of_not_gt hlt) hLp
+  · exact studentT_memLp_id_of_lt hν r
+
+/-- Scalar Gaussian/inverse-chi-square moment-threshold statement.
+
+For `X ∼ N(m,v)` and `Q ∼ χ²(ν)` independent, this says the concrete Kinal
+ratio map `(x, q) ↦ x / sqrt q` has finite `r`-moment exactly for `r < ν`.
+The standard case is equivalent to `StudentTMomentThresholdIff`; noncentral or
+shifted Gaussian numerators require separate analytic work because degenerate
+zero-variance cases can change the tail behavior. -/
+def GaussianInverseChiSqMomentThresholdIff (ν : ℕ) (m : ℝ) (v : ℝ≥0) : Prop :=
+  ∀ r : ℝ≥0,
+    MemLp (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) (r : ℝ≥0∞)
+        ((gaussianReal m v).prod (chiSquared ν)) ↔
+      (r : ℝ) < (ν : ℝ)
+
+private theorem real_memLp_const_mul_iff
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {p : ℝ≥0∞} {c : ℝ} (hc : c ≠ 0) (f : Ω → ℝ) :
+    MemLp (fun ω => c * f ω) p μ ↔ MemLp f p μ := by
+  constructor
+  · intro h
+    have h' := h.const_mul c⁻¹
+    simpa [hc, mul_assoc] using h'
+  · intro h
+    simpa using h.const_mul c
+
+private theorem real_memLp_iff_memLp_id_of_hasLaw
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} {ν : Measure ℝ}
+    {X : Ω → ℝ} {p : ℝ≥0∞} (hX : HasLaw X ν μ) :
+    MemLp X p μ ↔ MemLp (fun x : ℝ => x) p ν := by
+  rw [← hX.map_eq]
+  simpa [Function.comp_def] using
+    (memLp_map_measure_iff
+      (g := fun x : ℝ => x) (f := X)
+      aestronglyMeasurable_id hX.aemeasurable).symm
+
+/-- The Kinal scalar map `(z, q) ↦ z / sqrt q` under
+`N(0,1) × χ²(ν)` has the same `MemLp` behavior as the identity under
+`studentT ν`.
+
+The extra factor `sqrt ν` in the canonical Student-`t` ratio law is removed by
+nonzero constant scaling. -/
+theorem memLp_standardNormal_div_sqrt_chiSquared_iff_studentT
+    {ν : ℕ} (hν : 0 < ν) {p : ℝ≥0∞} :
+    MemLp (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) p
+        ((gaussianReal 0 1).prod (chiSquared ν)) ↔
+      MemLp (fun x : ℝ => x) p (studentT ν) := by
+  let ratio : ℝ × ℝ → ℝ :=
+    fun z => z.1 * (Real.sqrt (ν : ℝ) / Real.sqrt z.2)
+  have hνr_pos : 0 < (ν : ℝ) := by exact_mod_cast hν
+  have hsqrt_ne : Real.sqrt (ν : ℝ) ≠ 0 :=
+    (Real.sqrt_pos.2 hνr_pos).ne'
+  have hratio_law :
+      HasLaw ratio (studentT ν)
+        ((gaussianReal 0 1).prod (chiSquared ν)) :=
+    ⟨by
+      dsimp [ratio]
+      fun_prop,
+      (studentT_eq_map_ratio_prod hν).symm⟩
+  have hratio_mem :
+      MemLp ratio p ((gaussianReal 0 1).prod (chiSquared ν)) ↔
+        MemLp (fun x : ℝ => x) p (studentT ν) :=
+    real_memLp_iff_memLp_id_of_hasLaw hratio_law
+  have hmap :
+      (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) =
+        fun z : ℝ × ℝ => (Real.sqrt (ν : ℝ))⁻¹ * ratio z := by
+    funext z
+    calc
+      z.1 / Real.sqrt z.2 =
+          ((Real.sqrt (ν : ℝ))⁻¹ * Real.sqrt (ν : ℝ)) *
+            (z.1 / Real.sqrt z.2) := by rw [inv_mul_cancel₀ hsqrt_ne, one_mul]
+      _ = (Real.sqrt (ν : ℝ))⁻¹ *
+            (z.1 * (Real.sqrt (ν : ℝ) / Real.sqrt z.2)) := by
+          ring
+      _ = (Real.sqrt (ν : ℝ))⁻¹ * ratio z := rfl
+  rw [hmap, real_memLp_const_mul_iff (inv_ne_zero hsqrt_ne)]
+  exact hratio_mem
+
+/-- Finite side of the standard Gaussian/inverse-chi-square product tail:
+`Z / sqrt Q` has finite `r`-moment whenever `r < ν`.
+
+This is the Kinal-facing one-sided consequence of `studentT_memLp_id_of_lt`. -/
+theorem memLp_standardNormal_div_sqrt_chiSquared_of_lt
+    {ν : ℕ} (hν : 0 < ν) (r : ℝ≥0) (hr : (r : ℝ) < (ν : ℝ)) :
+    MemLp (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) (r : ℝ≥0∞)
+        ((gaussianReal 0 1).prod (chiSquared ν)) :=
+  (memLp_standardNormal_div_sqrt_chiSquared_iff_studentT hν).2
+    (studentT_memLp_id_of_lt hν r hr)
+
+/-- Product-law version of `StudentTMomentThresholdIff` for the standard
+Gaussian numerator and independent chi-square denominator. -/
+theorem memLp_standardNormal_div_sqrt_chiSquared_iff_lt_of_studentT_momentThreshold
+    {ν : ℕ} (hν : 0 < ν) (hTail : StudentTMomentThresholdIff ν) (r : ℝ≥0) :
+    MemLp (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) (r : ℝ≥0∞)
+        ((gaussianReal 0 1).prod (chiSquared ν)) ↔
+      (r : ℝ) < (ν : ℝ) :=
+  (memLp_standardNormal_div_sqrt_chiSquared_iff_studentT hν).trans (hTail r)
+
+/-- Product-law Student-`t` moment threshold for the standard
+Gaussian-over-square-root-chi-square ratio. -/
+theorem memLp_standardNormal_div_sqrt_chiSquared_iff_lt
+    {ν : ℕ} (hν : 0 < ν) (r : ℝ≥0) :
+    MemLp (fun z : ℝ × ℝ => z.1 / Real.sqrt z.2) (r : ℝ≥0∞)
+        ((gaussianReal 0 1).prod (chiSquared ν)) ↔
+      (r : ℝ) < (ν : ℝ) :=
+  memLp_standardNormal_div_sqrt_chiSquared_iff_lt_of_studentT_momentThreshold
+    hν (studentTMomentThresholdIff_of_pos hν) r
+
+/-- Standard Gaussian/inverse-chi-square product tails are exactly the
+Student-`t` moment-threshold theorem. -/
+theorem gaussianInverseChiSqMomentThresholdIff_standard_iff_studentTMomentThresholdIff
+    {ν : ℕ} (hν : 0 < ν) :
+    GaussianInverseChiSqMomentThresholdIff ν 0 1 ↔
+      StudentTMomentThresholdIff ν := by
+  constructor
+  · intro hTail r
+    exact
+      (memLp_standardNormal_div_sqrt_chiSquared_iff_studentT
+        (ν := ν) (p := (r : ℝ≥0∞)) hν).symm.trans (hTail r)
+  · intro hTail r
+    exact
+      memLp_standardNormal_div_sqrt_chiSquared_iff_lt_of_studentT_momentThreshold
+        hν hTail r
+
+/-- Forward constructor from the reusable Student-`t` threshold primitive to
+the standard Gaussian/inverse-chi-square ratio statement. -/
+theorem gaussianInverseChiSqMomentThresholdIff_standard_of_studentTMomentThresholdIff
+    {ν : ℕ} (hν : 0 < ν) (hTail : StudentTMomentThresholdIff ν) :
+    GaussianInverseChiSqMomentThresholdIff ν 0 1 :=
+  (gaussianInverseChiSqMomentThresholdIff_standard_iff_studentTMomentThresholdIff hν).2 hTail
+
+/-- Standard Gaussian/inverse-chi-square product tails with no remaining
+Student-`t` analytic premise. -/
+theorem gaussianInverseChiSqMomentThresholdIff_standard {ν : ℕ} (hν : 0 < ν) :
+    GaussianInverseChiSqMomentThresholdIff ν 0 1 :=
+  gaussianInverseChiSqMomentThresholdIff_standard_of_studentTMomentThresholdIff
+    hν (studentTMomentThresholdIff_of_pos hν)
 
 end HansenEconometrics

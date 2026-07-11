@@ -1,130 +1,20980 @@
-import HansenEconometrics.Chapter8Asymptotics
+import HansenEconometrics.ChiSquared
+import HansenEconometrics.Chapter5LikelihoodRatioTest
+import HansenEconometrics.Chapter5NormalRegression
+import HansenEconometrics.Chapter7Asymptotics.SandwichAssembly
+import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
+import HansenEconometrics.Chapter12InstrumentalVariables.Basic
+import HansenEconometrics.Chapter9HypothesisTesting
+import Mathlib.Probability.Kernel.CondDistrib
 
 /-!
-# Chapter 12 - generated regressors and expectation errors
+# Chapter 12 — generated regressors
 
-This module records support interfaces for Hansen's generated-regressor,
-expectation-error, and two-step IV routes. The projection lemmas do not yet
-derive Theorems 12.9--12.12 from the displayed model assumptions.
+This file contains the generated-regressor and expectation-error surface for
+Hansen Theorems 12.9--12.15.  The asymptotic results keep the null block
+`β₂ = 0`, least-squares first-stage structure, and expectation-error covariance
+blocks explicit, while the finite-sample conditional-normal claims reuse the
+exact fixed-design Chapter 5 OLS distribution theorems.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
-open scoped Matrix Topology MeasureTheory ProbabilityTheory
+open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
+open scoped Matrix.Norms.Elementwise Function
 
 namespace HansenEconometrics
 
-variable {Omega k q : Type*}
-variable [MeasurableSpace Omega] {mu : Measure Omega} [IsProbabilityMeasure mu]
-variable [Fintype k] [Fintype q] [DecidableEq k] [DecidableEq q]
+open Matrix
 
-/-- High-level Gaussian-limit interface for a generated-regressor 2SLS estimator. -/
-structure GeneratedRegressorGaussianLimitInterface
-    (T : ℕ → Omega → k → ℝ) (V : Matrix k k ℝ) : Prop where
-  gaussian_limit : GaussianLimit mu T V
+variable {n k l k₁ k₂ : Type*}
+variable [Fintype n] [Fintype k] [Fintype l] [Fintype k₁] [Fintype k₂]
+variable [DecidableEq n] [DecidableEq k] [DecidableEq l]
+variable [DecidableEq k₁] [DecidableEq k₂]
 
-/-- Extra normal-regression finite-sample law interface for generated regressors. -/
-structure GeneratedRegressorNormalLawInterface
-    (stat : Omega → ℝ) (law : Measure ℝ) : Prop where
-  statistic_law : HasLaw stat law mu
+section Basic
 
-/-- Interface for generated-regressor plug-in consistency. -/
-structure GeneratedRegressorConsistencyInterface
-    (betahat : ℕ → Omega → k → ℝ) (beta : k → ℝ) : Prop where
-  consistent : TendstoInMeasure mu betahat atTop (fun _ => beta)
+/-- Generated-regressor design `What = Z Ahat`. -/
+noncomputable def generatedRegressors
+    (Z : Matrix n l ℝ) (Ahat : Matrix l k ℝ) : Matrix n k ℝ :=
+  Z * Ahat
 
-/-- Gaussian-limit interface for regression with expectation errors. -/
-structure ExpectationErrorGaussianLimitInterface
-    (T : ℕ → Omega → q → ℝ) (V : Matrix q q ℝ) : Prop where
-  gaussian_limit : GaussianLimit mu T V
+/-- Totalized OLS coefficient computed from generated regressors. -/
+noncomputable def generatedRegressorBetaStar
+    (Z : Matrix n l ℝ) (Ahat : Matrix l k ℝ) (Y : n → ℝ) : k → ℝ :=
+  olsBetaStar (generatedRegressors Z Ahat) Y
 
-/-- Reusable Gaussian-limit linear-map bridge for Chapter 12 generated-regressor
-and expectation-error arguments.
+/-- Feasible HC0 covariance estimator computed from generated regressors. -/
+noncomputable def generatedRegressorVHatStar
+    (Z : Matrix n l ℝ) (Ahat : Matrix l k ℝ) (Y : n → ℝ) : Matrix k k ℝ :=
+  olsHetCovStar (generatedRegressors Z Ahat) Y
 
-This is the step used to pass from a joint Gaussian limit to the Gaussian limit
-of a selected block or linear combination. -/
-theorem gaussianLimit_linearMap
-    (T : ℕ → Omega → k → ℝ) (V : Matrix k k ℝ) (R : Matrix q k ℝ)
-    (h : GaussianLimit mu T V) :
-    GaussianLimit mu (fun n ω => R *ᵥ T n ω) (R * V * Rᵀ) := by
+/-- Hansen Theorem 12.9 asymptotic covariance
+`(A' E[ZZ'] A)^{-1} A' E[ZZ'v²] A (A' E[ZZ'] A)^{-1}`. -/
+noncomputable def generatedRegressorAsymptoticVariance
+    (A : Matrix l k ℝ) (QZZ OmegaZV : Matrix l l ℝ) : Matrix k k ℝ :=
+  let QWW := Aᵀ * QZZ * A
+  QWW⁻¹ * (Aᵀ * OmegaZV * A) * QWW⁻¹
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 covariance formula is positive semidefinite when the
+generated-regressor Gram limit is positive definite and the score middle
+matrix is positive semidefinite. -/
+theorem generatedRegressorAsymptoticVariance_posSemidef
+    (A : Matrix l k ℝ) (QZZ OmegaZV : Matrix l l ℝ)
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosSemidef) :
+    (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef := by
+  let QWW : Matrix k k ℝ := Aᵀ * QZZ * A
+  have hmiddle : (Aᵀ * OmegaZV * A).PosSemidef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      Matrix.PosSemidef.conjTranspose_mul_mul_same hOmega A
+  have hQWW_symm : QWWᵀ = QWW := by
+    simpa [QWW, Matrix.conjTranspose_eq_transpose_of_trivial] using hQWW.1.eq
+  have hQWW_inv_symm : (QWW⁻¹)ᵀ = QWW⁻¹ := by
+    rw [Matrix.transpose_nonsing_inv, hQWW_symm]
+  have hpsd :=
+    Matrix.PosSemidef.mul_mul_conjTranspose_same hmiddle (QWW⁻¹)
+  simpa [generatedRegressorAsymptoticVariance, QWW,
+    Matrix.conjTranspose_eq_transpose_of_trivial, hQWW_inv_symm] using hpsd
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 covariance formula is positive definite when the
+generated-regressor Gram limit and the score middle matrix are positive
+definite. -/
+theorem generatedRegressorAsymptoticVariance_posDef_of_middle
+    (A : Matrix l k ℝ) (QZZ OmegaZV : Matrix l l ℝ)
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hmiddle : (Aᵀ * OmegaZV * A).PosDef) :
+    (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosDef := by
+  let QWW : Matrix k k ℝ := Aᵀ * QZZ * A
+  have hQWW_symm : QWWᵀ = QWW := by
+    simpa [QWW, Matrix.conjTranspose_eq_transpose_of_trivial] using hQWW.1.eq
+  have hQWW_inv_symm : (QWW⁻¹)ᵀ = QWW⁻¹ := by
+    rw [Matrix.transpose_nonsing_inv, hQWW_symm]
+  have hQWW_inv_inj : Function.Injective (QWW⁻¹).vecMul :=
+    Matrix.vecMul_injective_iff_isUnit.2 hQWW.inv.isUnit
+  have hpd :=
+    Matrix.PosDef.mul_mul_conjTranspose_same hmiddle hQWW_inv_inj
+  simpa [generatedRegressorAsymptoticVariance, QWW,
+    Matrix.conjTranspose_eq_transpose_of_trivial, hQWW_inv_symm] using hpd
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 covariance formula is positive definite when the
+score covariance is positive definite after applying the generated-regressor
+loading matrix. -/
+theorem generatedRegressorAsymptoticVariance_posDef
+    (A : Matrix l k ℝ) (QZZ OmegaZV : Matrix l l ℝ)
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosDef)
+    (hA : Function.Injective A.mulVec) :
+    (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosDef := by
+  have hmiddle : (Aᵀ * OmegaZV * A).PosDef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      hOmega.conjTranspose_mul_mul_same (B := A) hA
+  exact
+    generatedRegressorAsymptoticVariance_posDef_of_middle
+      A QZZ OmegaZV hQWW hmiddle
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Right coefficient block in Hansen Theorem 12.9, used for `H₀ : β₂ = 0`. -/
+def generatedRegressorRightBlock (β : Sum k₁ k₂ → ℝ) : k₂ → ℝ :=
+  fun j => β (Sum.inr j)
+
+omit [Fintype k₁] [Fintype k₂] in
+/-- Matrix representation of `generatedRegressorRightBlock`. -/
+def generatedRegressorRightBlockMatrix : Matrix k₂ (Sum k₁ k₂) ℝ :=
+  fun i j =>
+    match j with
+    | Sum.inl _ => 0
+    | Sum.inr j' => if i = j' then 1 else 0
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem generatedRegressorRightBlock_smul
+    (c : ℝ) (β : Sum k₁ k₂ → ℝ) :
+    generatedRegressorRightBlock (c • β) =
+      c • generatedRegressorRightBlock β := by
+  rfl
+
+omit [DecidableEq k₁] in
+@[simp]
+theorem generatedRegressorRightBlockMatrix_mulVec
+    (β : Sum k₁ k₂ → ℝ) :
+    generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂) *ᵥ β =
+      generatedRegressorRightBlock β := by
+  classical
+  ext j
+  simp [generatedRegressorRightBlockMatrix, generatedRegressorRightBlock,
+    Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
+
+omit [DecidableEq k₁] [DecidableEq k₂] in
+/-- Right-bottom block of a full coefficient covariance matrix. -/
+def generatedRegressorRightBlockCovariance
+    (V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ) : Matrix k₂ k₂ ℝ :=
+  fun a b => V (Sum.inr a) (Sum.inr b)
+
+omit [DecidableEq k₁] in
+theorem generatedRegressorRightBlockCovariance_eq_linMap
+    (V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ) :
+    generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂) *
+        V * (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂))ᵀ =
+      generatedRegressorRightBlockCovariance V := by
+  classical
+  ext i j
+  simp [generatedRegressorRightBlockMatrix, generatedRegressorRightBlockCovariance,
+    Matrix.mul_apply, Fintype.sum_sum_type]
+
+omit [Fintype n] [Fintype k] [Fintype l] [Fintype k₁] [DecidableEq n] [DecidableEq k]
+    [DecidableEq l] [DecidableEq k₁] in
+/-- The right-block selector has full row rank. -/
+theorem generatedRegressorRightBlockMatrix_vecMul_injective :
+    Function.Injective
+      (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂)).vecMul := by
+  classical
+  intro x y hxy
+  funext j
+  have hcoord := congrFun hxy (Sum.inr j)
+  simpa [Matrix.vecMul, dotProduct, generatedRegressorRightBlockMatrix,
+    Fintype.sum_sum_type] using hcoord
+
+omit [Fintype n] [Fintype k] [Fintype l]
+    [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq k₁] in
+/-- The right-bottom covariance block of a positive-semidefinite covariance
+matrix is positive semidefinite. -/
+theorem generatedRegressorRightBlockCovariance_posSemidef
+    {V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    (hV : V.PosSemidef) :
+    (generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂) V).PosSemidef := by
+  rw [← generatedRegressorRightBlockCovariance_eq_linMap V]
+  simpa [Matrix.conjTranspose] using
+    Matrix.PosSemidef.mul_mul_conjTranspose_same hV
+      (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂))
+
+omit [Fintype n] [Fintype k] [Fintype l]
+    [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq k₁] in
+/-- The right-bottom covariance block of a positive-definite covariance matrix
+is positive definite. -/
+theorem generatedRegressorRightBlockCovariance_posDef
+    {V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    (hV : V.PosDef) :
+    (generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂) V).PosDef := by
+  rw [← generatedRegressorRightBlockCovariance_eq_linMap V]
+  simpa [Matrix.conjTranspose] using
+    Matrix.PosDef.mul_mul_conjTranspose_same hV
+      (generatedRegressorRightBlockMatrix_vecMul_injective
+        (k₁ := k₁) (k₂ := k₂))
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+theorem continuous_generatedRegressorRightBlock :
+    Continuous
+      (fun β : Sum k₁ k₂ → ℝ =>
+        generatedRegressorRightBlock (k₁ := k₁) (k₂ := k₂) β) := by
+  classical
+  refine continuous_pi (fun j => ?_)
+  simpa [generatedRegressorRightBlock] using
+    (continuous_apply (Sum.inr j) : Continuous fun β : Sum k₁ k₂ → ℝ =>
+      β (Sum.inr j))
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+theorem continuous_generatedRegressorRightBlockCovariance :
+    Continuous
+      (fun V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ =>
+        generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂) V) := by
+  classical
+  refine continuous_pi (fun i => ?_)
+  refine continuous_pi (fun j => ?_)
+  simpa [generatedRegressorRightBlockCovariance] using
+    ((continuous_apply (Sum.inr j)).comp
+      (continuous_apply (Sum.inr i)) :
+        Continuous fun V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ =>
+          V (Sum.inr i) (Sum.inr j))
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem generatedRegressorRightBlockCovariance_fromBlocks
+    (A : Matrix k₁ k₁ ℝ) (B : Matrix k₁ k₂ ℝ)
+    (C : Matrix k₂ k₁ ℝ) (D : Matrix k₂ k₂ ℝ) :
+    generatedRegressorRightBlockCovariance (Matrix.fromBlocks A B C D) = D := by
+  ext a b
+  rfl
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem generatedRegressorRightBlock_zero :
+    generatedRegressorRightBlock (k₁ := k₁) (k₂ := k₂) 0 = 0 := by
+  rfl
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem generatedRegressorRightBlock_sub
+    (β γ : Sum k₁ k₂ → ℝ) :
+    generatedRegressorRightBlock (β - γ) =
+      generatedRegressorRightBlock β - generatedRegressorRightBlock γ := by
+  rfl
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Under Hansen's null `β₂ = 0`, the right-block centered gap equals the
+right-block coefficient itself. -/
+theorem generatedRegressorRightBlock_sub_eq_of_null
+    {βhat β : Sum k₁ k₂ → ℝ}
+    (hβ2 : ∀ j : k₂, β (Sum.inr j) = 0) :
+    generatedRegressorRightBlock (βhat - β) =
+      generatedRegressorRightBlock βhat := by
+  funext j
+  simp [generatedRegressorRightBlock, hβ2 j]
+
+/-- Wald statistic for the generated-regressor null block `β₂ = 0`.  The gap is
+`√n βhat₂`, so this is the textbook null statistic rather than a generic
+restriction wrapper. -/
+noncomputable def generatedRegressorBlockWaldStatOrZero
+    {r : ℕ} (βhat : Sum k₁ (Fin r) → ℝ)
+    (Vhat : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ) (root : ℝ) : ℝ :=
+  restrictionWaldStatOrZero
+    (root • generatedRegressorRightBlock βhat)
+    (generatedRegressorRightBlockCovariance Vhat)
+
+end Basic
+
+section AsymptoticGeneratedRegressors
+
+variable {Ω Ωlim : Type*} [MeasurableSpace Ω] [MeasurableSpace Ωlim]
+variable {μ : Measure Ω} {ν : Measure Ωlim}
+variable [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+
+/-- Proof-facing package for Hansen Theorem 12.9.
+
+The fields intentionally include Hansen's null `β₂ = 0` and the exact,
+ungenerated left block condition for `What = (W₁, W₂hat)`.  The probabilistic
+fields then state the coefficient CLT and HC0 covariance consistency with
+Hansen's generated-regressor covariance formula. -/
+structure GeneratedRegressorAsymptoticNormalConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ)
+    (A : Matrix l (Sum k₁ k₂) ℝ)
+    (QZZ OmegaZV : Matrix l l ℝ)
+    (β : Sum k₁ k₂ → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)) : Prop where
+  beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
+  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
+  coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+    atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν
+  gaussian_limit : HasLaw G
+    (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν
+  covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)) μ
+  covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+    atTop
+    (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV)
+
+/-- Oracle-plus-remainder sufficient condition package for Hansen Theorem 12.9.
+
+The primitive generated-regressor assumption `Â →p A` is recorded explicitly.
+The remaining two proof obligations are the sharp ones: the generated and
+oracle coefficient statistics differ by `oₚ(1)` after `√n` scaling, and the
+generated and oracle HC0 covariance estimators differ by `oₚ(1)`.  Once those
+continuity/remainder facts are available, this package builds the public
+`GeneratedRegressorAsymptoticNormalConditions` by Slutsky and covariance
+substitution rather than assuming the generated-regressor CLT directly. -/
+structure GeneratedRegressorOracleApproximationConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ)
+    (A : Matrix l (Sum k₁ k₂) ℝ)
+    (QZZ OmegaZV : Matrix l l ℝ)
+    (β : Sum k₁ k₂ → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)) : Prop where
+  beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
+  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
+  Ahat_measurable : ∀ m, AEStronglyMeasurable (Ahat m) μ
+  Ahat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A)
+  oracle_coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+    atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν
+  generated_coefficient_measurable : ∀ m : ℕ, AEMeasurable
+    (fun ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β)) μ
+  coefficient_remainder : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β) -
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+    atTop (fun _ => 0)
+  gaussian_limit : HasLaw G
+    (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν
+  oracle_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) A (stackOutcomes Y m ω)) μ
+  generated_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)) μ
+  oracle_covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+    atTop
+    (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV)
+  covariance_remainder : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+      generatedRegressorVHatStar
+        (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+    atTop (fun _ => 0)
+
+/-- Right-block projection of a Euclidean Gaussian limit. -/
+noncomputable def generatedRegressorRightBlockLimit
+    (G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)) :
+    Ωlim → EuclideanSpace ℝ k₂ :=
+  fun ω => WithLp.toLp 2 (generatedRegressorRightBlock (G ω).ofLp)
+
+omit [DecidableEq k₁] [DecidableEq k₂] in
+/-- Distributional continuous-mapping bridge for the generated-regressor right
+coefficient block. -/
+theorem generatedRegressorRightBlock_tendstoInDistribution
+    {T : ℕ → Ω → Sum k₁ k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (hT : TendstoInDistribution T atTop
+      (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorRightBlock (k₁ := k₁) (k₂ := k₂) (T m ω))
+      atTop
+      (fun ω j =>
+        (generatedRegressorRightBlockLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+  have hproj := hT.continuous_comp
+    (continuous_generatedRegressorRightBlock (k₁ := k₁) (k₂ := k₂))
+  simpa [generatedRegressorRightBlockLimit, generatedRegressorRightBlock,
+    Function.comp_def] using hproj
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂]
+  [IsProbabilityMeasure μ] in
+/-- Measurability bridge for right-bottom covariance blocks. -/
+theorem generatedRegressorRightBlockCovariance_aestronglyMeasurable
+    {Vhat : Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    (hVhat : AEStronglyMeasurable Vhat μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂)
+          (Vhat ω)) μ :=
+  (continuous_generatedRegressorRightBlockCovariance
+    (k₁ := k₁) (k₂ := k₂)).comp_aestronglyMeasurable hVhat
+
+omit [DecidableEq k₁] [DecidableEq k₂] in
+/-- Convergence-in-measure bridge for right-bottom covariance blocks. -/
+theorem generatedRegressorRightBlockCovariance_tendstoInMeasure
+    {Vhat : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    (hVhat_meas : ∀ m, AEStronglyMeasurable (Vhat m) μ)
+    (hVhat : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂)
+          (Vhat m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂) V) :=
+  tendstoInMeasure_continuous_comp hVhat_meas hVhat
+    (continuous_generatedRegressorRightBlockCovariance
+      (k₁ := k₁) (k₂ := k₂))
+
+omit [IsProbabilityMeasure μ] in
+private theorem generatedRegressorStackScalar_aestronglyMeasurable
+    {N : ℕ} {Y : ℕ → Ω → ℝ}
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable (fun ω => (fun i : Fin N => Y i.val ω)) μ := by
+  rw [aestronglyMeasurable_iff_aemeasurable]
+  rw [aemeasurable_pi_iff]
+  intro i
+  exact (hY i.val).aemeasurable
+
+omit [IsProbabilityMeasure μ] in
+/-- Generated-design measurability from row measurability of the instruments
+and matrix measurability of the generated first-stage coefficient. -/
+theorem generatedRegressors_stack_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {Ahat : Ω → Matrix l k ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hAhat : AEStronglyMeasurable Ahat μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        generatedRegressors
+          (fun i : Fin N => Z i.val ω) (Ahat ω)) μ := by
+  let Zmat : Ω → Matrix (Fin N) l ℝ := fun ω => fun i => Z i.val ω
+  have hZmat : AEStronglyMeasurable Zmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hZ
+  have hprod : AEStronglyMeasurable (fun ω => (Zmat ω, Ahat ω)) μ :=
+    hZmat.prodMk hAhat
+  simpa [generatedRegressors, Zmat] using
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable hprod
+
+omit [IsProbabilityMeasure μ] in
+/-- Generated-regressor coefficient measurability from row measurability. -/
+theorem generatedRegressorBetaStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : Ω → Matrix l k ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat : AEStronglyMeasurable Ahat μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        generatedRegressorBetaStar
+          (fun i : Fin N => Z i.val ω) (Ahat ω)
+          (fun i : Fin N => Y i.val ω)) μ := by
+  let Wmat : Ω → Matrix (Fin N) k ℝ := fun ω =>
+    generatedRegressors (fun i : Fin N => Z i.val ω) (Ahat ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  have hW : AEStronglyMeasurable Wmat μ := by
+    simpa [Wmat] using
+      generatedRegressors_stack_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (Ahat := Ahat) hZ hAhat
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hWt : AEStronglyMeasurable (fun ω => (Wmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hW
+  have hGram : AEStronglyMeasurable (fun ω => (Wmat ω)ᵀ * Wmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWt.prodMk hW)
+  have hInv : AEStronglyMeasurable (fun ω => ((Wmat ω)ᵀ * Wmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hCross : AEStronglyMeasurable (fun ω => (Wmat ω)ᵀ *ᵥ yvec ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWt.prodMk hy)
+  have hbeta : AEStronglyMeasurable
+      (fun ω => ((Wmat ω)ᵀ * Wmat ω)⁻¹ *ᵥ ((Wmat ω)ᵀ *ᵥ yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hCross)
+  simpa [generatedRegressorBetaStar, olsBetaStar, Wmat, yvec] using hbeta
+
+omit [IsProbabilityMeasure μ] in
+/-- Scaled and centered generated-regressor coefficient measurability from row
+measurability. -/
+theorem generatedRegressorBetaStar_scaled_centered_aemeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : Ω → Matrix l k ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat : AEStronglyMeasurable Ahat μ) (β : k → ℝ) :
+    AEMeasurable
+      (fun ω =>
+        Real.sqrt (N : ℝ) •
+          (generatedRegressorBetaStar
+            (fun i : Fin N => Z i.val ω) (Ahat ω)
+            (fun i : Fin N => Y i.val ω) - β)) μ :=
+  (((generatedRegressorBetaStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (Y := Y) (Ahat := Ahat) hZ hY hAhat).sub
+    aestronglyMeasurable_const).const_smul (Real.sqrt (N : ℝ))).aemeasurable
+
+set_option maxHeartbeats 800000 in
+-- The generated HC0 surface unfolds several nested matrix products and inverses.
+omit [IsProbabilityMeasure μ] in
+/-- Generated-regressor HC0 covariance measurability from row measurability. -/
+theorem generatedRegressorVHatStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : Ω → Matrix l k ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat : AEStronglyMeasurable Ahat μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        generatedRegressorVHatStar
+          (fun i : Fin N => Z i.val ω) (Ahat ω)
+          (fun i : Fin N => Y i.val ω)) μ := by
+  let Wmat : Ω → Matrix (Fin N) k ℝ := fun ω =>
+    generatedRegressors (fun i : Fin N => Z i.val ω) (Ahat ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  let res : Ω → Fin N → ℝ := fun ω => olsResidualStar (Wmat ω) (yvec ω)
+  let Gram : Ω → Matrix k k ℝ := fun ω => sampleGram (Wmat ω)
+  let ScoreCov : Ω → Matrix k k ℝ := fun ω => sampleScoreCovStar (Wmat ω) (yvec ω)
+  have hW : AEStronglyMeasurable Wmat μ := by
+    simpa [Wmat] using
+      generatedRegressors_stack_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (Ahat := Ahat) hZ hAhat
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hbeta : AEStronglyMeasurable
+      (fun ω => olsBetaStar (Wmat ω) (yvec ω)) μ := by
+    simpa [generatedRegressorBetaStar, Wmat, yvec] using
+      generatedRegressorBetaStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (Y := Y) (Ahat := Ahat) hZ hY hAhat
+  have hfit : AEStronglyMeasurable (fun ω => Wmat ω *ᵥ olsBetaStar (Wmat ω) (yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hW.prodMk hbeta)
+  have hres : AEStronglyMeasurable res μ := by
+    simpa [res, olsResidualStar] using hy.sub hfit
+  have hWt : AEStronglyMeasurable (fun ω => (Wmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hW
+  have hGramRaw : AEStronglyMeasurable (fun ω => (Wmat ω)ᵀ * Wmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hWt.prodMk hW)
+  have hGram : AEStronglyMeasurable Gram μ := by
+    simpa [Gram, sampleGram] using
+      hGramRaw.const_smul ((Fintype.card (Fin N) : ℝ)⁻¹)
+  have hInv : AEStronglyMeasurable (fun ω => (Gram ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have houter_cont : Continuous (fun v : k → ℝ => Matrix.vecMulVec v v) := by
+    refine continuous_pi (fun a => ?_)
+    refine continuous_pi (fun b => ?_)
+    simpa [Matrix.vecMulVec_apply] using
+      (continuous_apply a).mul (continuous_apply b)
+  have hterm : ∀ i : Fin N, AEStronglyMeasurable
+      (fun ω =>
+        Matrix.vecMulVec (res ω i • Wmat ω i) (res ω i • Wmat ω i)) μ := by
+    intro i
+    have hres_i : AEStronglyMeasurable (fun ω => res ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hres
+    have hW_i : AEStronglyMeasurable (fun ω => Wmat ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hW
+    exact houter_cont.comp_aestronglyMeasurable (hres_i.smul hW_i)
+  have hsum : AEStronglyMeasurable
+      (fun ω => ∑ i : Fin N,
+        Matrix.vecMulVec (res ω i • Wmat ω i) (res ω i • Wmat ω i)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => hterm i)
+  have hScore : AEStronglyMeasurable ScoreCov μ := by
+    simpa [ScoreCov, sampleScoreCovStar, res] using
+      hsum.const_smul ((Fintype.card (Fin N) : ℝ)⁻¹)
+  have hleft : AEStronglyMeasurable (fun ω => (Gram ω)⁻¹ * ScoreCov ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hScore)
+  have hall : AEStronglyMeasurable
+      (fun ω => ((Gram ω)⁻¹ * ScoreCov ω) * (Gram ω)⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hleft.prodMk hInv)
+  simpa [generatedRegressorVHatStar, olsHetCovStar, Wmat, yvec, Gram, ScoreCov]
+    using hall
+
+omit [IsProbabilityMeasure μ] in
+private theorem matrix_fromCols_aestronglyMeasurable
+    {a b c : Type*} [Fintype a] [Fintype b] [Fintype c]
+    {A : Ω → Matrix a b ℝ} {B : Ω → Matrix a c ℝ}
+    (hA : AEStronglyMeasurable A μ) (hB : AEStronglyMeasurable B μ) :
+    AEStronglyMeasurable (fun ω => Matrix.fromCols (A ω) (B ω)) μ := by
+  change AEStronglyMeasurable
+    (fun ω => fun i j => Matrix.fromCols (A ω) (B ω) i j) μ
+  rw [aestronglyMeasurable_iff_aemeasurable]
+  rw [aemeasurable_pi_iff]
+  intro i
+  rw [aemeasurable_pi_iff]
+  intro j
+  cases j with
+  | inl jb =>
+      simpa [Matrix.fromCols] using
+        (((continuous_apply jb).comp_aestronglyMeasurable
+          ((continuous_apply i).comp_aestronglyMeasurable hA)).aemeasurable)
+  | inr jc =>
+      simpa [Matrix.fromCols] using
+        (((continuous_apply jc).comp_aestronglyMeasurable
+          ((continuous_apply i).comp_aestronglyMeasurable hB)).aemeasurable)
+
+omit [IsProbabilityMeasure μ] in
+private theorem matrix_fromBlocks_aestronglyMeasurable
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    {A : Ω → Matrix a b ℝ} {B : Ω → Matrix a d ℝ}
+    {C : Ω → Matrix c b ℝ} {D : Ω → Matrix c d ℝ}
+    (hA : AEStronglyMeasurable A μ) (hB : AEStronglyMeasurable B μ)
+    (hC : AEStronglyMeasurable C μ) (hD : AEStronglyMeasurable D μ) :
+    AEStronglyMeasurable (fun ω => Matrix.fromBlocks (A ω) (B ω) (C ω) (D ω)) μ := by
+  change AEStronglyMeasurable
+    (fun ω => fun i j => Matrix.fromBlocks (A ω) (B ω) (C ω) (D ω) i j) μ
+  rw [aestronglyMeasurable_iff_aemeasurable]
+  rw [aemeasurable_pi_iff]
+  intro i
+  rw [aemeasurable_pi_iff]
+  intro j
+  cases i with
+  | inl ia =>
+      cases j with
+      | inl jb =>
+          simpa [Matrix.fromBlocks] using
+            (((continuous_apply jb).comp_aestronglyMeasurable
+              ((continuous_apply ia).comp_aestronglyMeasurable hA)).aemeasurable)
+      | inr jd =>
+          simpa [Matrix.fromBlocks] using
+            (((continuous_apply jd).comp_aestronglyMeasurable
+              ((continuous_apply ia).comp_aestronglyMeasurable hB)).aemeasurable)
+  | inr ic =>
+      cases j with
+      | inl jb =>
+          simpa [Matrix.fromBlocks] using
+            (((continuous_apply jb).comp_aestronglyMeasurable
+              ((continuous_apply ic).comp_aestronglyMeasurable hC)).aemeasurable)
+      | inr jd =>
+          simpa [Matrix.fromBlocks] using
+            (((continuous_apply jd).comp_aestronglyMeasurable
+              ((continuous_apply ic).comp_aestronglyMeasurable hD)).aemeasurable)
+
+omit [IsProbabilityMeasure μ] in
+private theorem sampleGram_from_matrix_aestronglyMeasurable
+    {a b : Type*} [Fintype a] [Fintype b]
+    {X : Ω → Matrix a b ℝ} (hX : AEStronglyMeasurable X μ) :
+    AEStronglyMeasurable (fun ω => sampleGram (X ω)) μ := by
+  have hXt : AEStronglyMeasurable (fun ω => (X ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hX
+  have hGramRaw : AEStronglyMeasurable (fun ω => (X ω)ᵀ * X ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hX)
+  simpa [sampleGram] using hGramRaw.const_smul ((Fintype.card a : ℝ)⁻¹)
+
+omit [IsProbabilityMeasure μ] in
+private theorem olsBetaStar_from_matrix_aestronglyMeasurable
+    {a b : Type*} [Fintype a] [Fintype b] [DecidableEq b]
+    {X : Ω → Matrix a b ℝ} {y : Ω → a → ℝ}
+    (hX : AEStronglyMeasurable X μ) (hy : AEStronglyMeasurable y μ) :
+    AEStronglyMeasurable (fun ω => olsBetaStar (X ω) (y ω)) μ := by
+  have hXt : AEStronglyMeasurable (fun ω => (X ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hX
+  have hGram : AEStronglyMeasurable (fun ω => (X ω)ᵀ * X ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hX)
+  have hInv : AEStronglyMeasurable (fun ω => ((X ω)ᵀ * X ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hCross : AEStronglyMeasurable (fun ω => (X ω)ᵀ *ᵥ y ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXt.prodMk hy)
+  have hbeta : AEStronglyMeasurable
+      (fun ω => ((X ω)ᵀ * X ω)⁻¹ *ᵥ ((X ω)ᵀ *ᵥ y ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hCross)
+  simpa [olsBetaStar] using hbeta
+
+set_option maxHeartbeats 800000 in
+-- The totalized HC0 covariance expands through fitted values and a sample score covariance.
+omit [IsProbabilityMeasure μ] in
+private theorem olsHetCovStar_from_matrix_aestronglyMeasurable
+    {N : ℕ} {b : Type*} [Fintype b] [DecidableEq b]
+    {X : Ω → Matrix (Fin N) b ℝ} {y : Ω → Fin N → ℝ}
+    (hX : AEStronglyMeasurable X μ) (hy : AEStronglyMeasurable y μ) :
+    AEStronglyMeasurable (fun ω => olsHetCovStar (X ω) (y ω)) μ := by
+  let res : Ω → Fin N → ℝ := fun ω => olsResidualStar (X ω) (y ω)
+  let Gram : Ω → Matrix b b ℝ := fun ω => sampleGram (X ω)
+  let ScoreCov : Ω → Matrix b b ℝ := fun ω => sampleScoreCovStar (X ω) (y ω)
+  have hbeta : AEStronglyMeasurable (fun ω => olsBetaStar (X ω) (y ω)) μ :=
+    olsBetaStar_from_matrix_aestronglyMeasurable (μ := μ) hX hy
+  have hfit : AEStronglyMeasurable (fun ω => X ω *ᵥ olsBetaStar (X ω) (y ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hX.prodMk hbeta)
+  have hres : AEStronglyMeasurable res μ := by
+    simpa [res, olsResidualStar] using hy.sub hfit
+  have hGram : AEStronglyMeasurable Gram μ := by
+    simpa [Gram] using sampleGram_from_matrix_aestronglyMeasurable (μ := μ) hX
+  have hInv : AEStronglyMeasurable (fun ω => (Gram ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have houter_cont : Continuous (fun v : b → ℝ => Matrix.vecMulVec v v) := by
+    refine continuous_pi (fun a => ?_)
+    refine continuous_pi (fun b => ?_)
+    simpa [Matrix.vecMulVec_apply] using
+      (continuous_apply a).mul (continuous_apply b)
+  have hterm : ∀ i : Fin N, AEStronglyMeasurable
+      (fun ω =>
+        Matrix.vecMulVec (res ω i • X ω i) (res ω i • X ω i)) μ := by
+    intro i
+    have hres_i : AEStronglyMeasurable (fun ω => res ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hres
+    have hX_i : AEStronglyMeasurable (fun ω => X ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hX
+    exact houter_cont.comp_aestronglyMeasurable (hres_i.smul hX_i)
+  have hsum : AEStronglyMeasurable
+      (fun ω => ∑ i : Fin N,
+        Matrix.vecMulVec (res ω i • X ω i) (res ω i • X ω i)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => hterm i)
+  have hScore : AEStronglyMeasurable ScoreCov μ := by
+    simpa [ScoreCov, sampleScoreCovStar, res] using
+      hsum.const_smul ((Fintype.card (Fin N) : ℝ)⁻¹)
+  have hleft : AEStronglyMeasurable (fun ω => (Gram ω)⁻¹ * ScoreCov ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hScore)
+  have hall : AEStronglyMeasurable
+      (fun ω => ((Gram ω)⁻¹ * ScoreCov ω) * (Gram ω)⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hleft.prodMk hInv)
+  simpa [olsHetCovStar, Gram, ScoreCov, Matrix.mul_assoc] using hall
+
+omit [IsProbabilityMeasure μ] in
+private theorem weightedVecMulVecAverage_aestronglyMeasurable
+    {N : ℕ} {a b : Type*} [Fintype a] [Fintype b]
+    {X : Ω → Matrix (Fin N) a ℝ} {Y : Ω → Matrix (Fin N) b ℝ}
+    {s t : Ω → Fin N → ℝ}
+    (hX : AEStronglyMeasurable X μ) (hY : AEStronglyMeasurable Y μ)
+    (hs : AEStronglyMeasurable s μ) (ht : AEStronglyMeasurable t μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (s ω i * t ω i) •
+            Matrix.vecMulVec (X ω i) (Y ω i)) μ := by
+  have houter_cont :
+      Continuous (fun p : (a → ℝ) × (b → ℝ) => Matrix.vecMulVec p.1 p.2) := by
+    refine continuous_pi (fun i => ?_)
+    refine continuous_pi (fun j => ?_)
+    simpa [Matrix.vecMulVec_apply] using
+      (((continuous_apply i).comp continuous_fst).mul
+        ((continuous_apply j).comp continuous_snd))
+  have hterm : ∀ i : Fin N, AEStronglyMeasurable
+      (fun ω => (s ω i * t ω i) • Matrix.vecMulVec (X ω i) (Y ω i)) μ := by
+    intro i
+    have hs_i : AEStronglyMeasurable (fun ω => s ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hs
+    have ht_i : AEStronglyMeasurable (fun ω => t ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable ht
+    have hX_i : AEStronglyMeasurable (fun ω => X ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hX
+    have hY_i : AEStronglyMeasurable (fun ω => Y ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hY
+    exact (hs_i.mul ht_i).smul
+      (houter_cont.comp_aestronglyMeasurable (hX_i.prodMk hY_i))
+  exact (Finset.aestronglyMeasurable_fun_sum _ (fun i _ => hterm i)).const_smul
+    ((Fintype.card (Fin N) : ℝ)⁻¹)
+
+omit [IsProbabilityMeasure ν] in
+/-- Gaussian linear-image bridge for the generated-regressor right block. -/
+theorem generatedRegressorRightBlockLimit_hasLaw
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    {V : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    (hV : V.PosSemidef)
+    (hG : HasLaw G (multivariateGaussian 0 V) ν) :
+    HasLaw
+      (generatedRegressorRightBlockLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (generatedRegressorRightBlockCovariance (k₁ := k₁) (k₂ := k₂) V))
+      ν := by
+  let R : Matrix k₂ (Sum k₁ k₂) ℝ :=
+    generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := k₂)
+  have hmap :
+      HasLaw
+        (fun z : EuclideanSpace ℝ (Sum k₁ k₂) =>
+          WithLp.toLp 2 (R *ᵥ z.ofLp))
+        (multivariateGaussian 0 (R * V * Rᵀ))
+        (multivariateGaussian 0 V) :=
+    hasLaw_multivariateGaussian_zero_linearMap (n := Sum k₁ k₂) (q := k₂) hV R
+  have hcomp := HasLaw.comp hmap hG
+  simpa [generatedRegressorRightBlockLimit, R,
+    generatedRegressorRightBlockMatrix_mulVec,
+    generatedRegressorRightBlockCovariance_eq_linMap, Function.comp_def] using hcomp
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 coefficient and covariance conclusion, with the null
+and generated-left-block conditions carried by
+`GeneratedRegressorAsymptoticNormalConditions`. -/
+theorem generatedRegressor_theorem12_9_coefficient_and_covariance
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) :=
+  ⟨h.coefficient_limit, h.gaussian_limit, h.covariance_consistent⟩
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 generated-regressor condition constructor from an
+oracle `A` regression plus explicit `Â - A` remainders.
+
+This is the theorem-facing bridge that turns the primitive consistency
+assumption `Â →p A` into the exact generated-regressor endpoint once the two
+remaining Slutsky remainders have been proved from Hansen's moment and
+rank conditions. -/
+theorem generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G := by
+  refine
+    { beta2_null := h.beta2_null
+      left_block_exact := h.left_block_exact
+      coefficient_limit := ?_
+      gaussian_limit := h.gaussian_limit
+      covariance_measurable := h.generated_covariance_measurable
+      covariance_consistent := ?_ }
+  · exact tendstoInDistribution_of_tendstoInMeasure_sub
+      (X := fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      (Y := fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      (Z := fun ω i => (G ω : Sum k₁ k₂ → ℝ) i)
+      h.oracle_coefficient_limit h.coefficient_remainder
+      h.generated_coefficient_measurable
+  · exact TendstoInMeasure.of_sub_tendsto_zero_matrix
+      h.covariance_remainder h.oracle_covariance_consistent
+
+/-- Row-measurable oracle-approximation constructor for Hansen Theorem 12.9.
+
+This keeps the substantive oracle CLT, `Â` consistency, and Slutsky remainders
+as theorem inputs, while deriving all generated beta/covariance measurability
+fields from row measurability of `Z`, `Y`, and the generated first-stage
+matrix. -/
+theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
+    (hleft_block_exact : ∀ (m : ℕ) ω a j,
+      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
+    (hAhat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (horacle_coefficient_limit : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν)
+    (hcoefficient_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β) -
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun _ => 0))
+    (hgaussian_limit : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν)
+    (horacle_covariance_consistent : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+    (hcovariance_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0)) :
+    GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G where
+  beta2_null := hbeta2_null
+  left_block_exact := hleft_block_exact
+  Ahat_measurable := hAhat_meas
+  Ahat_consistent := hAhat_consistent
+  oracle_coefficient_limit := horacle_coefficient_limit
+  generated_coefficient_measurable := by
+    intro m
+    simpa [stackRegressors, stackOutcomes] using
+      generatedRegressorBetaStar_scaled_centered_aemeasurable_of_rows
+        (μ := μ) (N := m) (Z := Z) (Y := Y) (Ahat := Ahat m)
+        hZ hY (hAhat_meas m) β
+  coefficient_remainder := hcoefficient_remainder
+  gaussian_limit := hgaussian_limit
+  oracle_covariance_measurable := by
+    intro m
+    simpa [stackRegressors, stackOutcomes] using
+      generatedRegressorVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (Z := Z) (Y := Y) (Ahat := fun _ : Ω => A)
+        hZ hY aestronglyMeasurable_const
+  generated_covariance_measurable := by
+    intro m
+    simpa [stackRegressors, stackOutcomes] using
+      generatedRegressorVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (Z := Z) (Y := Y) (Ahat := Ahat m)
+        hZ hY (hAhat_meas m)
+  oracle_covariance_consistent := horacle_covariance_consistent
+  covariance_remainder := hcovariance_remainder
+
+omit [DecidableEq l] [MeasurableSpace Ω] in
+/-- Algebraic bridge for Hansen Theorem 12.9 oracle remainders.
+
+The centered statistic difference used by the Slutsky package is exactly the
+more direct scaled coefficient difference
+`√n • (β̂(Â) - β̂(A))`. -/
+theorem generatedRegressor_oracleCoefficientRemainder_eq_scaled_beta_diff
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ} :
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β) -
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β)) =
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorBetaStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))) := by
+  funext m ω j
+  simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  ring_nf
+
+/-- Row-measurable oracle-approximation constructor whose coefficient
+remainder is stated as the direct scaled difference
+`√n • (β̂(Â) - β̂(A)) = oₚ(1)`. -/
+theorem GeneratedRegressorOracleApproximationConditions.of_row_measurable_beta_diff
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
+    (hleft_block_exact : ∀ (m : ℕ) ω a j,
+      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
+    (hAhat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (horacle_coefficient_limit : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν)
+    (hcoefficient_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω)))
+      atTop (fun _ => 0))
+    (hgaussian_limit : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν)
+    (horacle_covariance_consistent : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+    (hcovariance_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0)) :
+    GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G :=
+  GeneratedRegressorOracleApproximationConditions.of_row_measurable
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G)
+    hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+    horacle_coefficient_limit
+    (by
+      simpa [generatedRegressor_oracleCoefficientRemainder_eq_scaled_beta_diff]
+        using hcoefficient_remainder)
+    hgaussian_limit horacle_covariance_consistent hcovariance_remainder
+
+/-- Hansen Theorem 12.9 coefficient/covariance endpoint from the
+oracle-plus-remainder sufficient-condition package.
+
+This is a theorem-facing wrapper around
+`generatedRegressorAsymptoticNormalConditions_of_oracle_approximation`, so
+callers using Hansen's `Â →p A` route do not need to manually build the full
+generated-regressor asymptotic-normal condition package first. -/
+theorem generatedRegressor_theorem12_9_coefficient_and_covariance_of_oracle_approximation
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) :=
+  generatedRegressor_theorem12_9_coefficient_and_covariance
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G)
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 coefficient endpoint with the Gaussian limit law
+composed directly into the statement. -/
+theorem generatedRegressorBetaStar_tendstoInDistribution_multivariateGaussian
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ k₂) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) := by
+  let V := generatedRegressorAsymptoticVariance A QZZ OmegaZV
+  have h129 := generatedRegressor_theorem12_9_coefficient_and_covariance
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) h
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β)) :
+              Sum k₁ k₂ → ℝ) : EuclideanSpace ℝ (Sum k₁ k₂)))
+        atTop (fun ω => G ω) (fun _ => μ) ν := by
+    have hmap := h129.1.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : Sum k₁ k₂ => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure (multivariateGaussian 0 V) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β)) :
+              Sum k₁ k₂ → ℝ) : EuclideanSpace ℝ (Sum k₁ k₂)))
+        atTop (fun z : EuclideanSpace ℝ (Sum k₁ k₂) => z) (fun _ => μ)
+        (multivariateGaussian 0 V) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ (Sum k₁ k₂))
+      hEuclidAux h129.2.1
+  have hraw := hEuclidDirect.continuous_comp
+    (PiLp.continuous_ofLp 2 (fun _ : Sum k₁ k₂ => ℝ))
+  simpa [V, Function.comp_def] using hraw
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, direct normal/covariance endpoint. -/
+theorem generatedRegressor_theorem12_9_multivariateGaussian_and_covariance
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ k₂) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) :=
+  ⟨generatedRegressorBetaStar_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (ν := ν) h,
+    h.covariance_consistent⟩
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, oracle-route direct normal/covariance endpoint. -/
+theorem generatedRegressor_theorem12_9_multivariateGaussian_and_covariance_of_oracle_approximation
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ k₂) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) :=
+  generatedRegressor_theorem12_9_multivariateGaussian_and_covariance
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G)
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+
+/-- **Hansen Theorem 12.9**, row-measurable oracle-route endpoint.
+
+This wrapper discharges all generated beta/covariance measurability fields from
+row measurability of `Z`, `Y`, and `Â`, and accepts the coefficient remainder in
+the direct scaled-difference form `√n • (β̂(Â)-β̂(A)) = oₚ(1)`. -/
+theorem
+    generatedRegressor_theorem12_9_multivariateGaussian_and_covariance_of_oracle_rows_beta_diff
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ k₂ → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k₁ k₂)}
+    (hbeta2_null : ∀ j : k₂, β (Sum.inr j) = 0)
+    (hleft_block_exact : ∀ (m : ℕ) ω a j,
+      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
+    (hAhat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (horacle_coefficient_limit : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ k₂ → ℝ) i) (fun _ => μ) ν)
+    (hcoefficient_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω)))
+      atTop (fun _ => 0))
+    (hgaussian_limit : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ k₂))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν)
+    (horacle_covariance_consistent : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+    (hcovariance_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ k₂) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) :=
+  generatedRegressor_theorem12_9_multivariateGaussian_and_covariance_of_oracle_approximation
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G)
+    (GeneratedRegressorOracleApproximationConditions.of_row_measurable_beta_diff
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G)
+      hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+      horacle_coefficient_limit hcoefficient_remainder hgaussian_limit
+      horacle_covariance_consistent hcovariance_remainder)
+
+/-- Proof-facing package for the generated-regressor Wald test of `H₀ : β₂ = 0`
+in Hansen Theorem 12.9.  It consumes the right-block CLT and right-bottom HC0
+covariance consistency, then delegates the chi-square endpoint to Chapter 9. -/
+structure GeneratedRegressorBlockWaldConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν] {r : ℕ}
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ)
+    (A : Matrix l (Sum k₁ (Fin r)) ℝ)
+    (β : Sum k₁ (Fin r) → ℝ) (root : ℕ → ℝ)
+    (G₂ : Ωlim → EuclideanSpace ℝ (Fin r))
+    (Vβ22 : Matrix (Fin r) (Fin r) ℝ) : Prop where
+  beta2_null : ∀ j : Fin r, β (Sum.inr j) = 0
+  left_block_exact : ∀ (m : ℕ) ω a j, Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
+  block_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      root m • generatedRegressorRightBlock
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)))
+    atTop (fun ω j => (G₂ ω : Fin r → ℝ) j) (fun _ => μ) ν
+  gaussian_limit : HasLaw G₂ (multivariateGaussian 0 Vβ22) ν
+  block_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      generatedRegressorRightBlockCovariance
+        (generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))) μ
+  block_covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      generatedRegressorRightBlockCovariance
+        (generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)))
+    atTop (fun _ => Vβ22)
+  block_covariance_posDef : Vβ22.PosDef
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 Wald endpoint: the null block statistic converges to
+`χ²_r`.  The assumptions retain the generated-regressor null structure, while
+the final statistic-level proof reuses the generic Chapter 9 Wald theorem. -/
+theorem generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {β : Sum k₁ (Fin r) → ℝ} {root : ℕ → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vβ22 : Matrix (Fin r) (Fin r) ℝ}
+    (h : GeneratedRegressorBlockWaldConditions
+      μ ν Z Y Ahat A β root G₂ Vβ22) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (root m))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  simpa [generatedRegressorBlockWaldStatOrZero] using
+    restrictionWaldStatOrZero_tendstoInDistribution_chiSquared
+      (μ := μ) (ν := ν) (r := r)
+      (T := fun (m : ℕ) ω =>
+        root m • generatedRegressorRightBlock
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)))
+      (Z := G₂)
+      (VthetaHat := fun (m : ℕ) ω =>
+        generatedRegressorRightBlockCovariance
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)))
+      (Vtheta := Vβ22)
+      h.block_limit h.gaussian_limit h.block_covariance_measurable
+      h.block_covariance_consistent h.block_covariance_posDef
+
+omit [DecidableEq l] in
+/-- Calibrated generated-regressor Wald test for Hansen Theorem 12.9.
+
+If the generated-regressor null-block Wald statistic has the `χ²_r` limit and
+`crit` has upper-tail chi-square mass `α`, then the rejection probability tends
+to `α`. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {β : Sum k₁ (Fin r) → ℝ} {root : ℕ → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vβ22 : Matrix (Fin r) (Fin r) ℝ}
+    (h : GeneratedRegressorBlockWaldConditions
+      μ ν Z Y Ahat A β root G₂ Vβ22)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (root m)})
+      atTop (𝓝 alpha) := by
+  have hW := generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (β := β) (root := root)
+    (G₂ := G₂) (Vβ22 := Vβ22) h
+  exact chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
+    (μ := μ)
+    (W := fun m ω =>
+      generatedRegressorBlockWaldStatOrZero
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+        (generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+        (root m))
+    (q := r) (crit := crit) (alpha := alpha) hcrit hW
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 lower-tail critical-value convention for the
+generated-regressor block Wald test. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_lowerTail
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {β : Sum k₁ (Fin r) → ℝ} {root : ℕ → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vβ22 : Matrix (Fin r) (Fin r) ℝ}
+    (h : GeneratedRegressorBlockWaldConditions
+      μ ν Z Y Ahat A β root G₂ Vβ22)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (root m)})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (β := β) (root := root)
+    (G₂ := G₂) (Vβ22 := Vβ22) h
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+/-- Formula-facing Wald condition package for Hansen Theorem 12.9.
+
+This fixes the block covariance target to the right-bottom block of Hansen's
+generated-regressor covariance formula and fixes the normalization to `√n`. -/
+abbrev GeneratedRegressorBlockWaldFormulaConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν] {r : ℕ}
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ)
+    (A : Matrix l (Sum k₁ (Fin r)) ℝ)
+    (QZZ OmegaZV : Matrix l l ℝ)
+    (β : Sum k₁ (Fin r) → ℝ)
+    (G₂ : Ωlim → EuclideanSpace ℝ (Fin r)) : Prop :=
+  GeneratedRegressorBlockWaldConditions μ ν Z Y Ahat A β
+    (fun m => Real.sqrt (m : ℝ)) G₂
+    (generatedRegressorRightBlockCovariance
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 condition-package bridge.
+
+The full coefficient CLT and HC0 covariance consistency in
+`GeneratedRegressorAsymptoticNormalConditions` imply the right-block Wald
+conditions for `H₀ : β₂ = 0`.  The proof is purely a projection argument:
+`generatedRegressorRightBlockMatrix` transports the Gaussian limit and the
+right-bottom covariance block by the continuous mapping theorem. -/
+theorem generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+    {r : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β
+      (generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G) := by
+  refine
+    { beta2_null := h.beta2_null
+      left_block_exact := h.left_block_exact
+      block_limit := ?_
+      gaussian_limit := ?_
+      block_covariance_measurable := ?_
+      block_covariance_consistent := ?_
+      block_covariance_posDef := hV22 }
+  · have hproj :=
+      generatedRegressorRightBlock_tendstoInDistribution
+        (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+        h.coefficient_limit
+    refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) hproj
+    intro m
+    exact ae_of_all μ (fun ω => by
+      simp [generatedRegressorRightBlock_sub_eq_of_null h.beta2_null])
+  · exact generatedRegressorRightBlockLimit_hasLaw
+      (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+      hV h.gaussian_limit
+  · intro m
+    exact generatedRegressorRightBlockCovariance_aestronglyMeasurable
+      (μ := μ) (k₁ := k₁) (k₂ := Fin r)
+      (h.covariance_measurable m)
+  · exact generatedRegressorRightBlockCovariance_tendstoInMeasure
+      (μ := μ) (k₁ := k₁) (k₂ := Fin r)
+      h.covariance_measurable h.covariance_consistent
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 Wald condition-package bridge from the
+oracle-plus-remainder sufficient-condition package.
+
+This composes the oracle approximation constructor with the right-block
+continuous-mapping bridge, leaving only the covariance positive-definiteness
+facts explicit. -/
+theorem generatedRegressorBlockWaldFormulaConditions_of_oracle_approximation
+    {r : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β
+      (generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G) :=
+  generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 Wald condition-package bridge with covariance
+positivity derived from Gram and score-covariance primitives. -/
+theorem generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal_covariance_posDef
+    {r : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosDef)
+    (hA : Function.Injective A.mulVec)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β
+      (generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G) := by
+  have hVpd :
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosDef :=
+    generatedRegressorAsymptoticVariance_posDef A QZZ OmegaZV hQWW hOmega hA
+  exact
+    generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hVpd.posSemidef
+      (generatedRegressorRightBlockCovariance_posDef
+        (k₁ := k₁) (k₂ := Fin r) hVpd)
+      h
+
+omit [DecidableEq l] in
+/-- Oracle-plus-remainder version of
+`generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal_covariance_posDef`. -/
+theorem generatedRegressorBlockWaldFormulaConditions_of_oracle_approximation_covariance_posDef
+    {r : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosDef)
+    (hA : Function.Injective A.mulVec)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β
+      (generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G) :=
+  generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal_covariance_posDef
+    (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+    (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hQWW hOmega hA
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+
+omit [DecidableEq l] in
+/-- Formula-facing Hansen Theorem 12.9 Wald endpoint with Hansen's covariance
+target and `√n` normalization fixed in the theorem statement. -/
+theorem generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    (h : GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G₂) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (β := β)
+    (root := fun m => Real.sqrt (m : ℝ))
+    (G₂ := G₂)
+    (Vβ22 := generatedRegressorRightBlockCovariance
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) h
+
+omit [DecidableEq l] in
+/-- Formula-facing calibrated generated-regressor Wald test for Hansen
+Theorem 12.9. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_formula
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    (h : GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G₂)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (β := β)
+    (root := fun m => Real.sqrt (m : ℝ))
+    (G₂ := G₂)
+    (Vβ22 := generatedRegressorRightBlockCovariance
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) h hcrit
+
+omit [DecidableEq l] in
+/-- Formula-facing Hansen Theorem 12.9 lower-tail critical-value wrapper. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_formula_lowerTail
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G₂ : Ωlim → EuclideanSpace ℝ (Fin r)}
+    (h : GeneratedRegressorBlockWaldFormulaConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G₂)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_formula
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G₂ := G₂) h
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 Wald statistic endpoint derived directly from the full
+generated-regressor asymptotic-normal package. -/
+theorem generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared_of_asymptoticNormal
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β)
+    (G₂ := generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hV hV22 h)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 calibrated block-Wald test, derived directly from the
+full generated-regressor asymptotic-normal package. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_of_asymptoticNormal
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_formula
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β)
+    (G₂ := generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hV hV22 h)
+    hcrit
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 lower-tail calibrated block-Wald test, derived
+directly from the full generated-regressor asymptotic-normal package. -/
+theorem generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_lowerTail_of_asymptoticNormal
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_formula_lowerTail
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β)
+    (G₂ := generatedRegressorRightBlockLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (generatedRegressorBlockWaldFormulaConditions_of_asymptoticNormal
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hV hV22 h)
+    halpha_le_one hcrit
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 block-Wald statistic endpoint from the
+oracle-plus-remainder sufficient-condition package. -/
+theorem generatedRegressorBlockWaldStat_chiSquared_of_oracle_approximation
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared_of_asymptoticNormal
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 calibrated block-Wald test from the
+oracle-plus-remainder sufficient-condition package. -/
+theorem generatedRegressorBlockWaldTest_tendsto_alpha_of_oracle_approximation
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_of_asymptoticNormal
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+    hcrit
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 lower-tail critical-value wrapper from the
+oracle-plus-remainder sufficient-condition package. -/
+theorem generatedRegressorBlockWaldTest_lowerTail_of_oracle_approximation
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_lowerTail_of_asymptoticNormal
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+    halpha_le_one hcrit
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, bundled theorem-facing endpoint.
+
+Under Hansen's null `H₀ : β₂ = 0` recorded in
+`GeneratedRegressorAsymptoticNormalConditions`, the generated-regressor
+coefficient is asymptotically normal with covariance (12.51), the HC0
+covariance estimator (12.52) is consistent, the block Wald statistic for
+`β₂ = 0` converges to `χ²_q`, and the calibrated upper-tail Wald test has
+asymptotic size `α`. -/
+theorem generatedRegressor_theorem12_9_normal_covariance_wald_size
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact generatedRegressorBetaStar_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h
+  · exact h.covariance_consistent
+  · exact generatedRegressorBlockWaldStatOrZero_tendstoInDistribution_chiSquared_of_asymptoticNormal
+      (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+      (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hV hV22 h
+  · exact generatedRegressorBlockWaldTest_rejectionProb_tendsto_alpha_of_asymptoticNormal
+      (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+      (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hV hV22 h hcrit
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.9 bundled endpoint with covariance positivity derived
+from primitive Gram and score-covariance conditions. -/
+theorem generatedRegressor_theorem12_9_normal_covariance_wald_size_covariance_posDef
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosDef)
+    (hA : Function.Injective A.mulVec)
+    (h : GeneratedRegressorAsymptoticNormalConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) := by
+  have hVpd :
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosDef :=
+    generatedRegressorAsymptoticVariance_posDef A QZZ OmegaZV hQWW hOmega hA
+  exact
+    generatedRegressor_theorem12_9_normal_covariance_wald_size
+      (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+      (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) hVpd.posSemidef
+      (generatedRegressorRightBlockCovariance_posDef
+        (k₁ := k₁) (k₂ := Fin r) hVpd)
+      h hcrit
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, bundled oracle-route endpoint.
+
+This is the same theorem-facing statement as
+`generatedRegressor_theorem12_9_normal_covariance_wald_size`, with Hansen's
+primitive `Â →p A` route represented by the oracle-plus-remainder condition
+package. -/
+theorem generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_approximation
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressor_theorem12_9_normal_covariance_wald_size
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+    hcrit
+
+set_option linter.style.longLine false in
+omit [DecidableEq l] in
+/-- Oracle-route Hansen Theorem 12.9 bundled endpoint with covariance
+positivity derived from primitive Gram and score-covariance conditions. -/
+theorem
+    generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_approximation_covariance_posDef
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hQWW : (Aᵀ * QZZ * A).PosDef)
+    (hOmega : OmegaZV.PosDef)
+    (hA : Function.Injective A.mulVec)
+    (h : GeneratedRegressorOracleApproximationConditions
+      μ ν Z Y Ahat A QZZ OmegaZV β G)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressor_theorem12_9_normal_covariance_wald_size_covariance_posDef
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hQWW hOmega hA
+    (generatedRegressorAsymptoticNormalConditions_of_oracle_approximation
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G) h)
+    hcrit
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, row-measurable oracle-route bundled endpoint.
+
+This is the citation-facing row-measurable version of
+`generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_approximation`.
+It derives all generated beta/covariance measurability fields from row
+measurability of `Z`, `Y`, and `Â`, and accepts the oracle coefficient
+remainder in the direct Hansen form `√n • (β̂(Â)-β̂(A)) = oₚ(1)`. -/
+theorem
+    generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_rows_beta_diff
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (hbeta2_null : ∀ j : Fin r, β (Sum.inr j) = 0)
+    (hleft_block_exact : ∀ (m : ℕ) ω a j,
+      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
+    (hAhat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (horacle_coefficient_limit : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ (Fin r) → ℝ) i) (fun _ => μ) ν)
+    (hcoefficient_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω)))
+      atTop (fun _ => 0))
+    (hgaussian_limit : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ (Fin r)))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν)
+    (horacle_covariance_consistent : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+    (hcovariance_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0))
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) := by
+  classical
+  exact generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_approximation
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22
+    (GeneratedRegressorOracleApproximationConditions.of_row_measurable_beta_diff
+      (μ := μ) (ν := ν) (Z := Z) (Y := Y) (Ahat := Ahat)
+      (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+      (β := β) (G := G)
+      hbeta2_null hleft_block_exact hZ hY hAhat_meas hAhat_consistent
+      horacle_coefficient_limit hcoefficient_remainder hgaussian_limit
+      horacle_covariance_consistent hcovariance_remainder)
+    hcrit
+
+omit [DecidableEq l] in
+/-- **Hansen Theorem 12.9**, row-measurable oracle-route bundled endpoint with
+the lower-tail critical-value convention.
+
+This is the same four-part normality, covariance-consistency, chi-square, and
+size conclusion as
+`generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_rows_beta_diff`,
+but callers may state the critical value by
+`P[χ²_r ≤ c] = 1 - α`. -/
+theorem
+    generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_rows_beta_diff_lowerTail
+    {r : ℕ} [Fact (0 < r)] {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ (Fin r)) ℝ}
+    {A : Matrix l (Sum k₁ (Fin r)) ℝ}
+    {QZZ OmegaZV : Matrix l l ℝ}
+    {β : Sum k₁ (Fin r) → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum k₁ (Fin r))}
+    (hV : (generatedRegressorAsymptoticVariance A QZZ OmegaZV).PosSemidef)
+    (hV22 :
+      (generatedRegressorRightBlockCovariance
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV) :
+          Matrix (Fin r) (Fin r) ℝ).PosDef)
+    (hbeta2_null : ∀ j : Fin r, β (Sum.inr j) = 0)
+    (hleft_block_exact : ∀ (m : ℕ) ω a j,
+      Ahat m ω a (Sum.inl j) = A a (Sum.inl j))
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat_meas : ∀ m, AEStronglyMeasurable (Ahat m) μ)
+    (hAhat_consistent : TendstoInMeasure μ Ahat atTop (fun _ => A))
+    (horacle_coefficient_limit : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : Sum k₁ (Fin r) → ℝ) i) (fun _ => μ) ν)
+    (hcoefficient_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω)))
+      atTop (fun _ => 0))
+    (hgaussian_limit : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k₁ (Fin r)))
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ν)
+    (horacle_covariance_consistent : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV))
+    (hcovariance_remainder : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0))
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ (Sum k₁ (Fin r)) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZV)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZV) ∧
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        generatedRegressorBlockWaldStatOrZero
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  generatedRegressor_theorem12_9_normal_covariance_wald_size_of_oracle_rows_beta_diff
+    (μ := μ) (ν := ν) (r := r) (Z := Z) (Y := Y)
+    (Ahat := Ahat) (A := A) (QZZ := QZZ) (OmegaZV := OmegaZV)
+    (β := β) (G := G) hV hV22 hbeta2_null hleft_block_exact hZ hY
+    hAhat_meas hAhat_consistent horacle_coefficient_limit
+    hcoefficient_remainder hgaussian_limit horacle_covariance_consistent
+    hcovariance_remainder
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+end AsymptoticGeneratedRegressors
+
+section LeastSquaresGeneratedRegressors
+
+variable {Ω Ωlim : Type*} [MeasurableSpace Ω] [MeasurableSpace Ωlim]
+variable {μ : Measure Ω} {ν : Measure Ωlim}
+variable [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+
+/-- Hansen Theorem 12.11 first-stage least-squares generated regressors:
+`Â = (Z'Z)^{-1} Z'X`, totalized through the Star inverse. -/
+noncomputable def generatedRegressorLSFirstStageCoefStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) : Matrix l k ℝ :=
+  reducedFormCoefStar Z X
+
+/-- Hansen Theorem 12.11 covariance estimator (12.57). In the least-squares
+first-stage case this is the structural-residual sandwich also used by 2SLS. -/
+noncomputable def generatedRegressorLSVHatStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : Matrix k k ℝ :=
+  twoSLSVHatStar Z X Y
+
+omit [Fintype k] [DecidableEq n] [DecidableEq k] in
+@[simp]
+theorem generatedRegressorLSFirstStageCoefStar_eq_reducedFormCoefStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) :
+    generatedRegressorLSFirstStageCoefStar Z X = reducedFormCoefStar Z X := rfl
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] in
+@[simp]
+theorem generatedRegressorLSVHatStar_eq_twoSLSVHatStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    generatedRegressorLSVHatStar Z X Y = twoSLSVHatStar Z X Y := rfl
+
+omit [IsProbabilityMeasure μ] in
+/-- Least-squares first-stage coefficient measurability from row measurability.
+
+This is the finite-sample generated-statistic measurability bridge needed for
+Hansen Theorem 12.11: the totalized reduced-form coefficient
+`(Z'Z)^{-1}Z'X` is a measurable matrix expression in the stacked rows. -/
+theorem generatedRegressorLSFirstStageCoefStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        generatedRegressorLSFirstStageCoefStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ := by
+  let Zmat : Ω → Matrix (Fin N) l ℝ := fun ω => fun i => Z i.val ω
+  let Xmat : Ω → Matrix (Fin N) k ℝ := fun ω => fun i => X i.val ω
+  have hZmat : AEStronglyMeasurable Zmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hZ
+  have hXmat : AEStronglyMeasurable Xmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX
+  have hZt : AEStronglyMeasurable (fun ω => (Zmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hZmat
+  have hGram : AEStronglyMeasurable (fun ω => (Zmat ω)ᵀ * Zmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hZt.prodMk hZmat)
+  have hInv : AEStronglyMeasurable (fun ω => ((Zmat ω)ᵀ * Zmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hLeft : AEStronglyMeasurable
+      (fun ω => ((Zmat ω)ᵀ * Zmat ω)⁻¹ * (Zmat ω)ᵀ) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hZt)
+  have hCoef : AEStronglyMeasurable
+      (fun ω => (((Zmat ω)ᵀ * Zmat ω)⁻¹ * (Zmat ω)ᵀ) * Xmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeft.prodMk hXmat)
+  simpa [generatedRegressorLSFirstStageCoefStar, reducedFormCoefStar,
+    Zmat, Xmat, Matrix.mul_assoc] using hCoef
+
+omit [IsProbabilityMeasure μ] in
+/-- Scaled generated-regressor LS coefficient measurability from row
+measurability. -/
+theorem generatedRegressorLSBetaStar_scaled_centered_aemeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {Y : ℕ → Ω → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) (β : k → ℝ) :
+    AEMeasurable
+      (fun ω =>
+        Real.sqrt (N : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z N ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z N ω) (stackRegressors X N ω))
+            (stackOutcomes Y N ω) - β)) μ := by
+  have hAhat :
+      AEStronglyMeasurable
+        (fun ω =>
+          generatedRegressorLSFirstStageCoefStar
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ :=
+    generatedRegressorLSFirstStageCoefStar_aestronglyMeasurable_of_rows
+      (μ := μ) (N := N) (Z := Z) (X := X) hZ hX
+  simpa [stackRegressors, stackOutcomes] using
+    generatedRegressorBetaStar_scaled_centered_aemeasurable_of_rows
+      (μ := μ) (N := N) (Z := Z) (Y := Y)
+      (Ahat := fun ω =>
+        generatedRegressorLSFirstStageCoefStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω))
+      hZ hY hAhat β
+
+omit [Fintype n] [DecidableEq n] in
+/-- Hansen Theorem 12.11 covariance bridge.
+
+When the population first-stage relation is represented by the cross moments
+`Q_XZ = A' Q_ZZ` and `Q_ZX = Q_ZZ A`, the generated-regressor covariance
+formula is exactly the 2SLS sandwich covariance.  This is the displayed
+covariance equality behind the reuse of existing 2SLS asymptotic-normality
+results in Theorem 12.11. -/
+theorem generatedRegressorAsymptoticVariance_eq_twoSLS_population_projection
+    (A : Matrix l k ℝ) (QZZ OmegaZE : Matrix l l ℝ)
+    (hQZZ : IsUnit QZZ.det) :
+    generatedRegressorAsymptoticVariance A QZZ OmegaZE =
+      twoSLSAsymptoticVariance (Aᵀ * QZZ) QZZ OmegaZE (QZZ * A) := by
+  have hleft_lk (B : Matrix k l ℝ) : (B * QZZ) * QZZ⁻¹ = B := by
+    rw [Matrix.mul_assoc, Matrix.mul_nonsing_inv QZZ hQZZ, Matrix.mul_one]
+  have hinner : QZZ⁻¹ * (QZZ * A) = A := by
+    rw [← Matrix.mul_assoc, Matrix.nonsing_inv_mul QZZ hQZZ, Matrix.one_mul]
+  simp [generatedRegressorAsymptoticVariance, twoSLSAsymptoticVariance,
+    twoSLSBread, Matrix.mul_assoc, hleft_lk, hinner]
+
+omit [DecidableEq n] in
+/-- In the least-squares first-stage case, generated-regressor OLS is 2SLS.
+
+This is the deterministic bridge behind Hansen Theorem 12.11.  The projection
+identities are kept explicit because the Star projection is totalized; ordinary
+nonsingular first stages provide them through the finite-sample projection
+lemmas in `Basic.lean`. -/
+theorem generatedRegressorLSBetaStar_eq_twoSLSBetaStar_of_projection_identities
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ)
+    (hidem : instrumentProjectionStar Z * instrumentProjectionStar Z =
+      instrumentProjectionStar Z)
+    (hsymm : (instrumentProjectionStar Z)ᵀ = instrumentProjectionStar Z) :
+    generatedRegressorBetaStar Z (generatedRegressorLSFirstStageCoefStar Z X) Y =
+      twoSLSBetaStar Z X Y := by
+  unfold generatedRegressorBetaStar generatedRegressorLSFirstStageCoefStar
+    generatedRegressors
+  rw [← fittedRegressorsStar_eq_Z_mul_reducedFormCoefStar]
+  exact (twoSLSBetaStar_eq_olsBetaStar_fitted_of_projection_identities
+    (Z := Z) (X := X) (y := Y) hidem hsymm).symm
+
+/-- Hansen Theorem 12.11 coefficient limit, reusing a 2SLS coefficient limit.
+
+Once the least-squares generated-regressor estimator is identified with 2SLS
+sample-by-sample, the generated-regressor coefficient CLT is just the existing
+2SLS CLT transported across that deterministic bridge. -/
+theorem generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hidem : ∀ m ω,
+      instrumentProjectionStar (stackRegressors Z m ω) *
+          instrumentProjectionStar (stackRegressors Z m ω) =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hsymm : ∀ m ω,
+      (instrumentProjectionStar (stackRegressors Z m ω))ᵀ =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (h2sls : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν := by
+  refine TendstoInDistribution.congr ?_ (EventuallyEq.rfl) h2sls
+  intro m
+  exact ae_of_all μ (fun ω => by
+    change
+      Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) - β) =
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)
+    rw [generatedRegressorLSBetaStar_eq_twoSLSBetaStar_of_projection_identities
+      (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
+      (Y := stackOutcomes Y m ω) (hidem m ω) (hsymm m ω)])
+
+/-- Proof-facing package for Hansen Theorem 12.11, the generated-regressor
+theorem with first-stage least-squares `Â = (Z'Z)^{-1}Z'X`.
+
+The fields correspond to Hansen's two conclusions: the Gaussian limit with
+structural residual `e = Y - X'β`, and consistency of the modified covariance
+estimator using structural rather than generated-regression residuals. -/
+structure GeneratedRegressorLSAsymptoticNormalConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
+    (A : Matrix l k ℝ) (QZZ OmegaZE : Matrix l l ℝ)
+    (β : k → ℝ) (G : Ωlim → EuclideanSpace ℝ k) : Prop where
+  coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω)
+          (generatedRegressorLSFirstStageCoefStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))
+          (stackOutcomes Y m ω) - β))
+    atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν
+  gaussian_limit : HasLaw G
+    (multivariateGaussian (0 : EuclideanSpace ℝ k)
+      (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν
+  covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      generatedRegressorLSVHatStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)) μ
+  covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      generatedRegressorLSVHatStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+    atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)
+
+/-- Constructor for Hansen Theorem 12.11 from existing 2SLS conclusions.
+
+This is the condition-package version of the 2SLS reuse route: the finite-sample
+projection identities identify least-squares generated-regressor OLS with 2SLS,
+while the covariance surface is definitionally the structural-residual 2SLS HC0
+estimator. -/
+theorem GeneratedRegressorLSAsymptoticNormalConditions.of_twoSLS
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hidem : ∀ m ω,
+      instrumentProjectionStar (stackRegressors Z m ω) *
+          instrumentProjectionStar (stackRegressors Z m ω) =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hsymm : ∀ m ω,
+      (instrumentProjectionStar (stackRegressors Z m ω))ᵀ =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν)
+    (hcov_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hcov : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)) :
+    GeneratedRegressorLSAsymptoticNormalConditions
+      μ ν Z X Y A QZZ OmegaZE β G where
+  coefficient_limit :=
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (β := β) (G := G) hidem hsymm hcoef
+  gaussian_limit := hG
+  covariance_measurable := by
+    intro m
+    simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov_meas m
+  covariance_consistent := by
+    simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov
+
+/-- **Hansen Theorem 12.11.**
+
+The first-stage least-squares generated-regressor estimator has the Gaussian
+limit with structural-error covariance (12.56), and the structural-residual
+covariance estimator (12.57) is consistent. -/
+theorem generatedRegressorLS_theorem12_11_coefficient_and_covariance
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (h : GeneratedRegressorLSAsymptoticNormalConditions
+      μ ν Z X Y A QZZ OmegaZE β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) :=
+  ⟨h.coefficient_limit, h.gaussian_limit, h.covariance_consistent⟩
+
+/-- Hansen Theorem 12.11 coefficient endpoint with the Gaussian limit law
+composed directly into the statement. -/
+theorem generatedRegressorLSBetaStar_tendstoInDistribution_multivariateGaussian
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (h : GeneratedRegressorLSAsymptoticNormalConditions
+      μ ν Z X Y A QZZ OmegaZE β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) := by
+  let V := generatedRegressorAsymptoticVariance A QZZ OmegaZE
+  have h1211 := generatedRegressorLS_theorem12_11_coefficient_and_covariance
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (OmegaZE := OmegaZE)
+    (β := β) (G := G) h
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β)) : k → ℝ) : EuclideanSpace ℝ k))
+        atTop (fun ω => G ω) (fun _ => μ) ν := by
+    have hmap := h1211.1.continuous_comp (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure (multivariateGaussian 0 V) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β)) : k → ℝ) : EuclideanSpace ℝ k))
+        atTop (fun z : EuclideanSpace ℝ k => z) (fun _ => μ)
+        (multivariateGaussian 0 V) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k)
+      hEuclidAux h1211.2.1
+  have hraw := hEuclidDirect.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
+  simpa [V, Function.comp_def] using hraw
+
+/-- **Hansen Theorem 12.11**, direct normal/covariance endpoint. -/
+theorem generatedRegressorLS_theorem12_11_multivariateGaussian_and_covariance
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (h : GeneratedRegressorLSAsymptoticNormalConditions
+      μ ν Z X Y A QZZ OmegaZE β G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) :=
+  ⟨generatedRegressorLSBetaStar_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (ν := ν) h,
+    h.covariance_consistent⟩
+
+/-- **Hansen Theorem 12.11**, reuse wrapper from existing 2SLS conclusions.
+
+This theorem avoids restating the coefficient CLT and structural-residual
+covariance consistency in a generated-regressor-specific condition package.
+The remaining primitive work is to derive the supplied 2SLS conclusions from
+Hansen's model (12.48), first-stage projection model (12.54), fourth moments,
+and positive-definiteness assumptions. -/
+theorem generatedRegressorLS_theorem12_11_from_twoSLS
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hidem : ∀ m ω,
+      instrumentProjectionStar (stackRegressors Z m ω) *
+          instrumentProjectionStar (stackRegressors Z m ω) =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hsymm : ∀ m ω,
+      (instrumentProjectionStar (stackRegressors Z m ω))ᵀ =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) := by
+  refine ⟨?_, hG, ?_⟩
+  · exact generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (β := β) (G := G) hidem hsymm hcoef
+  · simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov
+
+/-- **Hansen Theorem 12.11**, direct normal/covariance endpoint from existing
+2SLS conclusions. -/
+theorem generatedRegressorLS_theorem12_11_multivariateGaussian_and_covariance_from_twoSLS
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hidem : ∀ m ω,
+      instrumentProjectionStar (stackRegressors Z m ω) *
+          instrumentProjectionStar (stackRegressors Z m ω) =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hsymm : ∀ m ω,
+      (instrumentProjectionStar (stackRegressors Z m ω))ᵀ =
+        instrumentProjectionStar (stackRegressors Z m ω))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) := by
+  let V := generatedRegressorAsymptoticVariance A QZZ OmegaZE
+  have hcoefLS :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β))
+        atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν :=
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (β := β) (G := G) hidem hsymm hcoef
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β)) : k → ℝ) : EuclideanSpace ℝ k))
+        atTop (fun ω => G ω) (fun _ => μ) ν := by
+    have hmap := hcoefLS.continuous_comp (PiLp.continuous_toLp 2 (fun _ : k => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure (multivariateGaussian 0 V) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β)) : k → ℝ) : EuclideanSpace ℝ k))
+        atTop (fun z : EuclideanSpace ℝ k => z) (fun _ => μ)
+        (multivariateGaussian 0 V) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k)
+      hEuclidAux hG
   refine ⟨?_, ?_⟩
-  · simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
-      Matrix.PosSemidef.mul_mul_conjTranspose_same h.covariance_posSemidef R
-  · have hlin :
-        TendstoInDistribution
-          (fun n ω => matrixContinuousLinearMap R (WithLp.toLp 2 (T n ω)))
-          atTop (fun z : EuclideanSpace ℝ k => matrixContinuousLinearMap R z)
-          (fun _ => mu) (multivariateGaussian 0 V) := by
-      have hg :
-          Continuous (fun x : k → ℝ => matrixContinuousLinearMap R (WithLp.toLp 2 x)) := by
-        fun_prop
-      simpa [Function.comp_def] using h.limit.continuous_comp hg
-    have hLaw :
-        HasLaw (fun z : EuclideanSpace ℝ k => matrixContinuousLinearMap R z)
-          (multivariateGaussian 0 (R * V * Rᵀ)) (multivariateGaussian 0 V) := by
-      simpa [matrixContinuousLinearMap, Matrix.conjTranspose_eq_transpose_of_trivial] using
-        hasLaw_multivariateGaussian_zero_linearMap
-          (n := k) (q := q) h.covariance_posSemidef R
-    have hEuclid :
-        TendstoInDistribution
-          (fun n ω => matrixContinuousLinearMap R (WithLp.toLp 2 (T n ω)))
-          atTop (fun z : EuclideanSpace ℝ q => z)
-          (fun _ => mu) (multivariateGaussian 0 (R * V * Rᵀ)) :=
-      tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ q) hlin hLaw
-    have hofLp : Continuous (fun z : EuclideanSpace ℝ q => z.ofLp) := by
-      fun_prop
-    simpa [Function.comp_def, matrixContinuousLinearMap_apply] using
-      hEuclid.continuous_comp hofLp
+  · have hraw := hEuclidDirect.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
+    simpa [V, Function.comp_def] using hraw
+  · simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov
 
-/-- Interface projection for the generated-regressor Gaussian limit. -/
-theorem generatedRegressor_gaussianLimit_from_interface
-    (T : ℕ → Omega → k → ℝ) (V : Matrix k k ℝ)
-    (h : GeneratedRegressorGaussianLimitInterface (mu := mu) T V) :
-    GaussianLimit mu T V :=
-  h.gaussian_limit
+/-- **Hansen Theorem 12.11**, direct normal/covariance endpoint from the
+primitive 2SLS Assumption 12.2 mixed-moment package and Hansen's population
+projection equation `Q_XZ = A'Q_ZZ`, `Q_ZX = Q_ZZ A`.
 
-/-- Linear image of a generated-regressor Gaussian limit.
+This is the strongest current reuse route for the least-squares
+generated-regressor case: the coefficient CLT is the existing Assumption 12.2
+2SLS CLT, the covariance consistency is the existing Theorem 12.3 mixed-moment
+constructor, and the only generated-regressor-specific work is the deterministic
+sample identity between OLS on `ZÂ` and 2SLS. -/
+theorem
+    generatedRegressorLS_theorem12_11_of_assumption12_2_projection
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (A : Matrix l k ℝ)
+    (hZInv : ∀ m ω,
+      Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω))
+    (hQZZ :
+      IsUnit
+        (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))).det)
+    (hQXZ :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+        Aᵀ * twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+    (hQZX :
+      twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) =
+        twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) * A) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  let QZZ : Matrix l l ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
+  let OmegaZE : Matrix l l ℝ := scoreCovMat μ Z e
+  let Vgen : Matrix k k ℝ := generatedRegressorAsymptoticVariance A QZZ OmegaZE
+  let V2sls : Matrix k k ℝ :=
+    twoSLSAsymptoticVariance (Aᵀ * QZZ) QZZ OmegaZE (QZZ * A)
+  have hVgen_eq : Vgen = V2sls := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE] using
+      generatedRegressorAsymptoticVariance_eq_twoSLS_population_projection
+        (A := A) (QZZ := QZZ) (OmegaZE := OmegaZE) hQZZ
+  have hcoef2sls_raw :=
+    twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+  have hcoef2sls :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using hcoef2sls_raw
+  have hidem : ∀ m ω,
+      instrumentProjectionStar (stackRegressors Z m ω) *
+          instrumentProjectionStar (stackRegressors Z m ω) =
+        instrumentProjectionStar (stackRegressors Z m ω) := by
+    intro m ω
+    letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+      hZInv m ω
+    exact instrumentProjectionStar_idempotent_of_nonsingular
+      (Z := stackRegressors Z m ω)
+  have hsymm : ∀ m ω,
+      (instrumentProjectionStar (stackRegressors Z m ω))ᵀ =
+        instrumentProjectionStar (stackRegressors Z m ω) := by
+    intro m ω
+    letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+      hZInv m ω
+    exact instrumentProjectionStar_transpose_of_nonsingular
+      (Z := stackRegressors Z m ω)
+  have hcoefLS_aux :=
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS
+      (μ := μ) (ν := multivariateGaussian 0 Vgen)
+      (Z := Z) (X := X) (Y := Y) (β := β)
+      (G := fun z : EuclideanSpace ℝ k => z)
+      hidem hsymm hcoef2sls
+  have hcoefLS :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa using hcoefLS_aux
+  have hcovFormula :=
+    TwoSLSCovarianceFormulaConsistencyConditions.of_assumption12_2_joint_iid_mixed_moment_conditions
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
+  have hcov2sls :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSVHatStar
+            (fun i : Fin n => Z i.val ω) (fun i : Fin n => X i.val ω)
+            (fun i : Fin n => Y i.val ω))
+        atTop (fun _ => Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using
+      hcovFormula.robust_tendsto
+  refine ⟨?_, ?_⟩
+  · simpa [Vgen, QZZ, OmegaZE] using hcoefLS
+  · simpa [Vgen, QZZ, OmegaZE, generatedRegressorLSVHatStar_eq_twoSLSVHatStar]
+      using hcov2sls
 
-This theorem supports Hansen Theorems 12.9 and 12.11: once the coefficient
-vector has its joint Gaussian limit, any tested block or linear restriction has
-the corresponding Gaussian limit with covariance `R V R'`. -/
-theorem generatedRegressor_gaussianLimit_linearMap_from_interface
-    (T : ℕ → Omega → k → ℝ) (V : Matrix k k ℝ) (R : Matrix q k ℝ)
-    (h : GeneratedRegressorGaussianLimitInterface (mu := mu) T V) :
-    GaussianLimit mu (fun n ω => R *ᵥ T n ω) (R * V * Rᵀ) :=
-  gaussianLimit_linearMap T V R h.gaussian_limit
+end LeastSquaresGeneratedRegressors
 
-omit [IsProbabilityMeasure mu] in
-/-- Interface projection for the generated-regressor finite-sample law. -/
-theorem generatedRegressor_normal_hasLaw_from_interface
-    (stat : Omega → ℝ) (law : Measure ℝ)
-    (h : GeneratedRegressorNormalLawInterface (mu := mu) stat law) :
-    HasLaw stat law mu :=
-  h.statistic_law
+section ExpectationErrors
 
-omit [IsProbabilityMeasure mu] [DecidableEq k] in
-/-- Interface projection for generated-regressor plug-in consistency. -/
-theorem generatedRegressor_consistent_from_interface
-    (betahat : ℕ → Omega → k → ℝ) (beta : k → ℝ)
-    (h : GeneratedRegressorConsistencyInterface (mu := mu) betahat beta) :
-    TendstoInMeasure mu betahat atTop (fun _ => beta) :=
-  h.consistent
+variable {Ω Ωlim : Type*} [MeasurableSpace Ω] [MeasurableSpace Ωlim]
+variable {μ : Measure Ω} {ν : Measure Ωlim}
+variable [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
 
-/-- Interface projection for regression with expectation errors. -/
-theorem expectationError_gaussianLimit_from_interface
-    (T : ℕ → Omega → q → ℝ) (V : Matrix q q ℝ)
-    (h : ExpectationErrorGaussianLimitInterface (mu := mu) T V) :
-    GaussianLimit mu T V :=
-  h.gaussian_limit
+/-- First-step fitted expectation `Ŵ = Z Â` in Hansen Section 12.27. -/
+noncomputable def expectationErrorFittedStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) : Matrix n k ℝ :=
+  fittedRegressorsStar Z X
 
-/-- Linear image of an expectation-error Gaussian limit.
+/-- First-step residual expectation error `Û = X - Ŵ` in Hansen Section 12.27. -/
+noncomputable def expectationErrorResidualStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) : Matrix n k ℝ :=
+  X - expectationErrorFittedStar Z X
 
-This is the reusable layer needed for Hansen Theorem 12.13: the alpha estimator
-limit is a linear image of the joint expectation-error/generated-regressor
-limit, with covariance `R V R'`. -/
-theorem expectationError_gaussianLimit_linearMap_from_interface
-    (T : ℕ → Omega → k → ℝ) (V : Matrix k k ℝ) (R : Matrix q k ℝ)
-    (h : ExpectationErrorGaussianLimitInterface (mu := mu) T V) :
-    GaussianLimit mu (fun n ω => R *ᵥ T n ω) (R * V * Rᵀ) :=
-  gaussianLimit_linearMap T V R h.gaussian_limit
+/-- Second-step design `(Ŵ, Û)` for Hansen's expectation-error regression. -/
+noncomputable def expectationErrorDesignStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) : Matrix n (Sum k k) ℝ :=
+  Matrix.fromCols (expectationErrorFittedStar Z X) (expectationErrorResidualStar Z X)
+
+/-- Joint coefficient estimator `(β̂, α̂)` from the expectation-error
+regression of `Y` on `(Ŵ, Û)`. -/
+noncomputable def expectationErrorBetaAlphaStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : Sum k k → ℝ :=
+  olsBetaStar (expectationErrorDesignStar Z X) Y
+
+/-- The `β̂` block from the expectation-error regression. -/
+def expectationErrorBetaBlock (b : Sum k k → ℝ) : k → ℝ :=
+  fun j => b (Sum.inl j)
+
+/-- The `α̂` block from the expectation-error regression. -/
+def expectationErrorAlphaBlock (b : Sum k k → ℝ) : k → ℝ :=
+  fun j => b (Sum.inr j)
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem expectationErrorBetaBlock_sum_elim (β α : k → ℝ) :
+    expectationErrorBetaBlock (Sum.elim β α) = β := by
+  rfl
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem expectationErrorAlphaBlock_sum_elim (β α : k → ℝ) :
+    expectationErrorAlphaBlock (Sum.elim β α) = α := by
+  rfl
+
+/-- Hansen Theorem 12.12 `V_{ββ}` block. -/
+noncomputable def expectationErrorVbetaBeta
+    (A : Matrix l k ℝ) (QZZ OmegaZE : Matrix l l ℝ) : Matrix k k ℝ :=
+  generatedRegressorAsymptoticVariance A QZZ OmegaZE
+
+/-- Hansen Theorem 12.12 `V_{αβ}` block.  The middle matrix represents
+`E[u Z' e ν]`. -/
+noncomputable def expectationErrorValphaBeta
+    (Quu : Matrix k k ℝ) (OmegaUZeNu : Matrix k l ℝ)
+    (A : Matrix l k ℝ) (QZZ : Matrix l l ℝ) : Matrix k k ℝ :=
+  Quu⁻¹ * (OmegaUZeNu * A) * (Aᵀ * QZZ * A)⁻¹
+
+/-- Hansen Theorem 12.12 `V_{αα}` block. -/
+noncomputable def expectationErrorValphaAlpha
+    (Quu OmegaUUNu : Matrix k k ℝ) : Matrix k k ℝ :=
+  Quu⁻¹ * OmegaUUNu * Quu⁻¹
+
+/-- Hansen Section 12.27 structural error `e = Y - X'β`. -/
+def expectationErrorStructuralError
+    (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ) (β : k → ℝ) :
+    ℕ → Ω → ℝ :=
+  fun i ω => Y i ω - dotProduct (X i ω) β
+
+/-- Hansen Section 12.27 control-error decomposition `u'α + ν`. -/
+def expectationErrorControlError
+    (u : ℕ → Ω → k → ℝ) (νe : ℕ → Ω → ℝ) (α : k → ℝ) :
+    ℕ → Ω → ℝ :=
+  fun i ω => dotProduct (u i ω) α + νe i ω
+
+/-- Hansen Theorem 12.12 cross middle matrix `E[u Z' e ν]`. -/
+noncomputable def expectationErrorOmegaUZeNu
+    (μ : Measure Ω) (u : ℕ → Ω → k → ℝ) (Z : ℕ → Ω → l → ℝ)
+    (e νe : ℕ → Ω → ℝ) : Matrix k l ℝ :=
+  μ[fun ω => (e 0 ω * νe 0 ω) • Matrix.vecMulVec (u 0 ω) (Z 0 ω)]
+
+/-- Hansen Theorem 12.12 full covariance matrix for
+`√n((β̂-β),(α̂-α))`. -/
+noncomputable def expectationErrorAsymptoticVariance
+    (A : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (Quu : Matrix k k ℝ)
+    (OmegaZE : Matrix l l ℝ) (OmegaUZeNu : Matrix k l ℝ)
+    (OmegaUUNu : Matrix k k ℝ) : Matrix (Sum k k) (Sum k k) ℝ :=
+  let Vβα := (expectationErrorValphaBeta Quu OmegaUZeNu A QZZ)ᵀ
+  Matrix.fromBlocks
+    (expectationErrorVbetaBeta A QZZ OmegaZE)
+    Vβα
+    (expectationErrorValphaBeta Quu OmegaUZeNu A QZZ)
+    (expectationErrorValphaAlpha Quu OmegaUUNu)
+
+omit [DecidableEq l] in
+@[simp]
+theorem expectationErrorAsymptoticVariance_rightBlockCovariance
+    (A : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (Quu : Matrix k k ℝ)
+    (OmegaZE : Matrix l l ℝ) (OmegaUZeNu : Matrix k l ℝ)
+    (OmegaUUNu : Matrix k k ℝ) :
+    generatedRegressorRightBlockCovariance
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) =
+      expectationErrorValphaAlpha Quu OmegaUUNu := by
+  simp [expectationErrorAsymptoticVariance]
+
+/-- Estimated `β` block from Hansen's expectation-error regression. -/
+noncomputable def expectationErrorBetaHatStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : k → ℝ :=
+  expectationErrorBetaBlock (expectationErrorBetaAlphaStar Z X Y)
+
+/-- Estimated `α` block from Hansen's expectation-error regression. -/
+noncomputable def expectationErrorAlphaHatStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : k → ℝ :=
+  expectationErrorAlphaBlock (expectationErrorBetaAlphaStar Z X Y)
+
+omit [DecidableEq n] in
+@[simp]
+theorem expectationErrorBetaHatStar_apply
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) (j : k) :
+    expectationErrorBetaHatStar Z X Y j =
+      expectationErrorBetaAlphaStar Z X Y (Sum.inl j) := rfl
+
+omit [DecidableEq n] in
+@[simp]
+theorem expectationErrorAlphaHatStar_apply
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) (j : k) :
+    expectationErrorAlphaHatStar Z X Y j =
+      expectationErrorBetaAlphaStar Z X Y (Sum.inr j) := rfl
+
+omit [Fintype k] [DecidableEq n] [DecidableEq k] in
+theorem expectationErrorAlphaBlock_eq_generatedRegressorRightBlock
+    (b : Sum k k → ℝ) :
+    expectationErrorAlphaBlock b =
+      generatedRegressorRightBlock (k₁ := k) (k₂ := k) b := by
+  rfl
+
+omit [DecidableEq n] in
+theorem expectationErrorAlphaHatStar_eq_generatedRegressorRightBlock
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    expectationErrorAlphaHatStar Z X Y =
+      generatedRegressorRightBlock (k₁ := k) (k₂ := k)
+        (expectationErrorBetaAlphaStar Z X Y) := by
+  rfl
+
+omit [Fintype k] [DecidableEq n] [DecidableEq k] in
+@[simp]
+theorem expectationErrorFittedStar_add_residualStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) :
+    expectationErrorFittedStar Z X + expectationErrorResidualStar Z X = X := by
+  ext i j
+  simp [expectationErrorResidualStar]
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] [DecidableEq k] in
+theorem expectationErrorDesignStar_mulVec
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (β α : k → ℝ) :
+    expectationErrorDesignStar Z X *ᵥ Sum.elim β α =
+      expectationErrorFittedStar Z X *ᵥ β +
+        expectationErrorResidualStar Z X *ᵥ α := by
+  simp [expectationErrorDesignStar, Matrix.fromCols_mulVec]
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- First-stage fitted values and residuals are sample-orthogonal when the
+instrument Gram is nonsingular. This is the deterministic block-diagonal Gram
+bridge behind Hansen's expectation-error regression. -/
+theorem expectationErrorFittedStar_transpose_mul_residualStar_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    (expectationErrorFittedStar Z X)ᵀ *
+      expectationErrorResidualStar Z X = 0 := by
+  let P : Matrix n n ℝ := instrumentProjectionStar Z
+  have hPt : Pᵀ = P := by
+    simpa [P] using instrumentProjectionStar_transpose_of_nonsingular (Z := Z)
+  have hPid : P * P = P := by
+    simpa [P] using instrumentProjectionStar_idempotent_of_nonsingular (Z := Z)
+  calc
+    (expectationErrorFittedStar Z X)ᵀ *
+        expectationErrorResidualStar Z X
+        = (P * X)ᵀ * (X - P * X) := by
+            simp [expectationErrorFittedStar, expectationErrorResidualStar,
+              fittedRegressorsStar, P]
+    _ = (Xᵀ * P) * (X - P * X) := by
+            rw [Matrix.transpose_mul, hPt]
+    _ = Xᵀ * (P * (X - P * X)) := by
+            simp [Matrix.mul_assoc]
+    _ = Xᵀ * (P * X - P * (P * X)) := by
+            rw [Matrix.mul_sub]
+    _ = Xᵀ * (P * X - (P * P) * X) := by
+            simp [Matrix.mul_assoc]
+    _ = Xᵀ * (P * X - P * X) := by
+            rw [hPid]
+    _ = 0 := by
+            simp
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- Reverse-direction form of expectation-error sample orthogonality. -/
+theorem expectationErrorResidualStar_transpose_mul_fittedStar_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    (expectationErrorResidualStar Z X)ᵀ *
+      expectationErrorFittedStar Z X = 0 := by
+  have h :=
+    expectationErrorFittedStar_transpose_mul_residualStar_of_nonsingular
+      (Z := Z) (X := X)
+  have ht := congrArg Matrix.transpose h
+  simpa [Matrix.transpose_mul] using ht
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- The normalized fitted/residual cross moment vanishes under first-stage
+nonsingularity. -/
+theorem sampleQZX_expectationError_fitted_residual_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    sampleQZX (expectationErrorFittedStar Z X)
+      (expectationErrorResidualStar Z X) = 0 := by
+  simp [sampleQZX,
+    expectationErrorFittedStar_transpose_mul_residualStar_of_nonsingular
+      (Z := Z) (X := X)]
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- The reverse normalized residual/fitted cross moment also vanishes under
+first-stage nonsingularity. -/
+theorem sampleQXZ_expectationError_fitted_residual_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    sampleQXZ (expectationErrorFittedStar Z X)
+      (expectationErrorResidualStar Z X) = 0 := by
+  simp [sampleQXZ,
+    sampleQZX_expectationError_fitted_residual_of_nonsingular
+      (Z := Z) (X := X)]
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- Upper-right sample-Gram block for the expectation-error design. -/
+theorem expectationErrorDesignStar_sampleGram_left_right_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    (sampleGram (expectationErrorDesignStar Z X)).submatrix
+      Sum.inl Sum.inr = 0 := by
+  calc
+    (sampleGram (expectationErrorDesignStar Z X)).submatrix
+        Sum.inl Sum.inr
+        = sampleQZX (expectationErrorFittedStar Z X)
+            (expectationErrorResidualStar Z X) := by
+            simp [expectationErrorDesignStar]
+    _ = 0 :=
+            sampleQZX_expectationError_fitted_residual_of_nonsingular
+              (Z := Z) (X := X)
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- Lower-left sample-Gram block for the expectation-error design. -/
+theorem expectationErrorDesignStar_sampleGram_right_left_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    (sampleGram (expectationErrorDesignStar Z X)).submatrix
+      Sum.inr Sum.inl = 0 := by
+  calc
+    (sampleGram (expectationErrorDesignStar Z X)).submatrix
+        Sum.inr Sum.inl
+        = sampleQXZ (expectationErrorFittedStar Z X)
+            (expectationErrorResidualStar Z X) := by
+            simp [expectationErrorDesignStar]
+    _ = 0 :=
+            sampleQXZ_expectationError_fitted_residual_of_nonsingular
+              (Z := Z) (X := X)
+
+omit [IsProbabilityMeasure μ] [Fintype k] [DecidableEq n] [DecidableEq k] in
+/-- Block-diagonal sample Gram for Hansen's expectation-error design under
+first-stage nonsingularity. -/
+theorem expectationErrorDesignStar_sampleGram_eq_fromBlocks_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) [Invertible (Zᵀ * Z)] :
+    sampleGram (expectationErrorDesignStar Z X) =
+      Matrix.fromBlocks
+        (sampleGram (expectationErrorFittedStar Z X))
+        0
+        0
+        (sampleGram (expectationErrorResidualStar Z X)) := by
+  ext i j
+  cases i with
+  | inl i =>
+      cases j with
+      | inl j =>
+          have h :=
+            sampleGram_fromCols_left_left
+              (Z := expectationErrorFittedStar Z X)
+              (X := expectationErrorResidualStar Z X)
+          simpa [expectationErrorDesignStar, sampleQZZ] using
+            congrFun (congrFun h i) j
+      | inr j =>
+          have h :=
+            expectationErrorDesignStar_sampleGram_left_right_of_nonsingular
+              (Z := Z) (X := X)
+          simpa using congrFun (congrFun h i) j
+  | inr i =>
+      cases j with
+      | inl j =>
+          have h :=
+            expectationErrorDesignStar_sampleGram_right_left_of_nonsingular
+              (Z := Z) (X := X)
+          simpa using congrFun (congrFun h i) j
+      | inr j =>
+          have h :=
+            sampleGram_fromCols_right_right
+              (Z := expectationErrorFittedStar Z X)
+              (X := expectationErrorResidualStar Z X)
+          simpa [expectationErrorDesignStar] using
+            congrFun (congrFun h i) j
+
+/-- Hansen's displayed structural residual `êᵢ = Yᵢ - Xᵢ'β̂`. -/
+noncomputable def expectationErrorStructuralResidualStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : n → ℝ :=
+  Y - X *ᵥ expectationErrorBetaHatStar Z X Y
+
+/-- Hansen's displayed second-step residual
+`ν̂ᵢ = Yᵢ - Ŵᵢ'β̂ - ûᵢ'α̂`. -/
+noncomputable def expectationErrorSecondStepResidualStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : n → ℝ :=
+  Y - expectationErrorDesignStar Z X *ᵥ expectationErrorBetaAlphaStar Z X Y
+
+/-- Hansen Theorem 12.12 feasible block `V̂_{ββ}`. -/
+noncomputable def expectationErrorVHatBetaBetaStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : Matrix k k ℝ :=
+  let W := expectationErrorFittedStar Z X
+  let ehat := expectationErrorStructuralResidualStar Z X Y
+  let middle : Matrix k k ℝ :=
+    (Fintype.card n : ℝ)⁻¹ •
+      ∑ i : n, (ehat i) ^ 2 • Matrix.vecMulVec (W i) (W i)
+  (sampleGram W)⁻¹ * middle * (sampleGram W)⁻¹
+
+/-- Hansen Theorem 12.12 feasible block `V̂_{αβ}`. -/
+noncomputable def expectationErrorVHatAlphaBetaStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : Matrix k k ℝ :=
+  let W := expectationErrorFittedStar Z X
+  let U := expectationErrorResidualStar Z X
+  let ehat := expectationErrorStructuralResidualStar Z X Y
+  let nuhat := expectationErrorSecondStepResidualStar Z X Y
+  let middle : Matrix k k ℝ :=
+    (Fintype.card n : ℝ)⁻¹ •
+      ∑ i : n, (ehat i * nuhat i) • Matrix.vecMulVec (U i) (W i)
+  (sampleGram U)⁻¹ * middle * (sampleGram W)⁻¹
+
+/-- Hansen Theorem 12.12 feasible block `V̂_{αα}`. -/
+noncomputable def expectationErrorVHatAlphaAlphaStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : Matrix k k ℝ :=
+  let U := expectationErrorResidualStar Z X
+  let nuhat := expectationErrorSecondStepResidualStar Z X Y
+  let middle : Matrix k k ℝ :=
+    (Fintype.card n : ℝ)⁻¹ •
+      ∑ i : n, (nuhat i) ^ 2 • Matrix.vecMulVec (U i) (U i)
+  (sampleGram U)⁻¹ * middle * (sampleGram U)⁻¹
+
+/-- Hansen Theorem 12.12 full feasible covariance estimator assembled from the
+displayed blocks `V̂_{ββ}`, `V̂_{αβ}`, and `V̂_{αα}`. -/
+noncomputable def expectationErrorVHatStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    Matrix (Sum k k) (Sum k k) ℝ :=
+  let Vαβ := expectationErrorVHatAlphaBetaStar Z X Y
+  Matrix.fromBlocks
+    (expectationErrorVHatBetaBetaStar Z X Y)
+    Vαβᵀ
+    Vαβ
+    (expectationErrorVHatAlphaAlphaStar Z X Y)
+
+omit [DecidableEq n] in
+@[simp]
+theorem expectationErrorVHatStar_rightBlockCovariance
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    generatedRegressorRightBlockCovariance
+        (expectationErrorVHatStar Z X Y) =
+      expectationErrorVHatAlphaAlphaStar Z X Y := by
+  simp [expectationErrorVHatStar]
+
+omit [IsProbabilityMeasure μ] in
+/-- First-step fitted expectation-error design measurability from row
+measurability. -/
+theorem expectationErrorFittedStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorFittedStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ := by
+  simpa [expectationErrorFittedStar] using
+    fittedRegressorsStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) hZ hX
+
+omit [IsProbabilityMeasure μ] in
+/-- First-step residual expectation-error design measurability from row
+measurability. -/
+theorem expectationErrorResidualStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorResidualStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ := by
+  let Xmat : Ω → Matrix (Fin N) k ℝ := fun ω => fun i => X i.val ω
+  have hXmat : AEStronglyMeasurable Xmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX
+  have hW :
+      AEStronglyMeasurable
+        (fun ω =>
+          expectationErrorFittedStar
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ :=
+    expectationErrorFittedStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) hZ hX
+  simpa [expectationErrorResidualStar, Xmat] using hXmat.sub hW
+
+omit [IsProbabilityMeasure μ] in
+/-- Expectation-error stacked design measurability from row measurability. -/
+theorem expectationErrorDesignStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorDesignStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ := by
+  have hW :
+      AEStronglyMeasurable
+        (fun ω =>
+          expectationErrorFittedStar
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ :=
+    expectationErrorFittedStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) hZ hX
+  have hU :
+      AEStronglyMeasurable
+        (fun ω =>
+          expectationErrorResidualStar
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)) μ :=
+    expectationErrorResidualStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) hZ hX
+  simpa [expectationErrorDesignStar] using
+    matrix_fromCols_aestronglyMeasurable (μ := μ) hW hU
+
+set_option maxHeartbeats 900000 in
+-- Heartbeat bump: the block-matrix CMT has to synthesize matrix product and
+-- finite-dimensional topology instances for two generated Gram blocks.
+/-- Block sample-Gram convergence for Hansen's expectation-error generated
+design from fitted/residual block Gram convergence and high-probability
+first-stage nonsingularity.  The finite-sample orthogonality identity supplies
+the zero off-diagonal blocks on the nonsingular branch. -/
+theorem expectationErrorDesignStar_sampleGram_tendstoInMeasure_of_block_sampleGrams
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {QW QU : Matrix k k ℝ}
+    (hZrank : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hW_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleGram
+          (expectationErrorFittedStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))) μ)
+    (hU_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleGram
+          (expectationErrorResidualStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))) μ)
+    (hW : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorFittedStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => QW))
+    (hU : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorResidualStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => QU)) :
+    TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorDesignStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => Matrix.fromBlocks QW 0 0 QU) := by
+  have hzero : TendstoInMeasure μ
+      (fun (_ : ℕ) (_ : Ω) => (0 : Matrix k k ℝ)) atTop
+      (fun _ => 0) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  have hzero_meas : ∀ _m : ℕ,
+      AEStronglyMeasurable (fun (_ : Ω) => (0 : Matrix k k ℝ)) μ :=
+    fun (_ : ℕ) => aestronglyMeasurable_const
+  have hblocks : TendstoInMeasure μ
+      (fun m ω =>
+        Matrix.fromBlocks
+          (sampleGram
+            (expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)))
+          0
+          0
+          (sampleGram
+            (expectationErrorResidualStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))))
+      atTop (fun _ => Matrix.fromBlocks QW 0 0 QU) :=
+    tendstoInMeasure_matrix_fromBlocks
+      (μ := μ) hW_meas hzero_meas hzero_meas hU_meas hW hzero hzero hU
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hblocks
+  filter_upwards [hZrank] with m hm
+  filter_upwards [hm] with ω hZdet
+  letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) hZdet
+  exact
+    (expectationErrorDesignStar_sampleGram_eq_fromBlocks_of_nonsingular
+      (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)).symm
+
+set_option maxHeartbeats 900000 in
+-- Heartbeat bump: the row wrapper expands stack measurability for the two
+-- generated block Grams before applying the block convergence theorem.
+/-- Row-measurable version of
+`expectationErrorDesignStar_sampleGram_tendstoInMeasure_of_block_sampleGrams`.
+This is the theorem-facing form used when Hansen assumptions give row
+measurability for the primitive instrument and regressor arrays. -/
+theorem expectationErrorDesignStar_sampleGram_tendstoInMeasure_of_block_sampleGrams_rows
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {QW QU : Matrix k k ℝ}
+    (hZ_meas : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX_meas : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hZrank : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hW : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorFittedStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => QW))
+    (hU : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorResidualStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => QU)) :
+    TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (expectationErrorDesignStar
+            (stackRegressors Z m ω) (stackRegressors X m ω)))
+      atTop (fun _ => Matrix.fromBlocks QW 0 0 QU) :=
+  expectationErrorDesignStar_sampleGram_tendstoInMeasure_of_block_sampleGrams
+    (μ := μ) (Z := Z) (X := X) hZrank
+    (fun m =>
+      sampleGram_from_matrix_aestronglyMeasurable (μ := μ) (by
+        simpa [stackRegressors] using
+          expectationErrorFittedStar_aestronglyMeasurable_of_rows
+            (μ := μ) (N := m) (Z := Z) (X := X) hZ_meas hX_meas))
+    (fun m =>
+      sampleGram_from_matrix_aestronglyMeasurable (μ := μ) (by
+        simpa [stackRegressors] using
+          expectationErrorResidualStar_aestronglyMeasurable_of_rows
+            (μ := μ) (N := m) (Z := Z) (X := X) hZ_meas hX_meas))
+    hW hU
+
+omit [IsProbabilityMeasure μ] in
+/-- Expectation-error stacked coefficient measurability from row
+measurability. -/
+theorem expectationErrorBetaAlphaStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {Y : ℕ → Ω → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorBetaAlphaStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)
+          (fun i : Fin N => Y i.val ω)) μ := by
+  let Dmat : Ω → Matrix (Fin N) (Sum k k) ℝ := fun ω =>
+    expectationErrorDesignStar
+      (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  have hD : AEStronglyMeasurable Dmat μ := by
+    simpa [Dmat] using
+      expectationErrorDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (X := X) hZ hX
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hDt : AEStronglyMeasurable (fun ω => (Dmat ω)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hD
+  have hGram : AEStronglyMeasurable (fun ω => (Dmat ω)ᵀ * Dmat ω) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hDt.prodMk hD)
+  have hInv : AEStronglyMeasurable (fun ω => ((Dmat ω)ᵀ * Dmat ω)⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGram
+  have hCross : AEStronglyMeasurable (fun ω => (Dmat ω)ᵀ *ᵥ yvec ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hDt.prodMk hy)
+  have hbeta : AEStronglyMeasurable
+      (fun ω => ((Dmat ω)ᵀ * Dmat ω)⁻¹ *ᵥ ((Dmat ω)ᵀ *ᵥ yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInv.prodMk hCross)
+  simpa [expectationErrorBetaAlphaStar, olsBetaStar, Dmat, yvec] using hbeta
+
+omit [IsProbabilityMeasure μ] in
+/-- Scaled and centered expectation-error coefficient measurability from row
+measurability. -/
+theorem expectationErrorBetaAlphaStar_scaled_centered_aemeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {Y : ℕ → Ω → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) (β α : k → ℝ) :
+    AEMeasurable
+      (fun ω =>
+        Real.sqrt (N : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)
+            (fun i : Fin N => Y i.val ω) - Sum.elim β α)) μ :=
+  (((expectationErrorBetaAlphaStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) (Y := Y) hZ hX hY).sub
+    aestronglyMeasurable_const).const_smul (Real.sqrt (N : ℝ))).aemeasurable
+
+set_option maxHeartbeats 1000000 in
+-- The displayed covariance estimator expands into three HC0 blocks and two residual surfaces.
+omit [IsProbabilityMeasure μ] in
+/-- Hansen Theorem 12.12 displayed covariance measurability from row
+measurability. -/
+theorem expectationErrorVHatStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {Y : ℕ → Ω → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorVHatStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X i.val ω)
+          (fun i : Fin N => Y i.val ω)) μ := by
+  let Zmat : Ω → Matrix (Fin N) l ℝ := fun ω => fun i => Z i.val ω
+  let Xmat : Ω → Matrix (Fin N) k ℝ := fun ω => fun i => X i.val ω
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  let Wmat : Ω → Matrix (Fin N) k ℝ := fun ω =>
+    expectationErrorFittedStar (Zmat ω) (Xmat ω)
+  let Umat : Ω → Matrix (Fin N) k ℝ := fun ω =>
+    expectationErrorResidualStar (Zmat ω) (Xmat ω)
+  let Dmat : Ω → Matrix (Fin N) (Sum k k) ℝ := fun ω =>
+    expectationErrorDesignStar (Zmat ω) (Xmat ω)
+  let beta : Ω → Sum k k → ℝ := fun ω =>
+    expectationErrorBetaAlphaStar (Zmat ω) (Xmat ω) (yvec ω)
+  let betaBlock : Ω → k → ℝ := fun ω => expectationErrorBetaBlock (beta ω)
+  let ehat : Ω → Fin N → ℝ := fun ω =>
+    expectationErrorStructuralResidualStar (Zmat ω) (Xmat ω) (yvec ω)
+  let nuhat : Ω → Fin N → ℝ := fun ω =>
+    expectationErrorSecondStepResidualStar (Zmat ω) (Xmat ω) (yvec ω)
+  have hZmat : AEStronglyMeasurable Zmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hZ
+  have hXmat : AEStronglyMeasurable Xmat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hW : AEStronglyMeasurable Wmat μ := by
+    simpa [Wmat, Zmat, Xmat] using
+      expectationErrorFittedStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (X := X) hZ hX
+  have hU : AEStronglyMeasurable Umat μ := by
+    simpa [Umat, Zmat, Xmat] using
+      expectationErrorResidualStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (X := X) hZ hX
+  have hD : AEStronglyMeasurable Dmat μ := by
+    simpa [Dmat, Zmat, Xmat] using
+      expectationErrorDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (X := X) hZ hX
+  have hbeta : AEStronglyMeasurable beta μ := by
+    simpa [beta, Zmat, Xmat, yvec] using
+      expectationErrorBetaAlphaStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (X := X) (Y := Y) hZ hX hY
+  have hbetaBlock : AEStronglyMeasurable betaBlock μ := by
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    rw [aemeasurable_pi_iff]
+    intro j
+    simpa [betaBlock, expectationErrorBetaBlock] using
+      (((continuous_apply (Sum.inl j)).comp_aestronglyMeasurable hbeta).aemeasurable)
+  have hfitStructural : AEStronglyMeasurable
+      (fun ω => Xmat ω *ᵥ betaBlock ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hXmat.prodMk hbetaBlock)
+  have hehat : AEStronglyMeasurable ehat μ := by
+    simpa [ehat, expectationErrorStructuralResidualStar, Zmat, Xmat, yvec,
+      expectationErrorBetaHatStar, beta, betaBlock] using hy.sub hfitStructural
+  have hfitSecond : AEStronglyMeasurable
+      (fun ω => Dmat ω *ᵥ beta ω) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hD.prodMk hbeta)
+  have hnuhat : AEStronglyMeasurable nuhat μ := by
+    simpa [nuhat, expectationErrorSecondStepResidualStar, Dmat, beta, yvec] using
+      hy.sub hfitSecond
+  have hGramW : AEStronglyMeasurable (fun ω => sampleGram (Wmat ω)) μ :=
+    sampleGram_from_matrix_aestronglyMeasurable (μ := μ) hW
+  have hGramU : AEStronglyMeasurable (fun ω => sampleGram (Umat ω)) μ :=
+    sampleGram_from_matrix_aestronglyMeasurable (μ := μ) hU
+  have hInvW : AEStronglyMeasurable (fun ω => (sampleGram (Wmat ω))⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGramW
+  have hInvU : AEStronglyMeasurable (fun ω => (sampleGram (Umat ω))⁻¹) μ :=
+    aestronglyMeasurable_matrix_inv hGramU
+  have hMiddleBB : AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (ehat ω i * ehat ω i) •
+            Matrix.vecMulVec (Wmat ω i) (Wmat ω i)) μ :=
+    weightedVecMulVecAverage_aestronglyMeasurable
+      (μ := μ) hW hW hehat hehat
+  have hLeftBB : AEStronglyMeasurable
+      (fun ω => (sampleGram (Wmat ω))⁻¹ *
+        ((Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (ehat ω i * ehat ω i) •
+            Matrix.vecMulVec (Wmat ω i) (Wmat ω i))) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInvW.prodMk hMiddleBB)
+  have hBB : AEStronglyMeasurable
+      (fun ω =>
+        (sampleGram (Wmat ω))⁻¹ *
+          ((Fintype.card (Fin N) : ℝ)⁻¹ •
+            ∑ i : Fin N, (ehat ω i * ehat ω i) •
+              Matrix.vecMulVec (Wmat ω i) (Wmat ω i)) *
+          (sampleGram (Wmat ω))⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeftBB.prodMk hInvW)
+  have hMiddleAB : AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+            Matrix.vecMulVec (Umat ω i) (Wmat ω i)) μ :=
+    weightedVecMulVecAverage_aestronglyMeasurable
+      (μ := μ) hU hW hehat hnuhat
+  have hLeftAB : AEStronglyMeasurable
+      (fun ω => (sampleGram (Umat ω))⁻¹ *
+        ((Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+            Matrix.vecMulVec (Umat ω i) (Wmat ω i))) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInvU.prodMk hMiddleAB)
+  have hAB : AEStronglyMeasurable
+      (fun ω =>
+        (sampleGram (Umat ω))⁻¹ *
+          ((Fintype.card (Fin N) : ℝ)⁻¹ •
+            ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+              Matrix.vecMulVec (Umat ω i) (Wmat ω i)) *
+          (sampleGram (Wmat ω))⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeftAB.prodMk hInvW)
+  have hMiddleAA : AEStronglyMeasurable
+      (fun ω =>
+        (Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (nuhat ω i * nuhat ω i) •
+            Matrix.vecMulVec (Umat ω i) (Umat ω i)) μ :=
+    weightedVecMulVecAverage_aestronglyMeasurable
+      (μ := μ) hU hU hnuhat hnuhat
+  have hLeftAA : AEStronglyMeasurable
+      (fun ω => (sampleGram (Umat ω))⁻¹ *
+        ((Fintype.card (Fin N) : ℝ)⁻¹ •
+          ∑ i : Fin N, (nuhat ω i * nuhat ω i) •
+            Matrix.vecMulVec (Umat ω i) (Umat ω i))) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hInvU.prodMk hMiddleAA)
+  have hAA : AEStronglyMeasurable
+      (fun ω =>
+        (sampleGram (Umat ω))⁻¹ *
+          ((Fintype.card (Fin N) : ℝ)⁻¹ •
+            ∑ i : Fin N, (nuhat ω i * nuhat ω i) •
+              Matrix.vecMulVec (Umat ω i) (Umat ω i)) *
+          (sampleGram (Umat ω))⁻¹) μ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hLeftAA.prodMk hInvU)
+  have hABt : AEStronglyMeasurable
+      (fun ω =>
+        ((sampleGram (Umat ω))⁻¹ *
+          ((Fintype.card (Fin N) : ℝ)⁻¹ •
+            ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+              Matrix.vecMulVec (Umat ω i) (Wmat ω i)) *
+          (sampleGram (Wmat ω))⁻¹)ᵀ) μ :=
+    (continuous_id.matrix_transpose).comp_aestronglyMeasurable hAB
+  have hBlocks : AEStronglyMeasurable
+      (fun ω =>
+        Matrix.fromBlocks
+          ((sampleGram (Wmat ω))⁻¹ *
+            ((Fintype.card (Fin N) : ℝ)⁻¹ •
+              ∑ i : Fin N, (ehat ω i * ehat ω i) •
+                Matrix.vecMulVec (Wmat ω i) (Wmat ω i)) *
+            (sampleGram (Wmat ω))⁻¹)
+          (((sampleGram (Umat ω))⁻¹ *
+            ((Fintype.card (Fin N) : ℝ)⁻¹ •
+              ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+                Matrix.vecMulVec (Umat ω i) (Wmat ω i)) *
+            (sampleGram (Wmat ω))⁻¹)ᵀ)
+          ((sampleGram (Umat ω))⁻¹ *
+            ((Fintype.card (Fin N) : ℝ)⁻¹ •
+              ∑ i : Fin N, (ehat ω i * nuhat ω i) •
+                Matrix.vecMulVec (Umat ω i) (Wmat ω i)) *
+            (sampleGram (Wmat ω))⁻¹)
+          ((sampleGram (Umat ω))⁻¹ *
+            ((Fintype.card (Fin N) : ℝ)⁻¹ •
+              ∑ i : Fin N, (nuhat ω i * nuhat ω i) •
+                Matrix.vecMulVec (Umat ω i) (Umat ω i)) *
+            (sampleGram (Umat ω))⁻¹)) μ :=
+    matrix_fromBlocks_aestronglyMeasurable
+      (μ := μ) hBB hABt hAB hAA
+  simpa [expectationErrorVHatStar, expectationErrorVHatBetaBetaStar,
+    expectationErrorVHatAlphaBetaStar, expectationErrorVHatAlphaAlphaStar,
+    expectationErrorStructuralResidualStar, expectationErrorSecondStepResidualStar,
+    expectationErrorBetaHatStar, expectationErrorAlphaHatStar, betaBlock, beta,
+    ehat, nuhat, Dmat, Wmat, Umat, Zmat, Xmat, yvec, sampleGram, Matrix.mul_assoc,
+    sq] using hBlocks
+
+/-- Plug-in covariance estimator surface for Hansen Theorem 12.12. The
+canonical displayed estimator is `expectationErrorVHatStar`; the theorem-facing
+condition below also allows equivalent matrix-valued sequences when a proof
+uses a more convenient representation. -/
+abbrev expectationErrorVHat (Ω : Type*) (k : Type*) :=
+  ℕ → Ω → Matrix (Sum k k) (Sum k k) ℝ
+
+/-- Proof-facing package for Hansen Theorem 12.12. -/
+structure ExpectationErrorAsymptoticNormalConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
+    (A : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (Quu : Matrix k k ℝ)
+    (OmegaZE : Matrix l l ℝ) (OmegaUZeNu : Matrix k l ℝ)
+    (OmegaUUNu : Matrix k k ℝ)
+    (β α : k → ℝ) (G : Ωlim → EuclideanSpace ℝ (Sum k k))
+    (Vhat : expectationErrorVHat Ω k) : Prop where
+  coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (expectationErrorBetaAlphaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+          Sum.elim β α))
+    atTop (fun ω i => (G ω : Sum k k → ℝ) i) (fun _ => μ) ν
+  gaussian_limit : HasLaw G
+    (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k k))
+      (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ν
+  covariance_measurable : ∀ m, AEStronglyMeasurable (Vhat m) μ
+  covariance_consistent : TendstoInMeasure μ Vhat atTop
+    (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)
+
+/-- **Hansen Theorem 12.12.**
+
+The joint expectation-error estimator `(β̂, α̂)` is asymptotically normal with
+the block covariance matrix displayed in (12.58), and the corresponding
+block covariance estimator is consistent. -/
+theorem expectationError_theorem12_12_coefficient_and_covariance
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    {Vhat : expectationErrorVHat Ω k}
+    (h : ExpectationErrorAsymptoticNormalConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G Vhat) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun ω i => (G ω : Sum k k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k k))
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ν ∧
+    TendstoInMeasure μ Vhat atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) :=
+  ⟨h.coefficient_limit, h.gaussian_limit, h.covariance_consistent⟩
+
+/-- Canonical displayed-covariance condition package for Hansen Theorem 12.12. -/
+abbrev ExpectationErrorCanonicalVHatConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (Y : ℕ → Ω → ℝ)
+    (A : Matrix l k ℝ) (QZZ : Matrix l l ℝ) (Quu : Matrix k k ℝ)
+    (OmegaZE : Matrix l l ℝ) (OmegaUZeNu : Matrix k l ℝ)
+    (OmegaUUNu : Matrix k k ℝ)
+    (β α : k → ℝ) (G : Ωlim → EuclideanSpace ℝ (Sum k k)) : Prop :=
+  ExpectationErrorAsymptoticNormalConditions
+    μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G
+    (fun m ω =>
+      expectationErrorVHatStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+
+/-- Raw Hansen Section 12.27 model and moment surface for Theorem 12.12.
+
+This package records the textbook assumptions
+`Y = X'β + u'α + ν`, `X = A'Z + u`, `E[Zν]=0`, `E[uν]=0`,
+`E[Zu']=0`, finite fourth moments, and the two positive-definite population
+Gram conditions. It intentionally does not contain the asymptotic CLT or
+covariance-consistency proof engine. -/
+structure ExpectationErrorHansenPrimitiveConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X u : ℕ → Ω → k → ℝ)
+    (νe Y : ℕ → Ω → ℝ) (A : Matrix l k ℝ)
+    (β α : k → ℝ) : Prop where
+  z_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (Z i) μ
+  x_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (X i) μ
+  u_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (u i) μ
+  nu_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (νe i) μ
+  y_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (Y i) μ
+  x_model : ∀ i, (fun ω => X i ω) =ᵐ[μ]
+    fun ω => Aᵀ *ᵥ Z i ω + u i ω
+  y_model : ∀ i, (fun ω => Y i ω) =ᵐ[μ]
+    fun ω => dotProduct (X i ω) β + dotProduct (u i ω) α + νe i ω
+  z_nu_integrable : Integrable (fun ω => νe 0 ω • Z 0 ω) μ
+  u_nu_integrable : Integrable (fun ω => νe 0 ω • u 0 ω) μ
+  z_u_integrable : Integrable (fun ω => Matrix.vecMulVec (Z 0 ω) (u 0 ω)) μ
+  z_nu_orthogonal : μ[fun ω => νe 0 ω • Z 0 ω] = 0
+  u_nu_orthogonal : μ[fun ω => νe 0 ω • u 0 ω] = 0
+  z_u_orthogonal : μ[fun ω => Matrix.vecMulVec (Z 0 ω) (u 0 ω)] = 0
+  y_fourth_integrable : Integrable (fun ω => (Y 0 ω) ^ 4) μ
+  z_norm_fourth_integrable : Integrable (fun ω => ‖Z 0 ω‖ ^ 4) μ
+  x_norm_fourth_integrable : Integrable (fun ω => ‖X 0 ω‖ ^ 4) μ
+  fitted_popGram_posDef : (Aᵀ * popGram μ Z * A).PosDef
+  residual_popGram_posDef : (popGram μ u).PosDef
+
+/-- Theorem-facing Hansen 12.12 condition package.
+
+The `primitive` field is the literal model/moment surface. The `asymptotic`
+field is the reusable proof engine: it supplies the expectation-error joint CLT
+and canonical displayed covariance consistency with the covariance blocks named
+from Hansen's raw population objects. -/
+structure ExpectationErrorHansenTheorem12_12Conditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (Z : ℕ → Ω → l → ℝ) (X u : ℕ → Ω → k → ℝ)
+    (νe Y : ℕ → Ω → ℝ) (A : Matrix l k ℝ)
+    (β α : k → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum k k)) : Prop where
+  primitive : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α
+  asymptotic : ExpectationErrorCanonicalVHatConditions μ ν Z X Y A
+    (popGram μ Z)
+    (popGram μ u)
+    (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+    (expectationErrorOmegaUZeNu μ u Z (expectationErrorStructuralError X Y β) νe)
+    (scoreCovMat μ u νe)
+    β α G
+
+omit [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] [DecidableEq k] [DecidableEq l] in
+private theorem integrable_rect_matrix_mulVec_const
+    {M : Ω → Matrix l k ℝ} (hM : Integrable M μ) (α : k → ℝ) :
+    Integrable (fun ω => M ω *ᵥ α) μ := by
+  classical
+  refine Integrable.of_eval ?_
+  intro i
+  simp only [Matrix.mulVec, dotProduct]
+  exact integrable_finset_sum _ fun j _ =>
+    (Integrable.eval (Integrable.eval hM i) j).mul_const (α j)
+
+omit [IsProbabilityMeasure μ] [IsProbabilityMeasure ν] [DecidableEq k] [DecidableEq l] in
+private theorem integral_rect_matrix_mulVec_const
+    {M : Ω → Matrix l k ℝ} (hM : Integrable M μ) (α : k → ℝ) :
+    μ[fun ω => M ω *ᵥ α] = μ[M] *ᵥ α := by
+  classical
+  have hMul : Integrable (fun ω => M ω *ᵥ α) μ :=
+    integrable_rect_matrix_mulVec_const (μ := μ) hM α
+  ext i
+  calc
+    μ[fun ω => M ω *ᵥ α] i =
+        ∫ ω, (M ω *ᵥ α) i ∂μ := by
+          exact integral_apply (μ := μ) (f := fun ω => M ω *ᵥ α) hMul i
+    _ = ∫ ω, ∑ j, M ω i j * α j ∂μ := by
+          rfl
+    _ = ∑ j, ∫ ω, M ω i j * α j ∂μ := by
+          rw [integral_finset_sum]
+          intro j _
+          exact (Integrable.eval (Integrable.eval hM i) j).mul_const (α j)
+    _ = ∑ j, (∫ ω, M ω i j ∂μ) * α j := by
+          congr
+          ext j
+          rw [integral_mul_const]
+    _ = ∑ j, μ[M] i j * α j := by
+          congr
+          ext j
+          exact congrArg (fun z => z * α j)
+            (integral_apply_apply (μ := μ) (f := M) hM i j).symm
+    _ = (μ[M] *ᵥ α) i := by
+          rfl
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Hansen Theorem 12.12 primitive model bridge: the structural regression
+error `Y - X'β` is the control-error projection `u'α + ν`. -/
+theorem expectationErrorStructuralError_eq_control_error_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) (i : ℕ) :
+    (fun ω => expectationErrorStructuralError X Y β i ω) =ᵐ[μ]
+      fun ω => dotProduct (u i ω) α + νe i ω := by
+  filter_upwards [h.y_model i] with ω hY
+  rw [expectationErrorStructuralError, hY]
+  ring
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Named-control-error version of
+`expectationErrorStructuralError_eq_control_error_of_hansen_primitive`. -/
+theorem expectationErrorStructuralError_eq_controlError_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) (i : ℕ) :
+    (fun ω => expectationErrorStructuralError X Y β i ω) =ᵐ[μ]
+      expectationErrorControlError u νe α i := by
+  simpa [expectationErrorControlError] using
+    expectationErrorStructuralError_eq_control_error_of_hansen_primitive
+      (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+      (A := A) (β := β) (α := α) h i
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Hansen Theorem 12.12 primitive covariance bridge: the `Ω_{Ze}` score
+covariance can be computed with the control-error score `u'α + ν`. -/
+theorem expectationErrorScoreCovMat_eq_controlError_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) :
+    scoreCovMat μ Z (expectationErrorStructuralError X Y β) =
+      scoreCovMat μ Z (expectationErrorControlError u νe α) := by
+  exact scoreCovMat_congr_error_ae
+    (μ := μ) (X := Z)
+    (expectationErrorStructuralError_eq_controlError_of_hansen_primitive
+      (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+      (A := A) (β := β) (α := α) h 0)
+
+omit [IsProbabilityMeasure μ] [DecidableEq k] [DecidableEq l] in
+/-- Hansen Theorem 12.12 primitive covariance bridge: the `Ω_{uZeν}` block is
+invariant under a.e. replacement of the structural error. -/
+theorem expectationErrorOmegaUZeNu_congr_error_ae
+    {u : ℕ → Ω → k → ℝ} {Z : ℕ → Ω → l → ℝ}
+    {e₁ e₂ νe : ℕ → Ω → ℝ}
+    (h : (fun ω => e₁ 0 ω) =ᵐ[μ] fun ω => e₂ 0 ω) :
+    expectationErrorOmegaUZeNu μ u Z e₁ νe =
+      expectationErrorOmegaUZeNu μ u Z e₂ νe := by
+  unfold expectationErrorOmegaUZeNu
+  exact integral_congr_ae <| by
+    filter_upwards [h] with ω hω
+    simp [hω]
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Hansen Theorem 12.12 primitive covariance bridge: the cross covariance
+`E[uZ'eν]` can be computed with the control-error score `u'α + ν`. -/
+theorem expectationErrorOmegaUZeNu_eq_controlError_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) :
+    expectationErrorOmegaUZeNu μ u Z
+        (expectationErrorStructuralError X Y β) νe =
+      expectationErrorOmegaUZeNu μ u Z
+        (expectationErrorControlError u νe α) νe :=
+  expectationErrorOmegaUZeNu_congr_error_ae
+    (μ := μ) (u := u) (Z := Z) (νe := νe)
+    (expectationErrorStructuralError_eq_controlError_of_hansen_primitive
+      (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+      (A := A) (β := β) (α := α) h 0)
+
+omit [DecidableEq l] in
+/-- Hansen Theorem 12.12 displayed covariance bridge: under Hansen's primitive
+model equations, the full covariance matrix can be written with the named
+control-error population blocks. -/
+theorem expectationErrorAsymptoticVariance_eq_controlError_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) :
+    expectationErrorAsymptoticVariance A (popGram μ Z) (popGram μ u)
+        (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+        (expectationErrorOmegaUZeNu μ u Z
+          (expectationErrorStructuralError X Y β) νe)
+        (scoreCovMat μ u νe) =
+      expectationErrorAsymptoticVariance A (popGram μ Z) (popGram μ u)
+        (scoreCovMat μ Z (expectationErrorControlError u νe α))
+        (expectationErrorOmegaUZeNu μ u Z
+          (expectationErrorControlError u νe α) νe)
+        (scoreCovMat μ u νe) := by
+  rw [expectationErrorScoreCovMat_eq_controlError_of_hansen_primitive
+      (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+      (A := A) (β := β) (α := α) h,
+    expectationErrorOmegaUZeNu_eq_controlError_of_hansen_primitive
+      (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+      (A := A) (β := β) (α := α) h]
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Hansen Theorem 12.12 primitive orthogonality bridge.
+
+The raw model equations and moment restrictions imply
+`E[Z_i (Y_i-X_i'β)] = 0`, the score-centering condition needed by the
+expectation-error CLT route. -/
+theorem expectationErrorStructuralError_instrument_orthogonal_of_hansen_primitive
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α) :
+    (∫ ω, expectationErrorStructuralError X Y β 0 ω • Z 0 ω ∂μ) = 0 := by
+  classical
+  let M : Ω → Matrix l k ℝ := fun ω => Matrix.vecMulVec (Z 0 ω) (u 0 ω)
+  let g : Ω → l → ℝ := fun ω => M ω *ᵥ α
+  have hg : Integrable g μ :=
+    integrable_rect_matrix_mulVec_const (μ := μ) (M := M) h.z_u_integrable α
+  have hscore_eq :
+      (fun ω => expectationErrorStructuralError X Y β 0 ω • Z 0 ω) =ᵐ[μ]
+        fun ω => g ω + νe 0 ω • Z 0 ω := by
+    filter_upwards
+      [expectationErrorStructuralError_eq_control_error_of_hansen_primitive
+        (μ := μ) (Z := Z) (X := X) (u := u) (νe := νe) (Y := Y)
+        (A := A) (β := β) (α := α) h 0] with ω hω
+    funext j
+    rw [hω]
+    simp only [Pi.smul_apply, Pi.add_apply, M, g, Matrix.mulVec, dotProduct,
+      Matrix.vecMulVec_apply, smul_eq_mul]
+    rw [add_mul, Finset.sum_mul]
+    congr 1
+    refine Finset.sum_congr rfl ?_
+    intro i _
+    ring
+  have hInt :
+      (∫ ω, expectationErrorStructuralError X Y β 0 ω • Z 0 ω ∂μ) =
+        ∫ ω, g ω + νe 0 ω • Z 0 ω ∂μ :=
+    integral_congr_ae hscore_eq
+  have hg_integral : μ[g] = μ[M] *ᵥ α :=
+    integral_rect_matrix_mulVec_const (μ := μ) (M := M) h.z_u_integrable α
+  calc
+    (∫ ω, expectationErrorStructuralError X Y β 0 ω • Z 0 ω ∂μ)
+        = ∫ ω, g ω + νe 0 ω • Z 0 ω ∂μ := hInt
+    _ = μ[g] + μ[fun ω => νe 0 ω • Z 0 ω] := by
+          exact integral_add hg h.z_nu_integrable
+    _ = 0 := by
+          rw [hg_integral, h.z_u_orthogonal, h.z_nu_orthogonal]
+          simp
+
+/-- Constructor for Hansen Theorem 12.12's displayed covariance estimator from
+an equivalent proof-facing covariance sequence.
+
+This lets a proof use a convenient full matrix estimator `Vhat` internally and
+then discharge the theorem-facing canonical estimator by a sample-by-sample
+a.e. equality, without assuming the canonical covariance consistency as a final
+claim. -/
+theorem ExpectationErrorCanonicalVHatConditions.of_covariance_congr
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    {Vhat : expectationErrorVHat Ω k}
+    (h : ExpectationErrorAsymptoticNormalConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G Vhat)
+    (hcanon_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hcanon_eq : ∀ m,
+      (fun ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+        =ᵐ[μ] Vhat m) :
+    ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G where
+  coefficient_limit := h.coefficient_limit
+  gaussian_limit := h.gaussian_limit
+  covariance_measurable := hcanon_meas
+  covariance_consistent := by
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl h.covariance_consistent
+    intro m
+    exact (hcanon_eq m).symm
+
+/-- Row-measurable constructor for Hansen Theorem 12.12's canonical displayed
+covariance package.
+
+The statistical content remains the coefficient CLT/Gaussian law and displayed
+covariance consistency; the finite-sample measurability field is derived from
+row measurability of `Z`, `X`, and `Y`. -/
+theorem ExpectationErrorCanonicalVHatConditions.of_row_measurable
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun ω i => (G ω : Sum k k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k k))
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) :
+    ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G where
+  coefficient_limit := hcoef
+  gaussian_limit := hG
+  covariance_measurable := fun m =>
+    expectationErrorVHatStar_aestronglyMeasurable_of_rows
+      (μ := μ) (N := m) (Z := Z) (X := X) (Y := Y) hZ hX hY
+  covariance_consistent := hcov
+
+/-- Congruence constructor for Hansen Theorem 12.12's displayed covariance
+estimator with canonical measurability derived from row measurability. -/
+theorem ExpectationErrorCanonicalVHatConditions.of_covariance_congr_rows
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    {Vhat : expectationErrorVHat Ω k}
+    (h : ExpectationErrorAsymptoticNormalConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G Vhat)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcanon_eq : ∀ m,
+      (fun ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+        =ᵐ[μ] Vhat m) :
+    ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G :=
+  ExpectationErrorCanonicalVHatConditions.of_covariance_congr
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (Quu := Quu)
+    (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+    (β := β) (α := α) (G := G) (Vhat := Vhat) h
+    (fun m =>
+      expectationErrorVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (Z := Z) (X := X) (Y := Y) hZ hX hY)
+    hcanon_eq
+
+/-- **Hansen Theorem 12.12**, canonical displayed-covariance endpoint.
+
+This is the generic 12.12 theorem specialized to the plug-in covariance matrix
+assembled from Hansen's displayed `V̂_{ββ}`, `V̂_{αβ}`, and `V̂_{αα}` blocks. -/
+theorem expectationError_theorem12_12_canonicalVHat
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (h : ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun ω i => (G ω : Sum k k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k k))
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ν ∧
+    TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) :=
+  expectationError_theorem12_12_coefficient_and_covariance
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (Quu := Quu)
+    (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+    (β := β) (α := α) (G := G)
+    (Vhat := fun m ω =>
+      expectationErrorVHatStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+    h
+
+/-- Hansen Theorem 12.12 alpha-alpha covariance block consistency, derived
+from the canonical displayed covariance estimator. -/
+theorem expectationErrorVHatAlphaAlphaStar_tendstoInMeasure_of_canonicalVHat
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (h : ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        expectationErrorVHatAlphaAlphaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => expectationErrorValphaAlpha Quu OmegaUUNu) := by
+  have hblock :=
+    generatedRegressorRightBlockCovariance_tendstoInMeasure
+      (μ := μ) (k₁ := k) (k₂ := k)
+      h.covariance_measurable h.covariance_consistent
+  simpa [expectationErrorAsymptoticVariance_rightBlockCovariance] using hblock
+
+/-- Hansen Theorem 12.12, canonical displayed-covariance coefficient endpoint
+with the Gaussian limit law composed into the statement. -/
+theorem expectationErrorBetaAlphaStar_tendstoInDistribution_multivariateGaussian
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (h : ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) := by
+  let V := expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu
+  have h1212 := expectationError_theorem12_12_canonicalVHat
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (Quu := Quu)
+    (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+    (β := β) (α := α) (G := G) h
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (expectationErrorBetaAlphaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+              Sum.elim β α)) : Sum k k → ℝ) : EuclideanSpace ℝ (Sum k k)))
+        atTop (fun ω => G ω) (fun _ => μ) ν := by
+    have hmap := h1212.1.continuous_comp (PiLp.continuous_toLp 2 (fun _ : Sum k k => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure (multivariateGaussian 0 V) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (expectationErrorBetaAlphaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+              Sum.elim β α)) : Sum k k → ℝ) : EuclideanSpace ℝ (Sum k k)))
+        atTop (fun z : EuclideanSpace ℝ (Sum k k) => z) (fun _ => μ)
+        (multivariateGaussian 0 V) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ (Sum k k))
+      hEuclidAux h1212.2.1
+  have hraw := hEuclidDirect.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : Sum k k => ℝ))
+  simpa [V, Function.comp_def] using hraw
+
+/-- **Hansen Theorem 12.12**, direct multivariate-normal/covariance endpoint.
+
+This is the citation-friendly form of `expectationError_theorem12_12_canonicalVHat`:
+the scaled stacked estimator is sent directly to the displayed Gaussian law
+`N(0,V)` and Hansen's displayed block covariance estimator is consistent for
+the same `V`. -/
+theorem expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (h : ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ∧
+    TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) :=
+  ⟨expectationErrorBetaAlphaStar_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (ν := ν) h,
+    h.covariance_consistent⟩
+
+/-- **Hansen Theorem 12.12**, raw model/moment surface.
+
+This endpoint fixes the covariance matrices to Hansen's population objects:
+`E[ZZ']`, `E[uu']`, `E[ZZ'e²]`, `E[uZ'eν]`, and `E[uu'ν²]`. The raw model and
+moment assumptions are stored in `h.primitive`; the remaining asymptotic engine
+is the field `h.asymptotic`, which should be constructed from the primitive
+fourth-moment CLT and feasible-covariance consistency route. -/
+theorem expectationError_theorem12_12_of_hansen_conditions
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (h : ExpectationErrorHansenTheorem12_12Conditions
+      μ ν Z X u νe Y A β α G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A
+          (popGram μ Z)
+          (popGram μ u)
+          (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+          (expectationErrorOmegaUZeNu μ u Z
+            (expectationErrorStructuralError X Y β) νe)
+          (scoreCovMat μ u νe))) ∧
+    TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        expectationErrorAsymptoticVariance A
+          (popGram μ Z)
+          (popGram μ u)
+          (scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+          (expectationErrorOmegaUZeNu μ u Z
+            (expectationErrorStructuralError X Y β) νe)
+          (scoreCovMat μ u νe)) :=
+  expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := popGram μ Z) (Quu := popGram μ u)
+    (OmegaZE := scoreCovMat μ Z (expectationErrorStructuralError X Y β))
+    (OmegaUZeNu :=
+      expectationErrorOmegaUZeNu μ u Z
+        (expectationErrorStructuralError X Y β) νe)
+    (OmegaUUNu := scoreCovMat μ u νe)
+    (β := β) (α := α) (G := G) h.asymptotic
+
+/-- Hansen Theorem 12.12 with finite-sample measurability derived from row
+measurability.
+
+The probabilistic inputs are exactly the joint coefficient CLT/Gaussian law
+and canonical displayed-covariance consistency; the theorem-facing
+measurability fields are discharged by
+`ExpectationErrorCanonicalVHatConditions.of_row_measurable`. -/
+theorem expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_rows
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun ω i => (G ω : Sum k k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ (Sum k k))
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ∧
+    TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) :=
+  expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (Quu := Quu)
+    (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+    (β := β) (α := α) (G := G)
+    (ExpectationErrorCanonicalVHatConditions.of_row_measurable
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (A := A) (QZZ := QZZ) (Quu := Quu)
+      (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+      (β := β) (α := α) (G := G)
+      hZ hX hY hcoef hG hcov)
+
+/-- Hansen Theorem 12.12 from a proof-facing covariance sequence, with the
+canonical displayed covariance estimator identified by an a.e. equality and
+its measurability derived from row measurability. -/
+theorem
+    expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat_of_covariance_congr_rows
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β α : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    {Vhat : expectationErrorVHat Ω k}
+    (h : ExpectationErrorAsymptoticNormalConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β α G Vhat)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX : ∀ i, AEStronglyMeasurable (X i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcanon_eq : ∀ m,
+      (fun ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+        =ᵐ[μ] Vhat m) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (expectationErrorBetaAlphaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            Sum.elim β α))
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu)) ∧
+    TendstoInMeasure μ
+      (fun m ω =>
+        expectationErrorVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ => expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu) :=
+  expectationError_theorem12_12_multivariateGaussian_and_canonicalVHat
+    (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+    (A := A) (QZZ := QZZ) (Quu := Quu)
+    (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+    (β := β) (α := α) (G := G)
+    (ExpectationErrorCanonicalVHatConditions.of_covariance_congr_rows
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (A := A) (QZZ := QZZ) (Quu := Quu)
+      (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+      (β := β) (α := α) (G := G) (Vhat := Vhat)
+      h hZ hX hY hcanon_eq)
+
+/-- Linear map extracting `γ - β₂`, the control-function `α` combination in
+Hansen Theorem 12.13, from a stacked `(β₂, γ)` vector. -/
+noncomputable def controlFunctionAlphaMap (k : Type*) [Fintype k] [DecidableEq k] :
+    Matrix k (Sum k k) ℝ :=
+  fun i j =>
+    match j with
+    | Sum.inl jβ => if i = jβ then -1 else 0
+    | Sum.inr jγ => if i = jγ then 1 else 0
+
+/-- Hansen Theorem 12.13 covariance
+`V_α = V₂₂ + V_γγ - V_γ2 - V_γ2'`. -/
+noncomputable def controlFunctionAlphaVariance
+    (V22 VgammaGamma Vgamma2 : Matrix k k ℝ) : Matrix k k ℝ :=
+  V22 + VgammaGamma - Vgamma2 - Vgamma2ᵀ
+
+/-- Hansen Theorem 12.13 target coefficient `γ - β₂`. -/
+def controlFunctionAlphaTarget (β₂ γ : k → ℝ) : k → ℝ :=
+  γ - β₂
+
+/-- Control-function `α̂` computed from the expectation-error stacked
+coefficient vector `(β̂₂, γ̂)`. -/
+noncomputable def controlFunctionAlphaFromExpectationErrorStar
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : k → ℝ :=
+  controlFunctionAlphaMap k *ᵥ expectationErrorBetaAlphaStar Z X Y
+
+omit [Fintype k] [DecidableEq k] in
+@[simp]
+theorem controlFunctionAlphaTarget_apply
+    (β₂ γ : k → ℝ) (j : k) :
+    controlFunctionAlphaTarget β₂ γ j = γ j - β₂ j := rfl
+
+omit [DecidableEq n] in
+/-- Exact coefficient bridge behind Hansen Theorem 12.13: the
+expectation-error control-function coefficient is literally `γ̂ - β̂₂`. -/
+@[simp]
+theorem controlFunctionAlphaFromExpectationErrorStar_apply
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) (j : k) :
+    controlFunctionAlphaFromExpectationErrorStar Z X Y j =
+      expectationErrorAlphaHatStar Z X Y j - expectationErrorBetaHatStar Z X Y j := by
+  classical
+  simp [controlFunctionAlphaFromExpectationErrorStar, controlFunctionAlphaMap,
+    expectationErrorAlphaHatStar, expectationErrorBetaHatStar,
+    expectationErrorAlphaBlock, expectationErrorBetaBlock, Matrix.mulVec,
+    dotProduct, Fintype.sum_sum_type]
+  ring
+
+omit [DecidableEq n] in
+/-- Function-valued version of
+`controlFunctionAlphaFromExpectationErrorStar_apply`. -/
+theorem controlFunctionAlphaFromExpectationErrorStar_eq_alphaHat_sub_betaHat
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) :
+    controlFunctionAlphaFromExpectationErrorStar Z X Y =
+      expectationErrorAlphaHatStar Z X Y - expectationErrorBetaHatStar Z X Y := by
+  funext j
+  simp
+
+omit [DecidableEq n] in
+/-- Centered exact bridge for Hansen Theorem 12.13:
+`(γ̂ - β̂₂) - (γ - β₂) = (γ̂ - γ) - (β̂₂ - β₂)`. -/
+theorem controlFunctionAlphaFromExpectationErrorStar_sub_target_eq
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ)
+    (β₂ γ : k → ℝ) :
+    controlFunctionAlphaFromExpectationErrorStar Z X Y -
+        controlFunctionAlphaTarget β₂ γ =
+      (expectationErrorAlphaHatStar Z X Y - γ) -
+        (expectationErrorBetaHatStar Z X Y - β₂) := by
+  funext j
+  simp
+  ring
+
+theorem controlFunctionAlphaVariance_eq_linearMap
+    (V22 VgammaGamma Vgamma2 : Matrix k k ℝ) :
+    controlFunctionAlphaMap k *
+        Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma *
+        (controlFunctionAlphaMap k)ᵀ =
+      controlFunctionAlphaVariance V22 VgammaGamma Vgamma2 := by
+  classical
+  ext i j
+  simp [controlFunctionAlphaMap, controlFunctionAlphaVariance, Matrix.mul_apply,
+    Fintype.sum_sum_type]
+  ring
+
+/-- The fixed linear map commutes with the `√n` centering in Hansen Theorem
+12.13. -/
+theorem controlFunctionAlphaMap_smul_sub_sum_elim
+    (root : ℝ) (b : Sum k k → ℝ) (β₂ γ : k → ℝ) :
+    controlFunctionAlphaMap k *ᵥ (root • (b - Sum.elim β₂ γ)) =
+      root • (controlFunctionAlphaMap k *ᵥ b - controlFunctionAlphaTarget β₂ γ) := by
+  classical
+  ext i
+  simp [controlFunctionAlphaMap, controlFunctionAlphaTarget, Matrix.mulVec,
+    dotProduct, Fintype.sum_sum_type]
+  ring
+
+/-- **Hansen Theorem 12.13.**
+
+The control-function coefficient `α = γ - β₂` inherits a Gaussian limit from
+the joint limit of `(β̂₂, γ̂)` by a fixed linear map, with covariance
+`V₂₂ + V_γγ - V_γ2 - V_γ2'`. -/
+theorem controlFunctionAlpha_tendstoInDistribution
+    {Zseq : ℕ → Ω → Sum k k → ℝ}
+    {V22 VgammaGamma Vgamma2 : Matrix k k ℝ}
+    (hV : (Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma).PosSemidef)
+    (hjoint : TendstoInDistribution
+      (fun (m : ℕ) ω => Zseq m ω)
+      atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma))) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω => controlFunctionAlphaMap k *ᵥ Zseq m ω)
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0 (controlFunctionAlphaVariance V22 VgammaGamma Vgamma2)) := by
+  have hEuclid :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (Zseq m ω) : EuclideanSpace ℝ (Sum k k)))
+        atTop (fun z : EuclideanSpace ℝ (Sum k k) => z) (fun _ => μ)
+        (multivariateGaussian 0
+          (Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma)) := by
+    have hmap := hjoint.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : Sum k k => ℝ))
+    simpa [Function.comp_def] using hmap
+  have hlin :
+      TendstoInDistribution
+        (fun m => matrixContinuousLinearMap (controlFunctionAlphaMap k) ∘
+          fun ω => (WithLp.toLp 2 (Zseq m ω) : EuclideanSpace ℝ (Sum k k)))
+        atTop
+        (matrixContinuousLinearMap (controlFunctionAlphaMap k) ∘
+          fun z : EuclideanSpace ℝ (Sum k k) => z)
+        (fun _ => μ)
+        (multivariateGaussian 0
+          (Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma)) :=
+    hEuclid.continuous_comp (matrixContinuousLinearMap (controlFunctionAlphaMap k)).continuous
+  have hLaw :
+      HasLaw
+        (fun z : EuclideanSpace ℝ (Sum k k) =>
+          WithLp.toLp 2 (controlFunctionAlphaMap k *ᵥ z.ofLp))
+        (multivariateGaussian 0 (controlFunctionAlphaVariance V22 VgammaGamma Vgamma2))
+        (multivariateGaussian 0
+          (Matrix.fromBlocks V22 Vgamma2ᵀ Vgamma2 VgammaGamma)) := by
+    have hbase := hasLaw_multivariateGaussian_zero_linearMap
+      (n := Sum k k) hV (controlFunctionAlphaMap k)
+    simpa [controlFunctionAlphaVariance_eq_linearMap] using hbase
+  have htarget :
+      TendstoInDistribution
+        (fun m ω =>
+          matrixContinuousLinearMap (controlFunctionAlphaMap k)
+            (WithLp.toLp 2 (Zseq m ω) : EuclideanSpace ℝ (Sum k k)))
+        atTop (fun z : EuclideanSpace ℝ k => z) (fun _ => μ)
+        (multivariateGaussian 0 (controlFunctionAlphaVariance V22 VgammaGamma Vgamma2)) := by
+    simpa [Function.comp_def] using
+      tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k) hlin hLaw
+  have hraw := htarget.continuous_comp (PiLp.continuous_ofLp 2 (fun _ : k => ℝ))
+  simpa [Function.comp_def, matrixContinuousLinearMap_apply] using hraw
+
+/-- **Hansen Theorem 12.13**, expectation-error form.
+
+The expectation-error stacked estimator from Theorem 12.12 implies the
+control-function limit
+`√n((γ̂ - β̂₂) - (γ - β₂)) ⇒ N(0, V₂₂ + V_γγ - V_γ2 - V_γ2')`. -/
+theorem controlFunctionAlpha_from_expectationError_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ : Matrix l l ℝ} {Quu : Matrix k k ℝ}
+    {OmegaZE : Matrix l l ℝ} {OmegaUZeNu : Matrix k l ℝ}
+    {OmegaUUNu : Matrix k k ℝ}
+    {β₂ γ : k → ℝ} {G : Ωlim → EuclideanSpace ℝ (Sum k k)}
+    (hV : (expectationErrorAsymptoticVariance A QZZ Quu OmegaZE OmegaUZeNu
+      OmegaUUNu).PosSemidef)
+    (h : ExpectationErrorCanonicalVHatConditions
+      μ ν Z X Y A QZZ Quu OmegaZE OmegaUZeNu OmegaUUNu β₂ γ G) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaFromExpectationErrorStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            controlFunctionAlphaTarget β₂ γ))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (expectationErrorVbetaBeta A QZZ OmegaZE)
+          (expectationErrorValphaAlpha Quu OmegaUUNu)
+          (expectationErrorValphaBeta Quu OmegaUZeNu A QZZ))) := by
+  let V22 := expectationErrorVbetaBeta A QZZ OmegaZE
+  let Vγγ := expectationErrorValphaAlpha Quu OmegaUUNu
+  let Vγ2 := expectationErrorValphaBeta Quu OmegaUZeNu A QZZ
+  have hjointRaw :=
+    expectationErrorBetaAlphaStar_tendstoInDistribution_multivariateGaussian
+      (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+      (A := A) (QZZ := QZZ) (Quu := Quu)
+      (OmegaZE := OmegaZE) (OmegaUZeNu := OmegaUZeNu) (OmegaUUNu := OmegaUUNu)
+      (β := β₂) (α := γ) (G := G) h
+  have hjoint :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (expectationErrorBetaAlphaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+              Sum.elim β₂ γ))
+        atTop (fun z : EuclideanSpace ℝ (Sum k k) => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 (Matrix.fromBlocks V22 Vγ2ᵀ Vγ2 Vγγ)) := by
+    simpa [V22, Vγγ, Vγ2, expectationErrorAsymptoticVariance] using hjointRaw
+  have hVblock : (Matrix.fromBlocks V22 Vγ2ᵀ Vγ2 Vγγ).PosSemidef := by
+    simpa [V22, Vγγ, Vγ2, expectationErrorAsymptoticVariance] using hV
+  have hmap := controlFunctionAlpha_tendstoInDistribution
+    (μ := μ) (k := k) (V22 := V22) (VgammaGamma := Vγγ) (Vgamma2 := Vγ2)
+    hVblock hjoint
+  refine TendstoInDistribution.congr ?_ ?_ hmap
+  · intro m
+    exact ae_of_all μ (fun ω => by
+      exact controlFunctionAlphaMap_smul_sub_sum_elim
+        (k := k) (root := Real.sqrt (m : ℝ))
+        (b := expectationErrorBetaAlphaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+        (β₂ := β₂) (γ := γ))
+  · exact ae_of_all
+      (multivariateGaussian 0 (controlFunctionAlphaVariance V22 Vγγ Vγ2))
+      (fun _ => rfl)
+
+/-- Reduced-form residuals `û₂ = X₂ - P_Z X₂` used in Hansen's
+control-function regression (12.63). -/
+noncomputable def controlFunctionResidualStar
+    (Z : Matrix n l ℝ) (X₂ : Matrix n k₂ ℝ) : Matrix n k₂ ℝ :=
+  X₂ - fittedRegressorsStar Z X₂
+
+/-- Hansen's control-function regression design `(X₁, X₂, û₂)`. -/
+noncomputable def controlFunctionDesignStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) :
+    Matrix n (Sum (Sum k₁ k₂) k₂) ℝ :=
+  Matrix.fromCols (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂)
+
+/-- Expectation-error version of the control-function design:
+`(X₁, P_Z X₂, û₂)`.
+
+Hansen's regression `(X₁, X₂, û₂)` is obtained from this design by the
+deterministic column transformation `X₂ = P_Z X₂ + û₂`. -/
+noncomputable def controlFunctionExpectationErrorDesignStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) :
+    Matrix n (Sum (Sum k₁ k₂) k₂) ℝ :=
+  Matrix.fromCols
+    (Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))
+    (controlFunctionResidualStar Z X₂)
+
+/-- Coefficient transform from Hansen's control-function parameterization
+`(β₁, β₂, α)` for `(X₁, X₂, û₂)` to the expectation-error parameterization
+`(β₁, β₂, γ)` for `(X₁, P_Z X₂, û₂)`, where `γ = β₂ + α`. -/
+def controlFunctionCoefToExpectationError
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    Sum (Sum k₁ k₂) k₂ → ℝ
+  | Sum.inl (Sum.inl j) => b (Sum.inl (Sum.inl j))
+  | Sum.inl (Sum.inr j) => b (Sum.inl (Sum.inr j))
+  | Sum.inr j => b (Sum.inl (Sum.inr j)) + b (Sum.inr j)
+
+/-- Hansen Theorem 12.13 expectation-error target `(β₁, β₂, γ)` generated
+from the control-function target `(β₁, β₂, α)`, where `γ = β₂ + α`. -/
+def controlFunctionExpectationErrorTarget
+    (β : Sum k₁ k₂ → ℝ) (α : k₂ → ℝ) :
+    Sum (Sum k₁ k₂) k₂ → ℝ :=
+  controlFunctionCoefToExpectationError (Sum.elim β α)
+
+/-- Hansen control-function structural regressor row `X = (X₁, X₂)`. -/
+def controlFunctionStructuralRegressor
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → k₂ → ℝ) :
+    ℕ → Ω → Sum k₁ k₂ → ℝ :=
+  fun i ω => Sum.elim (X₁ i ω) (X₂ i ω)
+
+/-- Coefficient transform from the expectation-error parameterization
+`(β₁, β₂, γ)` back to Hansen's control-function parameterization
+`(β₁, β₂, α)`, where `α = γ - β₂`. -/
+def controlFunctionCoefFromExpectationError
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    Sum (Sum k₁ k₂) k₂ → ℝ
+  | Sum.inl (Sum.inl j) => b (Sum.inl (Sum.inl j))
+  | Sum.inl (Sum.inr j) => b (Sum.inl (Sum.inr j))
+  | Sum.inr j => b (Sum.inr j) - b (Sum.inl (Sum.inr j))
+
+/-- Matrix form of `controlFunctionCoefToExpectationError`.  Multiplication by
+this matrix maps control-function coefficients `(β₁, β₂, α)` to the
+expectation-error coefficients `(β₁, β₂, γ)` with `γ = β₂ + α`. -/
+def controlFunctionCoefToExpectationErrorMatrix :
+    Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ :=
+  fun i j =>
+    match i, j with
+    | Sum.inl (Sum.inl a), Sum.inl (Sum.inl b) => if a = b then 1 else 0
+    | Sum.inl (Sum.inr a), Sum.inl (Sum.inr b) => if a = b then 1 else 0
+    | Sum.inr a, Sum.inl (Sum.inr b) => if a = b then 1 else 0
+    | Sum.inr a, Sum.inr b => if a = b then 1 else 0
+    | _, _ => 0
+
+/-- Matrix form of `controlFunctionCoefFromExpectationError`.  Multiplication
+by this matrix maps expectation-error coefficients `(β₁, β₂, γ)` back to the
+control-function coefficients `(β₁, β₂, α)` with `α = γ - β₂`. -/
+def controlFunctionCoefFromExpectationErrorMatrix :
+    Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ :=
+  fun i j =>
+    match i, j with
+    | Sum.inl (Sum.inl a), Sum.inl (Sum.inl b) => if a = b then 1 else 0
+    | Sum.inl (Sum.inr a), Sum.inl (Sum.inr b) => if a = b then 1 else 0
+    | Sum.inr a, Sum.inl (Sum.inr b) => if a = b then -1 else 0
+    | Sum.inr a, Sum.inr b => if a = b then 1 else 0
+    | _, _ => 0
+
+/-- The endogeneity coefficient `α = γ - β₂` extracted from the
+expectation-error parameterization `(β₁, β₂, γ)`. -/
+def controlFunctionAlphaFromExpectationErrorCoef
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) : k₂ → ℝ :=
+  fun j => b (Sum.inr j) - b (Sum.inl (Sum.inr j))
+
+/-- Matrix extracting Hansen's control-function endogeneity coefficient
+`α = γ - β₂` from expectation-error coefficients `(β₁, β₂, γ)`. -/
+def controlFunctionEndogeneityMap :
+    Matrix k₂ (Sum (Sum k₁ k₂) k₂) ℝ :=
+  fun i j =>
+    match j with
+    | Sum.inl (Sum.inl _) => 0
+    | Sum.inl (Sum.inr jβ) => if i = jβ then -1 else 0
+    | Sum.inr jγ => if i = jγ then 1 else 0
+
+@[simp]
+theorem controlFunctionCoefToExpectationErrorMatrix_mulVec
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionCoefToExpectationErrorMatrix *ᵥ b =
+      controlFunctionCoefToExpectationError b := by
+  classical
+  funext j
+  cases j with
+  | inl j =>
+      cases j <;>
+        simp [controlFunctionCoefToExpectationErrorMatrix,
+          controlFunctionCoefToExpectationError, Matrix.mulVec, dotProduct,
+          Fintype.sum_sum_type]
+  | inr j =>
+      simp [controlFunctionCoefToExpectationErrorMatrix,
+        controlFunctionCoefToExpectationError, Matrix.mulVec, dotProduct,
+        Fintype.sum_sum_type]
+
+@[simp]
+theorem controlFunctionCoefFromExpectationErrorMatrix_mulVec
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionCoefFromExpectationErrorMatrix *ᵥ b =
+      controlFunctionCoefFromExpectationError b := by
+  classical
+  funext j
+  cases j with
+  | inl j =>
+      cases j <;>
+        simp [controlFunctionCoefFromExpectationErrorMatrix,
+          controlFunctionCoefFromExpectationError, Matrix.mulVec, dotProduct,
+          Fintype.sum_sum_type]
+  | inr j =>
+      simp [controlFunctionCoefFromExpectationErrorMatrix,
+        controlFunctionCoefFromExpectationError, Matrix.mulVec, dotProduct,
+        Fintype.sum_sum_type]
+      ring
+
+omit [DecidableEq k₁] in
+@[simp]
+theorem controlFunctionEndogeneityMap_mulVec
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionEndogeneityMap *ᵥ b =
+      controlFunctionAlphaFromExpectationErrorCoef b := by
+  classical
+  funext j
+  simp [controlFunctionEndogeneityMap, controlFunctionAlphaFromExpectationErrorCoef,
+    Matrix.mulVec, dotProduct, Fintype.sum_sum_type]
+  ring
+
+omit [DecidableEq k₁] in
+@[simp]
+theorem controlFunctionEndogeneityMap_mulVec_expectationErrorTarget
+    (β : Sum k₁ k₂ → ℝ) (α : k₂ → ℝ) :
+    controlFunctionEndogeneityMap *ᵥ
+        controlFunctionExpectationErrorTarget β α = α := by
+  funext j
+  simp [controlFunctionExpectationErrorTarget, controlFunctionCoefToExpectationError,
+    controlFunctionAlphaFromExpectationErrorCoef]
+
+omit [Fintype k₁] [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq k₁] in
+/-- The deterministic map `R : (β₁, β₂, γ) ↦ γ - β₂` has full row rank.
+
+This is the linear-algebra input needed to upgrade the covariance bridge
+`R V R'` from positive semidefinite to positive definite when the full
+expectation-error covariance is positive definite. -/
+theorem controlFunctionEndogeneityMap_vecMul_injective :
+    Function.Injective
+      (controlFunctionEndogeneityMap (k₁ := k₁) (k₂ := k₂)).vecMul := by
+  classical
+  intro x y hxy
+  funext j
+  have hcoord := congrFun hxy (Sum.inr j)
+  simpa [Matrix.vecMul, dotProduct, controlFunctionEndogeneityMap,
+    Fintype.sum_sum_type] using hcoord
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Right-block covariance algebra for the control-function column transform.
+
+If the full expectation-error covariance for `(β₁, β₂, γ)` is transported to
+Hansen's `(β₁, β₂, α)` parameterization by
+`controlFunctionCoefFromExpectationErrorMatrix`, then the right-bottom block is
+exactly the covariance pushed through the endogeneity map `α = γ - β₂`. -/
+theorem generatedRegressorRightBlockCovariance_controlFunctionCoefFromExpectationErrorMatrix
+    (V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ) :
+    generatedRegressorRightBlockCovariance
+        (k₁ := Sum k₁ k₂) (k₂ := k₂)
+        (controlFunctionCoefFromExpectationErrorMatrix *
+          V * (controlFunctionCoefFromExpectationErrorMatrix)ᵀ) =
+      controlFunctionEndogeneityMap * V * (controlFunctionEndogeneityMap)ᵀ := by
+  classical
+  ext a b
+  simp [generatedRegressorRightBlockCovariance,
+    controlFunctionCoefFromExpectationErrorMatrix, controlFunctionEndogeneityMap,
+    Matrix.mul_apply, Fintype.sum_sum_type]
+
+/-- Euclidean Gaussian-limit image under the control-function endogeneity map. -/
+noncomputable def controlFunctionEndogeneityLimit
+    (G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)) :
+    Ωlim → EuclideanSpace ℝ k₂ :=
+  fun ω => WithLp.toLp 2 (controlFunctionEndogeneityMap *ᵥ (G ω).ofLp)
+
+omit [DecidableEq k₁] in
+/-- Distributional continuous-mapping bridge for the deterministic
+control-function endogeneity map `α = γ - β₂`. -/
+theorem controlFunctionEndogeneityMap_tendstoInDistribution
+    {T : ℕ → Ω → Sum (Sum k₁ k₂) k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    (hT : TendstoInDistribution T atTop
+      (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i) (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω => controlFunctionEndogeneityMap *ᵥ T m ω)
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+  have hcont : Continuous
+      (fun b : Sum (Sum k₁ k₂) k₂ → ℝ =>
+        controlFunctionEndogeneityMap *ᵥ b) :=
+    Continuous.matrix_mulVec continuous_const continuous_id
+  have hproj := hT.continuous_comp hcont
+  simpa [controlFunctionEndogeneityLimit, Function.comp_def] using hproj
+
+omit [IsProbabilityMeasure ν] in
+/-- Gaussian linear-image bridge for the control-function endogeneity map. -/
+theorem controlFunctionEndogeneityLimit_hasLaw
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hV : V.PosSemidef)
+    (hG : HasLaw G (multivariateGaussian 0 V) ν) :
+    HasLaw
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * V *
+          (controlFunctionEndogeneityMap)ᵀ))
+      ν := by
+  have hmap :
+      HasLaw
+        (fun z : EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂) =>
+          WithLp.toLp 2 (controlFunctionEndogeneityMap *ᵥ z.ofLp))
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap * V *
+            (controlFunctionEndogeneityMap)ᵀ))
+        (multivariateGaussian 0 V) :=
+    hasLaw_multivariateGaussian_zero_linearMap
+      (n := Sum (Sum k₁ k₂) k₂) (q := k₂) hV
+      controlFunctionEndogeneityMap
+  have hcomp := HasLaw.comp hmap hG
+  simpa only [controlFunctionEndogeneityLimit, Function.comp_def] using hcomp
+
+/-- Eventual a.e. congruence for distributional convergence under a fixed
+source probability space.
+
+Mathlib's `TendstoInDistribution.congr` requires the a.e. equality for every
+sample size.  Generated-regressor finite-sample bridges are often only proved
+eventually a.e.; this local wrapper is the corresponding theorem-facing bridge. -/
+theorem tendstoInDistribution_congr_eventually_const_measure
+    {E : Type*} [TopologicalSpace E] [MeasurableSpace E] [OpensMeasurableSpace E]
+    {X Y : ℕ → Ω → E} {Z T : Ωlim → E}
+    (hXY : ∀ᶠ m in atTop, X m =ᵐ[μ] Y m)
+    (hZT : Z =ᵐ[ν] T)
+    (hY : ∀ m, AEMeasurable (Y m) μ)
+    (hT : AEMeasurable T ν)
+    (h : TendstoInDistribution X atTop Z (fun _ => μ) ν) :
+    TendstoInDistribution Y atTop T (fun _ => μ) ν := by
+  refine ⟨hY, hT, ?_⟩
+  have hmap : (fun m =>
+        (⟨Measure.map (X m) μ,
+          Measure.isProbabilityMeasure_map (h.forall_aemeasurable m)⟩ :
+          ProbabilityMeasure E)) =ᶠ[atTop]
+      (fun m =>
+        (⟨Measure.map (Y m) μ,
+          Measure.isProbabilityMeasure_map (hY m)⟩ :
+          ProbabilityMeasure E)) := by
+    filter_upwards [hXY] with m hm
+    apply ProbabilityMeasure.toMeasure_injective
+    change Measure.map (X m) μ = Measure.map (Y m) μ
+    exact Measure.map_congr hm
+  have hlim :
+      (⟨Measure.map Z ν,
+        Measure.isProbabilityMeasure_map h.aemeasurable_limit⟩ :
+        ProbabilityMeasure E) =
+      (⟨Measure.map T ν, Measure.isProbabilityMeasure_map hT⟩ :
+        ProbabilityMeasure E) := by
+    apply ProbabilityMeasure.toMeasure_injective
+    change Measure.map Z ν = Measure.map T ν
+    exact Measure.map_congr hZT
+  simpa [hlim] using (tendsto_congr' hmap).mp h.tendsto
+
+set_option linter.style.longLine false in
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.11 coefficient bridge from 2SLS under eventual
+a.e. first-stage nonsingularity.
+
+The earlier all-sample bridge is still useful for deterministic fixed-design
+work.  This wrapper is the theorem-facing asymptotic version: it only requires
+the projection identity on an eventually a.e. nonsingular branch, together
+with measurability of the generated-regressor statistic. -/
+theorem
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_eventual_nonsingular
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (h2sls : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν := by
+  refine tendstoInDistribution_congr_eventually_const_measure
+    (μ := μ) (ν := ν)
+    (X := fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (twoSLSBetaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+          β))
+    (Y := fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω)
+          (generatedRegressorLSFirstStageCoefStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))
+          (stackOutcomes Y m ω) - β))
+    (Z := fun ω i => (G ω : k → ℝ) i)
+    (T := fun ω i => (G ω : k → ℝ) i)
+    ?_ EventuallyEq.rfl hgen_meas h2sls.aemeasurable_limit h2sls
+  filter_upwards [hnonsing] with m hm
+  filter_upwards [hm] with ω hdet
+  letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) hdet
+  change
+    Real.sqrt (m : ℝ) •
+        (twoSLSBetaStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+          β) =
+      Real.sqrt (m : ℝ) •
+        (generatedRegressorBetaStar
+          (stackRegressors Z m ω)
+          (generatedRegressorLSFirstStageCoefStar
+            (stackRegressors Z m ω) (stackRegressors X m ω))
+          (stackOutcomes Y m ω) - β)
+  rw [generatedRegressorLSBetaStar_eq_twoSLSBetaStar_of_projection_identities
+    (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
+    (Y := stackOutcomes Y m ω)
+    (instrumentProjectionStar_idempotent_of_nonsingular
+      (Z := stackRegressors Z m ω))
+    (instrumentProjectionStar_transpose_of_nonsingular
+      (Z := stackRegressors Z m ω))]
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.11 from existing 2SLS conclusions under eventual
+a.e. first-stage nonsingularity. -/
+theorem generatedRegressorLS_theorem12_11_from_twoSLS_eventual_nonsingular
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) := by
+  refine ⟨?_, hG, ?_⟩
+  · exact
+      generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_eventual_nonsingular
+        (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+        (β := β) (G := G) hnonsing hgen_meas hcoef
+  · simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, primitive Assumption 12.2 reuse route with
+eventual a.e. first-stage nonsingularity.
+
+Compared with the all-sample projection wrapper, this matches the asymptotic
+rank use more closely: sample projection identities are needed only eventually
+a.e.; global measurability of the generated-regressor statistic remains an
+explicit side condition. -/
+theorem
+    generatedRegressorLS_theorem12_11_of_assumption12_2_projection_eventual_nonsingular
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (A : Matrix l k ℝ)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (hQZZ :
+      IsUnit
+        (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))).det)
+    (hQXZ :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+        Aᵀ * twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+    (hQZX :
+      twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) =
+        twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) * A) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  let QZZ : Matrix l l ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
+  let OmegaZE : Matrix l l ℝ := scoreCovMat μ Z e
+  let Vgen : Matrix k k ℝ := generatedRegressorAsymptoticVariance A QZZ OmegaZE
+  let V2sls : Matrix k k ℝ :=
+    twoSLSAsymptoticVariance (Aᵀ * QZZ) QZZ OmegaZE (QZZ * A)
+  have hVgen_eq : Vgen = V2sls := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE] using
+      generatedRegressorAsymptoticVariance_eq_twoSLS_population_projection
+        (A := A) (QZZ := QZZ) (OmegaZE := OmegaZE) hQZZ
+  have hcoef2sls_raw :=
+    twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+  have hcoef2sls :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using hcoef2sls_raw
+  have hcoefLS_aux :=
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_eventual_nonsingular
+      (μ := μ) (ν := multivariateGaussian 0 Vgen)
+      (Z := Z) (X := X) (Y := Y) (β := β)
+      (G := fun z : EuclideanSpace ℝ k => z)
+      hnonsing hgen_meas hcoef2sls
+  have hcoefLS :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa using hcoefLS_aux
+  have hcovFormula :=
+    TwoSLSCovarianceFormulaConsistencyConditions.of_assumption12_2_joint_iid_mixed_moment_conditions
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
+  have hcov2sls :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSVHatStar
+            (fun i : Fin n => Z i.val ω) (fun i : Fin n => X i.val ω)
+            (fun i : Fin n => Y i.val ω))
+        atTop (fun _ => Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using
+      hcovFormula.robust_tendsto
+  refine ⟨?_, ?_⟩
+  · simpa [Vgen, QZZ, OmegaZE] using hcoefLS
+  · simpa [Vgen, QZZ, OmegaZE, generatedRegressorLSVHatStar_eq_twoSLSVHatStar]
+      using hcov2sls
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The `Q_ZZ` block of the combined `[Z X]` population Gram is symmetric.
+
+This is a generated-regressor bridge for Hansen Theorem 12.11: once the
+combined sample-Gram WLLN package is available from Assumption 12.2, callers do
+not need to separately prove symmetry of the instrument population Gram block. -/
+theorem twoSLSCombinedQZZ_transpose_eq_of_popGram_wlln
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hCombined : SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X)) :
+    (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))ᵀ =
+      twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) := by
+  have hQsymm :
+      (popGram μ (twoSLSCombinedRegressors Z X))ᵀ =
+        popGram μ (twoSLSCombinedRegressors Z X) :=
+    (popGram_isSymm (μ := μ) (X := twoSLSCombinedRegressors Z X)
+      hCombined.int_outer).eq
+  ext i j
+  have hij := congrFun (congrFun hQsymm (Sum.inl j)) (Sum.inl i)
+  simpa [twoSLSCombinedQZZ, Matrix.transpose_apply] using hij.symm
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- Population first-stage projection algebra for Hansen Theorem 12.11.
+
+If the right population equation is `Q_ZX = Q_ZZ A`, then the left equation
+`Q_XZ = A'Q_ZZ` follows from symmetry of the combined population Gram. -/
+theorem twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {A : Matrix l k ℝ}
+    (hCombined : SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X))
+    (hQZX :
+      twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) =
+        twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) * A) :
+    twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+      Aᵀ * twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) := by
+  let QZZ : Matrix l l ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
+  have hblock :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+        (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))ᵀ :=
+    twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
+      (μ := μ) (Z := Z) (X := X) hCombined
+  have hQZZsymm : QZZᵀ = QZZ := by
+    simpa [QZZ] using
+      twoSLSCombinedQZZ_transpose_eq_of_popGram_wlln
+        (μ := μ) (Z := Z) (X := X) hCombined
+  calc
+    twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X))
+        = (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))ᵀ := hblock
+    _ = (QZZ * A)ᵀ := by rw [hQZX]
+    _ = Aᵀ * QZZ := by rw [Matrix.transpose_mul, hQZZsymm]
+
+omit [Fintype k] [DecidableEq k] in
+/-- Population projection coefficient algebra for Hansen Theorem 12.11.
+
+If Hansen's population first-stage equation is written as `Q_ZX = Q_ZZ A`
+and `Q_ZZ` is nonsingular, then the primitive coefficient is exactly
+`A = Q_ZZ⁻¹ Q_ZX`. -/
+theorem generatedRegressorPopulationProjectionCoef_eq_of_qzx_eq_qzz_mul
+    {QZZ : Matrix l l ℝ} {QZX : Matrix l k ℝ} {A : Matrix l k ℝ}
+    (hQZZ : IsUnit QZZ.det) (hQZX : QZX = QZZ * A) :
+    QZZ⁻¹ * QZX = A := by
+  rw [hQZX, ← Matrix.mul_assoc, Matrix.nonsing_inv_mul QZZ hQZZ,
+    Matrix.one_mul]
+
+omit [Fintype k] [DecidableEq k] in
+/-- The population coefficient `Q_ZZ⁻¹ Q_ZX` satisfies Hansen's right
+normal equation `Q_ZX = Q_ZZ A` whenever `Q_ZZ` is nonsingular. -/
+theorem qzz_mul_generatedRegressorPopulationProjectionCoef_eq
+    {QZZ : Matrix l l ℝ} {QZX : Matrix l k ℝ}
+    (hQZZ : IsUnit QZZ.det) :
+    QZZ * (QZZ⁻¹ * QZX) = QZX := by
+  rw [← Matrix.mul_assoc, Matrix.mul_nonsing_inv QZZ hQZZ, Matrix.one_mul]
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, population-projection coefficient route.
+
+This constructor chooses Hansen's population first-stage coefficient as
+`A = Q_ZZ⁻¹ Q_ZX`.  Assumption 12.2 supplies `Q_ZZ > 0`, hence nonsingularity;
+the equation `Q_ZX = Q_ZZ A` follows by matrix inversion, and
+`Q_XZ = A'Q_ZZ` follows from the combined population Gram symmetry.  The
+genuinely asymptotic side conditions, eventual sample first-stage
+nonsingularity and generated-statistic measurability, remain explicit. -/
+theorem
+    generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  let Q := popGram μ (twoSLSCombinedRegressors Z X)
+  let QZZ : Matrix l l ℝ := twoSLSCombinedQZZ Q
+  let QZX : Matrix l k ℝ := twoSLSCombinedQZX Q
+  let A : Matrix l k ℝ := QZZ⁻¹ * QZX
+  have hQZZ : IsUnit QZZ.det :=
+    (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
+  have hIidFourth :
+      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
+    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  have hGram :
+      TwoSLSAssumption12_2GramConditions μ Z X e :=
+    hIidFourth.toGramConditions
+  have hCombined :
+      SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X) :=
+    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+  have hQZX : QZX = QZZ * A := by
+    dsimp [A]
+    exact (qzz_mul_generatedRegressorPopulationProjectionCoef_eq hQZZ).symm
+  have hQXZ :
+      twoSLSCombinedQXZ Q = Aᵀ * QZZ := by
+    simpa [Q, QZZ, QZX, A] using
+      twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
+        (μ := μ) (Z := Z) (X := X) (A := A) hCombined (by
+          simpa [Q, QZZ, QZX, A] using hQZX)
+  simpa [Q, QZZ, QZX, A] using
+    generatedRegressorLS_theorem12_11_of_assumption12_2_projection_eventual_nonsingular
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h β hmodel A hnonsing hgen_meas hQZZ hQXZ (by
+        simpa [Q, QZZ, QZX, A] using hQZX)
+
+set_option linter.style.longLine false in
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, population-projection route with generated
+statistic measurability derived from Assumption 12.2.
+
+This is the same endpoint as
+`generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual`,
+but it no longer asks callers to provide measurability of the generated
+least-squares statistic.  The field follows from row measurability in the
+mixed-moment Assumption 12.2 package and the structural equation for `Y`.  The
+eventual first-stage rank condition remains explicit. -/
+theorem
+    generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual_auto_measurable
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  have hY_meas : ∀ i, AEStronglyMeasurable (Y i) μ :=
+    outcome_aestronglyMeasurable_of_linear_model
+      (μ := μ) (X := X) (e := e) (Y := Y) β
+      h.x_aestronglyMeasurable h.e_aestronglyMeasurable hmodel
+  exact
+    generatedRegressorLS_theorem12_11_of_assumption12_2_population_projection_eventual
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h β hmodel hnonsing
+      (fun m =>
+        generatedRegressorLSBetaStar_scaled_centered_aemeasurable_of_rows
+          (μ := μ) (N := m) (Z := Z) (X := X) (Y := Y)
+          h.z_aestronglyMeasurable h.x_aestronglyMeasurable hY_meas β)
+
+/-- The `Cov(γ, β₂)` block extracted from a full covariance row block whose
+columns are ordered as `(β₁, β₂)`. -/
+def controlFunctionGammaBeta2Covariance
+    (VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ) : Matrix k₂ k₂ ℝ :=
+  fun i j => VgammaBeta i (Sum.inr j)
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Displayed covariance bridge for Hansen Theorem 12.13.
+
+For a full expectation-error covariance of `(β₁, β₂, γ)`, the covariance
+pushed through the control-function map `α = γ - β₂` is Hansen's displayed
+`V₂₂ + Vγγ - Vγ2 - Vγ2'`.  The cross-block symmetry premise records the
+usual covariance identity `Cov(β,γ) = Cov(γ,β)'`. -/
+theorem controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+    (VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ)
+    (VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ)
+    (VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ)
+    (VgammaGamma : Matrix k₂ k₂ ℝ)
+    (hcross : VbetaGamma = VgammaBetaᵀ) :
+    controlFunctionEndogeneityMap *
+        Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+        (controlFunctionEndogeneityMap)ᵀ =
+      controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta) := by
+  classical
+  subst VbetaGamma
+  ext i j
+  simp [controlFunctionEndogeneityMap, controlFunctionAlphaVariance,
+    controlFunctionGammaBeta2Covariance, generatedRegressorRightBlockCovariance,
+    Matrix.mul_apply, Fintype.sum_sum_type]
+  ring
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq k₁] in
+/-- Positive semidefiniteness is preserved by the control-function
+endogeneity covariance map `V ↦ R V R'`. -/
+theorem controlFunctionEndogeneityCovariance_posSemidef
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hV : V.PosSemidef) :
+    (controlFunctionEndogeneityMap * V *
+      (controlFunctionEndogeneityMap)ᵀ).PosSemidef := by
+  simpa [Matrix.conjTranspose] using
+    Matrix.PosSemidef.mul_mul_conjTranspose_same hV
+      (controlFunctionEndogeneityMap (k₁ := k₁) (k₂ := k₂))
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] [DecidableEq k₁] in
+/-- Positive definiteness is preserved by the full-row-rank control-function
+endogeneity covariance map `V ↦ R V R'`. -/
+theorem controlFunctionEndogeneityCovariance_posDef
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hV : V.PosDef) :
+    (controlFunctionEndogeneityMap * V *
+      (controlFunctionEndogeneityMap)ᵀ).PosDef := by
+  simpa [Matrix.conjTranspose] using
+    Matrix.PosDef.mul_mul_conjTranspose_same hV
+      (controlFunctionEndogeneityMap_vecMul_injective
+        (k₁ := k₁) (k₂ := k₂))
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Displayed Hansen Theorem 12.13 covariance is positive semidefinite when
+it is the right linear image of a positive semidefinite full covariance block. -/
+theorem controlFunctionAlphaVariance_posSemidef_fromBlocks
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hV :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hcross : VbetaGamma = VgammaBetaᵀ) :
+    (controlFunctionAlphaVariance
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta)).PosSemidef := by
+  have hmap := controlFunctionEndogeneityCovariance_posSemidef
+    (k₁ := k₁) (k₂ := k₂) hV
+  simpa [controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross]
+    using hmap
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Displayed Hansen Theorem 12.13 covariance is positive definite when it is
+the full-row-rank linear image of a positive definite full covariance block. -/
+theorem controlFunctionAlphaVariance_posDef_fromBlocks
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hV :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    (hcross : VbetaGamma = VgammaBetaᵀ) :
+    (controlFunctionAlphaVariance
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef := by
+  have hmap := controlFunctionEndogeneityCovariance_posDef
+    (k₁ := k₁) (k₂ := k₂) hV
+  simpa [controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross]
+    using hmap
+
+omit [IsProbabilityMeasure ν] [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Gaussian-law form of the displayed covariance bridge for Hansen Theorem
+12.13. -/
+theorem controlFunctionEndogeneityLimit_hasLaw_displayed
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hV :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν) :
+    HasLaw
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)))
+      ν := by
+  have hmap := controlFunctionEndogeneityLimit_hasLaw
+    (k₁ := k₁) (k₂ := k₂) hV hG
+  simpa [controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂) VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross]
+    using hmap
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem controlFunctionCoefFromExpectationError_rightBlock
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    generatedRegressorRightBlock (controlFunctionCoefFromExpectationError b) =
+      controlFunctionAlphaFromExpectationErrorCoef b := by
+  rfl
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem controlFunctionCoefFrom_toExpectationError
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionCoefFromExpectationError
+      (controlFunctionCoefToExpectationError b) = b := by
+  funext j
+  cases j with
+  | inl j =>
+      cases j <;> rfl
+  | inr j =>
+      simp [controlFunctionCoefFromExpectationError,
+        controlFunctionCoefToExpectationError]
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq k₁] [DecidableEq k₂] in
+@[simp]
+theorem controlFunctionCoefTo_fromExpectationError
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionCoefToExpectationError
+      (controlFunctionCoefFromExpectationError b) = b := by
+  funext j
+  cases j with
+  | inl j =>
+      cases j <;> rfl
+  | inr j =>
+      simp [controlFunctionCoefFromExpectationError,
+        controlFunctionCoefToExpectationError]
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Matrix inverse identity for the control-function/expectation-error
+coefficient transform. -/
+@[simp]
+theorem controlFunctionCoefFromExpectationErrorMatrix_mul_coefToExpectationErrorMatrix :
+    controlFunctionCoefFromExpectationErrorMatrix *
+        controlFunctionCoefToExpectationErrorMatrix =
+      (1 : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ) := by
+  rw [Matrix.ext_iff_mulVec]
+  intro b
+  rw [← Matrix.mulVec_mulVec]
+  simp
+
+omit [DecidableEq n] [DecidableEq k] [DecidableEq l] in
+/-- Reverse matrix inverse identity for the control-function/expectation-error
+coefficient transform. -/
+@[simp]
+theorem controlFunctionCoefToExpectationErrorMatrix_mul_coefFromExpectationErrorMatrix :
+    controlFunctionCoefToExpectationErrorMatrix *
+        controlFunctionCoefFromExpectationErrorMatrix =
+      (1 : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ) := by
+  rw [Matrix.ext_iff_mulVec]
+  intro b
+  rw [← Matrix.mulVec_mulVec]
+  simp
+
+omit [DecidableEq n] in
+private theorem gram_det_isUnit_mul_columnTransform
+    {p : Type*} [Fintype p] [DecidableEq p]
+    (X : Matrix n p ℝ) (T S : Matrix p p ℝ)
+    (hST : S * T = 1)
+    (hX : IsUnit ((Xᵀ * X).det)) :
+    IsUnit (((X * T)ᵀ * (X * T)).det) := by
+  have hT : IsUnit T.det := Matrix.isUnit_det_of_left_inverse hST
+  have hgram : (X * T)ᵀ * (X * T) = Tᵀ * (Xᵀ * X) * T := by
+    simp [Matrix.transpose_mul, Matrix.mul_assoc]
+  rw [hgram]
+  simpa [Matrix.det_mul, Matrix.det_transpose, mul_assoc, mul_comm, mul_left_comm]
+    using hT.mul (hX.mul hT)
+
+omit [DecidableEq n] in
+/-- A full-rank column-augmented design has a full-rank left block.
+
+This is the finite-sample rank bridge used by the exact control-function
+endogeneity test: the fixed-design F theorem asks separately for the restricted
+design `(X₁,X₂)` to have full rank, but this follows from full rank of
+`((X₁,X₂),û₂)`. -/
+theorem leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+    {p q : Type*} [Fintype p] [Fintype q] [DecidableEq p] [DecidableEq q]
+    (X : Matrix n p ℝ) (Y : Matrix n q ℝ)
+    (hfull : IsUnit (((Matrix.fromCols X Y)ᵀ *
+      Matrix.fromCols X Y).det)) :
+    IsUnit ((Xᵀ * X).det) := by
+  classical
+  let XY : Matrix n (Sum p q) ℝ := Matrix.fromCols X Y
+  have hfull_unit : IsUnit (XYᵀ * XY) :=
+    (Matrix.isUnit_iff_isUnit_det _).mpr (by simpa [XY] using hfull)
+  have hfull_gram_inj : Function.Injective (XYᵀ * XY).mulVec :=
+    Matrix.mulVec_injective_iff_isUnit.mpr hfull_unit
+  have hXY_inj : Function.Injective XY.mulVec := by
+    intro a b hab
+    have hdiff : XY *ᵥ (a - b) = 0 := by
+      rw [Matrix.mulVec_sub, hab, sub_self]
+    have hgram : (XYᵀ * XY) *ᵥ (a - b) = 0 := by
+      rw [← Matrix.mulVec_mulVec, hdiff, Matrix.mulVec_zero]
+    have hzero : a - b = 0 := by
+      apply hfull_gram_inj
+      simpa using hgram
+    exact sub_eq_zero.mp hzero
+  have hX_inj : Function.Injective X.mulVec := by
+    intro a b hab
+    have hfull_eq :
+        XY *ᵥ Sum.elim a (fun _ : q => 0) =
+          XY *ᵥ Sum.elim b (fun _ : q => 0) := by
+      simp [XY, hab]
+    have hcoef := hXY_inj hfull_eq
+    funext j
+    exact congrFun hcoef (Sum.inl j)
+  have hpos : (Xᵀ * X).PosDef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.PosDef.conjTranspose_mul_self X hX_inj)
+  exact isUnit_iff_ne_zero.mpr hpos.det_pos.ne'
+
+omit [DecidableEq n] in
+/-- Nonempty-invertible wrapper for the left-block Gram bridge.
+
+This is the theorem-facing finite-sample rank step used in subset
+overidentification: if the full instrument matrix `[Z_a,Z_b]` has full column
+rank, then the maintained instrument block `Z_a` has full column rank. -/
+theorem maintainedInstrumentGram_invertible_of_fullInstrumentGram_invertible
+    {p q : Type*} [Fintype p] [Fintype q] [DecidableEq p] [DecidableEq q]
+    (Za : Matrix n p ℝ) (Zb : Matrix n q ℝ)
+    (hZ : Nonempty (Invertible
+      (((Matrix.fromCols Za Zb)ᵀ * Matrix.fromCols Za Zb)))) :
+    Nonempty (Invertible (Zaᵀ * Za)) := by
+  have hZunit : IsUnit (((Matrix.fromCols Za Zb)ᵀ * Matrix.fromCols Za Zb)) := by
+    simpa [nonempty_invertible_iff_isUnit] using hZ
+  exact ⟨Matrix.invertibleOfIsUnitDet
+    (A := Zaᵀ * Za)
+    (leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+      (X := Za) (Y := Zb)
+      ((Matrix.isUnit_iff_isUnit_det
+        (((Matrix.fromCols Za Zb)ᵀ * Matrix.fromCols Za Zb))).mp hZunit))⟩
+
+omit [DecidableEq n] in
+/-- Full-column-rank bridge for orthogonal block designs.
+
+If the two blocks have nonsingular Grams and the left block is orthogonal to
+the right block, then the concatenated design has full column rank.  This is
+the reusable deterministic rank engine behind the Hansen Theorem 12.15
+projection/span bridge below. -/
+theorem fromCols_mulVec_injective_of_left_right_orthogonal
+    {p q : Type*} [Fintype p] [Fintype q] [DecidableEq p] [DecidableEq q]
+    (X : Matrix n p ℝ) (Y : Matrix n q ℝ)
+    (hX : IsUnit ((Xᵀ * X).det))
+    (hY : IsUnit ((Yᵀ * Y).det))
+    (hXY : Xᵀ * Y = 0) :
+    Function.Injective (Matrix.fromCols X Y).mulVec := by
+  classical
+  have hXunit : IsUnit (Xᵀ * X) :=
+    (Matrix.isUnit_iff_isUnit_det _).mpr hX
+  have hYunit : IsUnit (Yᵀ * Y) :=
+    (Matrix.isUnit_iff_isUnit_det _).mpr hY
+  have hXgram_inj : Function.Injective (Xᵀ * X).mulVec :=
+    Matrix.mulVec_injective_iff_isUnit.mpr hXunit
+  have hYgram_inj : Function.Injective (Yᵀ * Y).mulVec :=
+    Matrix.mulVec_injective_iff_isUnit.mpr hYunit
+  have hYX : Yᵀ * X = 0 := by
+    have h := congrArg Matrix.transpose hXY
+    simpa [Matrix.transpose_mul] using h
+  intro a b hab
+  let c : Sum p q → ℝ := a - b
+  let cX : p → ℝ := fun j => c (Sum.inl j)
+  let cY : q → ℝ := fun j => c (Sum.inr j)
+  have hcombo : X *ᵥ cX + Y *ᵥ cY = 0 := by
+    have hzero : Matrix.fromCols X Y *ᵥ c = 0 := by
+      change Matrix.fromCols X Y *ᵥ (a - b) = 0
+      rw [Matrix.mulVec_sub, hab, sub_self]
+    simpa [cX, cY, Matrix.fromCols_mulVec] using hzero
+  have hXeq : (Xᵀ * X) *ᵥ cX = 0 := by
+    have hmul : Xᵀ *ᵥ (X *ᵥ cX + Y *ᵥ cY) = 0 := by
+      rw [hcombo, Matrix.mulVec_zero]
+    simpa [Matrix.mulVec_add, Matrix.mulVec_mulVec, hXY] using hmul
+  have hYeq : (Yᵀ * Y) *ᵥ cY = 0 := by
+    have hmul : Yᵀ *ᵥ (X *ᵥ cX + Y *ᵥ cY) = 0 := by
+      rw [hcombo, Matrix.mulVec_zero]
+    simpa [Matrix.mulVec_add, Matrix.mulVec_mulVec, hYX] using hmul
+  have hcX : cX = 0 := by
+    apply hXgram_inj
+    simpa using hXeq
+  have hcY : cY = 0 := by
+    apply hYgram_inj
+    simpa using hYeq
+  have hc : c = 0 := by
+    funext j
+    cases j with
+    | inl j => simpa [cX] using congrFun hcX j
+    | inr j => simpa [cY] using congrFun hcY j
+  exact sub_eq_zero.mp hc
+
+omit [DecidableEq n] in
+/-- Gram determinant form of
+`fromCols_mulVec_injective_of_left_right_orthogonal`. -/
+theorem fromCols_gram_det_isUnit_of_left_right_orthogonal
+    {p q : Type*} [Fintype p] [Fintype q] [DecidableEq p] [DecidableEq q]
+    (X : Matrix n p ℝ) (Y : Matrix n q ℝ)
+    (hX : IsUnit ((Xᵀ * X).det))
+    (hY : IsUnit ((Yᵀ * Y).det))
+    (hXY : Xᵀ * Y = 0) :
+    IsUnit (((Matrix.fromCols X Y)ᵀ * Matrix.fromCols X Y).det) := by
+  have hfull_inj :
+      Function.Injective (Matrix.fromCols X Y).mulVec :=
+    fromCols_mulVec_injective_of_left_right_orthogonal
+      (X := X) (Y := Y) hX hY hXY
+  have hpos : (((Matrix.fromCols X Y)ᵀ *
+      Matrix.fromCols X Y)).PosDef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.PosDef.conjTranspose_mul_self (Matrix.fromCols X Y) hfull_inj)
+  exact isUnit_iff_ne_zero.mpr hpos.det_pos.ne'
+
+omit [DecidableEq n] in
+/-- Full-rank expectation-error design from separate fitted and residual
+blocks.
+
+This specializes the reusable orthogonal-block rank engine to Hansen's
+expectation-error design `(Ŵ,Û)`. The orthogonality is derived from first-stage
+projection algebra, so callers only provide the finite-sample rank certificates
+for `Z`, `Ŵ`, and `Û`. -/
+theorem expectationErrorDesignStar_gram_det_isUnit_of_block_ranks
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hW : IsUnit
+      (((expectationErrorFittedStar Z X)ᵀ *
+        expectationErrorFittedStar Z X).det))
+    (hU : IsUnit
+      (((expectationErrorResidualStar Z X)ᵀ *
+        expectationErrorResidualStar Z X).det)) :
+    IsUnit
+      (((expectationErrorDesignStar Z X)ᵀ *
+        expectationErrorDesignStar Z X).det) := by
+  letI : Invertible (Zᵀ * Z) :=
+    Matrix.invertibleOfIsUnitDet (A := Zᵀ * Z) hZ
+  have horth :
+      (expectationErrorFittedStar Z X)ᵀ *
+        expectationErrorResidualStar Z X = 0 :=
+    expectationErrorFittedStar_transpose_mul_residualStar_of_nonsingular
+      (Z := Z) (X := X)
+  simpa [expectationErrorDesignStar] using
+    fromCols_gram_det_isUnit_of_left_right_orthogonal
+      (X := expectationErrorFittedStar Z X)
+      (Y := expectationErrorResidualStar Z X) hW hU horth
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Deterministic bridge behind Hansen Theorems 12.13--12.15.
+
+The control-function fitted value using `(X₁, X₂, û₂)` and coefficients
+`(β₁, β₂, α)` equals the expectation-error fitted value using
+`(X₁, P_Z X₂, û₂)` and transformed coefficients `(β₁, β₂, β₂ + α)`. -/
+theorem controlFunctionDesignStar_mulVec_eq_expectationErrorDesignStar_mulVec
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionDesignStar X₁ X₂ Z *ᵥ b =
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ
+        controlFunctionCoefToExpectationError b := by
+  classical
+  have hβ1 :
+      (controlFunctionCoefToExpectationError b ∘ Sum.inl) ∘ Sum.inl =
+        (b ∘ Sum.inl) ∘ Sum.inl := rfl
+  have hβ2 :
+      (controlFunctionCoefToExpectationError b ∘ Sum.inl) ∘ Sum.inr =
+        (b ∘ Sum.inl) ∘ Sum.inr := rfl
+  have hγ :
+      controlFunctionCoefToExpectationError b ∘ Sum.inr =
+        ((b ∘ Sum.inl) ∘ Sum.inr) + (b ∘ Sum.inr) := rfl
+  ext i
+  simp [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar,
+    controlFunctionResidualStar, expectationErrorFittedStar,
+    Matrix.fromCols_mulVec, Matrix.sub_mulVec]
+  rw [hβ1, hβ2, hγ]
+  simp [Matrix.mulVec_add]
+  ring_nf
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] in
+/-- Matrix form of the deterministic control-function column transform:
+`(X₁, X₂, û₂) = (X₁, P_Z X₂, û₂) T`, where `T` maps
+`(β₁, β₂, α)` to `(β₁, β₂, β₂ + α)`. -/
+theorem controlFunctionDesignStar_eq_expectationErrorDesignStar_mul_coefToExpectationErrorMatrix
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) :
+    controlFunctionDesignStar X₁ X₂ Z =
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z *
+        controlFunctionCoefToExpectationErrorMatrix := by
+  rw [Matrix.ext_iff_mulVec]
+  intro b
+  rw [← Matrix.mulVec_mulVec]
+  simpa using
+    controlFunctionDesignStar_mulVec_eq_expectationErrorDesignStar_mulVec
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) b
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Reverse deterministic bridge for the expectation-error control-function
+design.  The transformed coefficient has right block `γ - β₂`, Hansen's
+control-function endogeneity coefficient. -/
+theorem controlFunctionExpectationErrorDesignStar_mulVec_eq_controlFunctionDesignStar_mulVec
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ b =
+      controlFunctionDesignStar X₁ X₂ Z *ᵥ
+        controlFunctionCoefFromExpectationError b := by
+  classical
+  have hβ1 :
+      (controlFunctionCoefFromExpectationError b ∘ Sum.inl) ∘ Sum.inl =
+        (b ∘ Sum.inl) ∘ Sum.inl := rfl
+  have hβ2 :
+      (controlFunctionCoefFromExpectationError b ∘ Sum.inl) ∘ Sum.inr =
+        (b ∘ Sum.inl) ∘ Sum.inr := rfl
+  have hα :
+      controlFunctionCoefFromExpectationError b ∘ Sum.inr =
+        (b ∘ Sum.inr) - ((b ∘ Sum.inl) ∘ Sum.inr) := rfl
+  ext i
+  simp [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar,
+    controlFunctionResidualStar, expectationErrorFittedStar,
+    Matrix.fromCols_mulVec, Matrix.sub_mulVec]
+  rw [hβ1, hβ2, hα]
+  simp [Matrix.mulVec_sub]
+  ring_nf
+
+omit [DecidableEq n] in
+/-- Reverse matrix form of the deterministic control-function column
+transform. -/
+theorem
+    controlFunctionExpectationErrorDesignStar_eq_controlFunctionDesignStar_mul_coefFromMatrix
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) :
+    controlFunctionExpectationErrorDesignStar X₁ X₂ Z =
+      controlFunctionDesignStar X₁ X₂ Z *
+        controlFunctionCoefFromExpectationErrorMatrix := by
+  rw [Matrix.ext_iff_mulVec]
+  intro b
+  rw [← Matrix.mulVec_mulVec]
+  simpa using
+    controlFunctionExpectationErrorDesignStar_mulVec_eq_controlFunctionDesignStar_mulVec
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) b
+
+omit [DecidableEq n] in
+/-- The expectation-error design Gram nonsingularity implies the
+control-function design Gram nonsingularity.
+
+This discharges one side of Hansen Theorem 12.13's finite-sample bridge from
+the deterministic column transform `(X₁, X₂, û₂) = (X₁, P_ZX₂, û₂)T`. -/
+theorem controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hEE : IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det)) :
+    IsUnit
+      (((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionDesignStar X₁ X₂ Z).det) := by
+  have hdesign :=
+    controlFunctionDesignStar_eq_expectationErrorDesignStar_mul_coefToExpectationErrorMatrix
+      (X₁ := X₁) (X₂ := X₂) (Z := Z)
+  have hunit :=
+    gram_det_isUnit_mul_columnTransform
+      (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z)
+      (T := controlFunctionCoefToExpectationErrorMatrix (k₁ := k₁) (k₂ := k₂))
+      (S := controlFunctionCoefFromExpectationErrorMatrix (k₁ := k₁) (k₂ := k₂))
+      (controlFunctionCoefFromExpectationErrorMatrix_mul_coefToExpectationErrorMatrix
+        (k₁ := k₁) (k₂ := k₂)) hEE
+  simpa [hdesign]
+    using hunit
+
+omit [DecidableEq n] in
+/-- The expectation-error full-rank design condition also supplies the
+restricted control-function design rank for `(X₁,X₂)`.
+
+This removes the separate fixed-design restricted-rank side condition from
+Theorem 12.15 wrappers that already assume full rank of Hansen's
+expectation-error design `(X₁,P_ZX₂,û₂)`. -/
+theorem controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hEE : IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det)) :
+    IsUnit (((Matrix.fromCols X₁ X₂)ᵀ *
+      Matrix.fromCols X₁ X₂).det) := by
+  have hcf :=
+    controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) hEE
+  simpa [controlFunctionDesignStar] using
+    leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+      (X := Matrix.fromCols X₁ X₂)
+      (Y := controlFunctionResidualStar Z X₂)
+      hcf
+
+omit [DecidableEq n] in
+/-- The control-function design Gram nonsingularity implies the
+expectation-error design Gram nonsingularity.
+
+Together with `controlFunctionDesignStar_gram_det_isUnit_of_expectationError`,
+this shows the two nonsingularity requirements in the control-function bridge
+are mathematically one finite-sample rank condition. -/
+theorem controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_controlFunction
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hCF : IsUnit
+      (((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionDesignStar X₁ X₂ Z).det)) :
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det) := by
+  have hdesign :=
+    controlFunctionExpectationErrorDesignStar_eq_controlFunctionDesignStar_mul_coefFromMatrix
+      (X₁ := X₁) (X₂ := X₂) (Z := Z)
+  have hunit :=
+    gram_det_isUnit_mul_columnTransform
+      (X := controlFunctionDesignStar X₁ X₂ Z)
+      (T := controlFunctionCoefFromExpectationErrorMatrix (k₁ := k₁) (k₂ := k₂))
+      (S := controlFunctionCoefToExpectationErrorMatrix (k₁ := k₁) (k₂ := k₂))
+      (controlFunctionCoefToExpectationErrorMatrix_mul_coefFromExpectationErrorMatrix
+        (k₁ := k₁) (k₂ := k₂)) hCF
+  simpa [hdesign]
+    using hunit
+
+omit [DecidableEq n] in
+/-- The first-stage residual block is orthogonal to the instrument columns on
+the nonsingular projection branch. -/
+theorem controlFunctionResidualStar_instruments_orthogonal_of_gram_det_isUnit
+    (Z : Matrix n l ℝ) (X₂ : Matrix n k₂ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det)) :
+    Zᵀ * controlFunctionResidualStar Z X₂ = 0 := by
+  calc
+    Zᵀ * controlFunctionResidualStar Z X₂
+        = Zᵀ * (X₂ - Z * ((Zᵀ * Z)⁻¹ * Zᵀ * X₂)) := by
+            rw [controlFunctionResidualStar, fittedRegressorsStar_eq_Z_mul_reducedFormCoefStar]
+            rfl
+    _ = Zᵀ * X₂ - (Zᵀ * Z) * ((Zᵀ * Z)⁻¹ * Zᵀ * X₂) := by
+            simp [Matrix.mul_sub, Matrix.mul_assoc]
+    _ = Zᵀ * X₂ - ((Zᵀ * Z) * (Zᵀ * Z)⁻¹) * (Zᵀ * X₂) := by
+            simp [Matrix.mul_assoc]
+    _ = Zᵀ * X₂ - Zᵀ * X₂ := by
+            rw [Matrix.mul_nonsing_inv _ hZ, Matrix.one_mul]
+    _ = 0 := by simp
+
+omit [DecidableEq n] in
+/-- If the included exogenous block lies in the instrument span, then the
+left expectation-error block `(X₁,P_ZX₂)` is orthogonal to the first-stage
+residual block `û₂`. -/
+theorem controlFunctionExpectationError_leftBlock_residual_orthogonal_of_instrument_span
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hX₁ : X₁ = Z * A₁) :
+    (Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))ᵀ *
+      controlFunctionResidualStar Z X₂ = 0 := by
+  have hfit :
+      expectationErrorFittedStar Z X₂ =
+        Z * reducedFormCoefStar Z X₂ := by
+    simpa [expectationErrorFittedStar] using
+      fittedRegressorsStar_eq_Z_mul_reducedFormCoefStar
+        (Z := Z) (X := X₂)
+  have hleft :
+      Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂) =
+        Z * Matrix.fromCols A₁ (reducedFormCoefStar Z X₂) := by
+    ext i j
+    cases j with
+    | inl j =>
+        rw [hX₁]
+        simp [Matrix.mul_apply, Matrix.fromCols]
+    | inr j =>
+        rw [hfit]
+        simp [Matrix.mul_apply, Matrix.fromCols]
+  have horth :=
+    controlFunctionResidualStar_instruments_orthogonal_of_gram_det_isUnit
+      (Z := Z) (X₂ := X₂) hZ
+  rw [hleft]
+  rw [Matrix.transpose_mul, Matrix.mul_assoc, horth, Matrix.mul_zero]
+
+omit [DecidableEq n] in
+/-- Upper-right sample-Gram block for the control-function expectation-error
+design under the included-instrument span condition. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_left_right_of_instrument_span
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hX₁ : X₁ = Z * A₁) :
+    (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).submatrix
+      Sum.inl Sum.inr = 0 := by
+  let L : Matrix n (Sum k₁ k₂) ℝ :=
+    Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)
+  let U : Matrix n k₂ ℝ := controlFunctionResidualStar Z X₂
+  have horth : Lᵀ * U = 0 := by
+    simpa [L, U] using
+      controlFunctionExpectationError_leftBlock_residual_orthogonal_of_instrument_span
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁) hZ hX₁
+  calc
+    (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).submatrix
+        Sum.inl Sum.inr
+        = sampleQZX L U := by
+            simp [controlFunctionExpectationErrorDesignStar, L, U]
+    _ = 0 := by
+            simp [sampleQZX, horth]
+
+omit [DecidableEq n] in
+/-- Lower-left sample-Gram block for the control-function expectation-error
+design under the included-instrument span condition. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_right_left_of_instrument_span
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hX₁ : X₁ = Z * A₁) :
+    (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).submatrix
+      Sum.inr Sum.inl = 0 := by
+  let L : Matrix n (Sum k₁ k₂) ℝ :=
+    Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)
+  let U : Matrix n k₂ ℝ := controlFunctionResidualStar Z X₂
+  have hcross :
+      sampleQZX L U = 0 := by
+    simpa [controlFunctionExpectationErrorDesignStar, L, U] using
+      controlFunctionExpectationErrorDesignStar_sampleGram_left_right_of_instrument_span
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁) hZ hX₁
+  calc
+    (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).submatrix
+        Sum.inr Sum.inl
+        = sampleQXZ L U := by
+            simp [controlFunctionExpectationErrorDesignStar, L, U]
+    _ = 0 := by
+            simp [sampleQXZ, hcross]
+
+omit [DecidableEq n] in
+/-- Block-diagonal sample Gram for the control-function expectation-error
+design under the included-instrument span condition. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_eq_fromBlocks_of_instrument_span
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hX₁ : X₁ = Z * A₁) :
+    sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) =
+      Matrix.fromBlocks
+        (sampleGram (Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)))
+        0
+        0
+        (sampleGram (controlFunctionResidualStar Z X₂)) := by
+  let L : Matrix n (Sum k₁ k₂) ℝ :=
+    Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)
+  let U : Matrix n k₂ ℝ := controlFunctionResidualStar Z X₂
+  ext i j
+  cases i with
+  | inl i =>
+      cases j with
+      | inl j =>
+          have h := sampleGram_fromCols_left_left (Z := L) (X := U)
+          simpa [controlFunctionExpectationErrorDesignStar, L, U, sampleQZZ]
+            using congrFun (congrFun h i) j
+      | inr j =>
+          have h :=
+            controlFunctionExpectationErrorDesignStar_sampleGram_left_right_of_instrument_span
+              (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁) hZ hX₁
+          simpa using congrFun (congrFun h i) j
+  | inr i =>
+      cases j with
+      | inl j =>
+          have h :=
+            controlFunctionExpectationErrorDesignStar_sampleGram_right_left_of_instrument_span
+              (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁) hZ hX₁
+          simpa using congrFun (congrFun h i) j
+      | inr j =>
+          have h := sampleGram_fromCols_right_right (Z := L) (X := U)
+          simpa [controlFunctionExpectationErrorDesignStar, L, U]
+            using congrFun (congrFun h i) j
+
+set_option maxHeartbeats 900000 in
+-- Heartbeat bump: the block CMT has to synthesize four rectangular matrix
+-- topologies for the control-function expectation-error design.
+/-- Block sample-Gram convergence for Hansen's control-function
+expectation-error design from projection/span geometry.
+
+The theorem combines the deterministic block identity under `X₁ ∈ span(Z)` and
+`Z'Z` nonsingularity with convergence of the left block Gram
+`sampleGram (X₁,P_ZX₂)` and residual Gram `sampleGram û₂`. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_tendstoInMeasure_of_projection_span_block_sampleGrams
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    {Qleft : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {Qres : Matrix k₂ k₂ ℝ}
+    (hZrank : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hX₁span : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        ∃ A₁ : Matrix l k₁ ℝ,
+          stackRegressors X₁ m ω = stackRegressors Z m ω * A₁)
+    (hLeft_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleGram
+          (Matrix.fromCols
+            (stackRegressors X₁ m ω)
+            (expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X₂ m ω)))) μ)
+    (hRes_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleGram
+          (controlFunctionResidualStar
+            (stackRegressors Z m ω) (stackRegressors X₂ m ω))) μ)
+    (hLeft : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (Matrix.fromCols
+            (stackRegressors X₁ m ω)
+            (expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X₂ m ω))))
+      atTop (fun _ => Qleft))
+    (hRes : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionResidualStar
+            (stackRegressors Z m ω) (stackRegressors X₂ m ω)))
+      atTop (fun _ => Qres)) :
+    TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Matrix.fromBlocks Qleft 0 0 Qres) := by
+  have hzeroUR : TendstoInMeasure μ
+      (fun (_ : ℕ) (_ : Ω) => (0 : Matrix (Sum k₁ k₂) k₂ ℝ))
+      atTop (fun _ => 0) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  have hzeroLR : TendstoInMeasure μ
+      (fun (_ : ℕ) (_ : Ω) => (0 : Matrix k₂ (Sum k₁ k₂) ℝ))
+      atTop (fun _ => 0) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ (fun _ => tendsto_const_nhds))
+  have hzeroUR_meas : ∀ _m : ℕ,
+      AEStronglyMeasurable
+        (fun (_ : Ω) => (0 : Matrix (Sum k₁ k₂) k₂ ℝ)) μ :=
+    fun (_ : ℕ) => aestronglyMeasurable_const
+  have hzeroLR_meas : ∀ _m : ℕ,
+      AEStronglyMeasurable
+        (fun (_ : Ω) => (0 : Matrix k₂ (Sum k₁ k₂) ℝ)) μ :=
+    fun (_ : ℕ) => aestronglyMeasurable_const
+  have hblocks : TendstoInMeasure μ
+      (fun m ω =>
+        Matrix.fromBlocks
+          (sampleGram
+            (Matrix.fromCols
+              (stackRegressors X₁ m ω)
+              (expectationErrorFittedStar
+                (stackRegressors Z m ω) (stackRegressors X₂ m ω))))
+          0
+          0
+          (sampleGram
+            (controlFunctionResidualStar
+              (stackRegressors Z m ω) (stackRegressors X₂ m ω))))
+      atTop (fun _ => Matrix.fromBlocks Qleft 0 0 Qres) :=
+    tendstoInMeasure_matrix_fromBlocks
+      (μ := μ) hLeft_meas hzeroUR_meas hzeroLR_meas hRes_meas
+      hLeft hzeroUR hzeroLR hRes
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hblocks
+  filter_upwards [hZrank, hX₁span] with m hZ_m hspan_m
+  filter_upwards [hZ_m, hspan_m] with ω hZdet hspan
+  rcases hspan with ⟨A₁, hX₁⟩
+  exact
+    (controlFunctionExpectationErrorDesignStar_sampleGram_eq_fromBlocks_of_instrument_span
+      (X₁ := stackRegressors X₁ m ω)
+      (X₂ := stackRegressors X₂ m ω)
+      (Z := stackRegressors Z m ω)
+      (A₁ := A₁) hZdet hX₁).symm
+
+omit [DecidableEq n] in
+/-- Included-exogenous instrument span bridge for Hansen Theorem 12.15.
+
+When the instrument matrix is written in the textbook form `Z = (X₁,Z₂)`, the
+included exogenous regressors are automatically in the instrument span. -/
+theorem controlFunctionIncludedExogenous_span_fromCols
+    {l₂ : Type*} [Fintype l₂] [DecidableEq l₂]
+    (X₁ : Matrix n k₁ ℝ) (Z₂ : Matrix n l₂ ℝ) :
+    ∃ A₁ : Matrix (Sum k₁ l₂) k₁ ℝ,
+      X₁ = Matrix.fromCols X₁ Z₂ * A₁ := by
+  classical
+  refine ⟨fun j a =>
+    match j with
+    | Sum.inl b => if b = a then 1 else 0
+    | Sum.inr _ => 0, ?_⟩
+  ext i a
+  simp [Matrix.mul_apply, Matrix.fromCols, Fintype.sum_sum_type]
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 rank bridge from block ranks and orthogonality.
+
+The expectation-error design `(X₁,P_ZX₂,û₂)` has full column rank when the
+left block `(X₁,P_ZX₂)` and residual block `û₂` separately have full rank and
+are orthogonal. -/
+theorem controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_left_residual_orthogonal
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hleft :
+      IsUnit
+        (((Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))ᵀ *
+          Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)).det))
+    (hres :
+      IsUnit
+        (((controlFunctionResidualStar Z X₂)ᵀ *
+          controlFunctionResidualStar Z X₂).det))
+    (horth :
+      (Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))ᵀ *
+        controlFunctionResidualStar Z X₂ = 0) :
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det) := by
+  simpa [controlFunctionExpectationErrorDesignStar] using
+    fromCols_gram_det_isUnit_of_left_right_orthogonal
+      (X := Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))
+      (Y := controlFunctionResidualStar Z X₂) hleft hres horth
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 projection/span rank bridge.
+
+This derives full rank of `(X₁,P_ZX₂,û₂)` from lower-level assumptions:
+`Z` has a nonsingular projection Gram, `X₁` lies in the instrument span, and
+the left fitted block plus the first-stage residual block each have full
+column rank. -/
+theorem controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hX₁ : X₁ = Z * A₁)
+    (hleft :
+      IsUnit
+        (((Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))ᵀ *
+          Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)).det))
+    (hres :
+      IsUnit
+        (((controlFunctionResidualStar Z X₂)ᵀ *
+          controlFunctionResidualStar Z X₂).det)) :
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det) :=
+  controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_left_residual_orthogonal
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) hleft hres
+    (controlFunctionExpectationError_leftBlock_residual_orthogonal_of_instrument_span
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁) hZ hX₁)
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Residual form of the control-function / expectation-error column
+transformation.  This is the deterministic bridge used when transporting OLS
+first-order conditions, objectives, and covariance estimators between
+Hansen's `(X₁, X₂, û₂)` regression and the expectation-error
+`(X₁, P_Z X₂, û₂)` regression. -/
+theorem controlFunctionResidual_eq_expectationErrorResidual_of_coef
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    Y - controlFunctionDesignStar X₁ X₂ Z *ᵥ b =
+      Y - controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ
+        controlFunctionCoefToExpectationError b := by
+  rw [controlFunctionDesignStar_mulVec_eq_expectationErrorDesignStar_mulVec]
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Reverse residual bridge for the control-function / expectation-error
+column transformation. -/
+theorem expectationErrorResidual_eq_controlFunctionResidual_of_coef
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    Y - controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ b =
+      Y - controlFunctionDesignStar X₁ X₂ Z *ᵥ
+        controlFunctionCoefFromExpectationError b := by
+  rw [controlFunctionExpectationErrorDesignStar_mulVec_eq_controlFunctionDesignStar_mulVec]
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Least-squares objective invariance under the deterministic
+control-function to expectation-error coefficient transform. -/
+theorem controlFunction_sumSquaredErrors_eq_expectationError_sumSquaredErrors
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    sumSquaredErrors (controlFunctionDesignStar X₁ X₂ Z) Y b =
+      sumSquaredErrors (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y
+        (controlFunctionCoefToExpectationError b) := by
+  simp [sumSquaredErrors, controlFunctionResidual_eq_expectationErrorResidual_of_coef]
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Reverse least-squares objective invariance under the deterministic
+expectation-error to control-function coefficient transform. -/
+theorem expectationError_sumSquaredErrors_eq_controlFunction_sumSquaredErrors
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) (b : Sum (Sum k₁ k₂) k₂ → ℝ) :
+    sumSquaredErrors (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y b =
+      sumSquaredErrors (controlFunctionDesignStar X₁ X₂ Z) Y
+        (controlFunctionCoefFromExpectationError b) := by
+  simp [sumSquaredErrors, expectationErrorResidual_eq_controlFunctionResidual_of_coef]
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Normal-equation transport from the expectation-error design
+`(X₁, P_ZX₂, û₂)` to Hansen's control-function design `(X₁, X₂, û₂)`.
+
+This is the first-order-condition form of the deterministic column relation
+`X₂ = P_ZX₂ + û₂`. -/
+theorem controlFunction_normalEquations_of_expectationError_normalEquations
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (r : n → ℝ)
+    (h : (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r = 0) :
+    (controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r = 0 := by
+  classical
+  ext j
+  cases j with
+  | inl j =>
+      cases j with
+      | inl a =>
+          have ha :
+              ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inl (Sum.inl a)) = 0 := by
+            simpa using congrFun h (Sum.inl (Sum.inl a))
+          simpa [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar]
+            using ha
+      | inr a =>
+          have hfit :
+              ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inl (Sum.inr a)) = 0 := by
+            simpa using congrFun h (Sum.inl (Sum.inr a))
+          have hu :
+              ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inr a) = 0 := by
+            simpa using congrFun h (Sum.inr a)
+          calc
+            ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inl (Sum.inr a))
+                =
+              ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                  (Sum.inl (Sum.inr a)) +
+                ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                  (Sum.inr a) := by
+                    simp [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar,
+                      controlFunctionResidualStar, expectationErrorFittedStar, Matrix.mulVec,
+                      dotProduct]
+                    rw [← Finset.sum_add_distrib]
+                    refine Finset.sum_congr rfl ?_
+                    intro i _
+                    ring
+            _ = 0 := by rw [hfit, hu, add_zero]
+  | inr a =>
+      have hu :
+          ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inr a) =
+            0 := by
+        simpa using congrFun h (Sum.inr a)
+      simpa [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar]
+        using hu
+
+omit [Fintype k₁] [Fintype k₂] [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Reverse normal-equation transport from Hansen's control-function design
+`(X₁, X₂, û₂)` to the expectation-error design `(X₁, P_ZX₂, û₂)`.
+
+This is the first-order-condition form of the deterministic column relation
+`P_ZX₂ = X₂ - û₂`. -/
+theorem expectationError_normalEquations_of_controlFunction_normalEquations
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (r : n → ℝ)
+    (h : (controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r = 0) :
+    (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r = 0 := by
+  classical
+  ext j
+  cases j with
+  | inl j =>
+      cases j with
+      | inl a =>
+          have ha :
+              ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inl (Sum.inl a)) = 0 := by
+            simpa using congrFun h (Sum.inl (Sum.inl a))
+          simpa [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar]
+            using ha
+      | inr a =>
+          have hx :
+              ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inl (Sum.inr a)) = 0 := by
+            simpa using congrFun h (Sum.inl (Sum.inr a))
+          have hu :
+              ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inr a) = 0 := by
+            simpa using congrFun h (Sum.inr a)
+          calc
+            ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ r)
+                (Sum.inl (Sum.inr a)) =
+              ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inl (Sum.inr a)) -
+                ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inr a) := by
+                    simp [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar,
+                      controlFunctionResidualStar, expectationErrorFittedStar, Matrix.mulVec,
+                      dotProduct]
+                    rw [← Finset.sum_sub_distrib]
+                    refine Finset.sum_congr rfl ?_
+                    intro i _
+                    ring
+            _ = 0 := by rw [hx, hu, sub_zero]
+  | inr a =>
+      have hu :
+          ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ r) (Sum.inr a) = 0 := by
+        simpa using congrFun h (Sum.inr a)
+      simpa [controlFunctionDesignStar, controlFunctionExpectationErrorDesignStar]
+        using hu
+
+omit [DecidableEq n] in
+/-- Base OLS coefficient invariance under the deterministic
+expectation-error to control-function column transform.
+
+Under finite-sample nonsingularity for both Gram matrices, the OLS coefficient
+from Hansen's control-function regression `(X₁, X₂, û₂)` is the inverse
+coefficient transform of the OLS coefficient from the expectation-error
+regression `(X₁, P_ZX₂, û₂)`. -/
+theorem controlFunctionBetaAlpha_eq_coefFromExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsBeta (controlFunctionDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefFromExpectationError
+        (olsBeta (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y) := by
+  classical
+  refine olsBeta_eq_of_normal_equations
+    (X := controlFunctionDesignStar X₁ X₂ Z) (y := Y)
+    (b := controlFunctionCoefFromExpectationError
+      (olsBeta (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y)) ?_
+  have hEE :
+      (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *ᵥ
+        (Y - controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ
+          olsBeta (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y) = 0 := by
+    simpa [residual, fitted] using
+      (normal_equations (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y)
+  have hCF := controlFunction_normalEquations_of_expectationError_normalEquations
+    (X₁ := X₁) (X₂ := X₂) (Z := Z)
+    (r := Y - controlFunctionExpectationErrorDesignStar X₁ X₂ Z *ᵥ
+      olsBeta (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y) hEE
+  simpa [expectationErrorResidual_eq_controlFunctionResidual_of_coef]
+    using hCF
+
+omit [DecidableEq n] in
+/-- Base OLS coefficient invariance under the deterministic
+control-function to expectation-error column transform. -/
+theorem controlFunctionExpectationErrorBetaAlpha_eq_coefToExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsBeta (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefToExpectationError
+        (olsBeta (controlFunctionDesignStar X₁ X₂ Z) Y) := by
+  classical
+  refine olsBeta_eq_of_normal_equations
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) (y := Y)
+    (b := controlFunctionCoefToExpectationError
+      (olsBeta (controlFunctionDesignStar X₁ X₂ Z) Y)) ?_
+  have hCF :
+      (controlFunctionDesignStar X₁ X₂ Z)ᵀ *ᵥ
+        (Y - controlFunctionDesignStar X₁ X₂ Z *ᵥ
+          olsBeta (controlFunctionDesignStar X₁ X₂ Z) Y) = 0 := by
+    simpa [residual, fitted] using
+      (normal_equations (controlFunctionDesignStar X₁ X₂ Z) Y)
+  have hEE := expectationError_normalEquations_of_controlFunction_normalEquations
+    (X₁ := X₁) (X₂ := X₂) (Z := Z)
+    (r := Y - controlFunctionDesignStar X₁ X₂ Z *ᵥ
+      olsBeta (controlFunctionDesignStar X₁ X₂ Z) Y) hCF
+  simpa [controlFunctionResidual_eq_expectationErrorResidual_of_coef]
+    using hEE
+
+omit [DecidableEq n] in
+/-- Star OLS coefficient invariance under the deterministic
+expectation-error to control-function column transform, on the finite-sample
+nonsingular branch where `olsBetaStar` agrees with `olsBeta`. -/
+theorem controlFunctionBetaAlphaStar_eq_coefFromExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsBetaStar (controlFunctionDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefFromExpectationError
+        (olsBetaStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y) := by
+  rw [olsBetaStar_eq_olsBeta, olsBetaStar_eq_olsBeta]
+  exact controlFunctionBetaAlpha_eq_coefFromExpectationError_of_nonsingular
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+
+omit [DecidableEq n] in
+/-- Star OLS coefficient invariance under the deterministic
+control-function to expectation-error column transform, on the finite-sample
+nonsingular branch where `olsBetaStar` agrees with `olsBeta`. -/
+theorem controlFunctionExpectationErrorBetaAlphaStar_eq_coefToExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsBetaStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefToExpectationError
+        (olsBetaStar (controlFunctionDesignStar X₁ X₂ Z) Y) := by
+  rw [olsBetaStar_eq_olsBeta, olsBetaStar_eq_olsBeta]
+  exact controlFunctionExpectationErrorBetaAlpha_eq_coefToExpectationError_of_nonsingular
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+
+/-- Joint coefficient estimator from the control-function regression.  The
+right block is Hansen's endogeneity-test coefficient `α̂`. -/
+noncomputable def controlFunctionBetaAlphaStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : Sum (Sum k₁ k₂) k₂ → ℝ :=
+  olsBetaStar (controlFunctionDesignStar X₁ X₂ Z) Y
+
+/-- The control-function coefficient block `α̂`. -/
+noncomputable def controlFunctionAlphaHatStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : k₂ → ℝ :=
+  generatedRegressorRightBlock
+    (controlFunctionBetaAlphaStar X₁ X₂ Z Y)
+
+omit [DecidableEq n] in
+/-- Nonsingular finite-sample bridge for the control-function endogeneity
+coefficient.  Under nonsingularity of the two equivalent Gram matrices, the
+right block `α̂` from Hansen's control-function regression equals the fixed
+linear image `γ̂ - β̂₂` of the expectation-error coefficient vector. -/
+theorem controlFunctionAlphaHatStar_eq_fromExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    controlFunctionAlphaHatStar X₁ X₂ Z Y =
+      controlFunctionAlphaFromExpectationErrorCoef
+        (olsBetaStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y) := by
+  unfold controlFunctionAlphaHatStar controlFunctionBetaAlphaStar
+  rw [controlFunctionBetaAlphaStar_eq_coefFromExpectationError_of_nonsingular
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)]
+  simp
+
+/-- Hansen Theorem 12.13 transport wrapper for the actual control-function
+coefficient `α̂`.
+
+The generic expectation-error continuous-mapping theorem gives the limit for
+`controlFunctionEndogeneityMap * β̂_EE`. If that linear image is
+sample-by-sample equal a.e. to Hansen's displayed control-function coefficient
+`controlFunctionAlphaHatStar`, then the same Gaussian limit holds for the
+actual coefficient in the `(X₁, X₂, û₂)` regression. The equality premise is
+discharged by `controlFunctionAlphaHatStar_eq_fromExpectationError_of_nonsingular`
+on finite-sample nonsingular branches. -/
+theorem controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {root : ℕ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    (hα : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hbridge : ∀ m,
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionEndogeneityMap *ᵥ
+          olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω)))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+  have hmap := controlFunctionEndogeneityMap_tendstoInDistribution
+    (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂) hcoef
+  refine TendstoInDistribution.congr ?_ EventuallyEq.rfl hmap
+  intro m
+  filter_upwards [hbridge m] with ω hω
+  rw [hω, ← hα]
+  simp [Matrix.mulVec_smul, Matrix.mulVec_sub]
+
+/-- Hansen Theorem 12.13 actual-coefficient endpoint from the
+expectation-error proof engine.
+
+This bundles the two reusable facts needed by downstream inference: the actual
+control-function coefficient `α̂` inherits the expectation-error CLT through the
+finite-sample column-transform bridge, and the limit random variable has the
+pushed-forward Gaussian law with covariance `R V R'`. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_of_expectationError
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {root : ℕ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hα : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hbridge : ∀ m,
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionEndogeneityMap *ᵥ
+          olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω)))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hVEE : VEE.PosSemidef)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν ∧
+    HasLaw
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ))
+      ν := by
+  exact
+    ⟨controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError
+        (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+        hα hbridge hcoef,
+      controlFunctionEndogeneityLimit_hasLaw
+        (k₁ := k₁) (k₂ := k₂) hVEE hG⟩
+
+omit [DecidableEq n] in
+/-- Totalized OLS residuals are invariant under the nonsingular
+control-function/expectation-error column transform. -/
+theorem controlFunctionOlsResidualStar_eq_expectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsResidualStar (controlFunctionDesignStar X₁ X₂ Z) Y =
+      olsResidualStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y := by
+  unfold olsResidualStar
+  rw [controlFunctionDesignStar_mulVec_eq_expectationErrorDesignStar_mulVec]
+  rw [← controlFunctionExpectationErrorBetaAlphaStar_eq_coefToExpectationError_of_nonsingular
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)]
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] [DecidableEq k] in
+/-- Full HC0 covariance transform for Hansen's control-function design.
+
+On the nonsingular branch, the robust covariance for `(X₁, X₂, û₂)` is the
+expectation-error covariance for `(X₁, P_ZX₂, û₂)` transported through the
+inverse coefficient map `(β₁, β₂, γ) ↦ (β₁, β₂, γ - β₂)`. -/
+theorem controlFunctionOlsHetCovStar_eq_fromExpectationError_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Nonempty n]
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    olsHetCovStar (controlFunctionDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefFromExpectationErrorMatrix *
+        olsHetCovStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y *
+          (controlFunctionCoefFromExpectationErrorMatrix)ᵀ := by
+  classical
+  let Xee := controlFunctionExpectationErrorDesignStar X₁ X₂ Z
+  let T : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ :=
+    controlFunctionCoefToExpectationErrorMatrix
+  let S : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ :=
+    controlFunctionCoefFromExpectationErrorMatrix
+  have hdesign :
+      controlFunctionDesignStar X₁ X₂ Z = Xee * T := by
+    simpa [Xee, T] using
+      (controlFunctionDesignStar_eq_expectationErrorDesignStar_mul_coefToExpectationErrorMatrix
+        X₁ X₂ Z)
+  have hres : olsResidualStar (Xee * T) Y = olsResidualStar Xee Y := by
+    simpa [Xee, T, ← hdesign] using
+      controlFunctionOlsResidualStar_eq_expectationError_of_nonsingular
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+  haveI : Invertible (sampleGram Xee) := sampleGram.invertible Xee
+  have hG : IsUnit (sampleGram Xee).det := Matrix.isUnit_det_of_invertible (sampleGram Xee)
+  have hST : S * T = 1 := by
+    simpa [S, T] using
+      (controlFunctionCoefFromExpectationErrorMatrix_mul_coefToExpectationErrorMatrix
+        (k₁ := k₁) (k₂ := k₂))
+  have hTS : T * S = 1 := by
+    simpa [S, T] using
+      (controlFunctionCoefToExpectationErrorMatrix_mul_coefFromExpectationErrorMatrix
+        (k₁ := k₁) (k₂ := k₂))
+  have hcov := olsHetCovStar_mul_columnTransform_of_residual_eq
+    (X := Xee) (T := T) (S := S) (y := Y)
+    hST hTS hG hres
+  simpa [Xee, T, S, ← hdesign] using hcov
+
+/-- Robust covariance estimator for the control-function `α̂` block. -/
+noncomputable def controlFunctionAlphaVHatStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : Matrix k₂ k₂ ℝ :=
+  generatedRegressorRightBlockCovariance
+    (olsHetCovStar (controlFunctionDesignStar X₁ X₂ Z) Y)
+
+omit [IsProbabilityMeasure μ] in
+/-- Control-function residual design measurability from row measurability. -/
+theorem controlFunctionResidualStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionResidualStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X₂ i.val ω)) μ := by
+  simpa [controlFunctionResidualStar, expectationErrorResidualStar,
+    expectationErrorFittedStar] using
+    expectationErrorResidualStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X₂) hZ hX₂
+
+omit [IsProbabilityMeasure μ] in
+/-- Hansen's actual control-function design measurability from row
+measurability. -/
+theorem controlFunctionDesignStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionDesignStar
+          (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+          (fun i : Fin N => Z i.val ω)) μ := by
+  let X₁mat : Ω → Matrix (Fin N) k₁ ℝ := fun ω => fun i => X₁ i.val ω
+  let X₂mat : Ω → Matrix (Fin N) k₂ ℝ := fun ω => fun i => X₂ i.val ω
+  have hX₁mat : AEStronglyMeasurable X₁mat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX₁
+  have hX₂mat : AEStronglyMeasurable X₂mat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX₂
+  have hleft : AEStronglyMeasurable
+      (fun ω => Matrix.fromCols (X₁mat ω) (X₂mat ω)) μ :=
+    matrix_fromCols_aestronglyMeasurable (μ := μ) hX₁mat hX₂mat
+  have hres : AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionResidualStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X₂ i.val ω)) μ :=
+    controlFunctionResidualStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X₂ := X₂) hZ hX₂
+  simpa [controlFunctionDesignStar, X₁mat, X₂mat] using
+    matrix_fromCols_aestronglyMeasurable (μ := μ) hleft hres
+
+omit [IsProbabilityMeasure μ] in
+/-- Expectation-error version of the control-function design measurability
+from row measurability. -/
+theorem controlFunctionExpectationErrorDesignStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionExpectationErrorDesignStar
+          (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+          (fun i : Fin N => Z i.val ω)) μ := by
+  let X₁mat : Ω → Matrix (Fin N) k₁ ℝ := fun ω => fun i => X₁ i.val ω
+  have hX₁mat : AEStronglyMeasurable X₁mat μ :=
+    stackMatrix_aestronglyMeasurable (μ := μ) hX₁
+  have hfit : AEStronglyMeasurable
+      (fun ω =>
+        expectationErrorFittedStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X₂ i.val ω)) μ :=
+    expectationErrorFittedStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X₂) hZ hX₂
+  have hleft : AEStronglyMeasurable
+      (fun ω => Matrix.fromCols (X₁mat ω)
+        (expectationErrorFittedStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X₂ i.val ω))) μ :=
+    matrix_fromCols_aestronglyMeasurable (μ := μ) hX₁mat hfit
+  have hres : AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionResidualStar
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => X₂ i.val ω)) μ :=
+    controlFunctionResidualStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X₂ := X₂) hZ hX₂
+  simpa [controlFunctionExpectationErrorDesignStar, controlFunctionResidualStar,
+    X₁mat] using
+    matrix_fromCols_aestronglyMeasurable (μ := μ) hleft hres
+
+set_option linter.style.longLine false in
+set_option maxHeartbeats 900000 in
+-- Heartbeat bump: the row facade expands stacked measurability for the
+-- projected left block and residual block before applying the block WLLN.
+/-- Row-measurable projection/span sample-Gram WLLN for Hansen's
+control-function expectation-error design. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_tendstoInMeasure_of_projection_span_block_sampleGrams_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    {Qleft : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {Qres : Matrix k₂ k₂ ℝ}
+    (hX₁_meas : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂_meas : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ_meas : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hZrank : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det))
+    (hX₁span : ∀ᶠ m in atTop,
+      ∀ᵐ ω ∂μ,
+        ∃ A₁ : Matrix l k₁ ℝ,
+          stackRegressors X₁ m ω = stackRegressors Z m ω * A₁)
+    (hLeft : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (Matrix.fromCols
+            (stackRegressors X₁ m ω)
+            (expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X₂ m ω))))
+      atTop (fun _ => Qleft))
+    (hRes : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionResidualStar
+            (stackRegressors Z m ω) (stackRegressors X₂ m ω)))
+      atTop (fun _ => Qres)) :
+    TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Matrix.fromBlocks Qleft 0 0 Qres) :=
+  controlFunctionExpectationErrorDesignStar_sampleGram_tendstoInMeasure_of_projection_span_block_sampleGrams
+    (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hZrank hX₁span
+    (fun m => by
+      have hX₁mat : AEStronglyMeasurable
+          (fun ω => stackRegressors X₁ m ω) μ := by
+        simpa [stackRegressors] using
+          stackMatrix_aestronglyMeasurable (μ := μ) (n := m) hX₁_meas
+      have hfit : AEStronglyMeasurable
+          (fun ω =>
+            expectationErrorFittedStar
+              (stackRegressors Z m ω) (stackRegressors X₂ m ω)) μ := by
+        simpa [stackRegressors] using
+          expectationErrorFittedStar_aestronglyMeasurable_of_rows
+            (μ := μ) (N := m) (Z := Z) (X := X₂) hZ_meas hX₂_meas
+      exact sampleGram_from_matrix_aestronglyMeasurable (μ := μ)
+        (matrix_fromCols_aestronglyMeasurable (μ := μ) hX₁mat hfit))
+    (fun m =>
+      sampleGram_from_matrix_aestronglyMeasurable (μ := μ) (by
+        simpa [stackRegressors] using
+          controlFunctionResidualStar_aestronglyMeasurable_of_rows
+            (μ := μ) (N := m) (Z := Z) (X₂ := X₂) hZ_meas hX₂_meas))
+    hLeft hRes
+
+omit [IsProbabilityMeasure μ] in
+/-- Control-function stacked coefficient measurability from row
+measurability. -/
+theorem controlFunctionBetaAlphaStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionBetaAlphaStar
+          (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => Y i.val ω)) μ := by
+  let Dmat : Ω → Matrix (Fin N) (Sum (Sum k₁ k₂) k₂) ℝ := fun ω =>
+    controlFunctionDesignStar
+      (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+      (fun i : Fin N => Z i.val ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  have hD : AEStronglyMeasurable Dmat μ := by
+    simpa [Dmat] using
+      controlFunctionDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hX₁ hX₂ hZ
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  simpa [controlFunctionBetaAlphaStar, Dmat, yvec] using
+    olsBetaStar_from_matrix_aestronglyMeasurable (μ := μ) hD hy
+
+omit [IsProbabilityMeasure μ] in
+/-- Control-function alpha-block coefficient measurability from row
+measurability. -/
+theorem controlFunctionAlphaHatStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => Y i.val ω)) μ :=
+  continuous_generatedRegressorRightBlock.comp_aestronglyMeasurable
+    (controlFunctionBetaAlphaStar_aestronglyMeasurable_of_rows
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y) hX₁ hX₂ hZ hY)
+
+omit [IsProbabilityMeasure μ] in
+/-- Scaled and centered control-function alpha-block measurability from row
+measurability. -/
+theorem controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) (α : k₂ → ℝ) :
+    AEMeasurable
+      (fun ω =>
+        Real.sqrt (N : ℝ) •
+          (controlFunctionAlphaHatStar
+            (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+            (fun i : Fin N => Z i.val ω) (fun i : Fin N => Y i.val ω) - α)) μ :=
+  (((controlFunctionAlphaHatStar_aestronglyMeasurable_of_rows
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      hX₁ hX₂ hZ hY).sub aestronglyMeasurable_const).const_smul
+    (Real.sqrt (N : ℝ))).aemeasurable
+
+omit [IsProbabilityMeasure μ] in
+/-- Control-function alpha HC0 covariance measurability from row
+measurability. -/
+theorem controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+          (fun i : Fin N => Z i.val ω) (fun i : Fin N => Y i.val ω)) μ := by
+  let Dmat : Ω → Matrix (Fin N) (Sum (Sum k₁ k₂) k₂) ℝ := fun ω =>
+    controlFunctionDesignStar
+      (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+      (fun i : Fin N => Z i.val ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  have hD : AEStronglyMeasurable Dmat μ := by
+    simpa [Dmat] using
+      controlFunctionDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hX₁ hX₂ hZ
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hV : AEStronglyMeasurable
+      (fun ω => olsHetCovStar (Dmat ω) (yvec ω)) μ :=
+    olsHetCovStar_from_matrix_aestronglyMeasurable (μ := μ) hD hy
+  simpa [controlFunctionAlphaVHatStar, controlFunctionDesignStar, Dmat, yvec] using
+    generatedRegressorRightBlockCovariance_aestronglyMeasurable
+      (μ := μ) (k₁ := Sum k₁ k₂) (k₂ := k₂) hV
+
+/-- Expectation-error HC0 covariance measurability for the control-function
+proof engine from row measurability. -/
+theorem controlFunctionExpectationErrorOlsHetCovStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ) :
+    AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+            (fun i : Fin N => Z i.val ω))
+          (fun i : Fin N => Y i.val ω)) μ := by
+  let Dmat : Ω → Matrix (Fin N) (Sum (Sum k₁ k₂) k₂) ℝ := fun ω =>
+    controlFunctionExpectationErrorDesignStar
+      (fun i : Fin N => X₁ i.val ω) (fun i : Fin N => X₂ i.val ω)
+      (fun i : Fin N => Z i.val ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  have hD : AEStronglyMeasurable Dmat μ := by
+    simpa [Dmat] using
+      controlFunctionExpectationErrorDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hX₁ hX₂ hZ
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  simpa [Dmat, yvec] using
+    olsHetCovStar_from_matrix_aestronglyMeasurable (μ := μ) hD hy
+
+/-- Expectation-error HC0 covariance estimator pushed through Hansen's
+control-function alpha map `α = γ - β₂`.  This is the deterministic covariance
+surface used to transport Theorem 12.12 covariance consistency to the
+control-function parameterization. -/
+noncomputable def controlFunctionAlphaVHatFromExpectationErrorStar
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : Matrix k₂ k₂ ℝ :=
+  controlFunctionEndogeneityMap *
+    olsHetCovStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y *
+      (controlFunctionEndogeneityMap)ᵀ
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- Estimator-level covariance bridge for Hansen Theorems 12.13--12.15.
+
+Once the full HC0 sandwich covariance is transported through the nonsingular
+column transform from `(X₁, P_ZX₂, û₂)` to `(X₁, X₂, û₂)`, the displayed
+control-function `α̂` covariance is exactly the expectation-error covariance
+pushed through `α = γ - β₂`. -/
+theorem controlFunctionAlphaVHatStar_eq_fromExpectationError_of_full_covariance_transform
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ)
+    (hcov : olsHetCovStar (controlFunctionDesignStar X₁ X₂ Z) Y =
+      controlFunctionCoefFromExpectationErrorMatrix *
+        olsHetCovStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y *
+          (controlFunctionCoefFromExpectationErrorMatrix)ᵀ) :
+    controlFunctionAlphaVHatStar X₁ X₂ Z Y =
+      controlFunctionAlphaVHatFromExpectationErrorStar X₁ X₂ Z Y := by
+  simp [controlFunctionAlphaVHatStar, controlFunctionAlphaVHatFromExpectationErrorStar,
+    hcov,
+    generatedRegressorRightBlockCovariance_controlFunctionCoefFromExpectationErrorMatrix]
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- Exact nonsingular finite-sample covariance bridge for Hansen Theorems
+12.13--12.15.
+
+The displayed HC0 covariance block for `α̂` in Hansen's control-function
+regression equals the expectation-error covariance pushed through the fixed
+map `α = γ - β₂`. -/
+theorem controlFunctionAlphaVHatStar_eq_fromExpectationErrorStar_of_nonsingular
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Nonempty n]
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    controlFunctionAlphaVHatStar X₁ X₂ Z Y =
+      controlFunctionAlphaVHatFromExpectationErrorStar X₁ X₂ Z Y := by
+  exact
+    controlFunctionAlphaVHatStar_eq_fromExpectationError_of_full_covariance_transform
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (controlFunctionOlsHetCovStar_eq_fromExpectationError_of_nonsingular
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y))
+
+/-- Hansen Theorem 12.14 Wald statistic built from the expectation-error
+parameterization and then pushed through the deterministic alpha map
+`α = γ - β₂`. -/
+noncomputable def controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero
+    {r : ℕ} (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ)
+    (Z : Matrix n l ℝ) (Y : n → ℝ) (root : ℝ) : ℝ :=
+  restrictionWaldStatOrZero
+    (root •
+      (controlFunctionEndogeneityMap *ᵥ
+        olsBetaStar (controlFunctionExpectationErrorDesignStar X₁ X₂ Z) Y))
+    (controlFunctionAlphaVHatFromExpectationErrorStar X₁ X₂ Z Y)
+
+/-- Hansen Theorem 12.14 Wald statistic for the endogeneity-test null
+`α = 0` in the control-function regression. -/
+noncomputable def controlFunctionEndogeneityWaldStatOrZero
+    {r : ℕ} (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ)
+    (Z : Matrix n l ℝ) (Y : n → ℝ) (root : ℝ) : ℝ :=
+  restrictionWaldStatOrZero
+    (root • controlFunctionAlphaHatStar X₁ X₂ Z Y)
+    (controlFunctionAlphaVHatStar X₁ X₂ Z Y)
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- Statistic-level nonsingular bridge for Hansen Theorem 12.14.
+
+On the same finite-sample nonsingular branch used by the coefficient and HC0
+covariance bridges, Hansen's displayed control-function Wald statistic is
+exactly the expectation-error statistic transported through
+`α = γ - β₂`. -/
+theorem controlFunctionEndogeneityWaldStatOrZero_eq_fromExpectationError_of_nonsingular
+    {r : ℕ} (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ)
+    (Z : Matrix n l ℝ) (Y : n → ℝ) (root : ℝ)
+    [Nonempty n]
+    [Invertible ((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionDesignStar X₁ X₂ Z)]
+    [Invertible ((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+      controlFunctionExpectationErrorDesignStar X₁ X₂ Z)] :
+    controlFunctionEndogeneityWaldStatOrZero X₁ X₂ Z Y root =
+      controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero X₁ X₂ Z Y root := by
+  classical
+  simp [controlFunctionEndogeneityWaldStatOrZero,
+    controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero,
+    controlFunctionAlphaHatStar_eq_fromExpectationError_of_nonsingular,
+    controlFunctionAlphaVHatStar_eq_fromExpectationErrorStar_of_nonsingular]
+
+/-- Eventual nonsingularity package for Hansen Theorem 12.13.
+
+The raw fourth-moment and rank assumptions should imply that both the actual
+control-function design and the expectation-error design have nonsingular Gram
+matrices eventually almost surely.  Once this package is available, the exact
+finite-sample column-transform lemmas discharge the coefficient and HC0
+covariance bridge fields used by the theorem-facing 12.13 condition package. -/
+structure ControlFunctionNonsingularBridgeConditions
+    (μ : Measure Ω)
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) : Prop where
+  control_function_nonsingular : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+    IsUnit
+      (((controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)).det)
+  expectation_error_nonsingular : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)).det)
+
+omit [IsProbabilityMeasure μ] in
+/-- Constructor for the finite-sample nonsingularity bridge from the
+expectation-error design alone. -/
+theorem ControlFunctionNonsingularBridgeConditions.of_expectation_error_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    (hEE : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det)) :
+    ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z where
+  control_function_nonsingular := by
+    filter_upwards [hEE] with m hm
+    filter_upwards [hm] with ω hω
+    exact
+      controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+        (X₁ := stackRegressors X₁ m ω)
+        (X₂ := stackRegressors X₂ m ω)
+        (Z := stackRegressors Z m ω) hω
+  expectation_error_nonsingular := hEE
+
+omit [IsProbabilityMeasure μ] in
+/-- Constructor for the finite-sample nonsingularity bridge from Hansen's
+actual control-function design alone. -/
+theorem ControlFunctionNonsingularBridgeConditions.of_control_function_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    (hCF : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det)) :
+    ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z where
+  control_function_nonsingular := hCF
+  expectation_error_nonsingular := by
+    filter_upwards [hCF] with m hm
+    filter_upwards [hm] with ω hω
+    exact
+      controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_controlFunction
+        (X₁ := stackRegressors X₁ m ω)
+        (X₂ := stackRegressors X₂ m ω)
+        (Z := stackRegressors Z m ω) hω
+
+/-- If a square random matrix converges in probability to a nonsingular
+constant matrix, then the probability of finite-sample singularity vanishes.
+
+This is the reusable high-probability rank bridge needed by generated-
+regressor totalizations: primitive fourth-moment assumptions should first give
+a Gram WLLN, and population positive definiteness then supplies the nonsingular
+limit. -/
+theorem matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+    {p : Type*} [Fintype p] [DecidableEq p]
+    {A : ℕ → Ω → Matrix p p ℝ} {A0 : Matrix p p ℝ}
+    (hA_meas : ∀ m, AEStronglyMeasurable (A m) μ)
+    (hA : TendstoInMeasure μ A atTop (fun _ => A0))
+    (hA0 : IsUnit A0.det) :
+    Tendsto (fun m => μ {ω | ¬ IsUnit (A m ω).det}) atTop (𝓝 0) := by
+  have hDet : TendstoInMeasure μ
+      (fun m ω => (A m ω).det) atTop (fun _ => A0.det) :=
+    tendstoInMeasure_continuous_comp hA_meas hA
+      (Continuous.matrix_det continuous_id)
+  have hdet_ne : A0.det ≠ 0 := hA0.ne_zero
+  set ε : ℝ := |A0.det| / 2 with hε_def
+  have hε_pos : 0 < ε := half_pos (abs_pos.mpr hdet_ne)
+  have hε_le : ε ≤ |A0.det| := by
+    rw [hε_def]
+    linarith [abs_nonneg A0.det]
+  have hmeas_eps := hDet (ENNReal.ofReal ε) (ENNReal.ofReal_pos.mpr hε_pos)
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hmeas_eps
+    (fun _ => zero_le _) (fun m => ?_)
+  refine measure_mono ?_
+  intro ω hω
+  simp only [Set.mem_setOf_eq, isUnit_iff_ne_zero, not_not] at hω
+  simp only [Set.mem_setOf_eq, edist_dist, Real.dist_eq]
+  rw [hω]
+  simp only [zero_sub, abs_neg]
+  exact ENNReal.ofReal_le_ofReal hε_le
+
+/-- High-probability finite-sample nonsingularity package for Hansen Theorem
+12.13.
+
+Unlike `ControlFunctionNonsingularBridgeConditions`, this records the rank
+fact in the form usually derived from Gram convergence plus population
+positive definiteness: the singular-design probabilities vanish.  The
+coefficient and covariance transport theorems below turn this into `oₚ(1)`
+bridge remainders. -/
+structure ControlFunctionNonsingularInProbabilityBridgeConditions
+    (μ : Measure Ω)
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) : Prop where
+  control_function_singular_tendsto_zero : Tendsto
+    (fun m => μ {ω |
+      ¬ IsUnit
+        (((controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det)})
+    atTop (𝓝 0)
+  expectation_error_singular_tendsto_zero : Tendsto
+    (fun m => μ {ω |
+      ¬ IsUnit
+        (((controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det)})
+    atTop (𝓝 0)
+
+/-- Constructor for the high-probability control-function rank package from
+Gram convergence and nonsingular population Gram limits. -/
+theorem ControlFunctionNonsingularInProbabilityBridgeConditions.of_gram_tendstoInMeasure
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    {Qcf Qee : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hCF_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        (controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) μ)
+    (hCF : TendstoInMeasure μ
+      (fun m ω =>
+        (controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+      atTop (fun _ => Qcf))
+    (hCF_nonsing : IsUnit Qcf.det)
+    (hEE_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) μ)
+    (hEE : TendstoInMeasure μ
+      (fun m ω =>
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+      atTop (fun _ => Qee))
+    (hEE_nonsing : IsUnit Qee.det) :
+    ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z where
+  control_function_singular_tendsto_zero :=
+    matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+      (μ := μ)
+      (A := fun m ω =>
+        (controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+      (A0 := Qcf) hCF_meas hCF hCF_nonsing
+  expectation_error_singular_tendsto_zero :=
+    matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+      (μ := μ)
+      (A := fun m ω =>
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+      (A0 := Qee) hEE_meas hEE hEE_nonsing
+
+/-- If the normalized sample Gram `n⁻¹D'D` converges in probability to a
+nonsingular population Gram, then the probability that the raw finite-sample
+Gram `D'D` is singular vanishes.
+
+This is the rank bridge used when Hansen-facing WLLNs are stated for
+`sampleGram`, while finite-sample OLS branches test nonsingularity of
+`DᵀD`. -/
+theorem rawGram_singular_measure_tendsto_zero_of_sampleGram_tendstoInMeasure
+    {p : Type*} [Fintype p] [DecidableEq p]
+    {D : (r : ℕ) → Ω → Matrix (Fin r) p ℝ}
+    {Q : Matrix p p ℝ}
+    (hD_meas : ∀ r, AEStronglyMeasurable (fun ω => sampleGram (D r ω)) μ)
+    (hD : TendstoInMeasure μ
+      (fun r ω => sampleGram (D r ω)) atTop (fun _ => Q))
+    (hQ : IsUnit Q.det) :
+    Tendsto
+      (fun r => μ {ω | ¬ IsUnit (((D r ω)ᵀ * D r ω).det)})
+      atTop (𝓝 0) := by
+  have hsample :
+      Tendsto
+        (fun r => μ {ω | ¬ IsUnit ((sampleGram (D r ω)).det)})
+        atTop (𝓝 0) :=
+    matrix_singular_measure_tendsto_zero_of_tendstoInMeasure
+      (μ := μ) (A := fun r ω => sampleGram (D r ω)) (A0 := Q)
+      hD_meas hD hQ
+  have heq :
+      (fun r => μ {ω | ¬ IsUnit (((D r ω)ᵀ * D r ω).det)}) =ᶠ[atTop]
+        (fun r => μ {ω | ¬ IsUnit ((sampleGram (D r ω)).det)}) := by
+    filter_upwards [eventually_gt_atTop 0] with r hr
+    congr 1
+    ext ω
+    have hcard_pos : (0 : ℝ) < (Fintype.card (Fin r) : ℝ) := by
+      simpa [Fintype.card_fin] using (Nat.cast_pos.mpr hr : (0 : ℝ) < (r : ℝ))
+    have hcard_ne : (Fintype.card (Fin r) : ℝ) ≠ 0 := ne_of_gt hcard_pos
+    have hscale_ne : ((Fintype.card (Fin r) : ℝ)⁻¹) ≠ 0 :=
+      inv_ne_zero hcard_ne
+    have hne_iff :
+        ((sampleGram (D r ω)).det ≠ 0) ↔
+          (((D r ω)ᵀ * D r ω).det ≠ 0) := by
+      rw [sampleGram, Matrix.det_smul]
+      constructor
+      · intro hne
+        exact (mul_ne_zero_iff.mp hne).2
+      · intro hraw
+        exact mul_ne_zero (pow_ne_zero _ hscale_ne) hraw
+    have hzero_iff :
+        (((D r ω)ᵀ * D r ω).det = 0) ↔
+          ((sampleGram (D r ω)).det = 0) := by
+      constructor
+      · intro hraw_zero
+        by_contra hsample_ne
+        exact (hne_iff.mp hsample_ne) hraw_zero
+      · intro hsample_zero
+        by_contra hraw_ne
+        exact (hne_iff.mpr hraw_ne) hsample_zero
+    simpa [isUnit_iff_ne_zero] using hzero_iff
+  rw [tendsto_congr' heq]
+  exact hsample
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.11 coefficient bridge from 2SLS under
+high-probability first-stage nonsingularity.
+
+This is the probability-rank analogue of
+`generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_eventual_nonsingular`:
+the LS-generated-regressor statistic agrees with 2SLS on the nonsingular
+branch, while the singular branch has probability tending to zero. -/
+theorem
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_nonsingular_in_probability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hsingular : Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (h2sls : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν := by
+  let leading : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+      (twoSLSBetaStar
+        (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+        β)
+  let actual : ℕ → Ω → k → ℝ := fun m ω =>
+    Real.sqrt (m : ℝ) •
+      (generatedRegressorBetaStar
+        (stackRegressors Z m ω)
+        (generatedRegressorLSFirstStageCoefStar
+          (stackRegressors Z m ω) (stackRegressors X m ω))
+        (stackOutcomes Y m ω) - β)
+  have hrem : TendstoInMeasure μ
+      (fun m ω => actual m ω - leading m ω)
+      atTop (fun _ => (0 : k → ℝ)) := by
+    intro ε hε
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hsingular
+      (Eventually.of_forall (fun _ => zero_le _)) ?_
+    refine Eventually.of_forall ?_
+    intro m
+    refine measure_mono ?_
+    intro ω hω
+    simp only [Set.mem_setOf_eq]
+    by_cases hbad :
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)
+    · exact hbad
+    · exfalso
+      have hdet :
+          IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det) :=
+        not_not.mp hbad
+      letI : Invertible ((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (stackRegressors Z m ω)ᵀ * stackRegressors Z m ω) hdet
+      have hbridge :
+          generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) =
+            twoSLSBetaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) := by
+        rw [generatedRegressorLSBetaStar_eq_twoSLSBetaStar_of_projection_identities
+          (Z := stackRegressors Z m ω) (X := stackRegressors X m ω)
+          (Y := stackOutcomes Y m ω)
+          (instrumentProjectionStar_idempotent_of_nonsingular
+            (Z := stackRegressors Z m ω))
+          (instrumentProjectionStar_transpose_of_nonsingular
+            (Z := stackRegressors Z m ω))]
+      have hzero : actual m ω - leading m ω = 0 := by
+        change
+          Real.sqrt (m : ℝ) •
+              (generatedRegressorBetaStar
+                (stackRegressors Z m ω)
+                (generatedRegressorLSFirstStageCoefStar
+                  (stackRegressors Z m ω) (stackRegressors X m ω))
+                (stackOutcomes Y m ω) - β) -
+            Real.sqrt (m : ℝ) •
+              (twoSLSBetaStar
+                (stackRegressors Z m ω) (stackRegressors X m ω)
+                (stackOutcomes Y m ω) - β) =
+            0
+        rw [hbridge]
+        simp
+      change ε ≤ edist (actual m ω - leading m ω) 0 at hω
+      rw [hzero, edist_self] at hω
+      exact (not_le_of_gt hε) hω
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := leading) (Y := actual)
+    (Z := fun ω i => (G ω : k → ℝ) i)
+    (by simpa [leading] using h2sls) hrem
+    (by simpa [actual] using hgen_meas)
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.11 from existing 2SLS conclusions under
+high-probability first-stage nonsingularity. -/
+theorem generatedRegressorLS_theorem12_11_from_twoSLS_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix l k ℝ} {QZZ OmegaZE : Matrix l l ℝ}
+    {β : k → ℝ} {G : Ωlim → EuclideanSpace ℝ k}
+    (hsingular : Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (twoSLSBetaStar
+            (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω) -
+            β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν)
+    (hcov : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        twoSLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun ω i => (G ω : k → ℝ) i) (fun _ => μ) ν ∧
+    HasLaw G
+      (multivariateGaussian (0 : EuclideanSpace ℝ k)
+        (generatedRegressorAsymptoticVariance A QZZ OmegaZE)) ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A QZZ OmegaZE) := by
+  refine ⟨?_, hG, ?_⟩
+  · exact
+      generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_nonsingular_in_probability
+        (μ := μ) (ν := ν) (Z := Z) (X := X) (Y := Y)
+        (β := β) (G := G) hsingular hgen_meas hcoef
+  · simpa [generatedRegressorLSVHatStar_eq_twoSLSVHatStar] using hcov
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, primitive Assumption 12.2 reuse route with
+high-probability first-stage nonsingularity.
+
+This is the probability-rank counterpart of
+`generatedRegressorLS_theorem12_11_of_assumption12_2_projection_eventual_nonsingular`.
+It only requires the singular first-stage probability to vanish, which is the
+rank fact supplied by Gram convergence plus population positive definiteness. -/
+theorem
+    generatedRegressorLS_theorem12_11_assumption12_2_projection_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (A : Matrix l k ℝ)
+    (hsingular : Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ)
+    (hQZZ :
+      IsUnit
+        (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))).det)
+    (hQXZ :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+        Aᵀ * twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+    (hQZX :
+      twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) =
+        twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) * A) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance A
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  let QZZ : Matrix l l ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
+  let OmegaZE : Matrix l l ℝ := scoreCovMat μ Z e
+  let Vgen : Matrix k k ℝ := generatedRegressorAsymptoticVariance A QZZ OmegaZE
+  let V2sls : Matrix k k ℝ :=
+    twoSLSAsymptoticVariance (Aᵀ * QZZ) QZZ OmegaZE (QZZ * A)
+  have hVgen_eq : Vgen = V2sls := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE] using
+      generatedRegressorAsymptoticVariance_eq_twoSLS_population_projection
+        (A := A) (QZZ := QZZ) (OmegaZE := OmegaZE) hQZZ
+  have hcoef2sls_raw :=
+    twoSLSBetaStar_tendstoInDistribution_formula_of_assumption12_2_joint_iid_model
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h.toTwoSLSAssumption12_2JointIidFourthConditions β hmodel
+  have hcoef2sls :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (twoSLSBetaStar
+              (stackRegressors Z m ω) (stackRegressors X m ω)
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using hcoef2sls_raw
+  have hcoefLS_aux :=
+    generatedRegressorLSBetaStar_tendstoInDistribution_of_twoSLS_nonsingular_in_probability
+      (μ := μ) (ν := multivariateGaussian 0 Vgen)
+      (Z := Z) (X := X) (Y := Y) (β := β)
+      (G := fun z : EuclideanSpace ℝ k => z)
+      hsingular hgen_meas hcoef2sls
+  have hcoefLS :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (generatedRegressorBetaStar
+              (stackRegressors Z m ω)
+              (generatedRegressorLSFirstStageCoefStar
+                (stackRegressors Z m ω) (stackRegressors X m ω))
+              (stackOutcomes Y m ω) - β))
+        atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+        (multivariateGaussian 0 Vgen) := by
+    simpa using hcoefLS_aux
+  have hcovFormula :=
+    TwoSLSCovarianceFormulaConsistencyConditions.of_assumption12_2_joint_iid_mixed_moment_conditions
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
+  have hcov2sls :
+      TendstoInMeasure μ
+        (fun n ω =>
+          twoSLSVHatStar
+            (fun i : Fin n => Z i.val ω) (fun i : Fin n => X i.val ω)
+            (fun i : Fin n => Y i.val ω))
+        atTop (fun _ => Vgen) := by
+    simpa [Vgen, V2sls, QZZ, OmegaZE, hQXZ, hQZX, hVgen_eq] using
+      hcovFormula.robust_tendsto
+  refine ⟨?_, ?_⟩
+  · simpa [Vgen, QZZ, OmegaZE] using hcoefLS
+  · simpa [Vgen, QZZ, OmegaZE, generatedRegressorLSVHatStar_eq_twoSLSVHatStar]
+      using hcov2sls
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, population-projection coefficient route with
+high-probability first-stage nonsingularity. -/
+theorem
+    generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hsingular : Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0))
+    (hgen_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  let Q := popGram μ (twoSLSCombinedRegressors Z X)
+  let QZZ : Matrix l l ℝ := twoSLSCombinedQZZ Q
+  let QZX : Matrix l k ℝ := twoSLSCombinedQZX Q
+  let A : Matrix l k ℝ := QZZ⁻¹ * QZX
+  have hQZZ : IsUnit QZZ.det :=
+    (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
+  have hIidFourth :
+      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
+    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  have hGram :
+      TwoSLSAssumption12_2GramConditions μ Z X e :=
+    hIidFourth.toGramConditions
+  have hCombined :
+      SampleGramWLLNConditions μ (twoSLSCombinedRegressors Z X) :=
+    hGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+  have hQZX : QZX = QZZ * A := by
+    dsimp [A]
+    exact (qzz_mul_generatedRegressorPopulationProjectionCoef_eq hQZZ).symm
+  have hQXZ :
+      twoSLSCombinedQXZ Q = Aᵀ * QZZ := by
+    simpa [Q, QZZ, QZX, A] using
+      twoSLSCombinedQXZ_eq_transpose_projection_of_popGram_wlln
+        (μ := μ) (Z := Z) (X := X) (A := A) hCombined (by
+          simpa [Q, QZZ, QZX, A] using hQZX)
+  simpa [Q, QZZ, QZX, A] using
+    generatedRegressorLS_theorem12_11_assumption12_2_projection_rankProbability
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h β hmodel A hsingular hgen_meas hQZZ hQXZ (by
+        simpa [Q, QZZ, QZX, A] using hQZX)
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, population-projection route with generated
+statistic measurability derived from Assumption 12.2 and high-probability
+first-stage nonsingularity. -/
+theorem
+    generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability_autoMeas
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hsingular : Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) := by
+  have hY_meas : ∀ i, AEStronglyMeasurable (Y i) μ :=
+    outcome_aestronglyMeasurable_of_linear_model
+      (μ := μ) (X := X) (e := e) (Y := Y) β
+      h.x_aestronglyMeasurable h.e_aestronglyMeasurable hmodel
+  exact
+    generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      h β hmodel hsingular
+      (fun m =>
+        generatedRegressorLSBetaStar_scaled_centered_aemeasurable_of_rows
+          (μ := μ) (N := m) (Z := Z) (X := X) (Y := Y)
+          h.z_aestronglyMeasurable h.x_aestronglyMeasurable hY_meas β)
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- Assumption 12.2 supplies high-probability first-stage nonsingularity for
+Hansen Theorem 12.11.
+
+The combined `[Z,X]` Gram WLLN gives convergence of the instrument block
+`n⁻¹Z'Z`, and Hansen's `Q_ZZ > 0` condition makes the population block
+nonsingular. Therefore the raw finite-sample `Z'Z` singular probability
+vanishes; no eventual a.e. full-rank assertion is inferred. -/
+theorem
+    generatedRegressorLS_firstStage_singularProb_tendsto_zero_of_assumption12_2
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e) :
+    Tendsto
+      (fun m => μ {ω |
+        ¬ IsUnit (((stackRegressors Z m ω)ᵀ * stackRegressors Z m ω).det)})
+      atTop (𝓝 0) := by
+  let QZZ : Matrix l l ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))
+  have hIidFourth :
+      TwoSLSAssumption12_2IidFourthConditions μ Z X e :=
+    h.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  have hGram :
+      TwoSLSAssumption12_2GramConditions μ Z X e :=
+    hIidFourth.toGramConditions
+  have hMoments :
+      TwoSLSSampleMomentConvergenceConditions μ Z X e
+        (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+        (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+        (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) :=
+    hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+  have hQZZ : IsUnit QZZ.det :=
+    (Matrix.isUnit_iff_isUnit_det QZZ).mp h.qzz_posDef.isUnit
+  exact
+    rawGram_singular_measure_tendsto_zero_of_sampleGram_tendstoInMeasure
+      (μ := μ) (D := fun m ω => stackRegressors Z m ω) (Q := QZZ)
+      (by
+        intro m
+        simpa [QZZ, sampleQZZ, stackRegressors] using hMoments.qzz_meas m)
+      (by
+        simpa [QZZ, sampleQZZ, stackRegressors] using hMoments.qzz_tendsto)
+      hQZZ
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, population-projection route from Assumption 12.2
+with both generated-statistic measurability and high-probability first-stage
+nonsingularity derived internally. -/
+theorem
+    generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_auto_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2JointIidMixedMomentConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) :=
+  generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_rankProbability_autoMeas
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) h β hmodel
+    (generatedRegressorLS_firstStage_singularProb_tendsto_zero_of_assumption12_2
+      (μ := μ) (Z := Z) (X := X) (e := e) h)
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, literal finite-fourth-moment Assumption 12.2
+surface for the population-projection generated-regressor LS route.
+
+This wrapper keeps Hansen's textbook fourth-moment assumptions explicit and
+reuses `TwoSLSAssumption12_2JointIidTextbookFourthConditions.toJointIidMixedMomentConditions`
+to discharge the mixed moments used by the proof engine. -/
+theorem
+    generatedRegressorLS_theorem12_11_of_textbook12_2_populationProjection_auto_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSAssumption12_2JointIidTextbookFourthConditions μ Z X e Y β0) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β0))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) :=
+  generatedRegressorLS_theorem12_11_assumption12_2_populationProjection_auto_rankProbability
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    h.toJointIidMixedMomentConditions β0 h.model
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+  [DecidableEq k₁] [DecidableEq k₂] in
+/-- **Hansen Theorem 12.11**, observed-row finite-fourth Assumption 12.2
+surface for the population-projection generated-regressor LS route.
+
+This is the theorem-facing version whose iid condition is stated on Hansen's
+observed row `((Z_i, X_i), Y_i)`. It delegates to the residual-row proof engine
+through
+`TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`.
+-/
+theorem
+    generatedRegressorLS_theorem12_11_of_observed_textbook12_2_auto_rankProbability
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Z X e Y β0) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β0))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        generatedRegressorAsymptoticVariance
+          ((twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))⁻¹ *
+            twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)) :=
+  generatedRegressorLS_theorem12_11_of_textbook12_2_populationProjection_auto_rankProbability
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    h.toResidualTextbookFourthConditions
+
+namespace ControlFunctionNonsingularInProbabilityBridgeConditions
+
+/-- Constructor for the high-probability control-function rank package from
+expectation-error sample-Gram convergence.
+
+The expectation-error and actual control-function finite-sample Gram
+determinants are equivalent by the deterministic column-transform bridge, so
+one normalized expectation-error Gram WLLN supplies both singular-probability
+fields. -/
+theorem of_expectation_error_sampleGram_tendstoInMeasure_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ}
+    {Qee : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hEE : TendstoInMeasure μ
+      (fun r ω => sampleGram
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+          (stackRegressors Z r ω)))
+      atTop (fun _ => Qee))
+    (hEE_nonsing : IsUnit Qee.det) :
+    ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z := by
+  let Dee : (r : ℕ) → Ω →
+      Matrix (Fin r) (Sum (Sum k₁ k₂) k₂) ℝ :=
+    fun r ω =>
+      controlFunctionExpectationErrorDesignStar
+        (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+        (stackRegressors Z r ω)
+  have hEE_meas : ∀ r, AEStronglyMeasurable
+      (fun ω => sampleGram (Dee r ω)) μ := by
+    intro r
+    exact sampleGram_from_matrix_aestronglyMeasurable (μ := μ)
+      (controlFunctionExpectationErrorDesignStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := r) hX₁ hX₂ hZ)
+  have hEE_raw :
+      Tendsto
+        (fun r => μ {ω | ¬ IsUnit (((Dee r ω)ᵀ * Dee r ω).det)})
+        atTop (𝓝 0) :=
+    rawGram_singular_measure_tendsto_zero_of_sampleGram_tendstoInMeasure
+      (μ := μ) (D := Dee) (Q := Qee) hEE_meas hEE hEE_nonsing
+  refine ⟨?_, hEE_raw⟩
+  have heq :
+      (fun r => μ {ω |
+        ¬ IsUnit
+          (((controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω)).det)}) =ᶠ[atTop]
+      (fun r => μ {ω | ¬ IsUnit (((Dee r ω)ᵀ * Dee r ω).det)}) := by
+    filter_upwards with r
+    congr 1
+    ext ω
+    have hiff :
+        IsUnit
+          (((controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω)).det) ↔
+        IsUnit (((Dee r ω)ᵀ * Dee r ω).det) := by
+      constructor
+      · intro hcf
+        simpa [Dee] using
+          controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_controlFunction
+            (X₁ := stackRegressors X₁ r ω)
+            (X₂ := stackRegressors X₂ r ω)
+            (Z := stackRegressors Z r ω) hcf
+      · intro hee
+        simpa [Dee] using
+          controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+            (X₁ := stackRegressors X₁ r ω)
+            (X₂ := stackRegressors X₂ r ω)
+            (Z := stackRegressors Z r ω) hee
+    have hne_iff :
+        (((controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω)).det ≠ 0) ↔
+        (((Dee r ω)ᵀ * Dee r ω).det ≠ 0) := by
+      simpa [isUnit_iff_ne_zero] using hiff
+    have hzero_iff :
+        (((controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ r ω) (stackRegressors X₂ r ω)
+              (stackRegressors Z r ω)).det = 0) ↔
+        (((Dee r ω)ᵀ * Dee r ω).det = 0) := by
+      constructor
+      · intro hcf_zero
+        by_contra hee_ne
+        exact (hne_iff.mpr hee_ne) hcf_zero
+      · intro hee_zero
+        by_contra hcf_ne
+        exact (hne_iff.mp hcf_ne) hee_zero
+    simpa [isUnit_iff_ne_zero] using hzero_iff
+  rw [tendsto_congr' heq]
+  exact hEE_raw
+
+end ControlFunctionNonsingularInProbabilityBridgeConditions
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] in
+/-- Eventual a.e. coefficient bridge generated by finite-sample
+nonsingularity. -/
+theorem controlFunctionAlphaHatStar_bridge_eventually_of_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (h : ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z) :
+    ∀ᶠ m in atTop,
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionEndogeneityMap *ᵥ
+          olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω)) := by
+  filter_upwards
+    [h.control_function_nonsingular, h.expectation_error_nonsingular] with
+    m hcf hee
+  filter_upwards [hcf, hee] with ω hcfω heeω
+  letI : Invertible
+      ((controlFunctionDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω))ᵀ *
+      controlFunctionDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        (controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) hcfω
+  letI : Invertible
+      ((controlFunctionExpectationErrorDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω))ᵀ *
+      controlFunctionExpectationErrorDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) heeω
+  simpa using
+    controlFunctionAlphaHatStar_eq_fromExpectationError_of_nonsingular
+      (X₁ := stackRegressors X₁ m ω)
+      (X₂ := stackRegressors X₂ m ω)
+      (Z := stackRegressors Z m ω)
+      (Y := stackOutcomes Y m ω)
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] [DecidableEq k] in
+/-- Eventual a.e. HC0 covariance bridge generated by finite-sample
+nonsingularity.  The extra eventual `0 < m` premise supplies the `Nonempty
+(Fin m)` instance needed by the finite-sample HC0 theorem. -/
+theorem controlFunctionAlphaVHatStar_bridge_eventually_of_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    (h : ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z) :
+    ∀ᶠ m in atTop,
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) := by
+  filter_upwards
+    [eventually_gt_atTop 0, h.control_function_nonsingular,
+      h.expectation_error_nonsingular] with
+    m hm hcf hee
+  filter_upwards [hcf, hee] with ω hcfω heeω
+  haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+  letI : Invertible
+      ((controlFunctionDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω))ᵀ *
+      controlFunctionDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        (controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) hcfω
+  letI : Invertible
+      ((controlFunctionExpectationErrorDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω))ᵀ *
+      controlFunctionExpectationErrorDesignStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))ᵀ *
+        controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω)) heeω
+  exact
+    controlFunctionAlphaVHatStar_eq_fromExpectationErrorStar_of_nonsingular
+      (X₁ := stackRegressors X₁ m ω)
+      (X₂ := stackRegressors X₂ m ω)
+      (Z := stackRegressors Z m ω)
+      (Y := stackOutcomes Y m ω)
+
+omit [DecidableEq k₁] in
+/-- Covariance continuous-mapping bridge for the deterministic
+control-function alpha map.  If a full expectation-error coefficient
+covariance estimator is consistent, then the pushed-forward alpha covariance
+estimator is consistent. -/
+theorem controlFunctionEndogeneityCovariance_tendstoInMeasure
+    {Vhat : ℕ → Ω → Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hV_meas : ∀ m, AEStronglyMeasurable (Vhat m) μ)
+    (hV : TendstoInMeasure μ Vhat atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityMap * Vhat m ω *
+          (controlFunctionEndogeneityMap)ᵀ)
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * V *
+          (controlFunctionEndogeneityMap)ᵀ) :=
+  linMapCov_tendstoInMeasure
+    (μ := μ) (q := k₂)
+    (R := controlFunctionEndogeneityMap) hV_meas hV
+
+/-- Specialization of `controlFunctionEndogeneityCovariance_tendstoInMeasure`
+to the expectation-error HC0 covariance estimator. -/
+theorem controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * V *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  simpa [controlFunctionAlphaVHatFromExpectationErrorStar] using
+    controlFunctionEndogeneityCovariance_tendstoInMeasure
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (Vhat := fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      (V := V) hV_meas hV
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- The actual control-function `α̂` HC0 covariance estimator is consistent
+whenever the expectation-error HC0 covariance is consistent and the two
+finite-sample designs are eventually a.e. nonsingular. -/
+theorem controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hnonsing : ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z)
+    (hV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * V *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  have hfrom :=
+    controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (V := V) hV_meas hV
+  refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hfrom
+  exact
+    (controlFunctionAlphaVHatStar_bridge_eventually_of_nonsingular
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      hnonsing).mono fun _ hm => hm.symm
+
+omit [DecidableEq n] [DecidableEq k] in
+/-- The actual control-function `α̂` HC0 covariance estimator is consistent
+under high-probability finite-sample nonsingularity.
+
+This is the probability-rank analogue of
+`controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_eventually_nonsingular`:
+the exact covariance identity is used on the nonsingular branch, and the
+singular branch has probability tending to zero. -/
+theorem controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {V : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (halphaV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => V)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * V *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  let Vfrom : ℕ → Ω → Matrix k₂ k₂ ℝ := fun m ω =>
+    controlFunctionAlphaVHatFromExpectationErrorStar
+      (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+      (stackRegressors Z m ω) (stackOutcomes Y m ω)
+  let Vactual : ℕ → Ω → Matrix k₂ k₂ ℝ := fun m ω =>
+    controlFunctionAlphaVHatStar
+      (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+      (stackRegressors Z m ω) (stackOutcomes Y m ω)
+  let Vlim : Matrix k₂ k₂ ℝ :=
+    controlFunctionEndogeneityMap * V * (controlFunctionEndogeneityMap)ᵀ
+  have hfrom_meas : ∀ m, AEStronglyMeasurable (Vfrom m) μ := by
+    intro m
+    have hleft : AEStronglyMeasurable
+        (fun ω =>
+          controlFunctionEndogeneityMap *
+            olsHetCovStar
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))
+              (stackOutcomes Y m ω)) μ :=
+      (Continuous.matrix_mul continuous_const continuous_id).comp_aestronglyMeasurable
+        (hV_meas m)
+    simpa [Vfrom, controlFunctionAlphaVHatFromExpectationErrorStar,
+      Matrix.mul_assoc] using
+      (Continuous.matrix_mul continuous_id continuous_const).comp_aestronglyMeasurable
+        hleft
+  have hfrom : TendstoInMeasure μ Vfrom atTop (fun _ => Vlim) := by
+    simpa [Vfrom, Vlim] using
+      controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure
+        (μ := μ) (k₁ := k₁) (k₂ := k₂)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (V := V) hV_meas hV
+  have hbad : Tendsto
+      (fun m =>
+        μ {ω |
+          ¬ IsUnit
+            (((controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)} +
+        μ {ω |
+          ¬ IsUnit
+            (((controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)})
+      atTop (𝓝 0) := by
+    simpa using
+      hnonsing.control_function_singular_tendsto_zero.add
+        hnonsing.expectation_error_singular_tendsto_zero
+  have hdiff : TendstoInMeasure μ
+      (fun m ω => Vactual m ω - Vfrom m ω)
+      atTop (fun _ => (0 : Matrix k₂ k₂ ℝ)) := by
+    intro ε hε
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+      (Eventually.of_forall (fun _ => zero_le _)) ?_
+    filter_upwards [eventually_gt_atTop 0] with m hm
+    refine (measure_mono ?_).trans (measure_union_le _ _)
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Set.mem_union]
+    by_cases hcf :
+        ¬ IsUnit
+          (((controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)).det)
+    · exact Or.inl hcf
+    · right
+      by_cases hee :
+          ¬ IsUnit
+            (((controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)
+      · exact hee
+      · exfalso
+        have hcf_unit :
+            IsUnit
+              (((controlFunctionDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω))ᵀ *
+                controlFunctionDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω)).det) := not_not.mp hcf
+        have hee_unit :
+            IsUnit
+              (((controlFunctionExpectationErrorDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω))ᵀ *
+                controlFunctionExpectationErrorDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω)).det) := not_not.mp hee
+        haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+        letI : Invertible
+            ((controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              (controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)) hcf_unit
+        letI : Invertible
+            ((controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)) hee_unit
+        have hbridge :
+            Vactual m ω = Vfrom m ω := by
+          simpa [Vactual, Vfrom] using
+            controlFunctionAlphaVHatStar_eq_fromExpectationErrorStar_of_nonsingular
+              (X₁ := stackRegressors X₁ m ω)
+              (X₂ := stackRegressors X₂ m ω)
+              (Z := stackRegressors Z m ω)
+              (Y := stackOutcomes Y m ω)
+        have hzero : Vactual m ω - Vfrom m ω = 0 := by
+          simp [hbridge]
+        change ε ≤ edist (Vactual m ω - Vfrom m ω) 0 at hω
+        rw [hzero, edist_self] at hω
+        exact (not_le_of_gt hε) hω
+  have hsum := tendstoInMeasure_add
+    (μ := μ)
+    (f := fun m ω => Vactual m ω - Vfrom m ω)
+    (g := Vfrom)
+    (finf := fun _ => (0 : Matrix k₂ k₂ ℝ))
+    (ginf := fun _ => Vlim)
+    (fun m => (halphaV_meas m).sub (hfrom_meas m))
+    hfrom_meas hdiff hfrom
+  have hactual : TendstoInMeasure μ
+      (fun m ω => (Vactual m ω - Vfrom m ω) + Vfrom m ω)
+      atTop (fun _ => Vlim) := by
+    simpa [Vlim] using hsum
+  refine hactual.congr_left ?_
+  intro m
+  exact ae_of_all μ (fun ω => by
+    simp [Vactual, Vfrom])
+
+/-- Coefficient CLT transport for Hansen Theorem 12.13 from eventual
+finite-sample nonsingularity.
+
+This is the theorem-facing version of
+`controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError` when
+the deterministic coefficient bridge is available eventually a.e. from
+`ControlFunctionNonsingularBridgeConditions`, rather than for every sample
+size. -/
+theorem controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {root : ℕ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    (hα : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hα_meas : ∀ m, AEMeasurable
+      (fun ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+  have hmap := controlFunctionEndogeneityMap_tendstoInDistribution
+    (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂) hcoef
+  have hbridge :=
+    controlFunctionAlphaHatStar_bridge_eventually_of_nonsingular
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y) hnonsing
+  refine tendstoInDistribution_congr_eventually_const_measure
+    (μ := μ) (ν := ν)
+    (X := fun m ω =>
+      controlFunctionEndogeneityMap *ᵥ
+        (root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE)))
+    (Y := fun m ω =>
+      root m •
+        (controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+    ?_ EventuallyEq.rfl hα_meas hmap.aemeasurable_limit hmap
+  filter_upwards [hbridge] with m hm
+  filter_upwards [hm] with ω hω
+  rw [hω, ← hα]
+  simp [Matrix.mulVec_smul, Matrix.mulVec_sub]
+
+/-- Coefficient CLT transport for Hansen Theorem 12.13 from high-probability
+finite-sample nonsingularity.
+
+The exact control-function/expectation-error coefficient identity is required
+only on the nonsingular branch; the two singular-design probabilities vanish,
+so the bridge remainder is `oₚ(1)`. -/
+theorem
+  controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {root : ℕ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    (hα : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hα_meas : ∀ m, AEMeasurable
+      (fun ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+  let leading : ℕ → Ω → k₂ → ℝ := fun m ω =>
+    controlFunctionEndogeneityMap *ᵥ
+      (root m •
+        (olsBetaStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω) - βEE))
+  let actual : ℕ → Ω → k₂ → ℝ := fun m ω =>
+    root m •
+      (controlFunctionAlphaHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)
+  have hmap : TendstoInDistribution leading atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν := by
+    simpa [leading] using
+      controlFunctionEndogeneityMap_tendstoInDistribution
+        (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂) hcoef
+  have hbad : Tendsto
+      (fun m =>
+        μ {ω |
+          ¬ IsUnit
+            (((controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)} +
+        μ {ω |
+          ¬ IsUnit
+            (((controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)})
+      atTop (𝓝 0) := by
+    simpa using
+      hnonsing.control_function_singular_tendsto_zero.add
+        hnonsing.expectation_error_singular_tendsto_zero
+  have hrem : TendstoInMeasure μ
+      (fun m ω => actual m ω - leading m ω)
+      atTop (fun _ => (0 : k₂ → ℝ)) := by
+    intro ε hε
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+      (Eventually.of_forall (fun _ => zero_le _)) ?_
+    refine Eventually.of_forall ?_
+    intro m
+    refine (measure_mono ?_).trans (measure_union_le _ _)
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Set.mem_union]
+    by_cases hcf :
+        ¬ IsUnit
+          (((controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)).det)
+    · exact Or.inl hcf
+    · right
+      by_cases hee :
+          ¬ IsUnit
+            (((controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)).det)
+      · exact hee
+      · exfalso
+        have hcf_unit :
+            IsUnit
+              (((controlFunctionDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω))ᵀ *
+                controlFunctionDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω)).det) := not_not.mp hcf
+        have hee_unit :
+            IsUnit
+              (((controlFunctionExpectationErrorDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω))ᵀ *
+                controlFunctionExpectationErrorDesignStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω)).det) := not_not.mp hee
+        letI : Invertible
+            ((controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              (controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)) hcf_unit
+        letI : Invertible
+            ((controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))ᵀ *
+            controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))ᵀ *
+              controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω)) hee_unit
+        have hbridge :
+            controlFunctionAlphaHatStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω) (stackOutcomes Y m ω) =
+              controlFunctionEndogeneityMap *ᵥ
+                olsBetaStar
+                  (controlFunctionExpectationErrorDesignStar
+                    (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                    (stackRegressors Z m ω))
+                  (stackOutcomes Y m ω) := by
+          simpa using
+            controlFunctionAlphaHatStar_eq_fromExpectationError_of_nonsingular
+              (X₁ := stackRegressors X₁ m ω)
+              (X₂ := stackRegressors X₂ m ω)
+              (Z := stackRegressors Z m ω)
+              (Y := stackOutcomes Y m ω)
+        have hzero : actual m ω - leading m ω = 0 := by
+          change
+            root m •
+                (controlFunctionAlphaHatStar
+                  (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                  (stackRegressors Z m ω) (stackOutcomes Y m ω) - α) -
+              controlFunctionEndogeneityMap *ᵥ
+                (root m •
+                  (olsBetaStar
+                    (controlFunctionExpectationErrorDesignStar
+                      (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                      (stackRegressors Z m ω))
+                    (stackOutcomes Y m ω) - βEE)) = 0
+          rw [hbridge, ← hα]
+          simp [Matrix.mulVec_smul, Matrix.mulVec_sub]
+        change ε ≤ edist (actual m ω - leading m ω) 0 at hω
+        rw [hzero, edist_self] at hω
+        exact (not_le_of_gt hε) hω
+  exact tendstoInDistribution_of_tendstoInMeasure_sub
+    (X := leading) (Y := actual)
+    (Z := fun ω j =>
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+    hmap hrem (by simpa [actual] using hα_meas)
+
+/-- Theorem-facing package for Hansen Theorem 12.13 using the eventual
+nonsingular finite-sample bridge.
+
+This package isolates the raw ingredients that should eventually be supplied
+by Hansen's fourth-moment and rank assumptions: the expectation-error CLT,
+full HC0 covariance consistency, coefficient/covariance measurability, and
+eventual a.e. nonsingularity of the two deterministically equivalent designs. -/
+structure ControlFunctionAlphaEventualAsymptoticNormalConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (βEE : Sum (Sum k₁ k₂) k₂ → ℝ) (α : k₂ → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂))
+    (VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ) : Prop where
+  alpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α
+  nonsingular_bridge : ControlFunctionNonsingularBridgeConditions μ X₁ X₂ Z
+  alpha_coefficient_measurable : ∀ m : ℕ, AEMeasurable
+    (fun ω =>
+      Real.sqrt (m : ℝ) •
+        (controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ
+  coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (olsBetaStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω) - βEE))
+    atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+    (fun _ => μ) ν
+  gaussian_limit : HasLaw G (multivariateGaussian 0 VEE) ν
+  covariance_posSemidef : VEE.PosSemidef
+  alpha_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      controlFunctionAlphaVHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ
+  expectation_error_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      olsHetCovStar
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+        (stackOutcomes Y m ω)) μ
+  expectation_error_covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      olsHetCovStar
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω))
+      (stackOutcomes Y m ω))
+    atTop (fun _ => VEE)
+
+/-- Constructor for Hansen Theorem 12.13's eventual-nonsingularity package
+from a single expectation-error design rank condition. -/
+theorem
+    ControlFunctionAlphaEventualAsymptoticNormalConditions.of_expectation_error_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVpsd : VEE.PosSemidef)
+    (halphaV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hVEE_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE)) :
+    ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE where
+  alpha_target := halpha_target
+  nonsingular_bridge :=
+    ControlFunctionNonsingularBridgeConditions.of_expectation_error_nonsingular
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hnonsing
+  alpha_coefficient_measurable := halpha_meas
+  coefficient_limit := hcoef
+  gaussian_limit := hG
+  covariance_posSemidef := hVpsd
+  alpha_covariance_measurable := halphaV_meas
+  expectation_error_covariance_measurable := hVEE_meas
+  expectation_error_covariance_consistent := hVEE
+
+/-- Constructor for Hansen Theorem 12.13's eventual-nonsingularity package
+from a single actual control-function design rank condition. -/
+theorem
+    ControlFunctionAlphaEventualAsymptoticNormalConditions.of_control_function_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVpsd : VEE.PosSemidef)
+    (halphaV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hVEE_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE)) :
+    ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE where
+  alpha_target := halpha_target
+  nonsingular_bridge :=
+    ControlFunctionNonsingularBridgeConditions.of_control_function_nonsingular
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) hnonsing
+  alpha_coefficient_measurable := halpha_meas
+  coefficient_limit := hcoef
+  gaussian_limit := hG
+  covariance_posSemidef := hVpsd
+  alpha_covariance_measurable := halphaV_meas
+  expectation_error_covariance_measurable := hVEE_meas
+  expectation_error_covariance_consistent := hVEE
+
+/-- Row-measurable constructor for Hansen Theorem 12.13's eventual
+nonsingularity route from a single expectation-error design rank condition.
+
+This derives the coefficient and covariance measurability fields from row
+measurability of `X₁`, `X₂`, `Z`, and `Y`; the substantive CLT, Gaussian law,
+positive-semidefinite covariance, covariance consistency, and rank condition
+remain explicit. -/
+theorem
+    ControlFunctionAlphaEventualAsymptoticNormalConditions.of_expectation_error_nonsingular_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVpsd : VEE.PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE)) :
+    ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE :=
+  ControlFunctionAlphaEventualAsymptoticNormalConditions.of_expectation_error_nonsingular
+    (μ := μ) (ν := ν) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G) (VEE := VEE)
+    halpha_target hnonsing
+    (fun m =>
+      controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY α)
+    hcoef hG hVpsd
+    (fun m =>
+      controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY)
+    (fun m =>
+      controlFunctionExpectationErrorOlsHetCovStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY)
+    hVEE
+
+/-- Row-measurable constructor for Hansen Theorem 12.13's eventual
+nonsingularity route from Hansen's actual control-function design rank
+condition. -/
+theorem
+    ControlFunctionAlphaEventualAsymptoticNormalConditions.of_control_function_nonsingular_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVpsd : VEE.PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE)) :
+    ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE :=
+  ControlFunctionAlphaEventualAsymptoticNormalConditions.of_control_function_nonsingular
+    (μ := μ) (ν := ν) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G) (VEE := VEE)
+    halpha_target hnonsing
+    (fun m =>
+      controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY α)
+    hcoef hG hVpsd
+    (fun m =>
+      controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY)
+    (fun m =>
+      controlFunctionExpectationErrorOlsHetCovStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        hX₁ hX₂ hZ hY)
+    hVEE
+
+/-- **Hansen Theorem 12.13**, actual-control-function endpoint from eventual
+finite-sample nonsingularity. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance_of_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν ∧
+    HasLaw
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ))
+      ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  refine ⟨?_, ?_, ?_⟩
+  · exact
+      controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError_eventually_nonsingular
+        (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (βEE := βEE) (α := α) (root := fun m => Real.sqrt (m : ℝ))
+        (G := G) h.alpha_target h.nonsingular_bridge h.coefficient_limit
+        h.alpha_coefficient_measurable
+  · exact controlFunctionEndogeneityLimit_hasLaw
+      (k₁ := k₁) (k₂ := k₂) h.covariance_posSemidef h.gaussian_limit
+  · exact
+      controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_eventually_nonsingular
+        (μ := μ) (k₁ := k₁) (k₂ := k₂)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (V := VEE) h.nonsingular_bridge
+        h.expectation_error_covariance_measurable
+        h.expectation_error_covariance_consistent
+
+/-- **Hansen Theorem 12.13**, direct multivariate-normal/covariance endpoint
+from eventual finite-sample nonsingularity. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_mvn_cov_of_eventual_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance_of_eventually_nonsingular
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G) (VEE := VEE) h
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G)
+        (fun _ => μ) ν := by
+    have hmap := hbase.1.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : k₂ => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop (fun z : EuclideanSpace ℝ k₂ => z) (fun _ => μ)
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap * VEE *
+            (controlFunctionEndogeneityMap)ᵀ)) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k₂)
+      hEuclidAux hbase.2.1
+  have hraw := hEuclidDirect.continuous_comp
+    (PiLp.continuous_ofLp 2 (fun _ : k₂ => ℝ))
+  exact ⟨by simpa [Function.comp_def] using hraw, hbase.2.2⟩
+
+/-- **Hansen Theorem 12.13**, displayed-covariance endpoint from eventual
+finite-sample nonsingularity.
+
+This is the event-nonsingularity analogue of
+`controlFunctionAlphaHatStar_theorem12_13_displayed_normal_and_covariance`:
+it rewrites the pushed-forward covariance `R V R'` into Hansen's displayed
+`V₂₂ + Vγγ - Vγ2 - Vγ2'` block formula. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_eventual_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_mvn_cov_of_eventual_nonsingular
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma) h
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  exact ⟨by simpa [hcov] using hbase.1, by simpa [hcov] using hbase.2⟩
+
+/-- **Hansen Theorem 12.13**, direct multivariate-normal/covariance endpoint
+from high-probability finite-sample nonsingularity. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_mvn_cov_of_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVpsd : VEE.PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  have hcoefActual :
+      TendstoInDistribution
+        (fun (m : ℕ) ω =>
+          Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+        atTop
+        (fun ω j =>
+          (controlFunctionEndogeneityLimit
+            (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+        (fun _ => μ) ν :=
+    controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError_nonsingular_in_probability
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (root := fun m => Real.sqrt (m : ℝ))
+      (G := G) halpha_target hnonsing hcoef halpha_meas
+  have hlimitLaw :
+      HasLaw
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G)
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap * VEE *
+            (controlFunctionEndogeneityMap)ᵀ)) ν :=
+    controlFunctionEndogeneityLimit_hasLaw
+      (k₁ := k₁) (k₂ := k₂) hVpsd hG
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G)
+        (fun _ => μ) ν := by
+    have hmap := hcoefActual.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : k₂ => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop (fun z : EuclideanSpace ℝ k₂ => z) (fun _ => μ)
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap * VEE *
+            (controlFunctionEndogeneityMap)ᵀ)) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit
+      (E := EuclideanSpace ℝ k₂) hEuclidAux hlimitLaw
+  have hraw := hEuclidDirect.continuous_comp
+    (PiLp.continuous_ofLp 2 (fun _ : k₂ => ℝ))
+  have hcov :
+      TendstoInMeasure μ
+        (fun (m : ℕ) ω =>
+          controlFunctionAlphaVHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω))
+        atTop
+        (fun _ =>
+          controlFunctionEndogeneityMap * VEE *
+            (controlFunctionEndogeneityMap)ᵀ) :=
+    controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_nonsingular_in_probability
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (V := VEE) hnonsing halphaV_meas hV_meas hV
+  exact ⟨by simpa [Function.comp_def] using hraw, hcov⟩
+
+/-- **Hansen Theorem 12.13**, displayed-covariance endpoint from
+high-probability finite-sample nonsingularity. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_mvn_cov_of_nonsingular_in_probability
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      halpha_target hnonsing hcoef hG hVpsd halpha_meas halphaV_meas
+      hV_meas hVEE
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  exact ⟨by simpa [hcov] using hbase.1, by simpa [hcov] using hbase.2⟩
+
+section ControlFunctionSampleGramEndpoint
+
+open ControlFunctionNonsingularInProbabilityBridgeConditions
+
+/-- **Hansen Theorem 12.13**, displayed-covariance endpoint from an
+expectation-error sample-Gram WLLN.
+
+This is the high-probability rank route in Hansen-facing notation: row
+measurability supplies the statistic/covariance measurability fields, and
+`sampleGram Dₙ →p Q` with `Q` nonsingular supplies the finite-sample
+nonsingularity-in-probability bridge for both the expectation-error and actual
+control-function designs. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_expectation_error_sampleGram_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    {Qee : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hEEGram : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Qee))
+    (hEEGram_nonsing : IsUnit Qee.det)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) := by
+  have hnonsing :
+      ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z :=
+    of_expectation_error_sampleGram_tendstoInMeasure_rows
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z)
+      hX₁ hX₂ hZ hEEGram hEEGram_nonsing
+  exact
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_nonsingular_in_probability
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross halpha_target hnonsing
+      hcoef hG hVpsd
+      (fun m =>
+        controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY α)
+      (fun m =>
+        controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY)
+      (fun m =>
+        controlFunctionExpectationErrorOlsHetCovStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY)
+      hVEE
+
+end ControlFunctionSampleGramEndpoint
+
+/-- Hansen Theorem 12.13 displayed endpoint with row measurability and
+eventual rank supplied through the expectation-error design.
+
+This is a theorem-facing wrapper around the eventual-nonsingularity package:
+row measurability discharges the actual control-function coefficient and HC0
+covariance measurability fields, while the single expectation-error rank
+condition supplies both equivalent finite-sample nonsingularity branches. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_expectation_error_nonsingular_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) :=
+  controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_eventual_nonsingular
+    (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross
+    (ControlFunctionAlphaEventualAsymptoticNormalConditions.of_expectation_error_nonsingular_rows
+      (μ := μ) (ν := ν) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      halpha_target hnonsing hX₁ hX₂ hZ hY hcoef hG hVpsd hVEE)
+
+/-- Hansen Theorem 12.13 displayed endpoint with row measurability and
+eventual rank supplied through Hansen's actual control-function design. -/
+theorem
+    controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_control_function_nonsingular_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnonsing : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
+      IsUnit
+        (((controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))ᵀ *
+          controlFunctionDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)).det))
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) :=
+  controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_cov_of_eventual_nonsingular
+    (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross
+    (ControlFunctionAlphaEventualAsymptoticNormalConditions.of_control_function_nonsingular_rows
+      (μ := μ) (ν := ν) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      halpha_target hnonsing hX₁ hX₂ hZ hY hcoef hG hVpsd hVEE)
+
+/-- Proof-facing package for Hansen Theorem 12.13 in the actual
+control-function regression.
+
+The primitive fourth-moment and positive-definiteness assumptions should
+eventually construct the expectation-error coefficient CLT, full covariance
+consistency, positive semidefiniteness, and the a.e. nonsingular bridges.  This
+package isolates exactly those theorem-facing premises and keeps the
+deterministic `α = γ - β₂` transport reusable. -/
+structure ControlFunctionAlphaAsymptoticNormalConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (βEE : Sum (Sum k₁ k₂) k₂ → ℝ) (α : k₂ → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂))
+    (VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ) : Prop where
+  alpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α
+  coefficient_bridge : ∀ m,
+    (fun ω =>
+      controlFunctionAlphaHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+    (fun ω =>
+      controlFunctionEndogeneityMap *ᵥ
+        olsBetaStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+  coefficient_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      Real.sqrt (m : ℝ) •
+        (olsBetaStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω) - βEE))
+    atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+    (fun _ => μ) ν
+  gaussian_limit : HasLaw G (multivariateGaussian 0 VEE) ν
+  covariance_posSemidef : VEE.PosSemidef
+  alpha_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      controlFunctionAlphaVHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ
+  expectation_error_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      olsHetCovStar
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+        (stackOutcomes Y m ω)) μ
+  expectation_error_covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      olsHetCovStar
+        (controlFunctionExpectationErrorDesignStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω))
+        (stackOutcomes Y m ω))
+    atTop (fun _ => VEE)
+  covariance_bridge : ∀ m,
+    (fun ω =>
+      controlFunctionAlphaVHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+    (fun ω =>
+      controlFunctionAlphaVHatFromExpectationErrorStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω))
+
+/-- Raw Hansen Section 12.28 control-function model and moment surface for
+Theorem 12.13.
+
+This records the textbook equations `Y = X₁'β₁ + X₂'β₂ + e`,
+`X₂ = Γ'Z + u₂`, `e = u₂'α + ν`, the displayed orthogonality conditions,
+finite fourth moments, and positive-definite reduced-form/residual population
+Grams. The asymptotic CLT/covariance engine is deliberately kept out of this
+primitive package. -/
+structure ControlFunctionHansenPrimitiveConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ u₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y e νe : ℕ → Ω → ℝ)
+    (Γ : Matrix l k₂ ℝ) (β : Sum k₁ k₂ → ℝ) (α : k₂ → ℝ) :
+    Prop where
+  x1_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (X₁ i) μ
+  x2_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (X₂ i) μ
+  u2_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (u₂ i) μ
+  z_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (Z i) μ
+  y_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (Y i) μ
+  e_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (e i) μ
+  nu_aestronglyMeasurable : ∀ i, AEStronglyMeasurable (νe i) μ
+  reduced_form : ∀ i, (fun ω => X₂ i ω) =ᵐ[μ]
+    fun ω => Γᵀ *ᵥ Z i ω + u₂ i ω
+  structural_error : ∀ i, (fun ω => e i ω) =ᵐ[μ]
+    fun ω => Y i ω - dotProduct (controlFunctionStructuralRegressor X₁ X₂ i ω) β
+  control_error_projection : ∀ i, (fun ω => e i ω) =ᵐ[μ]
+    fun ω => dotProduct (u₂ i ω) α + νe i ω
+  z_e_integrable : Integrable (fun ω => e 0 ω • Z 0 ω) μ
+  x1_nu_integrable : Integrable (fun ω => νe 0 ω • X₁ 0 ω) μ
+  x2_nu_integrable : Integrable (fun ω => νe 0 ω • X₂ 0 ω) μ
+  u2_nu_integrable : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ
+  z_e_orthogonal : μ[fun ω => e 0 ω • Z 0 ω] = 0
+  x1_nu_orthogonal : μ[fun ω => νe 0 ω • X₁ 0 ω] = 0
+  x2_nu_orthogonal : μ[fun ω => νe 0 ω • X₂ 0 ω] = 0
+  u2_nu_orthogonal : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0
+  y_fourth_integrable : Integrable (fun ω => (Y 0 ω) ^ 4) μ
+  z_norm_fourth_integrable : Integrable (fun ω => ‖Z 0 ω‖ ^ 4) μ
+  x_norm_fourth_integrable : Integrable
+    (fun ω => ‖controlFunctionStructuralRegressor X₁ X₂ 0 ω‖ ^ 4) μ
+  reduced_form_popGram_posDef : (Γᵀ * popGram μ Z * Γ).PosDef
+  residual_popGram_posDef : (popGram μ u₂).PosDef
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- The structural regressor row `(X₁, X₂)` is measurable under Hansen's
+control-function primitive package. -/
+theorem ControlFunctionHansenPrimitiveConditions.structuralRegressor_aestronglyMeasurable
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α)
+    (i : ℕ) :
+    AEStronglyMeasurable (controlFunctionStructuralRegressor X₁ X₂ i) μ := by
+  rw [aestronglyMeasurable_iff_aemeasurable]
+  rw [aemeasurable_pi_iff]
+  intro j
+  cases j with
+  | inl j =>
+      exact ((continuous_apply j).aemeasurable.comp_aemeasurable
+        (h.x1_aestronglyMeasurable i).aemeasurable)
+  | inr j =>
+      exact ((continuous_apply j).aemeasurable.comp_aemeasurable
+        (h.x2_aestronglyMeasurable i).aemeasurable)
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen's structural-regressor and instrument fourth moments imply an `L⁴`
+bound for each reduced-form residual coordinate `u₂`. -/
+theorem ControlFunctionHansenPrimitiveConditions.residual_coordinate_memLp_four
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α)
+    (j : k₂) :
+    MemLp (fun ω => u₂ 0 ω j) 4 μ := by
+  have hstruct_meas :
+      AEStronglyMeasurable (controlFunctionStructuralRegressor X₁ X₂ 0) μ :=
+    h.structuralRegressor_aestronglyMeasurable 0
+  have hX2coord : MemLp (fun ω => X₂ 0 ω j) 4 μ := by
+    simpa [controlFunctionStructuralRegressor] using
+      (coordinate_memLp_four_of_integrable_norm_fourth
+        (μ := μ) (X := controlFunctionStructuralRegressor X₁ X₂ 0)
+        hstruct_meas h.x_norm_fourth_integrable (Sum.inr j))
+  have hZcoord : MemLp (fun ω => (Γᵀ *ᵥ Z 0 ω) j) 4 μ := by
+    have hdot := dotProduct_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := Z 0) (h.z_aestronglyMeasurable 0)
+      h.z_norm_fourth_integrable (Γᵀ j)
+    convert hdot using 1
+    ext ω
+    simp [Matrix.mulVec, dotProduct, mul_comm]
+  have hdiff : MemLp (fun ω => X₂ 0 ω j - (Γᵀ *ᵥ Z 0 ω) j) 4 μ :=
+    hX2coord.sub hZcoord
+  have hu_eq :
+      (fun ω => u₂ 0 ω j) =ᵐ[μ]
+        fun ω => X₂ 0 ω j - (Γᵀ *ᵥ Z 0 ω) j := by
+    filter_upwards [h.reduced_form 0] with ω hω
+    have hj := congrFun hω j
+    rw [hj]
+    simp
+  exact MemLp.ae_eq hu_eq.symm hdiff
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen's response and structural-regressor fourth moments imply an `L⁴`
+bound for the structural error row `e`. -/
+theorem ControlFunctionHansenPrimitiveConditions.structuralError_memLp_four
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) :
+    MemLp (fun ω => e 0 ω) 4 μ := by
+  have hstruct_meas :
+      AEStronglyMeasurable (controlFunctionStructuralRegressor X₁ X₂ 0) μ :=
+    h.structuralRegressor_aestronglyMeasurable 0
+  have hY4 : MemLp (fun ω => Y 0 ω) 4 μ :=
+    scalar_memLp_four_of_integrable_fourth
+      (h.y_aestronglyMeasurable 0) h.y_fourth_integrable
+  have hfit4 :
+      MemLp (fun ω =>
+        dotProduct (controlFunctionStructuralRegressor X₁ X₂ 0 ω) β) 4 μ :=
+    dotProduct_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := controlFunctionStructuralRegressor X₁ X₂ 0)
+      hstruct_meas h.x_norm_fourth_integrable β
+  have heDiff :
+      MemLp (fun ω =>
+        Y 0 ω - dotProduct (controlFunctionStructuralRegressor X₁ X₂ 0 ω) β) 4 μ :=
+    hY4.sub hfit4
+  exact MemLp.ae_eq (h.structural_error 0).symm heDiff
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen's primitive fourth-moment package implies integrability of the
+reduced-form residual Gram row `u₂u₂'`. -/
+theorem ControlFunctionHansenPrimitiveConditions.residualGram_integrable
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) :
+    Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ :=
+  vecMulVec_integrable_of_coordinate_memLp_four (μ := μ) (X := u₂ 0)
+    (fun j => h.residual_coordinate_memLp_four j)
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen's primitive fourth-moment package implies integrability of the
+population endogeneity score row `e u₂`. -/
+theorem ControlFunctionHansenPrimitiveConditions.error_residual_integrable
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) :
+    Integrable (fun ω => e 0 ω • u₂ 0 ω) μ := by
+  refine Integrable.of_eval ?_
+  intro j
+  simpa [Pi.smul_apply] using
+    integrable_mul_of_memLp_four (μ := μ)
+      h.structuralError_memLp_four (h.residual_coordinate_memLp_four j)
+
+/-- Theorem-facing Hansen 12.13 condition package.
+
+The target coefficient is stated in Hansen's control-function coordinates
+`(β₁, β₂, α)`. The `asymptotic` field transports the equivalent
+expectation-error target `(β₁, β₂, γ)` with `γ = β₂ + α`, and the covariance
+block symmetry field rewrites the pushed-forward covariance as
+`V₂₂ + Vγγ - Vγ2 - Vγ2'`. -/
+structure ControlFunctionHansenTheorem12_13Conditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ u₂ : ℕ → Ω → k₂ → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y e νe : ℕ → Ω → ℝ)
+    (Γ : Matrix l k₂ ℝ) (β : Sum k₁ k₂ → ℝ) (α : k₂ → ℝ)
+    (G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂))
+    (VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ)
+    (VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ)
+    (VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ)
+    (VgammaGamma : Matrix k₂ k₂ ℝ) : Prop where
+  primitive :
+    ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α
+  covariance_blocks_transpose : VbetaGamma = VgammaBetaᵀ
+  asymptotic : ControlFunctionAlphaAsymptoticNormalConditions
+    μ ν X₁ X₂ Z Y
+    (controlFunctionExpectationErrorTarget β α) α G
+    (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.13 primitive structural-error bridge: the textbook error
+row `e` is the residual from the structural regression on `(X₁,X₂)`. -/
+theorem controlFunctionStructuralError_eq_primitive_error_of_hansen_primitive
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) (i : ℕ) :
+    (fun ω => Y i ω - dotProduct (controlFunctionStructuralRegressor X₁ X₂ i ω) β)
+      =ᵐ[μ] e i := by
+  filter_upwards [h.structural_error i] with ω hstruct
+  exact hstruct.symm
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.13 primitive control-error bridge: the structural
+regression residual equals `u₂'α + ν`. -/
+theorem controlFunctionStructuralError_eq_control_error_of_hansen_primitive
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) (i : ℕ) :
+    (fun ω => Y i ω - dotProduct (controlFunctionStructuralRegressor X₁ X₂ i ω) β)
+      =ᵐ[μ] fun ω => dotProduct (u₂ i ω) α + νe i ω := by
+  filter_upwards [h.structural_error i, h.control_error_projection i] with
+      ω hstruct hcontrol
+  exact hstruct.symm.trans hcontrol
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.13 primitive control-error bridge: the textbook error
+row `e` is the named control-error process `u₂'α + ν`. -/
+theorem controlFunctionPrimitiveError_eq_controlError_of_hansen_primitive
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) (i : ℕ) :
+    (fun ω => e i ω) =ᵐ[μ] expectationErrorControlError u₂ νe α i := by
+  simpa [expectationErrorControlError] using h.control_error_projection i
+
+omit [DecidableEq l] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Hansen Theorem 12.13 primitive covariance bridge: the expectation-error
+cross block `E[u₂Z'eν]` can be computed with the named control-error process. -/
+theorem controlFunctionOmegaUZeNu_eq_controlError_of_hansen_primitive
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) :
+    expectationErrorOmegaUZeNu μ u₂ Z e νe =
+      expectationErrorOmegaUZeNu μ u₂ Z
+        (expectationErrorControlError u₂ νe α) νe :=
+  expectationErrorOmegaUZeNu_congr_error_ae
+    (μ := μ) (u := u₂) (Z := Z) (νe := νe)
+    (controlFunctionPrimitiveError_eq_controlError_of_hansen_primitive
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (u₂ := u₂) (Z := Z)
+      (Y := Y) (e := e) (νe := νe) (Γ := Γ) (β := β) (α := α) h 0)
+
+/-- **Hansen Theorem 12.13**, actual-control-function theorem-facing wrapper.
+
+This strengthens the existing coefficient-only transport endpoint by also
+transporting the displayed robust covariance estimator for `α̂`.  The only
+remaining primitive work is to derive the expectation-error CLT/covariance
+fields and the a.e. nonsingular coefficient/covariance bridges from Hansen's
+raw fourth-moment and positive-definiteness assumptions. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop
+      (fun ω j =>
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G ω : k₂ → ℝ) j)
+      (fun _ => μ) ν ∧
+    HasLaw
+      (controlFunctionEndogeneityLimit
+        (k₁ := k₁) (k₂ := k₂) G)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ))
+      ν ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  have hcoef :=
+    controlFunctionAlphaHatStar_theorem12_13_of_expectationError
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (root := fun m => Real.sqrt (m : ℝ))
+      (G := G) (VEE := VEE)
+      h.alpha_target h.coefficient_bridge h.coefficient_limit
+      h.covariance_posSemidef h.gaussian_limit
+  refine ⟨hcoef.1, hcoef.2, ?_⟩
+  have hfrom :=
+    controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure
+      (μ := μ) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (V := VEE)
+      h.expectation_error_covariance_measurable
+      h.expectation_error_covariance_consistent
+  refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hfrom
+  intro m
+  exact (h.covariance_bridge m).symm
+
+/-- **Hansen Theorem 12.13**, direct multivariate-normal/covariance endpoint.
+
+This citation-facing form composes the actual-control-function coefficient
+transport with the Gaussian law of the pushed-forward limit, so the scaled
+coefficient is stated directly as converging to `N(0, R V R')`. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_multivariateGaussian_and_covariance
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VEE : Matrix (Sum (Sum k₁ k₂) k₂) (Sum (Sum k₁ k₂) k₂) ℝ}
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G) (VEE := VEE) h
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G)
+        (fun _ => μ) ν := by
+    have hmap := hbase.1.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : k₂ => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap * VEE *
+          (controlFunctionEndogeneityMap)ᵀ)) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop (fun z : EuclideanSpace ℝ k₂ => z) (fun _ => μ)
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap * VEE *
+            (controlFunctionEndogeneityMap)ᵀ)) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k₂)
+      hEuclidAux hbase.2.1
+  have hraw := hEuclidDirect.continuous_comp
+    (PiLp.continuous_ofLp 2 (fun _ : k₂ => ℝ))
+  exact ⟨by simpa [Function.comp_def] using hraw, hbase.2.2⟩
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.13**, displayed-covariance coefficient CLT from the
+expectation-error proof engine.
+
+This citation-facing form states only Hansen's normal-limit conclusion for
+`√n(α̂-α)`, with covariance displayed as `V₂₂ + Vγγ - Vγ2 - Vγ2'`.  Unlike the
+covariance-estimator endpoint, it does not require feasible covariance
+consistency fields. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_displayed_mvn_of_expectationError
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hbridge : ∀ m,
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionEndogeneityMap *ᵥ
+          olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω)))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ k₂) k₂ → ℝ) i)
+      (fun _ => μ) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_of_expectationError
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (root := fun m => Real.sqrt (m : ℝ))
+      (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      halpha_target hbridge hcoef hVpsd hG
+  have hEuclidAux :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop
+        (controlFunctionEndogeneityLimit
+          (k₁ := k₁) (k₂ := k₂) G)
+        (fun _ => μ) ν := by
+    have hmap := hbase.1.continuous_comp
+      (PiLp.continuous_toLp 2 (fun _ : k₂ => ℝ))
+    simpa [Function.comp_def] using hmap
+  haveI : IsProbabilityMeasure
+      (multivariateGaussian 0
+        (controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ)) := by infer_instance
+  have hEuclidDirect :
+      TendstoInDistribution
+        (fun (m : ℕ) ω => (WithLp.toLp 2 (
+          (Real.sqrt (m : ℝ) •
+            (controlFunctionAlphaHatStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) : k₂ → ℝ)
+            : EuclideanSpace ℝ k₂))
+        atTop (fun z : EuclideanSpace ℝ k₂ => z) (fun _ => μ)
+        (multivariateGaussian 0
+          (controlFunctionEndogeneityMap *
+            Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+            (controlFunctionEndogeneityMap)ᵀ)) := by
+    exact tendstoInDistribution_id_of_hasLaw_limit (E := EuclideanSpace ℝ k₂)
+      hEuclidAux hbase.2
+  have hraw := hEuclidDirect.continuous_comp
+    (PiLp.continuous_ofLp 2 (fun _ : k₂ => ℝ))
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  simpa [Function.comp_def, hcov] using hraw
+
+/-- **Hansen Theorem 12.13**, displayed-covariance endpoint.
+
+When the full expectation-error covariance is displayed in `(β₁, β₂, γ)`
+blocks and the off-diagonal covariance blocks are transposes, the direct
+control-function theorem has Hansen's covariance
+`V₂₂ + Vγγ - Vγ2 - Vγ2'`. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_displayed_normal_and_covariance
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ k₂) k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) := by
+  have hbase :=
+    controlFunctionAlphaHatStar_theorem12_13_multivariateGaussian_and_covariance
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma) h
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := k₂)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  exact ⟨by simpa [hcov] using hbase.1, by simpa [hcov] using hbase.2⟩
+
+/-- **Hansen Theorem 12.13**, raw control-function model/moment surface.
+
+This endpoint states the printed conclusion
+`√n(α̂-α) ⇒ N(0,V₂₂ + Vγγ - Vγ2 - Vγ2')` together with consistency of the
+displayed alpha covariance estimator. The raw control-function model and moment
+assumptions are stored in `h.primitive`; the reusable expectation-error
+asymptotic engine is `h.asymptotic`. -/
+theorem controlFunctionAlphaHatStar_theorem12_13_of_hansen_conditions
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → k₂ → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l k₂ ℝ} {β : Sum k₁ k₂ → ℝ} {α : k₂ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ k₂) k₂)}
+    {VbetaBeta : Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ k₂) k₂ ℝ}
+    {VgammaBeta : Matrix k₂ (Sum k₁ k₂) ℝ}
+    {VgammaGamma : Matrix k₂ k₂ ℝ}
+    (h : ControlFunctionHansenTheorem12_13Conditions
+      μ ν X₁ X₂ u₂ Z Y e νe Γ β α G
+        VbetaBeta VbetaGamma VgammaBeta VgammaGamma) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+      atTop (fun z : EuclideanSpace ℝ k₂ => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun _ =>
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta)) :=
+  controlFunctionAlphaHatStar_theorem12_13_displayed_normal_and_covariance
+    (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := k₂)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := controlFunctionExpectationErrorTarget β α)
+    (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    h.covariance_blocks_transpose h.asymptotic
+
+/-- Hansen Theorem 12.15 homoskedastic F statistic `F = W⁰ / k₂` for the
+control-function endogeneity test. -/
+noncomputable def controlFunctionEndogeneityFStatistic
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))] : ℝ :=
+  olsFStatistic (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) Y
+
+section ControlFunctionEndogeneityTest
+
+variable {r : ℕ} [Fact (0 < r)]
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Cardinality bridge for the control-function residual degrees of freedom in
+Hansen Theorem 12.15: the regression on `(X₁, X₂, û₂)` has
+`n-k₁-2k₂` residual degrees of freedom. -/
+theorem controlFunctionResidualDf_eq_card_sub_card_sub_two_mul :
+    Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂) =
+      Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂ := by
+  rw [Fintype.card_sum, Fintype.card_sum]
+  omega
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+private theorem controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n) :
+    0 < Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂) := by
+  rw [Fintype.card_sum, Fintype.card_sum]
+  omega
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+private theorem controlFunctionCard_sum_sum_lt_of_card_add_two_mul_lt
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n) :
+    Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n := by
+  rw [Fintype.card_sum, Fintype.card_sum]
+  omega
+
+private theorem classicalFDist_upperTail_eq_of_lowerTail_eq
+    {q ν : ℕ} (hq : 0 < q) (hν : 0 < ν) {c alpha : ℝ}
+    (hcrit : (classicalFDist q ν).real (Set.Iic c) = 1 - alpha) :
+    (classicalFDist q ν).real (Set.Ioi c) = alpha := by
+  let μF : Measure ℝ := classicalFDist q ν
+  haveI : IsProbabilityMeasure μF := by
+    dsimp [μF]
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  have hle1 : μF (Set.Iic c) ≤ 1 := by
+    simpa [measure_univ] using
+      (measure_mono (μ := μF) (Set.subset_univ (Set.Iic c)))
+  have hreal_compl : μF.real ((Set.Iic c)ᶜ) = 1 - μF.real (Set.Iic c) := by
+    rw [measureReal_def, measureReal_def]
+    have hmc := measure_compl (μ := μF) measurableSet_Iic
+      (measure_ne_top μF (Set.Iic c))
+    rw [hmc]
+    rw [measure_univ]
+    rw [ENNReal.toReal_sub_of_le hle1]
+    · simp
+    · simp
+  rw [Set.compl_Iic] at hreal_compl
+  rw [hreal_compl, hcrit]
+  ring
+
+/-- Hansen Theorem 12.14 primitive endogeneity moment `E[X₂e]`.
+
+The theorem is indexed at `0` because the asymptotic setup in this development
+uses stationary triangular-array notation inherited from Chapter 7. -/
+noncomputable def controlFunctionPrimitiveEndogeneityMoment
+    (μ : Measure Ω) (X₂ : ℕ → Ω → Fin r → ℝ) (e : ℕ → Ω → ℝ) :
+    Fin r → ℝ :=
+  μ[fun ω => e 0 ω • X₂ 0 ω]
+
+/-- Hansen Theorem 12.14 primitive null `E[X₂e] = 0`. -/
+def controlFunctionPrimitiveEndogeneityNull
+    (μ : Measure Ω) (X₂ : ℕ → Ω → Fin r → ℝ) (e : ℕ → Ω → ℝ) :
+    Prop :=
+  controlFunctionPrimitiveEndogeneityMoment μ X₂ e = 0
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+private theorem integrable_matrix_mulVec_const
+    {M : Ω → Matrix (Fin r) (Fin r) ℝ}
+    (hM : Integrable M μ) (α : Fin r → ℝ) :
+    Integrable (fun ω => M ω *ᵥ α) μ := by
+  classical
+  refine Integrable.of_eval ?_
+  intro i
+  simp only [Matrix.mulVec, dotProduct]
+  exact integrable_finset_sum _ fun j _ =>
+    (Integrable.eval (Integrable.eval hM i) j).mul_const (α j)
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+/-- Hansen Theorem 12.14 population-equation bridge.
+
+If the structural error decomposes as `e = X₂'α + u` and the structural
+component is orthogonal to the endogenous regressors, then Hansen's primitive
+moment satisfies `E[X₂e] = E[X₂X₂'] α`.  The integrability assumptions are the
+entry point for later raw fourth-moment constructors. -/
+theorem controlFunctionPrimitiveEndogeneityMoment_eq_popGram_mulVec_of_structural_error
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e u : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)) μ)
+    (hUScore : Integrable (fun ω => u 0 ω • X₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (X₂ 0 ω) α + u 0 ω)
+    (hortho : μ[fun ω => u 0 ω • X₂ 0 ω] = 0) :
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e =
+      popGram μ X₂ *ᵥ α := by
+  classical
+  let G : Ω → Matrix (Fin r) (Fin r) ℝ :=
+    fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)
+  let g : Ω → Fin r → ℝ := fun ω => G ω *ᵥ α
+  have hg : Integrable g μ :=
+    integrable_matrix_mulVec_const (μ := μ) (M := G) hGram α
+  have hscore_eq :
+      (fun ω => e 0 ω • X₂ 0 ω) =ᵐ[μ]
+        fun ω => g ω + u 0 ω • X₂ 0 ω := by
+    filter_upwards [hstruct] with ω hω
+    funext j
+    rw [hω]
+    simp only [Pi.smul_apply, Pi.add_apply, G, g, Matrix.mulVec, dotProduct,
+      Matrix.vecMulVec_apply, smul_eq_mul]
+    rw [add_mul, Finset.sum_mul]
+    congr 1
+    refine Finset.sum_congr rfl ?_
+    intro i _
+    ring
+  have hInt :
+      μ[fun ω => e 0 ω • X₂ 0 ω] =
+        μ[fun ω => g ω + u 0 ω • X₂ 0 ω] := by
+    exact integral_congr_ae hscore_eq
+  have hg_integral :
+      μ[g] = popGram μ X₂ *ᵥ α := by
+    ext i
+    calc
+      μ[g] i = ∫ ω, g ω i ∂μ := by
+        exact integral_apply (μ := μ) (f := g) hg i
+      _ = ∫ ω, ∑ j, G ω i j * α j ∂μ := by
+        rfl
+      _ = ∑ j, ∫ ω, G ω i j * α j ∂μ := by
+        rw [integral_finset_sum]
+        intro j _
+        exact (Integrable.eval (Integrable.eval hGram i) j).mul_const (α j)
+      _ = ∑ j, (∫ ω, G ω i j ∂μ) * α j := by
+        congr
+        ext j
+        rw [integral_mul_const]
+      _ = ∑ j, popGram μ X₂ i j * α j := by
+        congr
+        ext j
+        rw [popGram]
+        exact congrArg (fun z => z * α j)
+          (integral_apply_apply
+            (μ := μ) (f := fun ω => G ω) hGram i j).symm
+      _ = (popGram μ X₂ *ᵥ α) i := by
+        rfl
+  calc
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e
+        = μ[fun ω => g ω + u 0 ω • X₂ 0 ω] := by
+          simpa [controlFunctionPrimitiveEndogeneityMoment] using hInt
+    _ = μ[g] + μ[fun ω => u 0 ω • X₂ 0 ω] := by
+          exact integral_add hg hUScore
+    _ = popGram μ X₂ *ᵥ α := by
+          simp [hg_integral, hortho]
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Hansen Theorem 12.14 reduced-form-residual population bridge.
+
+If `X₂ = W₂ + u₂`, the fitted reduced-form component is orthogonal to the
+structural error, and the structural error projects on the reduced-form
+residual as `e = u₂'α + ν` with `E[u₂ν] = 0`, then Hansen's primitive
+endogeneity moment satisfies `E[X₂e] = E[u₂u₂']α`. -/
+theorem
+    controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_reducedForm
+    {X₂ W₂ u₂ : ℕ → Ω → Fin r → ℝ} {e ν : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ] fun ω => W₂ 0 ω + u₂ 0 ω)
+    (hWScore : Integrable (fun ω => e 0 ω • W₂ 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hWOrtho : μ[fun ω => e 0 ω • W₂ 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0) :
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e =
+      popGram μ u₂ *ᵥ α := by
+  classical
+  have hscore_eq :
+      (fun ω => e 0 ω • X₂ 0 ω) =ᵐ[μ]
+        fun ω => e 0 ω • W₂ 0 ω + e 0 ω • u₂ 0 ω := by
+    filter_upwards [hdecomp] with ω hω
+    funext j
+    rw [hω]
+    simp [Pi.smul_apply, Pi.add_apply, mul_add]
+  have hInt :
+      μ[fun ω => e 0 ω • X₂ 0 ω] =
+        μ[fun ω => e 0 ω • W₂ 0 ω + e 0 ω • u₂ 0 ω] :=
+    integral_congr_ae hscore_eq
+  have huMoment :
+      controlFunctionPrimitiveEndogeneityMoment μ u₂ e =
+        popGram μ u₂ *ᵥ α :=
+    controlFunctionPrimitiveEndogeneityMoment_eq_popGram_mulVec_of_structural_error
+      (μ := μ) (X₂ := u₂) (e := e) (u := ν) (α := α)
+      hGram hNuScore hstruct huOrtho
+  have huInt :
+      μ[fun ω => e 0 ω • u₂ 0 ω] = popGram μ u₂ *ᵥ α := by
+    simpa [controlFunctionPrimitiveEndogeneityMoment] using huMoment
+  calc
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e
+        = μ[fun ω => e 0 ω • W₂ 0 ω + e 0 ω • u₂ 0 ω] := by
+          simpa [controlFunctionPrimitiveEndogeneityMoment] using hInt
+    _ = μ[fun ω => e 0 ω • W₂ 0 ω] +
+          μ[fun ω => e 0 ω • u₂ 0 ω] := by
+          exact integral_add hWScore huScoreE
+    _ = popGram μ u₂ *ᵥ α := by
+          rw [hWOrtho, huInt]
+          simp
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+/-- Instrument-facing version of
+`controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_reducedForm`.
+
+The fitted component is written as `Γ'Z`, and Hansen's maintained moment
+condition `E[Ze] = 0` supplies the fitted-component orthogonality. -/
+theorem
+    controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_instruments
+    {X₂ u₂ : ℕ → Ω → Fin r → ℝ} {Z : ℕ → Ω → l → ℝ}
+    {e ν : ℕ → Ω → ℝ} {Γ : Matrix l (Fin r) ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0) :
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e =
+      popGram μ u₂ *ᵥ α := by
+  classical
+  let W₂ : ℕ → Ω → Fin r → ℝ := fun i ω => Γᵀ *ᵥ Z i ω
+  have hWScore : Integrable (fun ω => e 0 ω • W₂ 0 ω) μ := by
+    refine Integrable.of_eval ?_
+    intro j
+    have hsum : Integrable
+        (fun ω => ∑ a, Γ a j * (e 0 ω * Z 0 ω a)) μ :=
+      integrable_finset_sum _ fun a _ =>
+        (Integrable.eval hZScore a).const_mul (Γ a j)
+    simpa [W₂, Pi.smul_apply, Matrix.mulVec, dotProduct, Finset.mul_sum,
+      mul_assoc, mul_comm, mul_left_comm] using hsum
+  have hWOrtho : μ[fun ω => e 0 ω • W₂ 0 ω] = 0 := by
+    ext j
+    calc
+      μ[fun ω => e 0 ω • W₂ 0 ω] j =
+          ∫ ω, (e 0 ω • W₂ 0 ω) j ∂μ := by
+            exact integral_apply (μ := μ)
+              (f := fun ω => e 0 ω • W₂ 0 ω) hWScore j
+      _ = ∫ ω, ∑ a, Γ a j * (e 0 ω * Z 0 ω a) ∂μ := by
+            congr
+            ext ω
+            simp [W₂, Pi.smul_apply, Matrix.mulVec, dotProduct,
+              Finset.mul_sum, mul_comm, mul_left_comm]
+      _ = ∑ a, ∫ ω, Γ a j * (e 0 ω * Z 0 ω a) ∂μ := by
+            rw [integral_finset_sum]
+            intro a _
+            exact (Integrable.eval hZScore a).const_mul (Γ a j)
+      _ = ∑ a, Γ a j * ∫ ω, e 0 ω * Z 0 ω a ∂μ := by
+            congr
+            ext a
+            rw [integral_const_mul]
+      _ = ∑ a, Γ a j * μ[fun ω => e 0 ω • Z 0 ω] a := by
+            congr
+            ext a
+            rw [integral_apply (μ := μ)
+              (f := fun ω => e 0 ω • Z 0 ω) hZScore a]
+            rfl
+      _ = (Γᵀ *ᵥ μ[fun ω => e 0 ω • Z 0 ω]) j := by
+            rfl
+      _ = 0 := by
+            rw [hZOrtho]
+            simp
+  exact
+    controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_reducedForm
+      (μ := μ) (X₂ := X₂) (W₂ := W₂) (u₂ := u₂)
+      (e := e) (ν := ν) (α := α)
+      (by simpa [W₂] using hdecomp) hWScore huScoreE hWOrtho
+      hGram hNuScore hstruct huOrtho
+
+/-- Bridge from Hansen's primitive null `E[X₂e] = 0` to the
+control-function restriction `α = 0`.
+
+This is the smallest enforceable package left when the primitive population
+projection algebra has not yet been derived from the raw control-function
+assumptions. -/
+structure ControlFunctionPrimitiveNullBridgeConditions
+    (μ : Measure Ω) (X₂ : ℕ → Ω → Fin r → ℝ) (e : ℕ → Ω → ℝ)
+    (α : Fin r → ℝ) : Prop where
+  primitive_null_iff_alpha_zero :
+    controlFunctionPrimitiveEndogeneityNull μ X₂ e ↔ α = 0
+
+/-- The primitive bridge is closed by Hansen's population equation
+`E[X₂e] = Qα` and nonsingularity of the relevant second-moment matrix. -/
+structure ControlFunctionPrimitiveMomentBridgeConditions
+    (μ : Measure Ω) (X₂ : ℕ → Ω → Fin r → ℝ) (e : ℕ → Ω → ℝ)
+    (Q : Matrix (Fin r) (Fin r) ℝ) (α : Fin r → ℝ) : Prop where
+  moment_eq :
+    controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α
+  moment_matrix_nonsingular : IsUnit Q.det
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Build the primitive moment bridge from Hansen's population equation and a
+positive-definite population second-moment matrix. -/
+theorem ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e : ℕ → Ω → ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ} {α : Fin r → ℝ}
+    (hmoment : controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α)
+    (hQ : Q.PosDef) :
+    ControlFunctionPrimitiveMomentBridgeConditions μ X₂ e Q α where
+  moment_eq := hmoment
+  moment_matrix_nonsingular := (Matrix.isUnit_iff_isUnit_det Q).mp hQ.isUnit
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Build Hansen Theorem 12.14's primitive moment bridge from the structural
+equation `e = X₂'α + u`, the orthogonality `E[X₂u] = 0`, and
+`E[X₂X₂'] > 0`. -/
+theorem ControlFunctionPrimitiveMomentBridgeConditions.of_structural_error_popGram_posDef
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e u : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)) μ)
+    (hUScore : Integrable (fun ω => u 0 ω • X₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (X₂ 0 ω) α + u 0 ω)
+    (hortho : μ[fun ω => u 0 ω • X₂ 0 ω] = 0)
+    (hQ : (popGram μ X₂).PosDef) :
+    ControlFunctionPrimitiveMomentBridgeConditions μ X₂ e (popGram μ X₂) α :=
+  ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ X₂) (α := α)
+    (controlFunctionPrimitiveEndogeneityMoment_eq_popGram_mulVec_of_structural_error
+      (μ := μ) (X₂ := X₂) (e := e) (u := u) (α := α)
+      hGram hUScore hstruct hortho)
+    hQ
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Build Hansen Theorem 12.14's primitive moment bridge from the
+reduced-form-residual control-function population equation.
+
+This is the Hansen-facing bridge: `X₂ = W₂ + u₂`, the fitted part has zero
+structural-error moment, and `e = u₂'α + ν` with `E[u₂ν] = 0`, so
+`E[X₂e] = E[u₂u₂']α`. -/
+theorem ControlFunctionPrimitiveMomentBridgeConditions.of_reducedForm_residualGram_posDef
+    {X₂ W₂ u₂ : ℕ → Ω → Fin r → ℝ} {e ν : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ] fun ω => W₂ 0 ω + u₂ 0 ω)
+    (hWScore : Integrable (fun ω => e 0 ω • W₂ 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hWOrtho : μ[fun ω => e 0 ω • W₂ 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef) :
+    ControlFunctionPrimitiveMomentBridgeConditions μ X₂ e (popGram μ u₂) α :=
+  ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ u₂) (α := α)
+    (controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_reducedForm
+      (μ := μ) (X₂ := X₂) (W₂ := W₂) (u₂ := u₂)
+      (e := e) (ν := ν) (α := α)
+      hdecomp hWScore huScoreE hWOrtho hGram hNuScore hstruct huOrtho)
+    hQ
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+/-- Instrument-facing constructor for Hansen Theorem 12.14's primitive moment
+bridge.
+
+The fitted part is `Γ'Z`; the maintained IV moment `E[Ze]=0` supplies its
+zero structural-error moment. -/
+theorem ControlFunctionPrimitiveMomentBridgeConditions.of_instrument_residualGram_posDef
+    {X₂ u₂ : ℕ → Ω → Fin r → ℝ} {Z : ℕ → Ω → l → ℝ}
+    {e ν : ℕ → Ω → ℝ} {Γ : Matrix l (Fin r) ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef) :
+    ControlFunctionPrimitiveMomentBridgeConditions μ X₂ e (popGram μ u₂) α :=
+  ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ u₂) (α := α)
+    (controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_instruments
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := ν)
+      (Γ := Γ) (α := α)
+      hdecomp hZScore huScoreE hZOrtho hGram hNuScore hstruct huOrtho)
+    hQ
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Named primitive-null bridge for Hansen Theorem 12.14:
+`E[X₂e] = 0 ↔ α = 0`. -/
+theorem controlFunctionPrimitiveEndogeneityNull_iff_alpha_zero
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (h : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α) :
+    controlFunctionPrimitiveEndogeneityNull μ X₂ e ↔ α = 0 :=
+  h.primitive_null_iff_alpha_zero
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Constructor for Hansen Theorem 12.14's primitive null bridge from the
+population moment equation `E[X₂e] = Qα` and nonsingularity of `Q`. -/
+theorem
+    ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e : ℕ → Ω → ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ} {α : Fin r → ℝ}
+    (h : ControlFunctionPrimitiveMomentBridgeConditions μ X₂ e Q α) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α where
+  primitive_null_iff_alpha_zero := by
+    constructor
+    · intro hnull
+      have hQα : Q *ᵥ α = 0 := by
+        simpa [controlFunctionPrimitiveEndogeneityNull, h.moment_eq] using hnull
+      have hQunit : IsUnit Q :=
+        (Matrix.isUnit_iff_isUnit_det Q).mpr h.moment_matrix_nonsingular
+      have hinj : Function.Injective Q.mulVec :=
+        Matrix.mulVec_injective_iff_isUnit.mpr hQunit
+      exact hinj (by simpa using hQα)
+    · intro hα
+      simp [controlFunctionPrimitiveEndogeneityNull, h.moment_eq, hα]
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Direct primitive-null bridge from the population moment equation and
+positive definiteness of the population second-moment matrix. -/
+theorem ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_posDef
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e : ℕ → Ω → ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ} {α : Fin r → ℝ}
+    (hmoment : controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α)
+    (hQ : Q.PosDef) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+  ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    (μ := μ) (X₂ := X₂) (e := e) (Q := Q) (α := α)
+    (ControlFunctionPrimitiveMomentBridgeConditions.of_moment_eq_posDef
+      (μ := μ) (X₂ := X₂) (e := e) (Q := Q) (α := α) hmoment hQ)
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Direct primitive-null bridge from Hansen's structural population equation
+`e = X₂'α + u`, orthogonality `E[X₂u] = 0`, and positive definiteness of
+`E[X₂X₂']`. -/
+theorem ControlFunctionPrimitiveNullBridgeConditions.of_structural_error_popGram_posDef
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e u : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)) μ)
+    (hUScore : Integrable (fun ω => u 0 ω • X₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (X₂ 0 ω) α + u 0 ω)
+    (hortho : μ[fun ω => u 0 ω • X₂ 0 ω] = 0)
+    (hQ : (popGram μ X₂).PosDef) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+  ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ X₂) (α := α)
+    (ControlFunctionPrimitiveMomentBridgeConditions.of_structural_error_popGram_posDef
+      (μ := μ) (X₂ := X₂) (e := e) (u := u) (α := α)
+      hGram hUScore hstruct hortho hQ)
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Primitive-null bridge from Hansen's reduced-form-residual population
+equation. -/
+theorem ControlFunctionPrimitiveNullBridgeConditions.of_reducedForm_residualGram_posDef
+    {X₂ W₂ u₂ : ℕ → Ω → Fin r → ℝ} {e ν : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ] fun ω => W₂ 0 ω + u₂ 0 ω)
+    (hWScore : Integrable (fun ω => e 0 ω • W₂ 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hWOrtho : μ[fun ω => e 0 ω • W₂ 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+  ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ u₂) (α := α)
+    (ControlFunctionPrimitiveMomentBridgeConditions.of_reducedForm_residualGram_posDef
+      (μ := μ) (X₂ := X₂) (W₂ := W₂) (u₂ := u₂)
+      (e := e) (ν := ν) (α := α)
+      hdecomp hWScore huScoreE hWOrtho hGram hNuScore hstruct huOrtho hQ)
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+/-- Primitive-null bridge from Hansen's maintained instrument moment and
+reduced-form residual projection. -/
+theorem ControlFunctionPrimitiveNullBridgeConditions.of_instrument_residualGram_posDef
+    {X₂ u₂ : ℕ → Ω → Fin r → ℝ} {Z : ℕ → Ω → l → ℝ}
+    {e ν : ℕ → Ω → ℝ} {Γ : Matrix l (Fin r) ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+  ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ u₂) (α := α)
+    (ControlFunctionPrimitiveMomentBridgeConditions.of_instrument_residualGram_posDef
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := ν)
+      (Γ := Γ) (α := α)
+      hdecomp hZScore huScoreE hZOrtho hGram hNuScore hstruct huOrtho hQ)
+
+omit [Fact (0 < r)] [DecidableEq l] [DecidableEq k₁] in
+/-- Hansen Theorem 12.14 primitive-null bridge from the raw control-function
+primitive package.
+
+This consumes Hansen's reduced-form equation, instrument orthogonality,
+control-error projection, residual orthogonality, residual-Gram positive
+definiteness, and fourth-moment integrability fields from
+`ControlFunctionHansenPrimitiveConditions`. -/
+theorem ControlFunctionPrimitiveNullBridgeConditions.of_hansen_primitive
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ} {β : Sum k₁ (Fin r) → ℝ} {α : Fin r → ℝ}
+    (h : ControlFunctionHansenPrimitiveConditions μ X₁ X₂ u₂ Z Y e νe Γ β α) :
+    ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+  ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_nonsingular
+    (μ := μ) (X₂ := X₂) (e := e) (Q := popGram μ u₂) (α := α)
+    (ControlFunctionPrimitiveMomentBridgeConditions.of_instrument_residualGram_posDef
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := νe)
+      (Γ := Γ) (α := α)
+      (h.reduced_form 0) h.z_e_integrable h.error_residual_integrable
+      h.z_e_orthogonal h.residualGram_integrable h.u2_nu_integrable
+      (h.control_error_projection 0)
+      h.u2_nu_orthogonal h.residual_popGram_posDef)
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] in
+/-- Direct structural-error form of Hansen Theorem 12.14's primitive null:
+under `e = X₂'α + u`, `E[X₂u] = 0`, and `E[X₂X₂'] > 0`, the primitive
+endogeneity null `E[X₂e] = 0` is equivalent to the control-function
+restriction `α = 0`. -/
+theorem controlFunctionPrimitiveEndogeneityNull_iff_alpha_zero_of_structural_error_popGram_posDef
+    {X₂ : ℕ → Ω → Fin r → ℝ} {e u : ℕ → Ω → ℝ} {α : Fin r → ℝ}
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)) μ)
+    (hUScore : Integrable (fun ω => u 0 ω • X₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (X₂ 0 ω) α + u 0 ω)
+    (hortho : μ[fun ω => u 0 ω • X₂ 0 ω] = 0)
+    (hQ : (popGram μ X₂).PosDef) :
+    controlFunctionPrimitiveEndogeneityNull μ X₂ e ↔ α = 0 :=
+  (ControlFunctionPrimitiveNullBridgeConditions.of_structural_error_popGram_posDef
+    (μ := μ) (X₂ := X₂) (e := e) (u := u) (α := α)
+    hGram hUScore hstruct hortho hQ).primitive_null_iff_alpha_zero
+
+omit [IsProbabilityMeasure μ] [Fact (0 < r)] [DecidableEq l] in
+/-- Hansen Theorem 12.14 primitive null in the maintained-instrument,
+reduced-form-residual form:
+`E[X₂e] = 0` is equivalent to the control-function restriction `α = 0`. -/
+theorem
+    controlFunctionPrimitiveEndogeneityNull_iff_alpha_zero_of_instrument_residualGram_posDef
+    {X₂ u₂ : ℕ → Ω → Fin r → ℝ} {Z : ℕ → Ω → l → ℝ}
+    {e ν : ℕ → Ω → ℝ} {Γ : Matrix l (Fin r) ℝ} {α : Fin r → ℝ}
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => ν 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + ν 0 ω)
+    (huOrtho : μ[fun ω => ν 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef) :
+    controlFunctionPrimitiveEndogeneityNull μ X₂ e ↔ α = 0 := by
+  let hbridge :
+      ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α :=
+    ControlFunctionPrimitiveNullBridgeConditions.of_instrument_residualGram_posDef
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := ν)
+      (Γ := Γ) (α := α)
+      hdecomp hZScore huScoreE hZOrtho hGram hNuScore hstruct huOrtho hQ
+  exact hbridge.primitive_null_iff_alpha_zero
+
+/-- Proof-facing package for Hansen Theorem 12.14.
+
+The null `E[X₂e] = 0` is represented by the equivalent control-function
+restriction `α = 0`; the probabilistic fields provide the null Gaussian limit
+of `√n α̂` and consistency of the robust `α̂` covariance block. -/
+structure ControlFunctionEndogeneityWaldConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν]
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → Fin r → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (α : Fin r → ℝ) (root : ℕ → ℝ)
+    (Gα : Ωlim → EuclideanSpace ℝ (Fin r))
+    (Vα : Matrix (Fin r) (Fin r) ℝ) : Prop where
+  alpha_null : α = 0
+  alpha_limit : TendstoInDistribution
+    (fun (m : ℕ) ω =>
+      root m •
+        (controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) - α))
+    atTop (fun ω j => (Gα ω : Fin r → ℝ) j) (fun _ => μ) ν
+  gaussian_limit : HasLaw Gα (multivariateGaussian 0 Vα) ν
+  alpha_covariance_measurable : ∀ m, AEStronglyMeasurable
+    (fun ω =>
+      controlFunctionAlphaVHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ
+  alpha_covariance_consistent : TendstoInMeasure μ
+    (fun (m : ℕ) ω =>
+      controlFunctionAlphaVHatStar
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+    (stackRegressors Z m ω) (stackOutcomes Y m ω))
+    atTop (fun _ => Vα)
+  alpha_covariance_posDef : Vα.PosDef
+
+omit [Fact (0 < r)] in
+/-- Constructor for Hansen Theorem 12.14 from the expectation-error theorem
+and the deterministic control-function column transform.
+
+This packages the main reuse route: the coefficient CLT is transported from
+the expectation-error coefficient vector by
+`controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError`, the
+Gaussian law is pushed forward by `controlFunctionEndogeneityLimit_hasLaw`,
+and covariance consistency is transported from the expectation-error HC0
+covariance through `controlFunctionAlphaVHatFromExpectationErrorStar`. The
+only remaining finite-sample input is the a.e. equality between Hansen's
+displayed covariance block and the pushed-forward expectation-error block,
+usually supplied by the nonsingular branch bridge. -/
+theorem controlFunctionEndogeneityWaldConditions_of_expectationError
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ}
+    {α : Fin r → ℝ} {root : ℕ → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VEE : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+        (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hα_null : α = 0)
+    (hα : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hcoef_bridge : ∀ m,
+      (fun ω =>
+        controlFunctionAlphaHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionEndogeneityMap *ᵥ
+          olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω)))
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G (multivariateGaussian 0 VEE) ν)
+    (hVEE : VEE.PosSemidef)
+    (hV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_from_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hV_from : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop (fun _ => VEE))
+    (hV_bridge : ∀ m,
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) =ᵐ[μ]
+      (fun ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)))
+    (hV_posDef :
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ).PosDef) :
+    ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y α root
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ) where
+  alpha_null := hα_null
+  alpha_limit :=
+    controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+      hα hcoef_bridge hcoef
+  gaussian_limit :=
+    controlFunctionEndogeneityLimit_hasLaw
+      (k₁ := k₁) (k₂ := Fin r) hVEE hG
+  alpha_covariance_measurable := hV_meas
+  alpha_covariance_consistent := by
+    have hfrom :=
+      controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure
+        (μ := μ) (k₁ := k₁) (k₂ := Fin r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (V := VEE) hV_from_meas hV_from
+    refine TendstoInMeasure.congr ?_ EventuallyEq.rfl hfrom
+    intro m
+    exact (hV_bridge m).symm
+  alpha_covariance_posDef := hV_posDef
+
+omit [Fact (0 < r)] in
+/-- Hansen Theorem 12.14 condition package from the strengthened Theorem 12.13
+control-function endpoint.
+
+This is the direct reuse bridge: once Theorem 12.13 has delivered the
+asymptotic normality and covariance consistency of `α̂`, Theorem 12.14 only
+adds the null `α = 0` and positive-definiteness of the alpha covariance. -/
+theorem ControlFunctionEndogeneityWaldConditions.of_alpha_asymptotic_normal
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VEE : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+        (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hnull : α = 0)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE)
+    (hV_posDef :
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ).PosDef) :
+    ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y α
+      (fun m => Real.sqrt (m : ℝ))
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ) := by
+  have h13 :=
+    controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G) (VEE := VEE) h
+  exact
+    { alpha_null := hnull
+      alpha_limit := h13.1
+      gaussian_limit := h13.2.1
+      alpha_covariance_measurable := h.alpha_covariance_measurable
+      alpha_covariance_consistent := h13.2.2
+      alpha_covariance_posDef := hV_posDef }
+
+omit [Fact (0 < r)] in
+/-- Hansen Theorem 12.14 condition package from the primitive null
+`E[X₂e] = 0`.
+
+The only extra premise beyond the Theorem 12.13 endpoint is the named
+population bridge identifying that primitive null with the control-function
+restriction `α = 0`. -/
+theorem ControlFunctionEndogeneityWaldConditions.of_alpha_asymptotic_normal_primitive_null
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VEE : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+        (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE)
+    (hV_posDef :
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ).PosDef) :
+    ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y α
+      (fun m => Real.sqrt (m : ℝ))
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ) :=
+  ControlFunctionEndogeneityWaldConditions.of_alpha_asymptotic_normal
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G) (VEE := VEE)
+    (hprim.primitive_null_iff_alpha_zero.mp hnull) h hV_posDef
+
+omit [Fact (0 < r)] in
+/-- Hansen Theorem 12.14 condition package from the event-nonsingularity
+version of Theorem 12.13. -/
+theorem ControlFunctionEndogeneityWaldConditions.of_alpha_eventual_asymptotic_normal
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VEE : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+        (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hnull : α = 0)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE)
+    (hV_posDef :
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ).PosDef) :
+    ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y α
+      (fun m => Real.sqrt (m : ℝ))
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ) := by
+  have h13 :=
+    controlFunctionAlphaHatStar_theorem12_13_normal_and_covariance_of_eventually_nonsingular
+      (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G) (VEE := VEE) h
+  exact
+    { alpha_null := hnull
+      alpha_limit := h13.1
+      gaussian_limit := h13.2.1
+      alpha_covariance_measurable := h.alpha_covariance_measurable
+      alpha_covariance_consistent := h13.2.2
+      alpha_covariance_posDef := hV_posDef }
+
+omit [Fact (0 < r)] in
+/-- Hansen Theorem 12.14 condition package from the primitive null
+`E[X₂e] = 0` and the event-nonsingularity version of Theorem 12.13. -/
+theorem
+    ControlFunctionEndogeneityWaldConditions.of_alpha_eventual_asymptotic_normal_primitive_null
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VEE : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+        (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G VEE)
+    (hV_posDef :
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ).PosDef) :
+    ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y α
+      (fun m => Real.sqrt (m : ℝ))
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (controlFunctionEndogeneityMap * VEE *
+        (controlFunctionEndogeneityMap)ᵀ) :=
+  ControlFunctionEndogeneityWaldConditions.of_alpha_eventual_asymptotic_normal
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G) (VEE := VEE)
+    (hprim.primitive_null_iff_alpha_zero.mp hnull) h hV_posDef
+
+/-- Hansen Theorem 12.14 statistic endpoint: under the control-function null
+`α = 0`, the robust endogeneity-test Wald statistic converges to `χ²(k₂)`. -/
+theorem controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {α : Fin r → ℝ} {root : ℕ → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vα : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldConditions
+      μ ν X₁ X₂ Z Y α root Gα Vα) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) (root m))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hT : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop (fun ω j => (Gα ω : Fin r → ℝ) j) (fun _ => μ) ν := by
+    simpa [h.alpha_null] using h.alpha_limit
+  simpa [controlFunctionEndogeneityWaldStatOrZero] using
+    restrictionWaldStatOrZero_tendstoInDistribution_chiSquared
+      (μ := μ) (ν := ν) (r := r)
+      (T := fun (m : ℕ) ω =>
+        root m •
+          controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      (Z := Gα)
+      (VthetaHat := fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      (Vtheta := Vα)
+      hT h.gaussian_limit h.alpha_covariance_measurable
+      h.alpha_covariance_consistent h.alpha_covariance_posDef
+
+/-- Wald endpoint for the expectation-error statistic transported through the
+deterministic control-function endogeneity map.  This is the statistic-level
+counterpart of `controlFunctionAlphaVHatFromExpectationErrorStar_tendstoInMeasure`;
+it tests the null value `α = 0` after rewriting the expectation-error
+coefficient vector as `γ̂ - β̂₂`. -/
+theorem
+    controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero_tendstoInDistribution_chiSquared
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {α : Fin r → ℝ} {root : ℕ → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vα : Matrix (Fin r) (Fin r) ℝ}
+    (hα : α = 0)
+    (hT : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionEndogeneityMap *ᵥ
+            olsBetaStar
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))
+              (stackOutcomes Y m ω) - α))
+      atTop (fun ω j => (Gα ω : Fin r → ℝ) j) (fun _ => μ) ν)
+    (hG : HasLaw Gα (multivariateGaussian 0 Vα) ν)
+    (hV_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => Vα))
+    (hV_posDef : Vα.PosDef) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) (root m))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) := by
+  have hT0 : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionEndogeneityMap *ᵥ
+            olsBetaStar
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))
+              (stackOutcomes Y m ω)))
+      atTop (fun ω j => (Gα ω : Fin r → ℝ) j) (fun _ => μ) ν := by
+    simpa [hα] using hT
+  simpa [controlFunctionEndogeneityWaldStatFromExpectationErrorOrZero] using
+    restrictionWaldStatOrZero_tendstoInDistribution_chiSquared
+      (μ := μ) (ν := ν) (r := r)
+      (T := fun (m : ℕ) ω =>
+        root m •
+          (controlFunctionEndogeneityMap *ᵥ
+            olsBetaStar
+              (controlFunctionExpectationErrorDesignStar
+                (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+                (stackRegressors Z m ω))
+              (stackOutcomes Y m ω)))
+      (Z := Gα)
+      (VthetaHat := fun (m : ℕ) ω =>
+        controlFunctionAlphaVHatFromExpectationErrorStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω))
+      (Vtheta := Vα)
+      hT0 hG hV_meas hV hV_posDef
+
+/-- **Hansen Theorem 12.14.**
+
+If the control-function null `α = 0` holds and the chi-square critical value is
+calibrated to upper-tail mass `alpha`, then the robust endogeneity-test
+rejection probability tends to `alpha`. -/
+theorem controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {α0 : Fin r → ℝ} {root : ℕ → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vα : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldConditions
+      μ ν X₁ X₂ Z Y α0 root Gα Vα)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) (root m)})
+      atTop (𝓝 alpha) := by
+  have hW :=
+    controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (α := α0) (root := root) (Gα := Gα) (Vα := Vα) h
+  exact chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
+    (μ := μ)
+    (W := fun m ω =>
+      controlFunctionEndogeneityWaldStatOrZero
+        (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+        (stackRegressors Z m ω) (stackOutcomes Y m ω) (root m))
+    (q := r) (crit := crit) (alpha := alpha) hcrit hW
+
+/-- Hansen Theorem 12.14, lower-tail critical-value convention.
+
+If `c` is calibrated by `P[χ²(k₂) ≤ c] = 1 - α`, then the robust
+control-function Wald test `W > c` has asymptotic size `α`. -/
+theorem controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_lowerTail
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {α0 : Fin r → ℝ} {root : ℕ → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {Vα : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldConditions
+      μ ν X₁ X₂ Z Y α0 root Gα Vα)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω) (root m)})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (α0 := α0) (root := root) (Gα := Gα) (Vα := Vα) h
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+/-- Formula-facing condition package for Hansen Theorem 12.14.
+
+This fixes the null to `α = 0`, the normalization to `√n`, and the covariance
+target to the displayed Theorem 12.13 control-function variance
+`V₂₂ + V_γγ - V_γ2 - V_γ2'`. -/
+abbrev ControlFunctionEndogeneityWaldFormulaConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (ν : Measure Ωlim) [IsProbabilityMeasure ν] {r : ℕ}
+    (X₁ : ℕ → Ω → k₁ → ℝ) (X₂ : ℕ → Ω → Fin r → ℝ)
+    (Z : ℕ → Ω → l → ℝ) (Y : ℕ → Ω → ℝ)
+    (Gα : Ωlim → EuclideanSpace ℝ (Fin r))
+    (V22 VgammaGamma Vgamma2 : Matrix (Fin r) (Fin r) ℝ) : Prop :=
+  ControlFunctionEndogeneityWaldConditions μ ν X₁ X₂ Z Y 0
+    (fun m => Real.sqrt (m : ℝ)) Gα
+    (controlFunctionAlphaVariance V22 VgammaGamma Vgamma2)
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 condition package from the displayed
+Theorem 12.13 control-function endpoint.
+
+This wrapper fixes the null to `α = 0`, the normalization to `√n`, and rewrites
+the alpha covariance into Hansen's displayed block formula. -/
+theorem ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_asymptotic_normal_displayed
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hnull : α = 0)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) := by
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := Fin r)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  have hmap_pos :
+      (controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ).PosDef := by
+    simpa [hcov] using hV_posDef
+  have hbase :=
+    ControlFunctionEndogeneityWaldConditions.of_alpha_asymptotic_normal
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      hnull h hmap_pos
+  simpa [ControlFunctionEndogeneityWaldFormulaConditions, hnull, hcov] using hbase
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package when positive definiteness is
+supplied for the full expectation-error covariance block. -/
+theorem controlFunctionWaldFormulaConditions_of_full_posDef
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hnull : α = 0)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_asymptotic_normal_displayed
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hnull h
+      (controlFunctionAlphaVariance_posDef_fromBlocks
+        (k₁ := k₁) (k₂ := Fin r) hV_posDef hcross)
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the primitive null
+`E[X₂e] = 0`. -/
+theorem controlFunctionWaldFormulaConditions_of_primitive_null
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_asymptotic_normal_displayed
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross (hprim.primitive_null_iff_alpha_zero.mp hnull) h hV_posDef
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the primitive null and a
+positive-definite full expectation-error covariance block. -/
+theorem controlFunctionWaldFormulaConditions_of_primitive_null_full_posDef
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  controlFunctionWaldFormulaConditions_of_primitive_null
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h
+      (controlFunctionAlphaVariance_posDef_fromBlocks
+        (k₁ := k₁) (k₂ := Fin r) hV_posDef hcross)
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 condition package from the displayed
+Theorem 12.13 event-nonsingularity endpoint. -/
+theorem
+    ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_eventual_asymptotic_normal_displayed
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hnull : α = 0)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) := by
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := Fin r)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  have hmap_pos :
+      (controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ).PosDef := by
+    simpa [hcov] using hV_posDef
+  have hbase :=
+    ControlFunctionEndogeneityWaldConditions.of_alpha_eventual_asymptotic_normal
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VEE := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+      hnull h hmap_pos
+  simpa [ControlFunctionEndogeneityWaldFormulaConditions, hnull, hcov] using hbase
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the primitive null and
+eventual finite-sample nonsingularity. -/
+theorem controlFunctionWaldFormulaConditions_of_primitive_null_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_eventual_asymptotic_normal_displayed
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross (hprim.primitive_null_iff_alpha_zero.mp hnull) h hV_posDef
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from Hansen's population
+moment equation `E[X₂e] = Qα`, positive definiteness of `Q`, the primitive null
+`E[X₂e] = 0`, and the event-nonsingularity version of Theorem 12.13.
+
+This theorem is a convenience constructor over
+`ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_posDef`, so the
+population null bridge is derived rather than assumed as a final field. -/
+theorem
+    controlFunctionWaldFormulaConditions_of_moment_eq_posDef_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hmoment : controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α)
+    (hQ : Q.PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  controlFunctionWaldFormulaConditions_of_primitive_null_eventually_nonsingular
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross
+    (ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_posDef
+      (μ := μ) (X₂ := X₂) (e := e) (Q := Q) (α := α) hmoment hQ)
+    hnull h hV_posDef
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the primitive null,
+eventual finite-sample nonsingularity, and a positive-definite full
+expectation-error covariance block. -/
+theorem controlFunctionWaldFormulaConditions_of_primitive_null_full_posDef_eventually_nonsingular
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  controlFunctionWaldFormulaConditions_of_primitive_null_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h
+      (controlFunctionAlphaVariance_posDef_fromBlocks
+        (k₁ := k₁) (k₂ := Fin r) hV_posDef hcross)
+
+set_option linter.style.longLine false in
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the high-probability
+finite-sample nonsingularity version of Theorem 12.13.
+
+This is the probability-rank analogue of
+`ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_eventual_asymptotic_normal_displayed`:
+it transports the expectation-error coefficient CLT and HC0 covariance
+consistency through the actual control-function estimators on the
+high-probability nonsingular branch, then rewrites the covariance target into
+Hansen's displayed `V₂₂ + Vγγ - Vγ2 - Vγ2'` formula. -/
+theorem
+    ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_nonsingular_in_probability_displayed
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hnull : α = 0)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) := by
+  have hcov :
+      controlFunctionEndogeneityMap *
+          Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma *
+          (controlFunctionEndogeneityMap)ᵀ =
+        controlFunctionAlphaVariance
+          (generatedRegressorRightBlockCovariance VbetaBeta)
+          VgammaGamma
+          (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionEndogeneityCovariance_eq_alphaVariance_fromBlocks
+      (k₁ := k₁) (k₂ := Fin r)
+      VbetaBeta VbetaGamma VgammaBeta VgammaGamma hcross
+  refine
+    { alpha_null := rfl
+      alpha_limit := ?_
+      gaussian_limit := ?_
+      alpha_covariance_measurable := halphaV_meas
+      alpha_covariance_consistent := ?_
+      alpha_covariance_posDef := hV_posDef }
+  · have hlim :=
+      controlFunctionAlphaHatStar_tendstoInDistribution_of_expectationError_nonsingular_in_probability
+        (μ := μ) (ν := ν) (k₁ := k₁) (k₂ := Fin r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (βEE := βEE) (α := α) (root := fun m => Real.sqrt (m : ℝ))
+        (G := G) halpha_target hnonsing hcoef halpha_meas
+    simpa [hnull] using hlim
+  · have hlaw :=
+      controlFunctionEndogeneityLimit_hasLaw
+        (k₁ := k₁) (k₂ := Fin r) hVpsd hG
+    simpa [hcov] using hlaw
+  · have hcov_consistent :=
+      controlFunctionAlphaVHatStar_tendstoInMeasure_of_expectationError_nonsingular_in_probability
+        (μ := μ) (k₁ := k₁) (k₂ := Fin r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (V := Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+        hnonsing halphaV_meas hV_meas hVEE
+    simpa [hcov] using hcov_consistent
+
+omit [Fact (0 < r)] in
+/-- Formula-facing Hansen Theorem 12.14 package from the primitive null and
+high-probability finite-sample nonsingularity. -/
+theorem controlFunctionWaldFormulaConditions_of_primitive_null_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y
+      (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+      (generatedRegressorRightBlockCovariance VbetaBeta)
+      VgammaGamma
+      (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+  ControlFunctionEndogeneityWaldFormulaConditions.of_alpha_nonsingular_in_probability_displayed
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross halpha_target (hprim.primitive_null_iff_alpha_zero.mp hnull)
+    hnonsing hcoef hG hVpsd halpha_meas halphaV_meas hV_meas hVEE
+    hV_posDef
+
+/-- Hansen Theorem 12.14 statistic endpoint with Hansen's displayed null,
+`√n` normalization, and control-function covariance formula fixed in the
+statement. -/
+theorem controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {V22 VgammaGamma Vgamma2 : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y Gα V22 VgammaGamma Vgamma2) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (α := 0) (root := fun m => Real.sqrt (m : ℝ))
+    (Gα := Gα)
+    (Vα := controlFunctionAlphaVariance V22 VgammaGamma Vgamma2) h
+
+/-- Hansen Theorem 12.14 calibrated robust endogeneity-test size, with the
+displayed null, `√n` normalization, and covariance formula fixed in the
+statement. -/
+theorem controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {V22 VgammaGamma Vgamma2 : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y Gα V22 VgammaGamma Vgamma2)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (α0 := 0) (root := fun m => Real.sqrt (m : ℝ))
+    (Gα := Gα)
+    (Vα := controlFunctionAlphaVariance V22 VgammaGamma Vgamma2) h hcrit
+
+/-- Hansen Theorem 12.14 lower-tail critical-value convention, with the
+displayed null, `√n` normalization, and covariance formula fixed in the
+statement. -/
+theorem controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula_lowerTail
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Gα : Ωlim → EuclideanSpace ℝ (Fin r)}
+    {V22 VgammaGamma Vgamma2 : Matrix (Fin r) (Fin r) ℝ}
+    (h : ControlFunctionEndogeneityWaldFormulaConditions
+      μ ν X₁ X₂ Z Y Gα V22 VgammaGamma Vgamma2)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (Gα := Gα) (V22 := V22) (VgammaGamma := VgammaGamma)
+    (Vgamma2 := Vgamma2) h
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+/-- Hansen Theorem 12.14 statistic endpoint from the primitive null and the
+eventual-nonsingularity version of Theorem 12.13. -/
+theorem
+    controlFunctionEndogeneityWaldStat_chiSquared_of_primitive_null_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+    (VgammaGamma := VgammaGamma)
+    (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+    (controlFunctionWaldFormulaConditions_of_primitive_null_full_posDef_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h hV_posDef)
+
+/-- Hansen Theorem 12.14 calibrated robust endogeneity-test size from the
+primitive null and the eventual-nonsingularity version of Theorem 12.13. -/
+theorem
+    controlFunctionEndogeneityWaldTest_tendsto_alpha_of_primitive_null_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+    (VgammaGamma := VgammaGamma)
+    (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+    (controlFunctionWaldFormulaConditions_of_primitive_null_full_posDef_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h hV_posDef)
+    hcrit
+
+/-- Hansen Theorem 12.14 lower-tail calibrated robust endogeneity-test size
+from the primitive null and the eventual-nonsingularity version of Theorem
+12.13. -/
+theorem
+    controlFunctionEndogeneityWaldTest_lowerTail_of_primitive_null_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_tendsto_alpha_of_primitive_null_eventual
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross hprim hnull h hV_posDef
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+/-- Hansen Theorem 12.14 statistic endpoint from the primitive null and the
+eventual-nonsingularity version of Theorem 12.13, assuming positive
+definiteness only for Hansen's displayed alpha covariance. -/
+theorem
+    controlFunctionEndogeneityWaldStat_chiSquared_of_primitive_null_eventual_displayed_posDef
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) :=
+  controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+    (VgammaGamma := VgammaGamma)
+    (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+    (controlFunctionWaldFormulaConditions_of_primitive_null_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h hV_posDef)
+
+/-- Hansen Theorem 12.14 calibrated size endpoint from the primitive null and
+eventual nonsingularity, assuming positive definiteness only for Hansen's
+displayed alpha covariance. -/
+theorem
+    controlFunctionEndogeneityWaldTest_tendsto_alpha_of_primitive_null_eventual_displayed_posDef
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (hcrit : (chiSquared r) (Set.Ioi crit) = alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+    (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+    (VgammaGamma := VgammaGamma)
+    (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+    (controlFunctionWaldFormulaConditions_of_primitive_null_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross hprim hnull h hV_posDef)
+    hcrit
+
+/-- Hansen Theorem 12.14 lower-tail calibrated size endpoint from the
+primitive null and eventual nonsingularity, assuming positive definiteness only
+for Hansen's displayed alpha covariance. -/
+theorem
+    controlFunctionEndogeneityWaldTest_lowerTail_of_primitive_null_eventual_displayed_posDef
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hprim : ControlFunctionPrimitiveNullBridgeConditions μ X₂ e α)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alpha) :
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alpha) :=
+  controlFunctionEndogeneityWaldTest_tendsto_alpha_of_primitive_null_eventual_displayed_posDef
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    hcross hprim hnull h hV_posDef
+    (chiSquared_upperTail_eq_of_lowerTail_eq
+      (q := r) (c := crit) (alpha := alpha) halpha_le_one hcrit)
+
+/-- **Hansen Theorem 12.14**, bundled primitive-moment endpoint.
+
+This is the displayed endogeneity-test theorem from Hansen's primitive null:
+the population equation `E[X₂e] = Qα` and `Q > 0` turn
+`E[X₂e] = 0` into `α = 0`; the eventual-nonsingularity Theorem 12.13 route
+then gives both the chi-square statistic limit and the lower-tail calibrated
+asymptotic size statement. -/
+theorem controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hmoment : controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α)
+    (hQ : Q.PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) := by
+  let hformula :
+      ControlFunctionEndogeneityWaldFormulaConditions
+        μ ν X₁ X₂ Z Y
+        (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionWaldFormulaConditions_of_moment_eq_posDef_eventually_nonsingular
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      (Q := Q) hcross hmoment hQ hnull h hV_posDef
+  exact
+    ⟨controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+        (μ := μ) (ν := ν) (r := r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+        (VgammaGamma := VgammaGamma)
+        (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+        hformula,
+      controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula_lowerTail
+        (μ := μ) (ν := ν) (r := r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+        (VgammaGamma := VgammaGamma)
+        (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+        hformula halpha_le_one hcrit⟩
+
+/-- **Hansen Theorem 12.14**, maintained-instrument control-function endpoint.
+
+This is the Hansen-facing population bridge for the endogeneity test.  The
+reduced form `X₂ = Γ'Z + u₂`, maintained IV moment `E[Ze] = 0`, and projection
+`e = u₂'α + ν` with `E[u₂ν] = 0` imply `E[X₂e] = E[u₂u₂']α`; positive
+definiteness of `E[u₂u₂']` turns the primitive null into `α = 0`, and the
+eventual-nonsingularity Theorem 12.13 route supplies the robust Wald limit and
+calibrated size. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + νe 0 ω)
+    (huOrtho : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) :=
+  controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_eventual
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    (Q := popGram μ u₂) hcross
+    (controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_instruments
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := νe)
+      (Γ := Γ) (α := α)
+      hdecomp hZScore huScoreE hZOrtho hGram hNuScore hstruct huOrtho)
+    hQ hnull h hV_posDef halpha_le_one hcrit
+
+/-- **Hansen Theorem 12.14**, bundled structural-error endpoint.
+
+This theorem removes the remaining population-equation input from
+`controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_eventual`:
+the equation `E[X₂e] = E[X₂X₂']α` is derived from
+`e = X₂'α + u` and `E[X₂u] = 0`, then the existing primitive-moment endpoint is
+reused unchanged. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_structural_error_popGram_posDef_eventual
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e u : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (X₂ 0 ω) (X₂ 0 ω)) μ)
+    (hUScore : Integrable (fun ω => u 0 ω • X₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (X₂ 0 ω) α + u 0 ω)
+    (hortho : μ[fun ω => u 0 ω • X₂ 0 ω] = 0)
+    (hQ : (popGram μ X₂).PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (h : ControlFunctionAlphaEventualAsymptoticNormalConditions
+      μ ν X₁ X₂ Z Y βEE α G
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) :=
+  controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_eventual
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    (Q := popGram μ X₂) hcross
+    (controlFunctionPrimitiveEndogeneityMoment_eq_popGram_mulVec_of_structural_error
+      (μ := μ) (X₂ := X₂) (e := e) (u := u) (α := α)
+      hGram hUScore hstruct hortho)
+    hQ hnull h hV_posDef halpha_le_one hcrit
+
+/-- **Hansen Theorem 12.14**, bundled primitive-moment endpoint using the
+high-probability rank version of Theorem 12.13.
+
+This is the nonsingularity-in-probability companion of
+`controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_eventual`: the
+population equation `E[X₂e] = Qα` and `Q > 0` still turn the primitive null into
+`α = 0`, while finite-sample rank is supplied by a vanishing singular-probability
+condition instead of an eventual-a.e. branch. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e : ℕ → Ω → ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Q : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hmoment : controlFunctionPrimitiveEndogeneityMoment μ X₂ e = Q *ᵥ α)
+    (hQ : Q.PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) := by
+  let hformula :
+      ControlFunctionEndogeneityWaldFormulaConditions
+        μ ν X₁ X₂ Z Y
+        (controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta) :=
+    controlFunctionWaldFormulaConditions_of_primitive_null_nonsingular_in_probability
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+      (e := e) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross halpha_target
+      (ControlFunctionPrimitiveNullBridgeConditions.of_moment_eq_posDef
+        (μ := μ) (X₂ := X₂) (e := e) (Q := Q) (α := α) hmoment hQ)
+      hnull hnonsing hcoef hG hVpsd halpha_meas halphaV_meas hV_meas
+      hVEE hV_posDef
+  exact
+    ⟨controlFunctionEndogeneityWaldStatOrZero_tendstoInDistribution_chiSquared_formula
+        (μ := μ) (ν := ν) (r := r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+        (VgammaGamma := VgammaGamma)
+        (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+        hformula,
+      controlFunctionEndogeneityWaldTest_rejectionProb_tendsto_alpha_formula_lowerTail
+        (μ := μ) (ν := ν) (r := r)
+        (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+        (Gα := controlFunctionEndogeneityLimit (k₁ := k₁) (k₂ := Fin r) G)
+        (V22 := generatedRegressorRightBlockCovariance VbetaBeta)
+        (VgammaGamma := VgammaGamma)
+        (Vgamma2 := controlFunctionGammaBeta2Covariance VgammaBeta)
+        hformula halpha_le_one hcrit⟩
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.14**, maintained-instrument control-function endpoint
+using the high-probability rank version of Theorem 12.13. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_nonsingular_in_probability
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + νe 0 ω)
+    (huOrtho : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (halpha_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (m : ℝ) •
+          (controlFunctionAlphaHatStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω) (stackOutcomes Y m ω) - α)) μ)
+    (halphaV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        controlFunctionAlphaVHatStar
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)) μ)
+    (hV_meas : ∀ m : ℕ, AEStronglyMeasurable
+      (fun ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω)) μ)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) :=
+  controlFunctionEndogeneityWald_theorem12_14_of_moment_eq_posDef_nonsingular_in_probability
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+    (e := e) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    (Q := popGram μ u₂) hcross halpha_target
+    (controlFunctionPrimitiveEndogeneityMoment_eq_residualGram_mulVec_of_instruments
+      (μ := μ) (X₂ := X₂) (u₂ := u₂) (Z := Z) (e := e) (ν := νe)
+      (Γ := Γ) (α := α)
+      hdecomp hZScore huScoreE hZOrtho hGram hNuScore hstruct huOrtho)
+    hQ hnull hnonsing hcoef hG hVpsd halpha_meas halphaV_meas hV_meas
+    hVEE hV_posDef halpha_le_one hcrit
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.14**, row-measurable sample-Gram facade.
+
+This is the high-probability rank route in the notation of the endogeneity-test
+model. Row measurability supplies the actual Wald-statistic measurability fields,
+and the expectation-error sample-Gram WLLN with nonsingular limit supplies the
+finite-sample nonsingularity-in-probability branch. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_expectation_error_sampleGram_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Qee : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+      (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hEEGram : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Qee))
+    (hEEGram_nonsing : IsUnit Qee.det)
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + νe 0 ω)
+    (huOrtho : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hVpsd :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosSemidef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    (hV_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) := by
+  have hnonsing : ControlFunctionNonsingularInProbabilityBridgeConditions μ X₁ X₂ Z :=
+    ControlFunctionNonsingularInProbabilityBridgeConditions.of_expectation_error_sampleGram_tendstoInMeasure_rows
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z)
+      hX₁ hX₂ hZ hEEGram hEEGram_nonsing
+  exact
+    controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_nonsingular_in_probability
+      (μ := μ) (ν := ν) (r := r)
+      (X₁ := X₁) (X₂ := X₂) (u₂ := u₂) (Z := Z) (Y := Y)
+      (e := e) (νe := νe) (Γ := Γ) (βEE := βEE) (α := α) (G := G)
+      (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+      (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+      hcross halpha_target hdecomp hZScore huScoreE hZOrtho hGram
+      hNuScore hstruct huOrtho hQ hnull hnonsing hcoef hG hVpsd
+      (fun m =>
+        controlFunctionAlphaHatStar_scaled_centered_aemeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY α)
+      (fun m =>
+        controlFunctionAlphaVHatStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY)
+      (fun m =>
+        controlFunctionExpectationErrorOlsHetCovStar_aestronglyMeasurable_of_rows
+          (μ := μ) (N := m) (X₁ := X₁) (X₂ := X₂) (Z := Z) (Y := Y)
+          hX₁ hX₂ hZ hY)
+      hVEE hV_posDef halpha_le_one hcrit
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.14**, row-measurable sample-Gram facade with the
+displayed alpha covariance derived from the full stacked covariance block.
+
+This is a thin Hansen-facing wrapper around
+`controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_expectation_error_sampleGram_rows`:
+positive definiteness of the full covariance block implies both the semidefinite
+full-covariance premise and the positive definite displayed alpha covariance
+`V₂₂ + Vγγ - Vγ2 - Vγ2'`. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_fullCov_posDef_expectation_error_sampleGram_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ}
+    {βEE : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Qee : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+      (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (hcross : VbetaGamma = VgammaBetaᵀ)
+    (halpha_target : controlFunctionEndogeneityMap *ᵥ βEE = α)
+    (hX₁ : ∀ i, AEStronglyMeasurable (X₁ i) μ)
+    (hX₂ : ∀ i, AEStronglyMeasurable (X₂ i) μ)
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hEEGram : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Qee))
+    (hEEGram_nonsing : IsUnit Qee.det)
+    (hdecomp : (fun ω => X₂ 0 ω) =ᵐ[μ]
+      fun ω => Γᵀ *ᵥ Z 0 ω + u₂ 0 ω)
+    (hZScore : Integrable (fun ω => e 0 ω • Z 0 ω) μ)
+    (huScoreE : Integrable (fun ω => e 0 ω • u₂ 0 ω) μ)
+    (hZOrtho : μ[fun ω => e 0 ω • Z 0 ω] = 0)
+    (hGram : Integrable (fun ω => Matrix.vecMulVec (u₂ 0 ω) (u₂ 0 ω)) μ)
+    (hNuScore : Integrable (fun ω => νe 0 ω • u₂ 0 ω) μ)
+    (hstruct : (fun ω => e 0 ω) =ᵐ[μ]
+      fun ω => dotProduct (u₂ 0 ω) α + νe 0 ω)
+    (huOrtho : μ[fun ω => νe 0 ω • u₂ 0 ω] = 0)
+    (hQ : (popGram μ u₂).PosDef)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hcoef : TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (olsBetaStar
+            (controlFunctionExpectationErrorDesignStar
+              (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+              (stackRegressors Z m ω))
+            (stackOutcomes Y m ω) - βEE))
+      atTop (fun ω i => (G ω : Sum (Sum k₁ (Fin r)) (Fin r) → ℝ) i)
+      (fun _ => μ) ν)
+    (hG : HasLaw G
+      (multivariateGaussian 0
+        (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma)) ν)
+    (hV_full_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    (hVEE : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        olsHetCovStar
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω))
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma))
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) :=
+  controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_expectation_error_sampleGram_rows
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (u₂ := u₂) (Z := Z) (Y := Y)
+    (e := e) (νe := νe) (Γ := Γ) (βEE := βEE) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    (Qee := Qee) hcross halpha_target hX₁ hX₂ hZ hY hEEGram
+    hEEGram_nonsing hdecomp hZScore huScoreE hZOrtho hGram hNuScore
+    hstruct huOrtho hQ hnull hcoef hG hV_full_posDef.posSemidef hVEE
+    (controlFunctionAlphaVariance_posDef_fromBlocks
+      (k₁ := k₁) (k₂ := Fin r) hV_full_posDef hcross)
+    halpha_le_one hcrit
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.14**, primitive control-function facade.
+
+This is the strongest sample-Gram/full-covariance endpoint in Hansen's
+primitive notation. The `ControlFunctionHansenTheorem12_13Conditions` package
+supplies the raw model, row measurability, covariance-block symmetry, and the
+expectation-error CLT/covariance engine. Its primitive fourth-moment fields are
+reused to derive the residual-Gram and `e u₂` integrability inputs internally. -/
+theorem
+    controlFunctionEndogeneityWald_theorem12_14_of_hansen_conditions_expectation_error_sampleGram_rows
+    {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
+    {Z : ℕ → Ω → l → ℝ} {Y e νe : ℕ → Ω → ℝ}
+    {Γ : Matrix l (Fin r) ℝ}
+    {β : Sum k₁ (Fin r) → ℝ} {α : Fin r → ℝ}
+    {G : Ωlim → EuclideanSpace ℝ (Sum (Sum k₁ (Fin r)) (Fin r))}
+    {VbetaBeta : Matrix (Sum k₁ (Fin r)) (Sum k₁ (Fin r)) ℝ}
+    {VbetaGamma : Matrix (Sum k₁ (Fin r)) (Fin r) ℝ}
+    {VgammaBeta : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ}
+    {VgammaGamma : Matrix (Fin r) (Fin r) ℝ}
+    {Qee : Matrix (Sum (Sum k₁ (Fin r)) (Fin r))
+      (Sum (Sum k₁ (Fin r)) (Fin r)) ℝ}
+    (h : ControlFunctionHansenTheorem12_13Conditions
+      μ ν X₁ X₂ u₂ Z Y e νe Γ β α G
+        VbetaBeta VbetaGamma VgammaBeta VgammaGamma)
+    (hEEGram : TendstoInMeasure μ
+      (fun m ω =>
+        sampleGram
+          (controlFunctionExpectationErrorDesignStar
+            (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+            (stackRegressors Z m ω)))
+      atTop (fun _ => Qee))
+    (hEEGram_nonsing : IsUnit Qee.det)
+    (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
+    (hV_full_posDef :
+      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    {crit : ℝ} {alphaTail : ℝ≥0∞}
+    (halpha_le_one : alphaTail ≤ 1)
+    (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ)))
+      atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared r) ∧
+    Tendsto
+      (fun m => μ {ω | crit <
+        controlFunctionEndogeneityWaldStatOrZero
+          (stackRegressors X₁ m ω) (stackRegressors X₂ m ω)
+          (stackRegressors Z m ω) (stackOutcomes Y m ω)
+          (Real.sqrt (m : ℝ))})
+      atTop (𝓝 alphaTail) :=
+  controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_fullCov_posDef_expectation_error_sampleGram_rows
+    (μ := μ) (ν := ν) (r := r)
+    (X₁ := X₁) (X₂ := X₂) (u₂ := u₂) (Z := Z) (Y := Y)
+    (e := e) (νe := νe) (Γ := Γ)
+    (βEE := controlFunctionExpectationErrorTarget β α) (α := α) (G := G)
+    (VbetaBeta := VbetaBeta) (VbetaGamma := VbetaGamma)
+    (VgammaBeta := VgammaBeta) (VgammaGamma := VgammaGamma)
+    (Qee := Qee)
+    h.covariance_blocks_transpose h.asymptotic.alpha_target
+    h.primitive.x1_aestronglyMeasurable h.primitive.x2_aestronglyMeasurable
+    h.primitive.z_aestronglyMeasurable h.primitive.y_aestronglyMeasurable
+    hEEGram hEEGram_nonsing
+    (h.primitive.reduced_form 0) h.primitive.z_e_integrable
+    h.primitive.error_residual_integrable h.primitive.z_e_orthogonal
+    h.primitive.residualGram_integrable h.primitive.u2_nu_integrable
+    (h.primitive.control_error_projection 0) h.primitive.u2_nu_orthogonal
+    h.primitive.residual_popGram_posDef hnull
+    h.asymptotic.coefficient_limit h.asymptotic.gaussian_limit hV_full_posDef
+    h.asymptotic.expectation_error_covariance_consistent
+    halpha_le_one hcrit
+
+/-- Hansen Theorem 12.15 exact fixed-design control-function F statistic.
+
+Conditional on the generated reduced-form residuals, the endogeneity F statistic
+is the classical OLS block F test of `α = 0` in the regression of `Y` on
+`(X₁, X₂, û₂)`. -/
+theorem controlFunctionFStatistic_hasLaw_classicalFDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        olsFStatistic (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂)
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))) μ := by
+  simpa using olsFStatistic_hasLaw_classicalFDist
+    (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) β
+    hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact fixed-design F law, stated with the named
+control-function endogeneity statistic. -/
+theorem controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        controlFunctionEndogeneityFStatistic X₁ X₂ Z
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))) μ := by
+  simpa [controlFunctionEndogeneityFStatistic] using
+    controlFunctionFStatistic_hasLaw_classicalFDist
+      X₁ X₂ Z β hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact fixed-design F law with Hansen's displayed
+`F(k₂, n-k₁-2k₂)` degrees of freedom. -/
+theorem controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        controlFunctionEndogeneityFStatistic X₁ X₂ Z
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) μ := by
+  have hbase :=
+    controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist
+      X₁ X₂ Z β hσ2 hq
+        (controlFunctionCard_sum_sum_lt_of_card_add_two_mul_lt hdf) ε hε
+  rw [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hbase
+  exact hbase
+
+/-- Hansen Theorem 12.15 exact fixed-design F law with explicit
+determinant/rank side conditions instead of ambient inverse typeclasses. -/
+theorem controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub_of_isUnit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hInvRestricted : IsUnit ((Matrix.fromCols X₁ X₂)ᵀ *
+        Matrix.fromCols X₁ X₂).det)
+    (hInvFull : IsUnit
+      ((((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols
+          (controlFunctionResidualStar Z X₂))).det)
+    (ε : Ω → EuclideanSpace ℝ n)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        letI : Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)
+            hInvRestricted
+        ;
+        letI : Invertible
+            (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+              (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              ((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+                (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))
+            hInvFull
+        controlFunctionEndogeneityFStatistic X₁ X₂ Z
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) μ := by
+  letI : Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)
+      hInvRestricted
+  letI : Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        ((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+          (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))
+      hInvFull
+  simpa using
+    controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) (β := β)
+      (σ2 := σ2) hσ2 hq hdf ε hε
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.15.
+
+The index `ξ` represents a realization of the random design `(X,Z)`.  For each
+conditioning value, the Chapter 5 fixed-design F law applies to the conditional
+error law supplied by `hε`. -/
+theorem controlFunctionEndogeneityFStatistic_conditional_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 : ι → ℝ} (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : ι → Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : ∀ ξ,
+      HasLaw (ε ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+            ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε ξ ω)))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+        (με ξ) := by
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := με ξ) (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+    (β := β ξ) (σ2 := σ2 ξ) (hσ2 ξ) hq hdf (ε ξ) (hε ξ)
+
+/-- Hansen Theorem 12.15 exact-size statement for the control-function
+endogeneity F test. -/
+theorem controlFunctionFStatistic_rejection_probability_eq_alpha
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      olsFStatistic (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂)
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω))} = alpha := by
+  simpa using olsFStatistic_rejection_probability_eq_alpha_classical
+    (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) β
+    c hcrit hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact-size statement, stated with the named
+control-function endogeneity statistic and an upper-tail critical-value
+calibration. -/
+theorem controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      controlFunctionEndogeneityFStatistic X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω))} = alpha := by
+  simpa [controlFunctionEndogeneityFStatistic] using
+    controlFunctionFStatistic_rejection_probability_eq_alpha
+      X₁ X₂ Z β c hcrit hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact-size statement with Hansen's lower-tail
+critical-value convention: if
+`P[F(k₂, n-k₁-2k₂) ≤ c_{1-α}] = 1 - α`, then the rule `F > c_{1-α}`
+has exact size `α`. -/
+theorem controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_lowerTail
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum (Sum k₁ k₂) k₂) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      controlFunctionEndogeneityFStatistic X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω))} = alpha := by
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ k₂) k₂))).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq
+      (Nat.sub_pos_of_lt hdf) hcrit
+  exact controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal
+    X₁ X₂ Z β c htail hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact-size statement with the displayed
+`F(k₂, n-k₁-2k₂)` upper-tail critical value. -/
+theorem controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      controlFunctionEndogeneityFStatistic X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω))} = alpha := by
+  refine controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal
+    X₁ X₂ Z β c ?_ hσ2 hq
+      (controlFunctionCard_sum_sum_lt_of_card_add_two_mul_lt hdf) ε hε
+  rw [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul]
+  exact hcrit
+
+/-- Hansen Theorem 12.15 exact-size statement with Hansen's displayed
+lower-tail critical-value convention for `F(k₂, n-k₁-2k₂)`. -/
+theorem controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub_lowerTail
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      controlFunctionEndogeneityFStatistic X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω))} = alpha := by
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq
+      (by
+        have hν := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+          (k₁ := k₁) (k₂ := k₂) hdf
+        rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν)
+      hcrit
+  exact controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub
+    X₁ X₂ Z β c htail hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 exact-size statement with Hansen's displayed
+lower-tail critical-value convention and explicit determinant/rank side
+conditions instead of ambient inverse typeclasses. -/
+theorem
+    controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub_lowerTail_of_isUnit
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ k₂ → ℝ) {σ2 alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hInvRestricted : IsUnit ((Matrix.fromCols X₁ X₂)ᵀ *
+        Matrix.fromCols X₁ X₂).det)
+    (hInvFull : IsUnit
+      ((((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols
+          (controlFunctionResidualStar Z X₂))).det)
+    (ε : Ω → EuclideanSpace ℝ n)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      (letI : Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)
+            hInvRestricted
+        ;
+        letI : Invertible
+            (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+              (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              ((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+                (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))
+            hInvFull
+        ;
+        controlFunctionEndogeneityFStatistic X₁ X₂ Z
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))} = alpha := by
+  letI : Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)
+      hInvRestricted
+  letI : Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        ((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+          (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))
+      hInvFull
+  simpa using
+    controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub_lowerTail
+      (μ := μ) (X₁ := X₁) (X₂ := X₂) (Z := Z) (β := β)
+      (σ2 := σ2) (alpha := alpha) c hcrit hσ2 hq hdf ε hε
+
+/-- Pointwise conditional exact-size form of Hansen Theorem 12.15, using
+Hansen's displayed lower-tail critical value convention. -/
+theorem controlFunctionEndogeneityFTest_conditional_exactSize_card_sub_lowerTail
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 : ι → ℝ} {alpha : ℝ}
+    (c : ℝ) (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : ι → Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : ∀ ξ,
+      HasLaw (ε ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      (με ξ).real {ω | c <
+        controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+          ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε ξ ω))} =
+        alpha := by
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact controlFunctionEndogeneityFTest_exactSize_of_fixedDesignNormal_card_sub_lowerTail
+    (μ := με ξ) (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+    (β := β ξ) (σ2 := σ2 ξ) (alpha := alpha)
+    c hcrit (hσ2 ξ) hq hdf (ε ξ) (hε ξ)
+
+end ControlFunctionEndogeneityTest
+
+end ExpectationErrors
+
+section ExactConditionalNormal
+
+variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+
+private theorem det_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) :
+    Measurable fun x => (A x).det := by
+  classical
+  rw [show (fun x => (A x).det) =
+      (fun x => ∑ σ : Equiv.Perm κ, Equiv.Perm.sign σ * ∏ i, A x (σ i) i) by
+        funext x
+        rw [Matrix.det_apply']]
+  exact Finset.measurable_sum Finset.univ (fun σ _ =>
+    measurable_const.mul
+      (Finset.measurable_prod Finset.univ (fun i _ => hA (σ i) i)))
+
+private theorem adjugate_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x).adjugate i j := by
+  classical
+  rw [show (fun x => (A x).adjugate i j) =
+      (fun x => ((A x).updateRow j (Pi.single i 1)).det) by
+        funext x
+        rw [Matrix.adjugate_apply]]
+  apply det_measurable_of_entries
+  intro a b
+  by_cases ha : a = j
+  · subst a
+    by_cases hb : b = i
+    · subst b
+      simp [Matrix.updateRow]
+    · simp [Matrix.updateRow, Pi.single_eq_of_ne hb]
+  · simp [Matrix.updateRow, ha]
+    exact hA a b
+
+private theorem matrix_inv_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {A : α → Matrix κ κ ℝ} (hA : ∀ i j, Measurable fun x => A x i j) (i j : κ) :
+    Measurable fun x => (A x)⁻¹ i j := by
+  classical
+  have hdet : Measurable fun x => (A x).det := det_measurable_of_entries hA
+  have hadj : Measurable fun x => (A x).adjugate i j :=
+    adjugate_apply_measurable_of_entries hA i j
+  have hrinv : Measurable fun x => Ring.inverse ((A x).det) := by
+    have heq : (fun x => Ring.inverse ((A x).det)) =
+        (fun x => ((A x).det)⁻¹) := by
+      funext x
+      exact Ring.inverse_eq_inv _
+    rw [heq]
+    exact measurable_inv.comp hdet
+  rw [show (fun x => (A x)⁻¹ i j) =
+      (fun x => Ring.inverse ((A x).det) * (A x).adjugate i j) by
+        funext x
+        rw [Matrix.inv_def]
+        rfl]
+  exact hrinv.mul hadj
+
+private theorem gram_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ]
+    {X : α → Matrix n κ ℝ} (hX : ∀ i j, Measurable fun x => X x i j) (a b : κ) :
+    Measurable fun x => ((X x)ᵀ * X x) a b := by
+  classical
+  simp [Matrix.mul_apply]
+  exact Finset.measurable_sum Finset.univ (fun r _ => (hX r a).mul (hX r b))
+
+private noncomputable def annihilatorMatrixStarLocal
+    {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (X : Matrix n κ ℝ) : Matrix n n ℝ :=
+  (1 : Matrix n n ℝ) - X * (Xᵀ * X)⁻¹ * Xᵀ
+
+private theorem annihilatorMatrixStarLocal_apply_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {X : α → Matrix n κ ℝ} (hX : ∀ i j, Measurable fun a => X a i j) (i j : n) :
+    Measurable fun a => annihilatorMatrixStarLocal (X a) i j := by
+  classical
+  unfold annihilatorMatrixStarLocal
+  have hGram : ∀ a b, Measurable fun x => ((X x)ᵀ * X x) a b :=
+    fun a b => gram_apply_measurable_of_entries hX a b
+  have hInv : ∀ a b, Measurable fun x => ((X x)ᵀ * X x)⁻¹ a b :=
+    fun a b => matrix_inv_apply_measurable_of_entries hGram a b
+  rw [show (fun a => ((1 : Matrix n n ℝ) - X a * ((X a)ᵀ * X a)⁻¹ * (X a)ᵀ) i j) =
+      fun a => (1 : Matrix n n ℝ) i j -
+        ∑ q, (∑ p, X a i p * ((X a)ᵀ * X a)⁻¹ p q) * X a j q by
+    funext a
+    simp [Matrix.mul_apply]]
+  refine measurable_const.sub ?_
+  exact Finset.measurable_sum Finset.univ (fun q _ =>
+    (Finset.measurable_sum Finset.univ (fun p _ => (hX i p).mul (hInv p q))).mul
+      (hX j q))
+
+private noncomputable def olsResidualSumSquaresStarLocal
+    {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (X : Matrix n κ ℝ) (y : n → ℝ) : ℝ :=
+  dotProduct (annihilatorMatrixStarLocal X *ᵥ y) (annihilatorMatrixStarLocal X *ᵥ y)
+
+private theorem olsResidualSumSquaresStarLocal_measurable_of_entries
+    {α κ : Type*} [MeasurableSpace α] [Fintype κ] [DecidableEq κ]
+    {X : α → Matrix n κ ℝ} {y : α → n → ℝ}
+    (hX : ∀ i j, Measurable fun a => X a i j)
+    (hy : ∀ i, Measurable fun a => y a i) :
+    Measurable fun a => olsResidualSumSquaresStarLocal (X a) (y a) := by
+  classical
+  unfold olsResidualSumSquaresStarLocal dotProduct
+  have hAy : ∀ i, Measurable fun a => (annihilatorMatrixStarLocal (X a) *ᵥ y a) i := by
+    intro i
+    simp [Matrix.mulVec]
+    exact Finset.measurable_sum Finset.univ (fun j _ =>
+      (annihilatorMatrixStarLocal_apply_measurable_of_entries hX i j).mul (hy j))
+  exact Finset.measurable_sum Finset.univ (fun i _ => (hAy i).mul (hAy i))
+
+private noncomputable def olsFStatisticStarLocal
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ) : ℝ :=
+  ((olsResidualSumSquaresStarLocal X₁ y -
+        olsResidualSumSquaresStarLocal (Matrix.fromCols X₁ X₂) y) /
+      (Fintype.card k₂ : ℝ)) /
+    (olsResidualSumSquaresStarLocal (Matrix.fromCols X₁ X₂) y /
+      (Fintype.card n - Fintype.card (Sum k₁ k₂) : ℝ))
+
+private theorem olsFStatisticStarLocal_measurable_of_entries
+    {α : Type*} [MeasurableSpace α]
+    {X₁ : α → Matrix n k₁ ℝ} {X₂ : α → Matrix n k₂ ℝ} {y : α → n → ℝ}
+    (hX₁ : ∀ i j, Measurable fun a => X₁ a i j)
+    (hX₂ : ∀ i j, Measurable fun a => X₂ a i j)
+    (hy : ∀ i, Measurable fun a => y a i) :
+    Measurable fun a => olsFStatisticStarLocal (X₁ a) (X₂ a) (y a) := by
+  classical
+  unfold olsFStatisticStarLocal
+  have hFull : ∀ i j, Measurable fun a => Matrix.fromCols (X₁ a) (X₂ a) i j := by
+    intro i j
+    cases j with
+    | inl j => simpa [Matrix.fromCols] using hX₁ i j
+    | inr j => simpa [Matrix.fromCols] using hX₂ i j
+  have hR := olsResidualSumSquaresStarLocal_measurable_of_entries hX₁ hy
+  have hU := olsResidualSumSquaresStarLocal_measurable_of_entries hFull hy
+  exact ((hR.sub hU).div_const _).div (hU.div_const _)
+
+private theorem annihilatorMatrixStarLocal_eq_annihilatorMatrix
+    {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (X : Matrix n κ ℝ) [Invertible (Xᵀ * X)] :
+    annihilatorMatrixStarLocal X = annihilatorMatrix X := by
+  unfold annihilatorMatrixStarLocal annihilatorMatrix hatMatrix
+  rw [← invOf_eq_nonsing_inv]
+
+private theorem olsResidualSumSquaresStarLocal_eq_olsResidualSumSquares
+    {κ : Type*} [Fintype κ] [DecidableEq κ]
+    (X : Matrix n κ ℝ) (y : n → ℝ) [Invertible (Xᵀ * X)] :
+    olsResidualSumSquaresStarLocal X y = olsResidualSumSquares X y := by
+  unfold olsResidualSumSquaresStarLocal olsResidualSumSquares
+  rw [annihilatorMatrixStarLocal_eq_annihilatorMatrix]
+
+private theorem olsFStatisticStarLocal_eq_olsFStatistic
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (y : n → ℝ)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    olsFStatisticStarLocal X₁ X₂ y = olsFStatistic X₁ X₂ y := by
+  unfold olsFStatisticStarLocal olsFStatistic
+  rw [olsResidualSumSquaresStarLocal_eq_olsResidualSumSquares X₁ y,
+    olsResidualSumSquaresStarLocal_eq_olsResidualSumSquares
+      (Matrix.fromCols X₁ X₂) y]
+
+private theorem fromCols_apply_measurable_of_entries
+    {α κ η : Type*} [MeasurableSpace α]
+    {X₁ : α → Matrix n κ ℝ} {X₂ : α → Matrix n η ℝ}
+    (hX₁ : ∀ i j, Measurable fun a => X₁ a i j)
+    (hX₂ : ∀ i j, Measurable fun a => X₂ a i j) :
+    ∀ i j, Measurable fun a => Matrix.fromCols (X₁ a) (X₂ a) i j := by
+  intro i j
+  cases j with
+  | inl j => simpa [Matrix.fromCols] using hX₁ i j
+  | inr j => simpa [Matrix.fromCols] using hX₂ i j
+
+private theorem instrumentProjectionStar_apply_measurable_of_entries
+    {α : Type*} [MeasurableSpace α]
+    {Z : α → Matrix n l ℝ} (hZ : ∀ i j, Measurable fun a => Z a i j) (i j : n) :
+    Measurable fun a => instrumentProjectionStar (Z a) i j := by
+  classical
+  unfold instrumentProjectionStar
+  have hGram : ∀ a b, Measurable fun x => ((Z x)ᵀ * Z x) a b :=
+    fun a b => gram_apply_measurable_of_entries hZ a b
+  have hInv : ∀ a b, Measurable fun x => ((Z x)ᵀ * Z x)⁻¹ a b :=
+    fun a b => matrix_inv_apply_measurable_of_entries hGram a b
+  rw [show (fun a => (Z a * ((Z a)ᵀ * Z a)⁻¹ * (Z a)ᵀ) i j) =
+      fun a => ∑ q, (∑ p, Z a i p * ((Z a)ᵀ * Z a)⁻¹ p q) * Z a j q by
+    funext a
+    simp [Matrix.mul_apply]]
+  exact Finset.measurable_sum Finset.univ (fun q _ =>
+    (Finset.measurable_sum Finset.univ (fun p _ => (hZ i p).mul (hInv p q))).mul
+      (hZ j q))
+
+private theorem fittedRegressorsStar_apply_measurable_of_entries
+    {α : Type*} [MeasurableSpace α]
+    {Z : α → Matrix n l ℝ} {X₂ : α → Matrix n k₂ ℝ}
+    (hZ : ∀ i j, Measurable fun a => Z a i j)
+    (hX₂ : ∀ i j, Measurable fun a => X₂ a i j) (i : n) (j : k₂) :
+    Measurable fun a => fittedRegressorsStar (Z a) (X₂ a) i j := by
+  classical
+  unfold fittedRegressorsStar
+  simp [Matrix.mul_apply]
+  exact Finset.measurable_sum Finset.univ (fun r _ =>
+    (instrumentProjectionStar_apply_measurable_of_entries hZ i r).mul (hX₂ r j))
+
+private theorem controlFunctionResidualStar_apply_measurable_of_entries
+    {α : Type*} [MeasurableSpace α]
+    {Z : α → Matrix n l ℝ} {X₂ : α → Matrix n k₂ ℝ}
+    (hZ : ∀ i j, Measurable fun a => Z a i j)
+    (hX₂ : ∀ i j, Measurable fun a => X₂ a i j) (i : n) (j : k₂) :
+    Measurable fun a => controlFunctionResidualStar (Z a) (X₂ a) i j := by
+  unfold controlFunctionResidualStar
+  exact (hX₂ i j).sub (fittedRegressorsStar_apply_measurable_of_entries hZ hX₂ i j)
+
+private theorem controlFunctionEndogeneityFStatistic_eq_starLocal
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ) (Y : n → ℝ)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))] :
+    controlFunctionEndogeneityFStatistic X₁ X₂ Z Y =
+      olsFStatisticStarLocal
+        (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) Y := by
+  unfold controlFunctionEndogeneityFStatistic
+  rw [olsFStatisticStarLocal_eq_olsFStatistic]
+
+private theorem controlFunctionEndogeneityFStatistic_measurable_of_entries
+    {ι : Type*} [MeasurableSpace ι]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hX₁ : ∀ i j, Measurable fun ξ => X₁ ξ i j)
+    (hX₂ : ∀ i j, Measurable fun ξ => X₂ ξ i j)
+    (hZ : ∀ i j, Measurable fun ξ => Z ξ i j)
+    (hβ : ∀ j, Measurable fun ξ => β ξ j) :
+    Measurable fun p : ι × EuclideanSpace ℝ n =>
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (hInvFull p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2) := by
+  classical
+  have hX₁p : ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n => X₁ p.1 i j :=
+    fun i j => (hX₁ i j).comp measurable_fst
+  have hX₂p : ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n => X₂ p.1 i j :=
+    fun i j => (hX₂ i j).comp measurable_fst
+  have hZp : ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n => Z p.1 i j :=
+    fun i j => (hZ i j).comp measurable_fst
+  have hRestricted :
+      ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n =>
+        Matrix.fromCols (X₁ p.1) (X₂ p.1) i j :=
+    fromCols_apply_measurable_of_entries hX₁p hX₂p
+  have hResidual :
+      ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n =>
+        controlFunctionResidualStar (Z p.1) (X₂ p.1) i j :=
+    controlFunctionResidualStar_apply_measurable_of_entries hZp hX₂p
+  have hY : ∀ i, Measurable fun p : ι × EuclideanSpace ℝ n =>
+      ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp p.2) i := by
+    intro i
+    have hfit : Measurable fun p : ι × EuclideanSpace ℝ n =>
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1) i := by
+      simp [Matrix.mulVec]
+      exact Finset.measurable_sum Finset.univ (fun j _ =>
+        (hRestricted i j).mul ((hβ j).comp measurable_fst))
+    have herr : Measurable fun p : ι × EuclideanSpace ℝ n => WithLp.ofLp p.2 i :=
+      ((continuous_apply i).comp
+        (PiLp.continuous_ofLp 2 (fun _ : n => ℝ))).measurable.comp measurable_snd
+    exact hfit.add herr
+  have hstar :
+      Measurable fun p : ι × EuclideanSpace ℝ n =>
+        olsFStatisticStarLocal
+          (Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (controlFunctionResidualStar (Z p.1) (X₂ p.1))
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp p.2) :=
+    olsFStatisticStarLocal_measurable_of_entries hRestricted hResidual hY
+  have heq :
+      (fun p : ι × EuclideanSpace ℝ n =>
+        letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+              Matrix.fromCols (X₁ p.1) (X₂ p.1))
+            (hInvRestricted p.1)
+        letI : Invertible
+            (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+                (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+              (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+                (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+          Matrix.invertibleOfIsUnitDet
+            (A :=
+              ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+                (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+              (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+                (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+            (hInvFull p.1)
+        controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+            WithLp.ofLp p.2)) =
+      (fun p : ι × EuclideanSpace ℝ n =>
+        olsFStatisticStarLocal
+          (Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (controlFunctionResidualStar (Z p.1) (X₂ p.1))
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+            WithLp.ofLp p.2)) := by
+    funext p
+    letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+        Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1))
+        (hInvRestricted p.1)
+    letI : Invertible
+        (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+            (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+          (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+            (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+      Matrix.invertibleOfIsUnitDet
+        (A :=
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+            (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+          (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+            (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+        (hInvFull p.1)
+    exact controlFunctionEndogeneityFStatistic_eq_starLocal
+      (X₁ := X₁ p.1) (X₂ := X₂ p.1) (Z := Z p.1)
+      (Y := (Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp p.2)
+  exact heq.symm ▸ hstar
+
+/-- Random-design law bridge for exact conditional statistics.
+
+If a fixed-design statistic has the same law `ρ` for every realized design
+`ξ`, then the statistic evaluated under an independent random design with law
+`π` also has law `ρ` under the product measure.  This is the product-measure
+version of the regular-conditional step needed by Hansen Theorems 12.10 and
+12.15 after the fixed-design Chapter 5 laws have been proved. -/
+theorem hasLaw_prod_of_forall_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [SFinite με]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ ξ, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    HasLaw F ρ (π.prod με) := by
+  refine ⟨hF.aemeasurable, ?_⟩
+  ext s hs
+  rw [Measure.map_apply hF hs, Measure.prod_apply (hF hs)]
+  have hsection : ∀ ξ : ι,
+      με ((Prod.mk ξ) ⁻¹' (F ⁻¹' s)) = ρ s := by
+    intro ξ
+    calc
+      με ((Prod.mk ξ) ⁻¹' (F ⁻¹' s))
+          = με ((fun ε : Ωε => F (ξ, ε)) ⁻¹' s) := rfl
+      _ = με.map (fun ε : Ωε => F (ξ, ε)) s := by
+          rw [← Measure.map_apply (hF_fixed ξ) hs]
+      _ = ρ s := by rw [(hfixed ξ).map_eq]
+  simp_rw [hsection]
+  rw [lintegral_const]
+  simp
+
+/-- Joint product-law bridge behind the regular-conditional product case.
+
+If the conditional statistic law is the same `ρ` for every design realization,
+then the joint law of `(design, statistic)` under the independent product
+construction is the product `π × ρ`. -/
+theorem jointLaw_prod_of_forall_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ ξ, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    (π.prod με).map (fun p : ι × Ωε => (p.1, F p)) = π.prod ρ := by
+  classical
+  let G : ι × Ωε → ι × γ := fun p => (p.1, F p)
+  have hG : Measurable G := by
+    change Measurable fun p : ι × Ωε => (p.1, F p)
+    exact (measurable_fst : Measurable fun p : ι × Ωε => p.1).prodMk hF
+  ext s hs
+  rw [Measure.map_apply hG hs, Measure.prod_apply (hG hs), Measure.prod_apply hs]
+  refine lintegral_congr_ae (ae_of_all _ fun ξ => ?_)
+  calc
+    με (Prod.mk ξ ⁻¹' (G ⁻¹' s))
+        = με ((fun ε : Ωε => F (ξ, ε)) ⁻¹' (Prod.mk ξ ⁻¹' s)) := rfl
+    _ = με.map (fun ε : Ωε => F (ξ, ε)) (Prod.mk ξ ⁻¹' s) := by
+        rw [Measure.map_apply (hF_fixed ξ) (measurable_prodMk_left hs)]
+    _ = ρ (Prod.mk ξ ⁻¹' s) := by
+        rw [(hfixed ξ).map_eq]
+
+/-- Regular-conditional product bridge for exact conditional statistics.
+
+For an independent product random-design construction, if every fixed-design
+conditional statistic has the same law `ρ`, then the regular conditional
+distribution of the statistic given the design is a.e. the constant kernel
+`ξ ↦ ρ`.  This is the strongest kernel statement available from the current
+product setup; it is not a disintegration theorem for an arbitrary joint
+random design. -/
+theorem condDistrib_prod_of_forall_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ ξ, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    condDistrib F Prod.fst (π.prod με) =ᵐ[(π.prod με).map Prod.fst]
+      Kernel.const ι ρ := by
+  classical
+  refine condDistrib_ae_eq_of_measure_eq_compProd
+    (μ := π.prod με) (X := Prod.fst) (Y := F)
+    (κ := Kernel.const ι ρ) hF.aemeasurable ?_
+  rw [jointLaw_prod_of_forall_fixed_hasLaw
+      (π := π) (με := με) (ρ := ρ) F hF hF_fixed hfixed,
+    Measure.map_fst_prod, measure_univ, one_smul, Measure.compProd_const]
+
+/-- Regular-conditional bridge for a statistic depending on the conditioning
+value.
+
+If the conditional law of the error `ε` given the realized design `D` is the
+constant kernel `υ`, and every fixed-design statistic `T ξ ε` has law `ρ`
+under `υ`, then the regular conditional law of `T (D ω) (ε ω)` given `D` is
+a.e. the constant kernel `ρ`.  This is the arbitrary-joint analogue of the
+product-design bridge above; the premise is the actual conditional error law,
+not the final statistic law. -/
+theorem condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [StandardBorelSpace Ωε] [Nonempty Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {υ : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure υ] [IsProbabilityMeasure ρ]
+    (D : Ω → ι) (ε : Ω → Ωε) (T : ι → Ωε → γ)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D] Kernel.const ι υ)
+    (hfixed : ∀ ξ, HasLaw (T ξ) ρ υ) :
+    condDistrib (fun ω => T (D ω) (ε ω)) D μ =ᵐ[μ.map D]
+      Kernel.const ι ρ := by
+  classical
+  haveI : IsProbabilityMeasure (μ.map D) :=
+    Measure.isProbabilityMeasure_map hD.aemeasurable
+  let G : ι × Ωε → ι × γ := fun p => (p.1, T p.1 p.2)
+  have hG : Measurable G :=
+    (measurable_fst : Measurable fun p : ι × Ωε => p.1).prodMk hT
+  have hTarget : AEMeasurable (fun ω => T (D ω) (ε ω)) μ :=
+    (hT.comp (hD.prodMk hε)).aemeasurable
+  refine condDistrib_ae_eq_of_measure_eq_compProd D hTarget ?_
+  have hJoint :
+      μ.map (fun ω => (D ω, ε ω)) = μ.map D ⊗ₘ Kernel.const ι υ :=
+    (condDistrib_ae_eq_iff_measure_eq_compProd D hε.aemeasurable
+      (Kernel.const ι υ)).mp hε_cond
+  have hMapLeft :
+      μ.map (fun ω => (D ω, T (D ω) (ε ω))) =
+        (μ.map (fun ω => (D ω, ε ω))).map G := by
+    rw [Measure.map_map hG (hD.prodMk hε)]
+    rfl
+  have hProductMap :
+      ((μ.map D).prod υ).map G = (μ.map D).prod ρ :=
+    jointLaw_prod_of_forall_fixed_hasLaw
+      (π := μ.map D) (με := υ) (ρ := ρ)
+      (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+  calc
+    μ.map (fun ω => (D ω, T (D ω) (ε ω)))
+        = (μ.map (fun ω => (D ω, ε ω))).map G := hMapLeft
+    _ = (μ.map D ⊗ₘ Kernel.const ι υ).map G := by rw [hJoint]
+    _ = ((μ.map D).prod υ).map G := by rw [Measure.compProd_const]
+    _ = (μ.map D).prod ρ := hProductMap
+    _ = μ.map D ⊗ₘ Kernel.const ι ρ := by rw [Measure.compProd_const]
+
+/-- Coarsening bridge for constant conditional kernels.
+
+If `Y | R` has a constant law `υ`, then `Y | S(R)` has the same constant law.
+This is the measure-theoretic step that lets Hansen's raw conditional-normal
+model `e | X,Z ~ N(0,σ²I)` feed theorem statements whose design index is a
+measurable function of the raw design. -/
+theorem condDistrib_const_of_condDistrib_const_comp
+    {κ ι γ : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {υ : Measure γ} [IsProbabilityMeasure υ]
+    (R : Ω → κ) (S : κ → ι) (Y : Ω → γ)
+    (hR : Measurable R) (hS : Measurable S) (hY : Measurable Y)
+    (hcond :
+      condDistrib Y R μ =ᵐ[μ.map R] Kernel.const κ υ) :
+    condDistrib Y (fun ω => S (R ω)) μ =ᵐ[μ.map (fun ω => S (R ω))]
+      Kernel.const ι υ := by
+  classical
+  haveI : IsProbabilityMeasure (μ.map R) :=
+    Measure.isProbabilityMeasure_map hR.aemeasurable
+  let D : Ω → ι := fun ω => S (R ω)
+  let G : κ × γ → ι × γ := fun p => (S p.1, p.2)
+  have hG : Measurable G :=
+    (hS.comp (measurable_fst : Measurable fun p : κ × γ => p.1)).prodMk
+      (measurable_snd : Measurable fun p : κ × γ => p.2)
+  refine condDistrib_ae_eq_of_measure_eq_compProd D hY.aemeasurable ?_
+  have hJointR :
+      μ.map (fun ω => (R ω, Y ω)) =
+        μ.map R ⊗ₘ Kernel.const κ υ :=
+    (condDistrib_ae_eq_iff_measure_eq_compProd R hY.aemeasurable
+      (Kernel.const κ υ)).mp hcond
+  have hMapLeft :
+      μ.map (fun ω => (S (R ω), Y ω)) =
+        (μ.map (fun ω => (R ω, Y ω))).map G := by
+    rw [Measure.map_map hG (hR.prodMk hY)]
+    rfl
+  have hProductMap :
+      ((μ.map R).prod υ).map G =
+        ((μ.map R).map S).prod (υ.map id) := by
+    simpa [G] using
+      (Measure.map_prod_map (μ.map R) υ hS measurable_id).symm
+  have hCoarseMap : (μ.map R).map S = μ.map D := by
+    rw [Measure.map_map hS hR]
+    rfl
+  calc
+    μ.map (fun ω => (S (R ω), Y ω))
+        = (μ.map (fun ω => (R ω, Y ω))).map G := hMapLeft
+    _ = (μ.map R ⊗ₘ Kernel.const κ υ).map G := by rw [hJointR]
+    _ = ((μ.map R).prod υ).map G := by rw [Measure.compProd_const]
+    _ = ((μ.map R).map S).prod (υ.map id) := hProductMap
+    _ = (μ.map D).prod υ := by
+        rw [hCoarseMap]
+        simp
+    _ = μ.map D ⊗ₘ Kernel.const ι υ := by rw [Measure.compProd_const]
+
+/-- Hansen Theorem 12.10 kernel bridge for generated-regressor exact
+conditional statistics in the independent product-design setup. -/
+theorem generatedRegressorExactStatistic_condDistrib_eq_const_of_conditional
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (T : ι → Ωε → γ)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hfixed : ∀ ξ, HasLaw (T ξ) ρ με) :
+    condDistrib (fun p : ι × Ωε => T p.1 p.2) Prod.fst (π.prod με) =ᵐ[
+      (π.prod με).map Prod.fst] Kernel.const ι ρ :=
+  condDistrib_prod_of_forall_fixed_hasLaw
+    (π := π) (με := με) (ρ := ρ)
+    (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+
+/-- Hansen Theorem 12.10 random-design bridge.
+
+Any generated-regressor statistic whose fixed-design conditional law is `ρ`
+for every generated-design realization has the same unconditional law under an
+independent product random-design construction.  The fixed laws supplied to
+`hfixed` are typically
+`generatedRegressorBeta_hasGaussianLaw_of_normal_error`,
+`generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT_card_sub`, or
+`generatedRegressorFStatistic_hasLaw_classicalFDist_card_sub`. -/
+theorem generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [SFinite με]
+    (T : ι → Ωε → γ)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hfixed : ∀ ξ, HasLaw (T ξ) ρ με) :
+    HasLaw (fun p : ι × Ωε => T p.1 p.2) ρ (π.prod με) :=
+  hasLaw_prod_of_forall_fixed_hasLaw
+    (π := π) (με := με) (ρ := ρ)
+    (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+
+/-- Hansen Theorem 12.15 random-design bridge.
+
+This is the control-function analogue of
+`generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional`: once the
+fixed-design conditional F law is available for every realized design, the
+unconditional product random-design statistic has the same F law. -/
+theorem controlFunctionExactStatistic_randomDesign_hasLaw_of_conditional
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [SFinite με]
+    (T : ι → Ωε → γ)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hfixed : ∀ ξ, HasLaw (T ξ) ρ με) :
+    HasLaw (fun p : ι × Ωε => T p.1 p.2) ρ (π.prod με) :=
+  hasLaw_prod_of_forall_fixed_hasLaw
+    (π := π) (με := με) (ρ := ρ)
+    (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+
+/-- Hansen Theorem 12.15 kernel bridge for control-function exact conditional
+statistics in the independent product-design setup. -/
+theorem controlFunctionExactStatistic_condDistrib_eq_const_of_conditional
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (T : ι → Ωε → γ)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hfixed : ∀ ξ, HasLaw (T ξ) ρ με) :
+    condDistrib (fun p : ι × Ωε => T p.1 p.2) Prod.fst (π.prod με) =ᵐ[
+      (π.prod με).map Prod.fst] Kernel.const ι ρ :=
+  condDistrib_prod_of_forall_fixed_hasLaw
+    (π := π) (με := με) (ρ := ρ)
+    (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+
+/-- Hansen Theorem 12.15, product random-design form for the exact
+control-function endogeneity F law.
+
+This specializes `controlFunctionExactStatistic_randomDesign_hasLaw_of_conditional`
+to the model where the design is drawn from `π` and an independent
+homoskedastic normal error is drawn from `με`.  It is still a product-design
+bridge, not the full regular-conditional-kernel statement. -/
+theorem controlFunctionEndogeneityFStatistic_randomDesign_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+            WithLp.ofLp (ε p.2)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+      (π.prod με) := by
+  refine controlFunctionExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+    (fun ξ e =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e)))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := με) (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+    (β := β ξ) (σ2 := σ2) hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15, product random-design conditional-kernel form for
+the exact control-function endogeneity F law. -/
+theorem controlFunctionEndogeneityFStatistic_condDistrib_eq_const_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    condDistrib
+        (fun p : ι × Ωε =>
+          controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+              WithLp.ofLp (ε p.2)))
+        Prod.fst (π.prod με) =ᵐ[(π.prod με).map Prod.fst]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂ := by
+    have hν0 := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+      (k₁ := k₁) (k₂ := k₂) hdf
+    rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν0
+  haveI :
+      IsProbabilityMeasure
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine controlFunctionExactStatistic_condDistrib_eq_const_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+    (fun ξ e =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e)))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := με) (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+    (β := β ξ) (σ2 := σ2) hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15, product random-design conditional exact size with
+an upper-tail critical value.
+
+This tightens the constant-kernel law to the conditional rejection probability:
+given the random design, the kernel probability of `F > c` is a.e. exactly the
+nominal size `alpha`. -/
+theorem controlFunctionEndogeneityFTest_condDistrib_exactSize_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    (fun ξ =>
+      (condDistrib
+        (fun p : ι × Ωε =>
+          controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+              WithLp.ofLp (ε p.2)))
+        Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
+          (π.prod με).map Prod.fst] fun _ => alpha := by
+  have hkernel :=
+    controlFunctionEndogeneityFStatistic_condDistrib_eq_const_classicalFDist_card_sub
+      (π := π) (με := με) X₁ X₂ Z β hσ2 hq hdf ε
+      hInvRestricted hInvFull hε hT hT_fixed
+  filter_upwards [hkernel] with ξ hξ
+  rw [hξ]
+  simpa [Kernel.const_apply] using hcrit
+
+/-- Hansen Theorem 12.15, product random-design conditional exact size with
+Hansen's lower-tail critical-value convention. -/
+theorem controlFunctionEndogeneityFTest_condDistrib_exactSize_card_sub_lowerTail
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    (fun ξ =>
+      (condDistrib
+        (fun p : ι × Ωε =>
+          controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+              WithLp.ofLp (ε p.2)))
+        Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
+          (π.prod με).map Prod.fst] fun _ => alpha := by
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq
+      (by
+        have hν := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+          (k₁ := k₁) (k₂ := k₂) hdf
+        rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν)
+      hcrit
+  exact controlFunctionEndogeneityFTest_condDistrib_exactSize_card_sub
+    (π := π) (με := με) X₁ X₂ Z β c htail hσ2 hq hdf ε
+    hInvRestricted hInvFull hε hT hT_fixed
+
+/-- Hansen Theorem 12.15, arbitrary-joint conditional-normal kernel form.
+
+If the actual regular conditional law of the structural error `ε` given the
+realized control-function design index `D` is
+`N(0, σ² Iₙ)`, then the regular conditional law of Hansen's endogeneity
+F statistic given `D` is a.e. the displayed
+`F(k₂, n-k₁-2k₂)` law.  The proof maps the conditional error law through the
+fixed-design Chapter 5 F theorem; it does not assume the final F law. -/
+theorem controlFunctionEndogeneityFStatistic_condDistrib_eq_const_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂ := by
+    have hν0 := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+      (k₁ := k₁) (k₂ := k₂) hdf
+    rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν0
+  haveI :
+      IsProbabilityMeasure
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine
+    condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const
+      (μ := μ)
+      (υ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      (ρ := classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+      D ε
+      (fun ξ e =>
+        controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+          ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e))
+      hD hε hT hT_fixed hε_cond ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  have hId :
+      HasLaw (fun e : EuclideanSpace ℝ n => e)
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) := by
+    simpa using
+      (ProbabilityTheory.HasLaw.id
+        (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+  exact controlFunctionEndogeneityFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+    (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+    (β := β ξ) (σ2 := σ2) hσ2 hq hdf
+    (fun e : EuclideanSpace ℝ n => e) hId
+
+/-- Hansen Theorem 12.15, arbitrary-joint conditional exact size with an
+upper-tail critical value under the conditional-normal premise
+`ε | D ~ N(0, σ² Iₙ)`. -/
+theorem controlFunctionEndogeneityFTest_condDistrib_exactSize_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hkernel :=
+    controlFunctionEndogeneityFStatistic_condDistrib_eq_const_of_conditionalNormal
+      (μ := μ) D ε X₁ X₂ Z β hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hT hT_fixed
+  filter_upwards [hkernel] with ξ hξ
+  rw [hξ]
+  simpa [Kernel.const_apply] using hcrit
+
+/-- Hansen Theorem 12.15, arbitrary-joint conditional exact size with
+Hansen's lower-tail critical-value convention under
+`ε | D ~ N(0, σ² Iₙ)`. -/
+theorem controlFunctionEndogeneityFTest_condDistrib_exactSize_lowerTail_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq
+      (by
+        have hν := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+          (k₁ := k₁) (k₂ := k₂) hdf
+        rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν)
+      hcrit
+  exact
+    controlFunctionEndogeneityFTest_condDistrib_exactSize_of_conditionalNormal
+      (μ := μ) D ε X₁ X₂ Z β c htail hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hT hT_fixed
+
+/-- **Hansen Theorem 12.15**, bundled arbitrary-joint conditional-normal
+endpoint.
+
+Under the primitive conditional-normal premise
+`ε | D ~ N(0, σ² Iₙ)`, Hansen's control-function endogeneity statistic has the
+conditional `F(k₂,n-k₁-2k₂)` law, and the lower-tail critical-value rule
+`F > c_{1-α}` has conditional exact size `α`. -/
+theorem controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  exact
+    ⟨controlFunctionEndogeneityFStatistic_condDistrib_eq_const_of_conditionalNormal
+        (μ := μ) D ε X₁ X₂ Z β hσ2 hq hdf hD hε hε_cond
+        hInvRestricted hInvFull hT hT_fixed,
+      controlFunctionEndogeneityFTest_condDistrib_exactSize_lowerTail_of_conditionalNormal
+        (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+        hInvRestricted hInvFull hT hT_fixed⟩
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, unconditional exact-law corollary of the
+conditional-normal endpoint.
+
+The conditional theorem above proves the stronger regular-conditional statement.
+This wrapper recovers the textbook-facing form: Hansen's control-function
+endogeneity F statistic has the displayed `F(k₂,n-k₁-2k₂)` law, and the
+upper-tail rejection probability is exactly `alpha`. -/
+theorem controlFunctionEndogeneityFTest_theorem12_15_hasLaw_and_exactSize_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    HasLaw
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) μ ∧
+    μ.real
+        {ω |
+          c <
+            controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+              ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+                WithLp.ofLp (ε ω))} = alpha := by
+  let stat : Ω → ℝ := fun ω =>
+    controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+      ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+        WithLp.ofLp (ε ω))
+  let ρ : Measure ℝ :=
+    classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂ := by
+    have hν0 := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+      (k₁ := k₁) (k₂ := k₂) hdf
+    rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν0
+  haveI : IsProbabilityMeasure ρ := by
+    dsimp [ρ]
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  have hcond :=
+    (controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hT hT_fixed).1
+  have hstat_meas : AEMeasurable stat μ :=
+    (hT.comp (hD.prodMk hε)).aemeasurable
+  have hLaw : HasLaw stat ρ μ :=
+    HasLaw.of_condDistrib_eq_const hD.aemeasurable hstat_meas (by
+      simpa [stat, ρ] using hcond)
+  have htail : ρ.real (Set.Ioi c) = alpha := by
+    dsimp [ρ]
+    exact classicalFDist_upperTail_eq_of_lowerTail_eq hq hν hcrit
+  refine ⟨by simpa [stat, ρ] using hLaw, ?_⟩
+  have hprob :
+      μ.real (stat ⁻¹' Set.Ioi c) = ρ.real (Set.Ioi c) :=
+    HasLaw.real_preimage_eq hLaw measurableSet_Ioi
+  rw [show
+      {ω |
+        c <
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω))} =
+        stat ⁻¹' Set.Ioi c by
+      ext ω
+      simp [stat, Set.mem_Ioi]]
+  exact hprob.trans htail
+
+/-- **Hansen Theorem 12.15**, lower-tail named unconditional corollary.
+
+This is a naming bridge for
+`controlFunctionEndogeneityFTest_theorem12_15_hasLaw_and_exactSize_of_conditionalNormal`:
+the canonical theorem already uses Hansen's lower-tail critical-value
+convention `P(F ≤ c) = 1 - α` and proves the unconditional `F` law plus
+upper-tail exact rejection probability. -/
+theorem
+    controlFunctionEndogeneityFTest_theorem12_15_hasLaw_and_exactSize_of_conditionalNormal_lowerTail
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    HasLaw
+        (fun ω =>
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) μ ∧
+    μ.real
+        {ω |
+          c <
+            controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+              ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+                WithLp.ofLp (ε ω))} = alpha := by
+  exact
+    controlFunctionEndogeneityFTest_theorem12_15_hasLaw_and_exactSize_of_conditionalNormal
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hT hT_fixed
+
+/-- **Hansen Theorem 12.15**, bundled conditional-normal endpoint with
+determinant/rank side conditions.
+
+This is the same conditional `F(k₂,n-k₁-2k₂)` law and lower-tail exact-size
+conclusion as `controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail`,
+but callers provide the realized-design nonsingularity assumptions as
+determinant units rather than ambient inverse typeclasses. -/
+theorem
+    controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail_of_isUnit
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (hInvFull p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      letI : Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+          Matrix.fromCols (X₁ ξ) (X₂ ξ)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+            Matrix.fromCols (X₁ ξ) (X₂ ξ))
+          (hInvRestricted ξ)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+            (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+            (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))
+          (hInvFull ξ)
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (hInvFull (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (hInvFull (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
+  by
+    let hInvRestricted' : ∀ ξ,
+        Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+          Matrix.fromCols (X₁ ξ) (X₂ ξ)) := fun ξ =>
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+          Matrix.fromCols (X₁ ξ) (X₂ ξ))
+        (hInvRestricted ξ)
+    let hInvFull' : ∀ ξ,
+        Invertible
+          (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+            (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ))) := fun ξ =>
+      Matrix.invertibleOfIsUnitDet
+        (A :=
+          ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))
+        (hInvFull ξ)
+    have hT' : Measurable fun p : ι × EuclideanSpace ℝ n =>
+        controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+            WithLp.ofLp p.2) := by
+      simpa [hInvRestricted', hInvFull'] using hT
+    have hTfixed' : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+        controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+          ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e) := by
+      intro ξ
+      simpa [hInvRestricted', hInvFull'] using hT_fixed ξ
+    have hbase :=
+      controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail
+        (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+        hInvRestricted' hInvFull' hT' hTfixed'
+    simpa [hInvRestricted', hInvFull'] using hbase
+
+/-- **Hansen Theorem 12.15**, conditional-normal endpoint from entrywise
+measurable realized designs.
+
+This wrapper derives the statistic-map measurability hypotheses in
+`controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail_of_isUnit`
+from coordinatewise measurability of `X₁`, `X₂`, `Z`, and `β`.  The
+realized-design determinant/rank hypotheses remain explicit: they are not
+inferred from measurability. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_measurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hX₁ : ∀ i j, Measurable fun ξ => X₁ ξ i j)
+    (hX₂ : ∀ i j, Measurable fun ξ => X₂ ξ i j)
+    (hZ : ∀ i j, Measurable fun ξ => Z ξ i j)
+    (hβ : ∀ j, Measurable fun ξ => β ξ j) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (hInvFull (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (hInvFull (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
+  by
+    have hT :=
+      controlFunctionEndogeneityFStatistic_measurable_of_entries
+        X₁ X₂ Z β hInvRestricted hInvFull hX₁ hX₂ hZ hβ
+    exact
+      controlFunctionEndogeneityFTest_theorem12_15_conditionalNormal_lowerTail_of_isUnit
+        (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+        hInvRestricted hInvFull hT
+        (fun ξ => by
+          simpa using hT.comp (measurable_const.prodMk measurable_id :
+            Measurable fun e : EuclideanSpace ℝ n => (ξ, e)))
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal endpoint from measurable
+designs and a single expectation-error full-rank condition.
+
+The full control-function design rank required by the fixed-design F theorem is
+derived from the expectation-error design rank using the deterministic column
+transform `(X₁,X₂,û₂) = (X₁,P_ZX₂,û₂)T`.  The restricted-design rank
+condition remains explicit. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_measurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hX₁ : ∀ i j, Measurable fun ξ => X₁ ξ i j)
+    (hX₂ : ∀ i j, Measurable fun ξ => X₂ ξ i j)
+    (hZ : ∀ i j, Measurable fun ξ => Z ξ i j)
+    (hβ : ∀ j, Measurable fun ξ => β ξ j) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  let hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) := fun ξ => by
+    simpa [controlFunctionDesignStar] using
+      controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+  simpa [hInvFull] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_measurableDesign
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvFull hX₁ hX₂ hZ hβ
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal endpoint from row-measurable
+control-function designs.
+
+This is a thin map-level wrapper around
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_measurableDesign`.
+It keeps the same conditional-normal and rank hypotheses, but accepts
+row-measurable random designs instead of coordinatewise measurability fields. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hX₁_entries : ∀ i j, Measurable fun ξ => X₁ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hX₁ i))
+  have hX₂_entries : ∀ i j, Measurable fun ξ => X₂ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hX₂ i))
+  have hZ_entries : ∀ i j, Measurable fun ξ => Z ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hZ i))
+  have hβ_entries : ∀ j, Measurable fun ξ => β ξ j := by
+    intro j
+    exact ((continuous_apply j).measurable.comp hβ)
+  exact
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_measurableDesign
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvExpectationError hX₁_entries hX₂_entries hZ_entries hβ_entries
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, row-measurable conditional-normal endpoint
+with the restricted-rank side condition derived.
+
+This is a thin wrapper around
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign`.
+The single realized-rank hypothesis is the expectation-error design Gram
+determinant; the restricted `(X₁,X₂)` and full control-function ranks are
+both derived from existing finite-sample bridges. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+    controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+      (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+      (hInvExpectationError ξ)
+  simpa [hInvRestricted] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvRestricted hInvExpectationError hX₁ hX₂ hZ hβ
+
+/-- Hansen Theorem 12.15, product random-design exact size with an upper-tail
+critical value. -/
+theorem controlFunctionEndogeneityFTest_randomDesign_exactSize_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    (π.prod με).real {p : ι × Ωε | c <
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  let T : ι × Ωε → ℝ := fun p =>
+    controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+      ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2))
+  have hLaw : HasLaw T
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂))
+      (π.prod με) :=
+    controlFunctionEndogeneityFStatistic_randomDesign_hasLaw_classicalFDist_card_sub
+      (π := π) (με := με) X₁ X₂ Z β hσ2 hq hdf ε
+      hInvRestricted hInvFull hε hT hT_fixed
+  have hpre :
+      (π.prod με).real {p : ι × Ωε | c < T p} =
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+            (Set.Ioi c) := by
+    rw [show {p : ι × Ωε | c < T p} = T ⁻¹' Set.Ioi c by
+      ext p
+      simp [T, Set.mem_Ioi]]
+    exact HasLaw.real_preimage_eq hLaw measurableSet_Ioi
+  simpa [T] using hpre.trans hcrit
+
+/-- Hansen Theorem 12.15, product random-design exact size with Hansen's
+lower-tail critical-value convention. -/
+theorem controlFunctionEndogeneityFTest_randomDesign_exactSize_card_sub_lowerTail
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)))
+    (hInvFull : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    (π.prod με).real {p : ι × Ωε | c <
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq
+      (by
+        have hν := controlFunctionResidualDf_pos_of_card_add_two_mul_lt
+          (k₁ := k₁) (k₂ := k₂) hdf
+        rwa [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hν)
+      hcrit
+  exact controlFunctionEndogeneityFTest_randomDesign_exactSize_card_sub
+    (π := π) (με := με) X₁ X₂ Z β c htail hσ2 hq hdf ε
+    hInvRestricted hInvFull hε hT hT_fixed
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+/-- Cardinality bridge for Hansen Theorem 12.10: the generated-regressor
+fixed-design OLS residual degrees of freedom are `n-k₁-k₂`. -/
+theorem generatedRegressorResidualDf_eq_card_sub_card_sub :
+    Fintype.card n - Fintype.card (Sum k₁ k₂) =
+      Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+  rw [Fintype.card_sum]
+  omega
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] in
+private theorem generatedRegressorCard_sum_lt_of_card_add_lt
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n) :
+    Fintype.card (Sum k₁ k₂) < Fintype.card n := by
+  rwa [Fintype.card_sum]
+
+omit [DecidableEq n] in
+/-- Pointwise bridge from normalized sample-Gram nonsingularity to raw
+fixed-design Gram nonsingularity.
+
+Exact finite-sample OLS theorems use `(XᵀX)`, while Hansen-facing asymptotic
+assumptions are usually stated for `sampleGram X = n⁻¹ XᵀX`.  When the sample
+has positive cardinality, these determinant-unit conditions are equivalent up
+to multiplication by a nonzero scalar. -/
+theorem rawGram_det_isUnit_of_sampleGram_det_isUnit
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit (sampleGram X).det) :
+    IsUnit ((Xᵀ * X).det) := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul] at hX
+  exact (mul_ne_zero_iff.mp hX).2
+
+omit [DecidableEq n] in
+/-- Converse normalized/raw Gram determinant bridge.
+
+This is useful for Hansen Theorem 12.15 because fixed-design rank or
+positive-definiteness assumptions are often stated for the raw Gram `XᵀX`,
+while the chapter-facing primitive package records the equivalent normalized
+sample Gram `n⁻¹XᵀX`. -/
+theorem sampleGram_det_isUnit_of_rawGram_det_isUnit
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit ((Xᵀ * X).det)) :
+    IsUnit (sampleGram X).det := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul]
+  exact mul_ne_zero (pow_ne_zero _ (inv_ne_zero hn_ne)) hX
+
+omit [DecidableEq n] in
+/-- Hansen-style normalized sample-Gram rank bridge for the expectation-error
+design `(Ŵ,Û)`.
+
+If `ZᵀZ` is nonsingular and the normalized fitted/residual block Grams are
+nonsingular, then the normalized sample Gram of the full expectation-error
+design is nonsingular. -/
+theorem expectationErrorDesignStar_sampleGram_det_isUnit_of_block_sampleGrams
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ)
+    (hn : 0 < Fintype.card n)
+    (hZ : IsUnit ((Zᵀ * Z).det))
+    (hW : IsUnit
+      (sampleGram (expectationErrorFittedStar Z X)).det)
+    (hU : IsUnit
+      (sampleGram (expectationErrorResidualStar Z X)).det) :
+    IsUnit (sampleGram (expectationErrorDesignStar Z X)).det := by
+  have hWraw : IsUnit
+      (((expectationErrorFittedStar Z X)ᵀ *
+        expectationErrorFittedStar Z X).det) :=
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := expectationErrorFittedStar Z X) hn hW
+  have hUraw : IsUnit
+      (((expectationErrorResidualStar Z X)ᵀ *
+        expectationErrorResidualStar Z X).det) :=
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := expectationErrorResidualStar Z X) hn hU
+  have hraw :
+      IsUnit
+        (((expectationErrorDesignStar Z X)ᵀ *
+          expectationErrorDesignStar Z X).det) :=
+    expectationErrorDesignStar_gram_det_isUnit_of_block_ranks
+      (Z := Z) (X := X) hZ hWraw hUraw
+  exact sampleGram_det_isUnit_of_rawGram_det_isUnit
+    (X := expectationErrorDesignStar Z X) hn hraw
+
+set_option linter.style.longLine false in
+omit [DecidableEq n] in
+/-- Hansen-style normalized sample-Gram rank bridge for the control-function
+expectation-error design.
+
+Under the projection/span geometry, nonsingularity of the normalized Grams for
+`Z`, `(X₁,P_ZX₂)`, and the first-stage residual block implies nonsingularity
+of the normalized Gram for the full `(X₁,P_ZX₂,û₂)` design. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_projection_span_block_sampleGrams
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (A₁ : Matrix l k₁ ℝ)
+    (hn : 0 < Fintype.card n)
+    (hZ : IsUnit (sampleGram Z).det)
+    (hX₁ : X₁ = Z * A₁)
+    (hleft :
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))).det)
+    (hres :
+      IsUnit
+        (sampleGram (controlFunctionResidualStar Z X₂)).det) :
+    IsUnit
+      (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det := by
+  have hZraw : IsUnit ((Zᵀ * Z).det) :=
+    rawGram_det_isUnit_of_sampleGram_det_isUnit (X := Z) hn hZ
+  have hleftraw :
+      IsUnit
+        (((Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂))ᵀ *
+          Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)).det) :=
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := Matrix.fromCols X₁ (expectationErrorFittedStar Z X₂)) hn hleft
+  have hresraw :
+      IsUnit
+        (((controlFunctionResidualStar Z X₂)ᵀ *
+          controlFunctionResidualStar Z X₂).det) :=
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := controlFunctionResidualStar Z X₂) hn hres
+  have hraw :
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+          controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det) :=
+    controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) (A₁ := A₁)
+      hZraw hX₁ hleftraw hresraw
+  exact sampleGram_det_isUnit_of_rawGram_det_isUnit
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) hn hraw
+
+omit [DecidableEq n] in
+/-- Normalized sample-Gram positive definiteness from a concrete full-column
+rank certificate.
+
+For Hansen Theorem 12.15 this is the finite-sample rank bridge from the raw
+expectation-error design map to the positive-definite normalized sample Gram
+used by the primitive exact-F package. -/
+theorem sampleGram_posDef_of_mulVec_injective
+    {p : Type*} [Fintype p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n)
+    (hX : Function.Injective X.mulVec) :
+    (sampleGram X).PosDef := by
+  have hraw : (Xᵀ * X).PosDef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      (Matrix.PosDef.conjTranspose_mul_self X hX)
+  have hn_real : 0 < (Fintype.card n : ℝ) := by
+    exact_mod_cast hn
+  simpa [sampleGram] using hraw.smul (inv_pos.mpr hn_real)
+
+omit [DecidableEq n] in
+/-- Normalized sample-Gram determinant certificate from a concrete full-column
+rank certificate. -/
+theorem sampleGram_det_isUnit_of_mulVec_injective
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n)
+    (hX : Function.Injective X.mulVec) :
+    IsUnit (sampleGram X).det :=
+  isUnit_iff_ne_zero.mpr
+    ((sampleGram_posDef_of_mulVec_injective (X := X) hn hX).det_pos.ne')
+
+omit [DecidableEq n] in
+/-- Expectation-error control-function rank bridge from Hansen-style
+normalized sample-Gram nonsingularity to the raw Gram determinant used by the
+fixed-design Chapter 5 F law. -/
+theorem controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      IsUnit
+        (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det) :
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det) :=
+  rawGram_det_isUnit_of_sampleGram_det_isUnit
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) hn h
+
+omit [DecidableEq n] in
+/-- Expectation-error control-function rank bridge from raw Gram
+nonsingularity to Hansen's normalized sample-Gram condition. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_rawGram_det_isUnit
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar X₁ X₂ Z)ᵀ *
+          controlFunctionExpectationErrorDesignStar X₁ X₂ Z).det)) :
+    IsUnit
+      (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det :=
+  sampleGram_det_isUnit_of_rawGram_det_isUnit
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) hn h
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 rank bridge from concrete full column rank of the
+expectation-error control-function design to positive definiteness of the
+normalized sample Gram. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_posDef_of_mulVec_injective
+    {k₁ : Type*} {k₂ : Type*}
+    [Fintype k₁] [Fintype k₂]
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      Function.Injective
+        (controlFunctionExpectationErrorDesignStar X₁ X₂ Z).mulVec) :
+    (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).PosDef :=
+  sampleGram_posDef_of_mulVec_injective
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) hn h
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 rank bridge from concrete full column rank of the
+expectation-error control-function design to nonsingularity of the normalized
+sample Gram. -/
+theorem controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_mulVec_injective
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      Function.Injective
+        (controlFunctionExpectationErrorDesignStar X₁ X₂ Z).mulVec) :
+    IsUnit
+      (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det :=
+  sampleGram_det_isUnit_of_mulVec_injective
+    (X := controlFunctionExpectationErrorDesignStar X₁ X₂ Z) hn h
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 rank bridge: normalized nonsingularity of the
+expectation-error design supplies nonsingularity of Hansen's actual
+control-function design. -/
+theorem controlFunctionDesignStar_gram_det_isUnit_of_expectationError_sampleGram
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      IsUnit
+        (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det) :
+    IsUnit
+      (((controlFunctionDesignStar X₁ X₂ Z)ᵀ *
+        controlFunctionDesignStar X₁ X₂ Z).det) :=
+  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+    (X₁ := X₁) (X₂ := X₂) (Z := Z)
+    (controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) hn h)
+
+omit [DecidableEq n] in
+/-- Hansen Theorem 12.15 rank bridge: normalized nonsingularity of the
+expectation-error control-function design also supplies the restricted
+`(X₁,X₂)` Gram nonsingularity. -/
+theorem controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError_sampleGram
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n k₂ ℝ) (Z : Matrix n l ℝ)
+    (hn : 0 < Fintype.card n)
+    (h :
+      IsUnit
+        (sampleGram (controlFunctionExpectationErrorDesignStar X₁ X₂ Z)).det) :
+    IsUnit (((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂).det) :=
+  controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+    (X₁ := X₁) (X₂ := X₂) (Z := Z)
+    (controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+      (X₁ := X₁) (X₂ := X₂) (Z := Z) hn h)
+
+/-- Hansen Theorem 12.15 primitive design side conditions.
+
+The package records the raw observable design measurability assumptions and the
+single normalized expectation-error sample-Gram rank condition.  The restricted
+and actual control-function Gram determinant hypotheses used by the exact
+fixed-design F law are derived from these fields by deterministic projection
+bridges. -/
+structure ControlFunctionFTestHansenDesignConditions
+    {ι : Type*} [MeasurableSpace ι]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ) : Prop where
+  X1_meas : ∀ i, Measurable fun ξ => X₁ ξ i
+  X2_meas : ∀ i, Measurable fun ξ => X₂ ξ i
+  Z_meas : ∀ i, Measurable fun ξ => Z ξ i
+  beta_meas : Measurable β
+  expectationError_sampleGram_nonsingular : ∀ ξ,
+    IsUnit
+      (sampleGram
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det
+
+namespace ControlFunctionFTestHansenDesignConditions
+
+omit [DecidableEq n] in
+/-- Constructor from Hansen's normalized expectation-error sample-Gram
+determinant condition. -/
+theorem of_expectationError_sampleGram
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hsample : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β where
+  X1_meas := hX₁
+  X2_meas := hX₂
+  Z_meas := hZ
+  beta_meas := hβ
+  expectationError_sampleGram_nonsingular := hsample
+
+omit [DecidableEq n] in
+/-- Constructor from positive definiteness of Hansen's normalized
+expectation-error sample Gram. -/
+theorem of_expectationError_sampleGram_posDef
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (sampleGram
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_sampleGram
+    hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+omit [DecidableEq n] in
+/-- Constructor from concrete full column rank of Hansen's expectation-error
+design `(X₁,P_ZX₂,û₂)`.
+
+This derives the normalized expectation-error sample-Gram certificate used by
+Theorem 12.15 from the raw design map, rather than taking the determinant
+condition as primitive. -/
+theorem of_expectationErrorDesign_injective
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hinj : ∀ ξ,
+      Function.Injective
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).mulVec) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_sampleGram
+    hX₁ hX₂ hZ hβ
+    (fun ξ =>
+      controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_mulVec_injective
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) hn (hinj ξ))
+
+omit [DecidableEq n] in
+/-- Constructor from the raw expectation-error design Gram determinant.
+
+This is the finite-sample rank condition that fixed-design OLS statements
+naturally expose; the constructor converts it to Hansen's normalized
+sample-Gram primitive field. -/
+theorem of_expectationError_rawGram
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β where
+  X1_meas := hX₁
+  X2_meas := hX₂
+  Z_meas := hZ
+  beta_meas := hβ
+  expectationError_sampleGram_nonsingular := fun ξ =>
+    controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_rawGram_det_isUnit
+      (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) hn (hraw ξ)
+
+omit [DecidableEq n] in
+/-- Constructor from raw expectation-error design positive definiteness. -/
+theorem of_expectationError_posDef
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_rawGram
+    (hn := hn) hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+omit [DecidableEq n] in
+/-- Constructor from raw control-function design Gram nonsingularity.
+
+The deterministic column transform between `(X₁,X₂,û₂)` and
+`(X₁,P_ZX₂,û₂)` first converts this to expectation-error raw rank, then the
+sample-Gram bridge fills Hansen's primitive field. -/
+theorem of_controlFunction_rawGram
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_rawGram
+    (hn := hn) hX₁ hX₂ hZ hβ
+    (fun ξ =>
+      controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_controlFunction
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (hraw ξ))
+
+omit [DecidableEq n] in
+/-- Constructor from raw control-function design positive definiteness. -/
+theorem of_controlFunction_posDef
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_controlFunction_rawGram
+    (hn := hn) hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+omit [DecidableEq n] in
+/-- Constructor from lower-level projection/span rank assumptions.
+
+This is the narrow Hansen Theorem 12.15 route from the first-stage geometry:
+`X₁` lies in the instrument span, `Z'Z` is nonsingular, and the two orthogonal
+blocks `(X₁,P_ZX₂)` and `û₂` each have full column rank.  The full
+expectation-error design rank is then derived, not assumed. -/
+theorem of_projection_span_block_ranks
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (((Z ξ)ᵀ * Z ξ).det))
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar (Z ξ) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar (Z ξ) (X₂ ξ)).det)) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_rawGram
+    (hn := hn) hX₁ hX₂ hZ hβ
+    (fun ξ => by
+      rcases hX₁span ξ with ⟨A₁, hspan⟩
+      exact
+        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+          (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (A₁ := A₁)
+          (hZrank ξ) hspan (hleft ξ) (hres ξ))
+
+set_option linter.style.longLine false in
+omit [DecidableEq n] in
+/-- Constructor from lower-level projection/span rank assumptions stated in
+Hansen's normalized sample-Gram notation.
+
+This is the sample-Gram analogue of `of_projection_span_block_ranks`: the
+instrument, fitted-left, and first-stage-residual block rank assumptions are
+all written as nonsingularity of `n⁻¹X'X`. -/
+theorem of_projection_span_block_sampleGrams
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (sampleGram (Z ξ)).det)
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) :
+    ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+  ControlFunctionFTestHansenDesignConditions.of_expectationError_sampleGram
+    hX₁ hX₂ hZ hβ
+    (fun ξ => by
+      rcases hX₁span ξ with ⟨A₁, hspan⟩
+      exact
+        controlFunctionExpectationErrorDesignStar_sampleGram_det_isUnit_of_projection_span_block_sampleGrams
+          (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (A₁ := A₁)
+          hn (hZrank ξ) hspan (hleft ξ) (hres ξ))
+
+omit [DecidableEq n] in
+/-- Constructor for the included-instrument layout `Z = (X₁,Z₂)`.
+
+This is the Hansen Theorem 12.15 package-level bridge from observable
+included-instrument rank assumptions to the primitive Hansen design package:
+the span condition required by `of_projection_span_block_ranks` is derived from
+the literal included-exogenous block of the instrument matrix. -/
+theorem of_includedInstrument_projection_span_block_ranks
+    {ι l₂ : Type*} [MeasurableSpace ι] [Fintype l₂] [DecidableEq l₂]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (Z₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det))
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)).det)) :
+    ControlFunctionFTestHansenDesignConditions
+      X₁ X₂ (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β := by
+  classical
+  have hZ : ∀ i, Measurable fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ) i := by
+    intro i
+    refine measurable_pi_lambda _ (fun j => ?_)
+    cases j with
+    | inl j =>
+        simpa [Matrix.fromCols] using
+          (measurable_pi_apply j).comp (hX₁ i)
+    | inr j =>
+        simpa [Matrix.fromCols] using
+          (measurable_pi_apply j).comp (hZ₂ i)
+  refine ControlFunctionFTestHansenDesignConditions.of_projection_span_block_ranks
+    (hn := hn) hX₁ hX₂ hZ hβ hZrank ?_ hleft hres
+  intro ξ
+  exact controlFunctionIncludedExogenous_span_fromCols (X₁ := X₁ ξ) (Z₂ := Z₂ ξ)
+
+omit [DecidableEq n] in
+/-- Constructor for Hansen's included-instrument layout from normalized
+sample-Gram rank certificates.
+
+This is the `sampleGram` analogue of
+`of_includedInstrument_projection_span_block_ranks`: callers may state the
+rank side in Hansen's normalized `n⁻¹X'X` notation for the full instrument
+matrix, the fitted left block, and the first-stage residual block. -/
+theorem of_includedInstrument_projection_span_block_sampleGrams
+    {ι l₂ : Type*} [MeasurableSpace ι] [Fintype l₂] [DecidableEq l₂]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (hn : 0 < Fintype.card n)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    ControlFunctionFTestHansenDesignConditions
+      X₁ X₂ (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β :=
+  ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+    (hn := hn) hX₁ hX₂ hZ₂ hβ
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := Matrix.fromCols (X₁ ξ) (Z₂ ξ)) hn (hZrank ξ))
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := Matrix.fromCols (X₁ ξ)
+          (expectationErrorFittedStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))) hn (hleft ξ))
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := controlFunctionResidualStar
+          (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)) hn (hres ξ))
+
+omit [DecidableEq n] in
+theorem expectationError_rawGram_det_isUnit
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (h : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β)
+    (hn : 0 < Fintype.card n) (ξ : ι) :
+    IsUnit
+      (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+  controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+    (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) hn
+    (h.expectationError_sampleGram_nonsingular ξ)
+
+omit [DecidableEq n] in
+theorem full_gram_det_isUnit
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (h : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β)
+    (hn : 0 < Fintype.card n) (ξ : ι) :
+    IsUnit
+      (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+  controlFunctionDesignStar_gram_det_isUnit_of_expectationError_sampleGram
+    (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) hn
+    (h.expectationError_sampleGram_nonsingular ξ)
+
+omit [DecidableEq n] in
+theorem restricted_gram_det_isUnit
+    {ι : Type*} [MeasurableSpace ι]
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    (h : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β)
+    (hn : 0 < Fintype.card n) (ξ : ι) :
+    IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+      Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) :=
+  controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError_sampleGram
+    (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) hn
+    (h.expectationError_sampleGram_nonsingular ξ)
+
+end ControlFunctionFTestHansenDesignConditions
+
+/-- Hansen Theorem 12.15 primitive conditional-normal package.
+
+This combines the observable design package with the literal conditional-normal
+law `ε | D ~ N(0,σ²I)`.  The F critical value and residual degrees-of-freedom
+inequalities remain theorem parameters because they are test-calibration rather
+than model-side assumptions. -/
+structure ControlFunctionFTestConditionalNormalPrimitiveConditions
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    (σ2 : ℝ) : Prop where
+  sigma2_pos : 0 < σ2
+  D_meas : Measurable D
+  error_meas : Measurable ε
+  error_conditional_normal :
+    condDistrib ε D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+  design : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β
+
+namespace ControlFunctionFTestConditionalNormalPrimitiveConditions
+
+/-- Constructor from Hansen's normalized expectation-error sample-Gram
+nonsingularity condition. -/
+theorem of_expectationError_sampleGram
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hsample : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationError_sampleGram
+      hX₁ hX₂ hZ hβ hsample
+
+/-- Constructor from positive definiteness of Hansen's normalized
+expectation-error sample Gram. -/
+theorem of_expectationError_sampleGram_posDef
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (sampleGram
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 :=
+  of_expectationError_sampleGram
+    hσ2 hD hε hε_cond hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from the conditional-normal error kernel and concrete full
+column rank of Hansen's expectation-error design `(X₁,P_ZX₂,û₂)`. -/
+theorem of_expectationErrorDesign_injective
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hinj : ∀ ξ,
+      Function.Injective
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).mulVec) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationErrorDesign_injective
+      (hn := hn) hX₁ hX₂ hZ hβ hinj
+
+/-- Constructor from raw expectation-error design Gram nonsingularity. -/
+theorem of_expectationError_rawGram
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationError_rawGram
+      (hn := hn) hX₁ hX₂ hZ hβ hraw
+
+/-- Constructor from raw expectation-error design positive definiteness. -/
+theorem of_expectationError_posDef
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 :=
+  of_expectationError_rawGram
+    (hn := hn) hσ2 hD hε hε_cond hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from raw control-function design Gram nonsingularity. -/
+theorem of_controlFunction_rawGram
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_controlFunction_rawGram
+      (hn := hn) hX₁ hX₂ hZ hβ hraw
+
+/-- Constructor from raw control-function design positive definiteness. -/
+theorem of_controlFunction_posDef
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 :=
+  of_controlFunction_rawGram
+    (hn := hn) hσ2 hD hε hε_cond hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from the conditional-normal error kernel plus lower-level
+projection/span block-rank assumptions for `(X₁,P_ZX₂,û₂)`. -/
+theorem of_projection_span_block_ranks
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (((Z ξ)ᵀ * Z ξ).det))
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar (Z ξ) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar (Z ξ) (X₂ ξ)).det)) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_projection_span_block_ranks
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres
+
+/-- Constructor from the conditional-normal error kernel plus lower-level
+projection/span block-rank assumptions stated as normalized sample-Gram
+nonsingularity conditions. -/
+theorem of_projection_span_block_sampleGrams
+    {ι Ω : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (sampleGram (Z ξ)).det)
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hD
+  error_meas := hε
+  error_conditional_normal := hε_cond
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_projection_span_block_sampleGrams
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres
+
+/-- Constructor from a raw constant conditional-normal kernel and a measurable
+coarsening to the theorem's design index.
+
+This is the package-level bridge from Hansen's raw model `e | X,Z` to the
+conditional-normal primitive used by the exact control-function F theorem.  If
+the theorem's design index is `S ∘ R`, a constant Gaussian kernel conditional
+on the richer raw index `R` is enough. -/
+theorem of_hansenDesign_of_raw_conditionalNormal
+    {κ ι Ω : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hσ2 : 0 < σ2)
+    (hR : Measurable R)
+    (hS : Measurable S)
+    (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ (fun ω => S (R ω)) ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  D_meas := hS.comp hR
+  error_meas := hε
+  error_conditional_normal :=
+    condDistrib_const_of_condDistrib_const_comp
+      (μ := μ)
+      (υ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      R S ε hR hS hε hε_cond_raw
+  design := hdesign
+
+/-- Constructor from a raw conditional-normal kernel plus lower-level
+projection/span block-rank assumptions.
+
+This composes the coarsening bridge with the finite-sample rank bridge for
+`(X₁,P_ZX₂,û₂)`, reducing Hansen Theorem 12.15's primitive inputs to a raw
+conditional Gaussian error model and the observable projection/span rank
+conditions. -/
+theorem of_projection_span_block_ranks_of_raw_conditionalNormal
+    {κ ι Ω : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hR : Measurable R)
+    (hS : Measurable S)
+    (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (((Z ξ)ᵀ * Z ξ).det))
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar (Z ξ) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar (Z ξ) (X₂ ξ)).det)) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ (fun ω => S (R ω)) ε X₁ X₂ Z β σ2 :=
+  of_hansenDesign_of_raw_conditionalNormal
+    hσ2 hR hS hε hε_cond_raw
+    (ControlFunctionFTestHansenDesignConditions.of_projection_span_block_ranks
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres)
+
+/-- Constructor from a raw conditional-normal kernel plus lower-level
+projection/span rank assumptions stated as normalized sample-Gram
+nonsingularity conditions.
+
+This is the sample-Gram analogue of
+`of_projection_span_block_ranks_of_raw_conditionalNormal`. -/
+theorem of_projection_span_block_sampleGrams_of_raw_conditionalNormal
+    {κ ι Ω : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace Ω]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hR : Measurable R)
+    (hS : Measurable S)
+    (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (sampleGram (Z ξ)).det)
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ (fun ω => S (R ω)) ε X₁ X₂ Z β σ2 :=
+  of_hansenDesign_of_raw_conditionalNormal
+    hσ2 hR hS hε hε_cond_raw
+    (ControlFunctionFTestHansenDesignConditions.of_projection_span_block_sampleGrams
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres)
+
+/-- Constructor from a raw conditional-normal kernel for the Hansen instrument
+layout `Z = (X₁,Z₂)`.
+
+This is the model-specific version of
+`of_projection_span_block_ranks_of_raw_conditionalNormal`: the instrument span
+condition `X₁ ∈ span(Z)` is derived from the included-exogenous block of
+`Z = (X₁,Z₂)`, so callers only supply the raw conditional Gaussian law and the
+observable rank conditions for the full instrument matrix, fitted block, and
+first-stage residual block. -/
+theorem of_includedInstrument_projection_span_block_ranks_of_raw_conditionalNormal
+    {κ ι Ω l₂ : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace Ω] [Fintype l₂] [DecidableEq l₂]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hR : Measurable R)
+    (hS : Measurable S)
+    (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (Z₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det))
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)).det)) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ (fun ω => S (R ω)) ε X₁ X₂
+        (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β σ2 := by
+  classical
+  have hZ : ∀ i, Measurable fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ) i := by
+    intro i
+    refine measurable_pi_lambda _ (fun j => ?_)
+    cases j with
+    | inl j =>
+        simpa [Matrix.fromCols] using
+          (measurable_pi_apply j).comp (hX₁ i)
+    | inr j =>
+        simpa [Matrix.fromCols] using
+          (measurable_pi_apply j).comp (hZ₂ i)
+  refine of_projection_span_block_ranks_of_raw_conditionalNormal
+    (hn := hn) hσ2 hR hS hε hε_cond_raw hX₁ hX₂ hZ hβ hZrank ?_ hleft hres
+  intro ξ
+  exact controlFunctionIncludedExogenous_span_fromCols (X₁ := X₁ ξ) (Z₂ := Z₂ ξ)
+
+/-- Constructor from a raw conditional-normal kernel for the Hansen
+included-instrument layout, with rank certificates stated as normalized
+sample-Gram nonsingularity conditions. -/
+theorem of_includedInstrument_projection_span_block_sampleGrams_of_raw_conditionalNormal
+    {κ ι Ω l₂ : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [MeasurableSpace Ω] [Fintype l₂] [DecidableEq l₂]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hR : Measurable R)
+    (hS : Measurable S)
+    (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ (fun ω => S (R ω)) ε X₁ X₂
+        (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β σ2 :=
+  of_includedInstrument_projection_span_block_ranks_of_raw_conditionalNormal
+    (hn := hn) hσ2 hR hS hε hε_cond_raw hX₁ hX₂ hZ₂ hβ
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := Matrix.fromCols (X₁ ξ) (Z₂ ξ)) hn (hZrank ξ))
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := Matrix.fromCols (X₁ ξ)
+          (expectationErrorFittedStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))) hn (hleft ξ))
+    (fun ξ =>
+      rawGram_det_isUnit_of_sampleGram_det_isUnit
+        (X := controlFunctionResidualStar
+          (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)) hn (hres ξ))
+
+set_option linter.style.longLine false in
+/-- Direct conditional-normal constructor for Hansen's included-instrument layout
+with normalized sample-Gram rank certificates.
+
+This is the non-coarsened companion to
+`of_includedInstrument_projection_span_block_sampleGrams_of_raw_conditionalNormal`:
+the conditioning index is already Hansen's realized design `D`, so the raw
+conditional-normal kernel is used without an intermediate `R/S` map. -/
+theorem of_includedInstrument_projection_span_block_sampleGrams
+    {ι Ω l₂ : Type*} [MeasurableSpace ι] [MeasurableSpace Ω]
+    [Fintype l₂] [DecidableEq l₂]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {D : Ω → ι} {ε : Ω → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hD : Measurable D)
+    (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    ControlFunctionFTestConditionalNormalPrimitiveConditions
+      μ D ε X₁ X₂ (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β σ2 :=
+  of_includedInstrument_projection_span_block_sampleGrams_of_raw_conditionalNormal
+    (R := D) (S := fun ξ : ι => ξ) (hn := hn) hσ2 hD
+    (measurable_id : Measurable (fun ξ : ι => ξ)) hε hε_cond
+    hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+
+end ControlFunctionFTestConditionalNormalPrimitiveConditions
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal endpoint from row-measurable
+designs and one normalized expectation-error sample-Gram rank condition.
+
+This is the sample-Gram analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted`:
+the raw fixed-design determinant units are derived by scalar normalization
+before reusing the existing conditional F-law endpoint. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorSampleGram_rowMeasurableDesign_autoRestricted
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvExpectationErrorSample : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    let hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+      fun ξ =>
+        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+          (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (by omega)
+          (hInvExpectationErrorSample ξ)
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (hInvExpectationError (D ω)))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  let hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+    fun ξ =>
+      controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (by omega)
+        (hInvExpectationErrorSample ξ)
+  simpa [hInvExpectationError] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvExpectationError hX₁ hX₂ hZ hβ
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal endpoint from lower-level
+projection/span block-rank assumptions.
+
+This replaces the primitive full-rank hypothesis on the expectation-error
+design `(X₁,P_ZX₂,û₂)` by the first-stage geometry: nonsingular `Z'Z`, `X₁`
+in the instrument span, and separate full-column-rank certificates for
+`(X₁,P_ZX₂)` and `û₂`. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_projectionSpanBlockRanks_rowMeasurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hZrank : ∀ ξ, IsUnit (((Z ξ)ᵀ * Z ξ).det))
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar (Z ξ) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar (Z ξ) (X₂ ξ)).det))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (by
+          rcases hX₁span ξ with ⟨A₁, hspan⟩
+          exact
+            controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+              (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (A₁ := A₁)
+              (hZrank ξ) hspan (hleft ξ) (hres ξ))
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (by
+                      rcases hX₁span (D ω) with ⟨A₁, hspan⟩
+                      exact
+                        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+                          (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                          (A₁ := A₁) (hZrank (D ω)) hspan
+                          (hleft (D ω)) (hres (D ω))))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                    (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                    (by
+                      rcases hX₁span (D ω) with ⟨A₁, hspan⟩
+                      exact
+                        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+                          (X₁ := X₁ (D ω)) (X₂ := X₂ (D ω)) (Z := Z (D ω))
+                          (A₁ := A₁) (hZrank (D ω)) hspan
+                          (hleft (D ω)) (hres (D ω))))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  let hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+    fun ξ => by
+      rcases hX₁span ξ with ⟨A₁, hspan⟩
+      exact
+        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_projection_span_block_ranks
+          (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (A₁ := A₁)
+          (hZrank ξ) hspan (hleft ξ) (hres ξ)
+  simpa [hInvExpectationError] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hσ2 hq hdf hD hε hε_cond
+      hInvExpectationError hX₁ hX₂ hZ hβ
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal exact F law from the primitive
+Hansen design package.
+
+The theorem consumes the literal conditional-normal model package and derives
+both row-measurable statistic-map hypotheses and the restricted/full realized
+rank hypotheses from `ControlFunctionFTestHansenDesignConditions`. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_hansenPrimitive
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (h :
+      ControlFunctionFTestConditionalNormalPrimitiveConditions
+        μ D ε X₁ X₂ Z β σ2) :
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      h.design.restricted_gram_det_isUnit (by omega) ξ
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  h.design.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  h.design.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  simpa using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorSampleGram_rowMeasurableDesign_autoRestricted
+      (μ := μ) D ε X₁ X₂ Z β c hcrit h.sigma2_pos hq hdf h.D_meas
+      h.error_meas h.error_conditional_normal
+      h.design.expectationError_sampleGram_nonsingular h.design.X1_meas
+      h.design.X2_meas h.design.Z_meas h.design.beta_meas
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal included-instrument endpoint
+from raw conditional Gaussian errors and observable block ranks.
+
+This theorem-facing wrapper is the included-instrument analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_hansenPrimitive`.
+It builds the primitive Hansen design package internally from
+`Z = (X₁,Z₂)` using
+`ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks`,
+then reuses the existing conditional-normal endpoint. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_includedInstrumentProjectionSpanBlockRanks_rawConditionalNormal
+    {κ ι l₂ : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [Fintype l₂] [DecidableEq l₂]
+    [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι}
+    (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z₂ : ι → Matrix n l₂ ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hR : Measurable R) (hS : Measurable S) (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (Z₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det))
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)).det)) :
+    let D : Ω → ι := fun ω => S (R ω)
+    let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+    let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+      ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+        (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      hdesign.restricted_gram_det_isUnit (by omega) ξ
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  classical
+  let D : Ω → ι := fun ω => S (R ω)
+  let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+    Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+  let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+      (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  let hprim :
+      ControlFunctionFTestConditionalNormalPrimitiveConditions
+        μ D ε X₁ X₂ Z β σ2 :=
+    ControlFunctionFTestConditionalNormalPrimitiveConditions.of_hansenDesign_of_raw_conditionalNormal
+      (R := R) (S := S) hσ2 hR hS hε hε_cond_raw hdesign
+  simpa [D, Z, hdesign, hprim] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_hansenPrimitive
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hq hdf hprim
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, conditional-normal included-instrument endpoint
+from raw conditional Gaussian errors and observable normalized sample-Gram
+rank certificates.
+
+This is the `sampleGram` analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_includedInstrumentProjectionSpanBlockRanks_rawConditionalNormal`.
+It states the full instrument, fitted left block, and first-stage residual
+nonsingularity assumptions in Hansen's normalized finite-sample Gram notation,
+then reuses the same primitive conditional-normal F-law endpoint. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_includedInstrumentProjectionSpanBlockSampleGrams_rawConditionalNormal
+    {κ ι l₂ : Type*} [MeasurableSpace κ] [MeasurableSpace ι]
+    [Fintype l₂] [DecidableEq l₂]
+    [IsProbabilityMeasure μ]
+    {R : Ω → κ} {S : κ → ι}
+    (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z₂ : ι → Matrix n l₂ ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hR : Measurable R) (hS : Measurable S) (hε : Measurable ε)
+    (hε_cond_raw :
+      condDistrib ε R μ =ᵐ[μ.map R]
+        Kernel.const κ
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    let D : Ω → ι := fun ω => S (R ω)
+    let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+    let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+      ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+        (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      hdesign.restricted_gram_det_isUnit (by omega) ξ
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  classical
+  let D : Ω → ι := fun ω => S (R ω)
+  let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+    Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+  let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  let hprim :
+      ControlFunctionFTestConditionalNormalPrimitiveConditions
+        μ D ε X₁ X₂ Z β σ2 :=
+    ControlFunctionFTestConditionalNormalPrimitiveConditions.of_includedInstrument_projection_span_block_sampleGrams_of_raw_conditionalNormal
+        (hn := by omega) hσ2 hR hS hε hε_cond_raw hX₁ hX₂ hZ₂ hβ
+        hZrank hleft hres
+  simpa [D, Z, hdesign, hprim] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_hansenPrimitive
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hq hdf hprim
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, direct conditional-normal endpoint for the
+included-instrument layout `Z = (X₁,Z₂)`, with rank certificates stated as
+normalized sample-Gram nonsingularity conditions.
+
+Unlike the `_rawConditionalNormal` wrapper, this statement conditions directly on
+Hansen's realized design index `D`; it is the literal `e | D ~ N(0,σ²I)` surface
+for callers that do not need a richer raw index and coarsening map. -/
+theorem
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_includedInstrumentProjectionSpanBlockSampleGrams
+    {ι l₂ : Type*} [MeasurableSpace ι]
+    [Fintype l₂] [DecidableEq l₂]
+    [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z₂ : ι → Matrix n l₂ ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+    let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+      ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+        (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      hdesign.restricted_gram_det_isUnit (by omega) ξ
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+              Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))ᵀ *
+                Matrix.fromCols (X₁ (D ω)) (X₂ (D ω)))
+              (hInvRestricted (D ω))
+          letI : Invertible
+              (((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω)))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A :=
+                ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))ᵀ *
+                (Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))).fromCols
+                  (controlFunctionResidualStar (Z (D ω)) (X₂ (D ω))))
+              (by
+                simpa [controlFunctionDesignStar] using
+                  hdesign.full_gram_det_isUnit (by omega) (D ω))
+          controlFunctionEndogeneityFStatistic (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  classical
+  let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+    Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+  let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  let hprim :
+      ControlFunctionFTestConditionalNormalPrimitiveConditions
+        μ D ε X₁ X₂ Z β σ2 :=
+    ControlFunctionFTestConditionalNormalPrimitiveConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := by omega) hσ2 hD hε hε_cond hX₁ hX₂ hZ₂ hβ
+      hZrank hleft hres
+  simpa [Z, hdesign, hprim] using
+    controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_hansenPrimitive
+      (μ := μ) D ε X₁ X₂ Z β c hcrit hq hdf hprim
+
+/-- Hansen Theorem 12.10, coefficient-vector face: conditional on the generated
+regressors, the fixed-design OLS coefficient vector is Gaussian.  This is a
+generated-regressor wrapper around `olsBeta_hasGaussianLaw_of_error`. -/
+theorem generatedRegressorBeta_hasGaussianLaw_of_normal_error
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (v : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasGaussianLaw
+      (fun ω =>
+        olsBeta (Matrix.fromCols W₁ W₂hat)
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω))) μ := by
+  let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols W₁ W₂hat
+  let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
+  have hβfull : fullX *ᵥ βfull = W₁ *ᵥ β₁ := by
+    simpa [fullX, βfull] using fromCols_nullRightBlock_mulVec W₁ W₂hat β₁
+  have hbase :
+      HasGaussianLaw
+        (fun ω => olsBeta fullX (fullX *ᵥ βfull + WithLp.ofLp (v ω))) μ :=
+    have hvRaw : HasGaussianLaw (fun ω => WithLp.ofLp (v ω)) μ := by
+      let L : EuclideanSpace ℝ n →L[ℝ] (n → ℝ) :=
+        (PiLp.continuousLinearEquiv 2 ℝ (fun _ : n => ℝ)).toContinuousLinearMap
+      simpa [L] using hv.hasGaussianLaw.map_fun L
+    olsBeta_hasGaussianLaw_of_error fullX βfull
+      (fun ω => WithLp.ofLp (v ω)) hvRaw
+  refine hbase.congr ?_
+  filter_upwards with ω
+  simp [fullX, hβfull]
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.10's Gaussian
+coefficient-vector claim. -/
+theorem generatedRegressorBeta_conditional_hasGaussianLaw_of_normal_error
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ) {σ2 : ι → ℝ}
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasGaussianLaw
+        (fun ω =>
+          olsBeta (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (με ξ) := by
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta_hasGaussianLaw_of_normal_error
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) (v ξ) (hv ξ)
+
+/-- Hansen Theorem 12.10 known-variance coefficient statistic for generated
+regressors.  This is the exact `N(0,1)` statement; the estimated-variance
+`olsTStat` has the Student-t law below. -/
+theorem generatedRegressorBeta2_knownSigmaT_hasLaw_standardNormal
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (standardizedOlsBetaCoordinate
+        (Matrix.fromCols W₁ W₂hat)
+        (Sum.elim β₁ (fun _ : k₂ => 0)) σ2 (Sum.inr j) v)
+      (gaussianReal 0 1) μ :=
+  standardizedOlsBetaCoordinate_hasLaw_standardNormal
+    (Matrix.fromCols W₁ W₂hat) (Sum.elim β₁ (fun _ : k₂ => 0))
+    (Sum.inr j) hσ2 v hv
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.10's known-variance
+right-block coefficient statistic. -/
+theorem generatedRegressorBeta2_knownSigmaT_conditional_hasLaw_standardNormal
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (j : k₂) (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (standardizedOlsBetaCoordinate
+          (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) (σ2 ξ) (Sum.inr j) (v ξ))
+        (gaussianReal 0 1) (με ξ) := by
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_knownSigmaT_hasLaw_standardNormal
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) j (hσ2 ξ) (v ξ) (hv ξ)
+
+/-- Hansen Theorem 12.10 with estimated residual variance: the classical OLS
+coefficient t-statistic for a generated right-block coefficient has the exact
+Student-t law. -/
+theorem generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (olsTStat
+        (Matrix.fromCols W₁ W₂hat)
+        (Sum.elim β₁ (fun _ : k₂ => 0)) σ2 (Sum.inr j) v)
+      (classicalStudentT (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+  olsTStat_hasLaw_classicalStudentT
+    (Matrix.fromCols W₁ W₂hat) (Sum.elim β₁ (fun _ : k₂ => 0))
+    (Sum.inr j) hσ2 hdf v hv
+
+/-- Hansen Theorem 12.10 estimated-variance t statistic with Hansen's
+displayed `n-k₁-k₂` degrees of freedom. -/
+theorem generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (olsTStat
+        (Matrix.fromCols W₁ W₂hat)
+        (Sum.elim β₁ (fun _ : k₂ => 0)) σ2 (Sum.inr j) v)
+      (classicalStudentT
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
+  have hbase :=
+    generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT
+      W₁ W₂hat β₁ j hσ2
+        (generatedRegressorCard_sum_lt_of_card_add_lt hdf) v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub] at hbase
+  exact hbase
+
+/-- Hansen Theorem 12.10 estimated-variance t statistic in literal
+null-centered notation: under the generated-regressor null `β₂,j = 0`, the
+textbook statistic `(β̂₂,j - 0) / se(β̂₂,j)` has the exact Student-t law. -/
+theorem generatedRegressorBeta2_olsNullTStat_hasLaw_classicalStudentT_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        olsNullTStat (Matrix.fromCols W₁ W₂hat) (Sum.inr j) 0
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+      (classicalStudentT
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
+  let fullX : Matrix n (Sum k₁ k₂) ℝ := Matrix.fromCols W₁ W₂hat
+  let βfull : Sum k₁ k₂ → ℝ := Sum.elim β₁ (fun _ : k₂ => 0)
+  have hβfull : fullX *ᵥ βfull = W₁ *ᵥ β₁ := by
+    simpa [fullX, βfull] using fromCols_nullRightBlock_mulVec W₁ W₂hat β₁
+  have hbase :
+      HasLaw
+        (fun ω =>
+          olsNullTStat fullX (Sum.inr j) 0
+            (fullX *ᵥ βfull + WithLp.ofLp (v ω)))
+        (classicalStudentT
+          (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+    olsNullTStat_hasLaw_classicalStudentT
+      fullX βfull (Sum.inr j) 0 (by simp [βfull]) hσ2
+      (generatedRegressorCard_sum_lt_of_card_add_lt hdf) v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub] at hbase
+  refine hbase.congr ?_
+  filter_upwards with ω
+  simp [fullX, hβfull]
+
+/-- Pointwise conditional-law form of the generated-regressor Student-t
+statement in Hansen Theorem 12.10.
+
+The index `ξ` represents a realization of the random generated design
+`(W₁, Ŵ₂)`.  The conclusion applies the fixed-design theorem to the
+conditional error law at that realization. -/
+theorem generatedRegressorBeta2_olsTStat_conditional_hasLaw_classicalStudentT_card_sub
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (j : k₂) (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (olsTStat
+          (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) (σ2 ξ) (Sum.inr j) (v ξ))
+        (classicalStudentT
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ) := by
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT_card_sub
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) j (hσ2 ξ) hdf (v ξ) (hv ξ)
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.10 in literal
+null-centered t-statistic notation. -/
+theorem generatedRegressorBeta2_olsNullTStat_conditional_hasLaw_classicalStudentT_card_sub
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (j : k₂) (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (fun ω =>
+          olsNullTStat (Matrix.fromCols (W₁ ξ) (W₂hat ξ)) (Sum.inr j) 0
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (classicalStudentT
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ) := by
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_olsNullTStat_hasLaw_classicalStudentT_card_sub
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) j (hσ2 ξ) hdf (v ξ) (hv ξ)
+
+/-- Hansen Theorem 12.10 homoskedastic Wald statistic `W⁰` for testing that
+the generated right-block coefficients are zero.  It is named separately so
+the textbook identity `F = W⁰ / q` can be cited directly. -/
+noncomputable def generatedRegressorHomoskedasticWaldStat
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)] : ℝ :=
+  (Fintype.card k₂ : ℝ) * olsFStatistic W₁ W₂hat Y
+
+/-- Hansen's identity `F = W⁰ / q` for the generated-regressor block test. -/
+theorem generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hq : 0 < Fintype.card k₂) :
+    generatedRegressorHomoskedasticWaldStat W₁ W₂hat Y /
+        (Fintype.card k₂ : ℝ) =
+      olsFStatistic W₁ W₂hat Y := by
+  have hqne : (Fintype.card k₂ : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hq)
+  unfold generatedRegressorHomoskedasticWaldStat
+  field_simp [hqne]
+
+private noncomputable def generatedRegressorHomoskedasticWaldDivStarLocal
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ) : ℝ :=
+  ((Fintype.card k₂ : ℝ) * olsFStatisticStarLocal W₁ W₂hat Y) /
+    (Fintype.card k₂ : ℝ)
+
+private theorem generatedRegressorHomoskedasticWaldDivStarLocal_measurable_of_entries
+    {α : Type*} [MeasurableSpace α]
+    {W₁ : α → Matrix n k₁ ℝ} {W₂hat : α → Matrix n k₂ ℝ} {Y : α → n → ℝ}
+    (hW₁ : ∀ i j, Measurable fun a => W₁ a i j)
+    (hW₂hat : ∀ i j, Measurable fun a => W₂hat a i j)
+    (hY : ∀ i, Measurable fun a => Y a i) :
+    Measurable fun a =>
+      generatedRegressorHomoskedasticWaldDivStarLocal (W₁ a) (W₂hat a) (Y a) := by
+  unfold generatedRegressorHomoskedasticWaldDivStarLocal
+  exact (measurable_const.mul
+    (olsFStatisticStarLocal_measurable_of_entries hW₁ hW₂hat hY)).div_const _
+
+private theorem generatedRegressorHomoskedasticWaldDiv_eq_starLocal
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)] :
+    generatedRegressorHomoskedasticWaldStat W₁ W₂hat Y /
+        (Fintype.card k₂ : ℝ) =
+      generatedRegressorHomoskedasticWaldDivStarLocal W₁ W₂hat Y := by
+  unfold generatedRegressorHomoskedasticWaldStat
+    generatedRegressorHomoskedasticWaldDivStarLocal
+  rw [olsFStatisticStarLocal_eq_olsFStatistic]
+
+private theorem generatedRegressorHomoskedasticWaldDiv_measurable_of_entries
+    {ι : Type*} [MeasurableSpace ι]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    (hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
+    (hW₂hat : ∀ i j, Measurable fun ξ => W₂hat ξ i j)
+    (hβ₁ : ∀ j, Measurable fun ξ => β₁ ξ j) :
+    Measurable fun p : ι × EuclideanSpace ℝ n =>
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (hInvFull p.1)
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ) := by
+  classical
+  have hW₁p : ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n => W₁ p.1 i j :=
+    fun i j => (hW₁ i j).comp measurable_fst
+  have hW₂p : ∀ i j, Measurable fun p : ι × EuclideanSpace ℝ n => W₂hat p.1 i j :=
+    fun i j => (hW₂hat i j).comp measurable_fst
+  have hY : ∀ i, Measurable fun p : ι × EuclideanSpace ℝ n =>
+      ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) i := by
+    intro i
+    have hfit : Measurable fun p : ι × EuclideanSpace ℝ n =>
+        ((W₁ p.1) *ᵥ β₁ p.1) i := by
+      simp [Matrix.mulVec]
+      exact Finset.measurable_sum Finset.univ (fun j _ =>
+        (hW₁p i j).mul ((hβ₁ j).comp measurable_fst))
+    have herr : Measurable fun p : ι × EuclideanSpace ℝ n => WithLp.ofLp p.2 i :=
+      ((continuous_apply i).comp
+        (PiLp.continuous_ofLp 2 (fun _ : n => ℝ))).measurable.comp measurable_snd
+    exact hfit.add herr
+  have hstar :
+      Measurable fun p : ι × EuclideanSpace ℝ n =>
+        generatedRegressorHomoskedasticWaldDivStarLocal
+          (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) :=
+    generatedRegressorHomoskedasticWaldDivStarLocal_measurable_of_entries
+      hW₁p hW₂p hY
+  have heq :
+      (fun p : ι × EuclideanSpace ℝ n =>
+        letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+        letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+              Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+            (hInvFull p.1)
+        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+            (Fintype.card k₂ : ℝ)) =
+      (fun p : ι × EuclideanSpace ℝ n =>
+        generatedRegressorHomoskedasticWaldDivStarLocal
+          (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2)) := by
+    funext p
+    letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+    letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+        Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+        (hInvFull p.1)
+    exact generatedRegressorHomoskedasticWaldDiv_eq_starLocal
+      (W₁ := W₁ p.1) (W₂hat := W₂hat p.1)
+      (Y := (W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2)
+  exact heq.symm ▸ hstar
+
+/-- Hansen Theorem 12.10 block test: conditional on the generated regressors,
+the conventional OLS F statistic for the null generated block has the exact
+`F_{q,n-k}` law. -/
+theorem generatedRegressorFStatistic_hasLaw_classicalFDist
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => olsFStatistic W₁ W₂hat (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ :=
+  olsFStatistic_hasLaw_classicalFDist W₁ W₂hat β₁ hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10 block F law with Hansen's displayed
+`F(k₂, n-k₁-k₂)` degrees of freedom. -/
+theorem generatedRegressorFStatistic_hasLaw_classicalFDist_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => olsFStatistic W₁ W₂hat (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
+  have hbase :=
+    generatedRegressorFStatistic_hasLaw_classicalFDist
+      W₁ W₂hat β₁ hσ2 hq
+        (generatedRegressorCard_sum_lt_of_card_add_lt hdf) v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub] at hbase
+  exact hbase
+
+/-- Hansen Theorem 12.10 exact-size statement for the generated-regressor
+homoskedastic block F test. -/
+theorem generatedRegressorFStatistic_rejection_probability_eq_alpha
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum k₁ k₂))).real (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c < olsFStatistic W₁ W₂hat
+      (W₁ *ᵥ β₁ + WithLp.ofLp (v ω))} = alpha :=
+  olsFStatistic_rejection_probability_eq_alpha_classical
+    W₁ W₂hat β₁ c hcrit hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10 exact-size statement with Hansen's displayed
+`F(k₂,n-k₁-k₂)` degrees of freedom. -/
+theorem generatedRegressorFStatistic_rejection_probability_eq_alpha_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c < olsFStatistic W₁ W₂hat
+      (W₁ *ᵥ β₁ + WithLp.ofLp (v ω))} = alpha := by
+  refine generatedRegressorFStatistic_rejection_probability_eq_alpha
+    W₁ W₂hat β₁ c ?_ hσ2 hq
+      (generatedRegressorCard_sum_lt_of_card_add_lt hdf) v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub]
+  exact hcrit
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.10's generated-block
+F statistic. -/
+theorem generatedRegressorFStatistic_conditional_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (fun ω =>
+          olsFStatistic (W₁ ξ) (W₂hat ξ)
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ) := by
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact generatedRegressorFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) (hσ2 ξ) hq hdf (v ξ) (hv ξ)
+
+/-- Hansen Theorem 12.10 block test, stated with the named homoskedastic Wald
+statistic as `W⁰ / q`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card (Sum k₁ k₂) < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by
+  refine (generatedRegressorFStatistic_hasLaw_classicalFDist
+    W₁ W₂hat β₁ hσ2 hq hdf v hv).congr ?_
+  filter_upwards with ω
+  exact (generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+    (W₁ := W₁) (W₂hat := W₂hat)
+    (Y := W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) hq)
+
+/-- Hansen Theorem 12.10 block test, stated with the named homoskedastic Wald
+statistic as `W⁰ / q` and Hansen's displayed `F(k₂,n-k₁-k₂)` law. -/
+theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
+  have hbase :=
+    generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist
+      W₁ W₂hat β₁ hσ2 hq
+        (generatedRegressorCard_sum_lt_of_card_add_lt hdf) v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub] at hbase
+  exact hbase
+
+/-- Hansen Theorem 12.10 fixed-design F law with explicit determinant/rank
+side conditions instead of ambient inverse typeclasses.
+
+The statistic in the conclusion is the ordinary Chapter 5 F statistic, so the
+required nonsingularity assumptions are introduced locally from `IsUnit`
+determinant hypotheses. This avoids asserting a global measurable statistic on
+singular generated designs. -/
+theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub_of_isUnit
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hInvRestricted : IsUnit (W₁ᵀ * W₁).det)
+    (hInvFull : IsUnit ((Matrix.fromCols W₁ W₂hat)ᵀ *
+        Matrix.fromCols W₁ W₂hat).det)
+    (v : Ω → EuclideanSpace ℝ n)
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω =>
+        letI : Invertible (W₁ᵀ * W₁) :=
+          Matrix.invertibleOfIsUnitDet (A := W₁ᵀ * W₁) hInvRestricted
+        letI : Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ *
+            Matrix.fromCols W₁ W₂hat) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
+            hInvFull
+        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
+  letI : Invertible (W₁ᵀ * W₁) :=
+    Matrix.invertibleOfIsUnitDet (A := W₁ᵀ * W₁) hInvRestricted
+  letI : Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ *
+      Matrix.fromCols W₁ W₂hat) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
+      hInvFull
+  simpa using
+    generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+      (μ := μ) (W₁ := W₁) (W₂hat := W₂hat) (β₁ := β₁)
+      (σ2 := σ2) hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10 exact-size statement for Hansen's homoskedastic Wald
+statistic written as `W⁰ / k₂`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_rejection_probability_eq_alpha_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ)} =
+      alpha := by
+  rw [show {ω | c <
+      generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ)} =
+      {ω | c < olsFStatistic W₁ W₂hat
+        (W₁ *ᵥ β₁ + WithLp.ofLp (v ω))} by
+    ext ω
+    have hstat := generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+      (W₁ := W₁) (W₂hat := W₂hat)
+      (Y := W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) hq
+    simp [Set.mem_setOf_eq, hstat]]
+  exact generatedRegressorFStatistic_rejection_probability_eq_alpha_card_sub
+    W₁ W₂hat β₁ c hcrit hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10 exact-size statement with explicit determinant/rank
+side conditions instead of ambient inverse typeclasses. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_rejection_probability_eq_alpha_card_sub_of_isUnit
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (β₁ : k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hInvRestricted : IsUnit (W₁ᵀ * W₁).det)
+    (hInvFull : IsUnit ((Matrix.fromCols W₁ W₂hat)ᵀ *
+        Matrix.fromCols W₁ W₂hat).det)
+    (v : Ω → EuclideanSpace ℝ n)
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    μ.real {ω | c <
+      (letI : Invertible (W₁ᵀ * W₁) :=
+          Matrix.invertibleOfIsUnitDet (A := W₁ᵀ * W₁) hInvRestricted
+        ;
+        letI : Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ *
+            Matrix.fromCols W₁ W₂hat) :=
+          Matrix.invertibleOfIsUnitDet
+            (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
+            hInvFull
+        ;
+        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))} =
+      alpha := by
+  letI : Invertible (W₁ᵀ * W₁) :=
+    Matrix.invertibleOfIsUnitDet (A := W₁ᵀ * W₁) hInvRestricted
+  letI : Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ *
+      Matrix.fromCols W₁ W₂hat) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
+      hInvFull
+  simpa using
+    generatedRegressorHomoskedasticWaldDiv_rejection_probability_eq_alpha_card_sub
+      (μ := μ) (W₁ := W₁) (W₂hat := W₂hat) (β₁ := β₁)
+      (σ2 := σ2) c hcrit hσ2 hq hdf v hv
+
+/-- Pointwise conditional-law form of Hansen Theorem 12.10's
+`W⁰ / k₂ = F` bridge. -/
+theorem generatedRegressorHomoskedasticWaldDiv_conditional_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    ∀ ξ,
+      HasLaw
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)) /
+              (Fintype.card k₂ : ℝ))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ) := by
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+    (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2 ξ) (hσ2 ξ) hq hdf (v ξ) (hv ξ)
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.10**, pointwise conditional-normal law bundle for
+generated regressors.
+
+For each realized generated design, this collects the fixed-design consequences
+used in Hansen's theorem: the full coefficient vector is Gaussian, the
+known-variance generated-block coordinate statistics are `N(0,1)`, the
+estimated-variance coordinate statistics are Student-t, and the generated-block
+F/Wald statistic has the displayed `F(k₂,n-k₁-k₂)` law. -/
+theorem generatedRegressor_theorem12_10_conditional_hasLaw_bundle
+    {ι Ωε : Type*} [MeasurableSpace Ωε]
+    (με : ι → Measure Ωε)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ι → ℝ} (hσ2 : ∀ ξ, 0 < σ2 ξ)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : ι → Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : ∀ ξ,
+      HasLaw (v ξ)
+        (multivariateGaussian 0 (((σ2 ξ : ℝ)) • (1 : Matrix n n ℝ)))
+        (με ξ)) :
+    (∀ ξ,
+      HasGaussianLaw
+        (fun ω =>
+          olsBeta (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (με ξ)) ∧
+    (∀ j ξ,
+      HasLaw
+        (standardizedOlsBetaCoordinate
+          (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) (σ2 ξ) (Sum.inr j) (v ξ))
+        (gaussianReal 0 1) (με ξ)) ∧
+    (∀ j ξ,
+      HasLaw
+        (olsTStat
+          (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) (σ2 ξ) (Sum.inr j) (v ξ))
+        (classicalStudentT
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ)) ∧
+    (∀ j ξ,
+      HasLaw
+        (fun ω =>
+          olsNullTStat (Matrix.fromCols (W₁ ξ) (W₂hat ξ)) (Sum.inr j) 0
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (classicalStudentT
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ)) ∧
+    (∀ ξ,
+      HasLaw
+        (fun ω =>
+          olsFStatistic (W₁ ξ) (W₂hat ξ)
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ)) ∧
+    (∀ ξ,
+      HasLaw
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+            ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)) /
+              (Fintype.card k₂ : ℝ))
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+        (με ξ)) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact generatedRegressorBeta_conditional_hasGaussianLaw_of_normal_error
+      με W₁ W₂hat β₁ v hInvFull hv
+  · intro j
+    exact generatedRegressorBeta2_knownSigmaT_conditional_hasLaw_standardNormal
+      με W₁ W₂hat β₁ j hσ2 v hInvFull hv
+  · intro j
+    exact generatedRegressorBeta2_olsTStat_conditional_hasLaw_classicalStudentT_card_sub
+      με W₁ W₂hat β₁ j hσ2 hdf v hInvFull hv
+  · intro j
+    exact generatedRegressorBeta2_olsNullTStat_conditional_hasLaw_classicalStudentT_card_sub
+      με W₁ W₂hat β₁ j hσ2 hdf v hInvFull hv
+  · exact generatedRegressorFStatistic_conditional_hasLaw_classicalFDist_card_sub
+      με W₁ W₂hat β₁ hσ2 hq hdf v hInvRestricted hInvFull hv
+  · exact generatedRegressorHomoskedasticWaldDiv_conditional_hasLaw_classicalFDist_card_sub
+      με W₁ W₂hat β₁ hσ2 hq hdf v hInvRestricted hInvFull hv
+
+/-- Hansen Theorem 12.10, product random-design form for the known-variance
+generated-regressor right-block statistic.  The generated design is drawn from
+`π`, the homoskedastic normal error from `με`, and the law is standard normal
+because the fixed-design law is the same for every design realization. -/
+theorem generatedRegressorBeta2_knownSigmaT_randomDesign_hasLaw_standardNormal
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      standardizedOlsBetaCoordinate
+        (Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+        (Sum.elim (β₁ p.1) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v p.2)
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      standardizedOlsBetaCoordinate
+        (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+        (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v ε) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        standardizedOlsBetaCoordinate
+          (Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (Sum.elim (β₁ p.1) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v p.2)
+      (gaussianReal 0 1) (π.prod με) := by
+  refine generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με) (ρ := gaussianReal 0 1)
+    (fun ξ ε =>
+      standardizedOlsBetaCoordinate
+        (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+        (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v ε)
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_knownSigmaT_hasLaw_standardNormal
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) j hσ2 v hv
+
+/-- Hansen Theorem 12.10, product random-design form for the generated
+right-block t statistic with estimated residual variance. -/
+theorem generatedRegressorBeta2_olsTStat_randomDesign_hasLaw_classicalStudentT_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      olsTStat
+        (Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+        (Sum.elim (β₁ p.1) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v p.2)
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      olsTStat
+        (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+        (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v ε) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        olsTStat
+          (Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (Sum.elim (β₁ p.1) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v p.2)
+      (classicalStudentT
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      (π.prod με) := by
+  refine generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalStudentT
+      (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+    (fun ξ ε =>
+      olsTStat
+        (Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+        (Sum.elim (β₁ ξ) (fun _ : k₂ => 0)) σ2 (Sum.inr j) v ε)
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_olsTStat_hasLaw_classicalStudentT_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) j hσ2 hdf v hv
+
+/-- Hansen Theorem 12.10, product random-design form for the literal
+null-centered generated-regressor t statistic. -/
+theorem generatedRegressorBeta2_olsNullTStat_randomDesign_hasLaw_classicalStudentT_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (j : k₂) (hσ2 : 0 < σ2)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInv : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      olsNullTStat (Matrix.fromCols (W₁ p.1) (W₂hat p.1)) (Sum.inr j) 0
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      olsNullTStat (Matrix.fromCols (W₁ ξ) (W₂hat ξ)) (Sum.inr j) 0
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε))) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        olsNullTStat (Matrix.fromCols (W₁ p.1) (W₂hat p.1)) (Sum.inr j) 0
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+      (classicalStudentT
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      (π.prod με) := by
+  refine generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalStudentT
+      (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+    (fun ξ ε =>
+      olsNullTStat (Matrix.fromCols (W₁ ξ) (W₂hat ξ)) (Sum.inr j) 0
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInv ξ
+  exact generatedRegressorBeta2_olsNullTStat_hasLaw_classicalStudentT_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) j hσ2 hdf v hv
+
+/-- Hansen Theorem 12.10, product random-design form for the generated-block
+homoskedastic F statistic. -/
+theorem generatedRegressorFStatistic_randomDesign_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      olsFStatistic (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      olsFStatistic (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε))) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        olsFStatistic (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      (π.prod με) := by
+  refine generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+    (fun ξ ε =>
+      olsFStatistic (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact generatedRegressorFStatistic_hasLaw_classicalFDist_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10, product random-design form for Hansen's
+homoskedastic Wald statistic written as `W⁰ / k₂`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_randomDesign_hasLaw_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+            (Fintype.card k₂ : ℝ))
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      (π.prod με) := by
+  refine generatedRegressorExactStatistic_randomDesign_hasLaw_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+    (fun ξ ε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10, product random-design conditional-kernel form for
+the homoskedastic generated-regressor Wald statistic `W⁰ / k₂`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_classicalFDist_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    condDistrib
+        (fun p : ι × Ωε =>
+          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+            ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+              (Fintype.card k₂ : ℝ))
+        Prod.fst (π.prod με) =ᵐ[(π.prod με).map Prod.fst]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+    omega
+  haveI :
+      IsProbabilityMeasure
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine generatedRegressorExactStatistic_condDistrib_eq_const_of_conditional
+    (π := π) (με := με)
+    (ρ := classicalFDist (Fintype.card k₂)
+      (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+    (fun ξ ε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ))
+    hT hT_fixed ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  exact generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
+    (β₁ := β₁ ξ) (σ2 := σ2) hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10, product random-design conditional exact size with
+an upper-tail critical value for the generated-regressor statistic
+`W⁰ / k₂`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    (fun ξ =>
+      (condDistrib
+        (fun p : ι × Ωε =>
+          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+            ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+              (Fintype.card k₂ : ℝ))
+        Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
+          (π.prod με).map Prod.fst] fun _ => alpha := by
+  have hkernel :=
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_classicalFDist_card_sub
+      (π := π) (με := με) W₁ W₂hat β₁ hσ2 hq hdf v
+      hInvRestricted hInvFull hv hT hT_fixed
+  filter_upwards [hkernel] with ξ hξ
+  rw [hξ]
+  simpa [Kernel.const_apply] using hcrit
+
+/-- Hansen Theorem 12.10, product random-design conditional exact size with
+Hansen's lower-tail critical-value convention for `W⁰ / k₂`. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_card_sub_lowerTail
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    (fun ξ =>
+      (condDistrib
+        (fun p : ι × Ωε =>
+          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+            ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+              (Fintype.card k₂ : ℝ))
+        Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
+          (π.prod με).map Prod.fst] fun _ => alpha := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+    omega
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq hν hcrit
+  exact generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_card_sub
+    (π := π) (με := με) W₁ W₂hat β₁ c htail hσ2 hq hdf v
+    hInvRestricted hInvFull hv hT hT_fixed
+
+/-- Hansen Theorem 12.10, arbitrary-joint conditional-normal kernel form for
+the generated-regressor homoskedastic Wald statistic `W⁰ / k₂`.
+
+If the actual regular conditional law of the structural error `v` given the
+realized generated design index `D` is `N(0, σ² Iₙ)`, then the conditional law
+of Hansen's generated-block statistic is a.e. the displayed
+`F(k₂, n-k₁-k₂)` law.  The proof maps the conditional error law through the
+fixed-design Chapter 5 F theorem; it does not assume the final F law. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+          (Fintype.card k₂ : ℝ)) :
+    condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+    omega
+  haveI :
+      IsProbabilityMeasure
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine
+    condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const
+      (μ := μ)
+      (υ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      (ρ := classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      D v
+      (fun ξ e =>
+        generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+          ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+            (Fintype.card k₂ : ℝ))
+      hD hv hT hT_fixed hv_cond ?_
+  intro ξ
+  letI := hInvRestricted ξ
+  letI := hInvFull ξ
+  have hId :
+      HasLaw (fun e : EuclideanSpace ℝ n => e)
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) := by
+    simpa using
+      (ProbabilityTheory.HasLaw.id
+        (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+  exact generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
+    (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+    (W₁ := W₁ ξ) (W₂hat := W₂hat ξ) (β₁ := β₁ ξ)
+    (σ2 := σ2) hσ2 hq hdf (fun e : EuclideanSpace ℝ n => e) hId
+
+/-- Hansen Theorem 12.10, arbitrary-joint conditional exact size with an
+upper-tail critical value under the conditional-normal premise
+`v | D ~ N(0, σ² Iₙ)`. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+          (Fintype.card k₂ : ℝ)) :
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hkernel :=
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_of_conditionalNormal
+      (μ := μ) D v W₁ W₂hat β₁ hσ2 hq hdf hD hv hv_cond
+      hInvRestricted hInvFull hT hT_fixed
+  filter_upwards [hkernel] with ξ hξ
+  rw [hξ]
+  simpa [Kernel.const_apply] using hcrit
+
+/-- Hansen Theorem 12.10, arbitrary-joint conditional exact size with Hansen's
+lower-tail critical-value convention under `v | D ~ N(0, σ² Iₙ)`. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_lowerTail_of_conditionalNormal
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+          (Fintype.card k₂ : ℝ)) :
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+    omega
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq hν hcrit
+  exact
+    generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_of_conditionalNormal
+      (μ := μ) D v W₁ W₂hat β₁ c htail hσ2 hq hdf hD hv hv_cond
+      hInvRestricted hInvFull hT hT_fixed
+
+/-- **Hansen Theorem 12.10**, bundled arbitrary-joint conditional-normal
+endpoint for the generated-regressor homoskedastic block statistic.
+
+Under the primitive conditional-normal premise `v | D ~ N(0, σ² Iₙ)`, the
+named statistic `W⁰ / k₂` has the conditional `F(k₂,n-k₁-k₂)` law, and the
+lower-tail critical-value rule has conditional exact size `alpha`. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+          (Fintype.card k₂ : ℝ)) :
+    condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  exact
+    ⟨generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_of_conditionalNormal
+        (μ := μ) D v W₁ W₂hat β₁ hσ2 hq hdf hD hv hv_cond
+        hInvRestricted hInvFull hT hT_fixed,
+      generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_lowerTail_of_conditionalNormal
+        (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv
+        hv_cond hInvRestricted hInvFull hT hT_fixed⟩
+
+/-- **Hansen Theorem 12.10**, bundled conditional-normal endpoint with
+determinant/rank side conditions.
+
+This keeps the exact generated-regressor `F(k₂,n-k₁-k₂)` conclusion, while
+letting callers state fixed-design rank conditions as determinant units rather
+than constructing inverse typeclass instances themselves. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_isUnit
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (hInvFull p.1)
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      letI : Invertible ((W₁ ξ)ᵀ * W₁ ξ) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ ξ)ᵀ * W₁ ξ) (hInvRestricted ξ)
+      letI : Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+          Matrix.fromCols (W₁ ξ) (W₂hat ξ)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+            Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (hInvFull ξ)
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+          (Fintype.card k₂ : ℝ)) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω)) (hInvRestricted (D ω))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (hInvFull (D ω))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω)) (hInvRestricted (D ω))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (hInvFull (D ω))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
+  by
+    let hInvRestricted' : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ) := fun ξ =>
+      Matrix.invertibleOfIsUnitDet
+        (A := (W₁ ξ)ᵀ * W₁ ξ) (hInvRestricted ξ)
+    let hInvFull' : ∀ ξ,
+        Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+          Matrix.fromCols (W₁ ξ) (W₂hat ξ)) := fun ξ =>
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+          Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+        (hInvFull ξ)
+    have hT' : Measurable fun p : ι × EuclideanSpace ℝ n =>
+        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
+            (Fintype.card k₂ : ℝ) := by
+      simpa [hInvRestricted', hInvFull'] using hT
+    have hTfixed' : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+        generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+          ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
+            (Fintype.card k₂ : ℝ) := by
+      intro ξ
+      simpa [hInvRestricted', hInvFull'] using hT_fixed ξ
+    have hbase :=
+      generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail
+        (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
+        hInvRestricted' hInvFull' hT' hTfixed'
+    simpa [hInvRestricted', hInvFull'] using hbase
+
+/-- **Hansen Theorem 12.10**, conditional-normal endpoint from entrywise
+measurable generated designs.
+
+This wrapper derives the statistic-map measurability hypotheses in
+`generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_isUnit`
+from coordinatewise measurability of `W₁`, `W₂hat`, and `β₁`.  The
+realized-design determinant/rank hypotheses remain explicit: measurability
+alone does not supply the fixed-design rank conditions. -/
+theorem
+    generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_measurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
+    (hW₂hat : ∀ i j, Measurable fun ξ => W₂hat ξ i j)
+    (hβ₁ : ∀ j, Measurable fun ξ => β₁ ξ j) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω)) (hInvRestricted (D ω))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (hInvFull (D ω))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω)) (hInvRestricted (D ω))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (hInvFull (D ω))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
+  by
+    have hT :=
+      generatedRegressorHomoskedasticWaldDiv_measurable_of_entries
+        W₁ W₂hat β₁ hInvRestricted hInvFull hW₁ hW₂hat hβ₁
+    exact
+      generatedRegressorHomoskedasticWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_isUnit
+        (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
+        hInvRestricted hInvFull hT
+        (fun ξ => by
+          simpa using hT.comp (measurable_const.prodMk measurable_id :
+            Measurable fun e : EuclideanSpace ℝ n => (ξ, e)))
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.10**, conditional-normal endpoint from normalized
+sample-Gram rank conditions.
+
+This is the same measurable-design endpoint as
+`generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_measurableDesign`,
+but callers may state the finite-sample rank side conditions using
+`sampleGram W₁` and `sampleGram (W₁,Ŵ₂)`.  The raw fixed-design determinant
+units required by Chapter 5 are derived by scalar normalization. -/
+theorem
+    generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_sampleGram_measurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
+    (hInvFullSample : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
+    (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
+    (hW₂hat : ∀ i j, Measurable fun ξ => W₂hat ξ i j)
+    (hβ₁ : ∀ j, Measurable fun ξ => β₁ ξ j) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := W₁ (D ω))
+                (by omega) (hInvRestrictedSample (D ω)))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                (by omega) (hInvFullSample (D ω)))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := W₁ (D ω))
+                (by omega) (hInvRestrictedSample (D ω)))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                (by omega) (hInvFullSample (D ω)))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hn : 0 < Fintype.card n := by omega
+  let hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det) := fun ξ =>
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := W₁ ξ) hn (hInvRestrictedSample ξ)
+  let hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det) := fun ξ =>
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := Matrix.fromCols (W₁ ξ) (W₂hat ξ)) hn (hInvFullSample ξ)
+  simpa [hInvRestricted, hInvFull] using
+    generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_measurableDesign
+      (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
+      hInvRestricted hInvFull hW₁ hW₂hat hβ₁
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.10**, conditional-normal endpoint from row-measurable
+generated designs.
+
+This is a thin map-level wrapper around
+`generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_sampleGram_measurableDesign`.
+It derives the coordinatewise measurability fields from measurability of each
+random generated-design row. -/
+theorem
+    generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_sampleGram_rowMeasurableDesign
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
+    (hInvFullSample : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
+    (hW₁ : ∀ i, Measurable fun ξ => W₁ ξ i)
+    (hW₂hat : ∀ i, Measurable fun ξ => W₂hat ξ i)
+    (hβ₁ : Measurable β₁) :
+    condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := W₁ (D ω))
+                (by omega) (hInvRestrictedSample (D ω)))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                (by omega) (hInvFullSample (D ω)))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) ∧
+    (fun ξ =>
+      (condDistrib
+        (fun ω =>
+          letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (W₁ (D ω))ᵀ * W₁ (D ω))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := W₁ (D ω))
+                (by omega) (hInvRestrictedSample (D ω)))
+          letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+              Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
+            Matrix.invertibleOfIsUnitDet
+              (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
+                Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+              (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                (by omega) (hInvFullSample (D ω)))
+          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
+              (Fintype.card k₂ : ℝ))
+        D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
+  have hW₁_entries : ∀ i j, Measurable fun ξ => W₁ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hW₁ i))
+  have hW₂_entries : ∀ i j, Measurable fun ξ => W₂hat ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hW₂hat i))
+  have hβ_entries : ∀ j, Measurable fun ξ => β₁ ξ j := by
+    intro j
+    exact ((continuous_apply j).measurable.comp hβ₁)
+  exact
+    generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_sampleGram_measurableDesign
+      (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
+      hInvRestrictedSample hInvFullSample hW₁_entries hW₂_entries hβ_entries
+
+/-- Hansen Theorem 12.10, product random-design exact size with an upper-tail
+critical value for `W⁰ / k₂`. -/
+theorem generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    (π.prod με).real {p : ι × Ωε | c <
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ)} = alpha := by
+  let T : ι × Ωε → ℝ := fun p =>
+    generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+        (Fintype.card k₂ : ℝ)
+  have hLaw : HasLaw T
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
+      (π.prod με) :=
+    generatedRegressorHomoskedasticWaldDiv_randomDesign_hasLaw_classicalFDist_card_sub
+      (π := π) (με := με) W₁ W₂hat β₁ hσ2 hq hdf v
+      hInvRestricted hInvFull hv hT hT_fixed
+  have hpre :
+      (π.prod με).real {p : ι × Ωε | c < T p} =
+        (classicalFDist (Fintype.card k₂)
+          (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+            (Set.Ioi c) := by
+    rw [show {p : ι × Ωε | c < T p} = T ⁻¹' Set.Ioi c by
+      ext p
+      simp [T, Set.mem_Ioi]]
+    exact HasLaw.real_preimage_eq hLaw measurableSet_Ioi
+  simpa [T] using hpre.trans hcrit
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.10, product random-design exact size with Hansen's
+lower-tail critical-value convention for `W⁰ / k₂`. -/
+theorem
+    generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub_lowerTail
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ))
+    (hInvFull : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ))
+    (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ)) :
+    (π.prod με).real {p : ι × Ωε | c <
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ)} = alpha := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
+    omega
+  have htail :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Ioi c) = alpha :=
+    classicalFDist_upperTail_eq_of_lowerTail_eq hq hν hcrit
+  exact generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub
+    (π := π) (με := με) W₁ W₂hat β₁ c htail hσ2 hq hdf v
+    hInvRestricted hInvFull hv hT hT_fixed
+
+/-- Hansen Theorem 12.15, product random-design exact size from entrywise
+measurable control-function designs.
+
+This is the independent product-design analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_measurableDesign`:
+it derives the statistic-map measurability assumptions in
+`controlFunctionEndogeneityFTest_randomDesign_exactSize_card_sub_lowerTail`
+from coordinatewise measurability of the realized design and a measurable
+normal error map.  The realized-design determinant/rank assumptions remain
+explicit determinant-unit hypotheses. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_measurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i j, Measurable fun ξ => X₁ ξ i j)
+    (hX₂ : ∀ i j, Measurable fun ξ => X₂ ξ i j)
+    (hZ : ∀ i j, Measurable fun ξ => Z ξ i j)
+    (hβ : ∀ j, Measurable fun ξ => β ξ j) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (hInvFull p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  let hInvRestricted' : ∀ ξ,
+      Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)) := fun ξ =>
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ))
+      (hInvRestricted ξ)
+  let hInvFull' : ∀ ξ,
+      Invertible
+        (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))) := fun ξ =>
+    Matrix.invertibleOfIsUnitDet
+      (A :=
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+        (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ)))
+      (hInvFull ξ)
+  have hTbase :=
+    controlFunctionEndogeneityFStatistic_measurable_of_entries
+      X₁ X₂ Z β hInvRestricted hInvFull hX₁ hX₂ hZ hβ
+  have hPair : Measurable fun p : ι × Ωε => (p.1, ε p.2) :=
+    measurable_fst.prodMk (hε_meas.comp measurable_snd)
+  have hT : Measurable fun p : ι × Ωε =>
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (hInvFull p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2)) := by
+    simpa using hTbase.comp hPair
+  have hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      letI : Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+          Matrix.fromCols (X₁ ξ) (X₂ ξ)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+            Matrix.fromCols (X₁ ξ) (X₂ ξ))
+          (hInvRestricted ξ)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+            (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+            (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+              (controlFunctionResidualStar (Z ξ) (X₂ ξ)))
+          (hInvFull ξ)
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e)) := by
+    intro ξ
+    simpa using hTbase.comp
+      (measurable_const.prodMk hε_meas :
+        Measurable fun e : Ωε => (ξ, ε e))
+  have hT' : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2)) := by
+    simpa [hInvRestricted', hInvFull'] using hT
+  have hT_fixed' : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityFStatistic (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e)) := by
+    intro ξ
+    simpa [hInvRestricted', hInvFull'] using hT_fixed ξ
+  have hbase :=
+    controlFunctionEndogeneityFTest_randomDesign_exactSize_card_sub_lowerTail
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hσ2 hq hdf ε
+      hInvRestricted' hInvFull' hε hT' hT_fixed'
+  simpa [hInvRestricted', hInvFull'] using hbase
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.15, product random-design exact size from measurable
+control-function designs and a single expectation-error full-rank condition.
+
+This is the product-design analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_measurableDesign`:
+the full control-function determinant-unit side condition is derived from the
+expectation-error determinant-unit condition. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_measurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i j, Measurable fun ξ => X₁ ξ i j)
+    (hX₂ : ∀ i j, Measurable fun ξ => X₂ ξ i j)
+    (hZ : ∀ i j, Measurable fun ξ => Z ξ i j)
+    (hβ : ∀ j, Measurable fun ξ => β ξ j) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                (X₁ := X₁ p.1) (X₂ := X₂ p.1) (Z := Z p.1)
+                (hInvExpectationError p.1))
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  let hInvFull : ∀ ξ,
+      IsUnit
+        ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) := fun ξ => by
+    simpa [controlFunctionDesignStar] using
+      controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+  simpa [hInvFull] using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_measurableDesign
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hσ2 hq hdf ε
+      hInvRestricted hInvFull hε hε_meas hX₁ hX₂ hZ hβ
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.15, product random-design exact size from row-measurable
+control-function designs and a single expectation-error full-rank condition. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                (X₁ := X₁ p.1) (X₂ := X₂ p.1) (Z := Z p.1)
+                (hInvExpectationError p.1))
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  have hX₁_entries : ∀ i j, Measurable fun ξ => X₁ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hX₁ i))
+  have hX₂_entries : ∀ i j, Measurable fun ξ => X₂ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hX₂ i))
+  have hZ_entries : ∀ i j, Measurable fun ξ => Z ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hZ i))
+  have hβ_entries : ∀ j, Measurable fun ξ => β ξ j := by
+    intro j
+    exact ((continuous_apply j).measurable.comp hβ)
+  exact
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_measurableDesign
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hσ2 hq hdf ε
+      hInvRestricted hInvExpectationError hε hε_meas
+      hX₁_entries hX₂_entries hZ_entries hβ_entries
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.15, product random-design exact size with the
+restricted-rank side condition derived.
+
+This is the independent product-design analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted`.
+The expectation-error design Gram determinant supplies both fixed-design rank
+conditions used by the Chapter 5 F-test theorem. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det))
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                (X₁ := X₁ p.1) (X₂ := X₂ p.1) (Z := Z p.1)
+                (hInvExpectationError p.1))
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+    controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+      (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+      (hInvExpectationError ξ)
+  simpa [hInvRestricted] using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hσ2 hq hdf ε
+      hInvRestricted hInvExpectationError hε hε_meas hX₁ hX₂ hZ hβ
+
+/-- Hansen Theorem 12.15 primitive product-design package.
+
+This is the independent-random-design analogue of
+`ControlFunctionFTestConditionalNormalPrimitiveConditions`: the product error
+is exactly Gaussian, the error map is measurable, and the design side is the
+single Hansen-shaped observable package. -/
+structure ControlFunctionFTestProductPrimitiveConditions
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    (με : Measure Ωε)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    (σ2 : ℝ) : Prop where
+  sigma2_pos : 0 < σ2
+  error_law : HasLaw ε
+    (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με
+  error_meas : Measurable ε
+  design : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β
+
+namespace ControlFunctionFTestProductPrimitiveConditions
+
+/-- Constructor from Hansen's normalized expectation-error sample-Gram
+nonsingularity condition. -/
+theorem of_expectationError_sampleGram
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hsample : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationError_sampleGram
+      hX₁ hX₂ hZ hβ hsample
+
+/-- Constructor from positive definiteness of Hansen's normalized
+expectation-error sample Gram. -/
+theorem of_expectationError_sampleGram_posDef
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (sampleGram
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 :=
+  of_expectationError_sampleGram
+    hσ2 hε_law hε hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from an independent Gaussian error and concrete full column
+rank of Hansen's expectation-error design `(X₁,P_ZX₂,û₂)`. -/
+theorem of_expectationErrorDesign_injective
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hinj : ∀ ξ,
+      Function.Injective
+        (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).mulVec) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationErrorDesign_injective
+      (hn := hn) hX₁ hX₂ hZ hβ hinj
+
+/-- Constructor from raw expectation-error design Gram nonsingularity. -/
+theorem of_expectationError_rawGram
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_expectationError_rawGram
+      (hn := hn) hX₁ hX₂ hZ hβ hraw
+
+/-- Constructor from raw expectation-error design positive definiteness. -/
+theorem of_expectationError_posDef
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 :=
+  of_expectationError_rawGram
+    (hn := hn) hσ2 hε_law hε hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from raw control-function design Gram nonsingularity. -/
+theorem of_controlFunction_rawGram
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hraw : ∀ ξ,
+      IsUnit
+        (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det)) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_controlFunction_rawGram
+      (hn := hn) hX₁ hX₂ hZ hβ hraw
+
+/-- Constructor from raw control-function design positive definiteness. -/
+theorem of_controlFunction_posDef
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hpos : ∀ ξ,
+      (((controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+        controlFunctionDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).PosDef) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 :=
+  of_controlFunction_rawGram
+    (hn := hn) hσ2 hε_law hε hX₁ hX₂ hZ hβ
+    (fun ξ => isUnit_iff_ne_zero.mpr (hpos ξ).det_pos.ne')
+
+/-- Constructor from independent Gaussian errors plus lower-level
+projection/span block-rank assumptions for `(X₁,P_ZX₂,û₂)`. -/
+theorem of_projection_span_block_ranks
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (((Z ξ)ᵀ * Z ξ).det))
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar (Z ξ) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar (Z ξ) (X₂ ξ)).det)) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_projection_span_block_ranks
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres
+
+/-- Product-design constructor from lower-level projection/span rank
+assumptions stated as normalized sample-Gram nonsingularity conditions. -/
+theorem of_projection_span_block_sampleGrams
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z : ι → Matrix n l ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ, IsUnit (sampleGram (Z ξ)).det)
+    (hX₁span : ∀ ξ, ∃ A₁ : Matrix l k₁ ℝ, X₁ ξ = Z ξ * A₁)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar (Z ξ) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ Z β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_projection_span_block_sampleGrams
+      (hn := hn) hX₁ hX₂ hZ hβ hZrank hX₁span hleft hres
+
+/-- Constructor for the independent product-design version of Hansen's
+included-instrument layout `Z = (X₁,Z₂)`.
+
+This is the product analogue of the conditional-normal included-instrument
+raw-kernel constructor, without the conditional-normal coarsening step: the
+error law is already a fixed Gaussian law under `με`, and the design package is
+derived from the observable included-instrument block ranks. -/
+theorem of_includedInstrument_projection_span_block_ranks
+    {ι Ωε l₂ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [Fintype l₂] [DecidableEq l₂]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (Z₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det))
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)).det)) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+      (hn := hn) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+
+set_option linter.style.longLine false in
+/-- Product-design constructor for Hansen's included-instrument layout with
+rank certificates stated as normalized sample-Gram nonsingularity
+conditions. -/
+theorem of_includedInstrument_projection_span_block_sampleGrams
+    {ι Ωε l₂ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [Fintype l₂] [DecidableEq l₂]
+    {με : Measure Ωε}
+    {ε : Ωε → EuclideanSpace ℝ n}
+    {X₁ : ι → Matrix n k₁ ℝ} {X₂ : ι → Matrix n k₂ ℝ}
+    {Z₂ : ι → Matrix n l₂ ℝ} {β : ι → Sum k₁ k₂ → ℝ}
+    {σ2 : ℝ}
+    (hn : 0 < Fintype.card n)
+    (hσ2 : 0 < σ2)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    ControlFunctionFTestProductPrimitiveConditions
+      με ε X₁ X₂ (fun ξ => Matrix.fromCols (X₁ ξ) (Z₂ ξ)) β σ2 where
+  sigma2_pos := hσ2
+  error_law := hε_law
+  error_meas := hε
+  design :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := hn) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+
+end ControlFunctionFTestProductPrimitiveConditions
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.15, product random-design exact size from one normalized
+expectation-error sample-Gram rank condition.
+
+This is the product-design analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_expectationErrorSampleGram_rowMeasurableDesign_autoRestricted`:
+the raw expectation-error, actual control-function, and restricted-design
+determinant units are all supplied by the normalized expectation-error
+sample-Gram condition and the deterministic column-transform bridges. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorSampleGram_rowMeasurableDesign_autoRestricted
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvExpectationErrorSample : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))).det)
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ : ∀ i, Measurable fun ξ => Z ξ i)
+    (hβ : Measurable β) :
+    let hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+      fun ξ =>
+        controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+          (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (by omega)
+          (hInvExpectationErrorSample ξ)
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      controlFunctionRestrictedDesign_gram_det_isUnit_of_expectationError
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ)
+        (hInvExpectationError ξ)
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              controlFunctionDesignStar_gram_det_isUnit_of_expectationError
+                (X₁ := X₁ p.1) (X₂ := X₂ p.1) (Z := Z p.1)
+                (hInvExpectationError p.1))
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  let hInvExpectationError : ∀ ξ,
+      IsUnit
+        (((controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ))ᵀ *
+          controlFunctionExpectationErrorDesignStar (X₁ ξ) (X₂ ξ) (Z ξ)).det) :=
+    fun ξ =>
+      controlFunctionExpectationErrorDesignStar_gram_det_isUnit_of_sampleGram_det_isUnit
+        (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (by omega)
+        (hInvExpectationErrorSample ξ)
+  simpa [hInvExpectationError] using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorFullRank_rowMeasurableDesign_autoRestricted
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hσ2 hq hdf ε
+      hInvExpectationError hε hε_meas hX₁ hX₂ hZ hβ
+
+set_option linter.style.longLine false in
+/-- Hansen Theorem 12.15 product random-design exact size from the primitive
+Hansen design package.
+
+The single normalized expectation-error sample-Gram field in
+`ControlFunctionFTestHansenDesignConditions` supplies the full and restricted
+fixed-design rank conditions, while the row fields supply statistic
+measurability. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_hansenPrimitive
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (h : ControlFunctionFTestProductPrimitiveConditions με ε X₁ X₂ Z β σ2) :
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      h.design.restricted_gram_det_isUnit (by omega) ξ
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              h.design.full_gram_det_isUnit (by omega) p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  simpa using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_expectationErrorSampleGram_rowMeasurableDesign_autoRestricted
+      (π := π) (με := με) X₁ X₂ Z β c hcrit h.sigma2_pos hq hdf ε
+      h.design.expectationError_sampleGram_nonsingular h.error_law h.error_meas
+      h.design.X1_meas h.design.X2_meas h.design.Z_meas h.design.beta_meas
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, product random-design exact-size endpoint for
+the included-instrument layout `Z = (X₁,Z₂)`.
+
+This is the independent product-design analogue of
+`controlFunctionFTest_theorem12_15_conditionalNormal_lowerTail_of_includedInstrumentProjectionSpanBlockRanks_rawConditionalNormal`.
+It derives Hansen's design package from the included-instrument geometry and
+then reuses `controlFunctionFTest_randomDesign_exactSize_lowerTail_of_hansenPrimitive`,
+so the hard primitive obligations remain exactly the raw Gaussian error law and
+the three observable block-rank certificates. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_includedInstrumentProjectionSpanBlockRanks
+    {ι Ωε l₂ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [Fintype l₂] [DecidableEq l₂]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z₂ : ι → Matrix n l₂ ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (Z₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det))
+    (hleft : ∀ ξ,
+      IsUnit
+        (((Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))ᵀ *
+          Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det))
+    (hres : ∀ ξ,
+      IsUnit
+        (((controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))ᵀ *
+          controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)).det)) :
+    let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+    let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+      ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+        (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      hdesign.restricted_gram_det_isUnit (by omega) ξ
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              hdesign.full_gram_det_isUnit (by omega) p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  classical
+  let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+    Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+  let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_ranks
+      (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  let hprim :
+      ControlFunctionFTestProductPrimitiveConditions με ε X₁ X₂ Z β σ2 :=
+    ControlFunctionFTestProductPrimitiveConditions.of_includedInstrument_projection_span_block_ranks
+      (hn := by omega) hσ2 hε_law hε_meas hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  simpa [Z, hdesign, hprim] using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_hansenPrimitive
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hq hdf ε hprim
+
+set_option linter.style.longLine false in
+/-- **Hansen Theorem 12.15**, product random-design exact-size endpoint for
+the included-instrument layout `Z = (X₁,Z₂)`, with rank certificates stated as
+normalized sample-Gram nonsingularity conditions.
+
+This is the `sampleGram` analogue of
+`controlFunctionFTest_randomDesign_exactSize_lowerTail_of_includedInstrumentProjectionSpanBlockRanks`.
+The conclusion is unchanged; the wrapper only translates Hansen's normalized
+finite-sample Gram notation into the existing product-design primitive package. -/
+theorem
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_includedInstrumentProjectionSpanBlockSampleGrams
+    {ι Ωε l₂ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [Fintype l₂] [DecidableEq l₂]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n k₂ ℝ)
+    (Z₂ : ι → Matrix n l₂ ℝ) (β : ι → Sum k₁ k₂ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - 2 * Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2)
+    (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + 2 * Fintype.card k₂ < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hε_law : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hε_meas : Measurable ε)
+    (hX₁ : ∀ i, Measurable fun ξ => X₁ ξ i)
+    (hX₂ : ∀ i, Measurable fun ξ => X₂ ξ i)
+    (hZ₂ : ∀ i, Measurable fun ξ => Z₂ ξ i)
+    (hβ : Measurable β)
+    (hZrank : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (X₁ ξ) (Z₂ ξ))).det)
+    (hleft : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (Matrix.fromCols (X₁ ξ)
+            (expectationErrorFittedStar
+              (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ)))).det)
+    (hres : ∀ ξ,
+      IsUnit
+        (sampleGram
+          (controlFunctionResidualStar
+            (Matrix.fromCols (X₁ ξ) (Z₂ ξ)) (X₂ ξ))).det) :
+    let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+      Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+    let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+      ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+        (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+    let hInvRestricted : ∀ ξ,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det) := fun ξ =>
+      hdesign.restricted_gram_det_isUnit (by omega) ξ
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+          Matrix.fromCols (X₁ p.1) (X₂ p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (X₁ p.1) (X₂ p.1))ᵀ *
+            Matrix.fromCols (X₁ p.1) (X₂ p.1))
+          (hInvRestricted p.1)
+      letI : Invertible
+          (((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1))) :=
+        Matrix.invertibleOfIsUnitDet
+          (A :=
+            ((Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))ᵀ *
+            (Matrix.fromCols (X₁ p.1) (X₂ p.1)).fromCols
+              (controlFunctionResidualStar (Z p.1) (X₂ p.1)))
+          (by
+            simpa [controlFunctionDesignStar] using
+              hdesign.full_gram_det_isUnit (by omega) p.1)
+      controlFunctionEndogeneityFStatistic (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2))} = alpha := by
+  classical
+  let Z : ι → Matrix n (Sum k₁ l₂) ℝ := fun ξ =>
+    Matrix.fromCols (X₁ ξ) (Z₂ ξ)
+  let hdesign : ControlFunctionFTestHansenDesignConditions X₁ X₂ Z β :=
+    ControlFunctionFTestHansenDesignConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := by omega) hX₁ hX₂ hZ₂ hβ hZrank hleft hres
+  let hprim :
+      ControlFunctionFTestProductPrimitiveConditions με ε X₁ X₂ Z β σ2 :=
+    ControlFunctionFTestProductPrimitiveConditions.of_includedInstrument_projection_span_block_sampleGrams
+      (hn := by omega) hσ2 hε_law hε_meas hX₁ hX₂ hZ₂ hβ
+      hZrank hleft hres
+  simpa [Z, hdesign, hprim] using
+    controlFunctionFTest_randomDesign_exactSize_lowerTail_of_hansenPrimitive
+      (π := π) (με := με) X₁ X₂ Z β c hcrit hq hdf ε hprim
+
+/-- Hansen Theorem 12.10, product random-design exact size from entrywise
+measurable generated designs.
+
+This is the independent product-design analogue of
+`generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_measurableDesign`:
+it derives the statistic-map measurability assumptions in
+`generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub_lowerTail`
+from coordinatewise measurability of the generated design and a measurable
+normal error map.  The realized-design determinant/rank assumptions remain
+explicit determinant-unit hypotheses. -/
+theorem
+    generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_measurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hv_meas : Measurable v)
+    (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
+    (hW₂hat : ∀ i j, Measurable fun ξ => W₂hat ξ i j)
+    (hβ₁ : ∀ j, Measurable fun ξ => β₁ ξ j) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (hInvFull p.1)
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ)} = alpha := by
+  let hInvRestricted' : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ) := fun ξ =>
+    Matrix.invertibleOfIsUnitDet
+      (A := (W₁ ξ)ᵀ * W₁ ξ) (hInvRestricted ξ)
+  let hInvFull' : ∀ ξ,
+      Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)) := fun ξ =>
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+      (hInvFull ξ)
+  have hTbase :=
+    generatedRegressorHomoskedasticWaldDiv_measurable_of_entries
+      W₁ W₂hat β₁ hInvRestricted hInvFull hW₁ hW₂hat hβ₁
+  have hPair : Measurable fun p : ι × Ωε => (p.1, v p.2) :=
+    measurable_fst.prodMk (hv_meas.comp measurable_snd)
+  have hT : Measurable fun p : ι × Ωε =>
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1) (hInvRestricted p.1)
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (hInvFull p.1)
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ) := by
+    simpa using hTbase.comp hPair
+  have hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
+      letI : Invertible ((W₁ ξ)ᵀ * W₁ ξ) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ ξ)ᵀ * W₁ ξ) (hInvRestricted ξ)
+      letI : Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+          Matrix.fromCols (W₁ ξ) (W₂hat ξ)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+            Matrix.fromCols (W₁ ξ) (W₂hat ξ))
+          (hInvFull ξ)
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ) := by
+    intro ξ
+    simpa using hTbase.comp
+      (measurable_const.prodMk hv_meas :
+        Measurable fun ε : Ωε => (ξ, v ε))
+  have hT' : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ) := by
+    simpa [hInvRestricted', hInvFull'] using hT
+  have hT_fixed' : ∀ ξ, Measurable fun ε : Ωε =>
+      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
+          (Fintype.card k₂ : ℝ) := by
+    intro ξ
+    simpa [hInvRestricted', hInvFull'] using hT_fixed ξ
+  have hbase :=
+    generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub_lowerTail
+      (π := π) (με := με) W₁ W₂hat β₁ c hcrit hσ2 hq hdf v
+      hInvRestricted' hInvFull' hv hT' hT_fixed'
+  simpa [hInvRestricted', hInvFull'] using hbase
+
+/-- Hansen Theorem 12.10, product random-design exact size from normalized
+sample-Gram rank conditions.
+
+This product-design wrapper accepts determinant units for `sampleGram W₁` and
+`sampleGram (W₁,Ŵ₂)` and derives the raw fixed-design determinant units used
+by the exact OLS F theorem. -/
+theorem
+    generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_sampleGram_measurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
+    (hInvFullSample : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hv_meas : Measurable v)
+    (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
+    (hW₂hat : ∀ i j, Measurable fun ξ => W₂hat ξ i j)
+    (hβ₁ : ∀ j, Measurable fun ξ => β₁ ξ j) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1)
+          (rawGram_det_isUnit_of_sampleGram_det_isUnit
+            (X := W₁ p.1) (by omega) (hInvRestrictedSample p.1))
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (rawGram_det_isUnit_of_sampleGram_det_isUnit
+            (X := Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+            (by omega) (hInvFullSample p.1))
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ)} = alpha := by
+  have hn : 0 < Fintype.card n := by omega
+  let hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det) := fun ξ =>
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := W₁ ξ) hn (hInvRestrictedSample ξ)
+  let hInvFull : ∀ ξ,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det) := fun ξ =>
+    rawGram_det_isUnit_of_sampleGram_det_isUnit
+      (X := Matrix.fromCols (W₁ ξ) (W₂hat ξ)) hn (hInvFullSample ξ)
+  simpa [hInvRestricted, hInvFull] using
+    generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_measurableDesign
+      (π := π) (με := με) W₁ W₂hat β₁ c hcrit hσ2 hq hdf v
+      hInvRestricted hInvFull hv hv_meas hW₁ hW₂hat hβ₁
+
+/-- Hansen Theorem 12.10, product random-design exact size from row-measurable
+generated designs and normalized sample-Gram rank conditions. -/
+theorem
+    generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_sampleGram_rowMeasurableDesign
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n k₂ ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 alpha : ℝ} (c : ℝ)
+    (hcrit :
+      (classicalFDist (Fintype.card k₂)
+        (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)).real
+          (Set.Iic c) = 1 - alpha)
+    (hσ2 : 0 < σ2) (hq : 0 < Fintype.card k₂)
+    (hdf : Fintype.card k₁ + Fintype.card k₂ < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
+    (hInvFullSample : ∀ ξ,
+      IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hv_meas : Measurable v)
+    (hW₁ : ∀ i, Measurable fun ξ => W₁ ξ i)
+    (hW₂hat : ∀ i, Measurable fun ξ => W₂hat ξ i)
+    (hβ₁ : Measurable β₁) :
+    (π.prod με).real {p : ι × Ωε | c <
+      letI : Invertible ((W₁ p.1)ᵀ * W₁ p.1) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (W₁ p.1)ᵀ * W₁ p.1)
+          (rawGram_det_isUnit_of_sampleGram_det_isUnit
+            (X := W₁ p.1) (by omega) (hInvRestrictedSample p.1))
+      letI : Invertible ((Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+          Matrix.fromCols (W₁ p.1) (W₂hat p.1)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
+            Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+          (rawGram_det_isUnit_of_sampleGram_det_isUnit
+            (X := Matrix.fromCols (W₁ p.1) (W₂hat p.1))
+            (by omega) (hInvFullSample p.1))
+      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
+          (Fintype.card k₂ : ℝ)} = alpha := by
+  have hW₁_entries : ∀ i j, Measurable fun ξ => W₁ ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hW₁ i))
+  have hW₂_entries : ∀ i j, Measurable fun ξ => W₂hat ξ i j := by
+    intro i j
+    exact ((continuous_apply j).measurable.comp (hW₂hat i))
+  have hβ_entries : ∀ j, Measurable fun ξ => β₁ ξ j := by
+    intro j
+    exact ((continuous_apply j).measurable.comp hβ₁)
+  exact
+    generatedRegressorWaldDiv_randomDesign_exactSize_lowerTail_of_sampleGram_measurableDesign
+      (π := π) (με := με) W₁ W₂hat β₁ c hcrit hσ2 hq hdf v
+      hInvRestrictedSample hInvFullSample hv hv_meas hW₁_entries hW₂_entries hβ_entries
+
+end ExactConditionalNormal
 
 end HansenEconometrics

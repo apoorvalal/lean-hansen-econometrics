@@ -1567,6 +1567,61 @@ theorem tendstoInMeasure_add
   exact tendstoInMeasure_continuous_comp hprod_meas
     (tendstoInMeasure_prodMk hf hg) continuous_add
 
+set_option maxHeartbeats 1200000 in
+-- Heartbeat bump: PseudoMetrizable synthesis on four finite-dimensional matrix
+-- factors through nested products is expensive.
+/-- **Block-matrix assembly CMT.** If four matrix block sequences converge in
+measure, then their `Matrix.fromBlocks` assembly converges in measure to the
+assembled block limit. -/
+theorem tendstoInMeasure_matrix_fromBlocks
+    [IsFiniteMeasure μ]
+    {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
+    {A : ℕ → α → Matrix a b ℝ} {B : ℕ → α → Matrix a d ℝ}
+    {C : ℕ → α → Matrix c b ℝ} {D : ℕ → α → Matrix c d ℝ}
+    {Ainf : α → Matrix a b ℝ} {Binf : α → Matrix a d ℝ}
+    {Cinf : α → Matrix c b ℝ} {Dinf : α → Matrix c d ℝ}
+    (hA_meas : ∀ n, AEStronglyMeasurable (A n) μ)
+    (hB_meas : ∀ n, AEStronglyMeasurable (B n) μ)
+    (hC_meas : ∀ n, AEStronglyMeasurable (C n) μ)
+    (hD_meas : ∀ n, AEStronglyMeasurable (D n) μ)
+    (hA : TendstoInMeasure μ A atTop Ainf)
+    (hB : TendstoInMeasure μ B atTop Binf)
+    (hC : TendstoInMeasure μ C atTop Cinf)
+    (hD : TendstoInMeasure μ D atTop Dinf) :
+    TendstoInMeasure μ
+      (fun n ω => Matrix.fromBlocks (A n ω) (B n ω) (C n ω) (D n ω))
+      atTop
+      (fun ω => Matrix.fromBlocks (Ainf ω) (Binf ω) (Cinf ω) (Dinf ω)) := by
+  have hprod_meas : ∀ n, AEStronglyMeasurable
+      (fun ω => ((A n ω, B n ω), (C n ω, D n ω))) μ :=
+    fun n => ((hA_meas n).prodMk (hB_meas n)).prodMk
+      ((hC_meas n).prodMk (hD_meas n))
+  have hAB : TendstoInMeasure μ
+      (fun n ω => (A n ω, B n ω)) atTop
+      (fun ω => (Ainf ω, Binf ω)) :=
+    tendstoInMeasure_prodMk hA hB
+  have hCD : TendstoInMeasure μ
+      (fun n ω => (C n ω, D n ω)) atTop
+      (fun ω => (Cinf ω, Dinf ω)) :=
+    tendstoInMeasure_prodMk hC hD
+  have hABCD : TendstoInMeasure μ
+      (fun n ω => ((A n ω, B n ω), (C n ω, D n ω))) atTop
+      (fun ω => ((Ainf ω, Binf ω), (Cinf ω, Dinf ω))) :=
+    tendstoInMeasure_prodMk hAB hCD
+  have hcont : Continuous
+      (fun p : (Matrix a b ℝ × Matrix a d ℝ) ×
+          (Matrix c b ℝ × Matrix c d ℝ) =>
+        Matrix.fromBlocks p.1.1 p.1.2 p.2.1 p.2.2) := by
+    fun_prop
+  exact tendstoInMeasure_continuous_comp
+    (μ := μ)
+    (f := fun n ω => ((A n ω, B n ω), (C n ω, D n ω)))
+    (g := fun ω => ((Ainf ω, Binf ω), (Cinf ω, Dinf ω)))
+    (h := fun p : (Matrix a b ℝ × Matrix a d ℝ) ×
+        (Matrix c b ℝ × Matrix c d ℝ) =>
+      Matrix.fromBlocks p.1.1 p.1.2 p.2.1 p.2.2)
+    hprod_meas hABCD hcont
+
 set_option maxHeartbeats 400000 in
 -- Heartbeat bump: PseudoMetrizable synthesis on the product
 -- `Matrix k k ℝ × (k → ℝ)` with scoped elementwise norm is expensive.
@@ -2667,6 +2722,31 @@ theorem TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
     rw [Measure.map_apply_of_aemeasurable (h.forall_aemeasurable n) hE]
     rfl
   simpa [hseq_eq, lawZ] using hport
+
+/-- If `Xₙ ⇒ Z` and a closed event has zero probability under the limit law,
+then the probability of that event along `Xₙ` tends to zero.
+
+This is a convenient specialization of the null-frontier portmanteau bridge for
+high-probability nonsingularity arguments: singular-matrix events are closed
+zero-determinant sets, so it is enough to prove the limit is nonsingular a.s. -/
+theorem TendstoInDistribution.tendsto_measure_preimage_of_closed_null
+    {Ω Ω' E₀ : Type*} {mΩ : MeasurableSpace Ω} {mΩ' : MeasurableSpace Ω'}
+    {mE₀ : MeasurableSpace E₀} [TopologicalSpace E₀] [OpensMeasurableSpace E₀]
+    [HasOuterApproxClosed E₀]
+    {P : ℕ → Measure Ω} [∀ n, IsProbabilityMeasure (P n)]
+    {ν : Measure Ω'} [IsProbabilityMeasure ν]
+    {X : ℕ → Ω → E₀} {Z : Ω' → E₀} {E : Set E₀}
+    (h : TendstoInDistribution X atTop Z P ν)
+    (hE : IsClosed E)
+    (hnull : (ν.map Z) E = 0) :
+    Tendsto (fun n => P n {ω | X n ω ∈ E}) atTop (𝓝 0) := by
+  have hfrontier : (ν.map Z) (frontier E) = 0 := by
+    refine measure_mono_null ?_ hnull
+    exact hE.frontier_subset
+  have htendsto :=
+    TendstoInDistribution.tendsto_measure_preimage_of_null_frontier
+      h hE.measurableSet hfrontier
+  simpa [hnull] using htendsto
 
 /-- **Portmanteau event-probability bridge for real distributional limits.**
 

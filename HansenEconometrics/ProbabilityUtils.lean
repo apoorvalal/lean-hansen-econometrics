@@ -2,6 +2,7 @@ import Mathlib.Probability.CDF
 import Mathlib.Probability.CondVar
 import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
+import Mathlib.Probability.Kernel.CondDistrib
 import HansenEconometrics.MultivariateNormal
 
 /-! # Probability utilities
@@ -21,7 +22,7 @@ This module collects reusable probability bridges used across the econometrics c
 
 open MeasureTheory ProbabilityTheory
 open Matrix
-open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix
+open scoped ENNReal Topology MeasureTheory ProbabilityTheory Matrix Matrix.Norms.Elementwise
 
 namespace HansenEconometrics
 
@@ -75,6 +76,40 @@ private lemma iIndep_of_jointGaussian_cov_zero [Finite ι]
     (hcov : ∀ i j, i ≠ j → cov[X i, X j; P] = 0) :
     iIndepFun X P :=
   hX.iIndepFun_of_covariance_eq_zero hcov
+
+section ConditionalDistributionHelpers
+
+variable {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β] [MeasurableSpace γ]
+variable {μ : Measure α} {D : α → β} {Y : α → γ} {ν : Measure γ}
+
+/-- If the regular conditional law of `Y` given `D` is a.e. the constant law
+`ν`, then the unconditional law of `Y` is `ν`. -/
+theorem HasLaw.of_condDistrib_eq_const
+    [StandardBorelSpace γ] [Nonempty γ]
+    [IsProbabilityMeasure μ] [IsProbabilityMeasure ν]
+    (hD : AEMeasurable D μ) (hY : AEMeasurable Y μ)
+    (hcond : condDistrib Y D μ =ᵐ[μ.map D] Kernel.const β ν) :
+    HasLaw Y ν μ := by
+  refine ⟨hY, ?_⟩
+  have hJoint :
+      μ.map (fun x => (D x, Y x)) = μ.map D ⊗ₘ Kernel.const β ν :=
+    (condDistrib_ae_eq_iff_measure_eq_compProd D hY (Kernel.const β ν)).mp hcond
+  have hsnd := congrArg Measure.snd hJoint
+  have hleft :
+      (μ.map (fun x => (D x, Y x))).snd = μ.map Y := by
+    change (μ.map (fun x => (D x, Y x))).map Prod.snd = μ.map Y
+    rw [AEMeasurable.map_map_of_aemeasurable measurable_snd.aemeasurable
+      (hD.prodMk hY)]
+    rfl
+  have hright :
+      (μ.map D ⊗ₘ Kernel.const β ν).snd = ν := by
+    haveI : IsProbabilityMeasure (μ.map D) :=
+      Measure.isProbabilityMeasure_map hD
+    rw [Measure.snd_compProd, Measure.const_comp, measure_univ, one_smul]
+  rw [hleft, hright] at hsnd
+  exact hsnd
+
+end ConditionalDistributionHelpers
 
 section RealDistributionHelpers
 
@@ -269,6 +304,119 @@ noncomputable def covVec (μ : Measure Ω) (X : Ω → k → ℝ) (Y : Ω → �
 /-- Population covariance matrix of a finite-dimensional regressor vector `X`. -/
 noncomputable def covMat (μ : Measure Ω) (X : Ω → k → ℝ) : Matrix k k ℝ :=
   fun i j => cov[fun ω => X ω i, fun ω => X ω j; μ]
+
+omit [Fintype k] in
+/-- Covariance is invariant under a.e. equality of both scalar arguments. -/
+theorem covariance_congr_ae
+    {X₁ X₂ Y₁ Y₂ : Ω → ℝ}
+    (hX : X₁ =ᵐ[μ] X₂) (hY : Y₁ =ᵐ[μ] Y₂) :
+    cov[X₁, Y₁; μ] = cov[X₂, Y₂; μ] := by
+  have hmeanX : μ[X₁] = μ[X₂] := integral_congr_ae hX
+  have hmeanY : μ[Y₁] = μ[Y₂] := integral_congr_ae hY
+  rw [ProbabilityTheory.covariance]
+  exact integral_congr_ae <| by
+    filter_upwards [hX, hY] with ω hx hy
+    simp [hx, hy, hmeanX, hmeanY]
+
+omit [Fintype k] in
+/-- The finite-dimensional covariance matrix is invariant under a.e. equality
+of the underlying random vector. -/
+theorem covMat_congr_ae
+    {X Y : Ω → k → ℝ} (h : X =ᵐ[μ] Y) :
+    covMat μ X = covMat μ Y := by
+  ext i j
+  exact covariance_congr_ae
+    (h.mono fun _ hω => congrFun hω i)
+    (h.mono fun _ hω => congrFun hω j)
+
+omit [Fintype k] in
+/-- A scalar fourth moment supplies the corresponding `L⁴` fact. -/
+theorem scalar_memLp_four_of_integrable_fourth
+    [IsProbabilityMeasure μ] {f : Ω → ℝ}
+    (hf_meas : AEStronglyMeasurable f μ)
+    (hf_four : Integrable (fun ω => f ω ^ 4) μ) :
+    MemLp f 4 μ := by
+  rw [← integrable_norm_rpow_iff (μ := μ) hf_meas (by norm_num) (by norm_num)]
+  convert hf_four using 1
+  ext ω
+  simpa [Real.norm_eq_abs] using (show Even (4 : ℕ) by decide).pow_abs (f ω)
+
+omit [Fintype k] in
+/-- Two scalar `L⁴` random variables have an `L²` product. -/
+theorem mul_memLp_two_of_memLp_four
+    [IsProbabilityMeasure μ] {f g : Ω → ℝ}
+    (hf : MemLp f 4 μ) (hg : MemLp g 4 μ) :
+    MemLp (fun ω => f ω * g ω) 2 μ := by
+  haveI : ENNReal.HolderTriple (4 : ℝ≥0∞) (4 : ℝ≥0∞) (2 : ℝ≥0∞) := by
+    have hreal : Real.HolderTriple (4 : ℝ) (4 : ℝ) (2 : ℝ) := by
+      refine ⟨?_, by norm_num, by norm_num⟩
+      norm_num [inv_eq_one_div]
+    simpa using (Real.HolderTriple.ennrealOfReal hreal)
+  simpa [Pi.mul_apply, mul_comm] using hf.mul hg
+
+omit [Fintype k] in
+/-- Two scalar `L⁴` random variables have an integrable product. -/
+theorem integrable_mul_of_memLp_four
+    [IsProbabilityMeasure μ] {f g : Ω → ℝ}
+    (hf : MemLp f 4 μ) (hg : MemLp g 4 μ) :
+    Integrable (fun ω => f ω * g ω) μ :=
+  memLp_one_iff_integrable.mp
+    ((mul_memLp_two_of_memLp_four (μ := μ) hf hg).mono_exponent one_le_two)
+
+/-- A finite-dimensional fourth row-norm moment supplies fourth moments for
+each coordinate. -/
+theorem coordinate_memLp_four_of_integrable_norm_fourth
+    [IsProbabilityMeasure μ] {X : Ω → k → ℝ}
+    (hX : AEStronglyMeasurable X μ)
+    (hNorm4 : Integrable (fun ω => ‖X ω‖ ^ 4) μ)
+    (j : k) :
+    MemLp (fun ω => X ω j) 4 μ := by
+  have hXj : AEStronglyMeasurable (fun ω => X ω j) μ :=
+    (continuous_apply j).comp_aestronglyMeasurable hX
+  refine scalar_memLp_four_of_integrable_fourth hXj ?_
+  refine hNorm4.mono' (hXj.aemeasurable.pow_const 4).aestronglyMeasurable
+    (ae_of_all μ fun ω => ?_)
+  have hxj : |X ω j| ≤ ‖X ω‖ := by
+    simpa [Real.norm_eq_abs] using norm_le_pi_norm (X ω) j
+  calc
+    ‖X ω j ^ 4‖ = |X ω j| ^ 4 := by
+      simp [Real.norm_eq_abs]
+    _ ≤ ‖X ω‖ ^ 4 := by
+      gcongr
+
+/-- A finite-dimensional fourth row-norm moment supplies an `L⁴` bound for any
+fixed linear index. -/
+theorem dotProduct_memLp_four_of_integrable_norm_fourth
+    [IsProbabilityMeasure μ] {X : Ω → k → ℝ}
+    (hX : AEStronglyMeasurable X μ)
+    (hNorm4 : Integrable (fun ω => ‖X ω‖ ^ 4) μ)
+    (b : k → ℝ) :
+    MemLp (fun ω => dotProduct (X ω) b) 4 μ := by
+  classical
+  convert (memLp_finset_sum' (s := Finset.univ)
+    (f := fun j ω => X ω j * b j)
+    (fun j _ =>
+      (coordinate_memLp_four_of_integrable_norm_fourth
+        (μ := μ) (X := X) hX hNorm4 j).mul_const (b j))) using 1
+  ext ω
+  simp [dotProduct]
+
+/-- Coordinate `L⁴` bounds imply integrability of the finite-dimensional outer
+product. -/
+theorem vecMulVec_integrable_of_coordinate_memLp_four
+    [IsProbabilityMeasure μ] {X : Ω → k → ℝ}
+    (hX : ∀ j : k, MemLp (fun ω => X ω j) 4 μ) :
+    Integrable (fun ω => Matrix.vecMulVec (X ω) (X ω)) μ := by
+  classical
+  refine Integrable.of_eval ?_
+  intro a
+  refine Integrable.of_eval ?_
+  intro b
+  have ha : MemLp (fun ω => X ω a) 2 μ :=
+    (hX a).mono_exponent (by norm_num)
+  have hb : MemLp (fun ω => X ω b) 2 μ :=
+    (hX b).mono_exponent (by norm_num)
+  simpa [Matrix.vecMulVec_apply] using ha.integrable_mul hb
 
 omit [Fintype k] in
 /-- A coordinate covariance matrix is Hermitian, equivalently symmetric over `ℝ`. -/

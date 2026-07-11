@@ -13,7 +13,7 @@ import HansenEconometrics.LinearAlgebraUtils
 import HansenEconometrics.ProbabilityUtils
 
 open MeasureTheory ProbabilityTheory
-open scoped MatrixOrder
+open scoped ENNReal MatrixOrder
 
 namespace HansenEconometrics
 
@@ -919,6 +919,23 @@ theorem hasLaw_stdGaussian_normSq_chiSquared_fintype
     (by simpa [Matrix.rank_one] using hn)
   simpa [Matrix.one_mulVec, Matrix.rank_one] using h
 
+set_option linter.unusedDecidableInType false in
+/-- The positive-definite CFC square root factors the covariance:
+if `B = sqrt V`, then `B B' = V`. -/
+lemma cfcSqrt_posDef_factor
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {V : Matrix ι ι ℝ} (hV : V.PosDef) :
+    let B : Matrix ι ι ℝ := CFC.sqrt V
+    B * Bᵀ = V := by
+  intro B
+  have hSS : B * B = V := by
+    simpa [B] using CFC.sqrt_mul_sqrt_self V hV.posSemidef.nonneg
+  have hB_trans : Bᵀ = B := by
+    have hB : B.PosDef := by simpa [B] using hV.isStrictlyPositive.sqrt.posDef
+    have hHerm : B.IsHermitian := hB.1
+    simpa [Matrix.conjTranspose] using hHerm.eq
+  rw [hB_trans, hSS]
+
 /-- Whitening identity for a positive-definite covariance matrix. If `S = sqrt V`, then the
 Mahalanobis norm of `Sx` with covariance `V = S * S` is the Euclidean norm of `x`. -/
 lemma cfcSqrt_mahalanobis_mulVec_eq_normSq
@@ -1191,5 +1208,23 @@ theorem hasLaw_gaussian_quadratic_of_factor_symmIdem
       (B := B) (A := A) hH hI hr).comp hZ
 
 end QuadraticFormChiSquared
+
+/-- Convert Hansen's lower-tail chi-square critical-value convention
+`P[χ²_q ≤ c] = 1 - α` into the upper-tail mass `P[χ²_q > c] = α`. -/
+theorem chiSquared_upperTail_eq_of_lowerTail_eq
+    {q : ℕ} [Fact (0 < q)] {c : ℝ} {alpha : ℝ≥0∞}
+    (halpha_le_one : alpha ≤ 1)
+    (hcrit : (chiSquared q) (Set.Iic c) = 1 - alpha) :
+    (chiSquared q) (Set.Ioi c) = alpha := by
+  haveI : IsProbabilityMeasure (chiSquared q) :=
+    isProbabilityMeasure_chiSquared (k := q) (Fact.out)
+  have htail :
+      (chiSquared q) (Set.Ioi c) = 1 - (chiSquared q) (Set.Iic c) := by
+    have hmc := measure_compl (μ := chiSquared q) measurableSet_Iic
+      (measure_ne_top (chiSquared q) (Set.Iic c))
+    rw [Set.compl_Iic] at hmc
+    rw [measure_univ] at hmc
+    exact hmc
+  rw [htail, hcrit, ENNReal.sub_sub_cancel ENNReal.one_ne_top halpha_le_one]
 
 end HansenEconometrics

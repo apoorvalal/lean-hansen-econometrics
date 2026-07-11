@@ -36,6 +36,28 @@ Hansen's decomposition of `σ̂²`. -/
 noncomputable def sampleErrorSecondMoment (e : n → ℝ) : ℝ :=
   (Fintype.card n : ℝ)⁻¹ * dotProduct e e
 
+omit [DecidableEq k] in
+/-- Finite-sample residual second-moment expansion in sample-moment notation.
+
+This is the reusable algebra behind Hansen's residual-variance decompositions:
+`n⁻¹(e-Xd)'(e-Xd) = n⁻¹e'e - 2 ĝₙ(e)'d + d'Q̂ₙd`. -/
+theorem sampleErrorSecondMoment_sub_mulVec
+    (X : Matrix n k ℝ) (e : n → ℝ) (d : k → ℝ) :
+    sampleErrorSecondMoment (e - X *ᵥ d) =
+      sampleErrorSecondMoment e -
+        2 * (sampleCrossMoment X e ⬝ᵥ d) +
+          d ⬝ᵥ (sampleGram X *ᵥ d) := by
+  have hcross : e ⬝ᵥ (X *ᵥ d) = (Xᵀ *ᵥ e) ⬝ᵥ d := by
+    rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose]
+  have hquad : (X *ᵥ d) ⬝ᵥ (X *ᵥ d) = d ⬝ᵥ ((Xᵀ * X) *ᵥ d) := by
+    rw [Matrix.dotProduct_mulVec, vecMul_eq_mulVec_transpose, Matrix.mulVec_mulVec,
+      dotProduct_comm]
+  unfold sampleErrorSecondMoment
+  rw [sub_dotProduct, dotProduct_sub, dotProduct_sub, hcross,
+    dotProduct_comm (X *ᵥ d) e, hcross, hquad]
+  simp [sampleCrossMoment, sampleGram, Matrix.smul_mulVec, mul_sub, smul_eq_mul]
+  ring
+
 /-- **OrZero primitive**: textbook-facing totalization of ordinary OLS.
 
 Branches explicitly on `IsUnit (Xᵀ * X).det`:

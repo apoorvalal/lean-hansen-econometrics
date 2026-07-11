@@ -105,6 +105,15 @@ noncomputable def linearRestrictionStdError
     (R : Matrix Unit k ℝ) (Vhat : Matrix k k ℝ) : ℝ :=
   Real.sqrt ((R * Vhat * Rᵀ) () ())
 
+omit [DecidableEq k] in
+/-- A one-row restriction has positive standard error when its induced
+restriction covariance is positive definite. -/
+theorem linearRestrictionStdError_pos_of_restrictionCov_posDef
+    (R : Matrix Unit k ℝ) {Vhat : Matrix k k ℝ}
+    (hV : (R * Vhat * Rᵀ).PosDef) :
+    0 < linearRestrictionStdError R Vhat := by
+  exact Real.sqrt_pos.mpr (Matrix.PosDef.diag_pos hV)
+
 /-- Scalar t-statistic for a generic nonlinear scalar parameter transform. -/
 @[reducible]
 noncomputable def scalarFunctionTStat

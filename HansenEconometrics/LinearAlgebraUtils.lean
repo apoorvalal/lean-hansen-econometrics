@@ -500,7 +500,41 @@ theorem one_sub_ordered_eigenvalues₀_apply
   have hget := congrArg (fun l : List ℝ => l[i.val]?) hlist
   simpa [List.getElem?_ofFn, List.getElem?_map, List.getElem?_reverse,
     Fin.rev, i.isLt, Nat.sub_sub, Nat.add_comm] using hget
+/-- A one-row restriction has full row rank exactly when one displayed
+coefficient is nonzero.
 
+This is the finite-dimensional bridge from Hansen's usual one-row
+nonzero-restriction condition to the linear-map injectivity premise used by
+the studentization helpers. -/
+theorem oneRow_transpose_mulVec_injective_iff_exists_ne_zero {k : Type*}
+    (R : Matrix Unit k ℝ) :
+    Function.Injective Rᵀ.mulVec ↔ ∃ j : k, R () j ≠ 0 := by
+  constructor
+  · intro hR
+    by_contra hnone
+    have hnone' : ∀ j : k, R () j = 0 := by
+      intro j
+      by_contra hj
+      exact hnone ⟨j, hj⟩
+    have hmap :
+        Rᵀ.mulVec (fun _ : Unit => (1 : ℝ)) =
+          Rᵀ.mulVec (fun _ : Unit => (0 : ℝ)) := by
+      funext j
+      simp [Matrix.mulVec, hnone' j]
+    have hscalar := congrFun (hR hmap) ()
+    norm_num at hscalar
+  · rintro ⟨j, hj⟩ x y hxy
+    funext u
+    cases u
+    have hcoord : R () j * x () = R () j * y () := by
+      simpa [Matrix.mulVec] using congrFun hxy j
+    exact mul_left_cancel₀ hj hcoord
+
+/-- One nonzero coefficient in a one-row restriction gives full row rank. -/
+theorem oneRow_transpose_mulVec_injective_of_exists_ne_zero {k : Type*}
+    {R : Matrix Unit k ℝ} (hR : ∃ j : k, R () j ≠ 0) :
+    Function.Injective Rᵀ.mulVec :=
+  (oneRow_transpose_mulVec_injective_iff_exists_ne_zero R).2 hR
 /-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
 theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℝ}
