@@ -4,6 +4,21 @@ import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Order.Fin.Tuple
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
+/-!
+# Shared finite-dimensional linear algebra
+
+This module provides the repository's reusable real-matrix support layer. Its
+public surface includes finite-matrix Borel measurability, total inverse and
+Gram identities, Hermitian idempotent projection formulas, rectangular-Gram
+spectrum transfer, Hermitian eigenvalue expansions, compression/interlacing
+bounds, and Ky Fan-style leading-eigenvalue inequalities.
+
+Chapter files should reuse these declarations before introducing local matrix
+algebra. Proof scaffolding for list sorting, determinant expansions, and column
+orthogonality remains private; the public theorem families are intended for
+cross-chapter use.
+-/
+
 open scoped Matrix
 open scoped MatrixOrder
 
@@ -75,6 +90,7 @@ theorem nonsingInv_conjugate_of_inverse {k q : Type*}
 /-- Hansen Theorem 3.3.1 helper: the Gram matrix `Xᵀ * X` is symmetric. Relocated here from
 `Chapter3Projections.lean` so that earlier files (e.g., `Chapter3LeastSquaresAlgebra.lean`)
 can use it without creating a circular import. -/
+@[simp]
 theorem gram_transpose {n k : Type*} [Fintype n]
     (X : Matrix n k ℝ) :
     (Xᵀ * X)ᵀ = Xᵀ * X := by
@@ -87,7 +103,7 @@ directly from the shared linear-algebra helper layer. -/
 theorem inv_gram_transpose {n k : Type*} [Fintype n] [Fintype k] [DecidableEq k]
     (X : Matrix n k ℝ) [Invertible (Xᵀ * X)] :
     (⅟ (Xᵀ * X))ᵀ = ⅟ (Xᵀ * X) := by
-  simpa [gram_transpose (X := X)] using
+  simpa using
     (Matrix.transpose_invOf (A := Xᵀ * X))
 
 /-- Left-multiplication by a row vector is right-multiplication by the transpose. -/
@@ -163,6 +179,311 @@ lemma gram_quadratic_pos {n k : Type*} [Fintype n] [Fintype k] [DecidableEq k]
         rw [hXtXv, Matrix.mulVec_zero]
       rwa [Matrix.mulVec_mulVec, invOf_mul_self, Matrix.one_mulVec] at h1
     exact hv hv0
+
+/-- The row-space Gram matrix of a rectangular real matrix is Hermitian. -/
+theorem mul_transpose_isHermitian {k m : Type*} [Fintype m]
+    (D : Matrix k m ℝ) :
+    (D * Dᵀ).IsHermitian := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    Matrix.isHermitian_mul_conjTranspose_self D
+
+/-- The column-space Gram matrix of a rectangular real matrix is Hermitian. -/
+theorem transpose_mul_isHermitian {k m : Type*} [Fintype k]
+    (D : Matrix k m ℝ) :
+    (Dᵀ * D).IsHermitian := by
+  simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+    Matrix.isHermitian_conjTranspose_mul_self D
+
+/-- Rectangular Sylvester identity for the two real Gram matrices of `D`.
+
+The powers of `X` account for the zero eigenvalues added when passing between
+row space and column space. -/
+theorem mul_transpose_charpoly_mul_X {k m : Type*}
+    [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
+    (D : Matrix k m ℝ) :
+    Polynomial.X ^ Fintype.card m * (D * Dᵀ).charpoly =
+      Polynomial.X ^ Fintype.card k * (Dᵀ * D).charpoly := by
+  simpa using Matrix.charpoly_mul_comm' D Dᵀ
+
+/-- Root-multiset form of `mul_transpose_charpoly_mul_X`.
+
+It states that the spectra of `D * Dᵀ` and `Dᵀ * D` agree after padding
+each side with the zero roots contributed by the other index type. -/
+theorem mul_transpose_roots_with_zero_padding {k m : Type*}
+    [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
+    (D : Matrix k m ℝ) :
+    Fintype.card m • ({0} : Multiset ℝ) + (D * Dᵀ).charpoly.roots =
+      Fintype.card k • ({0} : Multiset ℝ) + (Dᵀ * D).charpoly.roots := by
+  classical
+  have hroot := congrArg Polynomial.roots (mul_transpose_charpoly_mul_X D)
+  have hleft_ne :
+      Polynomial.X ^ Fintype.card m * (D * Dᵀ).charpoly ≠ 0 :=
+    mul_ne_zero (pow_ne_zero _ Polynomial.X_ne_zero)
+      (Matrix.charpoly_monic (D * Dᵀ)).ne_zero
+  have hright_ne :
+      Polynomial.X ^ Fintype.card k * (Dᵀ * D).charpoly ≠ 0 :=
+    mul_ne_zero (pow_ne_zero _ Polynomial.X_ne_zero)
+      (Matrix.charpoly_monic (Dᵀ * D)).ne_zero
+  rw [Polynomial.roots_mul hleft_ne, Polynomial.roots_mul hright_ne,
+    Polynomial.roots_X_pow, Polynomial.roots_X_pow] at hroot
+  exact hroot
+
+private lemma sortedGE_append_replicate_of_le
+    {α : Type*} [LinearOrder α] {l : List α} {z : α}
+    (hs : l.SortedGE) (hz : ∀ x ∈ l, z ≤ x) (n : ℕ) :
+    (l ++ List.replicate n z).SortedGE := by
+  rw [List.sortedGE_iff_pairwise] at hs ⊢
+  simp only [List.pairwise_append, hs, List.pairwise_replicate_of_refl, true_and]
+  intro a ha b hb
+  rw [List.eq_of_mem_replicate hb]
+  exact hz a ha
+
+private lemma padded_sorted_lists_eq_of_multiset_eq
+    {α : Type*} [LinearOrder α] {l₁ l₂ : List α} {z : α} {a b : ℕ}
+    (hs₁ : l₁.SortedGE) (hs₂ : l₂.SortedGE)
+    (hz₁ : ∀ x ∈ l₁, z ≤ x) (hz₂ : ∀ x ∈ l₂, z ≤ x)
+    (hpad : a • ({z} : Multiset α) + (l₁ : Multiset α) =
+      b • ({z} : Multiset α) + (l₂ : Multiset α)) :
+    l₁ ++ List.replicate a z = l₂ ++ List.replicate b z := by
+  have hrep_a : (List.replicate a z : Multiset α) =
+      a • ({z} : Multiset α) := by
+    rw [Multiset.coe_replicate, ← Multiset.nsmul_singleton]
+  have hrep_b : (List.replicate b z : Multiset α) =
+      b • ({z} : Multiset α) := by
+    rw [Multiset.coe_replicate, ← Multiset.nsmul_singleton]
+  have hcoe :
+      ((l₁ ++ List.replicate a z : List α) : Multiset α) =
+        ((l₂ ++ List.replicate b z : List α) : Multiset α) := by
+    calc
+      ((l₁ ++ List.replicate a z : List α) : Multiset α)
+          = (l₁ : Multiset α) + a • ({z} : Multiset α) := by
+              rw [← Multiset.coe_add, hrep_a]
+      _ = a • ({z} : Multiset α) + (l₁ : Multiset α) := by rw [add_comm]
+      _ = b • ({z} : Multiset α) + (l₂ : Multiset α) := hpad
+      _ = (l₂ : Multiset α) + b • ({z} : Multiset α) := by rw [add_comm]
+      _ = ((l₂ ++ List.replicate b z : List α) : Multiset α) := by
+              rw [← Multiset.coe_add, hrep_b]
+  exact List.Perm.eq_of_sortedGE
+    (sortedGE_append_replicate_of_le hs₁ hz₁ a)
+    (sortedGE_append_replicate_of_le hs₂ hz₂ b)
+    (Multiset.coe_eq_coe.mp hcoe)
+
+/-- Sorted nonnegative eigenvalue-list form of the rectangular Gram bridge.
+
+Because both Gram matrices are positive semidefinite, the zero padding appears
+after their decreasingly ordered `eigenvalues₀` lists. -/
+theorem mul_transpose_padded_eigenvalues₀_eq {k m : Type*}
+    [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
+    (D : Matrix k m ℝ) :
+    List.ofFn (mul_transpose_isHermitian D).eigenvalues₀ ++
+        List.replicate (Fintype.card m) (0 : ℝ) =
+      List.ofFn (transpose_mul_isHermitian D).eigenvalues₀ ++
+        List.replicate (Fintype.card k) (0 : ℝ) := by
+  let lrow := List.ofFn (mul_transpose_isHermitian D).eigenvalues₀
+  let lcol := List.ofFn (transpose_mul_isHermitian D).eigenvalues₀
+  have hrowRoots : (D * Dᵀ).charpoly.roots = (lrow : Multiset ℝ) := by
+    simpa [lrow, Function.comp_def] using
+      (mul_transpose_isHermitian D).roots_charpoly_eq_eigenvalues₀
+  have hcolRoots : (Dᵀ * D).charpoly.roots = (lcol : Multiset ℝ) := by
+    simpa [lcol, Function.comp_def] using
+      (transpose_mul_isHermitian D).roots_charpoly_eq_eigenvalues₀
+  have hpad : Fintype.card m • ({0} : Multiset ℝ) + (lrow : Multiset ℝ) =
+      Fintype.card k • ({0} : Multiset ℝ) + (lcol : Multiset ℝ) := by
+    simpa [hrowRoots, hcolRoots] using mul_transpose_roots_with_zero_padding D
+  have hsRow : lrow.SortedGE := by
+    exact (mul_transpose_isHermitian D).eigenvalues₀_antitone.sortedGE_ofFn
+  have hsCol : lcol.SortedGE := by
+    exact (transpose_mul_isHermitian D).eigenvalues₀_antitone.sortedGE_ofFn
+  have hrowPSD : (D * Dᵀ).PosSemidef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      Matrix.posSemidef_self_mul_conjTranspose D
+  have hcolPSD : (Dᵀ * D).PosSemidef := by
+    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using
+      Matrix.posSemidef_conjTranspose_mul_self D
+  have h0Row : ∀ x ∈ lrow, 0 ≤ x := by
+    intro x hx
+    dsimp [lrow] at hx
+    rw [List.mem_ofFn] at hx
+    rcases hx with ⟨i, rfl⟩
+    have hproof : hrowPSD.1 = mul_transpose_isHermitian D := Subsingleton.elim _ _
+    simpa [Matrix.IsHermitian.eigenvalues, hproof] using
+      hrowPSD.eigenvalues_nonneg
+        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))) i)
+  have h0Col : ∀ x ∈ lcol, 0 ≤ x := by
+    intro x hx
+    dsimp [lcol] at hx
+    rw [List.mem_ofFn] at hx
+    rcases hx with ⟨i, rfl⟩
+    have hproof : hcolPSD.1 = transpose_mul_isHermitian D := Subsingleton.elim _ _
+    simpa [Matrix.IsHermitian.eigenvalues, hproof] using
+      hcolPSD.eigenvalues_nonneg
+        ((Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card m))) i)
+  exact padded_sorted_lists_eq_of_multiset_eq hsRow hsCol h0Row h0Col hpad
+
+/-- The leading ordered eigenvalues of the two rectangular Gram matrices agree
+at every index present on both sides. -/
+theorem mul_transpose_eigenvalues₀_eq_of_lt {k m : Type*}
+    [Fintype k] [Fintype m] [DecidableEq k] [DecidableEq m]
+    (D : Matrix k m ℝ) (i : ℕ)
+    (hik : i < Fintype.card k) (him : i < Fintype.card m) :
+    (mul_transpose_isHermitian D).eigenvalues₀ ⟨i, hik⟩ =
+      (transpose_mul_isHermitian D).eigenvalues₀ ⟨i, him⟩ := by
+  have hpadded := mul_transpose_padded_eigenvalues₀_eq D
+  have hget := congrArg (fun l : List ℝ => l[i]?) hpadded
+  dsimp only at hget
+  rw [List.getElem?_append_left (by simpa using hik),
+    List.getElem?_append_left (by simpa using him)] at hget
+  simpa [List.getElem?_ofFn, hik, him] using hget
+
+/-- A positive semidefinite real matrix of rank at least `r` has strictly
+positive ordered eigenvalues at each of its first `r` indices. -/
+theorem leading_eigenvalues₀_pos_of_posSemidef_rank_ge
+    {k r : Type*} [Fintype k] [Fintype r] [DecidableEq k]
+    {M : Matrix k k ℝ} (hM : M.PosSemidef)
+    (hcard : Fintype.card r ≤ Fintype.card k)
+    (hrank : Fintype.card r ≤ M.rank) :
+    ∀ j : r, 0 < hM.1.eigenvalues₀
+      (Fin.castLE hcard ((Fintype.equivFin r) j)) := by
+  classical
+  let e : Fin (Fintype.card k) ≃ k :=
+    Fintype.equivOfCardEq (Fintype.card_fin (Fintype.card k))
+  have hnonneg : ∀ i : Fin (Fintype.card k), 0 ≤ hM.1.eigenvalues₀ i := by
+    intro i
+    simpa [Matrix.IsHermitian.eigenvalues, e] using hM.eigenvalues_nonneg (e i)
+  have hrank_eq :
+      M.rank = Fintype.card
+        {i : Fin (Fintype.card k) // hM.1.eigenvalues₀ i ≠ 0} := by
+    let nonzeroEquiv :
+        {i : Fin (Fintype.card k) // hM.1.eigenvalues₀ i ≠ 0} ≃
+          {a : k // hM.1.eigenvalues a ≠ 0} := {
+      toFun i := ⟨e i.1, by
+        simpa [Matrix.IsHermitian.eigenvalues, e] using i.2⟩
+      invFun a := ⟨e.symm a.1, by
+        simpa [Matrix.IsHermitian.eigenvalues, e] using a.2⟩
+      left_inv i := by
+        ext
+        simp [e]
+      right_inv a := by
+        ext
+        simp [e] }
+    rw [hM.1.rank_eq_card_non_zero_eigs]
+    exact (Fintype.card_congr nonzeroEquiv).symm
+  intro j
+  let idx : Fin (Fintype.card k) :=
+    Fin.castLE hcard ((Fintype.equivFin r) j)
+  have hdown :
+      ∀ i j : Fin (Fintype.card k), j ≤ i →
+        hM.1.eigenvalues₀ i ≠ 0 → hM.1.eigenvalues₀ j ≠ 0 := by
+    intro i j hji hi hzero
+    have hle : hM.1.eigenvalues₀ i ≤ hM.1.eigenvalues₀ j :=
+      hM.1.eigenvalues₀_antitone hji
+    have hzero_i : hM.1.eigenvalues₀ i = 0 :=
+      le_antisymm (by simpa [hzero] using hle) (hnonneg i)
+    exact hi hzero_i
+  have hidx_lt_r : (idx : ℕ) < Fintype.card r := by
+    simp [idx]
+  have hidx_lt_count :
+      idx < Fintype.card
+        {i : Fin (Fintype.card k) // hM.1.eigenvalues₀ i ≠ 0} :=
+    lt_of_lt_of_le hidx_lt_r (hrank.trans_eq hrank_eq)
+  have hidx_nonzero : hM.1.eigenvalues₀ idx ≠ 0 :=
+    (Fin.lt_card_filter_univ_iff_apply_of_imp
+      (fun i : Fin (Fintype.card k) => hM.1.eigenvalues₀ i ≠ 0)
+      hdown).mp (by simpa [Fintype.card_subtype] using hidx_lt_count)
+  exact lt_of_le_of_ne (hnonneg idx) hidx_nonzero.symm
+
+/-- The ordered eigenvalues of `I - A` are the reversed complements of the
+ordered eigenvalues of a real Hermitian matrix `A`.
+
+The reversal is essential: Mathlib orders `eigenvalues₀` nonincreasingly,
+while `x ↦ 1 - x` reverses inequalities. -/
+theorem one_sub_ordered_eigenvalues₀_eq_reverse_map
+    {n : Type*} [Fintype n] [DecidableEq n]
+    {A : Matrix n n ℝ} (hA : A.IsHermitian) :
+    List.ofFn (isHermitian_one.sub hA).eigenvalues₀ =
+      (List.ofFn hA.eigenvalues₀).reverse.map (fun x => 1 - x) := by
+  let hIA : (1 - A).IsHermitian := isHermitian_one.sub hA
+  let f : ℝ → ℝ := fun x => 1 - x
+  have hdiag :
+      1 - A =
+        Unitary.conjStarAlgAut ℝ (Matrix n n ℝ) hA.eigenvectorUnitary
+          (Matrix.diagonal (f ∘ hA.eigenvalues)) := by
+    calc
+      1 - A = 1 -
+          Unitary.conjStarAlgAut ℝ (Matrix n n ℝ) hA.eigenvectorUnitary
+            (Matrix.diagonal (fun i => hA.eigenvalues i)) :=
+        congrArg (fun M : Matrix n n ℝ => 1 - M) hA.spectral_theorem
+      _ = Unitary.conjStarAlgAut ℝ (Matrix n n ℝ) hA.eigenvectorUnitary
+          (1 - Matrix.diagonal (fun i => hA.eigenvalues i)) := by
+        rw [map_sub, map_one]
+      _ = Unitary.conjStarAlgAut ℝ (Matrix n n ℝ) hA.eigenvectorUnitary
+          (Matrix.diagonal (f ∘ hA.eigenvalues)) := by
+        congr 1
+        ext i j
+        by_cases hij : i = j
+        · subst j
+          simp [f, Function.comp_def]
+        · simp [Matrix.diagonal, hij]
+  have hchar :
+      (1 - A).charpoly =
+        ∏ i, (Polynomial.X - Polynomial.C (f (hA.eigenvalues i))) := by
+    rw [hdiag, Unitary.conjStarAlgAut_apply, Matrix.charpoly_mul_comm, ← mul_assoc]
+    simp [Matrix.charpoly_diagonal, f, Function.comp_def]
+  have hroots :
+      (1 - A).charpoly.roots =
+        Multiset.map f A.charpoly.roots := by
+    rw [hchar, Polynomial.roots_prod]
+    · rw [hA.roots_charpoly_eq_eigenvalues]
+      simp only [Polynomial.roots_X_sub_C, Multiset.bind_singleton,
+        Multiset.map_map, Function.comp_apply, RCLike.ofReal_real_eq_id, id_eq]
+    · exact Finset.prod_ne_zero_iff.mpr
+        (fun i _ => Polynomial.X_sub_C_ne_zero _)
+  have hrootsIA :
+      (1 - A).charpoly.roots =
+        ((List.ofFn hIA.eigenvalues₀ : List ℝ) : Multiset ℝ) := by
+    simpa [hIA, Function.comp_def] using hIA.roots_charpoly_eq_eigenvalues₀
+  have hrootsA :
+      A.charpoly.roots =
+        ((List.ofFn hA.eigenvalues₀ : List ℝ) : Multiset ℝ) := by
+    simpa [Function.comp_def] using hA.roots_charpoly_eq_eigenvalues₀
+  have hperm :
+      List.Perm (List.ofFn hIA.eigenvalues₀)
+        ((List.ofFn hA.eigenvalues₀).reverse.map f) := by
+    apply Multiset.coe_eq_coe.mp
+    calc
+      ((List.ofFn hIA.eigenvalues₀ : List ℝ) : Multiset ℝ) =
+          (1 - A).charpoly.roots := hrootsIA.symm
+      _ = Multiset.map f A.charpoly.roots := hroots
+      _ = Multiset.map f
+          ((List.ofFn hA.eigenvalues₀ : List ℝ) : Multiset ℝ) := by rw [hrootsA]
+      _ = (((List.ofFn hA.eigenvalues₀).reverse.map f : List ℝ) : Multiset ℝ) := by
+        simp
+  have hleft : (List.ofFn hIA.eigenvalues₀).SortedGE :=
+    hIA.eigenvalues₀_antitone.sortedGE_ofFn
+  have hf : StrictAnti f := by
+    intro a b hab
+    exact sub_lt_sub_left hab 1
+  have hright : ((List.ofFn hA.eigenvalues₀).reverse.map f).SortedGE := by
+    rw [hf.sortedGE_listMap, List.sortedLE_reverse]
+    exact hA.eigenvalues₀_antitone.sortedGE_ofFn
+  change List.ofFn hIA.eigenvalues₀ =
+    (List.ofFn hA.eigenvalues₀).reverse.map f
+  exact hperm.eq_of_sortedGE hleft hright
+
+/-- Pointwise form of `one_sub_ordered_eigenvalues₀_eq_reverse_map`.
+
+The `i`-th largest eigenvalue of `I - A` is one minus the `i`-th smallest
+eigenvalue of `A`. -/
+theorem one_sub_ordered_eigenvalues₀_apply
+    {n : Type*} [Fintype n] [DecidableEq n]
+    {A : Matrix n n ℝ} (hA : A.IsHermitian)
+    (i : Fin (Fintype.card n)) :
+    (isHermitian_one.sub hA).eigenvalues₀ i =
+      1 - hA.eigenvalues₀ (Fin.rev i) := by
+  have hlist := one_sub_ordered_eigenvalues₀_eq_reverse_map hA
+  have hget := congrArg (fun l : List ℝ => l[i.val]?) hlist
+  simpa [List.getElem?_ofFn, List.getElem?_map, List.getElem?_reverse,
+    Fin.rev, i.isLt, Nat.sub_sub, Nat.add_comm] using hget
 
 /-- Eigenvalues of a real Hermitian idempotent matrix are `0` or `1`. -/
 theorem eigenvalues_zero_or_one_of_isHermitian_idempotent {n : Type*} [Fintype n] [DecidableEq n]
@@ -353,27 +674,6 @@ theorem isHermitian_idempotent_quadratic_form_eq_sum_sq_eigenvector_coords
     quadratic_form_eq_dotProduct_of_symm_idempotent P hPt hI e
   simpa [b, z] using hquad.trans (hnorm.trans hsum)
 
-/-- Pull a quadratic form through a fixed matrix map. -/
-lemma quadraticForm_mulVec_eq_pullback
-    {ι : Type*} [Fintype ι]
-    (B A : Matrix ι ι ℝ) (x : ι → ℝ) :
-    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x)) =
-      x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
-  calc
-    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x))
-        = ((B *ᵥ x) ᵥ* A) ⬝ᵥ (B *ᵥ x) := by
-      rw [Matrix.dotProduct_mulVec]
-    _ = (((x ᵥ* Bᵀ) ᵥ* A) ⬝ᵥ (B *ᵥ x)) := by
-      rw [Matrix.vecMul_transpose]
-    _ = ((x ᵥ* (Bᵀ * A)) ⬝ᵥ (B *ᵥ x)) := by
-      rw [Matrix.vecMul_vecMul]
-    _ = (((x ᵥ* (Bᵀ * A)) ᵥ* B) ⬝ᵥ x) := by
-      rw [Matrix.dotProduct_mulVec]
-    _ = ((x ᵥ* ((Bᵀ * A) * B)) ⬝ᵥ x) := by
-      rw [Matrix.vecMul_vecMul]
-    _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
-      rw [← Matrix.dotProduct_mulVec]
-
 /-- Pull a quadratic form through a fixed rectangular matrix map. -/
 lemma quadraticForm_mulVec_eq_pullback_rect
     {ι κ : Type*} [Fintype ι] [Fintype κ]
@@ -394,6 +694,14 @@ lemma quadraticForm_mulVec_eq_pullback_rect
       rw [Matrix.vecMul_vecMul]
     _ = x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
       rw [← Matrix.dotProduct_mulVec]
+
+/-- Pull a quadratic form through a fixed square matrix map. -/
+lemma quadraticForm_mulVec_eq_pullback
+    {ι : Type*} [Fintype ι]
+    (B A : Matrix ι ι ℝ) (x : ι → ℝ) :
+    (B *ᵥ x) ⬝ᵥ (A *ᵥ (B *ᵥ x)) =
+      x ⬝ᵥ ((Bᵀ * A * B) *ᵥ x) := by
+  exact quadraticForm_mulVec_eq_pullback_rect B A x
 
 /-- Pointwise domination of squared norms after two matrix maps implies the
 corresponding Loewner order on their Gram matrices. -/
@@ -1227,19 +1535,8 @@ lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
     {n : ℕ} {M : Matrix (Fin n) (Fin n) ℝ}
     (hH : M.IsHermitian) (hI : IsIdempotentElem M) :
     (Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)).card = M.rank := by
-  -- Eigenvalues of a Hermitian idempotent real matrix are 0 or 1.
-  have heig : ∀ i : Fin n, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
-    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
-    simpa using hmem
-  -- So the "= 1" predicate coincides with the "≠ 0" predicate.
-  have hfilter_eq : Finset.univ.filter (fun i : Fin n => hH.eigenvalues i = 1)
-      = Finset.univ.filter (fun i : Fin n => hH.eigenvalues i ≠ 0) := by
-    ext i
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    constructor
-    · intro h; rw [h]; norm_num
-    · exact (heig i).resolve_left
-  rw [hfilter_eq, hH.rank_eq_card_non_zero_eigs, Fintype.card_subtype]
+  rw [← Fintype.card_subtype]
+  exact (rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hH hI).symm
 
 /-- Finite-index version of `card_eigenvalue_one_eq_rank_of_isHermitian_idempotent`. -/
 lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype
@@ -1247,16 +1544,7 @@ lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent_fintype
     {M : Matrix ι ι ℝ}
     (hH : M.IsHermitian) (hI : IsIdempotentElem M) :
     (Finset.univ.filter (fun i : ι => hH.eigenvalues i = 1)).card = M.rank := by
-  have heig : ∀ i : ι, hH.eigenvalues i = 0 ∨ hH.eigenvalues i = 1 := fun i => by
-    have hmem := hI.spectrum_subset ℝ (hH.eigenvalues_mem_spectrum_real i)
-    simpa using hmem
-  have hfilter_eq : Finset.univ.filter (fun i : ι => hH.eigenvalues i = 1)
-      = Finset.univ.filter (fun i : ι => hH.eigenvalues i ≠ 0) := by
-    ext i
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    constructor
-    · intro h; rw [h]; norm_num
-    · exact (heig i).resolve_left
-  rw [hfilter_eq, hH.rank_eq_card_non_zero_eigs, Fintype.card_subtype]
+  rw [← Fintype.card_subtype]
+  exact (rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hH hI).symm
 
 end HansenEconometrics

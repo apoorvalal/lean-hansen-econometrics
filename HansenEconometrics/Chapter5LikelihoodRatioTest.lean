@@ -172,64 +172,8 @@ theorem quadForm_eq_sum_sq_eigCoords_of_isHermitian_idempotent
     let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hA.eigenvectorBasis
     e ⬝ᵥ A *ᵥ e = ∑ i : {j : n // hA.eigenvalues j = 1}, (b.repr (WithLp.toLp 2 e) i.1)^2 := by
   classical
-  let b : OrthonormalBasis n ℝ (EuclideanSpace ℝ n) := hA.eigenvectorBasis
-  let z : EuclideanSpace ℝ n := WithLp.toLp 2 e
-  have hAt : Aᵀ = A := by
-    simpa [Matrix.conjTranspose_eq_transpose_of_trivial] using hA
-  have hcoord : ∀ i : n, b.repr (Matrix.toEuclideanLin A z) i = hA.eigenvalues i * b.repr z i := by
-    intro i
-    let T : EuclideanSpace ℝ n →ₗ[ℝ] EuclideanSpace ℝ n := Matrix.toEuclideanLin A
-    have hSymm : T.IsSymmetric := Matrix.isHermitian_iff_isSymmetric.mp hA
-    have hEig : T (b i) = hA.eigenvalues i • b i := by
-      simpa [T] using congrArg (WithLp.toLp 2) (hA.mulVec_eigenvectorBasis i)
-    calc
-      b.repr (T z) i = inner ℝ (b i) (T z) := by
-        simpa using (OrthonormalBasis.repr_apply_apply (b := b) (v := T z) (i := i))
-      _ = inner ℝ (T (b i)) z := by rw [← hSymm (b i) z]
-      _ = inner ℝ (hA.eigenvalues i • b i) z := by rw [hEig]
-      _ = hA.eigenvalues i * b.repr z i := by
-        rw [real_inner_smul_left, OrthonormalBasis.repr_apply_apply]
-  have hnorm :
-      e ⬝ᵥ A *ᵥ e = ∑ i : n, (hA.eigenvalues i * b.repr z i) ^ 2 := by
-    let T : EuclideanSpace ℝ n →ₗ[ℝ] EuclideanSpace ℝ n := Matrix.toEuclideanLin A
-    calc
-      e ⬝ᵥ A *ᵥ e = dotProduct (A *ᵥ e) (A *ᵥ e) := by
-        exact quadratic_form_eq_dotProduct_of_symm_idempotent A hAt hI e
-      _ = ‖T z‖ ^ 2 := by
-        change dotProduct (A *ᵥ e) (A *ᵥ e) = ‖WithLp.toLp 2 (A *ᵥ e)‖ ^ 2
-        simpa [pow_two] using (EuclideanSpace.real_norm_sq_eq (WithLp.toLp 2 (A *ᵥ e))).symm
-      _ = ∑ i : n, ‖inner ℝ (b i) (T z)‖ ^ 2 := by
-        symm
-        exact OrthonormalBasis.sum_sq_norm_inner_right b (T z)
-      _ = ∑ i : n, (b.repr (T z) i) ^ 2 := by
-        refine Finset.sum_congr rfl ?_
-        intro i hi
-        rw [OrthonormalBasis.repr_apply_apply]
-        simp [sq_abs]
-      _ = ∑ i : n, (hA.eigenvalues i * b.repr z i) ^ 2 := by
-        refine Finset.sum_congr rfl ?_
-        intro i hi
-        rw [hcoord i]
-  have heig01 := eigenvalues_zero_or_one_of_isHermitian_idempotent hA hI
-  have hsum :
-      ∑ i : n, (hA.eigenvalues i * b.repr z i) ^ 2
-        = ∑ i : {j : n // hA.eigenvalues j = 1}, (b.repr z i.1) ^ 2 := by
-    calc
-      ∑ i : n, (hA.eigenvalues i * b.repr z i) ^ 2
-          = ∑ i : n, if hA.eigenvalues i = 1 then (b.repr z i) ^ 2 else 0 := by
-              refine Finset.sum_congr rfl ?_
-              intro i hi
-              by_cases h1 : hA.eigenvalues i = 1
-              · simp [h1]
-              · have h0 : hA.eigenvalues i = 0 := (heig01 i).resolve_right h1
-                simp [h0]
-      _ = ∑ i : n with hA.eigenvalues i = 1, (b.repr z i) ^ 2 := by
-            rw [Finset.sum_filter]
-      _ = ∑ i : {j : n // hA.eigenvalues j = 1}, (b.repr z i.1) ^ 2 := by
-            rw [Finset.sum_subtype]
-            intro x
-            simp
-  simpa [b, z] using hnorm.trans hsum
+  simpa using
+    isHermitian_idempotent_quadratic_form_eq_sum_sq_eigenvector_coords hA hI e
 
 /-- The chi-square numerator in Hansen's F statistic is the squared norm of the projection
 increment `P - P₁`, divided by `σ²`. -/

@@ -1,4 +1,4 @@
-import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
+import HansenEconometrics.Chapter11MultivariateRegression.ReducedRankJointSpectrum
 
 /-!
 # Chapter 11 — reduced-rank Gaussian likelihood
@@ -20,7 +20,9 @@ proves the actual unrestricted MLE predicate from a normalized profile-
 determinant minimum.  A full-model residual-Gram condition derives the required
 interiority uniformly over every normalized profile.  The final residualized
 certificate combines these results with the identified spectral/formula
-surface and the exact attained likelihood value.
+surface and the exact attained likelihood value. The theorem-facing existential
+endpoint uses `ReducedRankJointSpectrum` to construct both spectral blocks
+simultaneously, including when the boundary root is tied.
 
 `ReducedRankHansenTheorem11_7` remains a formula and spectral certificate: its
 `mle_formula_certificate` field has type `ReducedRankMLEFormulaCertificate`
@@ -1467,9 +1469,22 @@ omit [Fintype m] [DecidableEq m] in
 private theorem matrixFullResidual_eq_annihilator_mul
     (D : Matrix n k ℝ) (V : Matrix n m ℝ) [Invertible (Dᵀ * D)] :
     V - D * ((Dᵀ * D)⁻¹ * Dᵀ * V) = annihilatorMatrix D * V := by
-  unfold annihilatorMatrix hatMatrix
-  rw [Matrix.sub_mul, Matrix.one_mul]
-  simp [Matrix.invOf_eq_nonsing_inv, Matrix.mul_assoc]
+  simp [annihilatorMatrix, hatMatrix, Matrix.invOf_eq_nonsing_inv,
+    Matrix.sub_mul, Matrix.mul_assoc]
+
+omit [Fintype m] [DecidableEq n] [DecidableEq m] in
+private theorem matrixFullResidual_crossProduct_eq_complement
+    (D : Matrix n k ℝ) (V : Matrix n m ℝ) [Invertible (Dᵀ * D)] :
+    (V - D * ((Dᵀ * D)⁻¹ * Dᵀ * V))ᵀ *
+        (V - D * ((Dᵀ * D)⁻¹ * Dᵀ * V)) =
+      Vᵀ * V - (Vᵀ * D) * (Dᵀ * D)⁻¹ * (Dᵀ * V) := by
+  classical
+  rw [matrixFullResidual_eq_annihilator_mul]
+  rw [Matrix.transpose_mul, annihilatorMatrix_transpose, Matrix.mul_assoc]
+  rw [← Matrix.mul_assoc (annihilatorMatrix D) (annihilatorMatrix D) V,
+    annihilatorMatrix_idempotent]
+  simp [annihilatorMatrix, hatMatrix, Matrix.invOf_eq_nonsing_inv,
+    Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_assoc]
 
 omit [DecidableEq m] in
 private theorem fwlLeftResidual_eq_fullResidual
@@ -1499,13 +1514,20 @@ theorem reducedRankFullResidual_eq_tildeE
     [Fintype ell] [DecidableEq ell]
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     [Invertible (Zᵀ * Z)]
-    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
-    [Invertible ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X)] :
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)] :
     reducedRankTildeY Z Y -
         reducedRankTildeX Z X *
           (((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X)⁻¹ *
             (reducedRankTildeX Z X)ᵀ * reducedRankTildeY Z Y) =
       reducedRankTildeE X Z Y := by
+  have hXGram := reducedRankTildeX_gram_posDef Z X
+  have hXdet : IsUnit
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X).det :=
+    (Matrix.isUnit_iff_isUnit_det _).mp hXGram.isUnit
+  letI : Invertible
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X) hXdet
   letI : Invertible
       ((residualizedRegressors Z X)ᵀ * residualizedRegressors Z X) := by
     simpa [reducedRankTildeX] using
@@ -1521,6 +1543,48 @@ theorem reducedRankFullResidual_eq_tildeE
   rw [residual_eq_annihilator_mul_y, residual_eq_annihilator_mul_y] at h
   rw [Matrix.mulVec_mulVec] at h
   exact congrFun h i
+
+omit [Fintype m] [DecidableEq m] in
+/-- The unrestricted residual Gram is the Schur complement of `Xtilde'Xtilde`
+in the residualized `(X,Y)` cross-product matrix.
+
+This is the FWL bridge that identifies Hansen's two Theorem 11.7 pencils. -/
+theorem reducedRankTildeE_crossProduct_eq_complement
+    [Fintype ell] [DecidableEq ell]
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)] :
+    (reducedRankTildeE X Z Y)ᵀ * reducedRankTildeE X Z Y =
+      (reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y -
+        ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X) *
+          ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X)⁻¹ *
+            ((reducedRankTildeX Z X)ᵀ * reducedRankTildeY Z Y) := by
+  have hXGram := reducedRankTildeX_gram_posDef Z X
+  have hXdet : IsUnit
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X).det :=
+    (Matrix.isUnit_iff_isUnit_det _).mp hXGram.isUnit
+  letI : Invertible
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X) hXdet
+  rw [← reducedRankFullResidual_eq_tildeE Z X Y]
+  exact matrixFullResidual_crossProduct_eq_complement
+    (reducedRankTildeX Z X) (reducedRankTildeY Z Y)
+
+omit [Fintype m] [DecidableEq m] in
+/-- The residualized FWL identity in Hansen's Theorem 11.7 pencil notation. -/
+theorem reducedRankAperpPencilA_tildeE_eq_complement
+    [Fintype ell] [DecidableEq ell]
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)] :
+    reducedRankAperpPencilA (reducedRankTildeE X Z Y) =
+      reducedRankAperpPencilB (reducedRankTildeY Z Y) -
+        ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X) *
+          (reducedRankGPencilB (reducedRankTildeX Z X))⁻¹ *
+            ((reducedRankTildeX Z X)ᵀ * reducedRankTildeY Z Y) := by
+  simpa [reducedRankAperpPencilA, reducedRankAperpPencilB,
+    reducedRankGPencilB] using reducedRankTildeE_crossProduct_eq_complement Z X Y
 
 omit [Fintype m] [DecidableEq n] [DecidableEq r] [DecidableEq m] in
 private theorem profileResidual_crossProduct_posDef_of_fullResidual
@@ -1774,6 +1838,8 @@ structure ReducedRankHansenTheorem11_7GaussianMLE
   e_residualized : Etilde = reducedRankTildeE X Z Y
   aperp_dimension : Fintype.card s = Fintype.card m - Fintype.card r
   rank_dimension : Fintype.card r < min (Fintype.card k) (Fintype.card m)
+  ordered_roots :
+    ReducedRankHansenOrderedRootWitness Xtilde Ytilde lambda eta
   covariance_posDef : Sigma.PosDef
   gaussian_mle : reducedRankGaussianMLE Z X Y G Acoef C Sigma
   logLikelihood_eq_gaussian :
@@ -1784,11 +1850,12 @@ identified spectral and regular-sample conditions.
 
 The identified max/max certificate supplies Hansen's `G` and `Aperp` formulas.
 Positive selected roots and complement-determinant minimality supply the exact-
-rank global MLE; positive `Etilde' Etilde` supplies covariance interiority; and
-roots below one identify the corrected displayed likelihood with the raw
-Gaussian likelihood. The only spectral construction not hidden by this theorem
-is the identified `Aperp` certificate itself, including any boundary-tie
-condition needed to construct it. -/
+rank global MLE. For positive rank, positive `Etilde' Etilde` supplies covariance
+interiority; the rank-zero case instead reduces every covariance profile to
+the positive-definite residualized outcome Gram. Roots below one identify the
+corrected displayed likelihood with the raw Gaussian likelihood. The joint
+tie-safe spectral construction in `ReducedRankJointSpectrum` supplies this
+theorem's identified certificate and its exact ordered-root witness. -/
 theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertificate
     (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
     (G : Matrix k r ℝ) (lambda : r → ℝ)
@@ -1808,10 +1875,13 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertif
           (reducedRankTildeX Z X) (reducedRankTildeY Z Y) * G).det ≤
           (1 - Hᵀ * reducedRankGPencilA
             (reducedRankTildeX Z X) (reducedRankTildeY Z Y) * H).det)
-    (hEGram :
-      ((reducedRankTildeE X Z Y)ᵀ * reducedRankTildeE X Z Y).PosDef)
+    (hResidualRegular :
+      ((reducedRankTildeE X Z Y)ᵀ * reducedRankTildeE X Z Y).PosDef ∨
+        IsEmpty r)
     (hAperpDimension : Fintype.card s = Fintype.card m - Fintype.card r)
-    (hRankDimension : Fintype.card r < min (Fintype.card k) (Fintype.card m)) :
+    (hRankDimension : Fintype.card r < min (Fintype.card k) (Fintype.card m))
+    (hOrdered : ReducedRankHansenOrderedRootWitness
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y) lambda eta) :
     ReducedRankHansenTheorem11_7GaussianMLE
       Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y) (reducedRankTildeE X Z Y)
       G ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X * G)
@@ -1840,19 +1910,59 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertif
       reducedRankHansenTheorem11_7_of_identified_spectral_maximizer_certificate
         Z X Xtilde Y Ytilde Etilde G lambda Aperp eta
           (by simpa [Xtilde, Ytilde, Etilde] using hSpec)
-  have hMLE0 :=
-    reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_minimal
-      Z X Y G lambda hn (by simpa [Xtilde] using hNorm)
-        (by simpa [Xtilde, Ytilde, Etilde] using
-          hSpec.spectral_maximizers.g_max.eigenvectors)
-        hLambdaPos hComplementMin hEGram
-  have hMLE : reducedRankGaussianMLE Z X Y G Acoef C Sigma := by
-    rw [reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm,
-      reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
-        Xtilde Ytilde G hNorm] at hMLE0
-    simpa [Xtilde, Ytilde, Acoef, C, Sigma] using hMLE0
+  have hXGram : (Xtildeᵀ * Xtilde).PosDef := by
+    simpa [Xtilde] using reducedRankTildeX_gram_posDef Z X
   have hYGram : (Ytildeᵀ * Ytilde).PosDef := by
     simpa [Ytilde] using reducedRankTildeY_gram_posDef Z Y
+  have hMLE : reducedRankGaussianMLE Z X Y G Acoef C Sigma := by
+    rcases hResidualRegular with hEGram | hEmpty
+    · have hMLE0 :=
+        reducedRankGaussianMLE_residualized_of_positive_roots_of_complementDet_minimal
+          Z X Y G lambda hn (by simpa [Xtilde] using hNorm)
+            (by simpa [Xtilde, Ytilde, Etilde] using
+              hSpec.spectral_maximizers.g_max.eigenvectors)
+            hLambdaPos hComplementMin hEGram
+      rw [reducedRankAhat_eq_cross_of_normalized Xtilde Ytilde G hNorm,
+        reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
+          Xtilde Ytilde G hNorm] at hMLE0
+      simpa [Xtilde, Ytilde, Acoef, C, Sigma] using hMLE0
+    · letI : IsEmpty r := hEmpty
+      have hSigmaEq (H : Matrix k r ℝ)
+          (hHNorm : reducedRankGNormalized Xtilde H) :
+          reducedRankSigmaHat Xtilde Ytilde H =
+            (Fintype.card n : ℝ)⁻¹ • (Ytildeᵀ * Ytilde) := by
+        rw [reducedRankSigmaHat_eq_Ahat_mul_transpose_of_normalized
+          Xtilde Ytilde H hHNorm]
+        have hcross : Ytildeᵀ * Xtilde * H = 0 := by
+          ext i j
+          exact isEmptyElim j
+        have hzero :
+            (Ytildeᵀ * Xtilde * H) * (Ytildeᵀ * Xtilde * H)ᵀ = 0 := by
+          rw [hcross, Matrix.zero_mul]
+        rw [hzero, sub_zero]
+      have hScalePos : 0 < (Fintype.card n : ℝ)⁻¹ :=
+        inv_pos.mpr (by exact_mod_cast hn)
+      have hAllProfilePos :
+          ∀ H : Matrix k r ℝ, reducedRankGNormalized Xtilde H →
+            (reducedRankSigmaHat Xtilde Ytilde H).PosDef := by
+        intro H hHNorm
+        rw [hSigmaEq H hHNorm]
+        exact hYGram.smul hScalePos
+      have hSigma : Sigma.PosDef := by
+        rw [hFormula.covariance_recovery]
+        exact hAllProfilePos G hNorm
+      have hProfileMin :
+          ∀ H : Matrix k r ℝ, reducedRankGNormalized Xtilde H →
+            (reducedRankSigmaHat Xtilde Ytilde G).det ≤
+              (reducedRankSigmaHat Xtilde Ytilde H).det := by
+        intro H hHNorm
+        rw [hSigmaEq G hNorm, hSigmaEq H hHNorm]
+      exact reducedRankGaussianMLE_of_positive_roots_of_normalized_profileDet_minimal
+        Z X Y Xtilde Ytilde G Acoef C Sigma lambda rfl rfl hn hXGram hNorm
+          (by simpa [Xtilde, Ytilde, Etilde] using
+            hSpec.spectral_maximizers.g_max.eigenvectors)
+          hLambdaPos hFormula.least_squares_recovery
+          hFormula.covariance_recovery hSigma hProfileMin hAllProfilePos
   have hValue :=
     reducedRankGaussianLogLikelihood_at_recovery_eq_maximizedLogLikelihood
       Z X Y Xtilde Ytilde G Acoef C Sigma lambda rfl rfl hn hYGram hNorm
@@ -1867,11 +1977,74 @@ theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertif
     e_residualized := rfl
     aperp_dimension := hAperpDimension
     rank_dimension := hRankDimension
+    ordered_roots := hOrdered
     covariance_posDef := hMLE.1.1
     gaussian_mle := hMLE
     logLikelihood_eq_gaussian := ?_
   }
   simpa [Xtilde, Ytilde, Acoef, C, Sigma, logLikelihood] using hValue.symm
+
+omit [Fintype s] [DecidableEq s] in
+/-- Hansen Theorem 11.7 for residualized multivariate regression, including
+existence of the jointly selected primal and dual spectral blocks and the
+actual global Gaussian MLE conclusion.
+
+The construction is tie-safe: no separation is assumed between the last
+selected root and the first omitted root. The selected-rank premise is the
+finite-sample condition ensuring that the positive exact-rank parameter space
+has a maximizer rather than only a lower-rank boundary supremum. Positive
+definiteness of the unrestricted residual Gram is required only for positive
+rank; the rank-zero case is handled directly from the residualized outcome
+Gram. -/
+theorem reducedRankHansenTheorem11_7GaussianMLE_residualized_exists
+    (Z : Matrix n ell ℝ) (X : Matrix n k ℝ) (Y : Matrix n m ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((Matrix.fromCols X Z)ᵀ * Matrix.fromCols X Z)]
+    [Invertible ((Matrix.fromCols Y Z)ᵀ * Matrix.fromCols Y Z)]
+    (hn : 0 < Fintype.card n)
+    (hResidualRegular :
+      ((reducedRankTildeE X Z Y)ᵀ * reducedRankTildeE X Z Y).PosDef ∨
+        IsEmpty r)
+    (hRankDimension : Fintype.card r < min (Fintype.card k) (Fintype.card m))
+    (hSelectedRank : Fintype.card r ≤
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeY Z Y).rank) :
+    ∃ (G : Matrix k r ℝ) (lambda : r → ℝ)
+        (Aperp : Matrix m (reducedRankAperpIndex m r) ℝ)
+        (eta : reducedRankAperpIndex m r → ℝ),
+      ReducedRankHansenTheorem11_7GaussianMLE
+        Z X (reducedRankTildeX Z X) Y (reducedRankTildeY Z Y)
+        (reducedRankTildeE X Z Y)
+        G ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X * G)
+        (reducedRankChat Z X Y G
+          ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X * G))
+        ((Fintype.card n : ℝ)⁻¹ •
+          ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y -
+            ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X * G) *
+              ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeX Z X * G)ᵀ))
+        Aperp lambda eta
+        (reducedRankMaximizedLogLikelihood (reducedRankTildeY Z Y) lambda) := by
+  have hXGram :
+      ((reducedRankTildeX Z X)ᵀ * reducedRankTildeX Z X).PosDef :=
+    reducedRankTildeX_gram_posDef Z X
+  have hYGram :
+      ((reducedRankTildeY Z Y)ᵀ * reducedRankTildeY Z Y).PosDef :=
+    reducedRankTildeY_gram_posDef Z Y
+  have hComplement := reducedRankAperpPencilA_tildeE_eq_complement Z X Y
+  have hrk : Fintype.card r ≤ Fintype.card k := by omega
+  have hrm : Fintype.card r ≤ Fintype.card m := by omega
+  obtain ⟨G, lambda, Aperp, eta, hSpec, hLambdaPos, hLambdaLtOne,
+      hComplementMin, hOrdered⟩ :=
+    ReducedRankHansenIdentifiedSpectralMaximizerCertificate.exists_of_complement_pencil
+      (s := reducedRankAperpIndex m r)
+      (reducedRankTildeX Z X) (reducedRankTildeY Z Y)
+      (reducedRankTildeE X Z Y) hXGram hYGram hResidualRegular hComplement hrk hrm
+      (reducedRankAperpDimension_canonical (m := m) (r := r)) hSelectedRank
+  refine ⟨G, lambda, Aperp, eta, ?_⟩
+  exact reducedRankHansenTheorem11_7GaussianMLE_residualized_of_identifiedCertificate
+    Z X Y G lambda Aperp eta hn hSpec hLambdaPos hLambdaLtOne
+      hComplementMin hResidualRegular
+      (reducedRankAperpDimension_canonical (m := m) (r := r)) hRankDimension
+      hOrdered
 
 end TheoremCertificate
 

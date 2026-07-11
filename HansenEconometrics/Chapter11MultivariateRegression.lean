@@ -2,6 +2,7 @@ import HansenEconometrics.Chapter11MultivariateRegression.Systems
 import HansenEconometrics.Chapter11MultivariateRegression.Asymptotics
 import HansenEconometrics.Chapter11MultivariateRegression.SUR
 import HansenEconometrics.Chapter11MultivariateRegression.ReducedRank
+import HansenEconometrics.Chapter11MultivariateRegression.ReducedRankJointSpectrum
 import HansenEconometrics.Chapter11MultivariateRegression.ReducedRankLikelihood
 import HansenEconometrics.Chapter11MultivariateRegression.PCA
 import HansenEconometrics.Chapter11MultivariateRegression.FactorModels
@@ -25,6 +26,8 @@ The development is split by textbook topic:
   bridges for Theorems 11.4--11.6.
 * `ReducedRank`: generalized-eigenvector predicates, reduced-rank formula and
   spectral certificates, and `A⊥` residual-pencil support for Theorem 11.7.
+* `ReducedRankJointSpectrum`: tie-safe simultaneous construction of the primal
+  and complementary residual-pencil blocks for Theorem 11.7.
 * `ReducedRankLikelihood`: raw Gaussian likelihood, exact-rank admissibility,
   and an actual global MLE predicate kept distinct from the formula certificate.
 * `PCA` and `FactorModels`: principal components, factor-model PC estimators,

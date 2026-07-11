@@ -35,10 +35,11 @@ complement-pencil identity and nonzero selected roots, the canonical dual block
 is now proved to lie in the `1 - lambda` residual-pencil eigenspaces. Disjoint
 selected/complement roots then give a simultaneous identified max/max
 certificate, allowing arbitrary ties within either selected family. The
-remaining spectral gap is the cross-boundary tie: representatives must be
-chosen jointly inside that tied eigenspace rather than as independent leading
-blocks. The residualized-data endpoint also still needs the exact complement-
-pencil identity derived from its FWL definitions.
+joint construction in `ReducedRankJointSpectrum` chooses both blocks from one
+ordered basis, so it also permits ties crossing the selected/complement
+boundary. `ReducedRankLikelihood` derives the exact complement-pencil identity
+from Chapter 3 FWL and assembles the resulting unconditional Gaussian-MLE
+endpoint.
 
 The legacy `ReducedRankMLE` name below denotes only a formula certificate. Raw
 Gaussian likelihood, positive-definite covariance, admissibility, and global
@@ -6884,8 +6885,9 @@ identity-scaled canonical dual block a residual-pencil eigenblock with roots
 the independently selected direct-objective maximizers whenever
 `eta_i != 1 - lambda_j`. Ties within the selected G family or within the
 selected `Aperp` family are allowed; only a tie crossing the selected/complement
-boundary is excluded. This is a conditional bridge, not Hansen's still-open
-unconditional tied-boundary simultaneous construction. -/
+boundary is excluded. This conditional bridge remains useful for independently
+supplied blocks; `ReducedRankJointSpectrum` provides the unconditional
+tied-boundary simultaneous construction. -/
 theorem
     ReducedRankHansenIdentifiedSpectralMaximizerCertificate.of_maxMax_and_complement_pencil_of_separated_roots
     [DecidableEq k] [Fintype s] [DecidableEq s]
