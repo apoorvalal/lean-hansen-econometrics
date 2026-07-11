@@ -18014,24 +18014,24 @@ theorem generatedRegressorBeta2_olsNullTStat_conditional_hasLaw_classicalStudent
 /-- Hansen Theorem 12.10 homoskedastic Wald statistic `W⁰` for testing that
 the generated right-block coefficients are zero.  It is named separately so
 the textbook identity `F = W⁰ / q` can be cited directly. -/
-noncomputable def generatedRegressorHomoskedasticWaldStat
+noncomputable def generatedRegressorFScaledWaldCompatibilityStat
     (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
     [Invertible (W₁ᵀ * W₁)]
     [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)] : ℝ :=
   (Fintype.card k₂ : ℝ) * olsFStatistic W₁ W₂hat Y
 
 /-- Hansen's identity `F = W⁰ / q` for the generated-regressor block test. -/
-theorem generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+theorem generatedRegressorFScaledWaldCompatibilityStat_div_card_eq_FStatistic
     (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
     [Invertible (W₁ᵀ * W₁)]
     [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
     (hq : 0 < Fintype.card k₂) :
-    generatedRegressorHomoskedasticWaldStat W₁ W₂hat Y /
+    generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat Y /
         (Fintype.card k₂ : ℝ) =
       olsFStatistic W₁ W₂hat Y := by
   have hqne : (Fintype.card k₂ : ℝ) ≠ 0 := by
     exact_mod_cast (Nat.ne_of_gt hq)
-  unfold generatedRegressorHomoskedasticWaldStat
+  unfold generatedRegressorFScaledWaldCompatibilityStat
   field_simp [hqne]
 
 private noncomputable def generatedRegressorHomoskedasticWaldDivStarLocal
@@ -18055,10 +18055,10 @@ private theorem generatedRegressorHomoskedasticWaldDiv_eq_starLocal
     (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
     [Invertible (W₁ᵀ * W₁)]
     [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)] :
-    generatedRegressorHomoskedasticWaldStat W₁ W₂hat Y /
+    generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat Y /
         (Fintype.card k₂ : ℝ) =
       generatedRegressorHomoskedasticWaldDivStarLocal W₁ W₂hat Y := by
-  unfold generatedRegressorHomoskedasticWaldStat
+  unfold generatedRegressorFScaledWaldCompatibilityStat
     generatedRegressorHomoskedasticWaldDivStarLocal
   rw [olsFStatisticStarLocal_eq_olsFStatistic]
 
@@ -18083,7 +18083,7 @@ private theorem generatedRegressorHomoskedasticWaldDiv_measurable_of_entries
           (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
             Matrix.fromCols (W₁ p.1) (W₂hat p.1))
           (hInvFull p.1)
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ) := by
   classical
@@ -18121,7 +18121,7 @@ private theorem generatedRegressorHomoskedasticWaldDiv_measurable_of_entries
             (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
               Matrix.fromCols (W₁ p.1) (W₂hat p.1))
             (hInvFull p.1)
-        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
           ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
             (Fintype.card k₂ : ℝ)) =
       (fun p : ι × EuclideanSpace ℝ n =>
@@ -18269,14 +18269,14 @@ theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     HasLaw
       (fun ω =>
-        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
           (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
       (classicalFDist (Fintype.card k₂)
         (Fintype.card n - Fintype.card (Sum k₁ k₂))) μ := by
   refine (generatedRegressorFStatistic_hasLaw_classicalFDist
     W₁ W₂hat β₁ hσ2 hq hdf v hv).congr ?_
   filter_upwards with ω
-  exact (generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+  exact (generatedRegressorFScaledWaldCompatibilityStat_div_card_eq_FStatistic
     (W₁ := W₁) (W₂hat := W₂hat)
     (Y := W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) hq)
 
@@ -18292,7 +18292,7 @@ theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     HasLaw
       (fun ω =>
-        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
           (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
       (classicalFDist (Fintype.card k₂)
         (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
@@ -18328,7 +18328,7 @@ theorem generatedRegressorHomoskedasticWaldDiv_hasLaw_classicalFDist_card_sub_of
           Matrix.invertibleOfIsUnitDet
             (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
             hInvFull
-        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
           (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))
       (classicalFDist (Fintype.card k₂)
         (Fintype.card n - Fintype.card k₁ - Fintype.card k₂)) μ := by
@@ -18360,16 +18360,16 @@ theorem generatedRegressorHomoskedasticWaldDiv_rejection_probability_eq_alpha_ca
     [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
     μ.real {ω | c <
-      generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+      generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
         (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ)} =
       alpha := by
   rw [show {ω | c <
-      generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+      generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
         (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ)} =
       {ω | c < olsFStatistic W₁ W₂hat
         (W₁ *ᵥ β₁ + WithLp.ofLp (v ω))} by
     ext ω
-    have hstat := generatedRegressorHomoskedasticWaldStat_div_card_eq_FStatistic
+    have hstat := generatedRegressorFScaledWaldCompatibilityStat_div_card_eq_FStatistic
       (W₁ := W₁) (W₂hat := W₂hat)
       (Y := W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) hq
     simp [Set.mem_setOf_eq, hstat]]
@@ -18403,7 +18403,7 @@ theorem
             (A := (Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)
             hInvFull
         ;
-        generatedRegressorHomoskedasticWaldStat W₁ W₂hat
+        generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat
           (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) / (Fintype.card k₂ : ℝ))} =
       alpha := by
   letI : Invertible (W₁ᵀ * W₁) :=
@@ -18440,7 +18440,7 @@ theorem generatedRegressorHomoskedasticWaldDiv_conditional_hasLaw_classicalFDist
     ∀ ξ,
       HasLaw
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
             ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)) /
               (Fintype.card k₂ : ℝ))
         (classicalFDist (Fintype.card k₂)
@@ -18518,7 +18518,7 @@ theorem generatedRegressor_theorem12_10_conditional_hasLaw_bundle
     (∀ ξ,
       HasLaw
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
             ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ξ ω)) /
               (Fintype.card k₂ : ℝ))
         (classicalFDist (Fintype.card k₂)
@@ -18733,16 +18733,16 @@ theorem generatedRegressorHomoskedasticWaldDiv_randomDesign_hasLaw_classicalFDis
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     HasLaw
       (fun p : ι × Ωε =>
-        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
           ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
             (Fintype.card k₂ : ℝ))
       (classicalFDist (Fintype.card k₂)
@@ -18753,7 +18753,7 @@ theorem generatedRegressorHomoskedasticWaldDiv_randomDesign_hasLaw_classicalFDis
     (ρ := classicalFDist (Fintype.card k₂)
       (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
     (fun ξ ε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ))
     hT hT_fixed ?_
@@ -18781,16 +18781,16 @@ theorem generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_classicalFDi
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     condDistrib
         (fun p : ι × Ωε =>
-          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
             ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
               (Fintype.card k₂ : ℝ))
         Prod.fst (π.prod με) =ᵐ[(π.prod με).map Prod.fst]
@@ -18810,7 +18810,7 @@ theorem generatedRegressorHomoskedasticWaldDiv_condDistrib_eq_const_classicalFDi
     (ρ := classicalFDist (Fintype.card k₂)
       (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
     (fun ξ ε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ))
     hT hT_fixed ?_
@@ -18844,17 +18844,17 @@ theorem generatedRegressorHomoskedasticWaldDiv_condDistrib_exactSize_card_sub
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     (fun ξ =>
       (condDistrib
         (fun p : ι × Ωε =>
-          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
             ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
               (Fintype.card k₂ : ℝ))
         Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
@@ -18890,17 +18890,17 @@ theorem
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     (fun ξ =>
       (condDistrib
         (fun p : ι × Ωε =>
-          generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
             ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
               (Fintype.card k₂ : ℝ))
         Prod.fst (π.prod με) ξ).real (Set.Ioi c)) =ᵐ[
@@ -18943,16 +18943,16 @@ theorem
       Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
           (Fintype.card k₂ : ℝ)) :
     condDistrib
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -18975,7 +18975,7 @@ theorem
         (Fintype.card n - Fintype.card k₁ - Fintype.card k₂))
       D v
       (fun ξ e =>
-        generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
           ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
             (Fintype.card k₂ : ℝ))
       hD hv hT hT_fixed hv_cond ?_
@@ -19021,17 +19021,17 @@ theorem
       Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
           (Fintype.card k₂ : ℝ)) :
     (fun ξ =>
       (condDistrib
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
@@ -19069,17 +19069,17 @@ theorem
       Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
           (Fintype.card k₂ : ℝ)) :
     (fun ξ =>
       (condDistrib
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
@@ -19125,16 +19125,16 @@ theorem
       Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
           (Fintype.card k₂ : ℝ)) :
     condDistrib
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -19144,7 +19144,7 @@ theorem
     (fun ξ =>
       (condDistrib
         (fun ω =>
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
@@ -19195,7 +19195,7 @@ theorem
           (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
             Matrix.fromCols (W₁ p.1) (W₂hat p.1))
           (hInvFull p.1)
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
@@ -19208,7 +19208,7 @@ theorem
           (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
             Matrix.fromCols (W₁ ξ) (W₂hat ξ))
           (hInvFull ξ)
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
           (Fintype.card k₂ : ℝ)) :
     condDistrib
@@ -19222,7 +19222,7 @@ theorem
               (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
                 Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
               (hInvFull (D ω))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -19241,7 +19241,7 @@ theorem
               (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
                 Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
               (hInvFull (D ω))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
@@ -19257,12 +19257,12 @@ theorem
           Matrix.fromCols (W₁ ξ) (W₂hat ξ))
         (hInvFull ξ)
     have hT' : Measurable fun p : ι × EuclideanSpace ℝ n =>
-        generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+        generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
           ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2) /
             (Fintype.card k₂ : ℝ) := by
       simpa [hInvRestricted', hInvFull'] using hT
     have hTfixed' : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
-        generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+        generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
           ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e) /
             (Fintype.card k₂ : ℝ) := by
       intro ξ
@@ -19318,7 +19318,7 @@ theorem
               (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
                 Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
               (hInvFull (D ω))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -19337,7 +19337,7 @@ theorem
               (A := (Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
                 Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
               (hInvFull (D ω))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha :=
@@ -19381,7 +19381,6 @@ theorem
       condDistrib v D μ =ᵐ[μ.map D]
         Kernel.const ι
           (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
-    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
     (hInvFullSample : ∀ ξ,
       IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
     (hW₁ : ∀ i j, Measurable fun ξ => W₁ ξ i j)
@@ -19392,9 +19391,11 @@ theorem
           letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
             Matrix.invertibleOfIsUnitDet
               (A := (W₁ (D ω))ᵀ * W₁ (D ω))
-              (rawGram_det_isUnit_of_sampleGram_det_isUnit
-                (X := W₁ (D ω))
-                (by omega) (hInvRestrictedSample (D ω)))
+              (leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+                (W₁ (D ω)) (W₂hat (D ω))
+                (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                  (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                  (by omega) (hInvFullSample (D ω))))
           letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
               Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
             Matrix.invertibleOfIsUnitDet
@@ -19403,7 +19404,7 @@ theorem
               (rawGram_det_isUnit_of_sampleGram_det_isUnit
                 (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
                 (by omega) (hInvFullSample (D ω)))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -19416,9 +19417,11 @@ theorem
           letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
             Matrix.invertibleOfIsUnitDet
               (A := (W₁ (D ω))ᵀ * W₁ (D ω))
-              (rawGram_det_isUnit_of_sampleGram_det_isUnit
-                (X := W₁ (D ω))
-                (by omega) (hInvRestrictedSample (D ω)))
+              (leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+                (W₁ (D ω)) (W₂hat (D ω))
+                (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                  (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                  (by omega) (hInvFullSample (D ω))))
           letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
               Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
             Matrix.invertibleOfIsUnitDet
@@ -19427,19 +19430,19 @@ theorem
               (rawGram_det_isUnit_of_sampleGram_det_isUnit
                 (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
                 (by omega) (hInvFullSample (D ω)))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
   have hn : 0 < Fintype.card n := by omega
-  let hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det) := fun ξ =>
-    rawGram_det_isUnit_of_sampleGram_det_isUnit
-      (X := W₁ ξ) hn (hInvRestrictedSample ξ)
   let hInvFull : ∀ ξ,
       IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det) := fun ξ =>
     rawGram_det_isUnit_of_sampleGram_det_isUnit
       (X := Matrix.fromCols (W₁ ξ) (W₂hat ξ)) hn (hInvFullSample ξ)
+  let hInvRestricted : ∀ ξ, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det) := fun ξ =>
+    leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+      (W₁ ξ) (W₂hat ξ) (hInvFull ξ)
   simpa [hInvRestricted, hInvFull] using
     generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_measurableDesign
       (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
@@ -19472,7 +19475,6 @@ theorem
       condDistrib v D μ =ᵐ[μ.map D]
         Kernel.const ι
           (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
-    (hInvRestrictedSample : ∀ ξ, IsUnit (sampleGram (W₁ ξ)).det)
     (hInvFullSample : ∀ ξ,
       IsUnit (sampleGram (Matrix.fromCols (W₁ ξ) (W₂hat ξ))).det)
     (hW₁ : ∀ i, Measurable fun ξ => W₁ ξ i)
@@ -19483,9 +19485,11 @@ theorem
           letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
             Matrix.invertibleOfIsUnitDet
               (A := (W₁ (D ω))ᵀ * W₁ (D ω))
-              (rawGram_det_isUnit_of_sampleGram_det_isUnit
-                (X := W₁ (D ω))
-                (by omega) (hInvRestrictedSample (D ω)))
+              (leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+                (W₁ (D ω)) (W₂hat (D ω))
+                (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                  (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                  (by omega) (hInvFullSample (D ω))))
           letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
               Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
             Matrix.invertibleOfIsUnitDet
@@ -19494,7 +19498,7 @@ theorem
               (rawGram_det_isUnit_of_sampleGram_det_isUnit
                 (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
                 (by omega) (hInvFullSample (D ω)))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ =ᵐ[μ.map D]
@@ -19507,9 +19511,11 @@ theorem
           letI : Invertible ((W₁ (D ω))ᵀ * W₁ (D ω)) :=
             Matrix.invertibleOfIsUnitDet
               (A := (W₁ (D ω))ᵀ * W₁ (D ω))
-              (rawGram_det_isUnit_of_sampleGram_det_isUnit
-                (X := W₁ (D ω))
-                (by omega) (hInvRestrictedSample (D ω)))
+              (leftBlock_gram_det_isUnit_of_fromCols_gram_det_isUnit
+                (W₁ (D ω)) (W₂hat (D ω))
+                (rawGram_det_isUnit_of_sampleGram_det_isUnit
+                  (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
+                  (by omega) (hInvFullSample (D ω))))
           letI : Invertible ((Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))ᵀ *
               Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω))) :=
             Matrix.invertibleOfIsUnitDet
@@ -19518,7 +19524,7 @@ theorem
               (rawGram_det_isUnit_of_sampleGram_det_isUnit
                 (X := Matrix.fromCols (W₁ (D ω)) (W₂hat (D ω)))
                 (by omega) (hInvFullSample (D ω)))
-          generatedRegressorHomoskedasticWaldStat (W₁ (D ω)) (W₂hat (D ω))
+          generatedRegressorFScaledWaldCompatibilityStat (W₁ (D ω)) (W₂hat (D ω))
             ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)) /
               (Fintype.card k₂ : ℝ))
         D μ ξ).real (Set.Ioi c)) =ᵐ[μ.map D] fun _ => alpha := by
@@ -19534,7 +19540,7 @@ theorem
   exact
     generatedRegressorWaldDiv_theorem12_10_conditionalNormal_lowerTail_of_sampleGram_measurableDesign
       (μ := μ) D v W₁ W₂hat β₁ c hcrit hσ2 hq hdf hD hv hv_cond
-      hInvRestrictedSample hInvFullSample hW₁_entries hW₂_entries hβ_entries
+      hInvFullSample hW₁_entries hW₂_entries hβ_entries
 
 /-- Hansen Theorem 12.10, product random-design exact size with an upper-tail
 critical value for `W⁰ / k₂`. -/
@@ -19558,19 +19564,19 @@ theorem generatedRegressorHomoskedasticWaldDiv_randomDesign_exactSize_card_sub
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     (π.prod με).real {p : ι × Ωε | c <
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ)} = alpha := by
   let T : ι × Ωε → ℝ := fun p =>
-    generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+    generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
       ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
         (Fintype.card k₂ : ℝ)
   have hLaw : HasLaw T
@@ -19615,15 +19621,15 @@ theorem
         Matrix.fromCols (W₁ ξ) (W₂hat ξ)))
     (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
     (hT : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ))
     (hT_fixed : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ)) :
     (π.prod με).real {p : ι × Ωε | c <
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ)} = alpha := by
   have hν : 0 < Fintype.card n - Fintype.card k₁ - Fintype.card k₂ := by
@@ -20793,7 +20799,7 @@ theorem
           (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
             Matrix.fromCols (W₁ p.1) (W₂hat p.1))
           (hInvFull p.1)
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ)} = alpha := by
   let hInvRestricted' : ∀ ξ, Invertible ((W₁ ξ)ᵀ * W₁ ξ) := fun ξ =>
@@ -20821,7 +20827,7 @@ theorem
           (A := (Matrix.fromCols (W₁ p.1) (W₂hat p.1))ᵀ *
             Matrix.fromCols (W₁ p.1) (W₂hat p.1))
           (hInvFull p.1)
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ) := by
     simpa using hTbase.comp hPair
@@ -20835,7 +20841,7 @@ theorem
           (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
             Matrix.fromCols (W₁ ξ) (W₂hat ξ))
           (hInvFull ξ)
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ) := by
     intro ξ
@@ -20843,12 +20849,12 @@ theorem
       (measurable_const.prodMk hv_meas :
         Measurable fun ε : Ωε => (ξ, v ε))
   have hT' : Measurable fun p : ι × Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ) := by
     simpa [hInvRestricted', hInvFull'] using hT
   have hT_fixed' : ∀ ξ, Measurable fun ε : Ωε =>
-      generatedRegressorHomoskedasticWaldStat (W₁ ξ) (W₂hat ξ)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ ξ) (W₂hat ξ)
         ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v ε)) /
           (Fintype.card k₂ : ℝ) := by
     intro ξ
@@ -20902,7 +20908,7 @@ theorem
           (rawGram_det_isUnit_of_sampleGram_det_isUnit
             (X := Matrix.fromCols (W₁ p.1) (W₂hat p.1))
             (by omega) (hInvFullSample p.1))
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ)} = alpha := by
   have hn : 0 < Fintype.card n := by omega
@@ -20958,7 +20964,7 @@ theorem
           (rawGram_det_isUnit_of_sampleGram_det_isUnit
             (X := Matrix.fromCols (W₁ p.1) (W₂hat p.1))
             (by omega) (hInvFullSample p.1))
-      generatedRegressorHomoskedasticWaldStat (W₁ p.1) (W₂hat p.1)
+      generatedRegressorFScaledWaldCompatibilityStat (W₁ p.1) (W₂hat p.1)
         ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)) /
           (Fintype.card k₂ : ℝ)} = alpha := by
   have hW₁_entries : ∀ i j, Measurable fun ξ => W₁ ξ i j := by
