@@ -5,6 +5,7 @@ import HansenEconometrics.Chapter7Asymptotics.SandwichAssembly
 import HansenEconometrics.Chapter12InstrumentalVariables.Asymptotics
 import HansenEconometrics.Chapter12InstrumentalVariables.Basic
 import HansenEconometrics.Chapter9HypothesisTesting
+import Mathlib.LinearAlgebra.Matrix.SchurComplement
 import Mathlib.Probability.Kernel.CondDistrib
 
 /-!
@@ -13234,13 +13235,17 @@ theorem
     halpha_le_one hcrit
 
 set_option linter.style.longLine false in
-/-- **Hansen Theorem 12.14**, primitive control-function facade.
+/-- **Hansen Theorem 12.14**, primitive control-function assembly facade.
 
-This is the strongest sample-Gram/full-covariance endpoint in Hansen's
-primitive notation. The `ControlFunctionHansenTheorem12_13Conditions` package
+The `ControlFunctionHansenTheorem12_13Conditions` package
 supplies the raw model, row measurability, covariance-block symmetry, and the
 expectation-error CLT/covariance engine. Its primitive fourth-moment fields are
-reused to derive the residual-Gram and `e u₂` integrability inputs internally. -/
+reused to derive the residual-Gram and `e u₂` integrability inputs internally.
+
+Hansen's printed assumptions do not exclude a degenerate zero-error model, so
+positive definiteness of the displayed alpha covariance is an explicit
+nondegeneracy assumption. No positive-definiteness premise is imposed on the
+entire stacked covariance. -/
 theorem
     controlFunctionEndogeneityWald_theorem12_14_of_hansen_conditions_expectation_error_sampleGram_rows
     {X₁ : ℕ → Ω → k₁ → ℝ} {X₂ u₂ : ℕ → Ω → Fin r → ℝ}
@@ -13266,8 +13271,11 @@ theorem
       atTop (fun _ => Qee))
     (hEEGram_nonsing : IsUnit Qee.det)
     (hnull : controlFunctionPrimitiveEndogeneityNull μ X₂ e)
-    (hV_full_posDef :
-      (Matrix.fromBlocks VbetaBeta VbetaGamma VgammaBeta VgammaGamma).PosDef)
+    (hV_alpha_posDef :
+      (controlFunctionAlphaVariance
+        (generatedRegressorRightBlockCovariance VbetaBeta)
+        VgammaGamma
+        (controlFunctionGammaBeta2Covariance VgammaBeta)).PosDef)
     {crit : ℝ} {alphaTail : ℝ≥0∞}
     (halpha_le_one : alphaTail ≤ 1)
     (hcrit : (chiSquared r) (Set.Iic crit) = 1 - alphaTail) :
@@ -13285,7 +13293,7 @@ theorem
           (stackRegressors Z m ω) (stackOutcomes Y m ω)
           (Real.sqrt (m : ℝ))})
       atTop (𝓝 alphaTail) :=
-  controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_fullCov_posDef_expectation_error_sampleGram_rows
+  controlFunctionEndogeneityWald_theorem12_14_of_instrument_residualGram_posDef_expectation_error_sampleGram_rows
     (μ := μ) (ν := ν) (r := r)
     (X₁ := X₁) (X₂ := X₂) (u₂ := u₂) (Z := Z) (Y := Y)
     (e := e) (νe := νe) (Γ := Γ)
@@ -13302,8 +13310,9 @@ theorem
     h.primitive.residualGram_integrable h.primitive.u2_nu_integrable
     (h.primitive.control_error_projection 0) h.primitive.u2_nu_orthogonal
     h.primitive.residual_popGram_posDef hnull
-    h.asymptotic.coefficient_limit h.asymptotic.gaussian_limit hV_full_posDef
-    h.asymptotic.expectation_error_covariance_consistent
+    h.asymptotic.coefficient_limit h.asymptotic.gaussian_limit
+    h.asymptotic.covariance_posSemidef
+    h.asymptotic.expectation_error_covariance_consistent hV_alpha_posDef
     halpha_le_one hcrit
 
 /-- Hansen Theorem 12.15 exact fixed-design control-function F statistic.
@@ -14107,6 +14116,35 @@ theorem hasLaw_prod_of_forall_fixed_hasLaw
   rw [lintegral_const]
   simp
 
+/-- Almost-sure fixed-law version of `hasLaw_prod_of_forall_fixed_hasLaw`.
+
+This is the product random-design bridge to use when rank, and hence the
+fixed-design exact law, holds only for `π`-almost every realized design. -/
+theorem hasLaw_prod_of_ae_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [SFinite με]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ᵐ ξ ∂π, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    HasLaw F ρ (π.prod με) := by
+  refine ⟨hF.aemeasurable, ?_⟩
+  ext s hs
+  rw [Measure.map_apply hF hs, Measure.prod_apply (hF hs)]
+  have hsection : (fun ξ : ι => με ((Prod.mk ξ) ⁻¹' (F ⁻¹' s))) =ᵐ[π]
+      fun _ => ρ s := by
+    filter_upwards [hfixed] with ξ hξ
+    calc
+      με ((Prod.mk ξ) ⁻¹' (F ⁻¹' s))
+          = με ((fun ε : Ωε => F (ξ, ε)) ⁻¹' s) := rfl
+      _ = με.map (fun ε : Ωε => F (ξ, ε)) s := by
+          rw [← Measure.map_apply (hF_fixed ξ) hs]
+      _ = ρ s := by rw [hξ.map_eq]
+  rw [lintegral_congr_ae hsection, lintegral_const]
+  simp
+
 /-- Joint product-law bridge behind the regular-conditional product case.
 
 If the conditional statistic law is the same `ρ` for every design realization,
@@ -14138,6 +14176,33 @@ theorem jointLaw_prod_of_forall_fixed_hasLaw
     _ = ρ (Prod.mk ξ ⁻¹' s) := by
         rw [(hfixed ξ).map_eq]
 
+/-- Joint product-law bridge when the fixed statistic law holds only for
+almost every design realization. -/
+theorem jointLaw_prod_of_ae_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ᵐ ξ ∂π, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    (π.prod με).map (fun p : ι × Ωε => (p.1, F p)) = π.prod ρ := by
+  classical
+  let G : ι × Ωε → ι × γ := fun p => (p.1, F p)
+  have hG : Measurable G :=
+    (measurable_fst : Measurable fun p : ι × Ωε => p.1).prodMk hF
+  ext s hs
+  rw [Measure.map_apply hG hs, Measure.prod_apply (hG hs), Measure.prod_apply hs]
+  refine lintegral_congr_ae ?_
+  filter_upwards [hfixed] with ξ hξ
+  calc
+    με (Prod.mk ξ ⁻¹' (G ⁻¹' s))
+        = με ((fun ε : Ωε => F (ξ, ε)) ⁻¹' (Prod.mk ξ ⁻¹' s)) := rfl
+    _ = με.map (fun ε : Ωε => F (ξ, ε)) (Prod.mk ξ ⁻¹' s) := by
+        rw [Measure.map_apply (hF_fixed ξ) (measurable_prodMk_left hs)]
+    _ = ρ (Prod.mk ξ ⁻¹' s) := by rw [hξ.map_eq]
+
 /-- Regular-conditional product bridge for exact conditional statistics.
 
 For an independent product random-design construction, if every fixed-design
@@ -14162,6 +14227,27 @@ theorem condDistrib_prod_of_forall_fixed_hasLaw
     (μ := π.prod με) (X := Prod.fst) (Y := F)
     (κ := Kernel.const ι ρ) hF.aemeasurable ?_
   rw [jointLaw_prod_of_forall_fixed_hasLaw
+      (π := π) (με := με) (ρ := ρ) F hF hF_fixed hfixed,
+    Measure.map_fst_prod, measure_univ, one_smul, Measure.compProd_const]
+
+/-- Regular-conditional product bridge when the fixed statistic law holds only
+for almost every realized design. -/
+theorem condDistrib_prod_of_ae_fixed_hasLaw
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {π : Measure ι} {με : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure π] [IsProbabilityMeasure με] [IsProbabilityMeasure ρ]
+    (F : ι × Ωε → γ)
+    (hF : Measurable F)
+    (hF_fixed : ∀ ξ, Measurable fun ε : Ωε => F (ξ, ε))
+    (hfixed : ∀ᵐ ξ ∂π, HasLaw (fun ε : Ωε => F (ξ, ε)) ρ με) :
+    condDistrib F Prod.fst (π.prod με) =ᵐ[(π.prod με).map Prod.fst]
+      Kernel.const ι ρ := by
+  classical
+  refine condDistrib_ae_eq_of_measure_eq_compProd
+    (μ := π.prod με) (X := Prod.fst) (Y := F)
+    (κ := Kernel.const ι ρ) hF.aemeasurable ?_
+  rw [jointLaw_prod_of_ae_fixed_hasLaw
       (π := π) (με := με) (ρ := ρ) F hF hF_fixed hfixed,
     Measure.map_fst_prod, measure_univ, one_smul, Measure.compProd_const]
 
@@ -14211,6 +14297,55 @@ theorem condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const
   have hProductMap :
       ((μ.map D).prod υ).map G = (μ.map D).prod ρ :=
     jointLaw_prod_of_forall_fixed_hasLaw
+      (π := μ.map D) (με := υ) (ρ := ρ)
+      (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
+  calc
+    μ.map (fun ω => (D ω, T (D ω) (ε ω)))
+        = (μ.map (fun ω => (D ω, ε ω))).map G := hMapLeft
+    _ = (μ.map D ⊗ₘ Kernel.const ι υ).map G := by rw [hJoint]
+    _ = ((μ.map D).prod υ).map G := by rw [Measure.compProd_const]
+    _ = (μ.map D).prod ρ := hProductMap
+    _ = μ.map D ⊗ₘ Kernel.const ι ρ := by rw [Measure.compProd_const]
+
+/-- Arbitrary-joint conditional-law bridge with an almost-sure fixed-law
+premise over the realized design distribution `μ.map D`. -/
+theorem condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const_ae
+    {ι Ωε γ : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    [StandardBorelSpace Ωε] [Nonempty Ωε]
+    [MeasurableSpace γ] [StandardBorelSpace γ] [Nonempty γ]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {υ : Measure Ωε} {ρ : Measure γ}
+    [IsProbabilityMeasure υ] [IsProbabilityMeasure ρ]
+    (D : Ω → ι) (ε : Ω → Ωε) (T : ι → Ωε → γ)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hT : Measurable fun p : ι × Ωε => T p.1 p.2)
+    (hT_fixed : ∀ ξ, Measurable (T ξ))
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D] Kernel.const ι υ)
+    (hfixed : ∀ᵐ ξ ∂μ.map D, HasLaw (T ξ) ρ υ) :
+    condDistrib (fun ω => T (D ω) (ε ω)) D μ =ᵐ[μ.map D]
+      Kernel.const ι ρ := by
+  classical
+  haveI : IsProbabilityMeasure (μ.map D) :=
+    Measure.isProbabilityMeasure_map hD.aemeasurable
+  let G : ι × Ωε → ι × γ := fun p => (p.1, T p.1 p.2)
+  have hG : Measurable G :=
+    (measurable_fst : Measurable fun p : ι × Ωε => p.1).prodMk hT
+  have hTarget : AEMeasurable (fun ω => T (D ω) (ε ω)) μ :=
+    (hT.comp (hD.prodMk hε)).aemeasurable
+  refine condDistrib_ae_eq_of_measure_eq_compProd D hTarget ?_
+  have hJoint :
+      μ.map (fun ω => (D ω, ε ω)) = μ.map D ⊗ₘ Kernel.const ι υ :=
+    (condDistrib_ae_eq_iff_measure_eq_compProd D hε.aemeasurable
+      (Kernel.const ι υ)).mp hε_cond
+  have hMapLeft :
+      μ.map (fun ω => (D ω, T (D ω) (ε ω))) =
+        (μ.map (fun ω => (D ω, ε ω))).map G := by
+    rw [Measure.map_map hG (hD.prodMk hε)]
+    rfl
+  have hProductMap :
+      ((μ.map D).prod υ).map G = (μ.map D).prod ρ :=
+    jointLaw_prod_of_ae_fixed_hasLaw
       (π := μ.map D) (με := υ) (ρ := ρ)
       (fun p : ι × Ωε => T p.1 p.2) hT hT_fixed hfixed
   calc
@@ -18011,9 +18146,774 @@ theorem generatedRegressorBeta2_olsNullTStat_conditional_hasLaw_classicalStudent
     (μ := με ξ) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ)
     (β₁ := β₁ ξ) (σ2 := σ2 ξ) j (hσ2 ξ) hdf (v ξ) (hv ξ)
 
-/-- Hansen Theorem 12.10 homoskedastic Wald statistic `W⁰` for testing that
-the generated right-block coefficients are zero.  It is named separately so
-the textbook identity `F = W⁰ / q` can be cited directly. -/
+section HomoskedasticRightBlockF
+
+variable {r : ℕ}
+
+omit [Fintype k₁] [DecidableEq n] [DecidableEq k₁] in
+private theorem rightBlockGram_eq_fromBlocks
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) :
+    (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂ =
+      Matrix.fromBlocks (X₁ᵀ * X₁) (X₁ᵀ * X₂) (X₂ᵀ * X₁) (X₂ᵀ * X₂) := by
+  rw [Matrix.transpose_fromCols, Matrix.fromRows_mul_fromCols]
+
+private theorem rightBlockSchur_eq_residualizedGram
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ)
+    [Invertible (X₁ᵀ * X₁)] :
+    X₂ᵀ * X₂ - X₂ᵀ * X₁ * ⅟(X₁ᵀ * X₁) * (X₁ᵀ * X₂) =
+      (residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂ := by
+  rw [residualizedRegressors_gram_eq]
+  simp [annihilatorMatrix, hatMatrix, Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_assoc]
+
+private theorem selected_fullGram_invOf_eq_residualizedGram_nonsingInv
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    generatedRegressorRightBlockCovariance
+        (⅟((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)) =
+      ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)⁻¹ := by
+  let A : Matrix k₁ k₁ ℝ := X₁ᵀ * X₁
+  let B : Matrix k₁ (Fin r) ℝ := X₁ᵀ * X₂
+  let C : Matrix (Fin r) k₁ ℝ := X₂ᵀ * X₁
+  let D : Matrix (Fin r) (Fin r) ℝ := X₂ᵀ * X₂
+  let S : Matrix (Fin r) (Fin r) ℝ := D - C * ⅟A * B
+  have hGram :
+      (Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂ =
+        Matrix.fromBlocks A B C D := by
+    simpa [A, B, C, D] using rightBlockGram_eq_fromBlocks X₁ X₂
+  letI : Invertible (Matrix.fromBlocks A B C D) :=
+    (inferInstance : Invertible
+      ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)).copy
+      (Matrix.fromBlocks A B C D) hGram.symm
+  letI : Invertible S := by
+    dsimp [S]
+    exact Matrix.invertibleOfFromBlocks₁₁Invertible A B C D
+  have hInv := Matrix.invOf_fromBlocks₁₁_eq A B C D
+  have hS : S =
+      (residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂ := by
+    simpa [S, A, B, C, D, Matrix.mul_assoc] using
+      rightBlockSchur_eq_residualizedGram X₁ X₂
+  have hS' : D - C * A⁻¹ * B =
+      (residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂ := by
+    simpa [S, Matrix.invOf_eq_nonsing_inv] using hS
+  calc
+    generatedRegressorRightBlockCovariance
+        (⅟((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)) =
+        generatedRegressorRightBlockCovariance
+          (((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)⁻¹) := by
+            rw [Matrix.invOf_eq_nonsing_inv]
+    _ = generatedRegressorRightBlockCovariance
+          ((Matrix.fromBlocks A B C D)⁻¹) := by rw [← hGram]
+    _ = generatedRegressorRightBlockCovariance
+          (⅟(Matrix.fromBlocks A B C D)) := by
+            rw [Matrix.invOf_eq_nonsing_inv]
+    _ = _ := by
+      rw [hInv]
+      ext i j
+      simp [generatedRegressorRightBlockCovariance, hS']
+
+private theorem selected_olsHomoCovStar_eq
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ)
+    [Nonempty n]
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := Fin r) *
+        olsHomoCovStar (Matrix.fromCols X₁ X₂) y *
+          (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := Fin r))ᵀ =
+      ((Fintype.card n : ℝ) *
+          olsS2Star (Matrix.fromCols X₁ X₂) y) •
+        ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)⁻¹ := by
+  let fullX : Matrix n (Sum k₁ (Fin r)) ℝ := Matrix.fromCols X₁ X₂
+  have hsample : (sampleGram fullX)⁻¹ =
+      (Fintype.card n : ℝ) • ⅟(fullXᵀ * fullX) := by
+    rw [sampleGram, nonsingInv_smul]
+    simp [Matrix.invOf_eq_nonsing_inv]
+  rw [generatedRegressorRightBlockCovariance_eq_linMap]
+  unfold olsHomoCovStar
+  rw [hsample]
+  have hselected :=
+    selected_fullGram_invOf_eq_residualizedGram_nonsingInv X₁ X₂
+  ext i j
+  simp only [generatedRegressorRightBlockCovariance, smul_apply]
+  have hentry := congrFun (congrFun hselected i) j
+  simp only [generatedRegressorRightBlockCovariance] at hentry
+  rw [show ⅟(fullXᵀ * fullX) (Sum.inr i) (Sum.inr j) =
+      ((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂)⁻¹ i j by
+        simpa [fullX] using hentry]
+  simp
+  ring
+
+private theorem fTestProjectionMatrix_mulVec_eq_residualized_mul_rightBeta
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    fTestProjectionMatrix X₁ X₂ *ᵥ y =
+      residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y := by
+  let fullX : Matrix n (Sum k₁ (Fin r)) ℝ := Matrix.fromCols X₁ X₂
+  let D : Matrix n n ℝ := fTestProjectionMatrix X₁ X₂
+  have hDfullHat : D * hatMatrix fullX = D := by
+    simp [D, fullX, fTestProjectionMatrix, Matrix.sub_mul,
+      hatMatrix_idempotent, leftHat_mul_fullHat]
+  have hfullX2 : hatMatrix fullX * X₂ = X₂ := by
+    have h := hat_mul_X fullX
+    ext i j
+    simpa [fullX] using congrFun (congrFun h i) (Sum.inr j)
+  have hleft : D * X₁ = 0 := by
+    simp [D, fTestProjectionMatrix, Matrix.sub_mul,
+      hatMatrix_fromCols_mul_left, hat_mul_X]
+  have hright : D * X₂ = residualizedRegressors X₁ X₂ := by
+    calc
+      D * X₂ = hatMatrix fullX * X₂ - hatMatrix X₁ * X₂ := by
+        simp [D, fullX, fTestProjectionMatrix, Matrix.sub_mul]
+      _ = X₂ - hatMatrix X₁ * X₂ := by rw [hfullX2]
+      _ = (1 - hatMatrix X₁) * X₂ := by simp [Matrix.sub_mul]
+      _ = residualizedRegressors X₁ X₂ := by rfl
+  have hDfullX : D * fullX = Matrix.fromCols 0 (residualizedRegressors X₁ X₂) := by
+    rw [Matrix.mul_fromCols, hleft, hright]
+  calc
+    D *ᵥ y = (D * hatMatrix fullX) *ᵥ y := by rw [hDfullHat]
+    _ = D *ᵥ (hatMatrix fullX *ᵥ y) := by rw [Matrix.mulVec_mulVec]
+    _ = D *ᵥ fitted fullX y := by rw [fitted_eq_hat_mul_y]
+    _ = (D * fullX) *ᵥ olsBeta fullX y := by
+      rw [show fitted fullX y = fullX *ᵥ olsBeta fullX y by rfl]
+      rw [Matrix.mulVec_mulVec]
+    _ = Matrix.fromCols 0 (residualizedRegressors X₁ X₂) *ᵥ olsBeta fullX y := by
+      rw [hDfullX]
+    _ = residualizedRegressors X₁ X₂ *ᵥ fromColsRightBeta X₁ X₂ y := by
+      rw [Matrix.fromCols_mulVec]
+      simp only [Matrix.zero_mulVec, zero_add]
+      rfl
+
+private theorem olsResidualSumSquares_sub_eq_rightBeta_quad
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    olsResidualSumSquares X₁ y -
+        olsResidualSumSquares (Matrix.fromCols X₁ X₂) y =
+      fromColsRightBeta X₁ X₂ y ⬝ᵥ
+        (((residualizedRegressors X₁ X₂)ᵀ * residualizedRegressors X₁ X₂) *ᵥ
+          fromColsRightBeta X₁ X₂ y) := by
+  let fullX : Matrix n (Sum k₁ (Fin r)) ℝ := Matrix.fromCols X₁ X₂
+  let D : Matrix n n ℝ := fTestProjectionMatrix X₁ X₂
+  let b₂ : Fin r → ℝ := fromColsRightBeta X₁ X₂ y
+  let U : Matrix n (Fin r) ℝ := residualizedRegressors X₁ X₂
+  have hrestr : olsResidualSumSquares X₁ y =
+      y ⬝ᵥ annihilatorMatrix X₁ *ᵥ y := by
+    simpa using
+      (olsResidualSumSquares_linear_model_quadratic_form X₁ (0 : k₁ → ℝ) y)
+  have hfull : olsResidualSumSquares fullX y =
+      y ⬝ᵥ annihilatorMatrix fullX *ᵥ y := by
+    simpa using
+      (olsResidualSumSquares_linear_model_quadratic_form
+        fullX (0 : Sum k₁ (Fin r) → ℝ) y)
+  have hAnnDiff : annihilatorMatrix X₁ - annihilatorMatrix fullX = D := by
+    ext i j
+    simp [D, fullX, fTestProjectionMatrix, annihilatorMatrix]
+  have hquad : y ⬝ᵥ D *ᵥ y = dotProduct (D *ᵥ y) (D *ᵥ y) :=
+    quadratic_form_eq_dotProduct_of_symm_idempotent D
+      (fTestProjectionMatrix_transpose X₁ X₂)
+      (fTestProjectionMatrix_idempotent X₁ X₂) y
+  have hDy : D *ᵥ y = U *ᵥ b₂ := by
+    simpa [D, U, b₂] using
+      fTestProjectionMatrix_mulVec_eq_residualized_mul_rightBeta X₁ X₂ y
+  have hnorm : dotProduct (U *ᵥ b₂) (U *ᵥ b₂) =
+      b₂ ⬝ᵥ ((Uᵀ * U) *ᵥ b₂) := by
+    symm
+    calc
+      b₂ ⬝ᵥ ((Uᵀ * U) *ᵥ b₂) =
+          b₂ ⬝ᵥ (Uᵀ *ᵥ (U *ᵥ b₂)) := by rw [Matrix.mulVec_mulVec]
+      _ = (b₂ ᵥ* Uᵀ) ⬝ᵥ (U *ᵥ b₂) := Matrix.dotProduct_mulVec _ _ _
+      _ = dotProduct (U *ᵥ b₂) (U *ᵥ b₂) := by
+        rw [Matrix.vecMul_transpose]
+  calc
+    olsResidualSumSquares X₁ y - olsResidualSumSquares fullX y =
+        (y ⬝ᵥ annihilatorMatrix X₁ *ᵥ y) -
+          (y ⬝ᵥ annihilatorMatrix fullX *ᵥ y) := by rw [hrestr, hfull]
+    _ = y ⬝ᵥ D *ᵥ y := by
+      rw [← dotProduct_sub, ← Matrix.sub_mulVec, hAnnDiff]
+    _ = dotProduct (D *ᵥ y) (D *ᵥ y) := hquad
+    _ = dotProduct (U *ᵥ b₂) (U *ᵥ b₂) := by rw [hDy]
+    _ = b₂ ⬝ᵥ ((Uᵀ * U) *ᵥ b₂) := hnorm
+    _ = _ := by rfl
+
+/-- Covariance-based homoskedastic Wald statistic for a right OLS block.
+
+This is totalized through `olsBetaOrZero`, `olsHomoCovStar`, and matrix
+`nonsingInv`; on full-rank designs it is Hansen's `W⁰`. -/
+noncomputable def olsRightBlockHomoskedasticWaldStatOrZero
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ) : ℝ :=
+  let fullX := Matrix.fromCols X₁ X₂
+  linMapOlsWaldStatOrZero
+    (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := Fin r))
+    (olsHomoCovStar fullX y) fullX y 0
+    (Real.sqrt (Fintype.card n : ℝ))
+
+/-- Covariance-based homoskedastic F statistic `W⁰/r` for a right OLS block. -/
+noncomputable def olsRightBlockHomoskedasticFStatOrZero
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ) : ℝ :=
+  let fullX := Matrix.fromCols X₁ X₂
+  linMapOlsFStatOrZero
+    (generatedRegressorRightBlockMatrix (k₁ := k₁) (k₂ := Fin r))
+    (olsHomoCovStar fullX y) fullX y 0
+    (Real.sqrt (Fintype.card n : ℝ))
+
+omit [DecidableEq n] in
+@[simp]
+theorem olsRightBlockHomoskedasticFStatOrZero_eq_wald_div
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ) :
+    olsRightBlockHomoskedasticFStatOrZero X₁ X₂ y =
+      olsRightBlockHomoskedasticWaldStatOrZero X₁ X₂ y / (r : ℝ) := by
+  rfl
+
+/-- Under restricted and full design rank, Hansen's covariance-based
+homoskedastic `W⁰/r` equals the Chapter 5 RSS F statistic. -/
+theorem olsRightBlockHomoskedasticFStatOrZero_eq_olsFStatistic
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (y : n → ℝ)
+    (hq : 0 < r)
+    (hdf : Fintype.card (Sum k₁ (Fin r)) < Fintype.card n)
+    [Invertible (X₁ᵀ * X₁)]
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)] :
+    olsRightBlockHomoskedasticFStatOrZero X₁ X₂ y =
+      olsFStatistic X₁ X₂ y := by
+  let fullX : Matrix n (Sum k₁ (Fin r)) ℝ := Matrix.fromCols X₁ X₂
+  let R : Matrix (Fin r) (Sum k₁ (Fin r)) ℝ :=
+    generatedRegressorRightBlockMatrix
+  let U : Matrix n (Fin r) ℝ := residualizedRegressors X₁ X₂
+  let S : Matrix (Fin r) (Fin r) ℝ := Uᵀ * U
+  let b₂ : Fin r → ℝ := fromColsRightBeta X₁ X₂ y
+  let s2 : ℝ := olsS2Star fullX y
+  let root : ℝ := Real.sqrt (Fintype.card n : ℝ)
+  have hnpos : 0 < Fintype.card n := by omega
+  letI : Nonempty n := Fintype.card_pos_iff.mp hnpos
+  have hn : (Fintype.card n : ℝ) ≠ 0 := by exact_mod_cast hnpos.ne'
+  have hdfne :
+      (Fintype.card n : ℝ) - Fintype.card (Sum k₁ (Fin r)) ≠ 0 := by
+    exact sub_ne_zero.mpr (by exact_mod_cast (Nat.ne_of_gt hdf))
+  have hqne : (r : ℝ) ≠ 0 := by exact_mod_cast hq.ne'
+  have hRbeta :
+      R *ᵥ (root • (olsBetaOrZero fullX y - 0)) = root • b₂ := by
+    rw [olsBetaOrZero_eq_olsBeta]
+    simp only [sub_zero, Matrix.mulVec_smul]
+    rw [generatedRegressorRightBlockMatrix_mulVec]
+    rfl
+  have hV : R * olsHomoCovStar fullX y * Rᵀ =
+      ((Fintype.card n : ℝ) * s2) • S⁻¹ := by
+    simpa [R, fullX, U, S, s2] using selected_olsHomoCovStar_eq X₁ X₂ y
+  have hSraw :
+      X₂ᵀ * X₂ - X₂ᵀ * X₁ * ⅟(X₁ᵀ * X₁) * (X₁ᵀ * X₂) = S := by
+    simpa [S, U] using rightBlockSchur_eq_residualizedGram X₁ X₂
+  let A : Matrix k₁ k₁ ℝ := X₁ᵀ * X₁
+  let B : Matrix k₁ (Fin r) ℝ := X₁ᵀ * X₂
+  let C : Matrix (Fin r) k₁ ℝ := X₂ᵀ * X₁
+  let D : Matrix (Fin r) (Fin r) ℝ := X₂ᵀ * X₂
+  have hGram : fullXᵀ * fullX = Matrix.fromBlocks A B C D := by
+    simpa [fullX, A, B, C, D] using rightBlockGram_eq_fromBlocks X₁ X₂
+  letI : Invertible (Matrix.fromBlocks A B C D) :=
+    (inferInstance : Invertible (fullXᵀ * fullX)).copy _ hGram.symm
+  letI : Invertible (D - C * ⅟A * B) :=
+    Matrix.invertibleOfFromBlocks₁₁Invertible A B C D
+  letI : Invertible S :=
+    (inferInstance : Invertible (D - C * ⅟A * B)).copy S (by
+      simpa [A, B, C, D, Matrix.mul_assoc] using hSraw.symm)
+  have hs2eq : s2 =
+      olsResidualSumSquares fullX y /
+        ((Fintype.card n : ℝ) - Fintype.card (Sum k₁ (Fin r))) := by
+    unfold s2 olsS2Star olsResidualSumSquares
+    rw [olsResidualStar_eq_residual, residual_eq_annihilator_mul_y]
+    simp [div_eq_mul_inv, mul_comm]
+  have hnum :
+      olsResidualSumSquares X₁ y - olsResidualSumSquares fullX y =
+        b₂ ⬝ᵥ (S *ᵥ b₂) := by
+    simpa [fullX, b₂, S, U] using
+      olsResidualSumSquares_sub_eq_rightBeta_quad X₁ X₂ y
+  have hroot : root ^ 2 = Fintype.card n := by
+    exact Real.sq_sqrt (by positivity)
+  have hscale :
+      (root • b₂) ⬝ᵥ (S *ᵥ (root • b₂)) =
+        root ^ 2 * (b₂ ⬝ᵥ (S *ᵥ b₂)) := by
+    classical
+    simp only [dotProduct, Matrix.mulVec, Pi.smul_apply, smul_eq_mul,
+      Finset.mul_sum]
+    ring_nf
+  have hW_of_s2_ne (hs2 : s2 ≠ 0) :
+      olsRightBlockHomoskedasticWaldStatOrZero X₁ X₂ y =
+        (b₂ ⬝ᵥ (S *ᵥ b₂)) / s2 := by
+    unfold olsRightBlockHomoskedasticWaldStatOrZero linMapOlsWaldStatOrZero
+    dsimp only
+    rw [hRbeta, hV, nonsingInv_smul, Matrix.inv_inv_of_invertible]
+    simp only [Matrix.smul_mulVec]
+    rw [dotProduct_smul, hscale]
+    simp only [smul_eq_mul]
+    rw [hroot]
+    field_simp [hn, hs2]
+  by_cases hs2zero : s2 = 0
+  · have hrss : olsResidualSumSquares fullX y = 0 := by
+      have hz : olsResidualSumSquares fullX y /
+          ((Fintype.card n : ℝ) - Fintype.card (Sum k₁ (Fin r))) = 0 := by
+        rw [← hs2eq, hs2zero]
+      exact (div_eq_zero_iff.mp hz).resolve_right hdfne
+    unfold olsRightBlockHomoskedasticFStatOrZero linMapOlsFStatOrZero
+      linMapOlsWaldStatOrZero olsFStatistic
+    dsimp only
+    rw [hRbeta, hV]
+    have hrss' : olsResidualSumSquares (Matrix.fromCols X₁ X₂) y = 0 := by
+      simpa [fullX] using hrss
+    rw [hrss']
+    simp [hs2zero]
+  · rw [olsRightBlockHomoskedasticFStatOrZero_eq_wald_div,
+      hW_of_s2_ne hs2zero]
+    unfold olsFStatistic
+    rw [hnum, ← hs2eq]
+    field_simp [hqne, hs2zero]
+    simp
+
+/-- Hansen Theorem 12.10's covariance-based generated-regressor Wald statistic. -/
+noncomputable def generatedRegressorHomoskedasticWaldStatOrZero
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (Y : n → ℝ) : ℝ :=
+  olsRightBlockHomoskedasticWaldStatOrZero W₁ W₂hat Y
+
+/-- Hansen Theorem 12.10's covariance-based statistic `F = W⁰/r`. -/
+noncomputable def generatedRegressorHomoskedasticFStatOrZero
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (Y : n → ℝ) : ℝ :=
+  olsRightBlockHomoskedasticFStatOrZero W₁ W₂hat Y
+
+omit [DecidableEq n] in
+@[simp]
+theorem generatedRegressorHomoskedasticFStatOrZero_eq_wald_div
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (Y : n → ℝ) :
+    generatedRegressorHomoskedasticFStatOrZero W₁ W₂hat Y =
+      generatedRegressorHomoskedasticWaldStatOrZero W₁ W₂hat Y / (r : ℝ) := by
+  rfl
+
+/-- Hansen Theorem 12.10 exact homoskedastic F law for the canonical
+covariance-based statistic. -/
+theorem generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card (Sum k₁ (Fin r)) < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => generatedRegressorHomoskedasticFStatOrZero W₁ W₂hat
+        (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+      (classicalFDist r
+        (Fintype.card n - Fintype.card (Sum k₁ (Fin r)))) μ := by
+  have hbase := olsFStatistic_hasLaw_classicalFDist
+    W₁ W₂hat β₁ hσ2 (by simpa using hq) hdf v hv
+  have hbase' :
+      HasLaw
+        (fun ω => olsFStatistic W₁ W₂hat
+          (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+        (classicalFDist r
+          (Fintype.card n - Fintype.card (Sum k₁ (Fin r)))) μ := by
+    simpa using hbase
+  refine hbase'.congr ?_
+  filter_upwards with ω
+  exact olsRightBlockHomoskedasticFStatOrZero_eq_olsFStatistic
+    W₁ W₂hat (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)) hq hdf
+
+/-- Hansen Theorem 12.10 exact homoskedastic F law with the displayed
+`F(r, n-k₁-r)` degrees of freedom. -/
+theorem generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+    (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (β₁ : k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + r < Fintype.card n)
+    (v : Ω → EuclideanSpace ℝ n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)]
+    (hv : HasLaw v (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => generatedRegressorHomoskedasticFStatOrZero W₁ W₂hat
+        (W₁ *ᵥ β₁ + WithLp.ofLp (v ω)))
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - r)) μ := by
+  have hsum : Fintype.card (Sum k₁ (Fin r)) < Fintype.card n := by
+    simpa using hdf
+  have hbase := generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist
+    W₁ W₂hat β₁ hσ2 hq hsum v hv
+  rw [generatedRegressorResidualDf_eq_card_sub_card_sub] at hbase
+  simpa using hbase
+
+/-- Hansen Theorem 12.10 unconditional product random-design F law under
+almost-sure realized-design rank.  The statistic itself is totalized, so rank
+is required only on the designs that occur `π`-almost surely. -/
+theorem
+    generatedRegressorHomoskedasticFStatOrZero_randomDesign_hasLaw_classicalFDist_ae
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n (Fin r) ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + r < Fintype.card n)
+    (v : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ᵐ ξ ∂π, IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ᵐ ξ ∂π,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hv : HasLaw v
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticFStatOrZero (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      generatedRegressorHomoskedasticFStatOrZero (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp (v e))) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        generatedRegressorHomoskedasticFStatOrZero (W₁ p.1) (W₂hat p.1)
+          ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - r))
+      (π.prod με) := by
+  refine hasLaw_prod_of_ae_fixed_hasLaw
+    (π := π) (με := με)
+    (ρ := classicalFDist r (Fintype.card n - Fintype.card k₁ - r))
+    (fun p : ι × Ωε =>
+      generatedRegressorHomoskedasticFStatOrZero (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp (v p.2)))
+    hT hT_fixed ?_
+  filter_upwards [hInvRestricted, hInvFull] with ξ hRestricted hFull
+  letI : Invertible ((W₁ ξ)ᵀ * W₁ ξ) :=
+    Matrix.invertibleOfIsUnitDet (A := (W₁ ξ)ᵀ * W₁ ξ) hRestricted
+  letI : Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+      Matrix.fromCols (W₁ ξ) (W₂hat ξ)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)) hFull
+  exact generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+    (μ := με) (W₁ := W₁ ξ) (W₂hat := W₂hat ξ) (β₁ := β₁ ξ)
+    (σ2 := σ2) hσ2 hq hdf v hv
+
+/-- Hansen Theorem 12.10 arbitrary-joint conditional-normal F law under
+almost-sure realized-design rank. -/
+theorem
+    generatedRegressorHomoskedasticFStatOrZero_condDistrib_eq_const_of_conditionalNormal_ae
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (v : Ω → EuclideanSpace ℝ n)
+    (W₁ : ι → Matrix n k₁ ℝ) (W₂hat : ι → Matrix n (Fin r) ℝ)
+    (β₁ : ι → k₁ → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + r < Fintype.card n)
+    (hD : Measurable D) (hv : Measurable v)
+    (hv_cond :
+      condDistrib v D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ᵐ ξ ∂μ.map D,
+      IsUnit (((W₁ ξ)ᵀ * W₁ ξ).det))
+    (hInvFull : ∀ᵐ ξ ∂μ.map D,
+      IsUnit (((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)).det))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticFStatOrZero (W₁ p.1) (W₂hat p.1)
+        ((W₁ p.1) *ᵥ β₁ p.1 + WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      generatedRegressorHomoskedasticFStatOrZero (W₁ ξ) (W₂hat ξ)
+        ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e)) :
+    condDistrib
+        (fun ω =>
+          generatedRegressorHomoskedasticFStatOrZero (W₁ (D ω)) (W₂hat (D ω))
+            ((W₁ (D ω)) *ᵥ β₁ (D ω) + WithLp.ofLp (v ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist r (Fintype.card n - Fintype.card k₁ - r)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - r := by omega
+  haveI : IsProbabilityMeasure
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - r)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine
+    condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const_ae
+      (μ := μ)
+      (υ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      (ρ := classicalFDist r (Fintype.card n - Fintype.card k₁ - r))
+      D v
+      (fun ξ e =>
+        generatedRegressorHomoskedasticFStatOrZero (W₁ ξ) (W₂hat ξ)
+          ((W₁ ξ) *ᵥ β₁ ξ + WithLp.ofLp e))
+      hD hv hT hT_fixed hv_cond ?_
+  filter_upwards [hInvRestricted, hInvFull] with ξ hRestricted hFull
+  letI : Invertible ((W₁ ξ)ᵀ * W₁ ξ) :=
+    Matrix.invertibleOfIsUnitDet (A := (W₁ ξ)ᵀ * W₁ ξ) hRestricted
+  letI : Invertible ((Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+      Matrix.fromCols (W₁ ξ) (W₂hat ξ)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (W₁ ξ) (W₂hat ξ))ᵀ *
+        Matrix.fromCols (W₁ ξ) (W₂hat ξ)) hFull
+  have hId :
+      HasLaw (fun e : EuclideanSpace ℝ n => e)
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) := by
+    simpa using
+      (ProbabilityTheory.HasLaw.id
+        (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+  exact generatedRegressorHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+    (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+    (W₁ := W₁ ξ) (W₂hat := W₂hat ξ) (β₁ := β₁ ξ)
+    (σ2 := σ2) hσ2 hq hdf (fun e : EuclideanSpace ℝ n => e) hId
+
+/-- Hansen Theorem 12.15's covariance-based control-function Wald statistic. -/
+noncomputable def controlFunctionEndogeneityHomoskedasticWaldStatOrZero
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : ℝ :=
+  olsRightBlockHomoskedasticWaldStatOrZero
+    (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) Y
+
+/-- Hansen Theorem 12.15's covariance-based statistic `F = W⁰/r`. -/
+noncomputable def controlFunctionEndogeneityHomoskedasticFStatOrZero
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) : ℝ :=
+  olsRightBlockHomoskedasticFStatOrZero
+    (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) Y
+
+omit [DecidableEq n] in
+@[simp]
+theorem controlFunctionEndogeneityHomoskedasticFStatOrZero_eq_wald_div
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) :
+    controlFunctionEndogeneityHomoskedasticFStatOrZero X₁ X₂ Z Y =
+      controlFunctionEndogeneityHomoskedasticWaldStatOrZero X₁ X₂ Z Y /
+        (r : ℝ) := by
+  rfl
+
+/-- Under full rank, Hansen's covariance-based control-function `W⁰/r`
+equals the existing Chapter 5 RSS control-function F statistic. -/
+theorem controlFunctionEndogeneityHomoskedasticFStatOrZero_eq_FStatistic
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (Y : n → ℝ) (hq : 0 < r)
+    (hdf : Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)) < Fintype.card n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))] :
+    controlFunctionEndogeneityHomoskedasticFStatOrZero X₁ X₂ Z Y =
+      controlFunctionEndogeneityFStatistic X₁ X₂ Z Y := by
+  simpa [controlFunctionEndogeneityHomoskedasticFStatOrZero,
+    controlFunctionEndogeneityFStatistic] using
+    olsRightBlockHomoskedasticFStatOrZero_eq_olsFStatistic
+      (Matrix.fromCols X₁ X₂) (controlFunctionResidualStar Z X₂) Y hq hdf
+
+/-- Hansen Theorem 12.15 exact F law for the canonical covariance-based
+control-function statistic. -/
+theorem controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ (Fin r) → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)) < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => controlFunctionEndogeneityHomoskedasticFStatOrZero X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist r
+        (Fintype.card n - Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)))) μ := by
+  have hbase := controlFunctionFStatistic_hasLaw_classicalFDist
+    X₁ X₂ Z β hσ2 (by simpa using hq) hdf ε hε
+  have hbase' :
+      HasLaw
+        (fun ω => olsFStatistic (Matrix.fromCols X₁ X₂)
+          (controlFunctionResidualStar Z X₂)
+          ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+        (classicalFDist r
+          (Fintype.card n - Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)))) μ := by
+    simpa using hbase
+  refine hbase'.congr ?_
+  filter_upwards with ω
+  exact controlFunctionEndogeneityHomoskedasticFStatOrZero_eq_FStatistic
+    X₁ X₂ Z ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)) hq hdf
+
+/-- Hansen Theorem 12.15 exact covariance-based F law with Hansen's displayed
+`F(r, n-k₁-2r)` degrees of freedom. -/
+theorem
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+    (X₁ : Matrix n k₁ ℝ) (X₂ : Matrix n (Fin r) ℝ) (Z : Matrix n l ℝ)
+    (β : Sum k₁ (Fin r) → ℝ) {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + 2 * r < Fintype.card n)
+    (ε : Ω → EuclideanSpace ℝ n)
+    [Invertible ((Matrix.fromCols X₁ X₂)ᵀ * Matrix.fromCols X₁ X₂)]
+    [Invertible
+      (((Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))ᵀ *
+        (Matrix.fromCols X₁ X₂).fromCols (controlFunctionResidualStar Z X₂))]
+    (hε : HasLaw ε (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) μ) :
+    HasLaw
+      (fun ω => controlFunctionEndogeneityHomoskedasticFStatOrZero X₁ X₂ Z
+        ((Matrix.fromCols X₁ X₂) *ᵥ β + WithLp.ofLp (ε ω)))
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r)) μ := by
+  have hsum :
+      Fintype.card (Sum (Sum k₁ (Fin r)) (Fin r)) < Fintype.card n := by
+    simp only [Fintype.card_sum, Fintype.card_fin]
+    omega
+  have hbase :=
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist
+      X₁ X₂ Z β hσ2 hq hsum ε hε
+  rw [controlFunctionResidualDf_eq_card_sub_card_sub_two_mul] at hbase
+  simpa using hbase
+
+/-- Hansen Theorem 12.15 unconditional product random-design F law under
+almost-sure realized-design rank. -/
+theorem
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_randomDesign_hasLaw_classicalFDist_ae
+    {ι Ωε : Type*} [MeasurableSpace ι] [MeasurableSpace Ωε]
+    {π : Measure ι} {με : Measure Ωε}
+    [IsProbabilityMeasure π] [SFinite με]
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n (Fin r) ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ (Fin r) → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + 2 * r < Fintype.card n)
+    (ε : Ωε → EuclideanSpace ℝ n)
+    (hInvRestricted : ∀ᵐ ξ ∂π,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ᵐ ξ ∂π,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hε : HasLaw ε
+      (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) με)
+    (hT : Measurable fun p : ι × Ωε =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero
+        (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2)))
+    (hT_fixed : ∀ ξ, Measurable fun e : Ωε =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp (ε e))) :
+    HasLaw
+      (fun p : ι × Ωε =>
+        controlFunctionEndogeneityHomoskedasticFStatOrZero
+          (X₁ p.1) (X₂ p.1) (Z p.1)
+          ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+            WithLp.ofLp (ε p.2)))
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r))
+      (π.prod με) := by
+  refine hasLaw_prod_of_ae_fixed_hasLaw
+    (π := π) (με := με)
+    (ρ := classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r))
+    (fun p : ι × Ωε =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero
+        (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 +
+          WithLp.ofLp (ε p.2)))
+    hT hT_fixed ?_
+  filter_upwards [hInvRestricted, hInvFull] with ξ hRestricted hFull
+  letI : Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+      Matrix.fromCols (X₁ ξ) (X₂ ξ)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)) hRestricted
+  letI : Invertible
+      (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))) hFull
+  exact
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+      (μ := με) (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (β := β ξ)
+      (σ2 := σ2) hσ2 hq hdf ε hε
+
+/-- Hansen Theorem 12.15 arbitrary-joint conditional-normal F law under
+almost-sure realized-design rank. -/
+theorem
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_condDistrib_eq_const_of_conditionalNormal_ae
+    {ι : Type*} [MeasurableSpace ι]
+    {μ : Measure Ω} [IsProbabilityMeasure μ]
+    (D : Ω → ι) (ε : Ω → EuclideanSpace ℝ n)
+    (X₁ : ι → Matrix n k₁ ℝ) (X₂ : ι → Matrix n (Fin r) ℝ)
+    (Z : ι → Matrix n l ℝ) (β : ι → Sum k₁ (Fin r) → ℝ)
+    {σ2 : ℝ} (hσ2 : 0 < σ2) (hq : 0 < r)
+    (hdf : Fintype.card k₁ + 2 * r < Fintype.card n)
+    (hD : Measurable D) (hε : Measurable ε)
+    (hε_cond :
+      condDistrib ε D μ =ᵐ[μ.map D]
+        Kernel.const ι
+          (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+    (hInvRestricted : ∀ᵐ ξ ∂μ.map D,
+      IsUnit (((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)).det))
+    (hInvFull : ∀ᵐ ξ ∂μ.map D,
+      IsUnit ((((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))).det))
+    (hT : Measurable fun p : ι × EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero
+        (X₁ p.1) (X₂ p.1) (Z p.1)
+        ((Matrix.fromCols (X₁ p.1) (X₂ p.1)) *ᵥ β p.1 + WithLp.ofLp p.2))
+    (hT_fixed : ∀ ξ, Measurable fun e : EuclideanSpace ℝ n =>
+      controlFunctionEndogeneityHomoskedasticFStatOrZero (X₁ ξ) (X₂ ξ) (Z ξ)
+        ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e)) :
+    condDistrib
+        (fun ω =>
+          controlFunctionEndogeneityHomoskedasticFStatOrZero
+            (X₁ (D ω)) (X₂ (D ω)) (Z (D ω))
+            ((Matrix.fromCols (X₁ (D ω)) (X₂ (D ω))) *ᵥ β (D ω) +
+              WithLp.ofLp (ε ω)))
+        D μ =ᵐ[μ.map D]
+      Kernel.const ι
+        (classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r)) := by
+  have hν : 0 < Fintype.card n - Fintype.card k₁ - 2 * r := by omega
+  haveI : IsProbabilityMeasure
+      (classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r)) := by
+    rw [← fDist_eq_classicalFDist hq hν]
+    exact isProbabilityMeasure_fDist hq hν
+  refine
+    condDistrib_parametricStatistic_eq_const_of_error_condDistrib_eq_const_ae
+      (μ := μ)
+      (υ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      (ρ := classicalFDist r (Fintype.card n - Fintype.card k₁ - 2 * r))
+      D ε
+      (fun ξ e =>
+        controlFunctionEndogeneityHomoskedasticFStatOrZero (X₁ ξ) (X₂ ξ) (Z ξ)
+          ((Matrix.fromCols (X₁ ξ) (X₂ ξ)) *ᵥ β ξ + WithLp.ofLp e))
+      hD hε hT hT_fixed hε_cond ?_
+  filter_upwards [hInvRestricted, hInvFull] with ξ hRestricted hFull
+  letI : Invertible ((Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+      Matrix.fromCols (X₁ ξ) (X₂ ξ)) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := (Matrix.fromCols (X₁ ξ) (X₂ ξ))ᵀ *
+        Matrix.fromCols (X₁ ξ) (X₂ ξ)) hRestricted
+  letI : Invertible
+      (((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))) :=
+    Matrix.invertibleOfIsUnitDet
+      (A := ((Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+        (controlFunctionResidualStar (Z ξ) (X₂ ξ)))ᵀ *
+          (Matrix.fromCols (X₁ ξ) (X₂ ξ)).fromCols
+            (controlFunctionResidualStar (Z ξ) (X₂ ξ))) hFull
+  have hId :
+      HasLaw (fun e : EuclideanSpace ℝ n => e)
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+        (multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))) := by
+    simpa using
+      (ProbabilityTheory.HasLaw.id
+        (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ))))
+  exact
+    controlFunctionEndogeneityHomoskedasticFStatOrZero_hasLaw_classicalFDist_card_sub
+      (μ := multivariateGaussian 0 ((σ2 : ℝ) • (1 : Matrix n n ℝ)))
+      (X₁ := X₁ ξ) (X₂ := X₂ ξ) (Z := Z ξ) (β := β ξ)
+      (σ2 := σ2) hσ2 hq hdf (fun e : EuclideanSpace ℝ n => e) hId
+
+end HomoskedasticRightBlockF
+
+/-- Legacy generic-index compatibility statistic for the generated block test.
+
+For `Fin r` restrictions, the full-rank bridge
+`generatedRegressorFScaledWaldCompatibilityStat_eq_homoskedasticWald` identifies
+this with the canonical covariance-based
+`generatedRegressorHomoskedasticWaldStatOrZero`. -/
 noncomputable def generatedRegressorFScaledWaldCompatibilityStat
     (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ)
     [Invertible (W₁ᵀ * W₁)]
@@ -18033,6 +18933,25 @@ theorem generatedRegressorFScaledWaldCompatibilityStat_div_card_eq_FStatistic
     exact_mod_cast (Nat.ne_of_gt hq)
   unfold generatedRegressorFScaledWaldCompatibilityStat
   field_simp [hqne]
+
+/-- On `Fin r` and under full rank, the legacy generated-block statistic is
+the canonical covariance-based homoskedastic Wald statistic. -/
+theorem generatedRegressorFScaledWaldCompatibilityStat_eq_homoskedasticWald
+    {r : ℕ} (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n (Fin r) ℝ) (Y : n → ℝ)
+    (hq : 0 < r)
+    (hdf : Fintype.card (Sum k₁ (Fin r)) < Fintype.card n)
+    [Invertible (W₁ᵀ * W₁)]
+    [Invertible ((Matrix.fromCols W₁ W₂hat)ᵀ * Matrix.fromCols W₁ W₂hat)] :
+    generatedRegressorFScaledWaldCompatibilityStat W₁ W₂hat Y =
+      generatedRegressorHomoskedasticWaldStatOrZero W₁ W₂hat Y := by
+  have hF := olsRightBlockHomoskedasticFStatOrZero_eq_olsFStatistic
+    W₁ W₂hat Y hq hdf
+  have hqne : (r : ℝ) ≠ 0 := by exact_mod_cast hq.ne'
+  unfold generatedRegressorFScaledWaldCompatibilityStat
+  rw [← hF, olsRightBlockHomoskedasticFStatOrZero_eq_wald_div]
+  simp only [Fintype.card_fin]
+  field_simp [hqne]
+  rfl
 
 private noncomputable def generatedRegressorHomoskedasticWaldDivStarLocal
     (W₁ : Matrix n k₁ ℝ) (W₂hat : Matrix n k₂ ℝ) (Y : n → ℝ) : ℝ :=
