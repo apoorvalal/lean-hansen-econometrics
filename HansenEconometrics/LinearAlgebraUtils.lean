@@ -1542,4 +1542,19 @@ lemma card_eigenvalue_one_eq_rank_of_isHermitian_idempotent
   rw [← Fintype.card_subtype]
   exact (rank_eq_card_eigenvalues_eq_one_of_isHermitian_idempotent hH hI).symm
 
+/-- If the square Gram-type matrix `A' Q A` is positive definite, then the
+rectangular population moment map `Q A` has full column rank. -/
+theorem matrix_mul_mulVec_injective_of_transpose_mul_mul_posDef
+    {l k : Type*} [Fintype l] [Fintype k]
+    (Q : Matrix l l ℝ) (A : Matrix l k ℝ)
+    (h : (Aᵀ * Q * A).PosDef) :
+    Function.Injective (Q * A).mulVec := by
+  classical
+  have hGram : Function.Injective (Aᵀ * Q * A).mulVec :=
+    Matrix.mulVec_injective_iff_isUnit.mpr h.isUnit
+  intro x y hxy
+  apply hGram
+  have hleft := congrArg (fun z : l → ℝ => Aᵀ *ᵥ z) hxy
+  simpa [Matrix.mul_assoc, Matrix.mulVec_mulVec] using hleft
+
 end HansenEconometrics

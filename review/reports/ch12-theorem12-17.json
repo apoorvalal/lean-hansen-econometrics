@@ -1,0 +1,30 @@
+[
+  {
+    "id": "8be638edab858b9dc3062425ad66a912a5e0225d",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 2867,
+    "decl": "twoSLSCombinedQZX_fullInstrument_submatrix_inl",
+    "dimension": "proof-quality",
+    "severity": "minor",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed",
+    "claim": "The private submatrix bridge unnecessarily carried the section instance DecidableEq k.",
+    "evidence": "Lean's unusedSectionVars warning named DecidableEq k; the proof does not use it.",
+    "suggested_fix": "Add DecidableEq k to the declaration's omit prefix.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "5823307e61ef0c7cb66eaf0095f7372f884fffaf",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Overidentification.lean",
+    "line": 19658,
+    "decl": "observed",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md PR gate: give large modules a docstring that explains their contents and public surface",
+    "claim": "The module docstring materially misstated the canonical Theorem 12.17 surface by saying the strongest observed endpoint still assumed rank inputs.",
+    "evidence": "Theorem12_17.observed has no rank argument and derives rank-failure probabilities from observed Assumption 12.2; the inventory marks it complete.",
+    "suggested_fix": "Describe the derived rank inputs and exact-on-rank-event/vanishing-failure treatment of totalized N = C* in the module docstring.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

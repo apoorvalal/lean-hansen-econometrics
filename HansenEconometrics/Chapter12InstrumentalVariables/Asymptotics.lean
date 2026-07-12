@@ -1169,6 +1169,90 @@ theorem popGram_eq_twoSLSCombinedQZZ_popGram
           (twoSLSCombinedRegressors Z X 0 x) ∂μ) (Sum.inl i) (Sum.inl j) := by
           exact (integral_apply_apply hCombined (Sum.inl i) (Sum.inl j)).symm
 
+omit [DecidableEq k] [DecidableEq l] [IsProbabilityMeasure μ] in
+/-- The population first-stage normal equation follows from the reduced-form
+model `X = A'Z + u` and `E[Zu'] = 0`. -/
+theorem twoSLSCombinedQZX_eq_qzz_mul_of_firstStage_ae
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    (A : Matrix l k ℝ)
+    (hCombined : Integrable
+      (fun ω => Matrix.vecMulVec (twoSLSCombinedRegressors Z X 0 ω)
+        (twoSLSCombinedRegressors Z X 0 ω)) μ)
+    (hZU : Integrable (fun ω => Matrix.vecMulVec (Z 0 ω) (u 0 ω)) μ)
+    (hmodel : (fun ω => X 0 ω) =ᵐ[μ] fun ω => Aᵀ *ᵥ Z 0 ω + u 0 ω)
+    (horth : (∫ ω, Matrix.vecMulVec (Z 0 ω) (u 0 ω) ∂μ) = 0) :
+    twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)) =
+      twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) * A := by
+  classical
+  ext a j
+  rw [twoSLSCombinedQZX, twoSLSCombinedQZZ, popGram]
+  simp only [Matrix.submatrix_apply, Matrix.mul_apply]
+  let M : Ω → Matrix (l ⊕ k) (l ⊕ k) ℝ := fun ω =>
+    Matrix.vecMulVec (twoSLSCombinedRegressors Z X 0 ω)
+      (twoSLSCombinedRegressors Z X 0 ω)
+  change (∫ ω, M ω ∂μ) (Sum.inl a) (Sum.inr j) =
+    ∑ b, (∫ ω, M ω ∂μ) (Sum.inl a) (Sum.inl b) * A b j
+  have hZZ : ∀ b : l, Integrable (fun ω => Z 0 ω a * Z 0 ω b) μ := by
+    intro b
+    simpa [twoSLSCombinedRegressors, Matrix.vecMulVec_apply] using
+      Integrable.eval (Integrable.eval hCombined (Sum.inl a)) (Sum.inl b)
+  have hZUaj : Integrable (fun ω => Z 0 ω a * u 0 ω j) μ := by
+    simpa [Matrix.vecMulVec_apply] using Integrable.eval (Integrable.eval hZU a) j
+  have hZUzero : (∫ ω, Z 0 ω a * u 0 ω j ∂μ) = 0 := by
+    calc
+      (∫ ω, Z 0 ω a * u 0 ω j ∂μ) =
+          (∫ ω, Matrix.vecMulVec (Z 0 ω) (u 0 ω) ∂μ) a j := by
+            exact (integral_apply_apply hZU a j).symm
+      _ = 0 := by rw [horth]; rfl
+  calc
+    (∫ ω, M ω ∂μ) (Sum.inl a) (Sum.inr j) =
+        ∫ ω, M ω (Sum.inl a) (Sum.inr j) ∂μ :=
+          integral_apply_apply hCombined (Sum.inl a) (Sum.inr j)
+    _ = ∫ ω, Z 0 ω a * X 0 ω j ∂μ := by
+          apply integral_congr_ae
+          filter_upwards with ω
+          rfl
+    _ =
+        ∫ ω, Z 0 ω a * ((Aᵀ *ᵥ Z 0 ω + u 0 ω) j) ∂μ := by
+          apply integral_congr_ae
+          filter_upwards [hmodel] with ω hω
+          rw [hω]
+    _ = ∫ ω,
+        (∑ b, (Z 0 ω a * Z 0 ω b) * A b j) + Z 0 ω a * u 0 ω j ∂μ := by
+          apply integral_congr_ae
+          filter_upwards with ω
+          simp only [Pi.add_apply, Matrix.mulVec, dotProduct, Matrix.transpose_apply]
+          rw [mul_add, Finset.mul_sum]
+          congr 1
+          apply Finset.sum_congr rfl
+          intro b _
+          ring
+    _ = (∑ b, (∫ ω, Z 0 ω a * Z 0 ω b ∂μ) * A b j) +
+          ∫ ω, Z 0 ω a * u 0 ω j ∂μ := by
+          rw [integral_add]
+          · rw [integral_finset_sum]
+            · congr 1
+              apply Finset.sum_congr rfl
+              intro b _
+              rw [integral_mul_const]
+            · intro b _
+              exact (hZZ b).mul_const (A b j)
+          · exact integrable_finset_sum _ (fun b _ => (hZZ b).mul_const (A b j))
+          · exact hZUaj
+    _ = ∑ b, (∫ ω, Z 0 ω a * Z 0 ω b ∂μ) * A b j := by rw [hZUzero, add_zero]
+    _ = ∑ b, (∫ ω, M ω ∂μ) (Sum.inl a) (Sum.inl b) * A b j := by
+          apply Finset.sum_congr rfl
+          intro b _
+          congr 1
+          calc
+            (∫ ω, Z 0 ω a * Z 0 ω b ∂μ) =
+                ∫ ω, M ω (Sum.inl a) (Sum.inl b) ∂μ := by
+                  apply integral_congr_ae
+                  filter_upwards with ω
+                  rfl
+            _ = (∫ ω, M ω ∂μ) (Sum.inl a) (Sum.inl b) :=
+              (integral_apply_apply hCombined (Sum.inl a) (Sum.inl b)).symm
+
 /-- Combined-moment version of Hansen Assumption 12.1's WLLN surface.
 
 Instead of assuming convergence of `Q̂_ZZ`, `Q̂_ZX`, and `Q̂_XZ` separately,
@@ -1667,6 +1751,8 @@ private theorem twoSLSCombinedRegressors_aestronglyMeasurable_of_rows
       exact ((continuous_apply j).comp_aestronglyMeasurable (hX i)).aemeasurable
 
 omit [DecidableEq k] [DecidableEq l] [IsProbabilityMeasure μ] in
+/-- Separate finite second moments of `Z` and `X` imply a finite second moment
+for the combined IV row `[Z,X]`. -/
 private theorem twoSLSCombinedRegressors_norm_sq_integrable_of_rows
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     (hZ0 : AEStronglyMeasurable (Z 0) μ)
@@ -1725,6 +1811,30 @@ private theorem twoSLSCombinedRegressors_norm_sq_integrable_of_rows
     nlinarith [sq_nonneg (‖Z 0 ω‖ - ‖X 0 ω‖)]
   rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
   exact hsq1.trans hsq2
+
+omit [DecidableEq k] [DecidableEq l] [IsProbabilityMeasure μ] in
+/-- Separate finite second moments of `Z` and `X` make the combined-row outer
+product integrable. -/
+theorem twoSLSCombinedRegressors_outer_integrable_of_rows
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    (hZ0 : AEStronglyMeasurable (Z 0) μ)
+    (hX0 : AEStronglyMeasurable (X 0) μ)
+    (hZNorm2 : Integrable (fun ω => ‖Z 0 ω‖ ^ 2) μ)
+    (hXNorm2 : Integrable (fun ω => ‖X 0 ω‖ ^ 2) μ) :
+    Integrable (fun ω =>
+      Matrix.vecMulVec (twoSLSCombinedRegressors Z X 0 ω)
+        (twoSLSCombinedRegressors Z X 0 ω)) μ := by
+  have hCombinedMeas : AEStronglyMeasurable
+      (twoSLSCombinedRegressors Z X 0) μ := by
+    rw [aestronglyMeasurable_iff_aemeasurable, aemeasurable_pi_iff]
+    intro s
+    cases s with
+    | inl a => exact ((continuous_apply a).comp_aestronglyMeasurable hZ0).aemeasurable
+    | inr j => exact ((continuous_apply j).comp_aestronglyMeasurable hX0).aemeasurable
+  exact integrable_vecMulVec_of_integrable_norm_sq
+    (μ := μ) hCombinedMeas
+    (twoSLSCombinedRegressors_norm_sq_integrable_of_rows
+      (μ := μ) (Z := Z) (X := X) hZ0 hX0 hZNorm2 hXNorm2)
 
 /-- Hansen-facing single-row iid Assumption 12.1 surface.
 
@@ -2028,6 +2138,16 @@ theorem toGramConditions
   qzx_rank := h.qzx_rank
 
 end TwoSLSAssumption12_1IidConditions
+
+/-- Proof-facing Gram and score-CLT surface for 2SLS coefficient normality.
+
+Unlike Hansen Assumption 12.2, this reusable engine permits a singular score
+covariance and therefore a degenerate Gaussian coefficient limit. -/
+structure TwoSLSGramScoreCLTConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e : ℕ → Ω → ℝ)
+    : Prop extends TwoSLSAssumption12_1GramConditions μ Z X e where
+  score_clt : ScoreCLTConditions μ Z e
 
 /-- Hansen-facing Assumption 12.2 surface using the primitive sample-Gram WLLN
 for `[Z_i, X_i]`, the instrument-score moment WLLN, and the score CLT. -/
@@ -3210,7 +3330,43 @@ theorem toFormulaAsymptoticNormalConditions
 
 end TwoSLSAssumption12_2Conditions
 
+namespace TwoSLSGramScoreCLTConditions
+
+/-- The semidefinite-capable Gram/score engine supplies the formula-facing
+normality conditions used by the coefficient CLT. -/
+theorem toFormulaAsymptoticNormalConditions
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    (h : TwoSLSGramScoreCLTConditions μ Z X e) :
+    TwoSLSFormulaAsymptoticNormalConditions μ Z X e
+      (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (scoreCovMat μ Z e)
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) := by
+  have hQsymm :
+      (popGram μ (twoSLSCombinedRegressors Z X))ᵀ =
+        popGram μ (twoSLSCombinedRegressors Z X) :=
+    (popGram_isSymm (μ := μ) (X := twoSLSCombinedRegressors Z X)
+      h.combined_gram.int_outer).eq
+  have hMom :=
+    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+  exact hMom.toFormulaAsymptoticNormalConditions h.score_clt
+    (twoSLSCombinedQZZ_transpose_eq_of_symm _ hQsymm)
+    (twoSLSCombinedQZX_eq_transpose_of_symm _ hQsymm)
+
+end TwoSLSGramScoreCLTConditions
+
 namespace TwoSLSAssumption12_2GramConditions
+
+omit [DecidableEq k] in
+/-- Forget only Hansen's positive-definiteness condition when a downstream
+coefficient theorem permits a degenerate Gaussian limit. -/
+theorem toGramScoreCLTConditions
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e : ℕ → Ω → ℝ}
+    (h : TwoSLSAssumption12_2GramConditions μ Z X e) :
+    TwoSLSGramScoreCLTConditions μ Z X e where
+  toTwoSLSAssumption12_1GramConditions :=
+    h.toTwoSLSAssumption12_1GramConditions
+  score_clt := h.score_clt
 
 /-- The primitive Assumption 12.2 Gram package supplies the formula-facing
 normality conditions for Theorem 12.2. -/
@@ -3738,6 +3894,38 @@ theorem twoSLSBetaOrZero_tendstoInDistribution_formula_of_assumption12_2_model
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
       h β hmodel hstar_meas
   simpa [twoSLSBetaOrZero_eq_twoSLSBetaStar] using hstar
+
+/-- Formula-facing coefficient CLT from the semidefinite-capable Gram/score
+engine and the structural equation. -/
+theorem twoSLSBetaStar_tendstoInDistribution_formula_of_gram_score_clt_model
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    (h : TwoSLSGramScoreCLTConditions μ Z X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hmeas : ∀ t : ℕ, AEMeasurable
+      (fun ω =>
+        Real.sqrt (t : ℝ) •
+          (twoSLSBetaStar
+            (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
+            (fun i : Fin t => Y i.val ω) - β)) μ) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (twoSLSBetaStar
+            (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
+            (fun i : Fin t => Y i.val ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (twoSLSAsymptoticVariance
+          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)
+          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) :=
+  twoSLSBetaStar_tendstoInDistribution_of_sample_moments_model
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    h.toFormulaAsymptoticNormalConditions
+    h.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+    β hmodel hmeas
 
 /-- Hansen Theorem 12.2 formula-facing endpoint from the primitive Assumption
 12.2 Gram package and the structural equation. -/
@@ -5664,6 +5852,182 @@ theorem toJointIidMixedMomentConditions
 
 end TwoSLSAssumption12_2JointIidTextbookFourthConditions
 
+/-- Observed-row iid fourth-moment conditions for 2SLS coefficient normality
+with a possibly singular score covariance.
+
+This is the moment/rank surface needed by generated-regressor applications
+such as Hansen Theorem 12.11. Unlike Assumption 12.2's Wald-facing package, it
+does not require `Ω = E[ZZ'e²]` to be positive definite. -/
+structure TwoSLSObservedIidFourthMomentConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) (e Y : ℕ → Ω → ℝ)
+    (β0 : k → ℝ) : Prop where
+  observed_aestronglyMeasurable :
+    ∀ i, AEStronglyMeasurable (fun ω => ((Z i ω, X i ω), Y i ω)) μ
+  observed_iIndep : iIndepFun (fun i ω => ((Z i ω, X i ω), Y i ω)) μ
+  observed_identDistrib : ∀ i,
+    IdentDistrib (fun ω => ((Z i ω, X i ω), Y i ω))
+      (fun ω => ((Z 0 ω, X 0 ω), Y 0 ω)) μ μ
+  model : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β0 + e i ω
+  response_fourth_integrable : Integrable (fun ω => Y 0 ω ^ 4) μ
+  regressor_norm_fourth_integrable : Integrable (fun ω => ‖X 0 ω‖ ^ 4) μ
+  instrument_norm_fourth_integrable : Integrable (fun ω => ‖Z 0 ω‖ ^ 4) μ
+  orthogonality : μ[fun ω => e 0 ω • Z 0 ω] = 0
+  qzz_posDef :
+    (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X))).PosDef
+  qzx_rank :
+    Function.Injective
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))).mulVec
+
+namespace TwoSLSObservedIidFourthMomentConditions
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The fourth-moment observed-row package supplies Hansen's finite-second
+Assumption 12.1 layer. -/
+theorem toTextbookSecondConditions
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    TwoSLSAssumption12_1JointIidTextbookSecondConditions μ Z X e Y β0 := by
+  have hZ0 : AEStronglyMeasurable (Z 0) μ :=
+    (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  have hX0 : AEStronglyMeasurable (X 0) μ :=
+    (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  have hY0 : AEStronglyMeasurable (Y 0) μ :=
+    continuous_snd.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  exact
+    { observed_aestronglyMeasurable := h.observed_aestronglyMeasurable
+      observed_iIndep := h.observed_iIndep
+      observed_identDistrib := h.observed_identDistrib
+      model := h.model
+      response_sq_integrable :=
+        integrable_sq_of_integrable_fourth hY0 h.response_fourth_integrable
+      regressor_norm_sq_integrable :=
+        integrable_sq_of_integrable_fourth hX0.norm
+          h.regressor_norm_fourth_integrable
+      instrument_norm_sq_integrable :=
+        integrable_sq_of_integrable_fourth hZ0.norm
+          h.instrument_norm_fourth_integrable
+      orthogonality := h.orthogonality
+      qzz_posDef := h.qzz_posDef
+      qzx_rank := h.qzx_rank }
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The displayed response and regressor fourth moments imply a fourth moment
+for the structural error. -/
+theorem error_memLp_four
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    MemLp (fun ω => e 0 ω) 4 μ := by
+  have hX0 : AEStronglyMeasurable (X 0) μ :=
+    (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  have hY0 : AEStronglyMeasurable (Y 0) μ :=
+    continuous_snd.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  exact error_memLp_four_of_response_regressor_fourth
+    (μ := μ) (X := X) (e := e) (Y := Y) (β := β0)
+    hX0 hY0 (h.model 0) h.response_fourth_integrable
+    h.regressor_norm_fourth_integrable
+
+omit [DecidableEq k] in
+/-- Convert the observed-row moments into the semidefinite-capable Gram/score
+CLT engine. -/
+theorem toGramScoreCLTConditions
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    TwoSLSGramScoreCLTConditions μ Z X e := by
+  let hIid : TwoSLSAssumption12_1IidConditions μ Z X e :=
+    h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
+  have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ :=
+    fun a => coordinate_memLp_four_of_norm_fourth
+      (μ := μ) (X := Z) (hIid.z_aestronglyMeasurable 0)
+      h.instrument_norm_fourth_integrable a
+  have hScoreOuter : Integrable
+      (fun ω => Matrix.vecMulVec (e 0 ω • Z 0 ω) (e 0 ω • Z 0 ω)) μ :=
+    score_outer_integrable_of_memLp_four
+      (μ := μ) (Z := Z) (e := e) h.error_memLp_four hZ4
+  exact
+    { toTwoSLSAssumption12_1GramConditions := hIid.toGramConditions
+      score_clt :=
+        scoreCLTConditions_of_iid_score_outer
+          (μ := μ) (X := Z) (e := e)
+          (hIid.z_aestronglyMeasurable 0) (hIid.e_aestronglyMeasurable 0)
+          hIid.instrument_joint_iIndep hIid.instrument_joint_identDistrib
+          hIid.instrument_norm_sq_integrable hIid.instrument_cross_integrable
+          hScoreOuter hIid.instrument_popGram_nonsing hIid.orthogonality }
+
+omit [DecidableEq k] in
+/-- The observed-row fourth moments supply the true-error HC0 WLLN package
+without requiring the limiting covariance to be invertible. -/
+theorem toSampleHC0Assumption76
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    SampleHC0Assumption76 μ Z e := by
+  let hIid : TwoSLSAssumption12_1IidConditions μ Z X e :=
+    h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
+  have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ :=
+    fun a => coordinate_memLp_four_of_norm_fourth
+      (μ := μ) (X := Z) (hIid.z_aestronglyMeasurable 0)
+      h.instrument_norm_fourth_integrable a
+  have hScoreOuter : Integrable
+      (fun ω => Matrix.vecMulVec (e 0 ω • Z 0 ω) (e 0 ω • Z 0 ω)) μ :=
+    score_outer_integrable_of_memLp_four
+      (μ := μ) (Z := Z) (e := e) h.error_memLp_four hZ4
+  exact
+    { toScoreCLTConditions := h.toGramScoreCLTConditions.score_clt
+      indep_score_outer := by
+        have hout : iIndepFun
+            (fun i ω => Matrix.vecMulVec (e i ω • Z i ω) (e i ω • Z i ω)) μ := by
+          simpa [Function.comp] using
+            hIid.instrument_joint_iIndep.comp
+              (fun _ z => Matrix.vecMulVec (z.2 • z.1) (z.2 • z.1))
+              (fun _ => measurable_pair_score_outer (q := l))
+        intro i j hij
+        exact hout.indepFun hij
+      ident_score_outer := by
+        intro i
+        have hi := hIid.instrument_joint_identDistrib i
+        exact hi.comp (measurable_pair_score_outer (q := l))
+      int_score_outer := hScoreOuter }
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The observed-row fourth moments supply every scalar WLLN used in the
+feasible 2SLS HC0 residual-substitution expansion. -/
+theorem toCovarianceWeightWLLNConditions
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    TwoSLSCovarianceWeightWLLNConditions μ Z X e := by
+  let hJoint : TwoSLSAssumption12_1JointIidConditions μ Z X e :=
+    h.toTextbookSecondConditions.toJointIidConditions
+  have he4 : MemLp (fun ω => e 0 ω) 4 μ := h.error_memLp_four
+  have hX4 : ∀ j : k, MemLp (fun ω => X 0 ω j) 4 μ := fun j =>
+    coordinate_memLp_four_of_norm_fourth
+      (μ := μ) (X := X) (hJoint.x_aestronglyMeasurable 0)
+      h.regressor_norm_fourth_integrable j
+  have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ := fun a =>
+    coordinate_memLp_four_of_norm_fourth
+      (μ := μ) (X := Z) (hJoint.z_aestronglyMeasurable 0)
+      h.instrument_norm_fourth_integrable a
+  exact TwoSLSCovarianceWeightWLLNConditions.of_joint_iid
+    (μ := μ) (Z := Z) (X := X) (e := e)
+    hJoint.joint_iIndep hJoint.joint_identDistrib
+    (fun a b j => omega_cross_integrable_of_memLp_four
+      (μ := μ) (Z := Z) (X := X) (e := e) he4 hX4 hZ4 a b j)
+    (fun a b j m => omega_quadratic_integrable_of_memLp_four
+      (μ := μ) (Z := Z) (X := X) hX4 hZ4 a b j m)
+    (fun j => sigma_cross_integrable_of_memLp_four
+      (μ := μ) (X := X) (e := e) he4 hX4 j)
+
+end TwoSLSObservedIidFourthMomentConditions
+
 /-- Literal observed-row finite-fourth-moment surface for Hansen Assumption
 12.2.
 
@@ -5755,6 +6119,117 @@ theorem toJointIidMixedMomentConditions
   h.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
 
 end TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+
+/-- Formula-facing 2SLS coefficient CLT from observed-row fourth moments,
+without an unnecessary positive-definiteness assumption on the score
+covariance. The Gaussian limit may be degenerate. -/
+theorem twoSLSBetaStar_tendstoInDistribution_formula_of_observed_iid_fourth_moments
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    TendstoInDistribution
+      (fun (t : ℕ) ω =>
+        Real.sqrt (t : ℝ) •
+          (twoSLSBetaStar
+            (fun i : Fin t => Z i.val ω) (fun i : Fin t => X i.val ω)
+            (fun i : Fin t => Y i.val ω) - β0))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (twoSLSAsymptoticVariance
+          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)
+          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))) := by
+  have hZ : ∀ i, AEStronglyMeasurable (Z i) μ := fun i =>
+    (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  have hX : ∀ i, AEStronglyMeasurable (X i) μ := fun i =>
+    (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  have hY : ∀ i, AEStronglyMeasurable (Y i) μ := fun i =>
+    continuous_snd.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  exact twoSLSBetaStar_tendstoInDistribution_formula_of_gram_score_clt_model
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    h.toGramScoreCLTConditions β0 h.model
+    (fun t => twoSLSBetaStar_scaled_centered_aemeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) (Y := Y) hZ hX hY β0)
+
+set_option maxHeartbeats 1200000 in
+-- The covariance proof assembles iid moment conversions and several matrix CMT layers.
+set_option linter.flexible false in
+/-- Robust 2SLS covariance consistency from observed-row fourth moments with
+a possibly singular limiting score covariance. -/
+theorem twoSLSVHatStar_tendstoInMeasure_formula_of_observed_iid_fourth_moments
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {β0 : k → ℝ}
+    (h : TwoSLSObservedIidFourthMomentConditions μ Z X e Y β0) :
+    TendstoInMeasure μ
+      (fun n ω =>
+        twoSLSVHatStar
+          (fun i : Fin n => Z i.val ω) (fun i : Fin n => X i.val ω)
+          (fun i : Fin n => Y i.val ω))
+      atTop
+      (fun _ =>
+        twoSLSAsymptoticVariance
+          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (scoreCovMat μ Z e)
+          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))) := by
+  classical
+  let hGram := h.toGramScoreCLTConditions
+  let hMom := hGram.toTwoSLSAssumption12_1GramConditions.toSampleMomentConvergenceConditions
+  have hZ : ∀ i, AEStronglyMeasurable (Z i) μ := fun i =>
+    (continuous_fst.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  have hX : ∀ i, AEStronglyMeasurable (X i) μ := fun i =>
+    (continuous_snd.comp continuous_fst).comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  have hY : ∀ i, AEStronglyMeasurable (Y i) μ := fun i =>
+    continuous_snd.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable i)
+  have hIdeal : TendstoInMeasure μ
+      (fun n ω =>
+        twoSLSOmegaIdeal
+          (fun i : Fin n => Z i.val ω) (fun i : Fin n => e i.val ω))
+      atTop (fun _ => scoreCovMat μ Z e) := by
+    have hideal := sampleScoreCovIdeal_stack_tendstoInMeasure_scoreCovMat
+      (μ := μ) (X := Z) (e := e) h.toSampleHC0Assumption76
+    exact hideal.congr_left (fun n => ae_of_all μ (fun ω => by
+      by_cases hn : n = 0
+      · subst n
+        simp [twoSLSOmegaIdeal, sampleScoreCovIdeal, stackRegressors, stackErrors]
+      ext a b
+      simp [twoSLSOmegaIdeal, sampleScoreCovIdeal, stackRegressors, stackErrors, hn,
+        Matrix.smul_apply, Matrix.sum_apply]
+      apply Finset.sum_congr rfl
+      intro i _
+      simp [Matrix.vecMulVec_apply, pow_two]
+      ring))
+  have hWeights : TwoSLSCovarianceRemainderBoundedWeightConditions μ Z X e :=
+    TwoSLSCovarianceRemainderBoundedWeightConditions.of_weight_wlln_combined_sampleGram
+      (μ := μ) (Z := Z) (X := X) (e := e)
+      hGram.toCombinedSampleMomentConvergenceConditions
+      h.toCovarianceWeightWLLNConditions
+  have hRem : TwoSLSCovarianceRemainderConditions μ Z X e Y β0 :=
+    TwoSLSCovarianceRemainderConditions.of_bounded_weights
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      hMom β0 h.model hWeights
+  have hOmega : TendstoInMeasure μ
+      (fun n ω =>
+        twoSLSOmegaHatStar
+          (fun i : Fin n => Z i.val ω) (fun i : Fin n => X i.val ω)
+          (fun i : Fin n => Y i.val ω))
+      atTop (fun _ => scoreCovMat μ Z e) :=
+    twoSLSOmegaHatStar_tendstoInMeasure_of_linear_model_remainders
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+      β0 h.model hIdeal hRem.omega_cross_tendsto hRem.omega_quadratic_tendsto
+  exact twoSLSVHatStar_tendstoInMeasure_formula_of_middle
+    (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
+    hMom
+    (fun n => twoSLSOmegaHatStar_aestronglyMeasurable_of_rows
+      (μ := μ) (Z := Z) (X := X) (Y := Y) hZ hX hY)
+    hOmega
 
 /-- Hansen Theorem 12.2 formula-facing endpoint from the literal
 finite-fourth-moment version of Assumption 12.2.

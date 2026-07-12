@@ -9,16 +9,28 @@ import HansenEconometrics.StudentT
 # Chapter 12 — Kinal moment-threshold support
 
 This module contains the deterministic bridge layer and theorem-facing
-product-tail closure for Hansen Theorem 12.7.  The theorem itself is an exact
-random-design tail result for the endogenous 2SLS block under joint normality:
+product-tail closure for Hansen Theorem 12.7.  The intended theorem is an exact
+random-design tail result for the endogenous 2SLS block under a nondegenerate
+normal reduced-form model:
 
 `E ‖β̂₂sls,2‖^r < ∞ ↔ r < ℓ₂ - k₂ + 1`.
 
-The public stochastic condition package deliberately does not hide that iff as
-an assumption.  Instead, the final theorem face consumes the residualized
-fitted-Gram Wishart law, coordinate inverse-Wishart map identities, score laws
-and independence, coefficient product representation, and scalar product-tail
-calculation needed for the genuine vector/product inverse-Gram tail argument.
+Hansen's printed hypothesis, "`(Y, X, Z)` are jointly normal," is not formally
+sufficient by itself: `HasGaussianLaw` includes singular laws.  In particular,
+the identically-zero data are jointly Gaussian, while the repo's `OrZero` 2SLS
+coefficient is identically zero and hence has every finite moment, contradicting
+the printed iff in the just-identified case.  The declarations
+`twoSLSKinalPrintedJointNormal_zeroData_gaussianReal` and
+`twoSLSKinal_printedJointNormal_not_sufficient` formalize this
+obstruction.
+
+The stronger public stochastic condition package records nondegenerate iid
+rows and rank support, and deliberately does not hide the desired iff as an
+assumption.  The strongest completed endpoint additionally consumes the
+standardized fitted-Gram law and normalized-coefficient Gaussian decomposition
+needed for the genuine inverse-Gram tail argument.  Deriving that decomposition
+from a fully specified nondegenerate reduced-form model remains separate from
+the literally printed, false hypothesis.
 -/
 
 open MeasureTheory ProbabilityTheory
@@ -509,6 +521,55 @@ noncomputable def twoSLSKinalObservedRow
       | Sum.inl (Sum.inr j) => Z₂ ω i j
       | Sum.inr _ => Y₁ ω i
 
+/-- Literal formal reading of Hansen's printed hypothesis for Theorem 12.7:
+the flattened finite-sample data `(Y, X, Z)` are jointly Gaussian.
+
+This predicate intentionally imposes no nondegeneracy, relevance, or rank
+condition.  Consequently it is too weak for the printed sharp moment iff; see
+`twoSLSKinal_printedJointNormal_not_sufficient`. -/
+def TwoSLSKinalPrintedJointNormal
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X₁ : Ω → Matrix n k₁ ℝ) (Y₂ : Ω → Matrix n k₂ ℝ)
+    (Z₂ : Ω → Matrix n l₂ ℝ) (Y₁ : Ω → n → ℝ) : Prop :=
+  HasGaussianLaw (twoSLSKinalJointData X₁ Y₂ Z₂ Y₁) μ
+
+omit [DecidableEq n] in
+/-- The totalized endogenous 2SLS block is zero on the identically-zero data. -/
+@[simp]
+theorem twoSLSEndogenousBetaOrZero_zero :
+    twoSLSEndogenousBetaOrZero
+      (0 : Matrix n k₁ ℝ) (0 : Matrix n k₂ ℝ)
+      (0 : Matrix n l₂ ℝ) (0 : n → ℝ) = 0 := by
+  unfold twoSLSEndogenousBetaOrZero
+  funext j
+  rw [twoSLSBetaOrZero_eq_twoSLSBetaStar]
+  simp [twoSLSBetaStar, twoSLSMomentMatrixStar, twoSLSMomentVectorStar,
+    instrumentProjectionStar]
+
+omit [DecidableEq n] [DecidableEq k₁] [DecidableEq k₂] [DecidableEq l₂] in
+/-- Identically-zero Kinal data satisfy the literal printed joint-normal
+hypothesis.  A standard Gaussian source is used only to provide a concrete
+probability space; the observed data themselves have the degenerate Gaussian
+law concentrated at zero. -/
+theorem twoSLSKinalPrintedJointNormal_zeroData_gaussianReal :
+    TwoSLSKinalPrintedJointNormal (n := n) (k₁ := k₁) (k₂ := k₂) (l₂ := l₂)
+      (gaussianReal 0 1)
+      (fun _ : ℝ => (0 : Matrix n k₁ ℝ))
+      (fun _ : ℝ => (0 : Matrix n k₂ ℝ))
+      (fun _ : ℝ => (0 : Matrix n l₂ ℝ))
+      (fun _ : ℝ => (0 : n → ℝ)) := by
+  have hId : HasGaussianLaw (id : ℝ → ℝ) (gaussianReal 0 1) :=
+    IsGaussian.hasGaussianLaw_id
+  have hZero := hId.map_fun
+    (0 : ℝ →L[ℝ]
+      EuclideanSpace ℝ (n × (((k₁ ⊕ k₂) ⊕ l₂) ⊕ Unit)))
+  unfold TwoSLSKinalPrintedJointNormal
+  apply hZero.congr
+  filter_upwards with ω
+  apply WithLp.ofLp_injective
+  funext idx
+  rcases idx with ⟨i, (((j | j) | j) | u)⟩ <;> rfl
+
 /-- Nondegenerate iid observed-row Gaussian and rank support for Hansen
 Theorem 12.7.
 
@@ -576,6 +637,16 @@ structure TwoSLSKinalJointNormalConditions
           residualizedRegressorsStar
             (twoSLSFittedIncludedRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω))
             (twoSLSFittedEndogenousRegressorsStar (X₁ ω) (Y₂ ω) (Z₂ ω)))).det)
+
+/-- The nondegenerate iid/rank condition package implies Hansen's literal
+joint-normal hypothesis. -/
+theorem TwoSLSKinalJointNormalConditions.toPrintedJointNormal
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    (h : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁) :
+    TwoSLSKinalPrintedJointNormal μ X₁ Y₂ Z₂ Y₁ :=
+  h.joint_gaussian
 
 /-- The encoded jointly Gaussian Kinal data vector makes the included
 regressor block a.e. measurable. -/
@@ -1054,6 +1125,66 @@ def TwoSLSKinalExactMomentIff
         (r : ℝ≥0∞) μ ↔
       (r : ℝ) < twoSLSKinalMomentThreshold k₂ l₂
 
+omit [DecidableEq n] in
+/-- The literal printed joint-normal hypothesis does not imply Hansen's sharp
+moment iff.  With identically-zero data, the totalized estimator belongs to
+every `Lᵖ`, whereas the displayed finite threshold excludes sufficiently large
+orders. -/
+theorem twoSLSKinalExactMomentIff_zeroData_false :
+    ¬ TwoSLSKinalExactMomentIff (n := n) (k₁ := k₁) (k₂ := k₂) (l₂ := l₂)
+      (gaussianReal 0 1)
+      (fun _ : ℝ => (0 : Matrix n k₁ ℝ))
+      (fun _ : ℝ => (0 : Matrix n k₂ ℝ))
+      (fun _ : ℝ => (0 : Matrix n l₂ ℝ))
+      (fun _ : ℝ => (0 : n → ℝ)) := by
+  intro hExact
+  let r : ℝ≥0 := Fintype.card l₂ + Fintype.card k₂ + 1
+  have hMem :
+      MemLp
+        (fun _ : ℝ => (0 : k₂ → ℝ))
+        (r : ℝ≥0∞) (gaussianReal 0 1) :=
+    memLp_const 0
+  have hMemEstimator :
+      MemLp
+        (fun _ : ℝ => twoSLSEndogenousBetaOrZero
+          (0 : Matrix n k₁ ℝ) (0 : Matrix n k₂ ℝ)
+          (0 : Matrix n l₂ ℝ) (0 : n → ℝ))
+        (r : ℝ≥0∞) (gaussianReal 0 1) := by
+    rw [show
+      (fun _ : ℝ => twoSLSEndogenousBetaOrZero
+        (0 : Matrix n k₁ ℝ) (0 : Matrix n k₂ ℝ)
+        (0 : Matrix n l₂ ℝ) (0 : n → ℝ)) =
+          fun _ : ℝ => (0 : k₂ → ℝ) by
+        funext ω
+        exact twoSLSEndogenousBetaOrZero_zero]
+    exact hMem
+  have hBoundary := (hExact r).mp hMemEstimator
+  have hk : (0 : ℝ) ≤ Fintype.card k₂ := Nat.cast_nonneg _
+  dsimp [r] at hBoundary
+  simp only [NNReal.coe_natCast] at hBoundary
+  unfold twoSLSKinalMomentThreshold at hBoundary
+  linarith
+
+omit [DecidableEq n] in
+/-- Concrete formal counterexample to the literal statement of Hansen
+Theorem 12.7: joint Gaussianity alone holds, but the exact moment-threshold iff
+fails. -/
+theorem twoSLSKinal_printedJointNormal_not_sufficient :
+    TwoSLSKinalPrintedJointNormal (n := n) (k₁ := k₁) (k₂ := k₂) (l₂ := l₂)
+        (gaussianReal 0 1)
+        (fun _ : ℝ => (0 : Matrix n k₁ ℝ))
+        (fun _ : ℝ => (0 : Matrix n k₂ ℝ))
+        (fun _ : ℝ => (0 : Matrix n l₂ ℝ))
+        (fun _ : ℝ => (0 : n → ℝ)) ∧
+      ¬ TwoSLSKinalExactMomentIff (n := n) (k₁ := k₁) (k₂ := k₂) (l₂ := l₂)
+        (gaussianReal 0 1)
+        (fun _ : ℝ => (0 : Matrix n k₁ ℝ))
+        (fun _ : ℝ => (0 : Matrix n k₂ ℝ))
+        (fun _ : ℝ => (0 : Matrix n l₂ ℝ))
+        (fun _ : ℝ => (0 : n → ℝ)) :=
+  ⟨twoSLSKinalPrintedJointNormal_zeroData_gaussianReal,
+    twoSLSKinalExactMomentIff_zeroData_false⟩
+
 /-- Exact Kinal moment iff for the totalized FWL reduction of the endogenous
 2SLS block.  This is the random inverse-Gram tail theorem that remains after
 the deterministic 2SLS/FWL reductions have been applied. -/
@@ -1126,7 +1257,7 @@ theorem twoSLSKinalFWLMomentIff_iff_coordinateMomentIff
 
 /-- Convenience direction from coordinate scalar thresholds to the FWL vector
 tail theorem. -/
-theorem twoSLSKinalFWLMomentIff_of_coordinateMomentIff
+private theorem twoSLSKinalFWLMomentIff_of_coordinateMomentIff
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
@@ -1149,7 +1280,7 @@ theorem twoSLSKinalFWLCoordinateMomentIff_iff_scoreCoordinateMomentIff
 
 /-- Convenience direction from lower-level score-coordinate scalar thresholds
 to the FWL coefficient-coordinate thresholds. -/
-theorem twoSLSKinalFWLCoordinateMomentIff_of_scoreCoordinateMomentIff
+private theorem twoSLSKinalFWLCoordinateMomentIff_of_scoreCoordinateMomentIff
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
@@ -1394,31 +1525,6 @@ theorem twoSLSKinalResidualGramInverseWishartScalarLaws_of_residualGramWishartLa
   twoSLSKinalResidualGramInverseWishartScalarLaws_of_chapter11_map_eq
     (R := R) (Sigma := Sigma) hW hmap
 
-/-- Kinal-specialized residual-Gram scalar inverse-Wishart laws for the fitted
-endogenous block.  This is the Chapter 12 endpoint that can consume the
-Chapter 11 inverse-Wishart support once the residualized fitted Gram matrix is
-identified as Wishart. -/
-theorem twoSLSKinalFittedResidualGramInverseWishartScalarLaws_of_chapter11_map_eq
-    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
-    (X₁ : Ω → Matrix n k₁ ℝ) (Y₂ : Ω → Matrix n k₂ ℝ)
-    (Z₂ : Ω → Matrix n l₂ ℝ) (Sigma : Matrix k₂ k₂ ℝ)
-    (hW : HasLaw
-      (fun ω =>
-        (twoSLSKinalResidualizedFittedEndogenousStar (X₁ ω) (Y₂ ω) (Z₂ ω))ᵀ *
-          twoSLSKinalResidualizedFittedEndogenousStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-      (wishartLaw (n := l₂) Sigma) μ)
-    (hmap : ∀ α : k₂ → ℝ, α ≠ 0 →
-      (wishartLaw (n := l₂) Sigma).map
-          (inverseWishartScaledLinearForm Sigma α) =
-        chiSquared (Fintype.card l₂ - Fintype.card k₂ + 1)) :
-    TwoSLSKinalResidualGramInverseWishartScalarLaws (n := n) (l₂ := l₂) μ
-      (fun ω => twoSLSKinalResidualizedFittedEndogenousStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-      Sigma :=
-  twoSLSKinalResidualGramInverseWishartScalarLaws_of_chapter11_map_eq
-    (R := fun ω =>
-      twoSLSKinalResidualizedFittedEndogenousStar (X₁ ω) (Y₂ ω) (Z₂ ω))
-    (Sigma := Sigma) hW hmap
-
 /-- Kinal-specialized scalar inverse-Wishart laws from the named fitted
 residual-Gram Wishart-law premise. -/
 theorem twoSLSKinalFittedResidualGramInverseWishartScalarLaws_of_residualGramWishartLaw
@@ -1459,9 +1565,7 @@ def TwoSLSKinalResidualGramCoordinateInverseScaleLaws
 omit [Fintype k₂] [DecidableEq n] [DecidableEq l₂] in
 private theorem kinalCoordinateVector_ne_zero (j : k₂) :
     (Pi.single j (1 : ℝ) : k₂ → ℝ) ≠ 0 := by
-  intro hzero
-  have hcoord := congrFun hzero j
-  simp at hcoord
+  simp
 
 omit [DecidableEq n] [DecidableEq l₂] in
 /-- Coordinate inverse-scale laws obtained from the all-fixed-parameter
@@ -1874,15 +1978,10 @@ theorem TwoSLSKinalCoordinateInverseWishartStandardGramBridge.of_posDef_cardDim
         (kinal_rest_card_lt_of_sum_card_eq
           (k₂ := k₂) (l₂ := l₂) (hcard_dim j) hinstr))
   whitening_exists := fun j => by
-    have hsingle_ne :
-        (Pi.single j (1 : ℝ) : k₂ → ℝ) ≠ 0 := by
-      intro hzero
-      have hcoord := congr_fun hzero j
-      simp at hcoord
     exact
       standardCoordinate_whitening_alignment_exists_of_posDef
-        (m := k₂) (r := rIdx j)
-        Sigma (Pi.single j (1 : ℝ)) hSigma hsingle_ne
+        (m := k₂) (r := rIdx j) Sigma (Pi.single j (1 : ℝ)) hSigma
+        (kinalCoordinateVector_ne_zero j)
         (hcard_dim j)
 
 omit [DecidableEq l₂] in
@@ -7550,7 +7649,7 @@ set_option linter.style.longLine false in
 This is the direct block-law analogue of
 `twoSLSKinal_theorem12_7_of_jointNormal_standardizedScoreCanonicalRestInputs_autoSFinite`. -/
 theorem
-    twoSLSKinal_theorem12_7_of_gaussianMatrixDecomposition_standardizedScoreRestCovariance_canonicalRest_autoSFinite
+    twoSLSKinal_theorem12_7_of_canonicalGaussianDecomposition
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
     {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
@@ -7645,7 +7744,7 @@ theorem
     TwoSLSKinalExactMomentIff μ X₁ Y₂ Z₂ Y₁ := by
   intro r
   simpa [TwoSLSKinalExactMomentIff, twoSLSKinalMomentThreshold] using
-    twoSLSKinal_theorem12_7_of_gaussianMatrixDecomposition_standardizedScoreRestCovariance_canonicalRest_autoSFinite
+    twoSLSKinal_theorem12_7_of_canonicalGaussianDecomposition
       hJoint hSigma hC hRstd hGram hScoreRestLaw hScoreVar hScoreRestCovZero
       hCoeff r
 
@@ -7754,7 +7853,7 @@ theorem twoSLSKinal_theorem12_7_of_hansenRawJointNormalBridgeInputs_autoSFinite
           (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
         (r : ℝ≥0∞) μ ↔
       (r : ℝ) < (Fintype.card l₂ : ℝ) - (Fintype.card k₂ : ℝ) + 1 :=
-  twoSLSKinal_theorem12_7_of_gaussianMatrixDecomposition_standardizedScoreRestCovariance_canonicalRest_autoSFinite
+  twoSLSKinal_theorem12_7_of_canonicalGaussianDecomposition
     h.joint_normal h.sigma_posDef h.score_rest_cov_posSemidef
     h.standardized_gram_law h.gram_eq h.score_rest_block_law h.score_var
     h.score_rest_cov_zero h.coefficient_coord_ae

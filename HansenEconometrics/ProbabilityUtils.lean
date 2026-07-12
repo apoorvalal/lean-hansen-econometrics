@@ -284,6 +284,87 @@ theorem integral_apply_apply
 
 end ConditionalExpectationHelpers
 
+section MatrixIntegrationHelpers
+
+open Matrix
+
+variable {Ω ι κ ν : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+variable [Fintype ι] [Fintype κ] [Fintype ν]
+
+/-- Integrability is preserved by right multiplication by a constant real
+matrix. -/
+theorem integrable_matrix_mul_const
+    {F : Ω → Matrix ι κ ℝ} (hF : Integrable F μ)
+    (C : Matrix κ ν ℝ) :
+    Integrable (fun ω => F ω * C) μ := by
+  refine Integrable.of_eval fun i => Integrable.of_eval fun j => ?_
+  simp only [Matrix.mul_apply]
+  exact integrable_finset_sum _ fun l _ =>
+    (Integrable.eval (Integrable.eval hF i) l).mul_const (C l j)
+
+/-- Integration commutes with right multiplication by a constant real
+matrix. -/
+theorem integral_matrix_mul_const
+    {F : Ω → Matrix ι κ ℝ} (hF : Integrable F μ)
+    (C : Matrix κ ν ℝ) :
+    ∫ ω, F ω * C ∂μ = (∫ ω, F ω ∂μ) * C := by
+  have hFC := integrable_matrix_mul_const (μ := μ) hF C
+  ext i j
+  calc
+    (∫ ω, F ω * C ∂μ) i j = ∫ ω, (F ω * C) i j ∂μ :=
+      integral_apply_apply (μ := μ) (f := fun ω => F ω * C) hFC i j
+    _ = ∑ l, ∫ ω, F ω i l * C l j ∂μ := by
+      rw [show (fun ω => (F ω * C) i j) =
+          fun ω => ∑ l, F ω i l * C l j by funext ω; simp [Matrix.mul_apply],
+        integral_finset_sum]
+      intro l _
+      exact (Integrable.eval (Integrable.eval hF i) l).mul_const (C l j)
+    _ = ∑ l, (∫ ω, F ω i l ∂μ) * C l j := by
+      simp_rw [integral_mul_const]
+    _ = ((∫ ω, F ω ∂μ) * C) i j := by
+      rw [Matrix.mul_apply]
+      refine Finset.sum_congr rfl fun l _ => ?_
+      rw [← integral_apply_apply (μ := μ) (f := F) hF i l]
+      rfl
+
+/-- Integrability is preserved by left multiplication by a constant real
+matrix. -/
+theorem integrable_const_mul_matrix
+    (C : Matrix ι κ ℝ) {F : Ω → Matrix κ ν ℝ}
+    (hF : Integrable F μ) :
+    Integrable (fun ω => C * F ω) μ := by
+  refine Integrable.of_eval fun i => Integrable.of_eval fun j => ?_
+  simp only [Matrix.mul_apply]
+  exact integrable_finset_sum _ fun l _ =>
+    (Integrable.eval (Integrable.eval hF l) j).const_mul (C i l)
+
+/-- Integration commutes with left multiplication by a constant real
+matrix. -/
+theorem integral_const_mul_matrix
+    (C : Matrix ι κ ℝ) {F : Ω → Matrix κ ν ℝ}
+    (hF : Integrable F μ) :
+    ∫ ω, C * F ω ∂μ = C * ∫ ω, F ω ∂μ := by
+  have hCF := integrable_const_mul_matrix (μ := μ) C hF
+  ext i j
+  calc
+    (∫ ω, C * F ω ∂μ) i j = ∫ ω, (C * F ω) i j ∂μ :=
+      integral_apply_apply (μ := μ) (f := fun ω => C * F ω) hCF i j
+    _ = ∑ l, ∫ ω, C i l * F ω l j ∂μ := by
+      rw [show (fun ω => (C * F ω) i j) =
+          fun ω => ∑ l, C i l * F ω l j by funext ω; simp [Matrix.mul_apply],
+        integral_finset_sum]
+      intro l _
+      exact (Integrable.eval (Integrable.eval hF l) j).const_mul (C i l)
+    _ = ∑ l, C i l * ∫ ω, F ω l j ∂μ := by
+      simp_rw [integral_const_mul]
+    _ = (C * ∫ ω, F ω ∂μ) i j := by
+      rw [Matrix.mul_apply]
+      refine Finset.sum_congr rfl fun l _ => ?_
+      rw [← integral_apply_apply (μ := μ) (f := F) hF l j]
+      rfl
+
+end MatrixIntegrationHelpers
+
 section MeanCovariance
 
 open Matrix

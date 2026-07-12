@@ -1,0 +1,16 @@
+[
+  {
+    "id": "a176cad924166a1048f28af5fe2cb5b9a6e7e602",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/WeakInstruments.lean",
+    "line": 14524,
+    "decl": "WeakIVTheorem1218GeneralizedEigenvalueConditions",
+    "dimension": "faithfulness",
+    "severity": "major",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed; review rubric faithfulness requires the Lean hypotheses to match the textbook result",
+    "claim": "The theorem-numbered public endpoint is only a fixed-prefix conditional assembly, not Theorem 12.18 under the local-to-zero triangular array (12.71), because it assumes the joint primitive limit, eigenvalue selector, and limiting nonsingularity and cannot consume the new triangular-array model.",
+    "evidence": "The excerpt states Gamma = n^(-1/2) C and Theorem 12.18 under that triangular array. The reviewed package took a one-index regressor sequence and stacked prefixes, whereas weakIVLocalRegressorRow has separate sample-size and row indices. The inventory already left the canonical theorem crosswalk blank and recorded the missing triangular estimator bridge.",
+    "suggested_fix": "Keep this declaration as an explicitly named conditional assembly, then add triangular stack and estimator APIs, derive the joint primitive convergence and selector/rank engine, and expose a theorem-numbered endpoint only at that raw boundary.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

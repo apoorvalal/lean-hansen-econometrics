@@ -1,3 +1,4 @@
+import HansenEconometrics.ProbabilityUtils
 import HansenEconometrics.Chapter4LeastSquaresRegression
 import HansenEconometrics.Chapter8Asymptotics
 import HansenEconometrics.Chapter11MultivariateRegression.Asymptotics
@@ -955,73 +956,6 @@ theorem surInformation_nonsing_of_systemAssumption72
       IsUnit (systemPopulationMiddle μ (fun ω => X 0 ω) Sigma⁻¹).det :=
     posDef_det_isUnit _ hInfo_pos
   simpa [surInformation_eq_systemPopulationMiddle X Sigma] using hunit
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private noncomputable def matrixLeftRightContinuousLinearMap
-    {ι κ ν ρ : Type*} [Fintype ι] [Fintype κ] [Fintype ν] [Fintype ρ]
-    (A : Matrix ι κ ℝ) (B : Matrix ν ρ ℝ) :
-    Matrix κ ν ℝ →L[ℝ] Matrix ι ρ ℝ :=
-  ({ toFun := fun M => A * M * B
-     map_add' := by
-       intro M N
-       ext i j
-       simp [Matrix.mul_apply, Finset.sum_add_distrib, add_mul, mul_add]
-     map_smul' := by
-       intro c M
-       ext i j
-       simp [Matrix.mul_apply, Finset.mul_sum, mul_comm, mul_left_comm] } :
-      Matrix κ ν ℝ →ₗ[ℝ] Matrix ι ρ ℝ).toContinuousLinearMap
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-@[simp] private theorem matrixLeftRightContinuousLinearMap_apply
-    {ι κ ν ρ : Type*} [Fintype ι] [Fintype κ] [Fintype ν] [Fintype ρ]
-    (A : Matrix ι κ ℝ) (B : Matrix ν ρ ℝ) (M : Matrix κ ν ℝ) :
-    matrixLeftRightContinuousLinearMap A B M = A * M * B :=
-  rfl
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private theorem integrable_matrix_mul_const
-    {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
-    {F : Ω → Matrix ι κ ℝ} (hF : Integrable F μ)
-    (C : Matrix κ ν ℝ) :
-    Integrable (fun ω => F ω * C) μ := by
-  classical
-  let T : Matrix ι κ ℝ →L[ℝ] Matrix ι ν ℝ :=
-    matrixLeftRightContinuousLinearMap (1 : Matrix ι ι ℝ) C
-  simpa [T, Function.comp_def] using T.integrable_comp hF
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private theorem integral_matrix_mul_const
-    {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
-    {F : Ω → Matrix ι κ ℝ} (hF : Integrable F μ)
-    (C : Matrix κ ν ℝ) :
-    ∫ ω, F ω * C ∂μ = (∫ ω, F ω ∂μ) * C := by
-  classical
-  let T : Matrix ι κ ℝ →L[ℝ] Matrix ι ν ℝ :=
-    matrixLeftRightContinuousLinearMap (1 : Matrix ι ι ℝ) C
-  simpa [T, Function.comp_def] using T.integral_comp_comm hF
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private theorem integrable_const_mul_matrix
-    {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
-    (C : Matrix ι κ ℝ) {F : Ω → Matrix κ ν ℝ}
-    (hF : Integrable F μ) :
-    Integrable (fun ω => C * F ω) μ := by
-  classical
-  let T : Matrix κ ν ℝ →L[ℝ] Matrix ι ν ℝ :=
-    matrixLeftRightContinuousLinearMap C (1 : Matrix ν ν ℝ)
-  simpa [T, Function.comp_def] using T.integrable_comp hF
-
-omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] in
-private theorem integral_const_mul_matrix
-    {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
-    (C : Matrix ι κ ℝ) {F : Ω → Matrix κ ν ℝ}
-    (hF : Integrable F μ) :
-    ∫ ω, C * F ω ∂μ = C * ∫ ω, F ω ∂μ := by
-  classical
-  let T : Matrix κ ν ℝ →L[ℝ] Matrix ι ν ℝ :=
-    matrixLeftRightContinuousLinearMap C (1 : Matrix ν ν ℝ)
-  simpa [T, Function.comp_def] using T.integral_comp_comm hF
 
 omit [IsProbabilityMeasure μ] [Fintype n] [DecidableEq n] [DecidableEq k]
   [DecidableEq m] in

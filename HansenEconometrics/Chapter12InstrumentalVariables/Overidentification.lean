@@ -15,11 +15,12 @@ Assumption 12.2 endpoint with derived scalar variance positivity derives the
 score, covariance, projection-rank, and variance-positivity inputs, fully
 closing Theorem 12.16 under its displayed assumptions.
 
-The strongest observed-row Theorem 12.17 endpoint derives its stochastic
-limits but remains conditional on eventual almost-sure sample rank and a
-nonsingular limiting residualized-score row Gram.  It therefore does not claim
-that raw Hansen 12.17 is complete.  Calibrated test-size conclusions are
-delegated to Chapter 9's chi-square rejection bridge.
+The canonical observed-row Theorem 12.17 endpoint derives the limiting row
+rank and every finite-sample rank-failure probability from Assumption 12.2. It
+proves `N = C*` on the nonsingular branch, shows equality failure has
+probability tending to zero under totalization, and supplies both chi-square
+limits, asymptotic equivalence, and calibrated test size through Chapter 9's
+rejection bridge.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -2399,6 +2400,21 @@ private theorem fittedRegressorsStar_transpose_mul_self_eq_twoSLSMomentMatrixSta
   simpa [PZ, Matrix.mul_assoc] using
     congrArg (fun M : Matrix n k ℝ => Xᵀ * M) hPX
 
+omit [DecidableEq n] [Fintype k] [DecidableEq k] in
+private theorem fittedRegressorsStar_transpose_mul_self_eq_twoSLSMomentMatrixStar_generic
+    {p : Type*} [Fintype p] [DecidableEq p]
+    (Z : Matrix n p ℝ) (X : Matrix n k ℝ)
+    [Invertible (Zᵀ * Z)] :
+    (fittedRegressorsStar Z X)ᵀ * fittedRegressorsStar Z X =
+      twoSLSMomentMatrixStar Z X := by
+  let PZ := instrumentProjectionStar Z
+  have hPX : PZ * (PZ * X) = PZ * X := by
+    rw [← Matrix.mul_assoc, instrumentProjectionStar_idempotent_of_nonsingular]
+  unfold fittedRegressorsStar twoSLSMomentMatrixStar
+  rw [Matrix.transpose_mul, instrumentProjectionStar_transpose_of_nonsingular]
+  simpa [PZ, Matrix.mul_assoc] using
+    congrArg (fun M : Matrix n k ℝ => Xᵀ * M) hPX
+
 omit [DecidableEq n] in
 private theorem twoSLSBread_sample_inv_eq_card_smul_fittedRegressorsStar_gram_inv
     (Z : Matrix n (la ⊕ lb) ℝ) (X : Matrix n k ℝ) [Nonempty n]
@@ -2848,7 +2864,8 @@ theorem twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_partitioned_rank
   have hd : d = 0 := hA (by simpa [u] using hu)
   exact sub_eq_zero.mp (by simpa [d] using hd)
 
-omit [Fintype n] [DecidableEq n] [DecidableEq la] [DecidableEq lb] in
+omit [Fintype n] [DecidableEq n] [DecidableEq k] [DecidableEq la]
+    [DecidableEq lb] in
 private theorem twoSLSCombinedQZX_fullInstrument_submatrix_inl
     {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     (Za : ℕ → Ω → la → ℝ) (Zb : ℕ → Ω → lb → ℝ)
@@ -3257,6 +3274,117 @@ theorem twoSLSSubsetResidualizedScoreCovariance_eq_sigma_scoreMap_residualMaker_
     _ = sigma2 • (A * (M * QZZ) * Aᵀ) := by
           rw [hMQMt]
 
+/-- High-probability sample-rank conditions for Hansen Theorem 12.17.
+
+Unlike `TwoSLSSubsetEventuallyRankConditions`, this package is implied by the
+usual iid moment and population-rank assumptions even for discrete designs.
+The two instrument-Gram branches and the two 2SLS-bread branches are exactly
+the four nonsingularity facts used by the finite-sample `N = C*` identity. -/
+structure TwoSLSSubsetRankFailureProbabilityConditions
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (Za : ℕ → Ω → la → ℝ) (Zb : ℕ → Ω → lb → ℝ)
+    (X : ℕ → Ω → k → ℝ) : Prop where
+  maintained_instrument : Tendsto
+    (fun m => μ {ω | ¬ IsUnit
+      (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)})
+    atTop (𝓝 0)
+
+  full_instrument : Tendsto
+    (fun m => μ {ω | ¬ IsUnit
+      (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+        Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)).det)})
+    atTop (𝓝 0)
+  maintained_bread : Tendsto
+    (fun m => μ {ω | ¬ IsUnit
+      (twoSLSBread
+        (sampleQXZ (stackRegressors Za m ω) (stackRegressors X m ω))
+        (sampleQZZ (stackRegressors Za m ω))
+        (sampleQZX (stackRegressors Za m ω) (stackRegressors X m ω))).det})
+    atTop (𝓝 0)
+  full_bread : Tendsto
+    (fun m => μ {ω | ¬ IsUnit
+      (twoSLSBread
+        (sampleQXZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω))
+        (sampleQZZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)))
+        (sampleQZX
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω))).det})
+    atTop (𝓝 0)
+
+private theorem TwoSLSSubsetRankFailureProbabilityConditions.instrumentFailure
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ}
+    (h : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X) :
+    Tendsto
+      (fun m => μ (
+        {ω | ¬ IsUnit
+          (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} ∪
+        {ω | ¬ IsUnit
+          (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω)).det)}))
+      atTop (𝓝 0) := by
+  have hsum : Tendsto
+      (fun m =>
+        μ {ω | ¬ IsUnit
+          (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} +
+        μ {ω | ¬ IsUnit
+          (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω)).det)}) atTop (𝓝 0) := by
+    simpa only [zero_add] using h.maintained_instrument.add h.full_instrument
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    hsum (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => measure_union_le _ _
+
+private theorem tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {E : Type*} [NormedAddCommGroup E]
+    {X Y : ℕ → Ω → E}
+    (hbad : Tendsto (fun m => μ {ω | X m ω ≠ Y m ω}) atTop (𝓝 0)) :
+    TendstoInMeasure μ (Y - X) atTop (fun _ => 0) := by
+  intro ε hε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+    (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => measure_mono (by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, Pi.sub_apply] at hω ⊢
+    intro hEq
+    rw [hEq, sub_self, edist_self] at hω
+    exact (not_le_of_gt hε) hω)
+
+private theorem tendstoInMeasure_congr_of_measure_ne_tendsto_zero
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {E : Type*} [PseudoEMetricSpace E]
+    {X Y : ℕ → Ω → E} {c : Ω → E}
+    (hX : TendstoInMeasure μ X atTop c)
+    (hbad : Tendsto (fun m => μ {ω | X m ω ≠ Y m ω}) atTop (𝓝 0)) :
+    TendstoInMeasure μ Y atTop c := by
+  intro ε hε
+  have hXε := hX ε hε
+  have hsum : Tendsto
+      (fun m => μ {ω | X m ω ≠ Y m ω} +
+        μ {ω | ε ≤ edist (X m ω) (c ω)}) atTop (𝓝 0) := by
+    simpa only [zero_add] using hbad.add hXε
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    hsum (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => by
+    calc
+      μ {ω | ε ≤ edist (Y m ω) (c ω)} ≤
+          μ ({ω | X m ω ≠ Y m ω} ∪
+            {ω | ε ≤ edist (X m ω) (c ω)}) := measure_mono (by
+              intro ω hω
+              by_cases hEq : X m ω = Y m ω
+              · right
+                simpa [hEq] using hω
+              · exact Or.inl hEq)
+      _ ≤ μ {ω | X m ω ≠ Y m ω} +
+          μ {ω | ε ≤ edist (X m ω) (c ω)} := measure_union_le _ _
+
 omit [Fintype n] [DecidableEq n] [Fintype k] [DecidableEq k]
   [Fintype l] [DecidableEq l] [Fintype la] [DecidableEq la]
   [Fintype lb] [DecidableEq lb] in
@@ -3654,6 +3782,179 @@ theorem
           rfl
 
 set_option linter.style.longLine false in
+set_option maxHeartbeats 1200000 in
+-- The proof assembles four rectangular matrix CMTs and a high-probability bridge.
+/-- High-probability-rank version of Newey subset covariance consistency.
+
+The continuous-mapping limit is unconditional.  Its exact identification with
+the feasible Newey covariance is used off the two singular instrument-Gram
+events, whose union has probability tending to zero. -/
+theorem
+    twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_scoreMap_residualMaker_sampleQZZ_rankProbability
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsFiniteMeasure μ]
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix lb (la ⊕ lb) ℝ} {M Q : Matrix (la ⊕ lb) (la ⊕ lb) ℝ}
+    {sigma2 : ℝ}
+    (hsigma_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hsigma : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => sigma2))
+    (hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A))
+    (hM_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSOveridResidualMaker
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω)) μ)
+    (hM : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSOveridResidualMaker
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω))
+      atTop (fun _ => M))
+    (hQ_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleQZZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))) μ)
+    (hQ : TendstoInMeasure μ
+      (fun m ω =>
+        sampleQZZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)))
+      atTop (fun _ => Q))
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) (ω : Ω) =>
+        twoSLSSubsetNeweyCriterionCovHatStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => sigma2 • (A * (M * Q) * Aᵀ)) := by
+  let sigmaHat : ℕ → Ω → ℝ := fun m ω =>
+    twoSLSSigmaSqHatStar
+      (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      (stackRegressors X m ω) (stackOutcomes Y m ω)
+  let Ahat : ℕ → Ω → Matrix lb (la ⊕ lb) ℝ := fun m ω =>
+    twoSLSSubsetResidualizedScoreMapStar
+      (stackRegressors Za m ω) (stackRegressors Zb m ω)
+  let Mhat : ℕ → Ω → Matrix (la ⊕ lb) (la ⊕ lb) ℝ := fun m ω =>
+    twoSLSOveridResidualMaker
+      (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      (stackRegressors X m ω)
+  let Qhat : ℕ → Ω → Matrix (la ⊕ lb) (la ⊕ lb) ℝ := fun m ω =>
+    sampleQZZ
+      (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+  let ideal : ℕ → Ω → Matrix lb lb ℝ := fun m ω =>
+    sigmaHat m ω • (Ahat m ω * (Mhat m ω * Qhat m ω) * (Ahat m ω)ᵀ)
+  let feasible : ℕ → Ω → Matrix lb lb ℝ := fun m ω =>
+    twoSLSSubsetNeweyCriterionCovHatStar
+      (stackRegressors Za m ω) (stackRegressors Zb m ω)
+      (stackRegressors X m ω) (stackOutcomes Y m ω)
+  have hsigma_meas' : ∀ m, AEStronglyMeasurable (sigmaHat m) μ :=
+    fun m => by simpa [sigmaHat] using hsigma_meas m
+  have hsigma' : TendstoInMeasure μ sigmaHat atTop (fun _ => sigma2) := by
+    simpa [sigmaHat] using hsigma
+  have hA_meas' : ∀ m, AEStronglyMeasurable (Ahat m) μ :=
+    fun m => by simpa [Ahat] using hA_meas m
+  have hA' : TendstoInMeasure μ Ahat atTop (fun _ => A) := by
+    simpa [Ahat] using hA
+  have hM_meas' : ∀ m, AEStronglyMeasurable (Mhat m) μ :=
+    fun m => by simpa [Mhat] using hM_meas m
+  have hM' : TendstoInMeasure μ Mhat atTop (fun _ => M) := by
+    simpa [Mhat] using hM
+  have hQ_meas' : ∀ m, AEStronglyMeasurable (Qhat m) μ :=
+    fun m => by simpa [Qhat] using hQ_meas m
+  have hQ' : TendstoInMeasure μ Qhat atTop (fun _ => Q) := by
+    simpa [Qhat] using hQ
+  have hMQ_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => Mhat m ω * Qhat m ω) μ := fun m =>
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hM_meas' m).prodMk (hQ_meas' m))
+  have hMQ : TendstoInMeasure μ (fun m ω => Mhat m ω * Qhat m ω)
+      atTop (fun _ => M * Q) :=
+    tendstoInMeasure_matrix_mul_rect hM_meas' hQ_meas' hM' hQ'
+  have hAMQ_meas : ∀ m,
+      AEStronglyMeasurable (fun ω => Ahat m ω * (Mhat m ω * Qhat m ω)) μ :=
+    fun m =>
+      (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+        ((hA_meas' m).prodMk (hMQ_meas m))
+  have hAMQ : TendstoInMeasure μ
+      (fun m ω => Ahat m ω * (Mhat m ω * Qhat m ω))
+      atTop (fun _ => A * (M * Q)) :=
+    tendstoInMeasure_matrix_mul_rect hA_meas' hMQ_meas hA' hMQ
+  have hAt_meas : ∀ m, AEStronglyMeasurable (fun ω => (Ahat m ω)ᵀ) μ :=
+    fun m => (continuous_id.matrix_transpose).comp_aestronglyMeasurable (hA_meas' m)
+  have hAt : TendstoInMeasure μ (fun m ω => (Ahat m ω)ᵀ)
+      atTop (fun _ => Aᵀ) :=
+    tendstoInMeasure_continuous_comp hA_meas' hA' (continuous_id.matrix_transpose)
+  have hbody_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => Ahat m ω * (Mhat m ω * Qhat m ω) * (Ahat m ω)ᵀ) μ := fun m =>
+    (Continuous.matrix_mul continuous_fst continuous_snd).comp_aestronglyMeasurable
+      ((hAMQ_meas m).prodMk (hAt_meas m))
+  have hbody : TendstoInMeasure μ
+      (fun m ω => Ahat m ω * (Mhat m ω * Qhat m ω) * (Ahat m ω)ᵀ)
+      atTop (fun _ => A * (M * Q) * Aᵀ) :=
+    tendstoInMeasure_matrix_mul_rect hAMQ_meas hAt_meas hAMQ hAt
+  have hpair_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (sigmaHat m ω,
+        Ahat m ω * (Mhat m ω * Qhat m ω) * (Ahat m ω)ᵀ)) μ :=
+    fun m => (hsigma_meas' m).prodMk (hbody_meas m)
+  have hpair : TendstoInMeasure μ
+      (fun m ω => (sigmaHat m ω,
+        Ahat m ω * (Mhat m ω * Qhat m ω) * (Ahat m ω)ᵀ))
+      atTop (fun _ => (sigma2, A * (M * Q) * Aᵀ)) :=
+    tendstoInMeasure_prodMk hsigma' hbody
+  have hideal : TendstoInMeasure μ ideal
+      atTop (fun _ => sigma2 • (A * (M * Q) * Aᵀ)) := by
+    have hcont : Continuous (fun p : ℝ × Matrix lb lb ℝ => p.1 • p.2) :=
+      continuous_fst.smul continuous_snd
+    simpa [ideal] using tendstoInMeasure_continuous_comp hpair_meas hpair hcont
+  have hne : Tendsto (fun m => μ {ω | ideal m ω ≠ feasible m ω})
+      atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hrank.instrumentFailure (Eventually.of_forall fun _ => zero_le _) ?_
+    filter_upwards [eventually_gt_atTop 0] with m hm
+    refine measure_mono ?_
+    intro ω hneq
+    by_contra hbad
+    simp only [Set.mem_union, Set.mem_setOf_eq, not_or, not_not] at hbad
+    classical
+    haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+    letI : Invertible
+        ((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) hbad.1
+    letI : Invertible
+        ((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+          Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+          Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)) hbad.2
+    apply hneq
+    dsimp [ideal, feasible, sigmaHat, Ahat, Mhat, Qhat]
+    have hmid :=
+      twoSLSSubsetNeweyMiddleStar_card_inv_smul_eq_scoreMap_overidResidualMaker_sampleQZZ
+        (stackRegressors Za m ω) (stackRegressors Zb m ω)
+        (stackRegressors X m ω)
+    rw [← hmid]
+    rfl
+  simpa [feasible] using
+    tendstoInMeasure_congr_of_measure_ne_tendsto_zero hideal hne
+
+set_option linter.style.longLine false in
 /-- Pointwise-rank compatibility wrapper for
 `twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_scoreMap_residualMaker_sampleQZZ_eventuallyAE`. -/
 theorem
@@ -3816,6 +4117,93 @@ theorem
     simpa [Zfull, stackRegressors, Matrix.fromCols] using hMom.qzz_tendsto
   simpa [Zfull] using
     twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_scoreMap_residualMaker_sampleQZZ_eventuallyAE
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (Y := Y)
+      (A := A) (M := twoSLSOveridPopulationResidualMaker QXZ QZZ QZX)
+      (Q := QZZ) (sigma2 := sigma2)
+      hsigma_meas hsigma hA_meas hA hM_meas hM hQ_meas hQ hrank
+
+set_option linter.style.longLine false in
+set_option maxHeartbeats 800000 in
+-- This wrapper unfolds the full sample-moment package through the matrix CMT.
+/-- High-probability-rank companion to
+`twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_sample_moments_scoreMap_eventuallyAE`. -/
+theorem
+    twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_sample_moments_scoreMap_rankProbability
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {QXZ : Matrix k (la ⊕ lb) ℝ}
+    {QZZ : Matrix (la ⊕ lb) (la ⊕ lb) ℝ}
+    {QZX : Matrix (la ⊕ lb) k ℝ}
+    {A : Matrix lb (la ⊕ lb) ℝ} {sigma2 : ℝ}
+    (hMom : TwoSLSSampleMomentConvergenceConditions μ
+      (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e QXZ QZZ QZX)
+    (hsigma_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hsigma : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => sigma2))
+    (hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A))
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) (ω : Ω) =>
+        twoSLSSubsetNeweyCriterionCovHatStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+        (fun _ => sigma2 •
+          (A * (twoSLSOveridPopulationResidualMaker QXZ QZZ QZX * QZZ) * Aᵀ)) := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  have hM_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSOveridResidualMaker
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω)) μ := by
+    intro m
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using
+      twoSLSOveridResidualMaker_aestronglyMeasurable_of_sample_moments
+        (μ := μ) (Z := Zfull) (X := X) (e := e)
+        (QXZ := QXZ) (QZZ := QZZ) (QZX := QZX) hMom m
+  have hM : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSOveridResidualMaker
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω))
+      atTop (fun _ => twoSLSOveridPopulationResidualMaker QXZ QZZ QZX) := by
+    simpa [Zfull, stackRegressors, Matrix.fromCols,
+      twoSLSOveridPopulationResidualMaker] using
+      twoSLSOveridResidualMaker_tendstoInMeasure_of_sample_moments
+        (μ := μ) (Z := Zfull) (X := X) (e := e)
+        (QXZ := QXZ) (QZZ := QZZ) (QZX := QZX) hMom
+  have hQ_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        sampleQZZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))) μ := by
+    intro m
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using hMom.qzz_meas m
+  have hQ : TendstoInMeasure μ
+      (fun m ω =>
+        sampleQZZ
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)))
+      atTop (fun _ => QZZ) := by
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using hMom.qzz_tendsto
+  simpa [Zfull] using
+    twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_scoreMap_residualMaker_sampleQZZ_rankProbability
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (Y := Y)
       (A := A) (M := twoSLSOveridPopulationResidualMaker QXZ QZZ QZX)
       (Q := QZZ) (sigma2 := sigma2)
@@ -5477,6 +5865,106 @@ theorem
     simp [Matrix.mulVec_smul]
 
 set_option linter.style.longLine false in
+/-- High-probability-rank version of the subset residualized-score Slutsky
+bridge.
+
+The exact score-map identity is used on the two nonsingular instrument-Gram
+branches.  The complement need only have probability tending to zero. -/
+theorem
+    twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_fullResidualScoreMap_rankProbability
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {Y : ℕ → Ω → ℝ}
+    {A : Matrix lb (la ⊕ lb) ℝ} {G : Ωlim → (la ⊕ lb) → ℝ}
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
+    (hTarget_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A))
+    (hFullScore : TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSarganResidualScoreStar
+            (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+            (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop G (fun _ => μ) ν) :
+    TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun ω => A *ᵥ G ω) (fun _ => μ) ν := by
+  let mapped : ℕ → Ω → lb → ℝ := fun m ω =>
+    twoSLSSubsetResidualizedScoreMapStar
+        (stackRegressors Za m ω) (stackRegressors Zb m ω) *ᵥ
+      ((Real.sqrt (m : ℝ))⁻¹ •
+        twoSLSSarganResidualScoreStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+  let target : ℕ → Ω → lb → ℝ := fun m ω =>
+    (Real.sqrt (m : ℝ))⁻¹ •
+      twoSLSSubsetResidualizedScoreStar
+        (stackRegressors Za m ω) (stackRegressors Zb m ω)
+        (stackRegressors X m ω) (stackOutcomes Y m ω)
+  have hmap : TendstoInDistribution mapped atTop
+      (fun ω => A *ᵥ G ω) (fun _ => μ) ν := by
+    simpa [mapped] using
+      matrixMulVec_tendstoInDistribution_of_vector_and_rect_matrix
+        (μ := μ) (ν := ν)
+        (T := fun (m : ℕ) (ω : Ω) =>
+          (Real.sqrt (m : ℝ))⁻¹ •
+            twoSLSSarganResidualScoreStar
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω) (stackOutcomes Y m ω))
+        (Zlim := G)
+        (Ahat := fun m ω =>
+          twoSLSSubsetResidualizedScoreMapStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω))
+        (A := A) hFullScore hA_meas hA
+  have hne : Tendsto (fun m => μ {ω | mapped m ω ≠ target m ω})
+      atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hrank.instrumentFailure (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_mono (by
+      intro ω hneq
+      by_contra hbad
+      simp only [Set.mem_union, Set.mem_setOf_eq, not_or, not_not] at hbad
+      classical
+      letI : Invertible
+          ((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) hbad.1
+      letI : Invertible
+          ((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)) :=
+        Matrix.invertibleOfIsUnitDet
+          (A := (Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          hbad.2
+      apply hneq
+      dsimp [mapped, target]
+      rw [twoSLSSubsetResidualizedScoreStar_eq_scoreMap_mul_sarganResidualScoreStar]
+      simp [Matrix.mulVec_smul])
+  have hdiff : TendstoInMeasure μ (target - mapped) atTop (fun _ => 0) :=
+    tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero hne
+  simpa [target] using
+    tendstoInDistribution_of_tendstoInMeasure_sub
+      (X := mapped) (Y := target) (Z := fun ω => A *ᵥ G ω)
+      hmap hdiff (fun m => by simpa [target] using hTarget_meas m)
+
+set_option linter.style.longLine false in
 /-- Pointwise-rank compatibility wrapper for
 `twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_fullResidualScoreMap_eventuallyAE`. -/
 theorem twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_fullResidualScoreMap
@@ -6252,6 +6740,88 @@ theorem
         (scoreCovMat μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e))
       (Za := Za) (Zb := Zb) (X := X) (Y := Y)
       (A := A)
+      hrank hTarget_meas hA_meas hA hFullScore
+
+set_option linter.style.longLine false in
+/-- High-probability-rank companion to
+`twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_sample_moments_scoreCLT_model_fullResidualScoreMap_eventuallyAE`. -/
+theorem
+    twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_sample_moments_scoreCLT_model_fullResidualScoreMap_rankProbability
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {QXZ : Matrix k (la ⊕ lb) ℝ} {QZZ : Matrix (la ⊕ lb) (la ⊕ lb) ℝ}
+    {QZX : Matrix (la ⊕ lb) k ℝ} {A : Matrix lb (la ⊕ lb) ℝ}
+    (hMom : TwoSLSSampleMomentConvergenceConditions μ
+      (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e QXZ QZZ QZX)
+    (hScore : ScoreCLTConditions μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hFullScore_meas : ∀ n : ℕ, AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ))⁻¹ •
+          twoSLSSarganResidualScoreStar
+            (Matrix.fromCols (stackRegressors Za n ω) (stackRegressors Zb n ω))
+            (stackRegressors X n ω) (stackOutcomes Y n ω)) μ)
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
+    (hTarget_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) μ)
+    (hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A)) :
+    TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun z : EuclideanSpace ℝ (la ⊕ lb) =>
+        A *ᵥ
+          (((1 : Matrix (la ⊕ lb) (la ⊕ lb) ℝ) -
+              QZX * (twoSLSBread QXZ QZZ QZX)⁻¹ * QXZ * QZZ⁻¹) *ᵥ z.ofLp))
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (scoreCovMat μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)) := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  have hFullScore :
+      TendstoInDistribution
+        (fun (m : ℕ) (ω : Ω) =>
+          (Real.sqrt (m : ℝ))⁻¹ •
+            twoSLSSarganResidualScoreStar
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω) (stackOutcomes Y m ω))
+        atTop
+        (fun z : EuclideanSpace ℝ (la ⊕ lb) =>
+          ((1 : Matrix (la ⊕ lb) (la ⊕ lb) ℝ) -
+              QZX * (twoSLSBread QXZ QZZ QZX)⁻¹ * QXZ * QZZ⁻¹) *ᵥ z.ofLp)
+        (fun _ => μ)
+        (multivariateGaussian 0
+          (scoreCovMat μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)) := by
+    have hraw :=
+      twoSLSSarganResidualScoreStar_scaled_tendstoInDistribution_of_sample_moments_scoreCLT_model
+        (μ := μ) (Z := Zfull) (X := X) (e := e) (Y := Y)
+        hMom hScore β hmodel
+        (by
+          intro n
+          simpa [Zfull, stackRegressors, Matrix.fromCols] using hFullScore_meas n)
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using hraw
+  exact
+    twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_fullResidualScoreMap_rankProbability
+      (μ := μ)
+      (ν := multivariateGaussian 0
+        (scoreCovMat μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e))
+      (Za := Za) (Zb := Zb) (X := X) (Y := Y) (A := A)
       hrank hTarget_meas hA_meas hA hFullScore
 
 set_option linter.style.longLine false in
@@ -7581,7 +8151,7 @@ Assumption 12.2 package and conditional homoskedasticity.
 This is the textbook-facing observed-data facade; the proof engine is the
 residual-row theorem reached through
 `TwoSLSAssumption12_2ObservedIidTextbookFourthConditions.toResidualTextbookFourthConditions`. -/
-theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic
+private theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
@@ -7609,7 +8179,7 @@ theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_hom
 
 /-- Lower-tail critical-value version of
 `twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic`. -/
-theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_lowerTail
+private theorem twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_lowerTail
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
@@ -7645,7 +8215,7 @@ set_option linter.style.longLine false in
 Assumption 12.2 package and conditional homoskedasticity, with the scalar
 variance positivity derived from `Ω > 0` rather than assumed separately. -/
 theorem
-    twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos
+    Theorem12_16.observed
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
@@ -7678,9 +8248,9 @@ theorem
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value version of
-`twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos`. -/
+`Theorem12_16.observed`. -/
 theorem
-    twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos_lowerTail
+    Theorem12_16.observed_lowerTail
     {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
     {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
     [Fact (0 < Fintype.card l - Fintype.card k)]
@@ -7703,7 +8273,7 @@ theorem
         twoSLSSarganStatOrZero
           (stackRegressors Z m ω) (stackRegressors X m ω) (stackOutcomes Y m ω)})
       atTop (𝓝 alpha) :=
-  twoSLSSargan_theorem12_16_of_assumption12_2_observed_textbook_fourth_homoskedastic_derivedSigmaPos
+  Theorem12_16.observed
     (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y)
     h hZ0 hhomo
     (chiSquared_upperTail_eq_of_lowerTail_eq
@@ -7840,6 +8410,236 @@ structure TwoSLSSubsetEventuallyRankConditions
           (stackRegressors Za m ω) (stackRegressors X m ω))ᵀ *
         fittedRegressorsStar
           (stackRegressors Za m ω) (stackRegressors X m ω)))
+
+omit [DecidableEq n] in
+private theorem rawGram_det_isUnit_of_sampleGram_det_isUnit_overid
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit (sampleGram X).det) :
+    IsUnit (Xᵀ * X).det := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul] at hX
+  exact (mul_ne_zero_iff.mp hX).2
+
+omit [DecidableEq n] in
+private theorem sampleGram_det_isUnit_of_rawGram_det_isUnit_overid
+    {p : Type*} [Fintype p] [DecidableEq p] (X : Matrix n p ℝ)
+    (hn : 0 < Fintype.card n) (hX : IsUnit (Xᵀ * X).det) :
+    IsUnit (sampleGram X).det := by
+  have hn_ne : (Fintype.card n : ℝ) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt hn)
+  rw [isUnit_iff_ne_zero] at hX ⊢
+  rw [sampleGram, Matrix.det_smul]
+  exact mul_ne_zero (pow_ne_zero _ (inv_ne_zero hn_ne)) hX
+
+private theorem measure_rawGram_singular_tendsto_zero
+    {p : Type*} [Fintype p] [DecidableEq p]
+    {W : ℕ → Ω → p → ℝ} {u : ℕ → Ω → ℝ}
+    (h : SampleMomentAssumption71 μ W u) :
+    Tendsto
+      (fun m => μ {ω | ¬ IsUnit
+        (((stackRegressors W m ω)ᵀ * stackRegressors W m ω).det)})
+      atTop (𝓝 0) := by
+  have hsample := measure_sampleGram_singular_tendsto_zero h
+  refine (tendsto_congr' ?_).mpr hsample
+  filter_upwards [eventually_gt_atTop 0] with m hm
+  congr 1
+  ext ω
+  simp only [Set.mem_setOf_eq]
+  constructor
+  · intro hraw hsample_unit
+    exact hraw
+      (rawGram_det_isUnit_of_sampleGram_det_isUnit_overid
+        (stackRegressors W m ω) (by simpa using hm) hsample_unit)
+  · intro hsample_bad hraw_unit
+    exact hsample_bad
+      (sampleGram_det_isUnit_of_rawGram_det_isUnit_overid
+        (stackRegressors W m ω) (by simpa using hm) hraw_unit)
+
+namespace TwoSLSSubsetRankFailureProbabilityConditions
+
+omit [IsProbabilityMeasure μ] in
+/-- Failure of either instrument-Gram rank branch has vanishing probability. -/
+theorem instrumentGrams
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ}
+    (h : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X) :
+    Tendsto
+      (fun m => μ (
+        {ω | ¬ IsUnit
+          (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} ∪
+        {ω | ¬ IsUnit
+          (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω)).det)}))
+      atTop (𝓝 0) := by
+  have hsum : Tendsto
+      (fun m =>
+        μ {ω | ¬ IsUnit
+          (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} +
+        μ {ω | ¬ IsUnit
+          (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω)).det)}) atTop (𝓝 0) := by
+    simpa only [zero_add] using h.maintained_instrument.add h.full_instrument
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    hsum
+    (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => measure_union_le _ _
+
+omit [IsProbabilityMeasure μ] in
+/-- Failure of any finite-sample branch used by `N = C*` has vanishing
+probability. -/
+theorem all
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ}
+    (h : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X) :
+    Tendsto
+      (fun m => μ (
+        ({ω | ¬ IsUnit
+          (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} ∪
+        {ω | ¬ IsUnit
+          (((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+            Matrix.fromCols (stackRegressors Za m ω)
+              (stackRegressors Zb m ω)).det)}) ∪
+        ({ω | ¬ IsUnit
+          (twoSLSBread
+            (sampleQXZ (stackRegressors Za m ω) (stackRegressors X m ω))
+            (sampleQZZ (stackRegressors Za m ω))
+            (sampleQZX (stackRegressors Za m ω) (stackRegressors X m ω))).det} ∪
+        {ω | ¬ IsUnit
+          (twoSLSBread
+            (sampleQXZ
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω))
+            (sampleQZZ
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)))
+            (sampleQZX
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω))).det})))
+      atTop (𝓝 0) := by
+  have hleft := h.instrumentGrams
+  have hright : Tendsto
+      (fun m => μ (
+        {ω | ¬ IsUnit
+          (twoSLSBread
+            (sampleQXZ (stackRegressors Za m ω) (stackRegressors X m ω))
+            (sampleQZZ (stackRegressors Za m ω))
+            (sampleQZX (stackRegressors Za m ω) (stackRegressors X m ω))).det} ∪
+        {ω | ¬ IsUnit
+          (twoSLSBread
+            (sampleQXZ
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω))
+            (sampleQZZ
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)))
+            (sampleQZX
+              (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+              (stackRegressors X m ω))).det}))
+      atTop (𝓝 0) := by
+    have hsum : Tendsto
+        (fun m =>
+          μ {ω | ¬ IsUnit
+            (twoSLSBread
+              (sampleQXZ (stackRegressors Za m ω) (stackRegressors X m ω))
+              (sampleQZZ (stackRegressors Za m ω))
+              (sampleQZX (stackRegressors Za m ω)
+                (stackRegressors X m ω))).det} +
+          μ {ω | ¬ IsUnit
+            (twoSLSBread
+              (sampleQXZ
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω)) (stackRegressors X m ω))
+              (sampleQZZ
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω)))
+              (sampleQZX
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω))
+                (stackRegressors X m ω))).det}) atTop (𝓝 0) := by
+      simpa only [zero_add] using h.maintained_bread.add h.full_bread
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hsum
+      (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_union_le _ _
+  have hsum : Tendsto
+      (fun m =>
+        μ (
+          {ω | ¬ IsUnit
+            (((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω).det)} ∪
+          {ω | ¬ IsUnit
+            (((Matrix.fromCols (stackRegressors Za m ω)
+                (stackRegressors Zb m ω))ᵀ *
+              Matrix.fromCols (stackRegressors Za m ω)
+                (stackRegressors Zb m ω)).det)}) +
+        μ (
+          {ω | ¬ IsUnit
+            (twoSLSBread
+              (sampleQXZ (stackRegressors Za m ω) (stackRegressors X m ω))
+              (sampleQZZ (stackRegressors Za m ω))
+              (sampleQZX (stackRegressors Za m ω)
+                (stackRegressors X m ω))).det} ∪
+          {ω | ¬ IsUnit
+            (twoSLSBread
+              (sampleQXZ
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω)) (stackRegressors X m ω))
+              (sampleQZZ
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω)))
+              (sampleQZX
+                (Matrix.fromCols (stackRegressors Za m ω)
+                  (stackRegressors Zb m ω))
+                (stackRegressors X m ω))).det})) atTop (𝓝 0) := by
+    simpa only [zero_add] using hleft.add hright
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+    hsum (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => measure_union_le _ _
+
+/-- Observed-row Assumption 12.2 implies all high-probability rank branches
+used by Hansen Theorem 12.17. -/
+theorem of_observed_assumption12_2
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (hMaintained :
+      TwoSLSAssumption12_2ObservedIidTextbookFourthConditions μ Za X e Y β)
+    (hFull : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e Y β) :
+    TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  let hMaintainedMixed :=
+    hMaintained.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
+  let hFullMixed :=
+    hFull.toResidualTextbookFourthConditions.toJointIidMixedMomentConditions
+  let hMaintainedCov :=
+    hMaintainedMixed.toCovarianceMomentConsistencyConditions β hMaintained.model
+  let hFullCov :=
+    hFullMixed.toCovarianceMomentConsistencyConditions β hFull.model
+  let hMaintainedGram :=
+    hMaintainedMixed.toTwoSLSAssumption12_2JointIidFourthConditions
+      |>.toIidFourthConditions
+      |>.toGramConditions
+  let hFullGram :=
+    hFullMixed.toTwoSLSAssumption12_2JointIidFourthConditions
+      |>.toIidFourthConditions
+      |>.toGramConditions
+  refine
+    { maintained_instrument := ?_
+      full_instrument := ?_
+      maintained_bread := ?_
+      full_bread := ?_ }
+  · exact measure_rawGram_singular_tendsto_zero hMaintainedGram.instrument_moments
+  · simpa [Zfull, stackRegressors, Matrix.fromCols] using
+      (measure_rawGram_singular_tendsto_zero hFullGram.instrument_moments)
+  · exact measure_twoSLSBread_singular_tendsto_zero_of_sample_moments
+      hMaintainedCov.sample_moments
+  · simpa [Zfull, stackRegressors, Matrix.fromCols] using
+      (measure_twoSLSBread_singular_tendsto_zero_of_sample_moments
+        hFullCov.sample_moments)
+
+end TwoSLSSubsetRankFailureProbabilityConditions
 
 omit [IsProbabilityMeasure μ] in
 /-- The two instrument-Gram branches of the eventual sample-rank package. -/
@@ -9289,6 +10089,168 @@ theorem of_assumption12_2_fullResidualScoreMap_eventuallyAE
       covariance_tendsto := hV
       covariance_posDef := hV_pos }
 
+set_option linter.style.longLine false in
+/-- High-probability-rank companion to
+`TwoSLSSubsetResidualizedGaussianCriterionInputs.of_assumption12_2_fullResidualScoreMap_eventuallyAE`. -/
+theorem of_assumption12_2_fullResidualScoreMap_rankProbability
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {A : Matrix lb (la ⊕ lb) ℝ} {V : Matrix lb lb ℝ}
+    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A))
+    (hV : TendstoInMeasure μ
+      (fun (m : ℕ) (ω : Ω) =>
+        twoSLSSubsetNeweyCriterionCovHatStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => V))
+    (hV_pos : V.PosDef)
+    (hV_eq :
+      V =
+        let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+          fun i ω => Sum.elim (Za i ω) (Zb i ω)
+        let QXZ := twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+        let QZZ := twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+        let QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X))
+        let M := twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
+        let R : Matrix lb (la ⊕ lb) ℝ := A * M
+        R * scoreCovMat μ Zfull e * Rᵀ) :
+    TwoSLSSubsetResidualizedGaussianCriterionInputs μ Za Zb X Y V := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  let QXZ : Matrix k (la ⊕ lb) ℝ :=
+    twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+  let QZZ : Matrix (la ⊕ lb) (la ⊕ lb) ℝ :=
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+  let QZX : Matrix (la ⊕ lb) k ℝ :=
+    twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X))
+  let M : Matrix (la ⊕ lb) (la ⊕ lb) ℝ :=
+    twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
+  let R : Matrix lb (la ⊕ lb) ℝ := A * M
+  let S : Matrix (la ⊕ lb) (la ⊕ lb) ℝ := scoreCovMat μ Zfull e
+  let hIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
+    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  let hGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+    hIid.toGramConditions
+  have hY_meas : ∀ i, AEStronglyMeasurable (Y i) μ :=
+    outcome_aestronglyMeasurable_of_linear_model
+      (μ := μ) (X := X) (e := e) (Y := Y) β
+      hFull.x_aestronglyMeasurable hFull.e_aestronglyMeasurable hmodel
+  have hZfull_meas : ∀ i, AEStronglyMeasurable (Zfull i) μ := by
+    intro i
+    simpa [Zfull] using hFull.z_aestronglyMeasurable i
+  have hZa_meas : ∀ i, AEStronglyMeasurable (Za i) μ := by
+    intro i
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    refine aemeasurable_pi_lambda (Za i) ?_
+    intro a
+    have ha : AEMeasurable (fun ω => Zfull i ω (Sum.inl a)) μ :=
+      (measurable_pi_apply (Sum.inl a)).comp_aemeasurable
+        (hZfull_meas i).aemeasurable
+    simpa [Zfull] using ha
+  have hZb_meas : ∀ i, AEStronglyMeasurable (Zb i) μ := by
+    intro i
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    refine aemeasurable_pi_lambda (Zb i) ?_
+    intro b
+    have hb : AEMeasurable (fun ω => Zfull i ω (Sum.inr b)) μ :=
+      (measurable_pi_apply (Sum.inr b)).comp_aemeasurable
+        (hZfull_meas i).aemeasurable
+    simpa [Zfull] using hb
+  have hFullScore_meas : ∀ n : ℕ, AEMeasurable
+      (fun ω =>
+        (Real.sqrt (n : ℝ))⁻¹ •
+          twoSLSSarganResidualScoreStar
+            (Matrix.fromCols (stackRegressors Za n ω) (stackRegressors Zb n ω))
+            (stackRegressors X n ω) (stackOutcomes Y n ω)) μ := by
+    intro n
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using
+      twoSLSSarganResidualScoreStar_scaled_aemeasurable_of_rows
+        (μ := μ) (Z := Zfull) (X := X) (Y := Y)
+        hZfull_meas hFull.x_aestronglyMeasurable hY_meas n
+  have hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ := by
+    intro m
+    simpa [stackRegressors] using
+      twoSLSSubsetResidualizedScoreMapStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Za := Za) (Zb := Zb) hZa_meas hZb_meas m
+  have hTarget_meas : ∀ m : ℕ, AEMeasurable
+      (fun ω =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) μ := by
+    intro m
+    simpa [stackRegressors, stackOutcomes] using
+      twoSLSSubsetResidualizedScoreStar_scaled_aemeasurable_of_rows
+        (μ := μ) (Za := Za) (Zb := Zb) (X := X) (Y := Y)
+        hZa_meas hZb_meas hFull.x_aestronglyMeasurable hY_meas m
+  have hraw : TendstoInDistribution
+      (fun (m : ℕ) (ω : Ω) =>
+        (Real.sqrt (m : ℝ))⁻¹ •
+          twoSLSSubsetResidualizedScoreStar
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop
+      (fun z : EuclideanSpace ℝ (la ⊕ lb) => A *ᵥ (M *ᵥ z.ofLp))
+      (fun _ => μ) (multivariateGaussian 0 S) := by
+    simpa [Zfull, QXZ, QZZ, QZX, M, S] using
+      twoSLSSubsetResidualizedScoreStar_scaled_tendstoInDistribution_of_sample_moments_scoreCLT_model_fullResidualScoreMap_rankProbability
+        (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
+        (QXZ := QXZ) (QZZ := QZZ) (QZX := QZX) (A := A)
+        hGram.toSampleMomentConvergenceConditions hGram.score_clt β hmodel
+        hFullScore_meas hrank hTarget_meas hA_meas hA
+  have hS_pos : S.PosSemidef :=
+    scoreCovMat_posSemidef (μ := μ) (X := Zfull) (e := e) hGram.score_clt
+  have hmap :
+      (multivariateGaussian 0 S).map
+          (fun z : EuclideanSpace ℝ (la ⊕ lb) => A *ᵥ (M *ᵥ z.ofLp)) =
+        (multivariateGaussian 0 V).map
+          (fun z : EuclideanSpace ℝ lb => z.ofLp) := by
+    have hV_eq' : V = R * S * Rᵀ := by
+      simpa [Zfull, QXZ, QZZ, QZX, M, R, S] using hV_eq
+    have hfun :
+        (fun z : EuclideanSpace ℝ (la ⊕ lb) => A *ᵥ (M *ᵥ z.ofLp)) =
+          (fun z : EuclideanSpace ℝ (la ⊕ lb) =>
+            (matrixContinuousLinearMap R z).ofLp) := by
+      funext z
+      simp [R, Matrix.mulVec_mulVec]
+    calc
+      (multivariateGaussian 0 S).map
+          (fun z : EuclideanSpace ℝ (la ⊕ lb) => A *ᵥ (M *ᵥ z.ofLp)) =
+        (multivariateGaussian 0 S).map
+          (fun z : EuclideanSpace ℝ (la ⊕ lb) =>
+            (matrixContinuousLinearMap R z).ofLp) := by rw [hfun]
+      _ = ((multivariateGaussian 0 S).map (matrixContinuousLinearMap R)).map
+          (fun z : EuclideanSpace ℝ lb => z.ofLp) := by
+            rw [Measure.map_map]
+            · rfl
+            · exact (PiLp.continuous_ofLp 2 (fun _ : lb => ℝ)).measurable
+            · exact (matrixContinuousLinearMap R).continuous.measurable
+      _ = (multivariateGaussian 0 (R * S * Rᵀ)).map
+          (fun z : EuclideanSpace ℝ lb => z.ofLp) := by
+            rw [map_matrix_multivariateGaussian hS_pos R]
+            simp [Matrix.conjTranspose_eq_transpose_of_trivial]
+      _ = (multivariateGaussian 0 V).map
+          (fun z : EuclideanSpace ℝ lb => z.ofLp) := by rw [← hV_eq']
+  exact
+    { score_clt :=
+        tendstoInDistribution_of_limit_map_eq
+          (μ := μ) (ν := multivariateGaussian 0 S)
+          (η := multivariateGaussian 0 V) hraw (by fun_prop) hmap
+      covariance_tendsto := hV
+      covariance_posDef := hV_pos }
+
 /-- Pointwise-rank compatibility wrapper for
 `of_assumption12_2_fullResidualScoreMap_eventuallyAE`. -/
 theorem of_assumption12_2_fullResidualScoreMap
@@ -9643,6 +10605,144 @@ theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_
         hQXZ hFull.qzz_posDef hcov
   exact
     of_assumption12_2_fullResidualScoreMap_eventuallyAE
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
+      (A := A) (V := twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A)
+      hFull β hmodel hrank hA hV
+      (twoSLSSubsetResidualizedScoreCovariance_posDef_of_limitMap_fullRowRank
+        (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (A := A)
+        hFull hR_fullRowRank)
+      (by
+        simp [twoSLSSubsetResidualizedScoreCovariance, Matrix.transpose_mul,
+          Matrix.mul_assoc])
+
+set_option linter.style.longLine false in
+set_option maxHeartbeats 1000000 in
+-- This constructor combines two high-probability finite-sample identities.
+/-- High-probability-rank Newey-covariance constructor for Hansen Theorem
+12.17. -/
+theorem of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_rankProbability
+    {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
+    {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
+    {A : Matrix lb (la ⊕ lb) ℝ}
+    (hFull : TwoSLSAssumption12_2JointIidMixedMomentConditions
+      μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X e)
+    (β : k → ℝ)
+    (hmodel : ∀ i ω, Y i ω = (X i ω) ⬝ᵥ β + e i ω)
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
+    (hA : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω))
+      atTop (fun _ => A))
+    (hcov :
+      scoreCovMat μ (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e =
+        errorVariance μ e •
+          twoSLSCombinedQZZ
+            (popGram μ (twoSLSCombinedRegressors
+              (fun i ω => Sum.elim (Za i ω) (Zb i ω)) X)))
+    (hR_fullRowRank :
+      let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+        fun i ω => Sum.elim (Za i ω) (Zb i ω)
+      let QXZ := twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+      let QZZ := twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X))
+      let QZX := twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X))
+      let M := twoSLSOveridPopulationResidualMaker QXZ QZZ QZX
+      Function.Injective (fun v : lb → ℝ => Matrix.vecMul v (A * M))) :
+    TwoSLSSubsetResidualizedGaussianCriterionInputs μ Za Zb X Y
+      (twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A) := by
+  let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
+    fun i ω => Sum.elim (Za i ω) (Zb i ω)
+  let hFullIid : TwoSLSAssumption12_2IidFourthConditions μ Zfull X e :=
+    hFull.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  let hFullGram : TwoSLSAssumption12_2GramConditions μ Zfull X e :=
+    hFullIid.toGramConditions
+  let hCovMom : TwoSLSCovarianceMomentConsistencyConditions
+      μ Zfull X e Y
+      (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      (scoreCovMat μ Zfull e)
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X)))
+      (errorVariance μ e) :=
+    hFull.toCovarianceMomentConsistencyConditions β hmodel
+  have hZfull_meas : ∀ i, AEStronglyMeasurable (Zfull i) μ := by
+    intro i
+    simpa [Zfull] using hFull.z_aestronglyMeasurable i
+  have hZa_meas : ∀ i, AEStronglyMeasurable (Za i) μ := by
+    intro i
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    refine aemeasurable_pi_lambda (Za i) ?_
+    intro a
+    have ha : AEMeasurable (fun ω => Zfull i ω (Sum.inl a)) μ :=
+      (measurable_pi_apply (Sum.inl a)).comp_aemeasurable
+        (hZfull_meas i).aemeasurable
+    simpa [Zfull] using ha
+  have hZb_meas : ∀ i, AEStronglyMeasurable (Zb i) μ := by
+    intro i
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    refine aemeasurable_pi_lambda (Zb i) ?_
+    intro b
+    have hb : AEMeasurable (fun ω => Zfull i ω (Sum.inr b)) μ :=
+      (measurable_pi_apply (Sum.inr b)).comp_aemeasurable
+        (hZfull_meas i).aemeasurable
+    simpa [Zfull] using hb
+  have hA_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSubsetResidualizedScoreMapStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)) μ := by
+    intro m
+    simpa [stackRegressors] using
+      twoSLSSubsetResidualizedScoreMapStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Za := Za) (Zb := Zb) hZa_meas hZb_meas m
+  have hsigma_meas : ∀ m, AEStronglyMeasurable
+      (fun ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω)) μ := by
+    intro m
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using hCovMom.sigma_meas m
+  have hsigma : TendstoInMeasure μ
+      (fun m ω =>
+        twoSLSSigmaSqHatStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => errorVariance μ e) := by
+    simpa [Zfull, stackRegressors, Matrix.fromCols] using hCovMom.sigma_tendsto
+  have hQXZ :
+      twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X)) =
+        (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X)))ᵀ :=
+    twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
+      (μ := μ) (Z := Zfull) (X := X)
+      hFullGram.toTwoSLSAssumption12_1GramConditions.combined_gram
+  have hVraw :=
+    twoSLSSubsetNeweyCriterionCovHatStar_tendstoInMeasure_of_sigma_sample_moments_scoreMap_rankProbability
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
+      (A := A) (sigma2 := errorVariance μ e)
+      hCovMom.sample_moments hsigma_meas hsigma hA_meas hA hrank
+  have htarget :
+      twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A =
+        errorVariance μ e •
+          (A *
+            (twoSLSOveridPopulationResidualMaker
+              (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Zfull X)))
+              (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Zfull X)))
+              (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Zfull X))) *
+              twoSLSCombinedQZZ
+                (popGram μ (twoSLSCombinedRegressors Zfull X))) * Aᵀ) :=
+    twoSLSSubsetResidualizedScoreCovariance_eq_sigma_scoreMap_residualMaker_popGram
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
+      (A := A) (sigma2 := errorVariance μ e)
+      (by simpa [Zfull] using hQXZ)
+      (by simpa [Zfull] using hFull.qzz_posDef)
+      hCovMom.sample_moments.bread_nonsing (by simpa [Zfull] using hcov)
+  have hV : TendstoInMeasure μ
+      (fun (m : ℕ) (ω : Ω) =>
+        twoSLSSubsetNeweyCriterionCovHatStar
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A) := by
+    simpa [Zfull, htarget] using hVraw
+  exact
+    of_assumption12_2_fullResidualScoreMap_rankProbability
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
       (A := A) (V := twoSLSSubsetResidualizedScoreCovariance μ Za Zb X e A)
       hFull β hmodel hrank hA hV
@@ -18047,13 +19147,10 @@ positivity from full-instrument homoskedasticity.
 
 The limiting residualized score map is fixed to Hansen's population
 full-instrument Gram expression, and the Newey covariance target is derived
-from full-instrument homoskedasticity.  Finite-sample rank is required only
-eventually almost surely, so the endpoint is inhabited at `m = 0`.
-
-This is still conditional rather than a complete derivation of raw Hansen
-Theorem 12.17: the eventual sample-rank package and nonsingularity of the
-displayed limiting row Gram remain explicit inputs.  Use the shorter
-`Theorem12_17.observed` alias as the chapter-facing name. -/
+from full-instrument homoskedasticity.  Finite-sample identities are used on
+rank events whose complements have vanishing probability.  The shorter
+`Theorem12_17.observed` wrapper derives those rank probabilities and limiting
+row-Gram nonsingularity from observed Assumption 12.2. -/
 theorem
     twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
@@ -18074,23 +19171,18 @@ theorem
     (hhomoFull :
       HomoskedasticErrorVariance μ
         (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
-    (hrank : TwoSLSSubsetEventuallyRankConditions μ Za Zb X)
-    (hR_rowGram : IsUnit
-      (let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
-        fun i ω => Sum.elim (Za i ω) (Zb i ω)
-      let A : Matrix lb (la ⊕ lb) ℝ :=
-        twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-      (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A *
-        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A)ᵀ).det))
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared df) (Set.Ioi crit) = alpha) :
-    (∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      twoSLSSubsetNeweyStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω) =
-      twoSLSSubsetSarganDiffCommonSigmaStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω)) ∧
+    Tendsto
+      (fun m => μ {ω |
+        twoSLSSubsetNeweyStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω) ≠
+        twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω)})
+      atTop (𝓝 0) ∧
     TendstoInDistribution
       (fun (m : ℕ) ω =>
         twoSLSSubsetNeweyStatOrZero
@@ -18171,11 +19263,15 @@ theorem
   have hGaussian :
       TwoSLSSubsetResidualizedGaussianCriterionInputs μ Za Zb X Y V := by
     simpa [V, Zfull] using
-      TwoSLSSubsetResidualizedGaussianCriterionInputs.of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_eventuallyAE
+      TwoSLSSubsetResidualizedGaussianCriterionInputs.of_assumption12_2_fullResidualScoreMap_covarianceTarget_neweyCovariance_rankProbability
         (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-        (A := A) hFullMixed β hFull.model hrank.instrumentGrams hA hcov
+        (A := A) hFullMixed β hFull.model hrank hA hcov
         (twoSLSSubsetLimitResidualizedScoreMap_fullRowRank_of_rowGram_det_isUnit
-          μ Za Zb X A (by simpa [A, Zfull] using hR_rowGram))
+          μ Za Zb X A (by
+            simpa [A, Zfull] using
+              twoSLSSubsetLimitResidualizedScoreMap_rowGram_det_isUnit_of_observed_assumption12_2
+                (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e)
+                hMaintained hFull))
   have hnum : BoundedInProbability μ
       (fun m ω =>
         twoSLSSarganNumeratorStar
@@ -18196,20 +19292,88 @@ theorem
     twoSLSSubsetCommonSigmaDiff_tendstoInMeasure_zero_of_assumption12_2_bounded
       (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
       hnum hMaintainedMixed hFullMixed β hMaintained.model (ne_of_gt hsigma_pos)
-  have hnewey_eq_common : ∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      twoSLSSubsetNeweyStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω) =
-      twoSLSSubsetSarganDiffCommonSigmaStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω) := by
-    filter_upwards [hrank.all] with m hm
-    filter_upwards [hm] with ω hω
-    exact
-      twoSLSSubsetNeweyStatOrZero_eq_commonSigmaStat_of_gramBranches
+  have hnewey_ne_common : Tendsto
+      (fun m => μ {ω |
+        twoSLSSubsetNeweyStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω) ≠
+        twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω)})
+      atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hrank.all (Eventually.of_forall fun _ => zero_le _) ?_
+    filter_upwards [eventually_gt_atTop 0] with m hm
+    refine measure_mono ?_
+    intro ω hneq
+    by_contra hbad
+    simp only [Set.mem_union, Set.mem_setOf_eq, not_or, not_not] at hbad
+    classical
+    haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+    letI : Invertible
+        ((stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (stackRegressors Za m ω)ᵀ * stackRegressors Za m ω) hbad.1.1
+    letI : Invertible
+        ((Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))ᵀ *
+          Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω)) :=
+      Matrix.invertibleOfIsUnitDet
+        (A := (Matrix.fromCols (stackRegressors Za m ω)
+            (stackRegressors Zb m ω))ᵀ *
+          Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+        hbad.1.2
+    have hMaintainedMoment : IsUnit
+        (twoSLSMomentMatrixStar
+          (stackRegressors Za m ω) (stackRegressors X m ω)).det :=
+      isUnit_twoSLSMomentMatrixStar_det_of_sample_bread
+        (stackRegressors Za m ω) (stackRegressors X m ω) hbad.2.1
+    have hFullMoment : IsUnit
+        (twoSLSMomentMatrixStar
+          (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+          (stackRegressors X m ω)).det :=
+      isUnit_twoSLSMomentMatrixStar_det_of_sample_bread
+        (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+        (stackRegressors X m ω) hbad.2.2
+    have hMaintainedFitted : Nonempty (Invertible
+        ((fittedRegressorsStar
+            (stackRegressors Za m ω) (stackRegressors X m ω))ᵀ *
+          fittedRegressorsStar
+            (stackRegressors Za m ω) (stackRegressors X m ω))) := by
+      refine ⟨Matrix.invertibleOfIsUnitDet
+        (A := (fittedRegressorsStar
+            (stackRegressors Za m ω) (stackRegressors X m ω))ᵀ *
+          fittedRegressorsStar
+            (stackRegressors Za m ω) (stackRegressors X m ω)) ?_⟩
+      have heq :=
+        fittedRegressorsStar_transpose_mul_self_eq_twoSLSMomentMatrixStar_generic
+        (Z := stackRegressors Za m ω) (X := stackRegressors X m ω)
+      rw [congrArg Matrix.det heq]
+      exact hMaintainedMoment
+    have hFullFitted : Nonempty (Invertible
+        ((fittedRegressorsStar
+            (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+            (stackRegressors X m ω))ᵀ *
+          fittedRegressorsStar
+            (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+            (stackRegressors X m ω))) := by
+      refine ⟨Matrix.invertibleOfIsUnitDet
+        (A := (fittedRegressorsStar
+            (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+            (stackRegressors X m ω))ᵀ *
+          fittedRegressorsStar
+            (Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+            (stackRegressors X m ω)) ?_⟩
+      have heq :=
+        fittedRegressorsStar_transpose_mul_self_eq_twoSLSMomentMatrixStar_generic
+        (Z := Matrix.fromCols (stackRegressors Za m ω) (stackRegressors Zb m ω))
+        (X := stackRegressors X m ω)
+      rw [congrArg Matrix.det heq]
+      exact hFullMoment
+    exact hneq
+      (twoSLSSubsetNeweyStatOrZero_eq_commonSigmaStat_of_gramBranches
         (stackRegressors Za m ω) (stackRegressors Zb m ω)
         (stackRegressors X m ω) (stackOutcomes Y m ω)
-        hω.1 hω.2.1 hω.2.2.1 hω.2.2.2
+        ⟨inferInstance⟩ ⟨inferInstance⟩ hFullFitted hMaintainedFitted)
   have hZa_meas : ∀ i, AEStronglyMeasurable (Za i) μ :=
     hMaintainedMixed.z_aestronglyMeasurable
   have hX_meas : ∀ i, AEStronglyMeasurable (X i) μ :=
@@ -18289,13 +19453,37 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω))
       atTop (fun x : ℝ => x) (fun _ => μ) (chiSquared df) := by
-    apply tendstoInDistribution_congr_eventuallyAE
-      (hXY := hnewey_eq_common) (h := hnewey)
-    intro m
-    simpa [stackRegressors, stackOutcomes] using
-      twoSLSSubsetSarganDiffCommonSigmaStatOrZero_aemeasurable_of_rows
-        (μ := μ) (Za := Za) (Zb := Zb) (X := X) (Y := Y)
-        hZa_meas hZb_meas hX_meas hY_meas m
+    have hcommon_meas : ∀ m, AEMeasurable
+        (fun ω =>
+          twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) μ := by
+      intro m
+      simpa [stackRegressors, stackOutcomes] using
+        twoSLSSubsetSarganDiffCommonSigmaStatOrZero_aemeasurable_of_rows
+          (μ := μ) (Za := Za) (Zb := Zb) (X := X) (Y := Y)
+          hZa_meas hZb_meas hX_meas hY_meas m
+    have hcommon_sub_newey : TendstoInMeasure μ
+        ((fun (m : ℕ) ω =>
+          twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) -
+         (fun (m : ℕ) ω =>
+          twoSLSSubsetNeweyStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)))
+        atTop (fun _ => 0) :=
+      tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero hnewey_ne_common
+    exact tendstoInDistribution_of_tendstoInMeasure_sub
+      (X := fun (m : ℕ) ω =>
+        twoSLSSubsetNeweyStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      (Y := fun (m : ℕ) ω =>
+        twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω))
+      (Z := fun x : ℝ => x) hnewey hcommon_sub_newey hcommon_meas
   have hsargan_meas : ∀ m, AEMeasurable
       (fun ω =>
         twoSLSSubsetSarganDiffStatOrZero
@@ -18343,14 +19531,31 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω))
       atTop (fun _ => 0) := by
-    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hdiff
-    filter_upwards [hnewey_eq_common] with m hm
-    filter_upwards [hm] with ω hω
-    exact congrArg
-      (fun t => t -
-        twoSLSSubsetSarganDiffStatOrZero
-          (stackRegressors Za m ω) (stackRegressors Zb m ω)
-          (stackRegressors X m ω) (stackOutcomes Y m ω)) hω.symm
+    have hcommon_sub_newey : TendstoInMeasure μ
+        ((fun (m : ℕ) ω =>
+          twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) -
+         (fun (m : ℕ) ω =>
+          twoSLSSubsetNeweyStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)))
+        atTop (fun _ => 0) :=
+      tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero hnewey_ne_common
+    have hnewey_sub_common : TendstoInMeasure μ
+        ((fun (m : ℕ) ω =>
+          twoSLSSubsetNeweyStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)) -
+         (fun (m : ℕ) ω =>
+          twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+            (stackRegressors Za m ω) (stackRegressors Zb m ω)
+            (stackRegressors X m ω) (stackOutcomes Y m ω)))
+        atTop (fun _ => 0) := by
+      simpa [Pi.sub_apply, sub_eq_add_neg, add_comm] using
+        TendstoInMeasure.neg_zero_real hcommon_sub_newey
+    simpa [Pi.sub_apply, sub_eq_add_neg, add_assoc] using
+      TendstoInMeasure.add_zero_real hnewey_sub_common hdiff
   have hNsize :=
     chiSquaredTest_rejectionProb_tendsto_alpha_of_stat
       (μ := μ)
@@ -18367,7 +19572,7 @@ theorem
           (stackRegressors Za m ω) (stackRegressors Zb m ω)
           (stackRegressors X m ω) (stackOutcomes Y m ω))
       (q := df) (crit := crit) (alpha := alpha) hcrit hsargan
-  exact ⟨hnewey_eq_common, hnewey, hsargan, hequiv, hNsize, hCsize⟩
+  exact ⟨hnewey_ne_common, hnewey, hsargan, hequiv, hNsize, hCsize⟩
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value convention for
@@ -18392,24 +19597,19 @@ theorem
     (hhomoFull :
       HomoskedasticErrorVariance μ
         (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
-    (hrank : TwoSLSSubsetEventuallyRankConditions μ Za Zb X)
-    (hR_rowGram : IsUnit
-      (let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
-        fun i ω => Sum.elim (Za i ω) (Zb i ω)
-      let A : Matrix lb (la ⊕ lb) ℝ :=
-        twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-      (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A *
-        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A)ᵀ).det))
+    (hrank : TwoSLSSubsetRankFailureProbabilityConditions μ Za Zb X)
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)
     (hcrit : (chiSquared df) (Set.Iic crit) = 1 - alpha) :
-    (∀ᶠ m in atTop, ∀ᵐ ω ∂μ,
-      twoSLSSubsetNeweyStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω) =
-      twoSLSSubsetSarganDiffCommonSigmaStatOrZero
-        (stackRegressors Za m ω) (stackRegressors Zb m ω)
-        (stackRegressors X m ω) (stackOutcomes Y m ω)) ∧
+    Tendsto
+      (fun m => μ {ω |
+        twoSLSSubsetNeweyStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω) ≠
+        twoSLSSubsetSarganDiffCommonSigmaStatOrZero
+          (stackRegressors Za m ω) (stackRegressors Zb m ω)
+          (stackRegressors X m ω) (stackOutcomes Y m ω)})
+      atTop (𝓝 0) ∧
     TendstoInDistribution
       (fun (m : ℕ) ω =>
         twoSLSSubsetNeweyStatOrZero
@@ -18446,19 +19646,17 @@ theorem
   twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
     hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
-    hrank hR_rowGram
+    hrank
     (chiSquared_upperTail_eq_of_lowerTail_eq
       (q := df) (c := crit) (alpha := alpha) halpha_le_one hcrit)
 
 namespace Theorem12_17
 
 set_option linter.style.longLine false in
-/-- Canonical observed-row endpoint for the currently formalized portion of
-Hansen Theorem 12.17.
+/-- Canonical observed-row endpoint for Hansen Theorem 12.17.
 
-The sample-rank assumptions are eventual almost-sure conditions.  Limiting
-row-Gram nonsingularity remains explicit, so this endpoint is intentionally
-conditional rather than a claim that raw Theorem 12.17 is complete. -/
+Observed Assumption 12.2 derives both the limiting row rank and the vanishing
+probabilities of all singular finite-sample branches. -/
 abbrev observed
     {Za : ℕ → Ω → la → ℝ} {Zb : ℕ → Ω → lb → ℝ}
     {X : ℕ → Ω → k → ℝ} {e Y : ℕ → Ω → ℝ}
@@ -18475,19 +19673,15 @@ abbrev observed
     [SigmaFinite (μ.trim (conditioningSpace_le hZfull0))]
     (hhomoFull : HomoskedasticErrorVariance μ
       (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
-    (hrank : TwoSLSSubsetEventuallyRankConditions μ Za Zb X)
-    (hR_rowGram : IsUnit
-      (let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
-        fun i ω => Sum.elim (Za i ω) (Zb i ω)
-      let A : Matrix lb (la ⊕ lb) ℝ :=
-        twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-      (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A *
-        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A)ᵀ).det))
     {crit : ℝ} {alpha : ℝ≥0∞}
     (hcrit : (chiSquared df) (Set.Ioi crit) = alpha) :=
   twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull hrank hR_rowGram hcrit
+    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
+    (TwoSLSSubsetRankFailureProbabilityConditions.of_observed_assumption12_2
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
+      hMaintained hFull)
+    hcrit
 
 set_option linter.style.longLine false in
 /-- Lower-tail critical-value companion to `Theorem12_17.observed`. -/
@@ -18507,20 +19701,15 @@ abbrev observed_lowerTail
     [SigmaFinite (μ.trim (conditioningSpace_le hZfull0))]
     (hhomoFull : HomoskedasticErrorVariance μ
       (fun i ω => Sum.elim (Za i ω) (Zb i ω)) e)
-    (hrank : TwoSLSSubsetEventuallyRankConditions μ Za Zb X)
-    (hR_rowGram : IsUnit
-      (let Zfull : ℕ → Ω → (la ⊕ lb) → ℝ :=
-        fun i ω => Sum.elim (Za i ω) (Zb i ω)
-      let A : Matrix lb (la ⊕ lb) ℝ :=
-        twoSLSSubsetResidualizedScoreMapFromGram (popGram μ Zfull)
-      (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A *
-        (twoSLSSubsetLimitResidualizedScoreMap μ Za Zb X A)ᵀ).det))
     {crit : ℝ} {alpha : ℝ≥0∞}
     (halpha_le_one : alpha ≤ 1)
     (hcrit : (chiSquared df) (Set.Iic crit) = 1 - alpha) :=
   twoSLSSubsetOverid_theorem12_17_of_normalEquations_fullInstrumentSampleGram_covarianceTarget_fullHomoskedastic_neweyCovariance_rowGram_assumption12_2_observed_textbookFourth_homoskedastic_derivedDualSchur_fullGram_fittedGrams_derivedSigmaPos_lowerTail
     (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
-    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull hrank hR_rowGram
+    hover hdf hMaintained hFull hZa0 hZfull0 hhomoFull
+    (TwoSLSSubsetRankFailureProbabilityConditions.of_observed_assumption12_2
+      (μ := μ) (Za := Za) (Zb := Zb) (X := X) (e := e) (Y := Y)
+      hMaintained hFull)
     halpha_le_one hcrit
 
 end Theorem12_17

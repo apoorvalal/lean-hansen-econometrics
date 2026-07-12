@@ -1,0 +1,30 @@
+[
+  {
+    "id": "330a3996d15e59431f3de6c9d71892601ac1ebef",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 13629,
+    "decl": "controlFunctionEndogeneityWald_theorem12_14_of_assembly",
+    "dimension": "proof-quality",
+    "severity": "major",
+    "rule": "AGENTS.md Theorem-writing policy: state assumptions explicitly and only as strongly as needed; reuse existing repo theorems",
+    "claim": "The facade required expectation-error sample-Gram convergence and a nonsingular limit even though its 12.13 assembly already contained the coefficient and covariance bridges needed to prove both conclusions directly.",
+    "evidence": "The target routed through a high-probability facade despite ControlFunctionAlphaAsymptoticNormalConditions already supplying coefficient_bridge and covariance_bridge; the primitive-null and formula endpoints consume those bridges directly.",
+    "suggested_fix": "Remove the sample-Gram premises, derive the primitive-null bridge from the primitive package, build the formula conditions from the 12.13 assembly, and apply the formula endpoints.",
+    "mechanical": false,
+    "confidence": "high"
+  },
+  {
+    "id": "0a26399305eeaa92c27f6136efb9eff3fa0c0ec0",
+    "file": "inventory/ch12-inventory.md",
+    "line": 1552,
+    "decl": "controlFunctionEndogeneityWald_theorem12_14_of_assembly",
+    "dimension": "faithfulness",
+    "severity": "minor",
+    "rule": "AGENTS.md Crosswalk and Documentation policy: the canonical chapter inventory must accurately map theorem assumptions and compatibility expectations",
+    "claim": "The detailed inventory said the corrected facade required full stacked-covariance positive definiteness, contradicting the declaration and crosswalk.",
+    "evidence": "The declaration requires only displayed alpha-covariance positive definiteness and explicitly disclaims full stacked-covariance positive definiteness.",
+    "suggested_fix": "State that the facade assumes displayed alpha-covariance positive definiteness directly and remove the full stacked-covariance claim.",
+    "mechanical": false,
+    "confidence": "high"
+  }
+]

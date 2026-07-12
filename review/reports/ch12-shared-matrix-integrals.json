@@ -1,0 +1,16 @@
+[
+  {
+    "id": "72f6c1a5fc15936b133777d09c465f8c65c9787c",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/GeneratedRegressors.lean",
+    "line": 22656,
+    "decl": "generated129_outer_columnTransform_integral",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md Proof strategy policy: prefer stable simplifier support and keep proof scripts focused",
+    "claim": "The shared-helper reuse proof supplied two unused simplifier arguments.",
+    "evidence": "A targeted compilation reported Finset.sum_mul and mul_assoc as unused in the simp invocation.",
+    "suggested_fix": "Remove the unused simplifier arguments.",
+    "mechanical": true,
+    "confidence": "high"
+  }
+]

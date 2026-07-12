@@ -1,0 +1,16 @@
+[
+  {
+    "id": "a3f1c9308a2b95585841a3e50136a7145db47d75",
+    "file": "HansenEconometrics/Chapter12InstrumentalVariables/Asymptotics.lean",
+    "line": 1756,
+    "decl": "twoSLSCombinedRegressors_norm_sq_integrable_of_rows",
+    "dimension": "hygiene",
+    "severity": "minor",
+    "rule": "AGENTS.md Public API and theorem hygiene: same-file proof scaffolding should usually be private",
+    "claim": "A helper used only within Asymptotics.lean was exposed as a public theorem.",
+    "evidence": "Repository search found only same-file uses and no downstream citations.",
+    "suggested_fix": "Make the helper private.",
+    "mechanical": true,
+    "confidence": "high"
+  }
+]
