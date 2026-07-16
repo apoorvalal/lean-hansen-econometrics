@@ -388,18 +388,23 @@ Conventions:
 
 ## Crosswalk
 
-Theorem 12.7 is not yet formalized from Hansen's raw joint-normal hypothesis. The public
-`TwoSLSKinalJointNormalConditions` surface now requires a positive-definite observed-row Gaussian
-law and iid rows, excluding the degenerate Gaussian counterexamples admitted by the old package.
+Theorem 12.7 cannot be formalized from Hansen's literally printed joint-normal hypothesis. The public
+`TwoSLSKinalJointNormalConditions` surface requires a positive-definite observed-row Gaussian law,
+iid rows, instrument-count order, and a.s. rank support, excluding the degenerate Gaussian and
+singular-design counterexamples admitted by the printed sentence. The corrected endpoint also
+requires `[Nonempty k₂]`: if the endogenous block is empty, its unique coefficient vector has every
+finite moment, so no finite threshold can characterize its moments.
 The former identity `(G⁻¹ S)_j = S_j / sqrt(q_j)` was false, even in the scalar case, and has been
 removed from the public API. The corrected support layer instead uses the normalized inverse-Gram
 coefficient direction `sqrt(q_j) * (G⁻¹ S)_j`; it derives the shifted coefficient identity
 algebraically and reuses Chapter 11's matrix-normal/inverse-Wishart results for the inverse scale.
 
 The exact remaining step is to derive, from the nondegenerate iid observed-row Gaussian model, the
-standardized residualized fitted-Gram representation and a.e. Gram equality, positivity of the
-coordinate inverse scale, and the standard-Gaussian law and Gram independence of the normalized
-inverse-Gram coefficient direction. Those facts would discharge
+standardized residualized fitted-Gram representation and a.e. Gram equality, and the
+standard-Gaussian law and inverse-scale independence of the normalized inverse-Gram coefficient
+direction. Coordinate inverse-scale positivity is no longer assumed: method
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE` derives it from the Chapter 11
+chi-square law. The remaining facts would discharge
 `TwoSLSKinalNormalizedCoefficientGaussianInputs` without assuming either the coefficient
 decomposition or Kinal's desired moment conclusion.
 
@@ -409,11 +414,14 @@ Lean-only Kinal support includes `twoSLSKinalObservedRow`,
 `twoSLSKinalFWLBetaStar_apply_eq_shifted_normalizedDirection`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScaleLaws`,
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE`,
 `twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.toFWLCoordinateMomentIff`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.toExactMomentIff`, and
 `twoSLSKinal_momentThreshold_of_normalizedCoefficientGaussianInputs`. These are a corrected strong
-decomposition surface, not a proof of Hansen's raw Theorem 12.7.
+decomposition surface, not a proof of Hansen's false literal Theorem 12.7. The formal obstructions are
+`twoSLSKinal_printedJointNormal_not_sufficient` for singular Gaussian data and
+`twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous` for the omitted `k₂ > 0` edge.
 
 ## Canonical theorem crosswalk
 
@@ -491,13 +499,21 @@ canonical crosswalk above.
   `twoSLSKinal_printedJointNormal_not_sufficient` gives identically-zero data
   with a degenerate joint Gaussian law for `(Y,X,Z)`, while the totalized 2SLS
   coefficient is identically zero and therefore has every finite moment,
-  contradicting the finite Kinal threshold. The corrected conditional assembly
-  remains
-  `twoSLSKinal_theorem12_7_of_hansenRawJointNormalBridgeInputs_autoSFinite`.
-  Its `TwoSLSKinalHansenRawJointNormalBridgeInputs` argument records the
-  nondegenerate standardized residualized-Gram and normalized-direction
-  law/independence obligations needed for a valid Kinal theorem; these cannot be
-  derived from the literally printed joint-normal hypothesis alone.
+  contradicting the finite Kinal threshold. Independently,
+  `twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous` proves that the iff is
+  false for an empty endogenous block under every measure and dataset. The
+  strongest active corrected endpoint is
+  `twoSLSKinal_momentThreshold_of_normalizedCoefficientGaussianInputs`. Its
+  `TwoSLSKinalNormalizedCoefficientGaussianInputs` argument records the
+  nondegenerate standardized residualized-Gram law plus standard-Gaussian and
+  inverse-scale-independent normalized coefficient directions; it assumes
+  neither a coefficient decomposition nor a moment conclusion. The coefficient
+  representation is algebraic, inverse-scale laws reuse Chapter 11, positivity
+  is now derived by `.inverseScalePosAE`, and the exact tail iff reuses the proved
+  Student-t normal/chi-square ratio threshold. The remaining valid-model gap is
+  to derive the Gram representation and normalized-direction law/independence
+  from a fully specified nondegenerate iid Gaussian reduced-form model. Those
+  facts cannot follow from the literally printed joint-normal hypothesis alone.
 - **Theorem 12.8.** `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs`
   now contains only coefficient-linearization closeness and robust-covariance
   resampling inputs. Genuine conditional asymptotic tightness is derived from
@@ -526,19 +542,45 @@ canonical crosswalk above.
   `GeneratedRegressorObservedIidConditions.theorem12_9_corrected_coefficient`.
   The full endpoint
   `GeneratedRegressorObservedIidConditions.theorem12_9_corrected_normal_covariance_wald_size`
-  additionally consumes the narrow feasible-oracle HC0 covariance remainder
-  and tested-block positive definiteness in
-  `GeneratedRegressorObservedIidHC0Conditions`, then proves covariance
-  consistency, the chi-square Wald limit, and calibrated size. The
+  now derives feasible HC0 consistency from the literal observed-iid fourth
+  moments; `GeneratedRegressorObservedIidHC0Conditions` adds only tested-block
+  positive definiteness. The reusable column-transform identities
+  `sampleScoreCovCrossWeight_generatedRegressors` and
+  `sampleScoreCovQuadraticWeight_generatedRegressors` expand generated-design
+  third/fourth weights into finite loading sums. The raw theorems
+  `GeneratedRegressorObservedIidConditions.instrument_cross_weight_bounded`
+  and
+  `GeneratedRegressorObservedIidConditions.instrument_quadratic_weight_bounded`
+  derive the base weights from Chapter 7 scalar iid WLLNs, pairing the four
+  `L4` factors into two `L2` products. Loading convergence then gives
+  `GeneratedRegressorObservedIidConditions.cross_weight_bounded` and
+  `GeneratedRegressorObservedIidConditions.quadratic_weight_bounded` by finite
+  `O_p(1)` sums. The theorem
+  `GeneratedRegressorObservedIidConditions.generatedRegressorVHatStar_tendstoInMeasure_of_bddWts`
+  combines `coefficient_remainder`, the derived feasible coefficient
+  consistency, the instrument true-error middle WLLN,
+  `sampleGram_generatedRegressors`,
+  `sampleScoreCovIdeal_generatedRegressors`, and Chapter 7's exact cross and
+  quadratic residual remainders. Its raw wrapper
+  `GeneratedRegressorObservedIidConditions.generatedRegressorVHatStar_tendstoInMeasure`
+  supplies the derived weight families automatically. The corresponding raw
+  feasible-oracle corollary is
+  `GeneratedRegressorObservedIidConditions.generatedRegressorVHatStar_sub_oracle_tendstoInMeasure_zero`;
+  its lower-level bounded-weight form
+  `GeneratedRegressorObservedIidConditions.generatedRegressorVHatStar_sub_oracle_tendstoInMeasure_zero_of_bddWts`
+  combines that result with `oracle_covariance_consistent` to recover the
+  formerly assumed feasible-oracle difference as a theorem. Thus no
+  feasible-oracle covariance difference or covariance-consistency conclusion
+  is assumed by the corrected package before proving the chi-square Wald limit
+  and calibrated size. The
   printed theorem is also insufficient for its Wald and size conclusions: with
   `v=0`, exact `Ahat=A`, and `β₂=0`, all displayed moment and generated-Gram
   assumptions hold but the tested covariance block and Wald statistic are zero,
   so the statistic cannot converge to nondegenerate `χ²_q` for `q>0`. A valid
   corrected full endpoint therefore makes the ambient iid convention and
-  minimal tested-block nondegeneracy explicit. The only unresolved plug-in
-  step is HC0 continuity/residual substitution for the sample-wide random
-  loading `Ahat_n`; existing iid-row Chapter 7 results do not derive that
-  triangular covariance remainder from `Ahat ->p A` alone.
+  minimal tested-block nondegeneracy explicit. There is no remaining
+  raw-to-HC0 weight or covariance-remainder assumption in the corrected
+  Theorem 12.9 endpoint.
 - **Theorem 12.10.** The canonical covariance-based statistics are
   `generatedRegressorHomoskedasticWaldStatOrZero` and
   `generatedRegressorHomoskedasticFStatOrZero`, related by
@@ -581,8 +623,22 @@ canonical crosswalk above.
   `expectationError_theorem12_12_of_assembly` consumes
   `ExpectationErrorTheorem12_12AssemblyConditions`, whose `asymptotic` field
   still supplies the main joint CLT and feasible covariance engine instead of
-  deriving it from the raw fourth-moment model. The source section is also
-  internally inconsistent: its opening display says
+  deriving it from the raw fourth-moment model. The new
+  `ExpectationErrorHansenObservedIidConditions` is an honest regularity
+  extension of the corrected primitive package: it adds observed-row iid
+  sampling and `E[ZZ'] > 0`, neither a limit nor a sample-rank conclusion.
+  `ExpectationErrorHansenObservedIidConditions.combinedQZZ_eq_popGram` and
+  `.toGeneratedRegressorLSTheorem12_11RegularityConditions` derive the
+  population instrument block and the corrected Theorem 12.11 raw engine.
+  Consequently
+  `expectationError_firstStepBeta_theorem12_12_of_observed_iid` proves the
+  first-step generated-regression beta CLT and structural-residual HC0
+  consistency with Hansen's `V_{ββ}` formula. This does not yet identify that
+  coefficient with the beta block of the full `(What,Uhat)` regression on the
+  vanishing singular-design event, nor derive the alpha CLT, mixed
+  `V_{αβ}` plug-in consistency, or the full displayed covariance estimator;
+  those are the remaining raw 12.12 assembly obligations. The source section
+  is also internally inconsistent: its opening display says
   `Y = X'β + u'α + ν`, which gives `Y-X'β = u'α+ν`, while the subsequent
   derivation and covariance formulas use
   `Y = W'β + u'α + ν`, `X = W+u`, and hence
@@ -652,19 +708,25 @@ canonical crosswalk above.
   stored in the condition package. The two-index estimator layer now includes
   triangular stack/design/outcome/error APIs, actual OLS/2SLS/LIML definitions,
   and exact reduced-form, residual-covariance, and generalized-eigenvalue-pair
-  bridges. `WeakIVTheorem1218TriangularAssemblyConditions` and
-  `weakIV_theorem12_18_triangular_raw_assembly` derive the supported joint
+  bridges. `weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution`
+  derives the full exact residual-covariance pencil CMT from the raw joint
+  moments and population instrument nonsingularity, using the vanishing
+  sample-singularity event to bridge the nonsingular assembly map to the
+  literal sample pencil.
+  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` therefore
+  constructs the assembly from those primitive conditions plus the selector
+  certificate, without assuming estimator convergence, and
+  `weakIV_theorem12_18_triangular_raw_assembly` derives the supported joint
   Gram/score assembly, sample instrument-rank event, and scaled LIML-root
-  convergence without assuming an estimator limit. The selector certificate
-  requires both finite-sample and limiting generalized Rayleigh minimization;
-  estimator-rank assumptions are not carried by the raw assembly because its
-  current conclusions do not use them. The remaining estimator gap is structural:
+  convergence. The selector certificate requires both finite-sample and
+  limiting generalized Rayleigh minimization; estimator-rank assumptions are
+  not carried by the raw assembly because its current conclusions do not use
+  them. The remaining estimator gap is structural:
   the older endpoint is indexed by prefixes of one fixed regressor sequence,
   while (12.71) is the triangular array
-  `X_{m,i}=m^{-1/2}C'Z_i+u_{2i}`. A complete raw endpoint still needs
-  convergence of the full exact residual-covariance pencil, a concrete
-  measurable a.s.-continuous smallest generalized-root selector, the
-  triangular totalization CMT for all three estimator limits, and nondegenerate
+  `X_{m,i}=m^{-1/2}C'Z_i+u_{2i}`. A complete raw endpoint still needs a concrete
+  measurable a.s.-continuous smallest generalized-root selector, the triangular
+  totalization CMT for all three estimator limits, and nondegenerate
   `Sigma22`/limiting-bread assumptions omitted from the excerpt. Earlier circular
   estimator-limit packages, X-only Rayleigh routes, and nonpositive-Rayleigh
   sufficient-condition endpoints are historical compatibility declarations

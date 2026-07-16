@@ -22,7 +22,10 @@ coefficient is identically zero and hence has every finite moment, contradicting
 the printed iff in the just-identified case.  The declarations
 `twoSLSKinalPrintedJointNormal_zeroData_gaussianReal` and
 `twoSLSKinal_printedJointNormal_not_sufficient` formalize this
-obstruction.
+obstruction.  The displayed statement also implicitly requires at least one
+endogenous regressor: when `k₂` is empty, the coefficient block is the unique
+empty vector and again has every finite moment.  This second edge is recorded by
+`twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous`.
 
 The stronger public stochastic condition package records nondegenerate iid
 rows and rank support, and deliberately does not hide the desired iff as an
@@ -1164,6 +1167,41 @@ theorem twoSLSKinalExactMomentIff_zeroData_false :
   simp only [NNReal.coe_natCast] at hBoundary
   unfold twoSLSKinalMomentThreshold at hBoundary
   linarith
+
+omit [DecidableEq n] in
+/-- Hansen's displayed iff also requires a nonempty endogenous-regressor block.
+
+If `k₂` is empty, every endogenous 2SLS coefficient is the unique empty vector,
+so it belongs to every `Lᵖ` regardless of the data or sampling law.  The finite
+displayed threshold therefore cannot characterize its moments. -/
+theorem twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous
+    {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
+    (X₁ : Ω → Matrix n k₁ ℝ) (Y₂ : Ω → Matrix n k₂ ℝ)
+    (Z₂ : Ω → Matrix n l₂ ℝ) (Y₁ : Ω → n → ℝ)
+    [IsEmpty k₂] :
+    ¬ TwoSLSKinalExactMomentIff μ X₁ Y₂ Z₂ Y₁ := by
+  intro hExact
+  let r : ℝ≥0 := Fintype.card l₂ + 1
+  have hEstimatorZero :
+      (fun ω => twoSLSEndogenousBetaOrZero
+        (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω)) =
+        fun _ => (0 : k₂ → ℝ) := by
+    funext ω
+    exact Subsingleton.elim _ _
+  have hMem :
+      MemLp
+        (fun ω => twoSLSEndogenousBetaOrZero
+          (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω))
+        (r : ℝ≥0∞) μ := by
+    rw [hEstimatorZero]
+    exact MemLp.zero'
+  have hBoundary := (hExact r).mp hMem
+  have hk : Fintype.card k₂ = 0 := Fintype.card_eq_zero
+  dsimp [r] at hBoundary
+  simp only [NNReal.coe_natCast] at hBoundary
+  unfold twoSLSKinalMomentThreshold at hBoundary
+  rw [hk] at hBoundary
+  norm_num at hBoundary
 
 omit [DecidableEq n] in
 /-- Concrete formal counterexample to the literal statement of Hansen
@@ -8122,11 +8160,6 @@ structure TwoSLSKinalNormalizedCoefficientGaussianInputs
     (fun ω => twoSLSKinalFWLGramStar (X₁ ω) (Y₂ ω) (Z₂ ω))
       =ᵐ[μ]
     fun ω => matrixCrossProduct (Rstd ω)
-  /-- The inverse-scale denominator is positive a.s. -/
-  inverse_scale_pos_ae : ∀ j : k₂,
-    ∀ᵐ ω ∂μ,
-      0 < twoSLSKinalFWLCoordinateInverseScaleStar
-        (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j
   /-- Each normalized centered coefficient direction is standard Gaussian. -/
   normalized_direction_law : ∀ j : k₂,
     HasLaw
@@ -8165,6 +8198,43 @@ theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScaleLaws
       (TwoSLSKinalCoordinateInverseWishartStandardGramBridge.of_posDef_canonicalRest
         (l₂ := l₂) Sigma h.sigma_posDef hJoint.instrument_count)
 
+private theorem chiSquared_pos_ae (ν : ℕ) :
+    ∀ᵐ q ∂chiSquared ν, 0 < q := by
+  have hnonneg : ∀ᵐ q ∂chiSquared ν, 0 ≤ q := by
+    rw [chiSquared_eq, gammaMeasure,
+      ae_withDensity_iff (measurable_gammaPDF _ _)]
+    filter_upwards with q
+    intro hpdf
+    by_contra hq
+    exact hpdf (gammaPDF_of_neg (lt_of_not_ge hq))
+  have hne : ∀ᵐ q ∂chiSquared ν, q ≠ 0 := by
+    simpa [Set.mem_singleton_iff] using
+      (Set.countable_singleton (0 : ℝ)).ae_notMem (chiSquared ν)
+  filter_upwards [hnonneg, hne] with q hq hqne
+  exact lt_of_le_of_ne hq hqne.symm
+
+/-- Positivity of the coordinate inverse scale is a consequence of its
+chi-square law, not an additional stochastic premise. -/
+theorem TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE
+    {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
+    {X₁ : Ω → Matrix n k₁ ℝ} {Y₂ : Ω → Matrix n k₂ ℝ}
+    {Z₂ : Ω → Matrix n l₂ ℝ} {Y₁ : Ω → n → ℝ}
+    {β₂ : k₂ → ℝ} {Sigma : Matrix k₂ k₂ ℝ}
+    {Rstd : Ω → Matrix l₂ k₂ ℝ}
+    (h : TwoSLSKinalNormalizedCoefficientGaussianInputs
+      μ X₁ Y₂ Z₂ Y₁ β₂ Sigma Rstd)
+    (hJoint : TwoSLSKinalJointNormalConditions μ X₁ Y₂ Z₂ Y₁)
+    (j : k₂) :
+    ∀ᵐ ω ∂μ,
+      0 < twoSLSKinalFWLCoordinateInverseScaleStar
+        (X₁ ω) (Y₂ ω) (Z₂ ω) Sigma j := by
+  have hScale := twoSLSKinalFWLCoordinateInverseScaleStar_hasLaw
+    (X₁ := X₁) (Y₂ := Y₂) (Z₂ := Z₂) (Sigma := Sigma)
+    (h.inverseScaleLaws hJoint) j
+  exact
+    (hScale.ae_iff (p := fun q : ℝ => 0 < q) (by fun_prop)).2
+      (chiSquared_pos_ae (Fintype.card l₂ - Fintype.card k₂ + 1))
+
 /-- One corrected FWL coefficient coordinate has the shifted
 Gaussian-over-square-root-chi-square law. -/
 theorem twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
@@ -8202,7 +8272,7 @@ theorem twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq
     (h.normalized_direction_law j) hScale
     (h.normalized_direction_inverse_scale_indep j) hMap
   apply hModel.congr
-  filter_upwards [h.inverse_scale_pos_ae j] with ω hq
+  filter_upwards [h.inverseScalePosAE hJoint j] with ω hq
   exact
     twoSLSKinalFWLBetaStar_apply_eq_shifted_normalizedDirection
       (X₁ ω) (Y₂ ω) (Z₂ ω) (Y₁ ω) β₂ Sigma j hq

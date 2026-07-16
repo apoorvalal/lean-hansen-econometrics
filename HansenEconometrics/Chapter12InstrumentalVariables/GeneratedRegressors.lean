@@ -113,6 +113,50 @@ theorem sampleScoreCovIdeal_generatedRegressors
           rw [Matrix.mul_smul, Matrix.smul_mul]
           simp [Matrix.mul_assoc, Matrix.mul_sum, Matrix.sum_mul]
 
+omit [Fintype k] [DecidableEq n] [DecidableEq l] [DecidableEq k] in
+/-- A third-order HC0 weight after a column transform is a finite loading
+expansion of the corresponding weights for the original design. -/
+theorem sampleScoreCovCrossWeight_generatedRegressors
+    (Z : Matrix n l ℝ) (Ahat : Matrix l k ℝ) (v : n → ℝ)
+    (a b j : k) :
+    sampleScoreCovCrossWeight (generatedRegressors Z Ahat) v a b j =
+      ∑ c : l, ∑ d : l, ∑ e : l,
+        Ahat c j * Ahat d a * Ahat e b *
+          sampleScoreCovCrossWeight Z v d e c := by
+  classical
+  unfold sampleScoreCovCrossWeight generatedRegressors
+  simp [Matrix.mul_apply, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro c _
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro d _
+  rw [Finset.sum_comm]
+
+omit [Fintype k] [DecidableEq n] [DecidableEq l] [DecidableEq k] in
+/-- A fourth-order HC0 weight after a column transform is a finite loading
+expansion of the corresponding weights for the original design. -/
+theorem sampleScoreCovQuadraticWeight_generatedRegressors
+    (Z : Matrix n l ℝ) (Ahat : Matrix l k ℝ) (a b j q : k) :
+    sampleScoreCovQuadraticWeight (generatedRegressors Z Ahat) a b j q =
+      ∑ c : l, ∑ d : l, ∑ e : l, ∑ f : l,
+        Ahat c q * Ahat d j * Ahat e a * Ahat f b *
+          sampleScoreCovQuadraticWeight Z e f c d := by
+  classical
+  unfold sampleScoreCovQuadraticWeight generatedRegressors
+  simp [Matrix.mul_apply, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro c _
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro d _
+  rw [Finset.sum_comm]
+  apply Finset.sum_congr rfl
+  intro e _
+  rw [Finset.sum_comm]
+
 omit [Fintype n] [DecidableEq n] [DecidableEq l]
     [DecidableEq k₁] [DecidableEq k₂] in
 /-- Under Hansen's Theorem 12.9 null and exact-left-block condition, replacing
@@ -614,6 +658,62 @@ theorem generatedRegressorBetaStar_scaled_centered_aemeasurable_of_rows
   (((generatedRegressorBetaStar_aestronglyMeasurable_of_rows
       (μ := μ) (Z := Z) (Y := Y) (Ahat := Ahat) hZ hY hAhat).sub
     aestronglyMeasurable_const).const_smul (Real.sqrt (N : ℝ))).aemeasurable
+
+set_option maxHeartbeats 800000 in
+-- The residual middle unfolds the same totalized coefficient map as HC0.
+omit [IsProbabilityMeasure μ] in
+/-- Generated-regressor feasible HC0 middle-matrix measurability from row
+measurability. -/
+theorem generatedRegressorScoreCovStar_aestronglyMeasurable_of_rows
+    {N : ℕ} {Z : ℕ → Ω → l → ℝ} {Y : ℕ → Ω → ℝ}
+    {Ahat : Ω → Matrix l k ℝ}
+    (hZ : ∀ i, AEStronglyMeasurable (Z i) μ)
+    (hY : ∀ i, AEStronglyMeasurable (Y i) μ)
+    (hAhat : AEStronglyMeasurable Ahat μ) :
+    AEStronglyMeasurable
+      (fun ω => sampleScoreCovStar
+        (generatedRegressors (fun i : Fin N => Z i.val ω) (Ahat ω))
+        (fun i : Fin N => Y i.val ω)) μ := by
+  let Wmat : Ω → Matrix (Fin N) k ℝ := fun ω =>
+    generatedRegressors (fun i : Fin N => Z i.val ω) (Ahat ω)
+  let yvec : Ω → Fin N → ℝ := fun ω => fun i => Y i.val ω
+  let res : Ω → Fin N → ℝ := fun ω => olsResidualStar (Wmat ω) (yvec ω)
+  have hW : AEStronglyMeasurable Wmat μ := by
+    simpa [Wmat] using
+      generatedRegressors_stack_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (Ahat := Ahat) hZ hAhat
+  have hy : AEStronglyMeasurable yvec μ :=
+    generatedRegressorStackScalar_aestronglyMeasurable (μ := μ) hY
+  have hbeta : AEStronglyMeasurable
+      (fun ω => olsBetaStar (Wmat ω) (yvec ω)) μ := by
+    simpa [generatedRegressorBetaStar, Wmat, yvec] using
+      generatedRegressorBetaStar_aestronglyMeasurable_of_rows
+        (μ := μ) (Z := Z) (Y := Y) (Ahat := Ahat) hZ hY hAhat
+  have hfit : AEStronglyMeasurable
+      (fun ω => Wmat ω *ᵥ olsBetaStar (Wmat ω) (yvec ω)) μ :=
+    (Continuous.matrix_mulVec continuous_fst continuous_snd).comp_aestronglyMeasurable
+      (hW.prodMk hbeta)
+  have hres : AEStronglyMeasurable res μ := by
+    simpa [res, olsResidualStar] using hy.sub hfit
+  have houter_cont : Continuous (fun x : k → ℝ => Matrix.vecMulVec x x) := by
+    refine continuous_pi (fun a => ?_)
+    refine continuous_pi (fun b => ?_)
+    simpa [Matrix.vecMulVec_apply] using
+      (continuous_apply a).mul (continuous_apply b)
+  have hterm : ∀ i : Fin N, AEStronglyMeasurable
+      (fun ω => Matrix.vecMulVec (res ω i • Wmat ω i) (res ω i • Wmat ω i)) μ := by
+    intro i
+    have hres_i : AEStronglyMeasurable (fun ω => res ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hres
+    have hW_i : AEStronglyMeasurable (fun ω => Wmat ω i) μ :=
+      (continuous_apply i).comp_aestronglyMeasurable hW
+    exact houter_cont.comp_aestronglyMeasurable (hres_i.smul hW_i)
+  have hsum : AEStronglyMeasurable
+      (fun ω => ∑ i : Fin N,
+        Matrix.vecMulVec (res ω i • Wmat ω i) (res ω i • Wmat ω i)) μ := by
+    refine Finset.aestronglyMeasurable_fun_sum _ (fun i _ => hterm i)
+  simpa [sampleScoreCovStar, res, Wmat, yvec] using
+    hsum.const_smul ((Fintype.card (Fin N) : ℝ)⁻¹)
 
 set_option maxHeartbeats 800000 in
 -- The generated HC0 surface unfolds several nested matrix products and inverses.
@@ -3388,6 +3488,76 @@ theorem expectationErrorDesignStar_sampleGram_eq_fromBlocks_of_nonsingular
           simpa [expectationErrorDesignStar] using
             congrFun (congrFun h i) j
 
+omit [IsProbabilityMeasure μ] [DecidableEq n] in
+/-- On the nonsingular branch, sample orthogonality makes the left coefficient
+from the full expectation-error regression equal OLS on the fitted block. -/
+theorem expectationErrorBetaBlock_olsBeta_eq_fitted_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((expectationErrorFittedStar Z X)ᵀ *
+      expectationErrorFittedStar Z X)]
+    [Invertible ((expectationErrorDesignStar Z X)ᵀ *
+      expectationErrorDesignStar Z X)] :
+    expectationErrorBetaBlock
+        (olsBeta (expectationErrorDesignStar Z X) Y) =
+      olsBeta (expectationErrorFittedStar Z X) Y := by
+  classical
+  let W := expectationErrorFittedStar Z X
+  let U := expectationErrorResidualStar Z X
+  let D := expectationErrorDesignStar Z X
+  let b : k → ℝ := fun j => olsBeta D Y (Sum.inl j)
+  let a : k → ℝ := fun j => olsBeta D Y (Sum.inr j)
+  have hfit : D *ᵥ olsBeta D Y = W *ᵥ b + U *ᵥ a := by
+    simp [D, W, U, b, a, expectationErrorDesignStar,
+      Matrix.fromCols_mulVec]
+  have hres : Y - W *ᵥ b = residual D Y + U *ᵥ a := by
+    unfold residual fitted
+    rw [hfit]
+    ext i
+    simp only [Pi.sub_apply, Pi.add_apply]
+    ring
+  have hfull : Wᵀ *ᵥ residual D Y = 0 := by
+    simpa [D, W, U, expectationErrorDesignStar] using
+      normal_equations_fromCols_left W U Y
+  have horth : Wᵀ *ᵥ (U *ᵥ a) = 0 := by
+    rw [← Matrix.mulVec_mulVec,
+      show Wᵀ * U = 0 from by
+        simpa [W, U] using
+          expectationErrorFittedStar_transpose_mul_residualStar_of_nonsingular
+            (Z := Z) (X := X),
+      Matrix.zero_mulVec]
+  have hnormal : Wᵀ *ᵥ (Y - W *ᵥ b) = 0 := by
+    rw [hres, Matrix.mulVec_add, hfull, horth, add_zero]
+  have hbeta : olsBeta W Y = b :=
+    olsBeta_eq_of_normal_equations W Y b hnormal
+  simpa [expectationErrorBetaBlock, D, W, b] using hbeta.symm
+
+omit [IsProbabilityMeasure μ] [DecidableEq n] in
+/-- Exact full-regression beta-block bridge for Hansen Theorem 12.12.
+
+On the finite-sample nonsingular branch, the left block from OLS on
+`(What,Uhat)` equals the first-step generated-regression coefficient. -/
+theorem expectationErrorBetaHatStar_eq_generatedRegressorBetaStar_of_nonsingular
+    (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ)
+    [Invertible (Zᵀ * Z)]
+    [Invertible ((expectationErrorFittedStar Z X)ᵀ *
+      expectationErrorFittedStar Z X)]
+    [Invertible ((expectationErrorDesignStar Z X)ᵀ *
+      expectationErrorDesignStar Z X)] :
+    expectationErrorBetaHatStar Z X Y =
+      generatedRegressorBetaStar Z
+        (generatedRegressorLSFirstStageCoefStar Z X) Y := by
+  have hW :
+      generatedRegressors Z (generatedRegressorLSFirstStageCoefStar Z X) =
+        expectationErrorFittedStar Z X := by
+    unfold generatedRegressors generatedRegressorLSFirstStageCoefStar
+      expectationErrorFittedStar
+    rw [← fittedRegressorsStar_eq_Z_mul_reducedFormCoefStar]
+  rw [expectationErrorBetaHatStar, expectationErrorBetaAlphaStar,
+    olsBetaStar_eq_olsBeta, generatedRegressorBetaStar, hW,
+    olsBetaStar_eq_olsBeta]
+  exact expectationErrorBetaBlock_olsBeta_eq_fitted_of_nonsingular Z X Y
+
 /-- Hansen's displayed structural residual `êᵢ = Yᵢ - Xᵢ'β̂`. -/
 noncomputable def expectationErrorStructuralResidualStar
     (Z : Matrix n l ℝ) (X : Matrix n k ℝ) (Y : n → ℝ) : n → ℝ :=
@@ -4015,6 +4185,25 @@ structure ExpectationErrorHansenPrimitiveConditions
   x_norm_fourth_integrable : Integrable (fun ω => ‖X 0 ω‖ ^ 4) μ
   fitted_popGram_posDef : (Aᵀ * popGram μ Z * A).PosDef
   residual_popGram_posDef : (popGram μ u).PosDef
+
+/-- Observed-iid regularity extension for the corrected Theorem 12.12 model.
+
+The primitive model package does not itself identify a sampling law or make
+the first-stage instrument Gram invertible.  Those two requirements are needed
+before the Chapter 12.11 generated-regression engine can be reused for the
+beta component of the expectation-error estimator.  No CLT, sample-rank event,
+or covariance consistency is stored here. -/
+structure ExpectationErrorHansenObservedIidConditions
+    (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (Z : ℕ → Ω → l → ℝ) (X u : ℕ → Ω → k → ℝ)
+    (νe Y : ℕ → Ω → ℝ) (A : Matrix l k ℝ)
+    (β α : k → ℝ)
+    extends ExpectationErrorHansenPrimitiveConditions μ Z X u νe Y A β α where
+  observed_iIndep : iIndepFun (fun i ω => ((Z i ω, X i ω), Y i ω)) μ
+  observed_identDistrib : ∀ i,
+    IdentDistrib (fun ω => ((Z i ω, X i ω), Y i ω))
+      (fun ω => ((Z 0 ω, X 0 ω), Y 0 ω)) μ μ
+  instrument_popGram_posDef : (popGram μ Z).PosDef
 
 /-- Conditional assembly package for the corrected Theorem 12.12 conclusion.
 
@@ -5623,6 +5812,113 @@ theorem population_projection
     h.z_u_integrable (h.first_stage_model 0) h.z_u_orthogonal
 
 end GeneratedRegressorLSTheorem12_11RegularityConditions
+
+namespace ExpectationErrorHansenObservedIidConditions
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The combined `[Z,X]` population Gram has instrument block `E[ZZ']` under
+the observed-iid expectation-error moment package. -/
+theorem combinedQZZ_eq_popGram
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)) =
+      popGram μ Z := by
+  classical
+  have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ := fun a =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := Z 0) (h.z_aestronglyMeasurable 0)
+      h.z_norm_fourth_integrable a
+  have hZouter : Integrable
+      (fun ω => Matrix.vecMulVec (Z 0 ω) (Z 0 ω)) μ :=
+    vecMulVec_integrable_of_coordinate_memLp_four (μ := μ) hZ4
+  have hZ2 : Integrable (fun ω => ‖Z 0 ω‖ ^ 2) μ :=
+    integrable_norm_pow_of_le (f := Z 0) (μ := μ)
+      (h.z_aestronglyMeasurable 0) (show (2 : ℕ) ≤ 4 by norm_num)
+      h.z_norm_fourth_integrable
+  have hX2 : Integrable (fun ω => ‖X 0 ω‖ ^ 2) μ :=
+    integrable_norm_pow_of_le (f := X 0) (μ := μ)
+      (h.x_aestronglyMeasurable 0) (show (2 : ℕ) ≤ 4 by norm_num)
+      h.x_norm_fourth_integrable
+  have hCombined : Integrable (fun ω =>
+      Matrix.vecMulVec (twoSLSCombinedRegressors Z X 0 ω)
+        (twoSLSCombinedRegressors Z X 0 ω)) μ :=
+    twoSLSCombinedRegressors_outer_integrable_of_rows
+      (μ := μ) (Z := Z) (X := X) (h.z_aestronglyMeasurable 0)
+      (h.x_aestronglyMeasurable 0) hZ2 hX2
+  exact (popGram_eq_twoSLSCombinedQZZ_popGram
+    (μ := μ) (Z := Z) (X := X) hZouter hCombined).symm
+
+omit [DecidableEq k] [DecidableEq l] in
+/-- The observed-iid expectation-error package supplies the corrected raw
+Theorem 12.11 engine for its first-step generated-regression beta component. -/
+theorem toGeneratedRegressorLSTheorem12_11RegularityConditions
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    GeneratedRegressorLSTheorem12_11RegularityConditions μ Z X u
+      (expectationErrorControlError u νe α) Y A β := by
+  classical
+  let M : Ω → Matrix l k ℝ := fun ω => Matrix.vecMulVec (Z 0 ω) (u 0 ω)
+  have hMα : Integrable (fun ω => M ω *ᵥ α) μ :=
+    integrable_rect_matrix_mulVec_const (μ := μ) (M := M)
+      h.z_u_integrable α
+  have hscore : (fun ω =>
+      expectationErrorControlError u νe α 0 ω • Z 0 ω) =
+      fun ω => M ω *ᵥ α + νe 0 ω • Z 0 ω := by
+    funext ω
+    ext a
+    simp only [expectationErrorControlError, M, Matrix.mulVec, dotProduct,
+      Matrix.vecMulVec_apply, Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+    rw [add_mul, Finset.sum_mul]
+    congr 1
+    apply Finset.sum_congr rfl
+    intro j _
+    ring
+  have hzv : Integrable (fun ω =>
+      expectationErrorControlError u νe α 0 ω • Z 0 ω) μ := by
+    rw [hscore]
+    exact hMα.add h.z_nu_integrable
+  have hzv0 : (∫ ω,
+      expectationErrorControlError u νe α 0 ω • Z 0 ω ∂μ) = 0 := by
+    rw [hscore, integral_add hMα h.z_nu_integrable,
+      integral_rect_matrix_mulVec_const (μ := μ) (M := M)
+        h.z_u_integrable α,
+      h.z_u_orthogonal, h.z_nu_orthogonal]
+    simp
+  have hQZZ := h.combinedQZZ_eq_popGram
+  refine
+    { observed_aestronglyMeasurable := fun i =>
+        ((h.z_aestronglyMeasurable i).prodMk
+          (h.x_aestronglyMeasurable i)).prodMk (h.y_aestronglyMeasurable i)
+      observed_iIndep := h.observed_iIndep
+      observed_identDistrib := h.observed_identDistrib
+      first_stage_model := h.x_model
+      structural_model := ?_
+      z_v_integrable := hzv
+      z_v_orthogonal := hzv0
+      z_u_integrable := h.z_u_integrable
+      z_u_orthogonal := h.z_u_orthogonal
+      response_fourth_integrable := h.y_fourth_integrable
+      regressor_norm_fourth_integrable := h.x_norm_fourth_integrable
+      instrument_norm_fourth_integrable := h.z_norm_fourth_integrable
+      qzz_posDef := ?_
+      generated_gram_posDef := ?_ }
+  · intro i
+    filter_upwards [h.y_model i] with ω hY
+    rw [hY]
+    simp only [expectationErrorControlError]
+    ring
+  · rw [hQZZ]
+    exact h.instrument_popGram_posDef
+  · rw [hQZZ]
+    exact h.fitted_popGram_posDef
+
+end ExpectationErrorHansenObservedIidConditions
 
 omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
   [DecidableEq k₁] [DecidableEq k₂] in
@@ -8047,6 +8343,46 @@ theorem generatedRegressorLS_theorem12_11_of_corrected_regularities
   · simpa [Vgen, QZZ, Omega, e] using hcoef
   · simpa [Vgen, QZZ, Omega, e, generatedRegressorLSVHatStar_eq_twoSLSVHatStar]
       using hcov
+
+omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
+    [DecidableEq k₁] [DecidableEq k₂] in
+/-- First-step beta/HC0 engine toward corrected Hansen Theorem 12.12.
+
+The observed-iid expectation-error model derives this component from literal
+fourth moments and population rank by reusing the corrected Theorem 12.11
+endpoint.  This is deliberately not presented as the full unequal-block
+expectation-error theorem: the alpha coefficient and cross-covariance blocks
+still require a joint linearization and feasible covariance proof. -/
+theorem expectationError_firstStepBeta_theorem12_12_of_observed_iid
+    {Z : ℕ → Ω → l → ℝ} {X u : ℕ → Ω → k → ℝ}
+    {νe Y : ℕ → Ω → ℝ} {A : Matrix l k ℝ}
+    {β α : k → ℝ}
+    (h : ExpectationErrorHansenObservedIidConditions
+      μ Z X u νe Y A β α) :
+    TendstoInDistribution
+      (fun (m : ℕ) ω =>
+        Real.sqrt (m : ℝ) •
+          (generatedRegressorBetaStar
+            (stackRegressors Z m ω)
+            (generatedRegressorLSFirstStageCoefStar
+              (stackRegressors Z m ω) (stackRegressors X m ω))
+            (stackOutcomes Y m ω) - β))
+      atTop (fun z : EuclideanSpace ℝ k => z.ofLp) (fun _ => μ)
+      (multivariateGaussian 0
+        (generatedRegressorAsymptoticVariance A (popGram μ Z)
+          (scoreCovMat μ Z (expectationErrorStructuralError X Y β)))) ∧
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorLSVHatStar
+          (stackRegressors Z m ω) (stackRegressors X m ω)
+          (stackOutcomes Y m ω))
+      atTop
+      (fun _ => generatedRegressorAsymptoticVariance A (popGram μ Z)
+        (scoreCovMat μ Z (expectationErrorStructuralError X Y β))) := by
+  have hresult := generatedRegressorLS_theorem12_11_of_corrected_regularities
+    (μ := μ) h.toGeneratedRegressorLSTheorem12_11RegularityConditions
+  rw [h.combinedQZZ_eq_popGram] at hresult
+  exact hresult
 
 omit [Fintype n] [Fintype k₁] [Fintype k₂] [DecidableEq n]
   [DecidableEq k₁] [DecidableEq k₂] in
@@ -22592,20 +22928,12 @@ structure GeneratedRegressorObservedIidConditions
     Ahat m ω a (Sum.inl j) = A a (Sum.inl j)
   beta2_null : ∀ j : k₂, β (Sum.inr j) = 0
 
-/-- The narrow additional condition currently needed for the feasible HC0
-part of corrected Hansen Theorem 12.9.
+/-- Minimal Wald extension of the corrected Hansen Theorem 12.9 observed-row
+conditions.
 
-The raw iid fourth-moment package below is sufficient for the oracle OLS CLT,
-oracle HC0 consistency, population covariance formula, and the
-`sqrt n` feasible-oracle coefficient comparison.  The remaining blocker is a
-uniform residual-substitution/continuity theorem for HC0 when the entire
-generated design uses the common random loading `Ahat_n`.  Existing Chapter 7
-HC0 theorems apply to iid row designs and therefore do not prove this
-triangular-array plug-in step from `Ahat_n ->p A` alone.  This extension exposes
-exactly that matrix remainder and does not claim that Hansen's printed
-conditions already imply it in the current formal library.  The extension also
-records the right-block covariance positive definiteness needed only for the
-Wald and size conclusions. -/
+The raw observed-iid fourth moments derive the feasible HC0 covariance
+consistency theorem below.  Thus the only additional condition needed for the
+Wald and size conclusions is right-block covariance positive definiteness. -/
 structure GeneratedRegressorObservedIidHC0Conditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (v Y : ℕ → Ω → ℝ)
@@ -22618,13 +22946,6 @@ structure GeneratedRegressorObservedIidHC0Conditions
       (generatedRegressorAsymptoticVariance A (popGram μ Z)
         (scoreSecondMomMat μ Z v)) :
         Matrix k₂ k₂ ℝ).PosDef
-  covariance_remainder : TendstoInMeasure μ
-    (fun (m : ℕ) ω =>
-      generatedRegressorVHatStar
-          (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
-        generatedRegressorVHatStar
-          (stackRegressors Z m ω) A (stackOutcomes Y m ω))
-    atTop (fun _ => 0)
 
 omit [IsProbabilityMeasure μ] [DecidableEq l] [DecidableEq k] in
 private theorem generated129_outer_columnTransform_integral
@@ -23266,6 +23587,672 @@ theorem coefficient_remainder
   ring
 
 omit [DecidableEq l] in
+/-- The feasible generated-regressor coefficient is consistent under the raw
+observed-row conditions.  This unscales `coefficient_remainder` and combines it
+with Chapter 7 oracle OLS consistency. -/
+theorem feasible_coefficient_consistent
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => generatedRegressorBetaStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => β) := by
+  classical
+  let W := generatedRegressorOracleRow A Z
+  have hscaled := h.coefficient_remainder
+  have hinv_sqrt : Tendsto (fun m : ℕ => (Real.sqrt (m : ℝ))⁻¹)
+      atTop (𝓝 (0 : ℝ)) :=
+    tendsto_inv_atTop_zero.comp
+      (Real.tendsto_sqrt_atTop.comp tendsto_natCast_atTop_atTop)
+  have hinv_sqrt_measure : TendstoInMeasure μ
+      (fun (m : ℕ) (_ : Ω) => (Real.sqrt (m : ℝ))⁻¹)
+      atTop (fun _ => 0) :=
+    tendstoInMeasure_of_tendsto_ae (fun _ => aestronglyMeasurable_const)
+      (ae_of_all μ (fun _ => hinv_sqrt))
+  have hdiff : TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorBetaStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorBetaStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0) := by
+    refine tendstoInMeasure_pi (fun j => ?_)
+    have hscaled_j := TendstoInMeasure.pi_apply hscaled j
+    have hprod := TendstoInMeasure.mul_zero_real hinv_sqrt_measure hscaled_j
+    refine TendstoInMeasure.congr' ?_ EventuallyEq.rfl hprod
+    filter_upwards [eventually_atTop.2 ⟨1, fun m hm => hm⟩] with m hm
+    exact ae_of_all μ (fun ω => by
+      have hmpos : 0 < (m : ℝ) := Nat.cast_pos.mpr (lt_of_lt_of_le Nat.zero_lt_one hm)
+      have hsqrt_ne : Real.sqrt (m : ℝ) ≠ 0 := Real.sqrt_ne_zero'.mpr hmpos
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      rw [← mul_assoc, inv_mul_cancel₀ hsqrt_ne, one_mul])
+  let hOLS := h.toIidAssumption72ResponseMomentConditions
+  have horacle : TendstoInMeasure μ
+      (fun (m : ℕ) ω => generatedRegressorBetaStar
+        (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => β) := by
+    have hbase := olsBetaStar_stack_tendstoInMeasure_beta
+      (μ := μ) (X := W) (e := v) (y := Y) β
+      (hOLS.toIidRobustFeasibleHCMomentConditions.toScoreCLTConditions
+        |>.toLeastSquaresConsistencyConditions) hOLS.model
+    simpa only [W, generatedRegressorBetaStar,
+      generatedRegressors_stackRegressors_eq_oracleRow] using hbase
+  exact TendstoInMeasure.of_sub_tendsto_zero_vector hdiff horacle
+
+omit [DecidableEq l] in
+private theorem instrument_ideal_middle_consistent
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => sampleScoreCovIdeal
+        (stackRegressors Z m ω) (stackErrors v m ω))
+      atTop (fun _ => scoreSecondMomMat μ Z v) := by
+  classical
+  let hOLS := h.toIidAssumption72ResponseMomentConditions
+  have hZ : ∀ i, AEStronglyMeasurable (Z i) μ := fun i =>
+    continuous_fst.comp_aestronglyMeasurable (h.observed_aestronglyMeasurable i)
+  have hv : ∀ i, AEStronglyMeasurable (v i) μ := hOLS.e_aestronglyMeasurable
+  have hZ4 : ∀ a : l, MemLp (fun ω => Z 0 ω a) 4 μ := fun a =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := Z 0) (hZ 0) h.instrument_norm_fourth_integrable a
+  have hv4 : MemLp (v 0) 4 μ :=
+    scalar_memLp_four_of_integrable_fourth (hv 0)
+      (IidAssumption72ResponseMomentConditions.int_error_fourth hOLS)
+  have hmap : Measurable (fun p : (l → ℝ) × ℝ =>
+      (p.1, p.2 - (Aᵀ *ᵥ p.1) ⬝ᵥ β)) := by
+    fun_prop
+  have hpair_iid : iIndepFun (fun i ω => (Z i ω, v i ω)) μ := by
+    have hi := h.observed_iIndep.comp
+      (fun (_ : ℕ) (p : (l → ℝ) × ℝ) =>
+        (p.1, p.2 - (Aᵀ *ᵥ p.1) ⬝ᵥ β)) (fun _ => hmap)
+    simpa [Function.comp_def, h.model, generatedRegressorOracleRow] using hi
+  have hpair_ident : ∀ i, IdentDistrib (fun ω => (Z i ω, v i ω))
+      (fun ω => (Z 0 ω, v 0 ω)) μ μ := by
+    intro i
+    have hi := (h.observed_identDistrib i).comp hmap
+    simpa [Function.comp_def, h.model, generatedRegressorOracleRow] using hi
+  have hSint : Integrable (fun ω =>
+      Matrix.vecMulVec (v 0 ω • Z 0 ω) (v 0 ω • Z 0 ω)) μ :=
+    scoreOuter_integrable (μ := μ) hv4 hZ4
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  let S : ℕ → Ω → ℝ := fun i ω =>
+    (Matrix.vecMulVec (v i ω • Z i ω) (v i ω • Z i ω)) a b
+  have hSiid : iIndepFun S μ := by
+    simpa [S, Function.comp_def] using hpair_iid.comp
+      (fun (_ : ℕ) p =>
+        (Matrix.vecMulVec (p.2 • p.1) (p.2 • p.1)) a b)
+      (fun _ => by
+        simp only [Matrix.vecMulVec_apply, Pi.smul_apply]
+        fun_prop)
+  have hSindep : Pairwise ((· ⟂ᵢ[μ] ·) on S) := by
+    intro i j hij
+    exact hSiid.indepFun hij
+  have hSident : ∀ i, IdentDistrib (S i) (S 0) μ μ := by
+    intro i
+    simpa [S, Function.comp_def] using (hpair_ident i).comp
+      (show Measurable (fun p : (l → ℝ) × ℝ =>
+          (Matrix.vecMulVec (p.2 • p.1) (p.2 • p.1)) a b) by
+        change Measurable (fun p : (l → ℝ) × ℝ =>
+          (p.2 * p.1 a) * (p.2 * p.1 b))
+        fun_prop)
+  have hSint_ab : Integrable (S 0) μ := by
+    simpa [S] using Integrable.eval (Integrable.eval hSint a) b
+  have hwlln := tendstoInMeasure_wlln S hSint_ab hSindep hSident
+  have hmean : μ[S 0] = scoreSecondMomMat μ Z v a b := by
+    unfold scoreSecondMomMat
+    exact (integral_apply_apply (μ := μ)
+      (f := fun ω => Matrix.vecMulVec (v 0 ω • Z 0 ω) (v 0 ω • Z 0 ω))
+      hSint a b).symm
+  rw [hmean] at hwlln
+  refine hwlln.congr_left (fun m => ae_of_all μ (fun ω => ?_))
+  change (m : ℝ)⁻¹ • ∑ i ∈ Finset.range m, S i ω =
+    sampleScoreCovIdeal (stackRegressors Z m ω) (stackErrors v m ω) a b
+  symm
+  rw [sampleScoreCovIdeal_stack_eq_avg]
+  simp [S, Matrix.smul_apply, Matrix.sum_apply]
+
+omit [DecidableEq l] in
+private theorem observedInstrumentError_iid
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β) :
+    iIndepFun (fun i ω => (Z i ω, v i ω)) μ ∧
+      ∀ i, IdentDistrib (fun ω => (Z i ω, v i ω))
+        (fun ω => (Z 0 ω, v 0 ω)) μ μ := by
+  classical
+  have hmap : Measurable (fun p : (l → ℝ) × ℝ =>
+      (p.1, p.2 - (Aᵀ *ᵥ p.1) ⬝ᵥ β)) := by
+    fun_prop
+  constructor
+  · have hi := h.observed_iIndep.comp
+      (fun (_ : ℕ) (p : (l → ℝ) × ℝ) =>
+        (p.1, p.2 - (Aᵀ *ᵥ p.1) ⬝ᵥ β)) (fun _ => hmap)
+    simpa [Function.comp_def, h.model, generatedRegressorOracleRow] using hi
+  · intro i
+    have hi := (h.observed_identDistrib i).comp hmap
+    simpa [Function.comp_def, h.model, generatedRegressorOracleRow] using hi
+
+omit [DecidableEq l] in
+/-- The literal observed-iid fourth moments imply boundedness of every
+instrument-error empirical third-order HC0 weight. -/
+theorem instrument_cross_weight_bounded
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (a b j : l) :
+    BoundedInProbability μ (fun (m : ℕ) ω =>
+      sampleScoreCovCrossWeight
+        (stackRegressors Z m ω) (stackErrors v m ω) a b j) := by
+  classical
+  let hOLS := h.toIidAssumption72ResponseMomentConditions
+  have hZ : AEStronglyMeasurable (Z 0) μ :=
+    continuous_fst.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  have hv4 : MemLp (v 0) 4 μ :=
+    scalar_memLp_four_of_integrable_fourth (hOLS.e_aestronglyMeasurable 0)
+      (IidAssumption72ResponseMomentConditions.int_error_fourth hOLS)
+  have hZ4 : ∀ c : l, MemLp (fun ω => Z 0 ω c) 4 μ := fun c =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := Z 0) hZ h.instrument_norm_fourth_integrable c
+  have hint : Integrable
+      (fun ω => 2 * v 0 ω * Z 0 ω j * Z 0 ω a * Z 0 ω b) μ := by
+    have hleft : MemLp (fun ω => v 0 ω * Z 0 ω j) 2 μ :=
+      mul_memLp_two_of_memLp_four (μ := μ) hv4 (hZ4 j)
+    have hright : MemLp (fun ω => Z 0 ω a * Z 0 ω b) 2 μ :=
+      mul_memLp_two_of_memLp_four (μ := μ) (hZ4 a) (hZ4 b)
+    simpa [mul_assoc] using (hleft.integrable_mul hright).const_mul (2 : ℝ)
+  obtain ⟨hpair_iid, hpair_ident⟩ := observedInstrumentError_iid (μ := μ) h
+  have hweight_iid : iIndepFun (fun i ω =>
+      2 * v i ω * Z i ω j * Z i ω a * Z i ω b) μ := by
+    simpa [Function.comp_def] using hpair_iid.comp
+      (fun (_ : ℕ) (p : (l → ℝ) × ℝ) =>
+        2 * p.2 * p.1 j * p.1 a * p.1 b) (fun _ => by fun_prop)
+  have hindep : Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω =>
+      2 * v i ω * Z i ω j * Z i ω a * Z i ω b)) := by
+    intro i i' hii'
+    exact hweight_iid.indepFun hii'
+  have hident : ∀ i, IdentDistrib
+      (fun ω => 2 * v i ω * Z i ω j * Z i ω a * Z i ω b)
+      (fun ω => 2 * v 0 ω * Z 0 ω j * Z 0 ω a * Z 0 ω b) μ μ := by
+    intro i
+    simpa [Function.comp_def] using (hpair_ident i).comp
+      (show Measurable (fun p : (l → ℝ) × ℝ =>
+        2 * p.2 * p.1 j * p.1 a * p.1 b) by fun_prop)
+  exact FeasibleHCRemainderConditions.crossWeight_bounded_of_wlln
+    (μ := μ) a b j hint hindep hident
+
+omit [DecidableEq l] in
+/-- The literal observed-iid instrument fourth moment implies boundedness of
+every empirical fourth-order HC0 weight for the instrument design. -/
+theorem instrument_quadratic_weight_bounded
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (a b j q : l) :
+    BoundedInProbability μ (fun (m : ℕ) ω =>
+      sampleScoreCovQuadraticWeight (stackRegressors Z m ω) a b j q) := by
+  classical
+  have hZ : AEStronglyMeasurable (Z 0) μ :=
+    continuous_fst.comp_aestronglyMeasurable
+      (h.observed_aestronglyMeasurable 0)
+  have hZ4 : ∀ c : l, MemLp (fun ω => Z 0 ω c) 4 μ := fun c =>
+    coordinate_memLp_four_of_integrable_norm_fourth
+      (μ := μ) (X := Z 0) hZ h.instrument_norm_fourth_integrable c
+  have hint : Integrable
+      (fun ω => Z 0 ω j * Z 0 ω q * Z 0 ω a * Z 0 ω b) μ := by
+    have hleft : MemLp (fun ω => Z 0 ω j * Z 0 ω q) 2 μ :=
+      mul_memLp_two_of_memLp_four (μ := μ) (hZ4 j) (hZ4 q)
+    have hright : MemLp (fun ω => Z 0 ω a * Z 0 ω b) 2 μ :=
+      mul_memLp_two_of_memLp_four (μ := μ) (hZ4 a) (hZ4 b)
+    convert hleft.integrable_mul hright using 1
+    ext ω
+    simp only [Pi.mul_apply]
+    ring
+  obtain ⟨hpair_iid, hpair_ident⟩ := observedInstrumentError_iid (μ := μ) h
+  have hweight_iid : iIndepFun (fun i ω =>
+      Z i ω j * Z i ω q * Z i ω a * Z i ω b) μ := by
+    simpa [Function.comp_def] using hpair_iid.comp
+      (fun (_ : ℕ) (p : (l → ℝ) × ℝ) =>
+        p.1 j * p.1 q * p.1 a * p.1 b) (fun _ => by fun_prop)
+  have hindep : Pairwise ((· ⟂ᵢ[μ] ·) on (fun i ω =>
+      Z i ω j * Z i ω q * Z i ω a * Z i ω b)) := by
+    intro i i' hii'
+    exact hweight_iid.indepFun hii'
+  have hident : ∀ i, IdentDistrib
+      (fun ω => Z i ω j * Z i ω q * Z i ω a * Z i ω b)
+      (fun ω => Z 0 ω j * Z 0 ω q * Z 0 ω a * Z 0 ω b) μ μ := by
+    intro i
+    simpa [Function.comp_def] using (hpair_ident i).comp
+      (show Measurable (fun p : (l → ℝ) × ℝ =>
+        p.1 j * p.1 q * p.1 a * p.1 b) by fun_prop)
+  exact FeasibleHCRemainderConditions.quadWeight_bounded_of_wlln
+    (μ := μ) a b j q hint hindep hident
+
+private theorem boundedInProbability_finset_sum
+    {ι : Type*} (s : Finset ι) (X : ι → ℕ → Ω → ℝ)
+    (hX : ∀ i ∈ s, BoundedInProbability μ (X i)) :
+    BoundedInProbability μ (fun m ω => ∑ i ∈ s, X i m ω) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+      simp only [Finset.sum_empty]
+      exact BoundedInProbability.of_tendstoInMeasure_const
+        (tendstoInMeasure_of_tendsto_ae
+          (fun _ => aestronglyMeasurable_const)
+          (ae_of_all μ (fun _ => tendsto_const_nhds)))
+  | @insert i s hi ih =>
+      simpa only [Finset.sum_insert hi] using
+        (hX i (by simp)).add (ih (fun j hj => hX j (by simp [hj])))
+
+omit [DecidableEq l] in
+/-- The literal observed-iid fourth moments and loading consistency imply all
+third-order HC0 weight bounds for the triangular generated design. -/
+theorem cross_weight_bounded
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (a b j : Sum k₁ k₂) :
+    BoundedInProbability μ (fun (m : ℕ) ω =>
+      sampleScoreCovCrossWeight
+        (generatedRegressors (stackRegressors Z m ω) (Ahat m ω))
+        (stackErrors v m ω) a b j) := by
+  classical
+  have hA : ∀ c : l, ∀ r : Sum k₁ k₂,
+      BoundedInProbability μ (fun m ω => Ahat m ω c r) := by
+    intro c r
+    exact BoundedInProbability.of_tendstoInMeasure_const
+      (TendstoInMeasure.pi_apply
+        (TendstoInMeasure.pi_apply h.Ahat_consistent c) r)
+  have hterm : ∀ c d e : l, BoundedInProbability μ (fun m ω =>
+      Ahat m ω c j * Ahat m ω d a * Ahat m ω e b *
+        sampleScoreCovCrossWeight
+          (stackRegressors Z m ω) (stackErrors v m ω) d e c) := by
+    intro c d e
+    exact (((hA c j).mul (hA d a)).mul (hA e b)).mul
+      (h.instrument_cross_weight_bounded d e c)
+  have hsum : BoundedInProbability μ (fun m ω =>
+      ∑ c : l, ∑ d : l, ∑ e : l,
+        Ahat m ω c j * Ahat m ω d a * Ahat m ω e b *
+          sampleScoreCovCrossWeight
+            (stackRegressors Z m ω) (stackErrors v m ω) d e c) := by
+    refine boundedInProbability_finset_sum (μ := μ) Finset.univ _ (fun c _ => ?_)
+    refine boundedInProbability_finset_sum (μ := μ) Finset.univ _ (fun d _ => ?_)
+    exact boundedInProbability_finset_sum (μ := μ) Finset.univ _
+      (fun e _ => hterm c d e)
+  simpa only [sampleScoreCovCrossWeight_generatedRegressors] using hsum
+
+omit [DecidableEq l] in
+/-- The literal observed-iid instrument fourth moment and loading consistency
+imply all fourth-order HC0 weight bounds for the triangular generated design. -/
+theorem quadratic_weight_bounded
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (a b j q : Sum k₁ k₂) :
+    BoundedInProbability μ (fun (m : ℕ) ω =>
+      sampleScoreCovQuadraticWeight
+        (generatedRegressors (stackRegressors Z m ω) (Ahat m ω)) a b j q) := by
+  classical
+  have hA : ∀ c : l, ∀ r : Sum k₁ k₂,
+      BoundedInProbability μ (fun m ω => Ahat m ω c r) := by
+    intro c r
+    exact BoundedInProbability.of_tendstoInMeasure_const
+      (TendstoInMeasure.pi_apply
+        (TendstoInMeasure.pi_apply h.Ahat_consistent c) r)
+  have hterm : ∀ c d e f : l, BoundedInProbability μ (fun m ω =>
+      Ahat m ω c q * Ahat m ω d j * Ahat m ω e a * Ahat m ω f b *
+        sampleScoreCovQuadraticWeight (stackRegressors Z m ω) e f c d) := by
+    intro c d e f
+    exact ((((hA c q).mul (hA d j)).mul (hA e a)).mul (hA f b)).mul
+      (h.instrument_quadratic_weight_bounded e f c d)
+  have hsum : BoundedInProbability μ (fun m ω =>
+      ∑ c : l, ∑ d : l, ∑ e : l, ∑ f : l,
+        Ahat m ω c q * Ahat m ω d j * Ahat m ω e a * Ahat m ω f b *
+          sampleScoreCovQuadraticWeight (stackRegressors Z m ω) e f c d) := by
+    refine boundedInProbability_finset_sum (μ := μ) Finset.univ _ (fun c _ => ?_)
+    refine boundedInProbability_finset_sum (μ := μ) Finset.univ _ (fun d _ => ?_)
+    refine boundedInProbability_finset_sum (μ := μ) Finset.univ _ (fun e _ => ?_)
+    exact boundedInProbability_finset_sum (μ := μ) Finset.univ _
+      (fun f _ => hterm c d e f)
+  simpa only [sampleScoreCovQuadraticWeight_generatedRegressors] using hsum
+
+set_option maxHeartbeats 2400000 in
+-- The triangular generated design combines several finite-dimensional CMTs.
+omit [DecidableEq l] in
+/-- Feasible HC0 consistency for a triangular generated design.
+
+The raw observed-iid package supplies coefficient consistency, the instrument
+Gram WLLN, and the true-error score-middle WLLN.  The only additional inputs
+are the empirical third- and fourth-order `O_p(1)` weights appearing in Chapter
+7's exact residual-score expansion. -/
+theorem generatedRegressorVHatStar_tendstoInMeasure_of_bddWts
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (hCrossWeight : ∀ a b j : Sum k₁ k₂,
+      BoundedInProbability μ (fun (m : ℕ) ω =>
+        sampleScoreCovCrossWeight
+          (generatedRegressors (stackRegressors Z m ω) (Ahat m ω))
+          (stackErrors v m ω) a b j))
+    (hQuadWeight : ∀ a b j q : Sum k₁ k₂,
+      BoundedInProbability μ (fun (m : ℕ) ω =>
+        sampleScoreCovQuadraticWeight
+          (generatedRegressors (stackRegressors Z m ω) (Ahat m ω)) a b j q)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A (popGram μ Z)
+        (scoreSecondMomMat μ Z v)) := by
+  classical
+  let D : (m : ℕ) → Ω → Matrix (Fin m) (Sum k₁ k₂) ℝ := fun m ω =>
+    generatedRegressors (stackRegressors Z m ω) (Ahat m ω)
+  let betaHat : ℕ → Ω → Sum k₁ k₂ → ℝ := fun m ω =>
+    generatedRegressorBetaStar
+      (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω)
+  let d : ℕ → Ω → Sum k₁ k₂ → ℝ := fun m ω => betaHat m ω - β
+  let ideal : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ := fun m ω =>
+    sampleScoreCovIdeal (D m ω) (stackErrors v m ω)
+  let cross : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ := fun m ω =>
+    sampleScoreCovCrossRemainder (D m ω) (stackErrors v m ω) (d m ω)
+  let quad : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ := fun m ω =>
+    sampleScoreCovQuadRem (D m ω) (d m ω)
+  let middle : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ := fun m ω =>
+    sampleScoreCovStar (D m ω) (stackOutcomes Y m ω)
+  let Gram : ℕ → Ω → Matrix (Sum k₁ k₂) (Sum k₁ k₂) ℝ := fun m ω =>
+    sampleGram (D m ω)
+  let Qhat : ℕ → Ω → Matrix l l ℝ := fun m ω =>
+    sampleGram (stackRegressors Z m ω)
+  have hOLS := h.toIidAssumption72ResponseMomentConditions
+  have hZ : ∀ i, AEStronglyMeasurable (Z i) μ := fun i =>
+    continuous_fst.comp_aestronglyMeasurable (h.observed_aestronglyMeasurable i)
+  have hY : ∀ i, AEStronglyMeasurable (Y i) μ := fun i =>
+    continuous_snd.comp_aestronglyMeasurable (h.observed_aestronglyMeasurable i)
+  have hv : ∀ i, AEStronglyMeasurable (v i) μ := hOLS.e_aestronglyMeasurable
+  have hBeta : TendstoInMeasure μ betaHat atTop (fun _ => β) := by
+    simpa [betaHat] using h.feasible_coefficient_consistent
+  have hd : ∀ j : Sum k₁ k₂,
+      TendstoInMeasure μ (fun m ω => d m ω j) atTop (fun _ => 0) := by
+    intro j
+    simpa [d, Pi.sub_apply] using
+      TendstoInMeasure.sub_limit_zero_real (TendstoInMeasure.pi_apply hBeta j)
+  have hCross : TendstoInMeasure μ cross atTop (fun _ => 0) := by
+    refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    have hterm : ∀ j ∈ (Finset.univ : Finset (Sum k₁ k₂)),
+        TendstoInMeasure μ
+          (fun m ω => d m ω j *
+            sampleScoreCovCrossWeight (D m ω) (stackErrors v m ω) a b j)
+          atTop (fun _ => 0) := by
+      intro j _
+      exact TendstoInMeasure.mul_boundedInProbability (hd j)
+        (by simpa [D] using hCrossWeight a b j)
+    have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+      (s := (Finset.univ : Finset (Sum k₁ k₂)))
+      (X := fun j m ω => d m ω j *
+        sampleScoreCovCrossWeight (D m ω) (stackErrors v m ω) a b j)
+      hterm
+    refine hsum.congr_left (fun m => ae_of_all μ (fun ω => ?_))
+    exact (sampleScoreCovCrossRemainder_apply_eq_sum_weight
+      (D m ω) (stackErrors v m ω) (d m ω) a b).symm
+  have hQuad : TendstoInMeasure μ quad atTop (fun _ => 0) := by
+    refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    have houter : ∀ j ∈ (Finset.univ : Finset (Sum k₁ k₂)),
+        TendstoInMeasure μ
+          (fun m ω => ∑ q : Sum k₁ k₂,
+            d m ω j * d m ω q *
+              sampleScoreCovQuadraticWeight (D m ω) a b j q)
+          atTop (fun _ => 0) := by
+      intro j _
+      have hterm : ∀ q ∈ (Finset.univ : Finset (Sum k₁ k₂)),
+          TendstoInMeasure μ
+            (fun m ω => d m ω j * d m ω q *
+              sampleScoreCovQuadraticWeight (D m ω) a b j q)
+            atTop (fun _ => 0) := by
+        intro q _
+        exact TendstoInMeasure.mul_boundedInProbability
+          (TendstoInMeasure.mul_zero_real (hd j) (hd q))
+          (by simpa [D] using hQuadWeight a b j q)
+      simpa using tendstoInMeasure_finset_sum_zero_real (μ := μ)
+        (s := (Finset.univ : Finset (Sum k₁ k₂)))
+        (X := fun q m ω => d m ω j * d m ω q *
+          sampleScoreCovQuadraticWeight (D m ω) a b j q)
+        hterm
+    have hsum := tendstoInMeasure_finset_sum_zero_real (μ := μ)
+      (s := (Finset.univ : Finset (Sum k₁ k₂)))
+      (X := fun j m ω => ∑ q : Sum k₁ k₂,
+        d m ω j * d m ω q *
+          sampleScoreCovQuadraticWeight (D m ω) a b j q)
+      houter
+    refine hsum.congr_left (fun m => ae_of_all μ (fun ω => ?_))
+    exact (sampleScoreCovQuadRem_apply_eq_sum_weight (D m ω) (d m ω) a b).symm
+  have hbaseIdeal := instrument_ideal_middle_consistent (μ := μ) h
+  have hbaseIdeal_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => sampleScoreCovIdeal
+        (stackRegressors Z m ω) (stackErrors v m ω)) μ := by
+    intro m
+    have houter_cont : Continuous (fun x : l → ℝ => Matrix.vecMulVec x x) := by
+      refine continuous_pi (fun a => ?_)
+      refine continuous_pi (fun b => ?_)
+      simpa [Matrix.vecMulVec_apply] using
+        (continuous_apply a).mul (continuous_apply b)
+    have hterm : ∀ i : Fin m, AEStronglyMeasurable (fun ω =>
+        Matrix.vecMulVec (v i.val ω • Z i.val ω) (v i.val ω • Z i.val ω)) μ :=
+      fun i => houter_cont.comp_aestronglyMeasurable ((hv i.val).smul (hZ i.val))
+    unfold sampleScoreCovIdeal
+    simpa [stackRegressors, stackErrors] using
+      (Finset.aestronglyMeasurable_fun_sum Finset.univ
+        (fun i _ => hterm i)).const_smul ((Fintype.card (Fin m) : ℝ)⁻¹)
+  have hAt_meas : ∀ m, AEStronglyMeasurable (fun ω => (Ahat m ω)ᵀ) μ :=
+    fun m => continuous_id.matrix_transpose.comp_aestronglyMeasurable
+      (h.Ahat_aestronglyMeasurable m)
+  have hAt : TendstoInMeasure μ (fun m ω => (Ahat m ω)ᵀ)
+      atTop (fun _ => Aᵀ) := by
+    simpa [Function.comp_def] using tendstoInMeasure_continuous_comp
+      h.Ahat_aestronglyMeasurable h.Ahat_consistent continuous_id.matrix_transpose
+  have hIdealCmt := randomLinearMapCovariance_tendstoInMeasure
+    (μ := μ) (Rhat := fun m ω => (Ahat m ω)ᵀ) (R := Aᵀ)
+    (Vhat := fun m ω => sampleScoreCovIdeal
+      (stackRegressors Z m ω) (stackErrors v m ω))
+    (V := scoreSecondMomMat μ Z v)
+    hAt_meas hbaseIdeal_meas hAt hbaseIdeal
+  have hIdeal : TendstoInMeasure μ ideal atTop
+      (fun _ => Aᵀ * scoreSecondMomMat μ Z v * A) := by
+    simpa only [ideal, D, sampleScoreCovIdeal_generatedRegressors,
+      Matrix.transpose_transpose] using hIdealCmt
+  have hmodel_feasible : ∀ m i ω,
+      Y i ω = ((Ahat m ω)ᵀ *ᵥ Z i ω) ⬝ᵥ β + v i ω := by
+    intro m i ω
+    rw [h.model i ω]
+    congr 1
+    simp only [generatedRegressorOracleRow, Matrix.mulVec, dotProduct,
+      Fintype.sum_sum_type, Matrix.transpose_apply]
+    congr 1
+    · apply Finset.sum_congr rfl
+      intro j _
+      apply congrArg (fun t : ℝ => t * β (Sum.inl j))
+      apply Finset.sum_congr rfl
+      intro a _
+      rw [h.left_block_exact]
+    · simp [h.beta2_null]
+  have hMiddle : TendstoInMeasure μ middle atTop
+      (fun _ => Aᵀ * scoreSecondMomMat μ Z v * A) := by
+    refine tendstoInMeasure_pi (fun a => ?_)
+    refine tendstoInMeasure_pi (fun b => ?_)
+    have hi := TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hIdeal a) b
+    have hc := TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hCross a) b
+    have hq := TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hQuad a) b
+    have hcenter := TendstoInMeasure.sub_limit_zero_real hi
+    have hsum := TendstoInMeasure.add_zero_real
+      (TendstoInMeasure.sub_zero_real hcenter hc) hq
+    refine TendstoInMeasure.of_sub_limit_zero_real
+      (hsum.congr_left (fun m => ae_of_all μ (fun ω => ?_)))
+    have hYstack : stackOutcomes Y m ω = D m ω *ᵥ β + stackErrors v m ω := by
+      ext i
+      simpa [D, generatedRegressors, stackRegressors, stackOutcomes,
+        stackErrors, Matrix.mulVec, dotProduct, mul_comm] using
+        hmodel_feasible m i.val ω
+    have hexp := sampleScoreCovStar_linear_model
+      (D m ω) β (stackErrors v m ω)
+    calc
+      (ideal m ω a b - (Aᵀ * scoreSecondMomMat μ Z v * A) a b) -
+          cross m ω a b + quad m ω a b =
+        (ideal m ω - cross m ω + quad m ω) a b -
+          (Aᵀ * scoreSecondMomMat μ Z v * A) a b := by
+            simp [Matrix.sub_apply, Matrix.add_apply]
+            ring
+      _ = middle m ω a b -
+          (Aᵀ * scoreSecondMomMat μ Z v * A) a b := by
+            change (ideal m ω - cross m ω + quad m ω) a b -
+                (Aᵀ * scoreSecondMomMat μ Z v * A) a b =
+              sampleScoreCovStar (D m ω) (stackOutcomes Y m ω) a b -
+                (Aᵀ * scoreSecondMomMat μ Z v * A) a b
+            dsimp only [ideal, cross, quad, d, betaHat, generatedRegressorBetaStar]
+            rw [hYstack, hexp]
+  have hZindep : iIndepFun Z μ := by
+    simpa [Function.comp_def] using
+      h.observed_iIndep.comp (fun (_ : ℕ) (p : (l → ℝ) × ℝ) => p.1)
+        (fun _ => measurable_fst)
+  have hZident : ∀ i, IdentDistrib (Z i) (Z 0) μ μ := by
+    intro i
+    simpa [Function.comp_def] using (h.observed_identDistrib i).comp measurable_fst
+  have hZnorm2 : Integrable (fun ω => ‖Z 0 ω‖ ^ 2) μ :=
+    integrable_norm_pow_of_le (f := Z 0) (μ := μ) (hZ 0) (by norm_num)
+      h.instrument_norm_fourth_integrable
+  have hGramPkg : SampleGramWLLNConditions μ Z :=
+    SampleGramWLLNConditions.of_iid_finite_second hZ hZindep hZident hZnorm2
+  have hQmeas : ∀ m, AEStronglyMeasurable (Qhat m) μ := fun m => by
+    simpa [Qhat] using sampleGram_stackRegressors_aestronglyMeasurable_of_wlln hGramPkg m
+  have hQ : TendstoInMeasure μ Qhat atTop (fun _ => popGram μ Z) := by
+    simpa [Qhat] using sampleGram_stackRegressors_tendstoInMeasure_popGram_of_wlln hGramPkg
+  have hGram_meas : ∀ m, AEStronglyMeasurable (Gram m) μ := by
+    intro m
+    have hcont : Continuous (fun p : Matrix l (Sum k₁ k₂) ℝ × Matrix l l ℝ =>
+        p.1ᵀ * p.2 * p.1) :=
+      ((continuous_fst.matrix_transpose.matrix_mul continuous_snd).matrix_mul continuous_fst)
+    simpa [Gram, D, sampleGram_generatedRegressors, Qhat] using
+      hcont.comp_aestronglyMeasurable
+        ((h.Ahat_aestronglyMeasurable m).prodMk (hQmeas m))
+  have hGram : TendstoInMeasure μ Gram atTop
+      (fun _ => Aᵀ * popGram μ Z * A) := by
+    have hpair := tendstoInMeasure_prodMk h.Ahat_consistent hQ
+    have hpair_meas : ∀ m, AEStronglyMeasurable
+        (fun ω => (Ahat m ω, Qhat m ω)) μ := fun m =>
+      (h.Ahat_aestronglyMeasurable m).prodMk (hQmeas m)
+    have hcont : Continuous (fun p : Matrix l (Sum k₁ k₂) ℝ × Matrix l l ℝ =>
+        p.1ᵀ * p.2 * p.1) :=
+      ((continuous_fst.matrix_transpose.matrix_mul continuous_snd).matrix_mul continuous_fst)
+    simpa [Gram, D, sampleGram_generatedRegressors, Qhat] using
+      tendstoInMeasure_continuous_comp hpair_meas hpair hcont
+  have hInv_meas : ∀ m, AEStronglyMeasurable (fun ω => (Gram m ω)⁻¹) μ :=
+    fun m => aestronglyMeasurable_matrix_inv (hGram_meas m)
+  have hInv : TendstoInMeasure μ (fun m ω => (Gram m ω)⁻¹)
+      atTop (fun _ => (Aᵀ * popGram μ Z * A)⁻¹) :=
+    tendstoInMeasure_matrix_inv hGram_meas hGram
+      (fun _ => (Matrix.isUnit_iff_isUnit_det _).mp h.qww_posDef.isUnit)
+  have hMiddle_meas : ∀ m, AEStronglyMeasurable (middle m) μ := by
+    intro m
+    simpa [middle, D, stackRegressors, stackOutcomes] using
+      generatedRegressorScoreCovStar_aestronglyMeasurable_of_rows
+        (μ := μ) (N := m) (Z := Z) (Y := Y) (Ahat := Ahat m)
+        hZ hY (h.Ahat_aestronglyMeasurable m)
+  have hLeft := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := fun m ω => (Gram m ω)⁻¹) (B := middle)
+    hInv_meas hMiddle_meas hInv hMiddle
+  have hLeft_meas : ∀ m, AEStronglyMeasurable
+      (fun ω => (Gram m ω)⁻¹ * middle m ω) μ := fun m =>
+    (continuous_fst.matrix_mul continuous_snd).comp_aestronglyMeasurable
+      ((hInv_meas m).prodMk (hMiddle_meas m))
+  have hFull := tendstoInMeasure_matrix_mul
+    (μ := μ) (A := fun m ω => (Gram m ω)⁻¹ * middle m ω)
+    (B := fun m ω => (Gram m ω)⁻¹)
+    hLeft_meas hInv_meas hLeft hInv
+  simpa [generatedRegressorVHatStar, olsHetCovStar, Gram, middle, D,
+    generatedRegressorAsymptoticVariance, Matrix.mul_assoc] using hFull
+
+omit [DecidableEq l] in
+/-- Feasible generated-design HC0 covariance consistency follows from the
+literal observed-iid fourth moments and loading consistency. -/
+theorem generatedRegressorVHatStar_tendstoInMeasure
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω => generatedRegressorVHatStar
+        (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
+      atTop (fun _ => generatedRegressorAsymptoticVariance A (popGram μ Z)
+        (scoreSecondMomMat μ Z v)) :=
+  generatedRegressorVHatStar_tendstoInMeasure_of_bddWts
+    (μ := μ) h h.cross_weight_bounded h.quadratic_weight_bounded
+
+omit [DecidableEq l] in
+/-- The formerly assumed feasible-oracle HC0 covariance remainder follows from
+the triangular generated-design consistency theorem and oracle HC0
+consistency. -/
+theorem generatedRegressorVHatStar_sub_oracle_tendstoInMeasure_zero_of_bddWts
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β)
+    (hCrossWeight : ∀ a b j : Sum k₁ k₂,
+      BoundedInProbability μ (fun (m : ℕ) ω =>
+        sampleScoreCovCrossWeight
+          (generatedRegressors (stackRegressors Z m ω) (Ahat m ω))
+          (stackErrors v m ω) a b j))
+    (hQuadWeight : ∀ a b j q : Sum k₁ k₂,
+      BoundedInProbability μ (fun (m : ℕ) ω =>
+        sampleScoreCovQuadraticWeight
+          (generatedRegressors (stackRegressors Z m ω) (Ahat m ω)) a b j q)) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorVHatStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0) := by
+  have hfeasible := generatedRegressorVHatStar_tendstoInMeasure_of_bddWts
+    (μ := μ) h hCrossWeight hQuadWeight
+  have horacle := h.oracle_covariance_consistent
+  refine tendstoInMeasure_pi (fun a => ?_)
+  refine tendstoInMeasure_pi (fun b => ?_)
+  have hf := TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply hfeasible a) b
+  have ho := TendstoInMeasure.pi_apply (TendstoInMeasure.pi_apply horacle a) b
+  have hdiff := TendstoInMeasure.sub_zero_real
+    (TendstoInMeasure.sub_limit_zero_real hf)
+    (TendstoInMeasure.sub_limit_zero_real ho)
+  simpa [Matrix.sub_apply, sub_sub_sub_cancel_right] using hdiff
+
+omit [DecidableEq l] in
+/-- The feasible-oracle HC0 covariance difference is negligible under the
+literal observed-iid fourth moments and loading consistency. -/
+theorem generatedRegressorVHatStar_sub_oracle_tendstoInMeasure_zero
+    {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
+    {Ahat : ℕ → Ω → Matrix l (Sum k₁ k₂) ℝ}
+    {A : Matrix l (Sum k₁ k₂) ℝ} {β : Sum k₁ k₂ → ℝ}
+    (h : GeneratedRegressorObservedIidConditions μ Z v Y Ahat A β) :
+    TendstoInMeasure μ
+      (fun (m : ℕ) ω =>
+        generatedRegressorVHatStar
+            (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω) -
+          generatedRegressorVHatStar
+            (stackRegressors Z m ω) A (stackOutcomes Y m ω))
+      atTop (fun _ => 0) :=
+  generatedRegressorVHatStar_sub_oracle_tendstoInMeasure_zero_of_bddWts
+    (μ := μ) h h.cross_weight_bounded h.quadratic_weight_bounded
+
+omit [DecidableEq l] in
 /-- **Corrected Hansen Theorem 12.9, coefficient endpoint.**
 
 The displayed fourth moments, rank, loading consistency, exact-left-block,
@@ -23317,10 +24304,11 @@ theorem theorem12_9_corrected_coefficient
 omit [DecidableEq l] in
 /-- **Corrected Hansen Theorem 12.9, full endpoint.**
 
-This adds the narrow feasible-oracle HC0 remainder exposed by
-`GeneratedRegressorObservedIidHC0Conditions` to the corrected raw conditions,
-then derives coefficient normality, HC0 consistency, the right-block
-chi-square Wald limit, and calibrated asymptotic size. -/
+The literal observed-iid fourth moments derive the generated-design empirical
+third/fourth weight bounds and hence feasible HC0 consistency.  The minimal
+extension supplies only tested-block covariance nondegeneracy before assembling
+coefficient normality, the chi-square Wald limit, and calibrated asymptotic
+size. -/
 theorem theorem12_9_corrected_normal_covariance_wald_size
     {r : ℕ} [Fact (0 < r)]
     {Z : ℕ → Ω → l → ℝ} {v Y : ℕ → Ω → ℝ}
@@ -23378,9 +24366,8 @@ theorem theorem12_9_corrected_normal_covariance_wald_size
   have hVconv : TendstoInMeasure μ
       (fun m ω => generatedRegressorVHatStar
         (stackRegressors Z m ω) (Ahat m ω) (stackOutcomes Y m ω))
-      atTop (fun _ => V) :=
-    TendstoInMeasure.of_sub_tendsto_zero_matrix h.covariance_remainder
-      hraw.oracle_covariance_consistent
+      atTop (fun _ => V) := by
+    simpa [V] using hraw.generatedRegressorVHatStar_tendstoInMeasure
   have hVpsd : V.PosSemidef := by
     have hOLS := hraw.toIidAssumption72ResponseMomentConditions
     have hp := heteroAsymCov_posSemidef

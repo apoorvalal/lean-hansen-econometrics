@@ -15329,6 +15329,587 @@ noncomputable def weakIVRawLIMLGeneralizedEigenvalueLimitPair
     (fun z => weakIVRawGaussianStructuralScore (weakIVRawGaussianMatrix z) beta)
     beta (popGram μ u) z
 
+private abbrev WeakIVRawLIMLPencilMomentState (k l : Type*) :=
+  Matrix l (Sum Unit k) ℝ ×
+    (Matrix l l ℝ × Matrix (Sum Unit k) (Sum Unit k) ℝ)
+
+private abbrev WeakIVRawLIMLPencilState (k l : Type*) :=
+  WeakIVRawLIMLPencilMomentState k l × ℝ
+
+private abbrev WeakIVRawLIMLPencil (k : Type*) :=
+  Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+    Matrix (Sum Unit k) (Sum Unit k) ℝ
+
+/-- The deterministic reduced-form loading `[C beta, C]` used to assemble the
+literal triangular sample from its raw error matrix. -/
+private noncomputable def weakIVRawReducedFormLoading
+    (C : Matrix l k ℝ) (beta : k → ℝ) : Matrix l (Sum Unit k) ℝ
+  | a, Sum.inl _ => (C *ᵥ beta) a
+  | a, Sum.inr j => C a j
+
+/-- Algebraic pencil formula in the raw score, instrument Gram, error Gram,
+and inverse sample size. -/
+private noncomputable def weakIVRawLIMLPencilFormula
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (p : WeakIVRawLIMLPencilState k l) : WeakIVRawLIMLPencil k :=
+  let Xi := p.1.1
+  let Q := p.1.2.1
+  let Sigma := p.1.2.2
+  let r := p.2
+  let D := weakIVRawReducedFormLoading C beta
+  let A := Q * D + Xi
+  let N := Aᵀ * Q⁻¹ * A
+  (N, Sigma + r • (Xiᵀ * D + Dᵀ * Xi + Dᵀ * Q * D - N))
+
+/-- Nonsingular branch of the raw pencil formula.  The zero branch is used
+only to make the CMT map explicit away from its continuity set. -/
+private noncomputable def weakIVRawLIMLPencilAssemblyMap
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (p : WeakIVRawLIMLPencilState k l) : WeakIVRawLIMLPencil k :=
+  letI : Decidable (IsUnit (p.1.2.1).det) := Classical.propDecidable _
+  if IsUnit (p.1.2.1).det then weakIVRawLIMLPencilFormula C beta p else 0
+
+private noncomputable def weakIVRawLIMLPencilSampleState
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (m : ℕ) (omega : Ω) : WeakIVRawLIMLPencilState k l :=
+  ((weakIVRawRootReducedFormScore Z u m omega,
+      (sampleGram (stackRegressors Z m omega),
+        sampleGram (stackRegressors u m omega))),
+    (m : ℝ)⁻¹)
+
+private noncomputable def weakIVRawLIMLPencilLimitState
+    (μ : Measure Ω) (Z : ℕ → Ω → l → ℝ)
+    (u : ℕ → Ω → Sum Unit k → ℝ)
+    (z : EuclideanSpace ℝ (l × Sum Unit k)) : WeakIVRawLIMLPencilState k l :=
+  ((weakIVRawGaussianMatrix z, (popGram μ Z, popGram μ u)), 0)
+
+omit [DecidableEq k] in
+private theorem weakIVRawLIMLPencilFormula_measurable
+    (C : Matrix l k ℝ) (beta : k → ℝ) :
+    Measurable (weakIVRawLIMLPencilFormula C beta) := by
+  let D := weakIVRawReducedFormLoading C beta
+  have hXi : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => p.1.1) :=
+    (continuous_fst.comp continuous_fst).measurable
+  have hQ : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => p.1.2.1) :=
+    (continuous_fst.comp (continuous_snd.comp continuous_fst)).measurable
+  have hSigma : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => p.1.2.2) :=
+    (continuous_snd.comp (continuous_snd.comp continuous_fst)).measurable
+  have hr : Measurable (fun p : WeakIVRawLIMLPencilState k l => p.2) :=
+    measurable_snd
+  have hQdet : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).det) :=
+    (Continuous.matrix_det
+      (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
+  have hQadj : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).adjugate) :=
+    (Continuous.matrix_adjugate
+      (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
+  have hQinvDet : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => Ring.inverse (p.1.2.1).det) := by
+    have heq :
+        (fun p : WeakIVRawLIMLPencilState k l => Ring.inverse (p.1.2.1).det) =
+          (fun p => ((p.1.2.1).det)⁻¹) := by
+      funext p
+      exact Ring.inverse_eq_inv _
+    rw [heq]
+    exact measurable_inv.comp hQdet
+  have hQinv : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => p.1.2.1⁻¹) := by
+    have heq :
+        (fun p : WeakIVRawLIMLPencilState k l => p.1.2.1⁻¹) =
+          (fun p => Ring.inverse (p.1.2.1).det • (p.1.2.1).adjugate) := by
+      funext p
+      exact Matrix.inv_def p.1.2.1
+    rw [heq]
+    exact hQinvDet.smul hQadj
+  have hD : Measurable
+      (fun _ : WeakIVRawLIMLPencilState k l => D) := measurable_const
+  have hDt : Measurable
+      (fun _ : WeakIVRawLIMLPencilState k l => Dᵀ) := measurable_const
+  have hQD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hQ.prodMk hD)
+  have hA := hQD.add hXi
+  have hAt := (continuous_id.matrix_transpose).measurable.comp hA
+  have hLeft :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hAt.prodMk hQinv)
+  have hN :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hLeft.prodMk hA)
+  have hXiT := (continuous_id.matrix_transpose).measurable.comp hXi
+  have hXiTD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hXiT.prodMk hD)
+  have hDTXi :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hDt.prodMk hXi)
+  have hDTQ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hDt.prodMk hQ)
+  have hDTQD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).measurable.comp
+      (hDTQ.prodMk hD)
+  have hCorrection := ((hXiTD.add hDTXi).add hDTQD).sub hN
+  have hFormula := hN.prodMk (hSigma.add (hr.smul hCorrection))
+  simpa only [weakIVRawLIMLPencilFormula, D, Matrix.transpose_add,
+    Matrix.transpose_mul] using hFormula
+
+omit [DecidableEq k] in
+private theorem weakIVRawLIMLPencilAssemblyMap_measurable
+    (C : Matrix l k ℝ) (beta : k → ℝ) :
+    Measurable (weakIVRawLIMLPencilAssemblyMap C beta) := by
+  classical
+  have hdet : Measurable
+      (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).det) :=
+    (Continuous.matrix_det
+      (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
+  have hunit : MeasurableSet
+      {p : WeakIVRawLIMLPencilState k l | IsUnit (p.1.2.1).det} := by
+    rw [show {p : WeakIVRawLIMLPencilState k l | IsUnit (p.1.2.1).det} =
+        (fun p => (p.1.2.1).det) ⁻¹' ({0}ᶜ : Set ℝ) by
+      ext p
+      simp [isUnit_iff_ne_zero]]
+    exact hdet (measurableSet_singleton 0).compl
+  change Measurable
+    (fun p : WeakIVRawLIMLPencilState k l =>
+      if IsUnit (p.1.2.1).det then weakIVRawLIMLPencilFormula C beta p
+      else (0 : WeakIVRawLIMLPencil k))
+  exact Measurable.ite hunit
+    (weakIVRawLIMLPencilFormula_measurable C beta) measurable_const
+
+omit [DecidableEq k] in
+private theorem weakIVRawLIMLPencilAssemblyMap_continuousAt_of_nonsingular
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (p : WeakIVRawLIMLPencilState k l) (hp : IsUnit (p.1.2.1).det) :
+    ContinuousAt (weakIVRawLIMLPencilAssemblyMap C beta) p := by
+  let D := weakIVRawReducedFormLoading C beta
+  have hXi : ContinuousAt
+      (fun q : WeakIVRawLIMLPencilState k l => q.1.1) p :=
+    (continuous_fst.comp continuous_fst).continuousAt
+  have hQ : ContinuousAt
+      (fun q : WeakIVRawLIMLPencilState k l => q.1.2.1) p :=
+    (continuous_fst.comp (continuous_snd.comp continuous_fst)).continuousAt
+  have hSigma : ContinuousAt
+      (fun q : WeakIVRawLIMLPencilState k l => q.1.2.2) p :=
+    (continuous_snd.comp (continuous_snd.comp continuous_fst)).continuousAt
+  have hr : ContinuousAt
+      (fun q : WeakIVRawLIMLPencilState k l => q.2) p :=
+    continuousAt_snd
+  have hQinv : ContinuousAt
+      (fun q : WeakIVRawLIMLPencilState k l => q.1.2.1⁻¹) p := by
+    have hinv : ContinuousAt (fun A : Matrix l l ℝ => A⁻¹) p.1.2.1 := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hp.ne_zero
+    let qfun : WeakIVRawLIMLPencilState k l → Matrix l l ℝ :=
+      fun q => q.1.2.1
+    have hcomp : ContinuousAt ((fun A : Matrix l l ℝ => A⁻¹) ∘ qfun) p :=
+      ContinuousAt.comp (f := qfun) hinv hQ
+    simpa only [qfun, Function.comp_apply] using hcomp
+  have hD : ContinuousAt
+      (fun _ : WeakIVRawLIMLPencilState k l => D) p := continuousAt_const
+  have hDt : ContinuousAt
+      (fun _ : WeakIVRawLIMLPencilState k l => Dᵀ) p := continuousAt_const
+  have hQD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hQ.prodMk hD)
+  have hA := hQD.add hXi
+  have hAt := (continuous_id.matrix_transpose).continuousAt.comp hA
+  have hLeft :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hAt.prodMk hQinv)
+  have hN :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hLeft.prodMk hA)
+  have hXiT := (continuous_id.matrix_transpose).continuousAt.comp hXi
+  have hXiTD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hXiT.prodMk hD)
+  have hDTXi :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hDt.prodMk hXi)
+  have hDTQ :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hDt.prodMk hQ)
+  have hDTQD :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hDTQ.prodMk hD)
+  have hCorrection := ((hXiTD.add hDTXi).add hDTQD).sub hN
+  have hFormula : ContinuousAt (weakIVRawLIMLPencilFormula C beta) p := by
+    simpa only [weakIVRawLIMLPencilFormula, D, Matrix.transpose_add,
+      Matrix.transpose_mul] using
+      hN.prodMk (hSigma.add (hr.smul hCorrection))
+  have hopen : IsOpen
+      {q : WeakIVRawLIMLPencilState k l | IsUnit (q.1.2.1).det} := by
+    rw [show {q : WeakIVRawLIMLPencilState k l | IsUnit (q.1.2.1).det} =
+        (fun q => (q.1.2.1).det) ⁻¹' ({0}ᶜ : Set ℝ) by
+      ext q
+      simp [isUnit_iff_ne_zero]]
+    exact isOpen_compl_singleton.preimage
+      (Continuous.matrix_det
+        (continuous_fst.comp (continuous_snd.comp continuous_fst)))
+  have hevent : ∀ᶠ q in 𝓝 p, IsUnit (q.1.2.1).det := hopen.mem_nhds hp
+  apply hFormula.congr_of_eventuallyEq
+  filter_upwards [hevent] with q hq
+  simp only [weakIVRawLIMLPencilAssemblyMap]
+  rw [if_pos hq]
+
+omit [DecidableEq k] [DecidableEq l] [MeasurableSpace Ω] in
+private theorem weakIVLocalReducedFormSampleMatrix_eq_raw_loading
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ) (m : ℕ) (omega : Ω) :
+    weakIVLocalReducedFormSampleMatrix Z u C beta m omega =
+      stackRegressors u m omega +
+        (Real.sqrt (m : ℝ))⁻¹ •
+          (stackRegressors Z m omega * weakIVRawReducedFormLoading C beta) := by
+  ext i b
+  cases b with
+  | inl b =>
+      cases b
+      simp only [weakIVLocalReducedFormSampleMatrix, weakIVLocalOutcomeRow,
+        weakIVLocalRegressorRow, weakIVRawStructuralErrorRow, stackRegressors,
+        weakIVRawReducedFormLoading, Matrix.mul_apply, Matrix.mulVec, dotProduct,
+        Pi.add_apply, Pi.smul_apply, smul_eq_mul, Matrix.add_apply,
+        Matrix.smul_apply, Matrix.of_apply, Matrix.transpose_apply]
+      simp_rw [add_mul]
+      rw [Finset.sum_add_distrib]
+      ring_nf
+      simp_rw [Finset.mul_sum, Finset.sum_mul]
+      rw [Finset.sum_comm]
+      apply congrArg (fun x : ℝ => x + u i.val omega (Sum.inl ()))
+      apply Finset.sum_congr rfl
+      intro a _
+      apply Finset.sum_congr rfl
+      intro j _
+      ring
+  | inr j =>
+      simp only [weakIVLocalReducedFormSampleMatrix, weakIVLocalRegressorRow,
+        stackRegressors, weakIVRawReducedFormLoading, Matrix.mul_apply,
+        Matrix.mulVec, dotProduct, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+        Matrix.add_apply, Matrix.smul_apply, Matrix.of_apply]
+      rw [add_comm]
+      apply congrArg (fun x : ℝ => u i.val omega (Sum.inr j) + x)
+      apply congrArg (fun x : ℝ => (Real.sqrt (m : ℝ))⁻¹ * x)
+      apply Finset.sum_congr rfl
+      intro a _
+      simp only [Matrix.transpose_apply]
+      ring
+
+omit [Fintype k] [Fintype l] [DecidableEq k] [DecidableEq l]
+    [MeasurableSpace Ω] in
+private theorem weakIVRawRootReducedFormScore_eq_stack
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (m : ℕ) (omega : Ω) :
+    weakIVRawRootReducedFormScore Z u m omega =
+      (Real.sqrt (m : ℝ))⁻¹ •
+        ((stackRegressors Z m omega)ᵀ * stackRegressors u m omega) := by
+  ext a b
+  change
+    (Real.sqrt (m : ℝ))⁻¹ *
+        ∑ i ∈ Finset.range m, Z i omega a * u i omega b =
+      (Real.sqrt (m : ℝ))⁻¹ *
+        ∑ i : Fin m, Z i.val omega a * u i.val omega b
+  rw [Finset.sum_fin_eq_sum_range]
+  apply congrArg (fun x : ℝ => (Real.sqrt (m : ℝ))⁻¹ * x)
+  apply Finset.sum_congr rfl
+  intro i hi
+  simp [Finset.mem_range.mp hi]
+
+omit [DecidableEq k] [DecidableEq l] in
+private theorem weakIVReducedFormLimit_eq_raw_loading
+    (Q : Matrix l l ℝ) (C : Matrix l k ℝ)
+    (Xi : Matrix l (Sum Unit k) ℝ) (beta : k → ℝ) :
+    weakIVReducedFormLimit Q C
+        (weakIVRawGaussianFirstStage Xi)
+        (weakIVRawGaussianStructuralScore Xi beta) beta =
+      Q * weakIVRawReducedFormLoading C beta + Xi := by
+  ext a b
+  cases b with
+  | inl b =>
+      cases b
+      simp only [weakIVReducedFormLimit, weakIVFirstStageLimit,
+        weakIVRawGaussianFirstStage, weakIVRawGaussianStructuralScore,
+        weakIVRawReducedFormLoading, Matrix.add_apply, Matrix.mul_apply,
+        Matrix.mulVec, dotProduct]
+      simp_rw [add_mul]
+      rw [Finset.sum_add_distrib]
+      simp_rw [Finset.sum_mul]
+      rw [Finset.sum_comm]
+      simp_rw [Finset.mul_sum]
+      ring_nf
+  | inr j =>
+      simp [weakIVReducedFormLimit, weakIVFirstStageLimit,
+        weakIVRawGaussianFirstStage, weakIVRawReducedFormLoading,
+        Matrix.mul_apply]
+
+omit [DecidableEq k] [MeasurableSpace Ω] in
+private theorem weakIVLocalLIMLGeneralizedEigenvaluePair_eq_raw_formula_of_ne_zero
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ) (m : ℕ) (omega : Ω)
+    (hm : m ≠ 0) :
+    weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega =
+      weakIVRawLIMLPencilFormula C beta
+        (weakIVRawLIMLPencilSampleState Z u m omega) := by
+  let Zm := stackRegressors Z m omega
+  let Um := stackRegressors u m omega
+  let Rm := weakIVLocalReducedFormSampleMatrix Z u C beta m omega
+  let D := weakIVRawReducedFormLoading C beta
+  let t : ℝ := (Real.sqrt (m : ℝ))⁻¹
+  let r : ℝ := (m : ℝ)⁻¹
+  have hmreal : (m : ℝ) ≠ 0 := by exact_mod_cast hm
+  have hsqrt : Real.sqrt (m : ℝ) ≠ 0 := by positivity
+  have ht_sq : t * t = r := by
+    dsimp [t, r]
+    field_simp
+    nlinarith [Real.sq_sqrt (Nat.cast_nonneg m : 0 ≤ (m : ℝ))]
+  have hscale : t * r⁻¹ * t = 1 := by
+    dsimp [t, r]
+    rw [inv_inv]
+    field_simp
+    nlinarith [Real.sq_sqrt (Nat.cast_nonneg m : 0 ≤ (m : ℝ))]
+  have hR : Rm = Um + t • (Zm * D) := by
+    simpa [Rm, Um, Zm, D, t] using
+      weakIVLocalReducedFormSampleMatrix_eq_raw_loading Z u C beta m omega
+  have hXi : weakIVRawRootReducedFormScore Z u m omega = t • (Zmᵀ * Um) := by
+    simpa [t, Zm, Um] using weakIVRawRootReducedFormScore_eq_stack Z u m omega
+  have hQ : sampleGram Zm = r • (Zmᵀ * Zm) := by
+    simp [sampleGram, r]
+  have hSigma : sampleGram Um = r • (Umᵀ * Um) := by
+    simp [sampleGram, r]
+  have hA : sampleGram Zm * D + weakIVRawRootReducedFormScore Z u m omega =
+      t • (Zmᵀ * Rm) := by
+    rw [hQ, hXi, hR]
+    simp only [Matrix.smul_mul, Matrix.mul_add, Matrix.mul_smul,
+      smul_add, smul_smul, Matrix.mul_assoc]
+    rw [ht_sq]
+    module
+  have hN :
+      (sampleGram Zm * D + weakIVRawRootReducedFormScore Z u m omega)ᵀ *
+          (sampleGram Zm)⁻¹ *
+          (sampleGram Zm * D + weakIVRawRootReducedFormScore Z u m omega) =
+        Rmᵀ * instrumentProjectionStar Zm * Rm := by
+    rw [hA, hQ, nonsingInv_smul]
+    simp only [transpose_smul, Matrix.smul_mul, Matrix.mul_smul,
+      smul_smul, Matrix.transpose_mul, transpose_transpose]
+    have hscale' : t * (r⁻¹ * t) = 1 := by
+      calc
+        t * (r⁻¹ * t) = t * r⁻¹ * t := by ring
+        _ = 1 := hscale
+    rw [hscale', one_smul]
+    simp [instrumentProjectionStar, Matrix.mul_assoc]
+  have hGram :
+      r • (Rmᵀ * Rm) =
+        sampleGram Um +
+          r • ((weakIVRawRootReducedFormScore Z u m omega)ᵀ * D +
+            Dᵀ * weakIVRawRootReducedFormScore Z u m omega +
+            Dᵀ * sampleGram Zm * D) := by
+    rw [hR, hXi, hQ, hSigma]
+    simp only [transpose_add, transpose_smul, transpose_mul, Matrix.add_mul,
+      Matrix.mul_add, Matrix.smul_mul, Matrix.mul_smul, smul_add, smul_smul,
+      transpose_transpose, Matrix.mul_assoc]
+    rw [ht_sq]
+    module
+  rw [weakIVLocalLIMLGeneralizedEigenvaluePair]
+  simp only [weakIVRawLIMLPencilFormula, weakIVRawLIMLPencilSampleState]
+  apply Prod.ext
+  · simpa [Rm, Zm, D] using hN.symm
+  · change
+      r • (Rmᵀ * ((1 : Matrix (Fin m) (Fin m) ℝ) -
+          instrumentProjectionStar Zm) * Rm) = _
+    rw [Matrix.mul_sub, Matrix.mul_one, Matrix.sub_mul]
+    rw [smul_sub, ← hN, hGram]
+    dsimp [Um, Zm, D, r]
+    module
+
+omit [DecidableEq k] [MeasurableSpace Ω] in
+private theorem weakIVLocalLIMLGeneralizedEigenvaluePair_eq_raw_formula
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ) (m : ℕ) (omega : Ω) :
+    weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega =
+      weakIVRawLIMLPencilFormula C beta
+        (weakIVRawLIMLPencilSampleState Z u m omega) := by
+  by_cases hm : m = 0
+  · subst m
+    simp [weakIVLocalLIMLGeneralizedEigenvaluePair,
+      weakIVLocalLIMLResidualCovariance, weakIVRawLIMLPencilFormula,
+      weakIVRawLIMLPencilSampleState, sampleGram, instrumentProjectionStar]
+  · exact weakIVLocalLIMLGeneralizedEigenvaluePair_eq_raw_formula_of_ne_zero
+      Z u C beta m omega hm
+
+omit [DecidableEq k] [IsProbabilityMeasure μ] in
+private theorem weakIVRawLIMLPencilAssemblyMap_limit
+    (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (hQZZ : IsUnit (popGram μ Z).det)
+    (z : EuclideanSpace ℝ (l × Sum Unit k)) :
+    weakIVRawLIMLPencilAssemblyMap C beta
+        (weakIVRawLIMLPencilLimitState μ Z u z) =
+      weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta z := by
+  have hlimit := weakIVReducedFormLimit_eq_raw_loading
+    (popGram μ Z) C (weakIVRawGaussianMatrix z) beta
+  rw [weakIVRawLIMLPencilAssemblyMap]
+  simp only [weakIVRawLIMLPencilLimitState]
+  rw [if_pos hQZZ]
+  simp only [weakIVRawLIMLPencilFormula,
+    weakIVRawLIMLGeneralizedEigenvalueLimitPair,
+    weakIVLIMLGeneralizedEigenvalueLimitPrimitive,
+    weakIVReducedFormRayleighMatrix, limlRayleighMatrix]
+  rw [hlimit]
+  simp
+
+omit [IsProbabilityMeasure μ] in
+private theorem weakIV_tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero
+    {E : Type*} [NormedAddCommGroup E]
+    {X Y : ℕ → Ω → E}
+    (hbad : Tendsto (fun m => μ {omega | X m omega ≠ Y m omega}) atTop (𝓝 0)) :
+    TendstoInMeasure μ (Y - X) atTop (fun _ => 0) := by
+  intro epsilon hepsilon
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hbad
+    (Eventually.of_forall fun _ => zero_le _) ?_
+  exact Eventually.of_forall fun m => measure_mono (by
+    intro omega homega
+    simp only [Set.mem_setOf_eq, Pi.sub_apply] at homega ⊢
+    intro heq
+    rw [heq, sub_self, edist_self] at homega
+    exact (not_le_of_gt hepsilon) homega)
+
+/-- The literal triangular LIML generalized-eigenvalue pencil follows from
+the raw reduced-form CLT/WLLNs and nonsingularity of the population instrument
+Gram.  No eigenvalue selector or estimator convergence is assumed. -/
+theorem weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    (C : Matrix l k ℝ) (beta : k → ℝ)
+    (h : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (hQZZ : IsUnit (popGram μ Z).det) :
+    TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
+      atTop
+      (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta)
+      (fun _ => μ)
+      (multivariateGaussian 0
+        (covMat μ (weakIVRawReducedFormScoreRow Z u 0))) := by
+  let gaussianLaw := multivariateGaussian 0
+    (covMat μ (weakIVRawReducedFormScoreRow Z u 0))
+  have hr : TendstoInMeasure μ
+      (fun (m : ℕ) (_ : Ω) => (m : ℝ)⁻¹) atTop (fun _ => (0 : ℝ)) :=
+    tendstoInMeasure_const_real (μ := μ)
+      (tendsto_inv_atTop_zero.comp tendsto_natCast_atTop_atTop)
+  have hraw := weakIV_rawJointMoments_tendstoInDistribution h
+  have hstate : TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) => weakIVRawLIMLPencilSampleState Z u m omega)
+      atTop
+      (weakIVRawLIMLPencilLimitState μ Z u)
+      (fun _ => μ) gaussianLaw := by
+    have hprod := hraw.prodMk_of_tendstoInMeasure_const
+      (fun (m : ℕ) (omega : Ω) =>
+        (weakIVRawRootReducedFormScore Z u m omega,
+          (sampleGram (stackRegressors Z m omega),
+            sampleGram (stackRegressors u m omega))))
+      (fun m (_ : Ω) => (m : ℝ)⁻¹)
+      (fun z : EuclideanSpace ℝ (l × Sum Unit k) =>
+        (weakIVRawGaussianMatrix z, (popGram μ Z, popGram μ u)))
+      hr (fun _ => measurable_const.aemeasurable)
+    simpa [weakIVRawLIMLPencilSampleState, weakIVRawLIMLPencilLimitState,
+      weakIVRawGaussianMatrix, gaussianLaw] using hprod
+  let bad : Set (WeakIVRawLIMLPencilState k l) :=
+    {p | ¬ IsUnit (p.1.2.1).det}
+  have hbad_meas : MeasurableSet bad := by
+    have hdet : Measurable
+        (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).det) :=
+      (Continuous.matrix_det
+        (continuous_fst.comp (continuous_snd.comp continuous_fst))).measurable
+    rw [show bad =
+        (fun p : WeakIVRawLIMLPencilState k l => (p.1.2.1).det) ⁻¹' {0} by
+      ext p
+      simp [bad, isUnit_iff_ne_zero]]
+    exact hdet (measurableSet_singleton 0)
+  have hbad_null :
+      (gaussianLaw.map (weakIVRawLIMLPencilLimitState μ Z u)) bad = 0 := by
+    rw [Measure.map_apply_of_aemeasurable hstate.aemeasurable_limit hbad_meas]
+    have hpre :
+        (weakIVRawLIMLPencilLimitState μ Z u) ⁻¹' bad =
+          (∅ : Set (EuclideanSpace ℝ (l × Sum Unit k))) := by
+      ext z
+      simp only [Set.mem_preimage, bad, Set.mem_setOf_eq,
+        weakIVRawLIMLPencilLimitState, Set.mem_empty_iff_false, iff_false,
+        not_not]
+      exact hQZZ
+    rw [hpre, measure_empty]
+  have hcont : ∀ p : WeakIVRawLIMLPencilState k l, p ∉ bad →
+      ContinuousAt (weakIVRawLIMLPencilAssemblyMap C beta) p := by
+    intro p hp
+    exact weakIVRawLIMLPencilAssemblyMap_continuousAt_of_nonsingular C beta p
+      (by simpa [bad] using hp)
+  have hbranch : TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVRawLIMLPencilAssemblyMap C beta
+          (weakIVRawLIMLPencilSampleState Z u m omega))
+      atTop
+      (fun z => weakIVRawLIMLPencilAssemblyMap C beta
+        (weakIVRawLIMLPencilLimitState μ Z u z))
+      (fun _ => μ) gaussianLaw := by
+    simpa [Function.comp_def] using tendstoInDistribution_ae_continuous_comp
+      hstate (weakIVRawLIMLPencilAssemblyMap_measurable C beta)
+        hbad_null hcont
+  have hbranch_target : TendstoInDistribution
+      (fun (m : ℕ) (omega : Ω) =>
+        weakIVRawLIMLPencilAssemblyMap C beta
+          (weakIVRawLIMLPencilSampleState Z u m omega))
+      atTop
+      (weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta)
+      (fun _ => μ) gaussianLaw := by
+    refine TendstoInDistribution.congr (fun _ => EventuallyEq.rfl) ?_ hbranch
+    exact ae_of_all gaussianLaw fun z =>
+      weakIVRawLIMLPencilAssemblyMap_limit Z u C beta hQZZ z
+  have hsingular := weakIV_rawInstrumentGram_singular_tendsto_zero h hQZZ
+  have heq_bad : Tendsto
+      (fun m => μ {omega |
+        weakIVRawLIMLPencilAssemblyMap C beta
+            (weakIVRawLIMLPencilSampleState Z u m omega) ≠
+          weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega})
+      atTop (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds
+      hsingular (Eventually.of_forall fun _ => zero_le _) ?_
+    exact Eventually.of_forall fun m => measure_mono (by
+      intro omega hne
+      simp only [Set.mem_setOf_eq] at hne ⊢
+      intro hunit
+      apply hne
+      simp only [weakIVRawLIMLPencilAssemblyMap,
+        weakIVRawLIMLPencilSampleState]
+      rw [if_pos hunit]
+      simpa [weakIVRawLIMLPencilSampleState] using
+        (weakIVLocalLIMLGeneralizedEigenvaluePair_eq_raw_formula
+          Z u C beta m omega).symm)
+  have hdiff : TendstoInMeasure μ
+      ((fun (m : ℕ) (omega : Ω) =>
+          weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega) -
+        (fun (m : ℕ) (omega : Ω) =>
+          weakIVRawLIMLPencilAssemblyMap C beta
+            (weakIVRawLIMLPencilSampleState Z u m omega)))
+      atTop (fun _ => 0) :=
+    weakIV_tendstoInMeasure_sub_zero_of_measure_ne_tendsto_zero heq_bad
+  have hpencil_meas : ∀ m, AEMeasurable
+      (fun omega => weakIVLocalLIMLGeneralizedEigenvaluePair
+        Z u C beta m omega) μ := by
+    intro m
+    have hformula :=
+      (weakIVRawLIMLPencilFormula_measurable C beta).comp_aemeasurable
+        (hstate.forall_aemeasurable m)
+    refine hformula.congr (ae_of_all μ fun omega => ?_)
+    exact (weakIVLocalLIMLGeneralizedEigenvaluePair_eq_raw_formula
+      Z u C beta m omega).symm
+  simpa [gaussianLaw] using tendstoInDistribution_of_tendstoInMeasure_sub
+    (Y := fun (m : ℕ) (omega : Ω) =>
+      weakIVLocalLIMLGeneralizedEigenvaluePair Z u C beta m omega)
+    (Z := weakIVRawLIMLGeneralizedEigenvalueLimitPair μ Z u C beta)
+    hbranch_target hdiff hpencil_meas
+
 /-- Narrow certificate for the unresolved smallest generalized-root selector
 in the literal triangular model.  The bad set permits eigenvalue collisions or
 singular denominators, but must be null under the raw Gaussian limit law. -/
@@ -15362,11 +15943,12 @@ structure WeakIVTheorem1218TriangularSelectorCertificate
 
 /-- Non-circular corrected assembly package at the current raw boundary.
 
-`pencil_tendsto` is the unresolved random-denominator step. The selector
-certificate identifies both the finite-sample and limiting generalized roots
-as Rayleigh minima. Estimator nondegeneracy assumptions are deliberately absent
-until a future endpoint actually passes from these raw moments to totalized
-OLS/2SLS/LIML estimators. -/
+The pencil field records the generalized-eigenvalue CMT and is derived from raw
+moments by `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments`. The
+selector certificate identifies both the finite-sample and limiting generalized
+roots as Rayleigh minima. Estimator nondegeneracy assumptions are deliberately
+absent until a future endpoint actually passes from these raw moments to
+totalized OLS/2SLS/LIML estimators. -/
 structure WeakIVTheorem1218TriangularAssemblyConditions
     (μ : Measure Ω) [IsProbabilityMeasure μ]
     (Z : ℕ → Ω → l → ℝ) (u : ℕ → Ω → Sum Unit k → ℝ)
@@ -15389,6 +15971,31 @@ structure WeakIVTheorem1218TriangularAssemblyConditions
       (covMat μ (weakIVRawReducedFormScoreRow Z u 0)))
   selector : WeakIVTheorem1218TriangularSelectorCertificate
     μ Z u C beta limlMuHat muSelector selectorBad
+
+/-- Build the triangular raw assembly from primitive moments, population
+instrument nonsingularity, and the spectral selector certificate. In
+particular, no estimator convergence is assumed. -/
+theorem WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments
+    {Z : ℕ → Ω → l → ℝ} {u : ℕ → Ω → Sum Unit k → ℝ}
+    {C : Matrix l k ℝ} {beta : k → ℝ}
+    {limlMuHat : ℕ → Ω → ℝ}
+    {muSelector :
+      Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ → ℝ}
+    {selectorBad : Set
+      (Matrix (Sum Unit k) (Sum Unit k) ℝ ×
+        Matrix (Sum Unit k) (Sum Unit k) ℝ)}
+    (raw_moments : WeakIVTheorem1218RawJointMomentConditions μ Z u)
+    (hQZZ : IsUnit (popGram μ Z).det)
+    (selector : WeakIVTheorem1218TriangularSelectorCertificate
+      μ Z u C beta limlMuHat muSelector selectorBad) :
+    WeakIVTheorem1218TriangularAssemblyConditions
+      μ Z u C beta limlMuHat muSelector selectorBad where
+  raw_moments := raw_moments
+  pencil_tendsto :=
+    weakIV_rawLIMLGeneralizedEigenvaluePair_tendstoInDistribution
+      C beta raw_moments hQZZ
+  selector := selector
 
 /-- Current honest endpoint at the literal triangular boundary.  It derives
 all raw Gram/score blocks and the scaled LIML generalized root.  The canonical
