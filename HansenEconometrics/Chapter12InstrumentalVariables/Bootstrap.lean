@@ -10,6 +10,10 @@ This file contains the deterministic bootstrap 2SLS surface for Hansen
 Theorem 12.8. The definitions mirror the finite-resample Chapter 10 regression
 API, but keep Hansen's IV-specific recentering explicit:
 `n^{-1/2}(Z^{*'} e^* - Z' ehat)`.
+
+The public asymptotic surface also includes the observed-Assumption-12.2
+bootstrap linearization-matrix limit and an honest coefficient-closeness
+constructor that leaves only the nonlinear coefficient remainder to callers.
 -/
 
 open MeasureTheory ProbabilityTheory Filter
@@ -491,6 +495,265 @@ noncomputable def twoSLSBootstrapPopulationLinearizedGapFinSucc
   (twoSLSBootstrapPopulationLinearizedStatisticFinSucc
     QXZ QZZ QZX Z X Y n ω ωs : k → ℝ)
 
+/-- Ordinary finite-resample nonparametric-bootstrap law on resampling maps,
+`uniformOn Set.univ`, used by Hansen Theorem 12.8. -/
+noncomputable def twoSLSBootstrapUniformPstarFinSucc
+    (n : ℕ) (_ω : Ω) : Measure (Fin (n + 1) → Fin (n + 1)) :=
+  ProbabilityTheory.uniformOn
+    (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))
+
+/-- The ordinary finite-resample bootstrap law is a probability measure. -/
+theorem twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure
+    (n : ℕ) (ω : Ω) :
+    IsProbabilityMeasure (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω) := by
+  change IsProbabilityMeasure
+    (ProbabilityTheory.uniformOn
+      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
+  infer_instance
+
+section BootstrapLinearizationConvergence
+
+variable [MeasurableSpace Ω] {μ : Measure Ω}
+
+private noncomputable def twoSLSBootstrapCombinedMomentRows
+    (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ) :
+    ℕ → Ω → EuclideanSpace ℝ ((l ⊕ k) × (l ⊕ k)) :=
+  fun i ω => WithLp.toLp 2 (fun p =>
+    twoSLSCombinedRegressors Z X i ω p.1 *
+      twoSLSCombinedRegressors Z X i ω p.2)
+
+private noncomputable def twoSLSBootstrapCombinedMomentMatrix
+    (v : EuclideanSpace ℝ ((l ⊕ k) × (l ⊕ k))) :
+    Matrix (l ⊕ k) (l ⊕ k) ℝ :=
+  fun i j => v (i, j)
+
+omit [DecidableEq k] [DecidableEq l] in
+private theorem
+    twoSLSBootstrapCombinedSampleGramFinSucc_tendstoInBootstrapProbability_uniform
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ Z X e Y β) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (fun n ω ωs =>
+        sampleGram
+          (Matrix.fromCols
+            (fun i : Fin (n + 1) => Z (ωs i).val ω)
+            (fun i : Fin (n + 1) => X (ωs i).val ω)))
+      (fun _ => popGram μ (twoSLSCombinedRegressors Z X)) := by
+  classical
+  let hiid := h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
+  let hGram := hiid.toGramConditions
+  have hrow_mem : MemLp (twoSLSBootstrapCombinedMomentRows Z X 0) 1 μ := by
+    rw [memLp_piLp_iff]
+    intro p
+    exact memLp_one_iff_integrable.mpr
+      (by
+        simpa [twoSLSBootstrapCombinedMomentRows, Matrix.vecMulVec_apply] using
+          Integrable.eval (Integrable.eval hGram.combined_gram.int_outer p.1) p.2)
+  have houter_meas : Measurable
+      (fun x : l ⊕ k → ℝ =>
+        WithLp.toLp 2 (fun p : (l ⊕ k) × (l ⊕ k) => x p.1 * x p.2)) := by
+    fun_prop
+  have hrow_indep : iIndepFun (twoSLSBootstrapCombinedMomentRows Z X) μ := by
+    simpa [twoSLSBootstrapCombinedMomentRows, Function.comp_def] using
+      hiid.combined_iIndep.comp
+        (fun _ (x : l ⊕ k → ℝ) =>
+          WithLp.toLp 2 (fun p : (l ⊕ k) × (l ⊕ k) => x p.1 * x p.2))
+        (fun _ => houter_meas)
+  have hrow_ident : ∀ i,
+      IdentDistrib (twoSLSBootstrapCombinedMomentRows Z X i)
+        (twoSLSBootstrapCombinedMomentRows Z X 0) μ μ := by
+    intro i
+    have hi := hiid.combined_identDistrib i
+    simpa [twoSLSBootstrapCombinedMomentRows, Function.comp_def] using
+      hi.comp houter_meas
+  have hrows :
+      TendstoInBootstrapProbabilityIndexed μ
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (fun n ω ωs =>
+          empiricalBootstrapResampleMean
+            (fun i : Fin (n + 1) =>
+              twoSLSBootstrapCombinedMomentRows Z X i.val ω)
+            (fun ωs t => ωs t) ωs)
+        (fun _ => ∫ ω, twoSLSBootstrapCombinedMomentRows Z X 0 ω ∂μ) := by
+    simpa [twoSLSBootstrapUniformPstarFinSucc] using
+      (chapter10_indexed_bootstrap_wlln_level_finSucc_resampleMean_of_iid_integrable
+        (μ := μ) (Y := twoSLSBootstrapCombinedMomentRows Z X)
+        hrow_mem hrow_indep hrow_ident)
+  have hmatrix :
+      TendstoInBootstrapProbabilityIndexed μ
+        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (fun n ω ωs =>
+          twoSLSBootstrapCombinedMomentMatrix
+            (empiricalBootstrapResampleMean
+              (fun i : Fin (n + 1) =>
+                twoSLSBootstrapCombinedMomentRows Z X i.val ω)
+              (fun ωs t => ωs t) ωs))
+        (fun _ => popGram μ (twoSLSCombinedRegressors Z X)) := by
+    have hmatrix_cont : Continuous
+        (twoSLSBootstrapCombinedMomentMatrix (k := k) (l := l)) := by
+      exact continuous_matrix fun i j => by
+        simpa [twoSLSBootstrapCombinedMomentMatrix] using
+          (PiLp.continuous_apply
+            (p := 2) (β := fun _ : (l ⊕ k) × (l ⊕ k) => ℝ) (i, j))
+    have hmapped := hrows.continuousAt_const_comp
+      (fun n ω =>
+        twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
+      hmatrix_cont.continuousAt
+    have hmatrix_integral :
+        twoSLSBootstrapCombinedMomentMatrix
+            (∫ ω, twoSLSBootstrapCombinedMomentRows Z X 0 ω ∂μ) =
+          popGram μ (twoSLSCombinedRegressors Z X) := by
+      ext i j
+      rw [show twoSLSBootstrapCombinedMomentMatrix
+          (∫ ω, twoSLSBootstrapCombinedMomentRows Z X 0 ω ∂μ) i j =
+          (∫ ω, twoSLSBootstrapCombinedMomentRows Z X 0 ω ∂μ) (i, j) by rfl]
+      rw [eval_integral_piLp
+        (fun p => memLp_one_iff_integrable.mp hrow_mem |>.eval_piLp p)]
+      rw [popGram]
+      exact (integral_apply_apply hGram.combined_gram.int_outer i j).symm
+    exact hmapped.congr (fun _ _ _ => rfl) (fun _ => hmatrix_integral)
+  refine hmatrix.congr ?_ (fun _ => rfl)
+  intro n ω ωs
+  ext i j
+  simp [twoSLSBootstrapCombinedMomentMatrix, twoSLSBootstrapCombinedMomentRows,
+    empiricalBootstrapResampleMean, sampleGram, Matrix.fromCols,
+    twoSLSCombinedRegressors, Matrix.mul_apply, Matrix.transpose_apply]
+
+set_option linter.style.longLine false in
+set_option maxHeartbeats 1200000 in
+-- The nested rectangular matrix inverses make continuous-map elaboration expensive.
+/-- Under observed textbook Assumption 12.2, the ordinary-bootstrap 2SLS
+linearization matrix converges in bootstrap probability to its population
+counterpart. The moment step is the indexed Chapter 10 bootstrap WLLN; the two
+matrix inverses are then handled by the 2SLS continuous-mapping pattern at the
+nonsingular population moments. -/
+theorem
+    twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ Z X e Y β) :
+    TendstoInBootstrapProbabilityIndexed μ
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (fun n ω ωs => twoSLSBootstrapLinearizationMatrixFinSucc Z X n ω ωs)
+      (fun _ =>
+        twoSLSPopulationLinearizationMatrix
+          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X)))) := by
+  let hiid := h.toTextbookSecondConditions.toJointIidConditions.toIidConditions
+  let hGram := hiid.toGramConditions
+  have hmatrix' :=
+    twoSLSBootstrapCombinedSampleGramFinSucc_tendstoInBootstrapProbability_uniform
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β) h
+  let Q : Matrix (l ⊕ k) (l ⊕ k) ℝ :=
+    popGram μ (twoSLSCombinedRegressors Z X)
+  let QXZ : Matrix k l ℝ := twoSLSCombinedQXZ Q
+  let QZZ : Matrix l l ℝ := twoSLSCombinedQZZ Q
+  let QZX : Matrix l k ℝ := twoSLSCombinedQZX Q
+  have hPstar : ∀ n ω,
+      IsProbabilityMeasure (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω) :=
+    fun n ω =>
+      twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω
+  have hQZZ_unit : IsUnit QZZ.det := by
+    dsimp [QZZ, Q]
+    exact (Matrix.isUnit_iff_isUnit_det _).mp h.qzz_posDef.isUnit
+  have hbread_unit : IsUnit (twoSLSBread QXZ QZZ QZX).det := by
+    dsimp [QXZ, QZZ, QZX, Q]
+    exact isUnit_twoSLSBread_det_of_qzz_posDef_rank
+      (twoSLSCombinedQXZ_eq_transpose_QZX_of_popGram_wlln
+        (μ := μ) (Z := Z) (X := X) hGram.combined_gram)
+      h.qzz_posDef h.qzx_rank
+  let linFun : Matrix (l ⊕ k) (l ⊕ k) ℝ → Matrix k l ℝ := fun M =>
+    (twoSLSBread (M.submatrix Sum.inr Sum.inl)
+      (M.submatrix Sum.inl Sum.inl) (M.submatrix Sum.inl Sum.inr))⁻¹ *
+        M.submatrix Sum.inr Sum.inl * (M.submatrix Sum.inl Sum.inl)⁻¹
+  have hA : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ => M.submatrix Sum.inr Sum.inl) Q :=
+    (continuous_id.matrix_submatrix Sum.inr Sum.inl).continuousAt
+  have hB : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ => M.submatrix Sum.inl Sum.inl) Q :=
+    (continuous_id.matrix_submatrix Sum.inl Sum.inl).continuousAt
+  have hC : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ => M.submatrix Sum.inl Sum.inr) Q :=
+    (continuous_id.matrix_submatrix Sum.inl Sum.inr).continuousAt
+  have hBInv : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        (M.submatrix Sum.inl Sum.inl)⁻¹) Q := by
+    have hinv : ContinuousAt Inv.inv QZZ := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hQZZ_unit.ne_zero
+    simpa [QZZ] using hinv.comp hB
+  have hABInv : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        M.submatrix Sum.inr Sum.inl * (M.submatrix Sum.inl Sum.inl)⁻¹) Q :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hA.prodMk hBInv)
+  have hBread : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        twoSLSBread (M.submatrix Sum.inr Sum.inl)
+          (M.submatrix Sum.inl Sum.inl) (M.submatrix Sum.inl Sum.inr)) Q := by
+    simpa [twoSLSBread] using
+      (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+        (hABInv.prodMk hC)
+  have hBreadInv : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        (twoSLSBread (M.submatrix Sum.inr Sum.inl)
+          (M.submatrix Sum.inl Sum.inl) (M.submatrix Sum.inl Sum.inr))⁻¹) Q := by
+    have hbread_unit' : IsUnit
+        (twoSLSBread (Q.submatrix Sum.inr Sum.inl)
+          (Q.submatrix Sum.inl Sum.inl) (Q.submatrix Sum.inl Sum.inr)).det := by
+      simpa [QXZ, QZZ, QZX, Q, twoSLSCombinedQXZ, twoSLSCombinedQZZ,
+        twoSLSCombinedQZX] using hbread_unit
+    have hinv : ContinuousAt (fun M : Matrix k k ℝ => M⁻¹)
+        (twoSLSBread (Q.submatrix Sum.inr Sum.inl)
+          (Q.submatrix Sum.inl Sum.inl) (Q.submatrix Sum.inl Sum.inr)) := by
+      refine continuousAt_matrix_inv _ ?_
+      rw [Ring.inverse_eq_inv']
+      exact continuousAt_inv₀ hbread_unit'.ne_zero
+    exact ContinuousAt.comp
+      (f := fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        twoSLSBread (M.submatrix Sum.inr Sum.inl)
+          (M.submatrix Sum.inl Sum.inl) (M.submatrix Sum.inl Sum.inr))
+      hinv hBread
+  have hLeft : ContinuousAt
+      (fun M : Matrix (l ⊕ k) (l ⊕ k) ℝ =>
+        (twoSLSBread (M.submatrix Sum.inr Sum.inl)
+          (M.submatrix Sum.inl Sum.inl) (M.submatrix Sum.inl Sum.inr))⁻¹ *
+            M.submatrix Sum.inr Sum.inl) Q :=
+    (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hBreadInv.prodMk hA)
+  have hlin_cont : ContinuousAt linFun Q := by
+    exact (Continuous.matrix_mul continuous_fst continuous_snd).continuousAt.comp
+      (hLeft.prodMk hBInv)
+  have hlin := hmatrix'.continuousAt_const_comp hPstar hlin_cont
+  refine hlin.congr ?_ ?_
+  · intro n ω ωs
+    have hZ : (fun i : Fin (n + 1) => Z (ωs i).val ω) =
+        twoSLSBootstrapInstrumentsFinSucc Z n ω ωs := by
+      ext i a
+      rfl
+    have hX : (fun i : Fin (n + 1) => X (ωs i).val ω) =
+        twoSLSBootstrapRegressorsFinSucc X n ω ωs := by
+      ext i a
+      rfl
+    simp only [linFun, sampleGram_fromCols_right_left,
+      sampleGram_fromCols_left_left, sampleGram_fromCols_left_right,
+      twoSLSBootstrapLinearizationMatrixFinSucc, twoSLSLinearizationMatrix]
+    rw [hZ, hX]
+  · intro ω
+    simp [linFun, twoSLSCombinedQXZ,
+      twoSLSCombinedQZZ, twoSLSCombinedQZX,
+      twoSLSPopulationLinearizationMatrix]
+
+end BootstrapLinearizationConvergence
+
 /-- Scalar one-row restriction numerator
 `sqrt(n)(R βhat_2sls^* - R βhat_2sls)` for Hansen's bootstrap t-ratio in
 Theorem 12.8. -/
@@ -625,22 +888,6 @@ noncomputable def twoSLSRobustLinearTStatFinSucc
     (Real.sqrt (n + 1 : ℝ))
 
 end DeterministicBootstrap
-
-/-- Ordinary finite-resample nonparametric-bootstrap law on resampling maps,
-`uniformOn Set.univ`, used by Hansen Theorem 12.8. -/
-noncomputable def twoSLSBootstrapUniformPstarFinSucc
-    (n : ℕ) (_ω : Ω) : Measure (Fin (n + 1) → Fin (n + 1)) :=
-  ProbabilityTheory.uniformOn
-    (Set.univ : Set (Fin (n + 1) → Fin (n + 1)))
-
-/-- The ordinary finite-resample bootstrap law is a probability measure. -/
-theorem twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure
-    (n : ℕ) (ω : Ω) :
-    IsProbabilityMeasure (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω) := by
-  change IsProbabilityMeasure
-    (ProbabilityTheory.uniformOn
-      (Set.univ : Set (Fin (n + 1) → Fin (n + 1))))
-  infer_instance
 
 /-- Finite-resample a.e. measurability of Hansen's robust bootstrap t-ratio
 under the ordinary finite bootstrap law. -/
@@ -14419,6 +14666,173 @@ private theorem
   rw [Real.dist_eq, abs_of_nonneg hdiff_nonneg]
   linarith
 
+omit [DecidableEq k] [DecidableEq l] in
+private theorem norm_mulVec_euclidean_le_card_mul_matrix_norm_mul_norm
+    (A : Matrix k l ℝ) (x : EuclideanSpace ℝ l) :
+    ‖A *ᵥ (x : l → ℝ)‖ ≤ (Fintype.card l : ℝ) * ‖A‖ * ‖x‖ := by
+  have hnonneg : 0 ≤ (Fintype.card l : ℝ) * ‖A‖ * ‖x‖ := by
+    positivity
+  refine (pi_norm_le_iff_of_nonneg hnonneg).2 ?_
+  intro i
+  calc
+    ‖(A *ᵥ (x : l → ℝ)) i‖
+        = |∑ j : l, A i j * x j| := by
+            simp [Matrix.mulVec, dotProduct, Real.norm_eq_abs]
+    _ ≤ ∑ j : l, |A i j * x j| := by
+          simpa using
+            (Finset.abs_sum_le_sum_abs (fun j : l => A i j * x j) Finset.univ)
+    _ ≤ ∑ _j : l, ‖A‖ * ‖x‖ := by
+          refine Finset.sum_le_sum ?_
+          intro j _
+          rw [abs_mul]
+          have hAij : |A i j| ≤ ‖A‖ := by
+            simpa [Real.norm_eq_abs] using
+              Matrix.norm_entry_le_entrywise_sup_norm (A := A) (i := i) (j := j)
+          have hxj : |x j| ≤ ‖x‖ := by
+            simpa [Real.norm_eq_abs] using PiLp.norm_apply_le x j
+          exact mul_le_mul hAij hxj (abs_nonneg _) (norm_nonneg _)
+    _ = (Fintype.card l : ℝ) * ‖A‖ * ‖x‖ := by
+          simp [Finset.sum_const, nsmul_eq_mul, mul_assoc]
+
+omit [DecidableEq k] [DecidableEq l] in
+private theorem indexed_bootstrap_matrix_mulVec_closeness_of_probability_tight
+    {Ωboot : ℕ → Type*} [∀ n, MeasurableSpace (Ωboot n)]
+    {Pstar : ∀ n, Ω → Measure (Ωboot n)}
+    {Astar : ∀ n, Ω → Ωboot n → Matrix k l ℝ}
+    {A : Matrix k l ℝ}
+    {Sstar : ∀ n, Ω → Ωboot n → EuclideanSpace ℝ l}
+    (hPstar : ∀ n ω, IsProbabilityMeasure (Pstar n ω))
+    (hA : TendstoInBootstrapProbabilityIndexed μ Pstar Astar (fun _ => A))
+    (hStight : ∀ η : ℝ, 0 < η →
+      ∃ K : Set (EuclideanSpace ℝ l), IsCompact K ∧
+        Tendsto
+          (fun n =>
+            μ {ω | η ≤ (Pstar n ω).real {ωs | Sstar n ω ωs ∉ K}})
+          atTop (𝓝 0)) :
+    ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (Pstar n ω).real
+            {ωs | δ ≤ dist
+              (Astar n ω ωs *ᵥ (Sstar n ω ωs : l → ℝ))
+              (A *ᵥ (Sstar n ω ωs : l → ℝ))})
+        atTop (fun _ => 0) := by
+  intro δ hδ
+  rw [tendstoInMeasure_iff_dist]
+  intro η hη
+  have hη2 : 0 < η / 2 := by positivity
+  obtain ⟨K, hK, hscoreOuter⟩ := hStight (η / 2) hη2
+  obtain ⟨M, _hMpos, hKball⟩ := hK.isBounded.subset_ball_lt 0
+    (0 : EuclideanSpace ℝ l)
+  let C : ℝ := max 1 ((Fintype.card l : ℝ) * M)
+  have hC : 0 < C := lt_of_lt_of_le zero_lt_one (le_max_left _ _)
+  have hcardM : (Fintype.card l : ℝ) * M ≤ C := le_max_right _ _
+  have hδC : 0 < δ / C := div_pos hδ hC
+  let matrixProb : ℕ → Ω → ℝ := fun n ω =>
+    (Pstar n ω).real {ωs | δ / C ≤ dist (Astar n ω ωs) A}
+  have hmatrixOuter :
+      Tendsto (fun n => μ {ω | η / 2 ≤ matrixProb n ω}) atTop (𝓝 0) := by
+    have hm := hA (δ / C) hδC
+    rw [tendstoInMeasure_iff_dist] at hm
+    simpa [matrixProb, bootstrapTailProbIndexed, Real.dist_eq,
+      abs_of_nonneg measureReal_nonneg] using hm (η / 2) hη2
+  have hsum :
+      Tendsto
+        (fun n =>
+          μ {ω | η / 2 ≤ matrixProb n ω} +
+            μ {ω |
+              η / 2 ≤ (Pstar n ω).real {ωs | Sstar n ω ωs ∉ K}})
+        atTop (𝓝 0) := by
+    simpa using hmatrixOuter.add hscoreOuter
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hsum
+    (fun _ => zero_le _) ?_
+  intro n
+  calc
+    μ {ω |
+        η ≤ dist
+          ((Pstar n ω).real
+            {ωs | δ ≤ dist
+              (Astar n ω ωs *ᵥ (Sstar n ω ωs : l → ℝ))
+              (A *ᵥ (Sstar n ω ωs : l → ℝ))})
+          0}
+        ≤ μ ({ω | η / 2 ≤ matrixProb n ω} ∪
+          {ω | η / 2 ≤
+            (Pstar n ω).real {ωs | Sstar n ω ωs ∉ K}}) := by
+      refine measure_mono ?_
+      intro ω hω
+      let B : Set (Ωboot n) :=
+        {ωs | δ / C ≤ dist (Astar n ω ωs) A}
+      let T : Set (Ωboot n) := {ωs | Sstar n ω ωs ∉ K}
+      let D : Set (Ωboot n) :=
+        {ωs | δ ≤ dist
+          (Astar n ω ωs *ᵥ (Sstar n ω ωs : l → ℝ))
+          (A *ᵥ (Sstar n ω ωs : l → ℝ))}
+      have hDBT : D ⊆ B ∪ T := by
+        intro ωs hωs
+        by_cases hs : Sstar n ω ωs ∈ K
+        · left
+          by_contra hmat
+          have hmat' : dist (Astar n ω ωs) A < δ / C := not_le.mp hmat
+          have hsNorm : ‖Sstar n ω ωs‖ ≤ M := by
+            have hsNorm' : ‖Sstar n ω ωs‖ < M := by
+              simpa [Metric.mem_ball, dist_zero_right] using hKball hs
+            exact hsNorm'.le
+          have hdistBound :
+              dist
+                  (Astar n ω ωs *ᵥ (Sstar n ω ωs : l → ℝ))
+                  (A *ᵥ (Sstar n ω ωs : l → ℝ)) < δ := by
+            calc
+              dist
+                    (Astar n ω ωs *ᵥ (Sstar n ω ωs : l → ℝ))
+                    (A *ᵥ (Sstar n ω ωs : l → ℝ))
+                  = ‖(Astar n ω ωs - A) *ᵥ
+                      (Sstar n ω ωs : l → ℝ)‖ := by
+                      rw [dist_eq_norm, Matrix.sub_mulVec]
+              _ ≤ (Fintype.card l : ℝ) * ‖Astar n ω ωs - A‖ *
+                    ‖Sstar n ω ωs‖ :=
+                  norm_mulVec_euclidean_le_card_mul_matrix_norm_mul_norm
+                    (Astar n ω ωs - A) (Sstar n ω ωs)
+              _ ≤ (Fintype.card l : ℝ) * ‖Astar n ω ωs - A‖ * M := by
+                  exact mul_le_mul_of_nonneg_left hsNorm (by positivity)
+              _ = ((Fintype.card l : ℝ) * M) * dist (Astar n ω ωs) A := by
+                  rw [dist_eq_norm]
+                  ring
+              _ ≤ C * dist (Astar n ω ωs) A := by
+                  exact mul_le_mul_of_nonneg_right hcardM dist_nonneg
+              _ < C * (δ / C) := mul_lt_mul_of_pos_left hmat' hC
+              _ = δ := by field_simp
+          exact (not_lt_of_ge hωs) hdistBound
+        · exact Or.inr hs
+      have htailBound :
+          (Pstar n ω).real D ≤ (Pstar n ω).real B + (Pstar n ω).real T := by
+        letI : IsProbabilityMeasure (Pstar n ω) := hPstar n ω
+        calc
+          (Pstar n ω).real D ≤ (Pstar n ω).real (B ∪ T) :=
+            ENNReal.toReal_mono (measure_ne_top (Pstar n ω) (B ∪ T))
+              (measure_mono hDBT)
+          _ ≤ ((Pstar n ω) B + (Pstar n ω) T).toReal :=
+            ENNReal.toReal_mono
+              (ENNReal.add_ne_top.mpr
+                ⟨measure_ne_top (Pstar n ω) B, measure_ne_top (Pstar n ω) T⟩)
+              (measure_union_le B T)
+          _ = (Pstar n ω).real B + (Pstar n ω).real T := by
+            rw [ENNReal.toReal_add (measure_ne_top _ _) (measure_ne_top _ _)]
+            rfl
+      have hsumGe : η ≤ (Pstar n ω).real B + (Pstar n ω).real T := by
+        have hprobNonneg : 0 ≤ (Pstar n ω).real D := measureReal_nonneg
+        have hω' : η ≤ (Pstar n ω).real D := by
+          simpa [D, Real.dist_eq, abs_of_nonneg hprobNonneg] using hω
+        exact hω'.trans htailBound
+      by_cases hB : η / 2 ≤ (Pstar n ω).real B
+      · exact Or.inl (by simpa [B, matrixProb] using hB)
+      · exact Or.inr (by
+          have hT : η / 2 ≤ (Pstar n ω).real T := by linarith
+          simpa [T] using hT)
+    _ ≤ μ {ω | η / 2 ≤ matrixProb n ω} +
+          μ {ω | η / 2 ≤
+            (Pstar n ω).real {ωs | Sstar n ω ωs ∉ K}} :=
+      measure_union_le _ _
+
 private theorem
     indexed_bootstrap_pair_asymptoticallyTight_of_closeness
     {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
@@ -14839,14 +15253,148 @@ private theorem
       (ν := law) hbase hPstar hZstar hZstar' hclose
   exact htarget.congr_limit_law hidlaw hZlaw
 
+set_option linter.style.longLine false in
+private theorem
+    twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_of_observed_textbook_fourth
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ Z X e Y β) :
+    TendstoInBootstrapWeakDistributionIndexed μ
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (fun n ω ωs =>
+        twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+      (multivariateGaussian (0 : EuclideanSpace ℝ l) (scoreCovMat μ Z e))
+      (fun z : EuclideanSpace ℝ l => z) := by
+  let hmixed := h.toJointIidMixedMomentConditions
+  let hiid :=
+    hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
+  have htrue :=
+    twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2
+      (μ := μ) (Z := Z) (X := X) (e := e) hiid
+  have hresid :
+      TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β :=
+    TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_textbook_fourth
+      (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β)
+      h.toResidualTextbookFourthConditions
+  have hscoreClose : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+            {ωs |
+              δ ≤ dist
+                (twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+                (twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc
+                  Z e n ω ωs)})
+        atTop (fun _ => 0) := by
+    intro δ hδ
+    have hdist : ∀ n ω ωs,
+        dist (twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+          (twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc Z e n ω ωs) =
+          ‖twoSLSBootstrapResidualSubstitutionRecenteredScoreStatisticFinSucc
+            Z X Y β n ω ωs‖ := by
+      intro n ω ωs
+      rw [twoSLSBootstrapRecenteredScoreStatisticFinSucc_eq_true_sub_residualSubstitution
+        Z X Y e β h.model]
+      simp
+    simpa [hdist] using hresid.residual_substitution_negligible δ hδ
+  exact
+    tendstoInBootstrapWeakDistributionIndexed_of_closeness_law
+      (μ := μ)
+      (Pstar := twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+      (Zstar := fun n ω ωs =>
+        twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc Z e n ω ωs)
+      (Zstar' := fun n ω ωs =>
+        twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+      htrue continuous_id.aemeasurable
+      (fun n ω =>
+        twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
+      (by intro n ω; fun_prop) (by intro n ω; fun_prop) hscoreClose
+
+namespace TwoSLSBootstrapCoefficientLinearizationClosenessInputs
+
+set_option linter.style.longLine false in
+/-- Honest Chapter 12.8 coefficient-linearization constructor under observed
+textbook Assumption 12.2.
+
+The indexed bootstrap WLLN and the 2SLS continuous-mapping theorem give
+convergence of the bootstrap linearization matrix. The feasible score CLT gives
+conditional asymptotic tightness, so their product proves the
+population-to-sample linearization closeness field. Only the genuine nonlinear
+coefficient remainder remains as an input. -/
+theorem of_observed_textbook_fourth_linearized_closeness
+    [IsProbabilityMeasure μ]
+    {Z : ℕ → Ω → l → ℝ} {X : ℕ → Ω → k → ℝ}
+    {e Y : ℕ → Ω → ℝ} {β : k → ℝ}
+    (h : TwoSLSAssumption12_2ObservedIidTextbookFourthConditions
+      μ Z X e Y β)
+    (hlinearized_closeness : ∀ δ : ℝ, 0 < δ →
+      TendstoInMeasure μ
+        (fun n ω =>
+          (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
+            {ωs |
+              δ ≤ dist (twoSLSBootstrapBetaGapFinSucc Z X Y n ω ωs)
+                (twoSLSBootstrapLinearizedGapFinSucc Z X Y n ω ωs)})
+        atTop (fun _ => 0)) :
+    TwoSLSBootstrapCoefficientLinearizationClosenessInputs μ
+      (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω)) Z X Y
+      (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+      (scoreCovMat μ Z e)
+      (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))) where
+  population_to_sample_closeness := by
+    have hmatrix :=
+      twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth
+        (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β) h
+    have hscore :=
+      twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_of_observed_textbook_fourth
+        (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β) h
+    have hscoreTight :=
+      tendstoInBootstrapWeakDistributionIndexed_asymptoticallyTight
+        (μ := μ)
+        (Pstar := twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (Zstar := fun n ω ωs =>
+          twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+        hscore
+        (fun n ω =>
+          twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
+        (by intro n ω; fun_prop)
+    have hclose :=
+      indexed_bootstrap_matrix_mulVec_closeness_of_probability_tight
+        (μ := μ)
+        (Pstar := twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
+        (Astar := fun n ω ωs =>
+          twoSLSBootstrapLinearizationMatrixFinSucc Z X n ω ωs)
+        (A := twoSLSPopulationLinearizationMatrix
+          (twoSLSCombinedQXZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZZ (popGram μ (twoSLSCombinedRegressors Z X)))
+          (twoSLSCombinedQZX (popGram μ (twoSLSCombinedRegressors Z X))))
+        (Sstar := fun n ω ωs =>
+          twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
+        (fun n ω =>
+          twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
+        hmatrix hscoreTight
+    intro δ hδ
+    simpa [twoSLSBootstrapLinearizedGapFinSucc,
+      twoSLSBootstrapLinearizedStatisticFinSucc,
+      twoSLSBootstrapPopulationLinearizedGapFinSucc,
+      twoSLSBootstrapPopulationLinearizedStatisticFinSucc,
+      twoSLSBootstrapRecenteredScoreStatisticFinSucc,
+      matrixContinuousLinearMap_apply] using hclose δ hδ
+  linearized_closeness := hlinearized_closeness
+
+end TwoSLSBootstrapCoefficientLinearizationClosenessInputs
+
 /-- Honest remaining empirical-process inputs for Hansen Theorem 12.8.
 
 The true-score CLT implies conditional asymptotic tightness, and bootstrap-
 probability closeness transfers tightness to the feasible score, the two
 coefficient linearizations, and the studentized pair. Consequently none of
-those tail statements is a package field. The remaining bootstrap work is the
-two coefficient-linearization closeness statements and robust covariance
-resampling stability. -/
+those tail statements is a package field. The generic package retains both
+coefficient-closeness fields, while the observed-textbook constructor above
+derives the population-to-sample field and leaves only the nonlinear coefficient
+remainder. Robust covariance resampling stability remains separate. -/
 structure TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs
     (μ : Measure Ω)
     (Z : ℕ → Ω → l → ℝ) (X : ℕ → Ω → k → ℝ)
@@ -14898,6 +15446,7 @@ structure TwoSLSBootstrapTheorem12_8ObservedFullInputs
     TwoSLSBootstrapRobustPercentileTQuantileCalibrationInputs
       μ Z X Y R q α
 
+set_option linter.style.longLine false in
 private theorem
     twoSLSBootstrapBetaGapFinSucc_tendstoInBootstrapWeakDistribution_of_observed_tightInputs
     [IsProbabilityMeasure μ]
@@ -14918,53 +15467,10 @@ private theorem
   let hmixed := h.assumption12_2.toJointIidMixedMomentConditions
   let hiid :=
     hmixed.toTwoSLSAssumption12_2JointIidFourthConditions.toIidFourthConditions
-  have htrue :=
-    twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2
-      (μ := μ) (Z := Z) (X := X) (e := e) hiid
-  have hresid :
-      TwoSLSBootstrapResidualSubstitutionNegligibilityInputs μ Z X Y β :=
-    TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_textbook_fourth
+  have hscore :=
+    twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_of_observed_textbook_fourth
       (μ := μ) (Z := Z) (X := X) (e := e) (Y := Y) (β := β)
-      h.assumption12_2.toResidualTextbookFourthConditions
-  have hscoreClose : ∀ δ : ℝ, 0 < δ →
-      TendstoInMeasure μ
-        (fun n ω =>
-          (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω) n ω).real
-            {ωs |
-              δ ≤ dist
-                (twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
-                (twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc
-                  Z e n ω ωs)})
-        atTop (fun _ => 0) := by
-    intro δ hδ
-    have hdist : ∀ n ω ωs,
-        dist (twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
-          (twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc Z e n ω ωs) =
-          ‖twoSLSBootstrapResidualSubstitutionRecenteredScoreStatisticFinSucc
-            Z X Y β n ω ωs‖ := by
-      intro n ω ωs
-      rw [twoSLSBootstrapRecenteredScoreStatisticFinSucc_eq_true_sub_residualSubstitution
-        Z X Y e β h.assumption12_2.model]
-      simp
-    simpa [hdist] using hresid.residual_substitution_negligible δ hδ
-  have hscore :
-      TendstoInBootstrapWeakDistributionIndexed μ
-        (twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-        (fun n ω ωs =>
-          twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
-        (multivariateGaussian (0 : EuclideanSpace ℝ l) (scoreCovMat μ Z e))
-        (fun z : EuclideanSpace ℝ l => z) :=
-    tendstoInBootstrapWeakDistributionIndexed_of_closeness_law
-      (μ := μ)
-      (Pstar := twoSLSBootstrapUniformPstarFinSucc (Ω := Ω))
-      (Zstar := fun n ω ωs =>
-        twoSLSBootstrapTrueRecenteredScoreStatisticFinSucc Z e n ω ωs)
-      (Zstar' := fun n ω ωs =>
-        twoSLSBootstrapRecenteredScoreStatisticFinSucc Z X Y n ω ωs)
-      htrue continuous_id.aemeasurable
-      (fun n ω =>
-        twoSLSBootstrapUniformPstarFinSucc_isProbabilityMeasure (Ω := Ω) n ω)
-      (by intro n ω; fun_prop) (by intro n ω; fun_prop) hscoreClose
+      h.assumption12_2
   let hGram := hiid.toGramConditions
   have hpop :
       TendstoInBootstrapWeakDistributionIndexed μ

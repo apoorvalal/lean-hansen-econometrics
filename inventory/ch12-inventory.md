@@ -144,9 +144,15 @@
   at the one-observation boundary. The displayed long-form implications remain
   reusable conditional support, but are not Hansen-facing endpoints. A valid
   replacement uses the existing asymptotic-tightness transfer at
-  `tendstoInBootstrapWeakDistributionIndexed_of_closeness_asymptoticallyTight`
-  and must still derive its empirical-process premises plus eventual or
-  high-probability covariance nondegeneracy. The
+  `tendstoInBootstrapWeakDistributionIndexed_of_closeness_asymptoticallyTight`.
+  The new
+  `twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth`
+  derives the bootstrap linearization-matrix limit from observed Assumption 12.2,
+  and
+  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth_linearized_closeness`
+  combines it with feasible-score tightness to discharge population-to-sample
+  linearization closeness. The nonlinear coefficient remainder and robust
+  covariance resampling remain empirical-process inputs. The
   residual-row endpoint
   `twoSLSBootstrap_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`
   and mixed-moment endpoint
@@ -515,10 +521,17 @@ canonical crosswalk above.
   from a fully specified nondegenerate iid Gaussian reduced-form model. Those
   facts cannot follow from the literally printed joint-normal hypothesis alone.
 - **Theorem 12.8.** `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs`
-  now contains only coefficient-linearization closeness and robust-covariance
-  resampling inputs. Genuine conditional asymptotic tightness is derived from
-  bootstrap weak convergence by compact limit-law control and bounded radial
-  cutoffs, then transferred through bootstrap-probability closeness. The new
+  contains coefficient-linearization closeness and robust-covariance resampling
+  inputs. Genuine conditional asymptotic tightness is derived from bootstrap
+  weak convergence by compact limit-law control and bounded radial cutoffs, then
+  transferred through bootstrap-probability closeness. The public theorem
+  `twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth`
+  now derives the bootstrap-sample linearization matrix limit from observed
+  textbook Assumption 12.2 via the indexed Chapter 10 iid-integrable bootstrap
+  WLLN and the existing 2SLS matrix CMT pattern. The honest constructor
+  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth_linearized_closeness`
+  combines that limit with feasible bootstrap score tightness, so callers supply
+  only the actual-coefficient versus sample-linearization remainder. The new
   `TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_textbook_fourth`
   and
   `residualSubstitution_secondMoment_tendstoInMeasure_zero` derive the centered
@@ -531,8 +544,8 @@ canonical crosswalk above.
   `TwoSLSBootstrapTheorem12_8.quantiles_and_coverage` adds the calibrated
   percentile-t interval conclusion. Assumption 12.2 now derives true-score
   tightness, residual substitution, covariance nondegeneracy, sample covariance
-  consistency, and studentization. The remaining raw obligations are the two
-  coefficient-linearization closeness steps, resampled robust-covariance
+  consistency, and studentization. The remaining raw obligations are the
+  nonlinear coefficient-linearization remainder, resampled robust-covariance
   stability, and quantile calibration.
 - **Theorem 12.9.**
   `GeneratedRegressorObservedIidConditions` is the corrected raw observed-row
@@ -984,13 +997,14 @@ support inventory above control completion status and preferred public names.
   `twoSLSBootstrapVHatStarFinSucc` bootstrap consistency plus the existing
   Chapter 12 original-sample covariance WLLN route, so this package path no
   longer asks callers to assemble `TwoSLSBootstrapRobustCovarianceResampleCloseness`
-  separately. Remaining exact gap: prove the primitive
-  true-score tail or bound, centered residual-substitution tail,
-  population-to-sample and coefficient linearization closeness, and robust
-  covariance resampling tail from primitive Assumption 12.2 plus
-  ordinary-bootstrap empirical-process machinery; the score-tail route derives
-  population-linearized coefficient compact-tail control by continuous mapping
-  from feasible recentered-score compact-tail control.
+  separately. Remaining exact gap on the older primitive routes: prove the
+  primitive true-score tail or bound, centered residual-substitution tail,
+  nonlinear coefficient linearization closeness, and robust covariance
+  resampling tail from primitive Assumption 12.2 plus ordinary-bootstrap
+  empirical-process machinery. The observed-row honest constructor now derives
+  population-to-sample linearization closeness directly, while the score-tail
+  route derives population-linearized coefficient compact-tail control by
+  continuous mapping from feasible recentered-score compact-tail control.
 - For Theorem 12.8, the score-tail primitive route now has an envelope-bound
   constructor layer. `TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_norm_bound`,
   `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_dist_bounds`,
