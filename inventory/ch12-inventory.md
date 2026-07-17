@@ -121,9 +121,10 @@
   in projection form (12.31), first-stage fitted-regressor representations, the structural
   residual used for covariance estimation, robust and homoskedastic plug-in covariance
   definitions, and the finite-sample structural-error decomposition (12.39).
-- The canonical textbook endpoints are complete for Theorems 12.1--12.6,
-  12.16, and 12.17. Theorems 12.7--12.15 and 12.18--12.19 retain explicit support
-  surfaces but remain open at their raw assumptions.
+- The canonical textbook endpoints are complete for Theorems 12.1--12.6, 12.8,
+  12.16, and 12.17. Theorem 12.7 is false as printed; Theorems 12.9--12.15 and
+  12.18--12.19 retain explicit support surfaces but remain open at their raw
+  assumptions.
 - The current asymptotic layer proves the rectangular continuous-mapping step from
   sample IV moment convergence to Hansen's linearization matrix, the resulting
   linearized 2SLS consistency term, iid finite-moment constructors for the main
@@ -135,165 +136,19 @@
   ideal true-error robust middle WLLN, the scalar true-error variance WLLN, and
   the exact robust and scalar residual-substitution remainder limits from the
   joint-iid finite-fourth Assumption 12.2 surface.
-- Theorem 12.8's observed-row direct-covariance uniform-remainder support is
-  `twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency_row_ne_zero`.
-  The former public full interval-facing bounded-score wrapper was demoted to
-  private compatibility scaffolding after review: its fixed
-  pathwise true-score bound is incompatible with the nondegenerate Gaussian
-  score limit, and its all-sample covariance positive-definiteness field fails
-  at the one-observation boundary. The displayed long-form implications remain
-  reusable conditional support, but are not Hansen-facing endpoints. A valid
-  replacement uses the existing asymptotic-tightness transfer at
-  `tendstoInBootstrapWeakDistributionIndexed_of_closeness_asymptoticallyTight`.
-  The new
-  `twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth`
-  derives the bootstrap linearization-matrix limit from observed Assumption 12.2,
-  and
-  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth_linearized_closeness`
-  combines it with feasible-score tightness to discharge population-to-sample
-  linearization closeness. The nonlinear coefficient remainder and robust
-  covariance resampling remain empirical-process inputs. The
-  residual-row endpoint
-  `twoSLSBootstrap_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`
-  and mixed-moment endpoint
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`
-  remain compatibility surfaces. Current Lean proves the theorem from the
-  observed/textbook Assumption 12.2 package plus named bootstrap empirical-process,
-  direct covariance-consistency, finite-sample positivity, and quantile-calibration
-  primitives; it does not yet derive those primitives from Assumption 12.2 alone.
-  The older Assumption-12.2-facing endpoint
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_empiricalProcess`
-  remains as the compatibility wrapper over the empirical-process package; it
-  also derives one-row restriction nondegeneracy by
-  `twoSLSBootstrapRestrictionCov_posDef_of_assumption12_2`. The remaining
-  primitive bootstrap-specific work is isolated in
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs`, whose residual-score tail
-  field is now only true-score compact-tail control; feasible score compact-tail
-  is derived from residual-substitution negligibility and the structural equation.
-  The newer primitive route
-  `TwoSLSBootstrapTheorem12_8PrimitiveEmpiricalProcessInputs` keeps coefficient
-  linearization and covariance resampling at tail/closeness level, then converts
-  them by
-  `TwoSLSBootstrapCoefficientLinearizationPrimitiveInputs.toCoefficientLinearizationInputs`
-  and
-  `TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs.toResampleCloseness`.
-  The coefficient-only route also has narrower Assumption-12.2-facing wrappers
-  `twoSLSBootstrapFormulaCoefficientCLTInputs_uniform_of_assumption12_2_residualSubstitutionNegligibility_trueScoreTail_closeness`,
-  `twoSLSBootstrapFormulaAsymptoticNormalConditions_uniform_of_assumption12_2_residualSubstitutionNegligibility_trueScoreTail_closeness`,
-  and
-  `twoSLSBootstrapBetaGapFinSucc_tendstoInBootstrapDistribution_formula_uniform_of_assumption12_2_residualSubstitutionNegligibility_trueScoreTail_closeness`;
-  robust covariance resampling can be supplied by
-  `TwoSLSBootstrapRobustCovarianceResampleCloseness.of_sample_and_bootstrap_consistency`
-  or by the Assumption-12.2 wrapper
-  `TwoSLSBootstrapRobustCovarianceResampleCloseness.of_assumption12_2_iid_weight_wlln_bootstrap_consistency`;
-  named mixed-moment/textbook constructors
-  `TwoSLSBootstrapRobustCovarianceResampleCloseness.of_mixed_moment_conditions_bootstrap_consistency`
-  and
-  `TwoSLSBootstrapRobustCovarianceResampleCloseness.of_textbook_fourth_bootstrap_consistency`
-  remove the need to restate the covariance-weight WLLN fields when direct
-  resampled robust-covariance consistency is available. The same direct
-  covariance route is now exposed at the minimal empirical-process package
-  layer by
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`
-  and
-  `TwoSLSBootstrapTheorem12_8EmpiricalProcessInputs.of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`.
-  The score-tail primitive route
-  `TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs` removes
-  population-linearized coefficient tightness as an independent field:
-  `twoSLSBootstrapPopulationLinearizedGapFinSucc_compactTail_of_recenteredScore_compactTail`
-  derives it by continuous mapping from feasible recentered-score tightness, and
-  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.toPrimitiveInputs_of_residualSubstitution_trueScoreTail`
-  obtains that feasible score tightness from true-score tail control plus
-  residual-substitution negligibility. Direct bridge
-  `TwoSLSBootstrapTheorem12_8ScoreTailPrimitiveEmpiricalProcessInputs.toEmpiricalProcessInputs`
-  converts this score-tail package to the established empirical-process package,
-  and residual-score CLT wrapper
-  `twoSLSBootstrapRecenteredScoreStatisticFinSucc_tendstoInBootstrapWeakDistribution_uniform_of_assumption12_2_residualSubstitutionNegligibility_trueScoreTail`
-  exposes the same true-score-tail route before coefficient linearization. The
-  strongest named theorem endpoints are
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`,
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`
-  and
-  `twoSLSBootstrap_theorem12_8_of_textbook_fourth_uniform_remainders_trueScore_norm_bound_bootstrapCovarianceConsistency`;
-  they derive residual-substitution negligibility and coefficient closeness from
-  concrete uniform remainders, derive true-score compact-tail control from a
-  deterministic true-score norm bound, and use direct ordinary-bootstrap
-  consistency of `twoSLSBootstrapVHatStarFinSucc` to Hansen's formula variance.
-  Compatibility endpoints
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_weight_wlln_residualSubstitutionNegligibility_trueScoreTail_closeness_fullRank_resamplePrimitive`,
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_residualSubstitutionNegligibility_trueScoreTail_closeness_covariancePrimitive`,
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_covariancePrimitive`,
-  and
-  `twoSLSBootstrap_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_covariancePrimitive`
-  keep residual substitution, true-score tightness, coefficient closeness, and
-  robust covariance resampling at the older primitive empirical-process boundary.
-  The direct covariance consistency endpoints
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`
-  and
-  `twoSLSBootstrap_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency`
-  remain available when compact-tail control is already proved directly. The
-  uniform-remainder compact-tail companions
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency`
-  and
-  `twoSLSBootstrap_theorem12_8_of_textbook_fourth_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency`
-  derive the residual-substitution negligibility and coefficient-closeness
-  packages internally from concrete uniform `hResidSmall`, `hPopSmall`, and
-  `hCoefSmall` bounds, while retaining true-score compact-tail control and
-  direct bootstrap robust-covariance consistency as explicit primitives.
-  Interval coverage can now use the same direct covariance route through
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration`,
-  and
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_residualSubstitutionNegligibility_trueScoreTail_closeness_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration`,
-  leaving realized sample covariance positive definiteness and bootstrap
-  quantile calibration as the interval-side primitives.
-  The same interval route has uniform-remainder companions
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration`,
-  and
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_uniform_remainders_trueScoreTail_bootstrapCovarianceConsistency_cov_posDef_quantileCalibration`.
-  The preferred deterministic-bound interval wrappers replace
-  `trueScoreTail` by `trueScore_norm_bound` in those four names.
-  The
-  scalar-envelope endpoint
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds`
-  and coverage wrapper
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds_coverageInputs`
-  now build that score-tail primitive package internally from the residual,
-  population-to-sample, coefficient-linearization, and covariance-resampling
-  envelope-tail bounds. Deterministic true-score-bound companions
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds_trueScore_norm_bound`
-  and
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_joint_iid_mixed_moments_tail_bounds_trueScore_norm_bound_coverageInputs`
-  use the existing compact-tail-from-bound bridge before invoking the same
-  scalar-envelope endpoints. Named-condition bridges
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_scoreTailPrimitiveEmpiricalProcess`,
-  `twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess`,
-  `twoSLSBootstrap_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_row_ne_zero`,
-  `twoSLSBootstrap_theorem12_8_of_mixed_moment_conditions_residualSubstitution_closeness_covariancePrimitive`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_scoreTailPrimitiveEmpiricalProcess_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_residualSubstitution_closeness_covariancePrimitive_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_coverageInputs`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_mixed_moment_conditions_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration`,
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration`,
-  and row-nonzero companion
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_observed_textbook_fourth_scoreTailPrimitiveEmpiricalProcess_cov_posDef_quantileCalibration_row_ne_zero`
-  now reuse the mixed-moment/textbook Assumption 12.2 packages without asking
-  callers to restate the covariance-weight WLLN mixed moments, rebuild the
-  percentile-`t` coverage bridge, or manually assemble the coverage-input
-  package on the strongest score-tail route. Finite-resample bootstrap t-ratio
-  measurability now has public bridges
-  `twoSLSBootstrapLinearRestrictionStatisticFinSucc_measurable`,
-  `twoSLSBootstrapRobustLinearRestrictionStdErrorFinSucc_measurable`, and
-  `twoSLSBootstrapRobustLinearTStatFinSucc_aemeasurable`. Compatibility wrappers
-  `twoSLSBootstrap_theorem12_8_of_assumption12_2_weight_wlln_autoMeas` and
-  `twoSLSBootstrapRobustPercentileTCIEventFinSucc_theorem12_8_of_assumption12_2_weight_wlln_coverageInputs_autoMeas`
-  remove the old manual finite-resample numerator/standard-error measurability
-  premises from the generic weight-WLLN and coverage-input routes.
+- The displayed distribution claim in Theorem 12.8 is complete from observed
+  textbook Assumption 12.2. The direct Hansen-facing theorem
+  `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` takes
+  only that assumption package and a nonzero one-row restriction, then proves
+  both `sqrt n (betaHat* - betaHat)` convergence to Hansen's `N(0,V_beta)` and
+  robust bootstrap t-ratio convergence to `N(0,1)`. Its proof derives the
+  recentered-score CLT, nonlinear coefficient linearization, bootstrap-sample
+  Gram and covariance consistency, singular-event control, and studentization
+  by reusing Chapter 7, Chapter 10, and the Chapter 12 sample-side results.
+  `TwoSLSBootstrapTheorem12_8.quantiles_and_coverage` separately formalizes the
+  following prose claim about percentile-t interval validity; its local
+  quantile-calibration package remains explicit and is not an assumption of the
+  displayed distribution theorem.
 - Theorem 12.8 interval coverage now has named sample-side and quantile-calibration
   packages:
   `TwoSLSBootstrapRobustPercentileTSampleInputs`,
@@ -405,27 +260,50 @@ removed from the public API. The corrected support layer instead uses the normal
 coefficient direction `sqrt(q_j) * (G⁻¹ S)_j`; it derives the shifted coefficient identity
 algebraically and reuses Chapter 11's matrix-normal/inverse-Wishart results for the inverse scale.
 
-The exact remaining step is to derive, from the nondegenerate iid observed-row Gaussian model, the
-standardized residualized fitted-Gram representation and a.e. Gram equality, and the
-standard-Gaussian law and inverse-scale independence of the normalized inverse-Gram coefficient
-direction. Coordinate inverse-scale positivity is no longer assumed: method
-`TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE` derives it from the Chapter 11
-chi-square law. The remaining facts would discharge
-`TwoSLSKinalNormalizedCoefficientGaussianInputs` without assuming either the coefficient
-decomposition or Kinal's desired moment conclusion.
+The strongest corrected endpoint no longer requires a standardized matrix witness or an a.e. Gram
+equality. Its smallest Gram primitive is the direct central Wishart law of the actual FWL Gram. One
+vector-level `HasGaussianLaw` premise, zero coordinate means, at least one strictly positive named
+coordinate variance, and vector/Gram independence replace all coordinate law and coordinate
+inverse-scale independence premises. Zero-variance coordinates are constants and therefore have
+every finite moment. Methods
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.normalizedDirectionLaw` and
+`.normalizedDirectionInverseScaleIndep` derive those coordinate facts through Mathlib;
+`.inverseScaleLaws` and `.inverseScalePosAE` derive the chi-square law and positivity through Chapter
+11. Optional constructor `.of_iidMatrixGaussian_gram_ae_eq` derives the direct Wishart field and
+vector/Gram independence from an explicit iid matrix-Gaussian witness, direction/matrix independence,
+and an a.e. Gram equality. None of these inputs assumes a coefficient decomposition or Kinal's moment
+conclusion.
+
+The broader relevant iid Gaussian reduced-form model still needs two distinct bridges. First, it
+needs a Gaussian regression/decomposition theorem deriving the normalized coefficient direction's
+centered Gaussian law and its independence from the fitted Gram. Second, it needs the corresponding
+inverse-scale tail theorem for the fitted Gram. A relevant Gaussian first stage generally gives a
+noncentral conditional Gram; with random instruments its unconditional law can be a mixture rather
+than one fixed noncentral Wishart law. Chapter 11 currently has central Wishart and inverse-Wishart
+laws only, and Mathlib has no noncentral Wishart API. Thus the direction-law/independence and direct
+central-Wishart fields in `TwoSLSKinalNormalizedCoefficientGaussianInputs` are honest
+corrected-model restrictions, not facts derivable from Hansen's raw joint-normal sentence.
 
 Lean-only Kinal support includes `twoSLSKinalObservedRow`,
 `TwoSLSKinalJointNormalConditions`, `twoSLSKinalFWLNormalizedCoefficientDirectionStar`,
 `twoSLSKinalShiftedGaussianInverseChiSqCoordMap`,
 `twoSLSKinalFWLBetaStar_apply_eq_shifted_normalizedDirection`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs`,
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.of_iidMatrixGaussian_gram_ae_eq`,
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.normalizedDirectionLaw`,
+`TwoSLSKinalNormalizedCoefficientGaussianInputs.normalizedDirectionInverseScaleIndep`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScaleLaws`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.inverseScalePosAE`,
 `twoSLSKinalFWLBetaStar_apply_hasLaw_shiftedGaussianInverseChiSq`,
+`TwoSLSKinalNormalizedCoefficientGaussianVectorInputs`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.toFWLCoordinateMomentIff`,
 `TwoSLSKinalNormalizedCoefficientGaussianInputs.toExactMomentIff`, and
-`twoSLSKinal_momentThreshold_of_normalizedCoefficientGaussianInputs`. These are a corrected strong
-decomposition surface, not a proof of Hansen's false literal Theorem 12.7. The formal obstructions are
+`twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae`,
+`twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae`, and
+`twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian`. The rank-facing theorems require
+only the four a.e. rank events and instrument-count inequality actually used by the deterministic
+FWL and inverse-Wishart proof; the last declaration is a thin convenience wrapper. These are a
+corrected central-Wishart surface, not a proof of Hansen's false literal Theorem 12.7. The formal obstructions are
 `twoSLSKinal_printedJointNormal_not_sufficient` for singular Gaussian data and
 `twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous` for the omitted `k₂ > 0` edge.
 
@@ -445,7 +323,7 @@ crosswalk.
 | Theorem 12.5 | `twoSLSFunction_theorem12_5_of_textbook12_2_observed_iid_73_derivativePlugIn` |
 | Theorem 12.6 | `twoSLSFunctionWald_theorem12_6_of_textbook12_2_observed_iid_73_derivativePlugIn` |
 | Theorem 12.7 |  |
-| Theorem 12.8 |  |
+| Theorem 12.8 | `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` |
 | Theorem 12.9 |  |
 | Theorem 12.10 |  |
 | Theorem 12.11 |  |
@@ -509,44 +387,66 @@ canonical crosswalk above.
   `twoSLSKinalExactMomentIff_false_of_isEmpty_endogenous` proves that the iff is
   false for an empty endogenous block under every measure and dataset. The
   strongest active corrected endpoint is
-  `twoSLSKinal_momentThreshold_of_normalizedCoefficientGaussianInputs`. Its
-  `TwoSLSKinalNormalizedCoefficientGaussianInputs` argument records the
-  nondegenerate standardized residualized-Gram law plus standard-Gaussian and
-  inverse-scale-independent normalized coefficient directions; it assumes
-  neither a coefficient decomposition nor a moment conclusion. The coefficient
-  representation is algebraic, inverse-scale laws reuse Chapter 11, positivity
-  is now derived by `.inverseScalePosAE`, and the exact tail iff reuses the proved
-  Student-t normal/chi-square ratio threshold. The remaining valid-model gap is
-  to derive the Gram representation and normalized-direction law/independence
-  from a fully specified nondegenerate iid Gaussian reduced-form model. Those
-  facts cannot follow from the literally printed joint-normal hypothesis alone.
+  `twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussianVector_of_rank_ae`.
+  Its `TwoSLSKinalNormalizedCoefficientGaussianVectorInputs` argument records
+  the direct central Wishart law of the actual FWL Gram, joint Gaussianity and
+  zero means of the normalized coefficient direction, and vector/Gram
+  independence; a separate premise requires only one positive coordinate
+  variance. It assumes neither a coefficient decomposition nor a moment
+  conclusion. Mathlib derives the centered Gaussian coordinate laws and
+  coordinate independence, Chapter 11 derives inverse-scale laws and
+  positivity, Gaussian scaling transports positive-variance coordinates to the
+  proved Student-t normal/chi-square ratio threshold, and zero-variance
+  coordinates reduce to constants. The all-coordinate-positive declaration
+  `twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian_of_rank_ae`
+  and the joint-normal-package declaration
+  `twoSLSKinal_theorem12_7_of_centralWishart_normalizedGaussian` are thin
+  wrappers around this theorem. The broader-model
+  gap has both a decomposition side and an inverse-tail side: the repo does not
+  yet derive the normalized direction's Gaussian law and independence from raw
+  joint normality, and a relevant Gaussian first stage need not have a central
+  Wishart fitted Gram. With random instruments the unconditional Gram law can be
+  a mixture, while the repo has no noncentral or mixture inverse-Gram
+  moment-threshold theorem. These facts cannot follow from the literally printed
+  joint-normal hypothesis alone.
 - **Theorem 12.8.** `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs`
-  contains coefficient-linearization closeness and robust-covariance resampling
-  inputs. Genuine conditional asymptotic tightness is derived from bootstrap
-  weak convergence by compact limit-law control and bounded radial cutoffs, then
-  transferred through bootstrap-probability closeness. The public theorem
+  retains generic coefficient-linearization and robust-covariance resampling
+  fields, but
+  `TwoSLSBootstrapTheorem12_8TightEmpiricalProcessInputs.of_observed_textbook_fourth`
+  now derives both from observed textbook Assumption 12.2. The public theorem
   `twoSLSBootstrapLinearizationMatrixFinSucc_tendstoInBootstrapProbability_uniform_of_observed_textbook_fourth`
-  now derives the bootstrap-sample linearization matrix limit from observed
+  derives the bootstrap-sample linearization matrix limit from observed
   textbook Assumption 12.2 via the indexed Chapter 10 iid-integrable bootstrap
-  WLLN and the existing 2SLS matrix CMT pattern. The honest constructor
-  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth_linearized_closeness`
-  combines that limit with feasible bootstrap score tightness, so callers supply
-  only the actual-coefficient versus sample-linearization remainder. The new
+  WLLN and the existing 2SLS matrix CMT pattern.
+  `twoSLSBootstrapBetaGapFinSucc_linearized_closeness_of_observed_textbook_fourth`
+  proves the nonlinear coefficient remainder using the exact nonsingular
+  identity, vanishing original/resample singular probabilities, bootstrap
+  `o(1)` linearization-matrix replacement, and observed-sample `O_p(1)` residual
+  score. Consequently
+  `TwoSLSBootstrapCoefficientLinearizationClosenessInputs.of_observed_textbook_fourth`
+  has no conclusion-shaped premise. The existing
   `TwoSLSBootstrapResidualSubstitutionNegligibilityInputs.of_textbook_fourth`
   and
   `residualSubstitution_secondMoment_tendstoInMeasure_zero` derive the centered
   residual-substitution bootstrap negligibility directly from literal
-  Assumption 12.2 through the existing quadratic remainder WLLN. The wrapper
-  later asymptotic-tightness endpoint therefore no longer assumes that part of
-  the bootstrap argument.
-  `TwoSLSBootstrapTheorem12_8.distribution` reuses the resulting tightness,
-  coefficient transfer, robust covariance consistency, and studentization;
+  Assumption 12.2 through the existing quadratic remainder WLLN.
+  `twoSLSBootstrapVHatStarFinSucc_tendstoInBootstrapProbability_of_observed_textbook_fourth`
+  derives resampled robust covariance consistency from indexed WLLNs for the
+  ideal, cross, and quadratic middle-matrix rows plus the 2SLS sandwich CMT;
+  `TwoSLSBootstrapRobustCovarianceResamplePrimitiveInputs.of_observed_textbook_fourth`
+  then derives resampled-versus-original covariance stability.
+  `TwoSLSBootstrapTheorem12_8ObservedDistributionInputs.of_observed_textbook_fourth`
+  therefore closes the distribution-side raw obligations from Assumption 12.2
+  and a nonzero one-row restriction. The direct wrapper
+  `TwoSLSBootstrapTheorem12_8.distribution_of_observed_textbook_fourth` reuses
+  the resulting tightness, coefficient transfer, robust covariance consistency,
+  and studentization and is the canonical displayed-theorem endpoint;
   `TwoSLSBootstrapTheorem12_8.quantiles_and_coverage` adds the calibrated
-  percentile-t interval conclusion. Assumption 12.2 now derives true-score
-  tightness, residual substitution, covariance nondegeneracy, sample covariance
-  consistency, and studentization. The remaining raw obligations are the
-  nonlinear coefficient-linearization remainder, resampled robust-covariance
-  stability, and quantile calibration.
+  percentile-t interval conclusion. There is no remaining raw obligation for
+  the displayed distribution theorem. The separate interval result retains
+  quantile calibration: its package records bootstrap quantile-process
+  measurability, strict monotonicity of the standard-normal CDF, and the chosen
+  critical value's two CDF equations.
 - **Theorem 12.9.**
   `GeneratedRegressorObservedIidConditions` is the corrected raw observed-row
   package. It derives the oracle Chapter 7 OLS CLT and HC0 consistency, the
@@ -728,22 +628,32 @@ canonical crosswalk above.
   literal sample pencil.
   `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` therefore
   constructs the assembly from those primitive conditions plus the selector
-  certificate, without assuming estimator convergence, and
-  `weakIV_theorem12_18_triangular_raw_assembly` derives the supported joint
-  Gram/score assembly, sample instrument-rank event, and scaled LIML-root
-  convergence. The selector certificate requires both finite-sample and
-  limiting generalized Rayleigh minimization; estimator-rank assumptions are
-  not carried by the raw assembly because its current conclusions do not use
-  them. The remaining estimator gap is structural:
-  the older endpoint is indexed by prefixes of one fixed regressor sequence,
-  while (12.71) is the triangular array
-  `X_{m,i}=m^{-1/2}C'Z_i+u_{2i}`. A complete raw endpoint still needs a concrete
-  measurable a.s.-continuous smallest generalized-root selector, the triangular
-  totalization CMT for all three estimator limits, and nondegenerate
-  `Sigma22`/limiting-bread assumptions omitted from the excerpt. Earlier circular
-  estimator-limit packages, X-only Rayleigh routes, and nonpositive-Rayleigh
-  sufficient-condition endpoints are historical compatibility declarations
-  under `WeakIVCompatibility`, not canonical Theorem 12.18 support.
+  certificate, without assuming estimator convergence.
+  `weakIV_triangular_actual_moments_tendstoInDistribution` reconstructs from
+  the exact pencil the actual triangular OLS, root-scaled 2SLS, and weak-scaled
+  LIML bread/score pairs and proves their joint limit. The shared Star
+  totalization CMT
+  `weakIV_triangular_estimators_minus_beta_tendstoInDistribution` then derives
+  joint convergence of the three actual estimators, and the theorem-shaped
+  endpoint `weakIV_theorem12_18_triangular_estimators` exposes Hansen's OLS
+  probability limit, the 2SLS and LIML distributional limits, and the limiting
+  full-pencil Rayleigh-minimizer certificate. Thus the older fixed-prefix versus
+  triangular-array obstruction and the estimator-totalization gap are closed.
+  The endpoint makes explicit three nondegeneracy conditions omitted by the
+  excerpt's bare phrase "Under (12.71)": nonsingular `Sigma22`, almost-sure
+  nonsingularity of the random 2SLS limiting bread, and almost-sure
+  nonsingularity of the random LIML limiting bread. Population instrument-Gram
+  nonsingularity is also required by
+  `WeakIVTheorem1218TriangularAssemblyConditions.of_raw_moments` to derive the
+  exact pencil CMT. The remaining raw obstruction is spectral: Mathlib has
+  ordered eigenvalues for one Hermitian matrix but no ready measurable,
+  a.s.-continuous smallest generalized-root selector for the random matrix
+  pencil. `WeakIVTheorem1218TriangularSelectorCertificate` isolates precisely
+  that missing fact, including finite-sample and limiting Rayleigh
+  minimization. Earlier circular estimator-limit packages, X-only Rayleigh
+  routes, and nonpositive-Rayleigh sufficient-condition endpoints are
+  historical compatibility declarations under `WeakIVCompatibility`, not
+  canonical Theorem 12.18 support.
 - **Theorem 12.19.** The non-circular model surface is
   `ManyInstrumentsTheorem1219RawModelConditions`. Honest projected-form and
   spectral support is separated into
@@ -752,10 +662,17 @@ canonical crosswalk above.
   `ManyInstrumentsLIMLGeneralizedEigenvalueSelectorCertificate`, and
   `manyInstruments_limlMuHat_tendsto_of_normalizedPencil_selector`. The endpoint
   `manyInstruments_estimators_theorem12_19_of_rawModel_concentration_selector`
-  now derives the complete 2SLS assembly and all three estimator limits from
-  the raw model plus honest unprojected WLLN, projected mean-square
-  concentration, normalized-pencil convergence, and a locally continuous
-  generalized-root selector. The corrected raw package additionally requires
+  now derives the complete 2SLS assembly, normalized LIML pencil, and all three
+  estimator limits from the raw model plus the reduced-form OLS moment assembly,
+  projected mean-square concentration, and a locally continuous generalized-root
+  selector. The raw model itself now implies the ordinary full-error WLLN through
+  `ManyInstrumentsConditionalHomoskedasticFourthMomentModel.toUnprojectedFullErrorMomentConditions`:
+  the proof centers every row-product entry, uses conditional independence to
+  eliminate cross-row covariances, and obtains a `B/n` mean-square bound. The
+  constructor
+  `ManyInstrumentsLIMLNormalizedPencilConvergenceConditions.of_rawModel_moments`
+  combines that WLLN with the OLS and projected moments, so normalized-pencil
+  convergence is no longer an endpoint assumption. The corrected raw package additionally requires
   `Sigma.PosDef`; Hansen's covariance display identifies `Sigma` but does not
   state this nondegeneracy condition, while the current LIML limit assembly
   consumes it. The LIML pencil now uses
@@ -765,11 +682,10 @@ canonical crosswalk above.
   `manyInstrumentsJointReducedFormCovariance_posDef`. It also records (12.77) explicitly: Hansen's
   displayed theorem omits that signal-Gram limit, but the proof uses it in
   (12.78), to identify `H`, and in every estimator limit. Remaining raw work is
-  to derive the unprojected triangular-array WLLNs and (12.78), prove the
+  to derive the signal-weighted reduced-form WLLNs in the OLS assembly, prove the
   `O(1/n)` projected concentration bounds from conditional independence and
-  (12.74)--(12.75), derive the normalized-pencil convergence, and construct the
-  concrete smallest generalized-root selector with its local continuity and
-  finite-sample LIML identity. Hansen's argument also uses row independence and
+  (12.74)--(12.75), and construct the concrete smallest generalized-root selector
+  with its local continuity and finite-sample LIML identity. Hansen's argument also uses row independence and
   `Z'Z` nonsingularity, neither of which appears in the numbered theorem
   assumptions. The former additive-row and
   scalar adjustment-gap packages are deprecated compatibility surfaces.
